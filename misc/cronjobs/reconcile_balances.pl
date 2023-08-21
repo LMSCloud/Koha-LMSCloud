@@ -51,19 +51,12 @@ Makes the process print information about the taken actions.
 
 use Modern::Perl;
 
-use Getopt::Long;
-use Pod::Usage;
-use Try::Tiny;
-
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
+use Try::Tiny qw( catch try );
 
 use Koha::Script -cron;
-use C4::Log;
+use C4::Log qw( cronlogaction );
 
 use Koha::Account::Lines;
 use Koha::Patrons;
@@ -71,15 +64,17 @@ use Koha::Patrons;
 my $help    = 0;
 my $verbose = 0;
 
+my $command_line_options = join(" ",@ARGV);
+
 GetOptions(
     'help'    => \$help,
     'verbose' => \$verbose
 ) or pod2usage(2);
 
 pod2usage(1) if $help;
-cronlogaction();
+cronlogaction({ info => $command_line_options });
 
-my @patron_ids = map { $_->borrowernumber } Koha::Account::Lines->search(
+my @patron_ids = Koha::Account::Lines->search(
         {
             amountoutstanding => { '<' => 0 },
             borrowernumber => { '!=' => undef }
@@ -88,7 +83,7 @@ my @patron_ids = map { $_->borrowernumber } Koha::Account::Lines->search(
             columns  => [ qw/borrowernumber/ ],
             distinct => 1,
         }
-    );
+    )->get_column('borrowernumber');
 
 my $patrons = Koha::Patrons->search({ borrowernumber => { -in => \@patron_ids } });
 
@@ -117,6 +112,8 @@ while (my $patron = $patrons->next) {
         };
     }
 }
+
+cronlogaction({ action => 'End', info => "COMPLETED" });
 
 1;
 

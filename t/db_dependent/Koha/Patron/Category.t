@@ -19,12 +19,13 @@
 
 use Modern::Perl;
 
-use Test::More tests => 5;
+use Test::More tests => 7;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
 use Koha::Database;
+use Koha::DateUtils qw( dt_from_string );
 
 my $schema  = Koha::Database->new->schema;
 my $builder = t::lib::TestBuilder->new;
@@ -154,12 +155,12 @@ subtest 'override_hidden_items() tests' => sub {
     my $category_1 = $builder->build_object({ class => 'Koha::Patron::Categories' });
     my $category_2 = $builder->build_object({ class => 'Koha::Patron::Categories' });
 
-    t::lib::Mocks::mock_preference( 'OpacHiddenItemsExceptions', $category_1->categorycode . '|' . $category_2->categorycode . '|RANDOM' );
+    t::lib::Mocks::mock_preference( 'OpacHiddenItemsExceptions', $category_1->categorycode . ',' . $category_2->categorycode . ',RANDOM' );
 
     ok( $category_1->override_hidden_items, 'Category configured to override' );
     ok( $category_2->override_hidden_items, 'Category configured to override' );
 
-    t::lib::Mocks::mock_preference( 'OpacHiddenItemsExceptions', 'RANDOM|' . $category_2->categorycode );
+    t::lib::Mocks::mock_preference( 'OpacHiddenItemsExceptions', 'RANDOM,' . $category_2->categorycode );
 
     ok( !$category_1->override_hidden_items, 'Category not configured to override' );
     ok( $category_2->override_hidden_items, 'Category configured to override' );
@@ -201,4 +202,70 @@ subtest 'effective_require_strong_password' => sub {
   is($category->effective_require_strong_password, 1, 'Patron should be required strong password from category');
 
   $schema->storage->txn_rollback;
+};
+
+subtest 'get_password_expiry_date() tests' => sub {
+
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my $category = $builder->build_object({ class => 'Koha::Patron::Categories' });
+    $category->password_expiry_days( undef )->store;
+
+    is( $category->get_password_expiry_date(), undef, "No date returned if expiry days undef" );
+
+    $category->password_expiry_days( 32 )->store;
+    is( $category->get_password_expiry_date(), dt_from_string()->add( days => 32 )->ymd, "Date correctly calculated from password_expiry_days when set");
+
+};
+
+subtest 'can_make_suggestions' => sub {
+
+    plan tests => 6;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'suggestion', 0 );
+    t::lib::Mocks::mock_preference( 'suggestionPatronCategoryExceptions', undef );
+
+    my $category_1 = $builder->build_object({ class => 'Koha::Patron::Categories' });
+    my $category_2 = $builder->build_object({ class => 'Koha::Patron::Categories' });
+
+    ok(
+        !$category_1->can_make_suggestions && !$category_2->can_make_suggestions,
+        'suggestions globally disabled, categories not in exceptions'
+    );
+
+    t::lib::Mocks::mock_preference( 'suggestion', 1 );
+    ok(
+        $category_1->can_make_suggestions && $category_2->can_make_suggestions,
+        'suggestions globally enabled'
+    );
+
+    t::lib::Mocks::mock_preference( 'suggestionPatronCategoryExceptions', $category_2->categorycode );
+    ok(
+        $category_1->can_make_suggestions && !$category_2->can_make_suggestions,
+        'suggestions enabled, suggestionPatronCategoryExceptions set, so present categories not allowed'
+    );
+
+    t::lib::Mocks::mock_preference( 'suggestionPatronCategoryExceptions', $category_1->categorycode );
+    ok(
+        !$category_1->can_make_suggestions && $category_2->can_make_suggestions,
+        'suggestions enabled, suggestionPatronCategoryExceptions set, so present categories not allowed'
+    );
+
+    t::lib::Mocks::mock_preference( 'suggestionPatronCategoryExceptions', join( ',', $category_1->categorycode, $category_2->categorycode) );
+    ok(
+        !$category_1->can_make_suggestions && !$category_2->can_make_suggestions,
+        'suggestions enabled, suggestionPatronCategoryExceptions set to both categories, both denied'
+    );
+
+    t::lib::Mocks::mock_preference( 'suggestion', 0 );
+    ok(
+        !$category_1->can_make_suggestions && !$category_2->can_make_suggestions,
+        'suggestions disabled, no matter what the value of suggestionPatronCategoryExceptions is'
+    );
+
+    $schema->storage->txn_rollback;
 };

@@ -1,0 +1,60 @@
+/bzsh/id_mapping:
+  post:
+    x-mojo-to: BZSH::IdMapping#add
+    operationId: add_bzshid_mapping
+    description: Store mappings between local biblionumber and BZSH catalog IDs. The BZSH ID is stored in 998$a with Indikator1=i and Inidkator2 empty.
+    summary: Store mappings between local biblionumber and BZSH catalog IDs
+    tags:
+      - bzshid_mapping
+    parameters:
+      - name: body
+        in: body
+        description: Add catalog ID mapping in MARC field 998i $a to store the central catalog ID with a local catalog record.
+        required: true
+        schema:
+          type: array
+          items:
+            $ref: "../swagger.yaml#/definitions/bzshid_mapping"
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      '201':
+        description: The mapping was applied and stored with the catalog records.
+        schema:
+          type: object
+          properties:
+            process_info:
+              type: string
+      '400':
+        description: Bad parameter
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '401':
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '403':
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '404':
+        description: Resource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '409':
+        description: Conflict in creating resource
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '500':
+        description: Internal server error
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '503':
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        parameters: edit_catalogue

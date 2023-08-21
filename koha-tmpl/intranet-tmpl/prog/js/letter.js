@@ -1,10 +1,10 @@
 /* Variables defined in letter.tt: */
-/* global _ module add_form copy_form no_op_set code interface theme KohaTable columns_settings */
+/* global _ module add_form copy_form no_op_set code interface theme KohaTable table_settings */
 
 var modal_loading = "<div id=\"loading\"><img src=\"" + interface + "/" + theme + "/img/spinner-small.gif\" alt=\"\" /> "+ __('Loading...') +"</div>";
 
 var editing = 0;
-if( add_form == 1 && code !== '' ){
+if( add_form == 1 && code !== '' || copy_form == 1 && code !== ''){
     editing = 1;
 }
 
@@ -30,6 +30,24 @@ function checkCodes( new_lettercode, new_branchcode ){
     });
 }
 
+function confirmOverwrite( new_lettercode, new_branchcode ){
+    var letter_exists;
+    $.ajax({
+        data: { code: new_lettercode, branchcode: new_branchcode },
+        type: 'GET',
+        url: '/cgi-bin/koha/svc/letters/get/',
+        async: !1,
+        success: function (data) {
+            if ( data.letters.length > 0 ) {
+                letter_exists = 1;
+            }
+        }
+    });
+    if(letter_exists){
+        return confirm(__("A letter with the code '%s' already exists for '%s'. Overwrite this letter?").format(new_lettercode, new_branchcode));
+    }
+}
+
 var Sticky;
 
 $(document).ready(function() {
@@ -44,8 +62,7 @@ $(document).ready(function() {
     var ntable = KohaTable("lettert", {
         "autoWidth": false,
         "paging": false,
-        "aaSorting": [[ 3, "asc" ]],
-    }, columns_settings);
+    }, table_settings);
 
     if( no_op_set ){
         $('#branch').change(function() {
@@ -104,6 +121,16 @@ $(document).ready(function() {
             // Test if code already exists in DB
             if( editing == 1 ){ // This is an edit operation
                 // We don't need to check for an existing Code
+                // However if we're copying, provide confirm
+                // pop up of overwriting existing notice or slip
+                if(copy_form == 1){
+                    var new_lettercode = $("#code").val();
+                    var new_branchcode = $("#branch").val();
+                    var confirm = confirmOverwrite( new_lettercode, new_branchcode );
+                    if(confirm === false){
+                        return false;
+                    }
+                }
             } else {
                 var new_lettercode = $("#code").val();
                 var new_branchcode = $("#branch").val();
@@ -120,7 +147,7 @@ $(document).ready(function() {
     $(".content_sms").on("keyup", function(){
         var length = $(this).val().length;
         var sms_counter = ("#sms_counter_" + $(this).data('lang'));
-        $(sms_counter).html(length + "/" + sms_limit + _(" characters"));
+        $(sms_counter).html(length + "/" + sms_limit + __(" characters"));
         if ( length  > sms_limit ) {
             $(sms_counter).css("color", "red");
         } else {
@@ -128,19 +155,30 @@ $(document).ready(function() {
         }
     });
 
-    $( ".transport-types" ).accordion({
-        collapsible: true,
-        active: parseInt( $("#section").val(), 10),
-        animate: 200,
-        activate: function() {
-            var active = $( ".transport-types" ).accordion( "option", "active" );
-            if( active === false ){
-                $("#section").val("");
-            } else {
-                $("#section").val( active );
-            }
-        }
+    let section = $("#section").val();
+    if( section != "" ){
+        $("a[href='#" + section + "']").click();
+    }
+
+    $(".panel-group").on("shown.bs.collapse", function (e) {
+        $("#section").val( e.target.id );
+    }).on("hidden.bs.collapse", function (e) {
+        $("#section").val("");
     });
+
+    if( $("#tabs").length > 0 ){
+        let langtab = $("#langtab").val();
+        $("#tabs a[data-toggle='tab']").on("shown.bs.tab", function (e) {
+            var link = e.target.hash.replace("#","");
+            $("#langtab").val( link );
+        });
+
+        if( langtab != "" ){
+            $("#tabs a[href='#" + langtab + "']").tab("show");
+        } else {
+            $("#tabs a[href='#lang_default_panel']").tab("show");
+        }
+    }
 
     $(".insert").on("click",function(){
         var containerid = $(this).data("containerid");
@@ -152,8 +190,6 @@ $(document).ready(function() {
         $("#redirect").val("just_save");
         $("#submit_form").click();
     });
-
-    $("#tabs").tabs();
 
     $("body").on("click", ".preview_template", function(e){
         e.preventDefault();
@@ -189,7 +225,7 @@ $(document).ready(function() {
 
         if($(myListBox).find('option').length > 0) {
             $(myListBox).find('option').each( function (){
-                if ( $(this).attr('selected') && $(this).val().length > 0 ) {
+                if ( $(this).prop('selected') && $(this).val().length > 0 ) {
                     $(myQuery).insertAtCaret("<<" + $(this).val() + ">>");
                 }
             });

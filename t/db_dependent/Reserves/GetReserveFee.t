@@ -26,8 +26,8 @@ use Test::MockModule;
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
-use C4::Circulation;
-use C4::Reserves qw|AddReserve|;
+use C4::Circulation qw( AddIssue );
+use C4::Reserves qw( GetReserveFee ChargeReserveFee AddReserve );
 use Koha::Database;
 
 my $schema = Koha::Database->new->schema;
@@ -52,6 +52,13 @@ $builder->build({
         reservefee            => 2,
     },
 });
+$builder->build({
+    source => 'Category',
+    value  => {
+        categorycode          => 'XYZ2',
+        reservefee            => 0,
+    },
+});
 my $patron1 = $builder->build({
     source => 'Borrower',
     value  => {
@@ -66,6 +73,12 @@ my $patron2 = $builder->build({
 });
 my $patron3 = $builder->build({
     source => 'Borrower',
+});
+my $patron4 = $builder->build({
+    source => 'Borrower',
+    value  => {
+        categorycode => 'XYZ2',
+    },
 });
 
 # One biblio and two items
@@ -84,9 +97,10 @@ my $item2 = $builder->build_sample_item(
 );
 
 subtest 'GetReserveFee' => sub {
-    plan tests => 5;
+    plan tests => 6;
 
     C4::Circulation::AddIssue( $patron1, $item1->barcode, '2015-12-31', 0, undef, 0, {} ); # the date does not really matter
+    C4::Circulation::AddIssue( $patron3, $item2->barcode, '2015-12-31', 0, undef, 0, {} ); # the date does not really matter
     my $acc2 = acctlines( $patron2->{borrowernumber} );
     my $res1 = addreserve( $patron1->{borrowernumber} );
 
@@ -108,6 +122,10 @@ subtest 'GetReserveFee' => sub {
     t::lib::Mocks::mock_preference('HoldFeeMode', 'any_time_is_collected');
     $fee = C4::Reserves::GetReserveFee( $patron2->{borrowernumber}, $biblio->biblionumber );
     is( int($fee), 2, 'HoldFeeMode=any_time_is_collected, Patron 2 should be charged' );
+
+    t::lib::Mocks::mock_preference('HoldFeeMode', 'any_time_is_placed');
+    $fee = C4::Reserves::GetReserveFee( $patron4->{borrowernumber}, $biblio->biblionumber );
+    is( $fee, 0, 'HoldFeeMode=any_time_is_placed ; fee == 0, Patron 4 should not be charged' );
 };
 
 subtest 'Integration with AddReserve' => sub {
@@ -138,8 +156,10 @@ subtest 'Integration with AddReserve' => sub {
     };
 
     subtest 'Items are issued' => sub {
-        plan tests => 3;
+        plan tests => 4;
 
+        $dbh->do( "DELETE FROM issues       WHERE itemnumber=?", undef, $item1->itemnumber);
+        $dbh->do( "DELETE FROM issues       WHERE itemnumber=?", undef, $item2->itemnumber);
         C4::Circulation::AddIssue( $patron2, $item1->barcode, '2015-12-31', 0, undef, 0, {} );
 
         t::lib::Mocks::mock_preference('HoldFeeMode', 'not_always');
@@ -152,14 +172,19 @@ subtest 'Integration with AddReserve' => sub {
         $dbh->do( "DELETE FROM accountlines WHERE borrowernumber=?", undef, $patron1->{borrowernumber} );
         addreserve( $patron3->{borrowernumber} );
         addreserve( $patron1->{borrowernumber} );
-        # FIXME Are we sure it's the expected behavior?
-        is( acctlines( $patron1->{borrowernumber} ), 1, 'not_always - Patron should be charged if all the items are not checked out and at least 1 hold is already placed' );
+        is( acctlines( $patron1->{borrowernumber} ), 0, 'not_always - Patron should not be charged if all the items are not checked out, even if 1 hold is already placed' );
 
         C4::Circulation::AddIssue( $patron3, $item2->barcode, '2015-12-31', 0, undef, 0, {} );
         $dbh->do( "DELETE FROM reserves     WHERE biblionumber=?", undef, $biblio->biblionumber );
         $dbh->do( "DELETE FROM accountlines WHERE borrowernumber=?", undef, $patron1->{borrowernumber} );
         addreserve( $patron1->{borrowernumber} );
-        is( acctlines( $patron1->{borrowernumber} ), 1, 'not_always - Patron should be charged if all items are checked out' );
+        is( acctlines( $patron1->{borrowernumber} ), 0, 'not_always - Patron should not be charged if all items are checked out but no holds are placed' );
+
+        $dbh->do( "DELETE FROM reserves     WHERE biblionumber=?", undef, $biblio->biblionumber );
+        $dbh->do( "DELETE FROM accountlines WHERE borrowernumber=?", undef, $patron1->{borrowernumber} );
+        addreserve( $patron3->{borrowernumber} );
+        addreserve( $patron1->{borrowernumber} );
+        is( acctlines( $patron1->{borrowernumber} ), 1, 'not_always - Patron should only be charged if all items are checked out and at least 1 hold is already placed' );
     };
 };
 

@@ -14,16 +14,16 @@
 [% INCLUDE 'masthead.inc' %]
 
 <div class="main">
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
+    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
+        <ol class="breadcrumb">
             <li class="breadcrumb-item">
                 <a href="/cgi-bin/koha/opac-main.pl">Home</a>
             </li>
-            <li class="breadcrumb-item active" aria-current="page">
-                <a href="#">Placing a hold</a>
+            <li class="breadcrumb-item active">
+                <a href="#" aria-current="page">Placing a hold</a>
             </li>
-        </ul>
-    </nav>
+        </ol>
+    </nav> <!-- /#breadcrumbs -->
 
     <div class="container">
         <div id="holds" class="maincontent">
@@ -35,7 +35,7 @@
                         [% IF ( GNA ) %]
                             <li id="gna">
                                 According to our records, we don't have up-to-date contact information. Please contact the library.
-                                <a href="/cgi-bin/koha/opac-memberentry.pl">[% IF ( Koha.Preference('OPACPatronDetails') ) %]Update your contact information[% ELSE %]Go to your contact information[% END %]</a>
+                                <a href="/cgi-bin/koha/opac-memberentry.pl">[% IF ( Koha.Preference('OPACPatronDetails') ) %]<span>Update your contact information</span>[% ELSE %]<span>Go to your contact information</span>[% END %]</a>
                                 [% IF ( Koha.Preference('OPACPatronDetails') ) %]<em>(Please note: there may be a delay in restoring your account if you submit online.)</em>[% END %]
                             </li>
                         [% END %]
@@ -43,7 +43,7 @@
                         [% IF ( lost ) %]
                             <li id="lost">
                                 Your library card has been marked as lost or stolen.<br />
-                                <em>If this is an error, please take your card to the circulation desk at your local library and the error will be corrected.</em>
+                                <em>If this is an error, please take your library card to the circulation desk at your local library and the error will be corrected.</em>
                             </li>
                         [% END %]
 
@@ -85,7 +85,7 @@
 
                         [% IF ( bad_biblionumber ) %]
                             <li id="bad_biblionumber">
-                                ERROR: No record found for record id [% bad_biblionumber | html %].
+                                ERROR: No record found for record ID [% bad_biblionumber | html %].
                             </li>
                         [% END %]
 
@@ -103,7 +103,7 @@
 
                         [% IF ( no_biblionumber ) %]
                             <li id="no_biblionumber">
-                               ERROR: No record id specified.
+                               ERROR: No record ID specified.
                            </li>
                         [% END %]
 
@@ -141,16 +141,6 @@
                     <h2>Confirm holds for:[% INCLUDE 'patron-title.inc' patron = logged_in_user %] ([% logged_in_user.cardnumber | html %])</h2>
                 [% END # / UNLESS none_available %]
 
-                [% IF (RESERVE_CHARGE) %]
-                    <div class="alert" id="reserve_fee">
-                        [% IF Koha.Preference('HoldFeeMode') == 'any_time_is_collected' %]
-                            You will be charged a hold fee of [% RESERVE_CHARGE | $Price %] when you collect this item
-                        [% ELSE %]
-                            You will be charged a hold fee of [% RESERVE_CHARGE | $Price %] for placing this hold
-                        [% END %]
-                    </div>
-                [% END %]
-
                 [% IF ( new_reserves_allowed ) %]
                     <div id="new_reserves_allowed" class="alert">
                         <strong>Sorry,</strong> you can only place [% new_reserves_allowed | html %] more holds. Please uncheck the checkboxes for the items you wish to not place holds on.
@@ -170,14 +160,25 @@
                                 [% IF bibitemloo.forced_hold_level %]
                                     <div class="alert alert-info forced_hold_level">
                                         [% IF bibitemloo.forced_hold_level == 'item' %]
-                                            You already have at least one item level hold on this title.
-                                            All further holds must be item level.
+                                            <span>You already have at least one item level hold on this title.
+                                            All further holds must be item level.</span>
                                         [% ELSE %]
-                                            You already have at least one record level hold on this title.
-                                            All further holds must be record level.
+                                            <span>You already have at least one record level hold on this title.
+                                            All further holds must be record level.</span>
                                         [% END %]
                                     </div>
                                 [% END %]
+
+                                [% IF ( bibitemloo.reserve_charge ) %]
+                                    <div class="alert" id="reserve_fee">
+                                        [% IF Koha.Preference('HoldFeeMode') == 'any_time_is_collected' %]
+                                            <span>You will be charged a hold fee of [% bibitemloo.reserve_charge | $Price %] when you collect this item</span>
+                                        [% ELSE %]
+                                            <span>You will be charged a hold fee of [% bibitemloo.reserve_charge | $Price %] for placing this hold</span>
+                                        [% END %]
+                                    </div>
+                                [% END %]
+
                                 <p>
                                     [% IF ( bibitemloo.holdable ) %]
                                         <input class="reserve_mode" name="reserve_mode" type="hidden" value="single"/>
@@ -189,21 +190,30 @@
                                         </span>
                                     [% END # / bibitemloo.holdable %]
 
-                                    <a class="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% bibitemloo.biblionumber | html %]">
-                                        [% INCLUDE 'biblio-title.inc' biblio=bibitemloo %]
-                                    </a>
+                                    [% INCLUDE 'biblio-title.inc' biblio=bibitemloo link=> 1%]
+
                                     [% IF ( bibitemloo.author ) %],  by [% bibitemloo.author | html %][% END %]
                                 </p>
 
                                 [% UNLESS ( bibitemloo.holdable ) %]
                                     [% IF ( bibitemloo.ageRestricted ) %]
-                                        <div class="alert alert-warning">Sorry, you are too young to reserve this material.</div>
+                                        <div class="alert alert-warning">Sorry, you are too young to place a hold for this item.</div>
                                     [% END %]
                                     [% IF ( bibitemloo.already_reserved ) %]
                                         <div class="alert alert-warning">You have already requested this title.</div>
+                                    [% ELSIF ( bibitemloo.recall ) %]
+                                        <div class="alert alert-warning">You have already placed a recall on this title.</div>
                                     [% ELSE %]
-                                        [% IF ( bibitemloo.already_patron_possession ) %]
+                                        [% IF bibitemloo.alreadypossession %]
                                             <div class="alert alert-warning">This title cannot be requested because it's already in your possession.</div>
+                                        [% ELSIF bibitemloo.tooManyReserves %]
+                                            <div class="alert alert-warning">This title cannot be requested because you reached the maximum number of holds.</div>
+                                        [% ELSIF bibitemloo.tooManyHoldsForThisRecord %]
+                                            <div class="alert alert-warning">This title cannot be requested because you exceeded max holds per record.</div>
+                                        [% ELSIF bibitemloo.tooManyReservesToday %]
+                                            <div class="alert alert-warning">This title cannot be requested because you reached the daily hold limit.</div>
+                                        [% ELSIF bibitemloo.itemAlreadyOnHold %]
+                                            <div class="alert alert-warning">This title cannot be requested because you already have hold for this item.</div>
                                         [% ELSE %]
                                             [% UNLESS ( bibitemloo.bib_available ) %]
                                                 <div class="alert">There are no items that can be placed on hold.</div>
@@ -222,7 +232,7 @@
                                                 <li class="itype">
                                                     <span class="label">Item type: </span>
                                                     [% IF ( bibitemloo.imageurl ) %]<img src="[% bibitemloo.imageurl | html %]" alt="" />[% END %]
-                                                    [% bibitemloo.translated_description | html %]
+                                                    <span class="itypetext">[% bibitemloo.translated_description | html %]</span>
                                                 </li>
                                             [% END %]
 
@@ -281,40 +291,47 @@
                                                 [% IF ( reserve_in_future ) %]
                                                     <li>
                                                         <label for="from[% bibitemloo.biblionumber | html %]">Hold starts on date:</label>
-                                                        <input type="text" name="reserve_date_[% bibitemloo.biblionumber | html %]" id="from[% bibitemloo.biblionumber | html %]" size="10" class="holddatefrom"/>
+                                                        <input type="text" name="reserve_date_[% bibitemloo.biblionumber | html %]" id="from[% bibitemloo.biblionumber | html %]" data-start_for="to[% bibitemloo.biblionumber | html %]" size="10" class="flatpickr holddatefrom" />
                                                         <span class="date-format from" data-biblionumber="[% bibitemloo.biblionumber | html %]">[% INCLUDE 'date-format.inc' %]</span>
                                                     </li>
                                                 [% END %]
 
                                                 <li>
                                                     <label for="to[% bibitemloo.biblionumber | html %]">Hold not needed after:</label>
-                                                    <input type="text" name="expiration_date_[% bibitemloo.biblionumber | html %]" id="to[% bibitemloo.biblionumber | html %]" size="10" class="holddateto" />
+                                                    <input type="text" name="expiration_date_[% bibitemloo.biblionumber | html %]" id="to[% bibitemloo.biblionumber | html %]" size="10" class="flatpickr futuredate" />
                                                     <span class="date-format to" data-biblionumber="[% bibitemloo.biblionumber | html %]">[% INCLUDE 'date-format.inc' %]</span>
                                                 </li>
 
                                                 [% IF Koha.Preference('AllowHoldItemTypeSelection') %]
-                                                    [% itemtypes = [] %]
-                                                    [% FOREACH item IN bibitemloo.itemLoop %]
-                                                        [% itemtypes.push( item.itype ) %]
-                                                    [%- END %]
                                                     <li>
                                                         <label for="itemtype">Request specific item type:</label>
                                                         <select name="itemtype" id="itemtype">
                                                             <option value="">Any item type</option>
-                                                            [% FOREACH i IN itemtypes.unique.sort %]
+                                                            [% FOREACH i IN bibitemloo.allowed_item_types %]
                                                                 <option value="[% i | html %]">[% ItemTypes.GetDescription( i ) | html %]</option>
                                                             [%- END %]
                                                         </select>
                                                     </li>
                                                 [% END %]
 
+                                                [% UNLESS bibitemloo.forced_hold_level && ( bibitemloo.forced_hold_level == 'item' || bibitemloo.forced_hold_level == 'record' ) %]
+                                                    [% IF Koha.Preference('EnableItemGroupHolds') && bibitemloo.object.item_groups %]
+                                                        <li>
+                                                            <label for="itemtype">Request specific item group:</label>
+                                                            <select name="item_group_id_[% bibitemloo.biblionumber | html %]" id="item_group_id_[% bibitemloo.biblionumber | html %]">
+                                                                <option value="">Any item group</option>
+                                                                [% FOREACH g IN bibitemloo.object.item_groups.search({}, { order_by => ['display_order'] }) %]
+                                                                    <option value="[% g.id | html %]">[% g.description | html %]</option>
+                                                                [% END %]
+                                                            </select>
+                                                        </li>
+                                                    [% END %]
+                                                [% END %]
+
                                                 [% IF ( OpacHoldNotes ) %]
                                                     <li>
                                                         <div class="notesrow" id="notesrow_[% bibitemloo.biblionumber | html %]">
                                                             <label for="holdnotes_[% bibitemloo.biblionumber | html %]">Hold notes:</label>
-                                                            [% IF bibitemloo.reqholdnotes %]
-                                                                <span id="reqholdnotes_[% bibitemloo.biblionumber | html %]">Please enter additional information about the requested item:</span>
-                                                            [% END %]
                                                             <textarea id="holdnotes_[% bibitemloo.biblionumber | html %]" rows="2" cols="30" name="notes_[% bibitemloo.biblionumber | html %]" >[% bibitemloo.holdnotes | html %]</textarea>
                                                         </div>
                                                     </li>
@@ -323,7 +340,7 @@
                                                 [% IF bibitemloo.itemholdable %]
                                                     <!-- ITEM HOLDS -->
                                                     <li class="lradio place_on_type" style="display:none;">
-                                                        [% IF NOT bibitemloo.force_hold %]
+                                                        [% UNLESS bibitemloo.forced_hold_level == 'item' || bibitemloo.forced_hold_level == 'item_group' %]
                                                             <label class="radio inline" for="reqany_[% bibitemloo.biblionumber | html %]">Next available item</label>
                                                             <input type="radio" name="reqtype_[% bibitemloo.biblionumber | html %]"
                                                                     id="reqany_[% bibitemloo.biblionumber | html %]"
@@ -344,7 +361,7 @@
 
                                             [% IF bibitemloo.itemholdable %]
                                                 <div id="copiesrow_[% bibitemloo.biblionumber | html %]" class="copiesrow">
-                                                <table class="table table-bordered table-striped">
+                                                <table class="table table-bordered table-striped itemstable">
                                                     <caption>Select a specific item:</caption>
                                                     <thead>
                                                         <tr>
@@ -364,6 +381,7 @@
                                                         [% IF ( itemdata_enumchron ) %]
                                                             <th>Vol info</th>
                                                         [% END %]
+                                                        <th>Notes</th>
                                                         <th>Information</th>
                                                         </tr>
                                                     </thead>
@@ -372,16 +390,16 @@
                                                     [% SET unholdable_items = 0 %]
                                                     [% FOREACH itemLoo IN bibitemloo.itemLoop %]
                                                         [% IF ( itemLoo.available ) %]
-                                                            [% IF ( itemLoo.onloan ) %]
+                                                            [% IF ( itemLoo.checkout ) %]
                                                                 <tr class="holdable onloan">
                                                             [% ELSE %]
                                                                 <tr class="holdable">
                                                             [% END %]
-                                                                    <td class="copynumber">
+                                                                    <td class="copynumber" data-order="[% itemLoo.copynumber | html %]">
                                                                         <input type="radio" class="checkitem checkitem_[% bibitemloo.biblionumber | html %]" name="checkitem_[% bibitemloo.biblionumber | html %]" value="[% itemLoo.itemnumber | html %]" />
                                                         [% ELSE %]
                                                             [% SET unholdable_items = 1 %]
-                                                            [% IF ( itemLoo.onloan ) %]
+                                                            [% IF ( itemLoo.checkout ) %]
                                                                 <tr class="unholdable onloan" style="display:none;">
                                                             [% ELSE %]
                                                                 <tr class="unholdable" style="display:none;">
@@ -403,62 +421,53 @@
                                                                             <img src="[% itemLoo.imageurl | html %]" alt="" />
                                                                         [% END %]
                                                                     [% END %]
-                                                                    [% itemLoo.translated_description | html %]
+                                                                    <span class="itypetext">[% itemLoo.translated_description | html %]</span>
                                                                 </td>
                                                             [% END %]
 
                                                             <td class="barcode">[% itemLoo.barcode | html %]</td>
                                                             [% UNLESS ( singleBranchMode ) %]
-                                                                <td class="homebranch">[% Branches.GetName( itemLoo.homeBranchName ) | html %]</td>
-                                                                <td class="holdingbranch">[% Branches.GetName( itemLoo.holdingBranchName ) | html %]</td>
+                                                                <td class="homebranch">[% Branches.GetName( itemLoo.homebranch) | html %]</td>
+                                                                <td class="holdingbranch">[% Branches.GetName( itemLoo.holdingbranch ) | html %]</td>
                                                             [% END %]
                                                             [% IF ( itemdata_ccode ) %]
                                                                 <td class="ccode"> [% IF ( itemLoo.ccode ) %][% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => itemLoo.ccode, opac => 1 ) | html %][% END %]</td>
                                                             [% END %]
-                                                            <td class="call_no">[% itemLoo.callNumber | html %]</td>
+                                                            <td class="call_no">[% itemLoo.itemcallnumber | html %]</td>
                                                             [% IF ( itemdata_enumchron ) %]
                                                                 <td class="vol_info">[% itemLoo.enumchron | html %]</td>
                                                             [% END %]
+                                                            <td class="itemnotes">
+                                                                [% itemLoo.itemnotes | html %]
+                                                            </td>
                                                             <td class="information">
-                                                                [% IF ( itemLoo.dateDue ) %]
-                                                                    <span class="checkedout">Due [% itemLoo.dateDue | html %]</span>
+                                                                [% IF ( itemLoo.checkout.date_due) %]
+                                                                    <span class="checkedout">Due [% itemLoo.checkout.date_due| $KohaDates as_due_date => 1 %]</span>
                                                                 [% ELSIF ( itemLoo.transfertwhen ) %]
-                                                                    <span class="intransit">In transit from [% Branches.GetName( itemLoo.transfertfrom ) | html %] to [% Branches.GetName( itemLoo.transfertto ) | html %] since [% itemLoo.transfertwhen | html %]</span>
+                                                                    <span class="intransit">In transit from [% Branches.GetName( itemLoo.transfertfrom ) | html %] to [% Branches.GetName( itemLoo.transfertto ) | html %] since [% itemLoo.transfertwhen | $KohaDates %]</span>
                                                                 [% END %]
 
-                                                                [% IF ( itemLoo.message ) %]
+                                                                [% IF ( itemLoo.itemlost == 1 || itemLoo.itemlost == 2 ) %] [%# FIXME Why only for 1 or 2? Shouldn't we test for withdrawn as well? %]
                                                                     <span class="lost">Unavailable (lost or missing)</span>
                                                                 [% END %]
 
                                                                 [% IF ( itemLoo.notforloan ) %]
-                                                                    <span class="notforloan">Not for loan ([% itemLoo.notforloanvalue | html %])</span>
+                                                                    <span class="notforloan">Not for loan ([% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.notforloan', authorised_value => itemLoo.notforloan ) %])</span>
                                                                 [% END %]
 
-                                                                [% IF ( itemLoo.reservedate ) %]
+                                                                [% IF ( itemLoo.first_hold ) %]
                                                                     <span class="waiting">
                                                                         [% IF ( itemLoo.waitingdate ) %]
-                                                                            Waiting
+                                                                            <span>Waiting for patron at [% Branches.GetName( itemLoo.ExpectedAtLibrary ) | html %] since [% itemLoo.waitingdate | $KohaDates %]</span>
+                                                                        [% ELSIF ( itemLoo.reservedate ) %]
+                                                                            <span>On hold for patron expected at [% Branches.GetName( itemLoo.ExpectedAtLibrary ) | html %] since [% itemLoo.reservedate | $KohaDates %]</span>
                                                                         [% ELSE %]
-                                                                            On hold
+                                                                            <span>On hold for patron expected at [% Branches.GetName( itemLoo.ExpectedAtLibrary ) | html %]</span>
                                                                         [% END %]
-                                                                        for patron
-                                                                        [% IF ( itemLoo.waitingdate ) %]
-                                                                            at
-                                                                        [% ELSE %]
-                                                                            expected at
-                                                                        [% END %]
-                                                                        [% itemLoo.ExpectedAtLibrary | html %] since
-                                                                        [% IF ( itemLoo.waitingdate ) %]
-                                                                            [% itemLoo.waitingdate | $KohaDates %]
-                                                                        [% ELSE %]
-                                                                            [% IF ( itemLoo.reservedate ) %]
-                                                                                [% itemLoo.reservedate | html %]
-                                                                            [% END %]
-                                                                        [% END %].
                                                                     </span>
                                                                 [% ELSE %]
                                                                     <span class="notonhold">Not on hold</span>
-                                                                [% END # / IF ( itemLoo.reservedate )%]
+                                                                [% END # / IF ( itemLoo.first_hold )%]
                                                             </td>
                                                         </tr>
                                                     [% END # / FOREACH itemLoo IN bibitemloo.itemLoop%]
@@ -489,21 +498,11 @@
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
 [% INCLUDE 'calendar.inc' %]
+[% INCLUDE 'datatables.inc' %]
 <script>
-// <![CDATA[
     var MSG_NO_ITEM_SELECTED = _("Expecting a specific item selection.");
-
-        // Clear the contents of an input field
-        $(".clearfield").on("click",function(e){
-            $(this).closest("td").find("input").val("");
-            e.preventDefault();
-        });
-
-    // Select the first item available
-    function select_first_available(id){
-        var radios = $("input:radio[name='checkitem_" + id + "']");
-        $(radios).first().attr("checked", "checked");
-    }
+    var MSG_EMPTY_START_DATE = _("Hold start date should be filled.");
+    var MSG_EMPTY_END_DATE   = _("Hold expiration date should be filled.");
 
     $(document).ready(function() {
 
@@ -519,7 +518,19 @@
 
         $(".toggle-hold-options").show();
         $(".hold-options").hide();
-        $(".holddatefrom,.holddateto").prop("readOnly", true);
+        var OPACMandatoryHoldDates = "[% Koha.Preference('OPACMandatoryHoldDates') | html %]";
+        var requiredDiv = "<div class=\"required_label required\">" + _("Required") + "</div>";
+        if( OPACMandatoryHoldDates ) {
+            if( OPACMandatoryHoldDates == "start" || OPACMandatoryHoldDates == "both" ) {
+                $(".holddatefrom").prop( 'required', true );
+                $(".holddatefrom").parent().append(requiredDiv);
+            }
+            if( OPACMandatoryHoldDates == "end"   || OPACMandatoryHoldDates == "both" ) {
+                $(".futuredate").prop( 'required', true );
+                $(".futuredate").parent().append(requiredDiv);
+            }
+        }
+        $(".holddatefrom,.futuredate").prop("readOnly", true);
 
         $(".checkitem").parent().click(function(e){
             if(e.target.tagName.toLowerCase() == 'td'){
@@ -547,34 +558,19 @@
                 toggleLink.text($(this).is(':visible') ? _("Hide options") : _("Show more options"));
             });
         });
+        if( $(".holddatefrom").prop('required') || $(".futuredate").prop('required') ) $(".toggle-hold-options").click();
 
         // Hides all 'specific copy' table rows on load.
         $(".copiesrow").hide();
 
         [% FOREACH bibitemloo IN bibitemloop %]
           [% IF bibitemloo.force_hold %]
-            $("#toggle-hold-options-[% bibitemloo.biblionumber | html %]").click();
+            if( $("#to[% bibitemloo.biblionumber | html %]:hidden").length )
+                $("#toggle-hold-options-[% bibitemloo.biblionumber | html %]").click();
             $("#reqspecific_[% bibitemloo.biblionumber | html %]").click();
             $("#copiesrow_[% bibitemloo.biblionumber | html %]").show();
           [% END %]
-          [% IF bibitemloo.reqholdnotes %]
-              $("#holdnotes_[% bibitemloo.biblionumber | html %]").attr( 'required', true );
-          [% END %]
         [% END %]
-
-        $(".date-format").each(function(){
-            if($(this).hasClass("to")){ var op = "to"; }
-            if($(this).hasClass("from")){ var op = "from"; }
-            var bibNum = $(this).data("biblionumber");
-            $(this).html("<a href=\"#\" class=\"clear-date\" data-op=\"" + op + "\" id=\"clear" + bibNum + "\">" + _("Clear date") + "</a>");
-        });
-
-        $(".clear-date").on("click",function(e){
-            e.preventDefault();
-            var fieldID = this.id.replace("clear","");
-            var op = $(this).data("op");
-            $("#" + op + fieldID).val("");
-        });
 
         // Replace non-JS single-selection with multi-selection capability.
         $(".reserve_mode").val("multi");
@@ -599,10 +595,16 @@
             var select_specific = $("#reqspecific_"+biblioNum).is(":checked");
             // If the checkbox is checked AND we want a specific item, we display the items block
             if ( $(checkbox).is(":checked") && select_specific ) {
+                if ( $(`#item_group_id_${biblioNum}`).length ) {
+                    $(`#item_group_id_${biblioNum}`).val("").attr('disabled', 'disabled');
+                }
                 $(newCopiesRowId).show();
             } else {
+                if ( $(`#item_group_id_${biblioNum}`).length ) {
+                    $(`#item_group_id_${biblioNum}`).removeAttr('disabled');
+                }
                 $(newCopiesRowId).hide();
-             }
+            }
         };
 
         $("#place_on_hdr").show();
@@ -610,13 +612,6 @@
         $(".place_on_type").show();
         // onload, selectany is checked
         $(".selectany").attr("checked", "checked");
-
-        // If the user is *allowed* to choose a specific item
-        // The first one is preselected
-        $(".copiesrow table").each(function(){
-            var id = suffixOf($(this).closest('div').attr("id"), "_");
-            select_first_available(id);
-        });
 
         // On confirmsjs change
         $(".confirmjs").change(function(){
@@ -678,6 +673,20 @@
                     }
                 }
 
+                if( $(".holddatefrom").prop('required') && $("#from"+ biblioNum).val() == '' ) {
+                    alert(MSG_EMPTY_START_DATE);
+                    badBib = biblioNum;
+                    if( $("#from"+biblioNum+":hidden").length ) $("#toggle-hold-options-"+biblioNum).click();
+                    $("#from"+ biblioNum).focus();
+                    return false;
+                } else if( $(".futuredate").prop('required') && $("#to"+ biblioNum).val() == '' ) {
+                    alert(MSG_EMPTY_END_DATE);
+                    badBib = biblioNum;
+                    if( $("#to"+biblioNum+":hidden").length ) $("#toggle-hold-options-"+biblioNum).click();
+                    $("#to"+ biblioNum).focus();
+                    return false;
+                }
+
                 // If the 'specific copy' radio button is checked
                 if ($("#reqspecific_" + biblioNum + ":checked").size() > 0) {
                     // Find the selected copy
@@ -710,28 +719,15 @@
 
             return true;
         });
-
-        [% FOREACH bibitemloo IN bibitemloop %]
-            [% IF ( bibitemloo.holdable ) %]
-                // http://jqueryui.com/demos/datepicker/#date-range
-                var dates[% bibitemloo.biblionumber | html %] = $( "#from[% bibitemloo.biblionumber | html %], #to[% bibitemloo.biblionumber | html %]" ).datepicker({
-                    minDate: 0,
-                    changeMonth: true,
-                    numberOfMonths: 1,
-                    onSelect: function( selectedDate ) {
-                        var option = this.id == "from[% bibitemloo.biblionumber | html %]" ? "minDate" : "maxDate",
-                            instance = $( this ).data( "datepicker" );
-                            date = $.datepicker.parseDate(
-                                instance.settings.dateFormat ||
-                                $.datepicker._defaults.dateFormat,
-                                selectedDate, instance.settings );
-                        dates[% bibitemloo.biblionumber | html %].not( this ).datepicker( "option", option, date );
-                    }
-                });
-            [% END %]
-        [% END %]
-
- });
-// ]]>
+        $(".itemstable").each(function(){
+            $(this).DataTable({
+                dom: "t",
+                initComplete: function() {
+                    this.find("input:radio").first().prop("checked", true );
+                },
+                paging: false
+            });
+        });
+    });
 </script>
 [% END %]

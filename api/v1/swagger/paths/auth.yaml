@@ -1,0 +1,1113 @@
+---
+/auth/otp/token_delivery:
+  post:
+    x-mojo-to: TwoFactorAuth#send_otp_token
+    operationId: send_otp_token
+    tags:
+      - 2fa
+    summary: Send OTP token for second step authentication
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: OK
+        schema:
+          type: object
+          properties:
+            access_token:
+              type: string
+            token_type:
+              type: string
+            expires_in:
+              type: integer
+          additionalProperties: false
+      "400":
+        description: Bad Request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        catalogue: "1"
+
+/auth/two-factor/registration:
+  post:
+    x-mojo-to: TwoFactorAuth#registration
+    operationId: Two factor register
+    tags:
+      - 2fa
+    summary: Generate a secret
+    produces:
+      - application/json
+    responses:
+      "201":
+        description: OK
+        schema:
+          type: object
+          properties:
+            secret32:
+              type: string
+            qr_code:
+              type: string
+            issuer:
+              type: string
+            key_id:
+              type: string
+          additionalProperties: false
+      "400":
+        description: Bad Request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        catalogue: "1"
+
+/auth/two-factor/registration/verification:
+  post:
+    x-mojo-to: TwoFactorAuth#verification
+    operationId: Two factor register verification
+    tags:
+      - 2fa
+    summary: Verify two-factor registration
+    parameters:
+      - name: secret32
+        in: formData
+        description: the secret
+        required: true
+        type: string
+      - name: pin_code
+        in: formData
+        description: the pin code
+        required: true
+        type: string
+    produces:
+      - application/json
+    responses:
+      "204":
+        description: OK
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "400":
+        description: Bad Request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        catalogue: "1"
+/auth/providers:
+  get:
+    x-mojo-to: Auth::Providers#list
+    operationId: listAuthProviders
+    tags:
+      - auth_providers
+    summary: List configured identity providers
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/match
+      - $ref: ../swagger.yaml#/parameters/order_by
+      - $ref: ../swagger.yaml#/parameters/page
+      - $ref: ../swagger.yaml#/parameters/per_page
+      - $ref: ../swagger.yaml#/parameters/q_param
+      - $ref: ../swagger.yaml#/parameters/q_body
+      - $ref: ../swagger.yaml#/parameters/q_header
+      - $ref: ../swagger.yaml#/parameters/request_id_header
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - domains
+        collectionFormat: csv
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: A list of identity providers
+        schema:
+          type: array
+          items:
+            $ref: ../swagger.yaml#/definitions/auth_provider
+      "400":
+        description: Bad Request
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_authentication_providers
+  post:
+    x-mojo-to: Auth::Providers#add
+    operationId: addAuthProvider
+    tags:
+      - auth_providers
+    summary: Add a new identity provider
+    parameters:
+      - name: body
+        in: body
+        description: |
+          A JSON object containing OAuth provider parameters.
+
+          The `config` object required attributes depends on the chosen `protocol`
+
+          ## OAuth
+
+          Requires:
+
+          * key
+          * secret
+          * authorize_url
+          * token_url
+
+          ## OIDC
+
+          Requires:
+
+          * key
+          * secret
+          * well_known_url
+        required: true
+        schema:
+          $ref: ../swagger.yaml#/definitions/auth_provider
+    produces:
+      - application/json
+    responses:
+      "201":
+        description: The generated identity provider
+        schema:
+          $ref: ../swagger.yaml#/definitions/auth_provider
+      "400":
+        description: Bad Request
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_authentication_providers
+"/auth/providers/{auth_provider_id}":
+  get:
+    x-mojo-to: Auth::Providers#get
+    operationId: getAuthProvider
+    tags:
+      - auth_providers
+    summary: Get identity provider
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/auth_provider_id_pp
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - domains
+        collectionFormat: csv
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: An identity provider
+        schema:
+          $ref: ../swagger.yaml#/definitions/auth_provider
+      "404":
+        description: Object not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_authentication_providers
+  put:
+    x-mojo-to: Auth::Providers#update
+    operationId: updateAuthProvider
+    tags:
+      - auth_providers
+    summary: Update an identity provider
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/auth_provider_id_pp
+      - name: body
+        in: body
+        description: |
+          A JSON object containing OAuth provider parameters.
+
+          The `config` object required attributes depends on the chosen `protocol`
+
+          ## OAuth
+
+          Requires:
+
+          * key
+          * secret
+          * authorize_url
+          * token_url
+
+          ## OIDC
+
+          Requires:
+
+          * key
+          * secret
+          * well_known_url
+        required: true
+        schema:
+          $ref: ../swagger.yaml#/definitions/auth_provider
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: Updated identity provider
+        schema:
+          $ref: ../swagger.yaml#/definitions/auth_provider
+      "400":
+        description: Bad Request
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "404":
+        description: Object not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_authentication_providers
+  delete:
+    x-mojo-to: Auth::Providers#delete
+    operationId: delAuthProvider
+    tags:
+      - auth_providers
+    summary: Delete identity provider
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/auth_provider_id_pp
+    produces:
+      - application/json
+    responses:
+      "204":
+        description: identity provider deleted
+      "401":
+        description: Authentication required
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "404":
+        description: City not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_authentication_providers
+"/auth/providers/{auth_provider_id}/domains":
+  get:
+    x-mojo-to: Auth::Provider::Domains#list
+    operationId: listAuthProviderDomains
+    tags:
+      - auth_providers
+    summary: Get identity provider configured domains
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/auth_provider_id_pp
+      - $ref: ../swagger.yaml#/parameters/match
+      - $ref: ../swagger.yaml#/parameters/order_by
+      - $ref: ../swagger.yaml#/parameters/page
+      - $ref: ../swagger.yaml#/parameters/per_page
+      - $ref: ../swagger.yaml#/parameters/q_param
+      - $ref: ../swagger.yaml#/parameters/q_body
+      - $ref: ../swagger.yaml#/parameters/q_header
+      - $ref: ../swagger.yaml#/parameters/request_id_header
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - domains
+        collectionFormat: csv
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: An identity provider
+        schema:
+          items:
+            $ref: ../swagger.yaml#/definitions/auth_provider_domain
+      "404":
+        description: Object not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_authentication_providers
+  post:
+    x-mojo-to: Auth::Provider::Domains#add
+    operationId: addAuthProviderDomain
+    tags:
+      - auth_providers
+    summary: Add an identity provider domain
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/auth_provider_id_pp
+      - name: body
+        in: body
+        description: An identity provider domain object
+        required: true
+        schema:
+          $ref: ../swagger.yaml#/definitions/auth_provider_domain
+    produces:
+      - application/json
+    responses:
+      "201":
+        description: Updated identity provider domain
+        schema:
+          $ref: ../swagger.yaml#/definitions/auth_provider_domain
+      "400":
+        description: Bad Request
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "404":
+        description: Object not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_authentication_providers
+"/auth/providers/{auth_provider_id}/domains/{auth_provider_domain_id}":
+  get:
+    x-mojo-to: Auth::Provider::Domains#get
+    operationId: getAuthProviderDomain
+    tags:
+      - auth_providers
+    summary: Get identity provider domain
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/auth_provider_id_pp
+      - $ref: ../swagger.yaml#/parameters/auth_provider_domain_id_pp
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: An identity provider
+        schema:
+          $ref: ../swagger.yaml#/definitions/auth_provider_domain
+      "404":
+        description: Object not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_authentication_providers
+  delete:
+    x-mojo-to: Auth::Provider::Domains#delete
+    operationId: delAuthProviderDomain
+    tags:
+      - auth_providers
+    summary: Delete identity provider
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/auth_provider_id_pp
+      - $ref: ../swagger.yaml#/parameters/auth_provider_domain_id_pp
+    produces:
+      - application/json
+    responses:
+      "204":
+        description: identity provider deleted
+      "401":
+        description: Authentication required
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "404":
+        description: City not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_authentication_providers
+/auth/identity_providers:
+  get:
+    x-mojo-to: Auth::Identity::Providers#list
+    operationId: listIdentityProviders
+    tags:
+      - identity_providers
+    summary: List configured identity providers
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/match
+      - $ref: ../swagger.yaml#/parameters/order_by
+      - $ref: ../swagger.yaml#/parameters/page
+      - $ref: ../swagger.yaml#/parameters/per_page
+      - $ref: ../swagger.yaml#/parameters/q_param
+      - $ref: ../swagger.yaml#/parameters/q_body
+      - $ref: ../swagger.yaml#/parameters/q_header
+      - $ref: ../swagger.yaml#/parameters/request_id_header
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - domains
+        collectionFormat: csv
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: A list of identity providers
+        schema:
+          type: array
+          items:
+            $ref: ../swagger.yaml#/definitions/identity_provider
+      "400":
+        description: Bad Request
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_identity_providers
+  post:
+    x-mojo-to: Auth::Identity::Providers#add
+    operationId: addIdentityProvider
+    tags:
+      - identity_providers
+    summary: Add a new identity provider
+    parameters:
+      - name: body
+        in: body
+        description: |
+          A JSON object containing OAuth provider parameters.
+
+          The `config` object required attributes depends on the chosen `protocol`
+
+          ## OAuth
+
+          Requires:
+
+          * key
+          * secret
+          * authorize_url
+          * token_url
+
+          ## OIDC
+
+          Requires:
+
+          * key
+          * secret
+          * well_known_url
+        required: true
+        schema:
+          $ref: ../swagger.yaml#/definitions/identity_provider
+    produces:
+      - application/json
+    responses:
+      "201":
+        description: The generated identity provider
+        schema:
+          $ref: ../swagger.yaml#/definitions/identity_provider
+      "400":
+        description: Bad Request
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_identity_providers
+"/auth/identity_providers/{identity_provider_id}":
+  get:
+    x-mojo-to: Auth::Identity::Providers#get
+    operationId: getIdentityProvider
+    tags:
+      - identity_providers
+    summary: Get identity provider
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/identity_provider_id_pp
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - domains
+        collectionFormat: csv
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: An identity provider
+        schema:
+          $ref: ../swagger.yaml#/definitions/identity_provider
+      "404":
+        description: Object not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_identity_providers
+  put:
+    x-mojo-to: Auth::Identity::Providers#update
+    operationId: updateIdentityProvider
+    tags:
+      - identity_providers
+    summary: Update an identity provider
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/identity_provider_id_pp
+      - name: body
+        in: body
+        description: |
+          A JSON object containing OAuth provider parameters.
+
+          The `config` object required attributes depends on the chosen `protocol`
+
+          ## OAuth
+
+          Requires:
+
+          * key
+          * secret
+          * authorize_url
+          * token_url
+
+          ## OIDC
+
+          Requires:
+
+          * key
+          * secret
+          * well_known_url
+        required: true
+        schema:
+          $ref: ../swagger.yaml#/definitions/identity_provider
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: Updated identity provider
+        schema:
+          $ref: ../swagger.yaml#/definitions/identity_provider
+      "400":
+        description: Bad Request
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "404":
+        description: Object not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_identity_providers
+  delete:
+    x-mojo-to: Auth::Identity::Providers#delete
+    operationId: delIdentityProvider
+    tags:
+      - identity_providers
+    summary: Delete identity provider
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/identity_provider_id_pp
+    produces:
+      - application/json
+    responses:
+      "204":
+        description: identity provider deleted
+      "401":
+        description: Authentication required
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "404":
+        description: City not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_identity_providers
+"/auth/identity_providers/{identity_provider_id}/domains":
+  get:
+    x-mojo-to: Auth::Identity::Provider::Domains#list
+    operationId: listIdentityProviderDomains
+    tags:
+      - identity_providers
+    summary: Get identity provider configured domains
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/identity_provider_id_pp
+      - $ref: ../swagger.yaml#/parameters/match
+      - $ref: ../swagger.yaml#/parameters/order_by
+      - $ref: ../swagger.yaml#/parameters/page
+      - $ref: ../swagger.yaml#/parameters/per_page
+      - $ref: ../swagger.yaml#/parameters/q_param
+      - $ref: ../swagger.yaml#/parameters/q_body
+      - $ref: ../swagger.yaml#/parameters/q_header
+      - $ref: ../swagger.yaml#/parameters/request_id_header
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - domains
+        collectionFormat: csv
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: An identity provider
+        schema:
+          items:
+            $ref: ../swagger.yaml#/definitions/identity_provider_domain
+      "404":
+        description: Object not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_identity_providers
+  post:
+    x-mojo-to: Auth::Identity::Provider::Domains#add
+    operationId: addIdentityProviderDomain
+    tags:
+      - identity_providers
+    summary: Add an identity provider domain
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/identity_provider_id_pp
+      - name: body
+        in: body
+        description: An identity provider domain object
+        required: true
+        schema:
+          $ref: ../swagger.yaml#/definitions/identity_provider_domain
+    produces:
+      - application/json
+    responses:
+      "201":
+        description: Updated identity provider domain
+        schema:
+          $ref: ../swagger.yaml#/definitions/identity_provider_domain
+      "400":
+        description: Bad Request
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "404":
+        description: Object not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_identity_providers
+"/auth/identity_providers/{identity_provider_id}/domains/{identity_provider_domain_id}":
+  get:
+    x-mojo-to: Auth::Identity::Provider::Domains#get
+    operationId: getIdentityProviderDomain
+    tags:
+      - identity_providers
+    summary: Get identity provider domain
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/identity_provider_id_pp
+      - $ref: ../swagger.yaml#/parameters/identity_provider_domain_id_pp
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: An identity provider
+        schema:
+          $ref: ../swagger.yaml#/definitions/identity_provider_domain
+      "404":
+        description: Object not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_identity_providers
+  put:
+    x-mojo-to: Auth::Identity::Provider::Domains#update
+    operationId: updateIdentityProviderDomain
+    tags:
+      - identity_providers
+    summary: Update an identity provider domain
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/identity_provider_id_pp
+      - $ref: ../swagger.yaml#/parameters/identity_provider_domain_id_pp
+      - name: body
+        in: body
+        description: An identity provider domain object
+        required: true
+        schema:
+          $ref: ../swagger.yaml#/definitions/identity_provider_domain
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: Updated identity provider domain
+        schema:
+          $ref: ../swagger.yaml#/definitions/identity_provider_domain
+      "400":
+        description: Bad Request
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "404":
+        description: Object not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_identity_providers
+  delete:
+    x-mojo-to: Auth::Identity::Provider::Domains#delete
+    operationId: delIdentityProviderDomain
+    tags:
+      - identity_providers
+    summary: Delete identity provider
+    parameters:
+      - $ref: ../swagger.yaml#/parameters/identity_provider_id_pp
+      - $ref: ../swagger.yaml#/parameters/identity_provider_domain_id_pp
+    produces:
+      - application/json
+    responses:
+      "204":
+        description: identity provider deleted
+      "401":
+        description: Authentication required
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "404":
+        description: City not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        parameters: manage_identity_providers
+"/auth/password/validation":
+  post:
+    x-mojo-to: Auth::Password#validate
+    operationId: validateUserAndPassword
+    tags:
+      - patrons
+    summary: Check validity of username and password
+    parameters:
+      - name: body
+        in: body
+        description: A JSON object containing username and password information
+        schema:
+          type: object
+          properties:
+            userid:
+              description: Username
+              type: string
+            password:
+              description: Password (plain text)
+              type: string
+          required:
+            - userid
+            - password
+          additionalProperties: false
+    produces:
+      - application/json
+    responses:
+      "204":
+        description: Validation successful
+      "400":
+        description: Bad request
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "401":
+        description: Authentication required
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        borrowers: "1"

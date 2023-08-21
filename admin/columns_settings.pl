@@ -2,9 +2,9 @@
 
 use Modern::Perl;
 use CGI;
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use C4::Utils::DataTables::TablesSettings qw( get_modules );
 my $input = CGI->new;
 
@@ -14,7 +14,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { parameters => 'manage_column_config' },
-        debug           => 1,
     }
 );
 
@@ -51,8 +50,12 @@ if ( $action eq 'save' ) {
         next unless $table_id =~ m|^([^#]*)#(.*)$|;
         my $default_display_length = $input->param( $table_id . '_default_display_length' );
         my $default_sort_order     = $input->param( $table_id . '_default_sort_order' );
-        if (   defined $default_display_length && $default_display_length ne ""
-            && defined $default_sort_order     && $default_sort_order     ne "" ) {
+
+        undef $default_display_length if defined $default_display_length && $default_display_length eq "";
+        undef $default_sort_order if defined $default_sort_order && $default_sort_order eq "";
+
+        if ( defined $default_display_length || defined $default_sort_order )
+        {
             C4::Utils::DataTables::TablesSettings::update_table_settings(
                 {
                     module                 => $module,
@@ -71,7 +74,9 @@ if ( $action eq 'save' ) {
 if ( $action eq 'list' ) {
     my $modules = C4::Utils::DataTables::TablesSettings::get_modules;
     $template->param(
-        panel   => ( $input->param('panel') || 0 ),
+        panel   => defined $input->param('module') ? $input->param('module') : undef,
+        page    => defined $input->param('page') ? $input->param('page') : undef,
+        table   => defined $input->param('table') ? $input->param('table') : undef,
         modules => $modules,
     );
 }

@@ -21,7 +21,7 @@ use DateTime;
 use Time::HiRes qw/gettimeofday time/;
 use Test::More tests => 2;
 use C4::Members;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Database;
 
 use t::lib::TestBuilder;
@@ -31,8 +31,6 @@ my $schema  = Koha::Database->new->schema;
 $schema->storage->txn_begin;
 
 my $builder = t::lib::TestBuilder->new();
-
-$ENV{ DEBUG } = 0;
 
 my $patron_category = $builder->build({ source => 'Category', value => { category_type => 'P', enrolmentfee => 0 } });
 

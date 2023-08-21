@@ -47,21 +47,24 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 use HTML::Entities;
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use C4::Koha;
-use MARC::Record;
-use C4::Biblio;
-use C4::Items;
-use C4::Acquisition;
-use C4::Serials;    #uses getsubscriptionsfrombiblionumber GetSubscriptionsFromBiblionumber
-use C4::Search;		# enabled_staff_search_views
+use C4::Biblio qw(
+    GetAuthorisedValueDesc
+    GetBiblioData
+    GetFrameworkCode
+    GetMarcFromKohaField
+    GetMarcStructure
+);
+use C4::Serials qw( CountSubscriptionFromBiblionumber GetSubscription GetSubscriptionsFromBiblionumber );
+use C4::Search qw( z3950_search_args enabled_staff_search_views );
 
 use Koha::Biblios;
 use Koha::BiblioFrameworks;
 use Koha::Patrons;
-use Koha::DateUtils;
+use Koha::DateUtils qw( output_pref );
 use Koha::Virtualshelves;
 
 use List::MoreUtils qw( uniq );
@@ -83,13 +86,11 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $query,
         type            => "intranet",
         flagsrequired   => { catalogue => 1 },
-        debug           => 1,
     }
 );
 
-my $record = GetMarcBiblio({
-    biblionumber => $biblionumber,
-    embed_items  => 1 });
+my $biblio_object = Koha::Biblios->find( $biblionumber ); # FIXME Should replace $biblio
+my $record = $biblio_object->metadata->record({ embed_items => 1 });
 
 if ( not defined $record ) {
     # biblionumber invalid -> report and exit
@@ -100,17 +101,14 @@ if ( not defined $record ) {
     exit;
 }
 
-my $biblio_object = Koha::Biblios->find( $biblionumber ); # FIXME Should replace $biblio
 my $tagslib = &GetMarcStructure(1,$frameworkcode);
 my $biblio = GetBiblioData($biblionumber);
 
 if($query->cookie("holdfor")){ 
     my $holdfor_patron = Koha::Patrons->find( $query->cookie("holdfor") );
     $template->param(
-        holdfor => $query->cookie("holdfor"),
-        holdfor_surname => $holdfor_patron->surname,
-        holdfor_firstname => $holdfor_patron->firstname,
-        holdfor_cardnumber => $holdfor_patron->cardnumber,
+        holdfor        => $query->cookie("holdfor"),
+        holdfor_patron => $holdfor_patron,
     );
 }
 
@@ -185,10 +183,7 @@ for ( my $tabloop = 0 ; $tabloop <= 10 ; $tabloop++ ) {
             # loop through each subfield
             for my $i ( 0 .. $#subf ) {
                 $subf[$i][0] = "@" unless defined $subf[$i][0];
-                next
-                  if (
-                    $tagslib->{ $fields[$x_i]->tag() }->{ $subf[$i][0] }->{tab}
-                    ne $tabloop );
+                next if ( $tagslib->{ $fields[$x_i]->tag() }->{ $subf[$i][0] }->{tab} // q{} ) ne $tabloop; # Note: defaulting to '0' changes behavior!
                 next
                   if ( $tagslib->{ $fields[$x_i]->tag() }->{ $subf[$i][0] }
                     ->{hidden} =~ /-7|-4|-3|-2|2|3|5|8/);
@@ -341,14 +336,14 @@ my $some_private_shelves = Koha::Virtualshelves->get_some_shelves(
     {
         borrowernumber => $loggedinuser,
         add_allowed    => 1,
-        category       => 1,
+        public         => 0,
     }
 );
 my $some_public_shelves = Koha::Virtualshelves->get_some_shelves(
     {
         borrowernumber => $loggedinuser,
         add_allowed    => 1,
-        category       => 2,
+        public         => 1,
     }
 );
 

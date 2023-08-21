@@ -22,12 +22,11 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Form::MessagingPreferences;
 use Koha::Patrons;
 use Koha::Database;
-use Koha::DateUtils;
 use Koha::Patron::Categories;
 use Koha::Libraries;
 
@@ -43,7 +42,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { parameters => 'manage_patron_categories' },
-        debug           => 1,
     }
 );
 
@@ -64,6 +62,7 @@ elsif ( $op eq 'add_validate' ) {
     my $description = $input->param('description');
     my $enrolmentperiod = $input->param('enrolmentperiod');
     my $enrolmentperioddate = $input->param('enrolmentperioddate') || undef;
+    my $password_expiry_days = $input->param('password_expiry_days') || undef;
     my $upperagelimit = $input->param('upperagelimit');
     my $dateofbirthrequired = $input->param('dateofbirthrequired');
     my $enrolmentfee = $input->param('enrolmentfee');
@@ -81,6 +80,7 @@ elsif ( $op eq 'add_validate' ) {
     my $min_password_length = $input->param('min_password_length');
     my $require_strong_password = $input->param('require_strong_password');
     my @branches = grep { $_ ne q{} } $input->multi_param('branches');
+    my $can_be_guarantee = $input->param('can_be_guarantee');
 
     $reset_password = undef if $reset_password eq -1;
     $change_password = undef if $change_password eq -1;
@@ -89,22 +89,13 @@ elsif ( $op eq 'add_validate' ) {
 
     my $is_a_modif = $input->param("is_a_modif");
 
-    if ($enrolmentperioddate) {
-        $enrolmentperioddate = output_pref(
-            {
-                dt         => dt_from_string($enrolmentperioddate),
-                dateformat => 'iso',
-                dateonly   => 1,
-            }
-        );
-    }
-
     if ($is_a_modif) {
         my $category = Koha::Patron::Categories->find( $categorycode );
         $category->categorycode($categorycode);
         $category->description($description);
         $category->enrolmentperiod($enrolmentperiod);
         $category->enrolmentperioddate($enrolmentperioddate);
+        $category->password_expiry_days($password_expiry_days);
         $category->upperagelimit($upperagelimit);
         $category->dateofbirthrequired($dateofbirthrequired);
         $category->enrolmentfee($enrolmentfee);
@@ -112,6 +103,7 @@ elsif ( $op eq 'add_validate' ) {
         $category->hidelostitems($hidelostitems);
         $category->overduenoticerequired($overduenoticerequired);
         $category->category_type($category_type);
+        $category->can_be_guarantee($can_be_guarantee);
         $category->BlockExpiredPatronOpacActions($BlockExpiredPatronOpacActions);
         $category->checkprevcheckout($checkPrevCheckout);
         $category->default_privacy($default_privacy);
@@ -137,6 +129,7 @@ elsif ( $op eq 'add_validate' ) {
             description => $description,
             enrolmentperiod => $enrolmentperiod,
             enrolmentperioddate => $enrolmentperioddate,
+            password_expiry_days => $password_expiry_days,
             upperagelimit => $upperagelimit,
             dateofbirthrequired => $dateofbirthrequired,
             enrolmentfee => $enrolmentfee,
@@ -144,6 +137,7 @@ elsif ( $op eq 'add_validate' ) {
             hidelostitems => $hidelostitems,
             overduenoticerequired => $overduenoticerequired,
             category_type => $category_type,
+            can_be_guarantee => $can_be_guarantee,
             BlockExpiredPatronOpacActions => $BlockExpiredPatronOpacActions,
             checkprevcheckout => $checkPrevCheckout,
             default_privacy => $default_privacy,

@@ -21,11 +21,11 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use Try::Tiny;
+use Try::Tiny qw( catch try );
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use C4::Koha;
 
 use Koha::Database;
@@ -45,24 +45,18 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { parameters => 'manage_libraries' },
-        debug           => 1,
     }
 );
 
 if ( $op eq 'add_form' ) {
-    my $library;
-    my $searchmobile = { 'mobilebranch' => undef };
-    if ($branchcode) {
-        $library = Koha::Libraries->find($branchcode);
-        $searchmobile->{'branchcode'} = { '!=' => $branchcode };
-        $template->param( selected_smtp_server => $library->smtp_server );
-    }
-
-    my @smtp_servers = Koha::SMTP::Servers->search;
-
+    $template->param(
+        library      => Koha::Libraries->find($branchcode),
+        smtp_servers => Koha::SMTP::Servers->search,
+    );
+} elsif ( $branchcode && $op eq 'view' ) {
+    my $library = Koha::Libraries->find($branchcode);
     $template->param(
         library      => $library,
-        smtp_servers => \@smtp_servers
     );
 } elsif ( $op eq 'add_validate' ) {
     my @fields = qw(
@@ -84,17 +78,17 @@ if ( $op eq 'add_form' ) {
       issuing
       branchip
       branchnotes
-      opac_info
       mobilebranch
       marcorgcode
       pickup_location
+      public
     );
     my $is_a_modif = $input->param('is_a_modif');
 
     if ($is_a_modif) {
         my $library = Koha::Libraries->find($branchcode);
         for my $field (@fields) {
-            if ( $field eq 'pickup_location' ) {
+            if( $field =~ /^(pickup_location|public)$/  ) {
                 # Don't fallback to undef/NULL, default is 1 in DB
                 $library->$field( scalar $input->param($field) );
             } else {
@@ -136,7 +130,7 @@ if ( $op eq 'add_form' ) {
                 branchcode => $branchcode,
                 (
                     map {
-                        $_ eq 'pickup_location' # Don't fallback to undef/NULL, default is 1 in DB
+                        /^(pickup_location|public)$/ # Don't fallback to undef for those fields
                           ? ( $_ => scalar $input->param($_) )
                           : ( $_ => scalar $input->param($_) || undef )
                     } @fields

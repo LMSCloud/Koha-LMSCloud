@@ -16,7 +16,7 @@
     <div class="container-fluid">
 
     [% IF ( opsearch ) %]
-        <h2>Z39.50 authority search points</h2>
+        <h1>Z39.50 authority search points</h1>
         <form method="post" action="z3950_auth_search.pl" name="f" class="checkboxed">
         <input type="hidden" name="op" id="op" value="do_search" />
         <input type="hidden" name="authid" value="[% authid | html %]" />
@@ -25,10 +25,10 @@
             <div class="col-xs-6">
                 <fieldset class="rows">
                 <ol>
-                    <li><label for="srchany">Keyword (any): </label> <input type="text" id="srchany" name="srchany" value="" /></li>
-                    <li><label for="controlnumber">Control number: </label> <input type="text" id="controlnumber" name="controlnumber" value="" /></li>
-                    <li><label for="nameany">Name (any): </label> <input type="text" id="nameany" name="nameany" value="" /></li>
-                    <li><label for="authorany">Author (any): </label> <input type="text" id="authorany" name="authorany" value="" /></li>
+                    <li><label for="srchany">Keyword (any): </label> <input type="text" id="srchany" name="srchany" value="[% srchany | html %]" /></li>
+                    <li><label for="controlnumber">Control number: </label> <input type="text" id="controlnumber" name="controlnumber" value="[% controlnumber | html %]" /></li>
+                    <li><label for="nameany">Name (any): </label> <input type="text" id="nameany" name="nameany" value="[% nameany | html %]" /></li>
+                    <li><label for="authorany">Author (any): </label> <input type="text" id="authorany" name="authorany" value="[% authorany | html %]" /></li>
                     <li><label for="authorpersonal">Author (personal): </label> <input type="text" id="authorpersonal" name="authorpersonal" value="[% authorpersonal | html %]" /></li>
                     <li><label for="authorcorp">Author (corporate): </label> <input type="text" id="authorcorp" name="authorcorp" value="[% authorcorp | html %]" /></li>
                     <li><label for="authormeetingcon">Author (meeting / conference): </label> <input type="text" id="authormeetingcon" name="authormeetingcon" value="[% authormeetingcon | html %]" /></li>
@@ -40,7 +40,7 @@
                     <fieldset class="rows">
                     <ol>
                         <li><label for="subject">Subject heading: </label> <input type="text" id="subject" name="subject" value="[% subject | html %]" /></li>
-                        <li><label for="subjectsubdiv">Subject sub-division: </label> <input type="text" id="subjectsubdiv" name="subjectsubdiv" value="" /></li>
+                        <li><label for="subjectsubdiv">Subject sub-division: </label> <input type="text" id="subjectsubdiv" name="subjectsubdiv" value="[% subjectsubdiv | html %]" /></li>
                         <li><label for="title">Title (any): </label> <input type="text" id="title"  name="title" value="[% title | html %]" /></li>
                         <li><label for="uniformtitle">Title (uniform): </label> <input type="text" id="uniformtitle"  name="uniformtitle" value="[% uniformtitle | html %]" /></li>
                         <li><a id="resetZ3950Search" href="#"><i class="fa fa-trash"></i> Clear search form</a></li>
@@ -68,12 +68,13 @@
             </div>
             <nav class="navbar navbar-default navbar-fixed-bottom">
                 <div class="container-fluid">
-                     <fieldset class="action"><input type="submit"  class="submit" value="Search" /> <a class="cancel close" href="#">Cancel</a></fieldset>
+                     <fieldset class="action"><input type="submit" id="submit_z3950_search" class="btn btn-primary" value="Search" />
+                     <a class="cancel close" href="#">Cancel</a></fieldset>
                 </div>
             </nav>
         </form>
 [% ELSE %]
-    <h2>Results for authority records</h2>
+    <h1>Results for authority records</h1>
     [% IF ( breeding_loop ) %]
     <table id="resultst">
 <thead>    <tr>
@@ -130,6 +131,7 @@
         <input type="hidden" id="subjectsubdiv" name="subjectsubdiv" value="[% subjectsubdiv | html %]" />
         <input type="hidden" id="heading"  name="heading" value="[% heading | html %]" />
         <input type="hidden" id="srchany" name="srchany" value="[% srchany | html %]" />
+        <input type="hidden" id="controlnumber" name="controlnumber" value="[% controlnumber | html %]" />
         <input type="hidden" name="authid" value="[% authid | html %]" />
 
         [% FOREACH server IN servers %]
@@ -143,10 +145,27 @@
         [% IF ( show_nextbutton ) %]
             <input type="button" name="changepage_next" value="Next page" data-currentpage="[% current_page | html %]" />
         [% END %]
-        <br />Go to page : <input id="goto_page" name="goto_page" value="[% current_page | html %]" size="4" type="text" /><input type="submit" name="changepage_goto" value="Go" />
+        <br />Go to page : <input id="goto_page" name="goto_page" value="[% current_page | html %]" size="4" type="text" /><input type="submit" name="changepage_goto" class="btn btn-primary" value="Go" />
     </form>
 
-<p><form method="get" action="/cgi-bin/koha/cataloguing/z3950_auth_search.pl"><input type="hidden" name="authid" value="[% authid | html %]" /><input type="submit" value="Try another search"/></form></p>
+    <p>
+        <form method="get" action="/cgi-bin/koha/cataloguing/z3950_auth_search.pl">
+            <input type="hidden" id="nameany"  name="nameany" value="[% nameany | html %]" />
+            <input type="hidden" id="authorany"  name="authorany" value="[% authorany | html %]" />
+            <input type="hidden" id="authorcorp"  name="authorcorp" value="[% authorcorp | html %]" />
+            <input type="hidden" id="authorpersonal"  name="authorpersonal" value="[% authorpersonal | html %]" />
+            <input type="hidden" id="authormeetingcon"  name="authormeetingcon" value="[% authormeetingcon | html %]" />
+            <input type="hidden" id="title"  name="title" value="[% title | html %]" />
+            <input type="hidden" id="uniformtitle"  name="uniformtitle" value="[% uniformtitle | html %]" />
+            <input type="hidden" id="subject" name="subject" value="[% subject | html %]" />
+            <input type="hidden" id="subjectsubdiv" name="subjectsubdiv" value="[% subjectsubdiv | html %]" />
+            <input type="hidden" id="heading"  name="heading" value="[% heading | html %]" />
+            <input type="hidden" id="srchany" name="srchany" value="[% srchany | html %]" />
+            <input type="hidden" id="controlnumber" name="controlnumber" value="[% controlnumber | html %]" />
+            <input type="hidden" name="authid" value="[% authid | html %]" />
+            <input type="submit" class="btn btn-primary" value="Try another search" />
+        </form>
+    </p>
     [% ELSE %]
         [% IF ( errconn ) %]
             <div class="dialog alert">
@@ -159,7 +178,24 @@
             </div>
          [% END %]
    <div class="dialog message">Nothing found.</div>
-    <p><form method="get" action="/cgi-bin/koha/cataloguing/z3950_auth_search.pl"><input type="hidden" name="authid" value="[% authid | html %]" /><input type="submit" value="Try another search"/></form></p>
+    <p>
+        <form method="get" action="/cgi-bin/koha/cataloguing/z3950_auth_search.pl">
+            <input type="hidden" id="nameany"  name="nameany" value="[% nameany | html %]" />
+            <input type="hidden" id="authorany"  name="authorany" value="[% authorany | html %]" />
+            <input type="hidden" id="authorcorp"  name="authorcorp" value="[% authorcorp | html %]" />
+            <input type="hidden" id="authorpersonal"  name="authorpersonal" value="[% authorpersonal | html %]" />
+            <input type="hidden" id="authormeetingcon"  name="authormeetingcon" value="[% authormeetingcon | html %]" />
+            <input type="hidden" id="title"  name="title" value="[% title | html %]" />
+            <input type="hidden" id="uniformtitle"  name="uniformtitle" value="[% uniformtitle | html %]" />
+            <input type="hidden" id="subject" name="subject" value="[% subject | html %]" />
+            <input type="hidden" id="subjectsubdiv" name="subjectsubdiv" value="[% subjectsubdiv | html %]" />
+            <input type="hidden" id="heading"  name="heading" value="[% heading | html %]" />
+            <input type="hidden" id="srchany" name="srchany" value="[% srchany | html %]" />
+            <input type="hidden" id="controlnumber" name="controlnumber" value="[% controlnumber | html %]" />
+            <input type="hidden" name="authid" value="[% authid | html %]" />
+            <input type="submit" class="btn btn-primary" value="Try another search" />
+        </form>
+    </p>
     [% END %]
 
 [% END %]
@@ -170,7 +206,6 @@
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'z3950_search.inc' %]
     [% Asset.js("js/z3950_search.js") | $raw %]
-    [% INCLUDE 'z3950_search.inc' %]
     <script>
         $(document).ready(function(){
             $("#resultst").dataTable($.extend(true, {}, dataTablesDefaults, {

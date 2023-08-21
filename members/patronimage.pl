@@ -29,7 +29,6 @@ use Koha::Patrons;
 
 $|=1;
 
-my $DEBUG = 0;
 my $query = CGI->new;
 my $borrowernumber;
 
@@ -59,9 +58,6 @@ if ($query->param('borrowernumber')) {
 } else {
     $borrowernumber = shift;
 }
-
-
-    warn "Borrowernumber passed in: $borrowernumber" if $DEBUG;
 
 my $patron         = Koha::Patrons->find( $borrowernumber );
 my $userenv = C4::Context->userenv;

@@ -22,6 +22,7 @@ use Modern::Perl;
 use base qw(Koha::Object);
 
 use Koha::Checkouts;
+use Koha::Exceptions;
 use Koha::Exceptions::Checkouts::ReturnClaims;
 use Koha::Old::Checkouts;
 use Koha::Patrons;
@@ -52,15 +53,10 @@ sub store {
         Koha::Exceptions::Checkouts::ReturnClaims::NoCreatedBy->throw();
     }
 
-    unless ( !$self->issue_id
+    # if issue_id is not found in issues or old_issues, set to null
+    $self->issue_id(undef) unless ( !$self->issue_id
         || Koha::Checkouts->find( $self->issue_id )
-        || Koha::Old::Checkouts->find( $self->issue_id ) )
-    {
-        Koha::Exceptions::Object::FKConstraint->throw(
-            error     => 'Broken FK constraint',
-            broken_fk => 'issue_id'
-        );
-    }
+        || Koha::Old::Checkouts->find( $self->issue_id ) );
 
     return $self->SUPER::store;
 }
@@ -73,12 +69,8 @@ sub checkout {
     my ($self) = @_;
 
     my $checkout_rs = $self->_result->checkout;
-    return Koha::Checkout->_new_from_dbic($checkout_rs)
-        if $checkout_rs;
-
-    $checkout_rs = $self->_result->old_checkout;
-    return Koha::Old::Checkout->_new_from_dbic($checkout_rs)
-        if $checkout_rs;
+    return unless $checkout_rs;
+    return Koha::Checkout->_new_from_dbic($checkout_rs);
 }
 
 =head3 old_checkout
@@ -102,6 +94,64 @@ sub patron {
 
     my $borrower = $self->_result->borrowernumber;
     return Koha::Patron->_new_from_dbic( $borrower ) if $borrower;
+}
+
+=head3 item
+
+  my $item = $claim->item;
+
+Return the return claim item
+
+=cut
+
+sub item {
+    my ( $self ) = @_;
+    my $item_rs = $self->_result->item;
+    return Koha::Item->_new_from_dbic( $item_rs );
+}
+
+=head3 resolve
+
+    $claim->resolve(
+        {
+            resolution      => $resolution,
+            resolved_by     => $patron_id,
+          [ resolved_on     => $dt
+            new_lost_status => $status, ]
+        }
+    );
+
+Resolve the claim.
+
+=cut
+
+sub resolve {
+    my ( $self, $params ) = @_;
+
+    my @mandatory = ( 'resolution', 'resolved_by' );
+    for my $param (@mandatory) {
+        unless ( defined( $params->{$param} ) ) {
+            Koha::Exceptions::MissingParameter->throw( error => "The $param parameter is mandatory" );
+        }
+    }
+
+    $self->_result->result_source->schema->txn_do(
+        sub {
+            $self->set(
+                {   resolution  => $params->{resolution},
+                    resolved_by => $params->{resolved_by},
+                    resolved_on => $params->{resolved_on} // \'NOW()',
+                    updated_by  => $params->{resolved_by}
+                }
+            )->store;
+
+            if ( defined $params->{new_lost_status} ) {
+                $self->item->itemlost( $params->{new_lost_status} )->store;
+            }
+        }
+    );
+
+    return $self;
 }
 
 =head3 to_api_mapping

@@ -20,26 +20,18 @@
 use strict;
 use warnings;
 
-BEGIN {
-
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
-
-use Getopt::Long;
-use Pod::Usage;
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 
 use Koha::Script -cron;
-use Koha::DateUtils qw/ dt_from_string /;
+use Koha::DateUtils qw( dt_from_string );
 use C4::Context;
-use C4::Biblio;
-use C4::Log;
+use C4::Biblio qw( UpdateTotalIssues );
+use C4::Log qw( cronlogaction );
 use DateTime;
 use DateTime::Format::MySQL;
-use Time::HiRes qw/time/;
-use POSIX qw/strftime ceil/;
+use Time::HiRes qw( time );
+use POSIX qw( ceil strftime );
 
 sub usage {
     pod2usage( -verbose => 2 );
@@ -59,6 +51,8 @@ my $useitems    = 0;
 my $incremental = 0;
 my $commit      = 100;
 my $unit;
+
+my $command_line_options = join(" ",@ARGV);
 
 my $result = GetOptions(
     'v|verbose'    => \$verbose,
@@ -98,7 +92,7 @@ if ( not $result or $want_help ) {
     usage();
 }
 
-cronlogaction();
+cronlogaction({ info => $command_line_options });
 
 my $dbh = C4::Context->dbh;
 $dbh->{AutoCommit} = 0;
@@ -112,6 +106,8 @@ process_items() if $useitems;
 process_stats() if $usestats;
 
 report();
+
+cronlogaction({ action => 'End', info => "COMPLETED" });
 
 exit 0;
 

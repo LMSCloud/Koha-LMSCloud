@@ -2,17 +2,19 @@
 
 use Modern::Perl;
 
-use Pod::Usage;
-use Getopt::Long;
+use Pod::Usage qw( pod2usage );
+use Getopt::Long qw( GetOptions );
 
 use Koha::Script -cron;
-use C4::Members;
-use Koha::DateUtils;
+use C4::Members qw( GetBorrowersToExpunge );
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Patrons;
-use C4::Log;
+use C4::Log qw( cronlogaction );
 
 my ( $help, $verbose, $not_borrowed_since, $expired_before, $last_seen,
     @category_code, $branchcode, $file, $confirm );
+
+my $command_line_options = join(" ",@ARGV);
 
 GetOptions(
     'h|help'                 => \$help,
@@ -44,7 +46,7 @@ unless ( $not_borrowed_since or $expired_before or $last_seen or @category_code 
     pod2usage(q{At least one filter is mandatory});
 }
 
-cronlogaction();
+cronlogaction({ info => $command_line_options });
 
 my @file_members;
 if ($file) {
@@ -139,6 +141,8 @@ for my $member (@$members) {
 
 say $confirm ? "$deleted patrons deleted" : "$deleted patrons would have been deleted" if $verbose;
 
+cronlogaction({ action => 'End', info => "COMPLETED" });
+
 =head1 NAME
 
 delete_patrons - This script deletes patrons
@@ -165,6 +169,13 @@ Print a brief help message
 =item B<--not_borrowed_since>
 
 Delete patrons who have not borrowed since this date.
+
+NOTE: Patrons who have all their old checkouts anonymized will
+have an empty circulation history and be deleted if this option is
+used. Anonymization can happen because the patron has
+borrowers.privacy = 2, through cronjobs doing anonymization
+or by the patron choosing to anonymize their history in the
+OPAC.
 
 =item B<--expired_before>
 

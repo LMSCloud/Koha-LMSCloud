@@ -21,8 +21,8 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Output;
-use C4::Auth;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
 use Koha::Checkouts;
 
 my $query = CGI->new;
@@ -56,7 +56,7 @@ if ( $action eq 'seen' ) {
     }
 }
 
-my $notes = Koha::Checkouts->search({ 'me.note' => { '!=', undef } }, { prefetch => [ 'borrower', { item => 'biblionumber' } ] });
+my $notes = Koha::Checkouts->search({ 'me.note' => { '!=', undef } }, { prefetch => [ 'patron', { item => 'biblionumber' } ] });
 $template->param(
     selected_count => scalar(@issue_ids),
     action         => $action,

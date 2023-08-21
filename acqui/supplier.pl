@@ -41,10 +41,9 @@ To know the bookseller this script has to display details.
 =cut
 
 use Modern::Perl;
-use C4::Auth;
-use C4::Contract;
-use C4::Biblio;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Contract qw( GetContracts GetContract );
+use C4::Output qw( output_html_with_http_headers );
 use CGI qw ( -utf8 );
 
 use C4::Budgets;
@@ -60,7 +59,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $query,
         type            => 'intranet',
         flagsrequired   => { acquisition => '*' },
-        debug           => 1,
     }
 );
 my $booksellerid       = $query->param('booksellerid');
@@ -91,14 +89,13 @@ if ( $op eq 'display' ) {
     );
 } elsif ( $op eq 'delete' ) {
     # no further message needed for the user
-    # the DELETE button only appears in the template if basketcount == 0
-    if ( $supplier->baskets->count == 0 ) {
+    # the DELETE button only appears in the template if basketcount == 0 AND subscriptioncount == 0
+    if ( $supplier->baskets->count == 0 && $supplier->subscriptions->count == 0) {
         Koha::Acquisition::Booksellers->find($booksellerid)->delete;
     }
     print $query->redirect('/cgi-bin/koha/acqui/acqui-home.pl');
     exit;
 } else {
-    my @currencies = Koha::Acquisition::Currencies->search;
 
     # get option values from TaxRates syspref
     my @gst_values = map {
@@ -110,7 +107,7 @@ if ( $op eq 'display' ) {
         active     => $supplier ? $supplier->active         : 1,
         tax_rate   => $supplier ? $supplier->tax_rate + 0.0 : 0,
         gst_values    => \@gst_values,
-        currencies    => \@currencies,
+        currencies    => Koha::Acquisition::Currencies->search,
         enter         => 1,
     );
 }

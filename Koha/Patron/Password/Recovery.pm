@@ -20,15 +20,17 @@ package Koha::Patron::Password::Recovery;
 use Modern::Perl;
 use C4::Context;
 use C4::Letters;
-use Crypt::Eksblowfish::Bcrypt qw(en_base64);
-use Koha::DateUtils;
+use Crypt::Eksblowfish::Bcrypt qw( en_base64 );
+use Koha::DateUtils qw( dt_from_string );
 
-use vars qw(@ISA @EXPORT);
+use constant PATRON => 2;
+use constant STAFF  => 5;
 
+our (@ISA, @EXPORT_OK);
 BEGIN {
     require Exporter;
     @ISA = qw(Exporter);
-    push @EXPORT, qw(
+    @EXPORT_OK = qw(
       &ValidateBorrowernumber
       &SendPasswordRecoveryEmail
       &GetValidLinkInfo
@@ -104,7 +106,7 @@ sub GetValidLinkInfo {
 sub SendPasswordRecoveryEmail {
     my $borrower  = shift;    # Koha::Patron
     my $userEmail = shift;    #to_address (the one specified in the request)
-    my $update    = shift;
+    my $staff     = shift // 0;
 
     my $schema = Koha::Database->new->schema;
 
@@ -115,24 +117,17 @@ sub SendPasswordRecoveryEmail {
     } while ( substr ( $uuid_str, -1, 1 ) eq '.' );
 
     # insert into database
+    my $days = $staff ? STAFF : PATRON;
     my $expirydate =
-      dt_from_string()->add( days => 2 );
-    if ($update) {
-        my $rs =
-          $schema->resultset('BorrowerPasswordRecovery')
-          ->search( { borrowernumber => $borrower->borrowernumber, } );
-        $rs->update(
-            { uuid => $uuid_str, valid_until => $expirydate->datetime() } );
-    }
-    else {
-        my $rs = $schema->resultset('BorrowerPasswordRecovery')->create(
+      dt_from_string()->add( days => $days );
+    my $rs = $schema->resultset('BorrowerPasswordRecovery')->update_or_create(
             {
                 borrowernumber => $borrower->borrowernumber,
                 uuid           => $uuid_str,
                 valid_until    => $expirydate->datetime()
-            }
+            },
+            { key => 'primary' }
         );
-    }
 
     # create link
     my $opacbase = C4::Context->preference('OPACBaseURL') || '';
@@ -142,7 +137,7 @@ sub SendPasswordRecoveryEmail {
     # prepare the email
     my $letter = C4::Letters::GetPreparedLetter(
         module      => 'members',
-        letter_code => 'PASSWORD_RESET',
+        letter_code => $staff ? 'STAFF_PASSWORD_RESET' : 'PASSWORD_RESET',
         branchcode  => $borrower->branchcode,
         lang        => $borrower->lang,
         substitute =>

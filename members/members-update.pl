@@ -20,8 +20,8 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
 use C4::Members;
 use Koha::Patron::Attribute::Types;
@@ -38,7 +38,6 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
         query           => $query,
         type            => "intranet",
         flagsrequired   => { borrowers => 'edit_borrowers' },
-        debug           => 1,
     }
 );
 
@@ -60,7 +59,7 @@ foreach my $pm (@$pending_modifications) {
     foreach my $type (@modified_atypes) {
         my $type_obj = Koha::Patron::Attribute::Types->find($type);
         my @before   = Koha::Patron::Attributes->search(
-            { borrowernumber => $pm->{borrowernumber}, code => $type } );
+            { borrowernumber => $pm->{borrowernumber}, code => $type } )->as_list;
         my @after = grep { $_->code eq $type } @{ $pm->{extended_attributes} };
         push @{$modified_attributes}, { type => $type_obj, before => \@before, after => \@after };
     }
@@ -71,7 +70,8 @@ foreach my $pm (@$pending_modifications) {
 
 $template->param(
     PendingModifications => $pending_modifications,
-    borrowers            => $borrowers
+    borrowers            => $borrowers,
+    active               => ( $query->param('active') || 0 ),
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

@@ -43,15 +43,9 @@ use warnings;
 
 use CGI qw ( -utf8 );
 use C4::Auth qw( check_api_auth );
-use C4::Output qw( :ajax );
+use C4::Output qw( output_with_http_headers );
 use C4::Output::JSONStream;
 use JSON;
-
-our $debug;
-
-BEGIN {
-    $debug = $ENV{DEBUG} || 0;
-}
 
 our ( $query, $cookie );
 
@@ -257,7 +251,6 @@ sub dispatch {
             next ROUTE if ( !defined( $query->param ( $param ) ) );
         }
 
-        $debug and warn "Using $path";
         $handler->( @match );
         return;
     }

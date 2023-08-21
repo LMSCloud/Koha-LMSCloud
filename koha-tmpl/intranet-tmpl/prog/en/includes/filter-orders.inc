@@ -1,16 +1,18 @@
 [% USE Koha %]
 [% USE Branches %]
-[% USE KohaDates %]
 [% PROCESS 'html_helpers.inc' %]
 <ol>
     <li><label for="title">Title: </label> <input type="text" name="title" id="title" value="[% filters.title | html %]" /></li>
     <li><label for="author">Author: </label> <input type="text" name="author" id="author" value="[% filters.author | html %]" /></li>
     <li><label for="isbn">ISBN: </label> <input type="text" name="isbn" id="isbn" value="[% filters.isbn | html %]" /></li>
+    <li><label for="isbn">ISSN: </label> <input type="text" name="issn" id="issn" value="[% filters.issn | html %]" /></li>
             [% IF Koha.Preference('marcflavour') == 'UNIMARC' %]
     <li><label for="ean">EAN: </label> <input type="text" name="ean" id="ean" value="[% filters.ean | html %]" /></li>
             [% END %]
     <li><label for="name">Vendor: </label> <input type="text" name="name" id="name" value="[% filters.name | html %]" /></li>
     <li><label for="basket">Basket: </label> <input type="text" name="basket" id="basket" value="[% filters.basket | html %]" /></li>
+    <li><label for="internalnote">Internal note: </label> <input type="text" name="internalnote" id="internalnote" value="[% filters.internalnote | html %]" /></li>
+    <li><label for="vendornote">Vendor note: </label> <input type="text" name="vendornote" id="vendornote" value="[% filters.vendornote | html %]" /></li>
     <li><label for="basket_creators">Basket created by: </label>
         <input autocomplete="off" id="find_patron" type="text" class="noEnterSubmit" />
         <div>
@@ -24,7 +26,7 @@
             [% PROCESS options_for_libraries libraries => Branches.all(selected => '') %]
         </select>
     </li>
-    <li><label for="booksellerinvoicenumber ">Bookseller invoice no: </label> <input type="text" name="booksellerinvoicenumber" id="booksellerinvoicenumber" value="[% filters.booksellerinvoicenumber | html %]" /></li>
+    <li><label for="booksellerinvoicenumber ">Vendor invoice number: </label> <input type="text" name="booksellerinvoicenumber" id="booksellerinvoicenumber" value="[% filters.booksellerinvoicenumber | html %]" /></li>
     <li>
         <label for="basketgroupname">Basket group:</label>
         <input type="text" name="basketgroupname" id="basketgroupname" value="[% filters.basketgroupname | html %]" />
@@ -33,12 +35,14 @@
     <li>
       <label for="ordernumber">Order line:</label>
       <input type="text" name="ordernumber" id="ordernumber" value="[% filters.ordernumber | html %]" />
-      [% IF filters.search_children_too %]
-        <input type="checkbox" name="search_children_too" id="search_children_too" value="1" checked="checked" />
-      [% ELSE %]
-        <input type="checkbox" name="search_children_too" id="search_children_too" value="1" />
-      [% END %]
-      <label class="yesno" for="search_children_too">Display children too.</label>
+        <label class="yesno" for="search_children_too">
+            [% IF filters.search_children_too %]
+                <input type="checkbox" name="search_children_too" id="search_children_too" value="1" checked="checked" />
+            [% ELSE %]
+                <input type="checkbox" name="search_children_too" id="search_children_too" value="1" />
+            [% END %]
+            Display children too
+        </label>
     </li>
 
     <li>
@@ -75,12 +79,14 @@
               <option value="cancelled">Cancelled</option>
             [% END %]
         </select>
-        [% IF filters.is_standing %]
-            <input type="checkbox" name="is_standing" id="is_standing" value="1" checked="checked" />
-        [% ELSE %]
-            <input type="checkbox" name="is_standing" id="is_standing" value="1" />
-        [% END %]
-         <label class="yesno" for="search_children_too">Standing order</label>
+        <label class="yesno" for="search_children_too">
+            [% IF filters.is_standing %]
+                <input type="checkbox" name="is_standing" id="is_standing" value="1" checked="checked" />
+            [% ELSE %]
+                <input type="checkbox" name="is_standing" id="is_standing" value="1" />
+            [% END %]
+            Standing order
+        </label>
     </li>
     <li>
         <label for="fund">Fund: </label>
@@ -103,11 +109,11 @@
     </li>
 
     <li><label for="from">From: </label>
-    <input type="text" size="10" id="from" name="from" value="[% filters.from_placed_on | $KohaDates %]" class="datepickerfrom" />
-            <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
+        <input type="text" size="10" id="from" name="from" value="[% filters.from_placed_on | html %]" class="flatpickr" data-date_to="to" />
+        <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
     </li>
     <li><label for="to">To: </label>
-    <input type="text" size="10" id="to" name="to" value="[% filters.to_placed_on | $KohaDates %]" class="datepickerto" />
-            <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
+        <input type="text" size="10" id="to" name="to" value="[% filters.to_placed_on | html %]" class="flatpickr" />
+        <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
     </li>
 </ol>

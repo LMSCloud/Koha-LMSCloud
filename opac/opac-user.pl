@@ -21,21 +21,23 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
+use URI;
 
-use C4::Auth;
-use C4::Koha;
-use C4::Circulation;
+use C4::Auth qw( get_template_and_user );
+use C4::Koha qw(
+    getitemtypeimagelocation
+    GetNormalizedISBN
+    GetNormalizedUPC
+);
+use C4::Circulation qw( CanBookBeRenewed GetRenewCount GetIssuingCharges );
 use C4::External::BakerTaylor qw( image_url link_url );
-use C4::Reserves;
+use C4::Reserves qw( GetReserveStatus );
 use C4::Members;
-use C4::Output;
-use C4::Biblio;
-use C4::Items;
-use C4::Letters;
+use C4::Output qw( output_html_with_http_headers );
 use Koha::Account::Lines;
 use Koha::Biblios;
 use Koha::Libraries;
-use Koha::DateUtils;
+use Koha::DateUtils qw( output_pref );
 use Koha::Holds;
 use Koha::Database;
 use Koha::ItemTypes;
@@ -45,16 +47,13 @@ use Koha::Patron::Messages;
 use Koha::Patron::Discharge;
 use Koha::Patrons;
 use Koha::Ratings;
+use Koha::Recalls;
 use Koha::Token;
 
 use constant ATTRIBUTE_SHOW_BARCODE => 'SHOW_BCODE';
 
-use Scalar::Util qw(looks_like_number);
-use Date::Calc qw(
-  Today
-  Add_Delta_Days
-  Date_to_Days
-);
+use Scalar::Util qw( looks_like_number );
+use Date::Calc qw( Date_to_Days Today );
 
 my $query = CGI->new;
 
@@ -67,14 +66,16 @@ BEGIN {
 
 # CAS single logout handling
 # Will print header and exit
-C4::Context->preference('casAuthentication') and C4::Auth_with_cas::logout_if_required($query);
+if ( C4::Context->preference('casAuthentication') ) {
+    require C4::Auth_with_cas;
+    C4::Auth_with_cas::logout_if_required($query);
+}
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
         template_name   => "opac-user.tt",
         query           => $query,
         type            => "opac",
-        debug           => 1,
     }
 );
 
@@ -109,8 +110,6 @@ if( $query->param('update_arc') && C4::Context->preference("AllowPatronToControl
 }
 
 my $borr = $patron->unblessed;
-# unblessed is a hash vs. object/undef. Hence the use of curly braces here.
-my $borcat = $borr ? $borr->{categorycode} : q{};
 
 my (  $today_year,   $today_month,   $today_day) = Today();
 my ($warning_year, $warning_month, $warning_day) = split /-/, $borr->{'dateexpiry'};
@@ -205,11 +204,11 @@ $template->param(
 
 #get issued items ....
 
-my $koha_issues_count = 0;
+my $count = 0;
 my $divibib_issues_count = 0;
 my $overdues_count = 0;
 my @overdues;
-my @koha_issuedat;
+my @issuedat;
 my @divibib_issuedat;
 my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
 
@@ -219,7 +218,8 @@ if (C4::Context->preference('DivibibEnabled')) {
         
     if ( $divibib_issues ) {
         foreach my $issue ( sort { $b->{date_due}->datetime() cmp $a->{date_due}->datetime() } @{$divibib_issues} ) {
-            my $marcrecord = GetMarcBiblio( { biblionumber => $issue->{'biblionumber'} } );
+            my $biblio_object = Koha::Biblios->find($issue->{biblionumber});
+            my $marcrecord = $biblio_object->metadata->record;
             
             my $itemtype = $issue->{'itemtype'};                
             if ( !exists($itemtypes->{$itemtype}) ) {
@@ -302,7 +302,7 @@ if ( $pending_checkouts->count ) { # Useless test
         }
         
         # check if item is renewable
-        my ($status,$renewerror) = CanBookBeRenewed( $borrowernumber, $issue->{'itemnumber'} );
+        my ($status,$renewerror,$info) = CanBookBeRenewed( $borrowernumber, $issue->{'itemnumber'} );
         (
             $issue->{'renewcount'},
             $issue->{'renewsallowed'},
@@ -333,12 +333,7 @@ if ( $pending_checkouts->count ) { # Useless test
 
             if ( $renewerror eq 'too_soon' ) {
                 $issue->{'too_soon'}         = 1;
-                $issue->{'soonestrenewdate'} = output_pref(
-                    C4::Circulation::GetSoonestRenewDate(
-                        $issue->{borrowernumber},
-                        $issue->{itemnumber}
-                    )
-                );
+                $issue->{'soonestrenewdate'} = $info->{soonest_renew_date};
             }
         }
         
@@ -346,32 +341,12 @@ if ( $pending_checkouts->count ) { # Useless test
         my $itemtype = $issue->{'itemtype'};
         if ( $itemtype && (! $issue->{'imageurl'} )  ) {
             $issue->{'imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{$itemtype}->{'imageurl'} );
-            $issue->{'description'} = $itemtypes->{$itemtype}->{'translated_description'};
+            $issue->{'description'} = $itemtypes->{$itemtype}->{'description'};
         }
         # imageurl for items.itype:
         if (exists $issue->{'itype'} && defined($issue->{'itype'}) && exists $itemtypes->{ $issue->{'itype'} }) {
             $issue->{'itype_imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $issue->{'itype'} }->{'imageurl'} );
-            $issue->{'itype_description'} = $itemtypes->{ $issue->{'itype'} }->{'translated_description'};
-        }
-        
-        my $isbn = GetNormalizedISBN($issue->{'isbn'});
-        $issue->{normalized_isbn} = $isbn;
-        my $marcrecord = GetMarcBiblio({
-            biblionumber => $issue->{'biblionumber'},
-            embed_items  => 1,
-            opac         => 1,
-            borcat       => $borcat });
-        $issue->{normalized_upc} = GetNormalizedUPC( $marcrecord, C4::Context->preference('marcflavour') );
-
-        # My Summary HTML
-        if (my $my_summary_html = C4::Context->preference('OPACMySummaryHTML')){
-            $issue->{author} ? $my_summary_html =~ s/{AUTHOR}/$issue->{author}/g : $my_summary_html =~ s/{AUTHOR}//g;
-            $issue->{title} =~ s/\/+$//; # remove trailing slash
-            $issue->{title} =~ s/\s+$//; # remove trailing space
-            $issue->{title} ? $my_summary_html =~ s/{TITLE}/$issue->{title}/g : $my_summary_html =~ s/{TITLE}//g;
-            $issue->{isbn} ? $my_summary_html =~ s/{ISBN}/$isbn/g : $my_summary_html =~ s/{ISBN}//g;
-            $issue->{biblionumber} ? $my_summary_html =~ s/{BIBLIONUMBER}/$issue->{biblionumber}/g : $my_summary_html =~ s/{BIBLIONUMBER}//g;
-            $issue->{MySummaryHTML} = $my_summary_html;
+            $issue->{'itype_description'} = $itemtypes->{ $issue->{'itype'} }->{'description'};
         }
 
         if ( $c->is_overdue ) {
@@ -389,16 +364,50 @@ if ( $pending_checkouts->count ) { # Useless test
             $issue->{my_rating} = $borrowernumber ? $ratings->search({ borrowernumber => $borrowernumber })->next : undef;
         }
 
-        $issue->{biblio_object} = Koha::Biblios->find($issue->{biblionumber});
-        push @koha_issuedat, $issue;
-        $koha_issues_count++;
+        my $biblio_object = Koha::Biblios->find($issue->{biblionumber});
+        $issue->{biblio_object} = $biblio_object;
+        push @issuedat, $issue;
+        $count++;
+
+        my $isbn = GetNormalizedISBN($issue->{'isbn'});
+        $issue->{normalized_isbn} = $isbn;
+
+        if (   C4::Context->preference('BakerTaylorEnabled')
+            || C4::Context->preference('SyndeticsEnabled')
+            || C4::Context->preference('SyndeticsCoverImages') )
+        {
+            my $marcrecord = $biblio_object->metadata->record( { embed_items => 1, opac => 1, patron => $patron, } );
+            $issue->{normalized_upc}  = GetNormalizedUPC( $marcrecord, C4::Context->preference('marcflavour') );
+            $issue->{normalized_oclc} = GetNormalizedOCLCNumber( $marcrecord, C4::Context->preference('marcflavour') );
+        }
+
+        # My Summary HTML
+        if (my $my_summary_html = C4::Context->preference('OPACMySummaryHTML')){
+            $issue->{author} ? $my_summary_html =~ s/{AUTHOR}/$issue->{author}/g : $my_summary_html =~ s/{AUTHOR}//g;
+            $issue->{title} =~ s/\/+$//; # remove trailing slash
+            $issue->{title} =~ s/\s+$//; # remove trailing space
+            $issue->{title} ? $my_summary_html =~ s/{TITLE}/$issue->{title}/g : $my_summary_html =~ s/{TITLE}//g;
+            $issue->{isbn} ? $my_summary_html =~ s/{ISBN}/$isbn/g : $my_summary_html =~ s/{ISBN}//g;
+            $issue->{biblionumber} ? $my_summary_html =~ s/{BIBLIONUMBER}/$issue->{biblionumber}/g : $my_summary_html =~ s/{BIBLIONUMBER}//g;
+            $issue->{MySummaryHTML} = $my_summary_html;
+        }
+
+        if ( C4::Context->preference('UseRecalls') ) {
+            my $maybe_recalls = Koha::Recalls->search({ biblio_id => $issue->{biblionumber}, item_id => [ undef, $issue->{itemnumber} ], completed => 0 });
+            while( my $recall = $maybe_recalls->next ) {
+                if ( $recall->checkout and $recall->checkout->issue_id == $issue->{issue_id} ) {
+                    $issue->{recall} = 1;
+                    last;
+                }
+            }
+        }
     }
 }
 
 my $overduesblockrenewing = C4::Context->preference('OverduesBlockRenewing');
-$canrenew = 0 if ($overduesblockrenewing ne 'allow' and $overdues_count == $koha_issues_count) || !$are_renewable_items;
-$template->param( KOHA_ISSUES       => \@koha_issuedat );
-$template->param( koha_issues_count => $koha_issues_count );
+$canrenew = 0 if ($overduesblockrenewing ne 'allow' and $overdues_count == $count) || !$are_renewable_items;
+$template->param( ISSUES       => \@issuedat );
+$template->param( issues_count => $count );
 $template->param( DIVIBIB_ISSUES       => \@divibib_issuedat );
 $template->param( divibib_issues_count => $divibib_issues_count );
 $template->param( canrenew     => $canrenew );
@@ -414,12 +423,17 @@ if ($show_barcode) {
 $template->param( show_barcode => 1 ) if $show_barcode;
 
 # now the reserved items....
-my $reserves = Koha::Holds->search( { borrowernumber => $borrowernumber } );
+my $reserves = $patron->holds->filter_out_has_cancellation_requests;
 
 $template->param(
     RESERVES       => $reserves,
     showpriority   => $show_priority,
 );
+
+if ( C4::Context->preference('UseRecalls') ) {
+    my $recalls = Koha::Recalls->search( { patron_id => $borrowernumber, completed => 0 } );
+    $template->param( RECALLS => $recalls );
+}
 
 if (C4::Context->preference('BakerTaylorEnabled')) {
     $template->param(
@@ -443,7 +457,6 @@ $template->param(
     OverDriveCirculation => C4::Context->preference('OverDriveCirculation') || 0,
     overdrive_error      => scalar $query->param('overdrive_error') || undef,
     overdrive_tab        => scalar $query->param('overdrive_tab') || 0,
-    RecordedBooksCirculation => C4::Context->preference('RecordedBooksClientSecret') && C4::Context->preference('RecordedBooksLibraryID'),
 );
 
 my $patron_messages = Koha::Patron::Messages->search(
@@ -458,7 +471,7 @@ if (   C4::Context->preference('AllowPatronToSetCheckoutsVisibilityForGuarantor'
 {
     my @relatives;
     # Filter out guarantees that don't want guarantor to see checkouts
-    foreach my $gr ( $patron->guarantee_relationships() ) {
+    foreach my $gr ( $patron->guarantee_relationships->as_list ) {
         my $g = $gr->guarantee;
         push( @relatives, $g ) if $g->privacy_guarantor_checkouts;
     }
@@ -470,13 +483,18 @@ if (   C4::Context->preference('AllowPatronToSetFinesVisibilityForGuarantor')
 {
     my @relatives_with_fines;
     # Filter out guarantees that don't want guarantor to see checkouts
-    foreach my $gr ( $patron->guarantee_relationships() ) {
+    foreach my $gr ( $patron->guarantee_relationships->as_list ) {
         my $g = $gr->guarantee;
         push( @relatives_with_fines, $g ) if $g->privacy_guarantor_fines;
     }
     $template->param( relatives_with_fines => \@relatives_with_fines );
 }
 
+if ( C4::Context->preference("ArticleRequests") ) {
+    $template->param(
+        current_article_requests => [$patron->article_requests->filter_by_current->as_list],
+    );
+}
 
 $template->param(
     patron_messages          => $patron_messages,
@@ -500,6 +518,25 @@ if ($search_query) {
         -uri    => "/cgi-bin/koha/opac-search.pl?$search_query",
         -cookie => $cookie,
     );
+}
+
+# if not an empty string this indicates to return
+# back to the page we triggered the login from
+my $return = $query->param('return');
+if ( $return ) {
+    my $uri_syspref = C4::Context->preference('OPACBaseURL');
+    if ( $uri_syspref ){
+        my $uri = URI->new($uri_syspref);
+        if ( $uri->isa('URI::http') && $uri->host() ){
+            my $return_uri = URI->new($return);
+            $return_uri->scheme( $uri->scheme() );
+            $return_uri->authority( $uri->authority() );
+            print $query->redirect(
+                -uri    => "$return_uri",
+                -cookie => $cookie,
+            );
+        }
+    }
 }
 
 output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };

@@ -1,0 +1,47 @@
+[% USE raw %]
+[% USE To %]
+[% USE Asset %]
+[% USE KohaDates %]
+[% USE TablesSettings %]
+[% SET footerjs = 1 %]
+[% PROCESS 'i18n.inc' %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>
+    E-resource management &rsaquo; Koha
+</title>
+[% INCLUDE 'doc-head-close.inc' %]
+</head>
+
+<body id="erm_agreements" class="erm">
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'erm-search.inc' %]
+[% END %]
+
+<div id="erm"> <!-- this is closed in intranet-bottom.inc -->
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'columns_settings.inc' %]
+    [% INCLUDE 'js-patron-format.inc' %]
+    [% INCLUDE 'js-date-format.inc' %]
+
+    <script>
+
+        const agreement_table_settings = [% TablesSettings.GetTableSettings( 'erm', 'agreements', 'agreements', 'json' ) | $raw %];
+        const license_table_settings = [% TablesSettings.GetTableSettings( 'erm', 'licenses', 'licenses', 'json' ) | $raw %];
+        const eholdings_packages_table_settings = [% TablesSettings.GetTableSettings( 'erm', 'eholdings', 'packages', 'json' ) | $raw %];
+        const eholdings_titles_table_settings = [% TablesSettings.GetTableSettings( 'erm', 'eholdings', 'titles', 'json' ) | $raw %];
+
+        const max_allowed_packet = [% To.json(max_allowed_packet) | $raw %];
+
+        const logged_in_user_lists = [% To.json(logged_in_user.virtualshelves.unblessed) | $raw %];
+
+        const logged_in_user = [% To.json(logged_in_user.unblessed) | $raw %];
+
+    </script>
+
+    [% Asset.js("js/vue/dist/erm.js") | $raw %]
+
+[% END %]
+[% INCLUDE 'intranet-bottom.inc' %]

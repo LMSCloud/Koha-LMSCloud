@@ -17,7 +17,6 @@ use Data::Dumper;
 
 use C4::SIP::Sip qw(add_field maybe_add);
 
-use C4::Debug;
 use C4::Context;
 use C4::Koha;
 use C4::Members;
@@ -27,10 +26,11 @@ use C4::Auth qw(checkpw);
 use Koha::Items;
 use Koha::Libraries;
 use Koha::Patrons;
+use Koha::Checkouts;
 
 our $kp;    # koha patron
 
-=head1 Methods
+=head1 METHODS
 
 =cut
 
@@ -53,7 +53,6 @@ sub new {
             || Koha::Patrons->find( { userid => $patron_id } );
     }
 
-    $debug and warn "new Patron: " . Dumper($patron->unblessed) if $patron;
     unless ($patron) {
         siplog("LOG_DEBUG", "new ILS::Patron(%s): no such patron", $patron_id);
         return;
@@ -62,7 +61,6 @@ sub new {
     my $pw        = $kp->{password};
     my $flags     = C4::Members::patronflags( $kp );
     my $debarred  = $patron->is_debarred;
-    $debug and warn sprintf("Debarred = %s : ", ($debarred||'undef')); # Do we need more debug info here?
     my ($day, $month, $year) = (localtime)[3,4,5];
     my $today    = sprintf '%04d-%02d-%02d', $year+1900, $month+1, $day;
     my $expired  = ($today gt $kp->{dateexpiry}) ? 1 : 0;
@@ -80,18 +78,28 @@ sub new {
     $dexpiry and $dexpiry =~ s/-//g;    # YYYYMMDD
 
     # Get fines and add fines for guarantees (depends on preference NoIssuesChargeGuarantees)
-    my $fines_amount = $flags->{CHARGES}->{amount}; #TODO Replace with $patron->account->non_issues_charges
+    my $fines_amount = ($patron->account->balance > 0) ? $patron->account->non_issues_charges : 0;
     my $personal_fines_amount = $fines_amount;
-    $fines_amount = ($fines_amount and $fines_amount > 0) ? $fines_amount : 0;
-    if ( C4::Context->preference('NoIssuesChargeGuarantorsWithGuarantees') ) {
+    my $fee_limit = _fee_limit();
+    my $noissueschargeguarantorswithguarantees = C4::Context->preference('NoIssuesChargeGuarantorsWithGuarantees');
+    my $fines_msg = "";
+    my $fine_blocked = 0;
+    my $noissueschargeguarantees = C4::Context->preference('NoIssuesChargeGuarantees');
+    if( $fines_amount > $fee_limit ){
+        $fine_blocked = 1;
+        $fines_msg .= " -- " . "Patron blocked by fines" if $fine_blocked;
+    } elsif ( $noissueschargeguarantorswithguarantees ) {
         $fines_amount += $patron->relationships_debt({ include_guarantors => 1, only_this_guarantor => 0, include_this_patron => 0 });
-    } else {
-        my $guarantees_fines_amount = $flags->{CHARGES_GUARANTEES} ? $flags->{CHARGES_GUARANTEES}->{amount} : 0; #TODO: Replace with $patron->relationships_debt
-        $fines_amount += $guarantees_fines_amount;
+        $fine_blocked ||= $fines_amount > $noissueschargeguarantorswithguarantees;
+        $fines_msg .= " -- " . "Patron blocked by fines ($fines_amount) on related accounts" if $fine_blocked;
+    } elsif ( $noissueschargeguarantees ) {
+        if( $patron->guarantee_relationships->count ){
+            $fines_amount += $patron->relationships_debt({ include_guarantors => 0, only_this_guarantor => 1, include_this_patron => 0 });
+            $fine_blocked ||= $fines_amount > $noissueschargeguarantees;
+            $fines_msg .= " -- " . "Patron blocked by fines ($fines_amount) on guaranteed accounts" if $fine_blocked;
+        }
     }
 
-    my $fee_limit = _fee_limit();
-    my $fine_blocked = $fines_amount > $fee_limit;
     my $circ_blocked =( C4::Context->preference('OverduesBlockCirc') ne "noblock" &&  defined $flags->{ODUES}->{itemlist} ) ? 1 : 0;
     {
     no warnings;    # any of these $kp->{fields} being concat'd could be undef
@@ -120,7 +128,7 @@ sub new {
         fees            => 0,             # currently not distinct from fines
         recall_overdue  => 0,
         items_billed    => 0,
-        screen_msg      => 'Greetings from Koha. ' . $kp->{opacnote},
+        screen_msg      => 'Greetings from Koha. ' . $kp->{opacnote} . $fines_msg,
         print_line      => '',
         items           => [],
         hold_items      => $flags->{WAITING}->{itemlist},
@@ -130,12 +138,13 @@ sub new {
         recall_items    => [],
         unavail_holds   => [],
         inet            => ( !$debarred && !$expired ),
+        debarred        => $debarred,
         expired         => $expired,
+        fine_blocked    => $fine_blocked,
         fee_limit       => $fee_limit,
         userid          => $kp->{userid},
     );
     }
-    $debug and warn "patron fines: $ilspatron{fines} ... amountoutstanding: $kp->{amountoutstanding} ... CHARGES->amount: $flags->{CHARGES}->{amount}";
 
     if ( $patron->is_debarred and $patron->debarredcomment ) {
         $ilspatron{screen_msg} .= " -- " . $patron->debarredcomment;
@@ -166,7 +175,6 @@ sub new {
     $ilspatron{items} = \@barcodes;
 
     $self = \%ilspatron;
-    $debug and warn Dumper($self);
     siplog("LOG_DEBUG", "new ILS::Patron(%s): found patron '%s'", $patron_id,$self->{id});
     bless $self, $type;
     return $self;
@@ -187,6 +195,8 @@ my %fields = (
     birthdate_iso           => 0,
     dateexpiry              => 0,
     dateexpiry_iso          => 0,
+    debarred                => 0,
+    fine_blocked            => 0,
     ptype                   => 0,
     charge_ok               => 0,   # for patron_status[0] (inverted)
     renew_ok                => 0,   # for patron_status[1] (inverted)
@@ -202,7 +212,6 @@ my %fields = (
     too_many_overdue        => 0,   # for patron_status[6]
     too_many_renewal        => 0,   # for patron_status[7]
     too_many_claim_return   => 0,   # for patron_status[8]
-    too_many_lost           => 0,   # for patron_status[9]
 #   excessive_fines         => 0,   # for patron_status[10]
 #   excessive_fees          => 0,   # for patron_status[11]
     recall_overdue          => 0,   # for patron_status[12]
@@ -274,13 +283,30 @@ sub check_password {
     # If the record has a NULL password, accept '' as match
     return $pwd eq q{} unless $self->{password};
 
-    my $dbh = C4::Context->dbh;
     my $ret = 0;
-    ($ret) = checkpw( $dbh, $self->{userid}, $pwd, undef, undef, 1 ); # dbh, userid, query, type, no_set_userenv
+    ($ret) = checkpw( $self->{userid}, $pwd, undef, undef, 1 ); # userid, query, type, no_set_userenv
     return $ret;
 }
 
 # A few special cases, not in AUTOLOADed %fields
+
+=head2 too_many_lost
+
+This method checks if number of checkouts of lost items exceeds a threshold (defined in server account).
+
+=cut
+
+sub too_many_lost {
+    my ( $self, $server ) = @_;
+    my $too_many_lost = 0;
+    if( $server && $server->{account} && ( my $lost_block_checkout = $server->{account}->{lost_block_checkout} )) {
+        my $lost_block_checkout_value = $server->{account}->{lost_block_checkout_value} // 1;
+        my $lost_checkouts = Koha::Checkouts->search({ borrowernumber => $self->borrowernumber, 'itemlost' => { '>=', $lost_block_checkout_value } }, { join => 'item'} )->count;
+        $too_many_lost = $lost_checkouts >= $lost_block_checkout;
+    }
+    return $too_many_lost;
+}
+
 sub fee_amount {
     my $self = shift;
     if ( $self->{fines} ) {
@@ -572,7 +598,7 @@ sub build_patron_attributes_string {
                     borrowernumber => $self->{borrowernumber},
                     code           => $a->{code}
                 }
-            );
+            )->as_list;
 
             foreach my $attribute ( @attributes ) {
                 my $value = $attribute->attribute();

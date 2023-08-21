@@ -13,6 +13,8 @@
 <body id="ser_subscription-renew" class="ser">
     <div class="container-fluid">
 
+        <h1>Serials subscription renew</h1>
+
 [% INCLUDE 'blocking_errors.inc' %]
 
 [% IF op == 'renew' OR op =='multi_renew' %]
@@ -34,7 +36,7 @@
         <ol>
             <li>
                 <label for="startdate">Start date: </label>
-                <input type="text" size="10" id="startdate" name="startdate" value="[% startdate | html %]" class="datepicker"/>
+                <input type="text" size="10" id="startdate" name="startdate" value="[% startdate | html %]" class="flatpickr"/>
                 <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
             </li>
     <li>
@@ -49,9 +51,9 @@
                 <option value="[% value | html %]">
             [% END %]
             [% SWITCH subtype %]
-                [% CASE 'numberlength'%]issues
-                [% CASE 'weeklength'  %]weeks
-                [% CASE 'monthlength' %]months
+                [% CASE 'numberlength' %]<span>issues</span>
+                [% CASE 'weeklength'   %]<span>weeks</span>
+                [% CASE 'monthlength'  %]<span>months</span>
             [% END %]
             </option>
         [% END %]
@@ -80,7 +82,7 @@
     [% END %]
 </ol>
 </fieldset>
-<fieldset class="action"><input type="submit" value="Submit" class="button" /></fieldset>
+<fieldset class="action"><input type="submit" class="btn btn-primary" value="Submit" /></fieldset>
 </form>
 [% END %]
 

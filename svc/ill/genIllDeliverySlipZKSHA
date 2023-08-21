@@ -28,6 +28,7 @@ use C4::Output qw( output_with_http_headers );
 use C4::Letters;
 use Koha::Libraries;
 use Koha::DateUtils qw( output_pref dt_from_string );
+use Koha::Notice::Templates;
 
 # If not artificially introducing this *named* subroutine nonAnonymousSub, an outer *anonymous* subroutine would automatically be implied
 # during run time, that will not yet have been created when the 'real' subroutines defined here are compiled,
@@ -80,7 +81,16 @@ sub nonAnonymousSub {
 
             my @transferTypes = ('print');
             for my $transfer (@transferTypes) {
-                my $letter = C4::Letters::getletter($module, $lettercode, $branchcode, $transfer );
+				my $template = Koha::Notice::Templates->find_effective_template(
+					{
+						module                 => $module,
+						code                   => $lettercode,
+						branchcode             => $branchcode,
+						message_transport_type => $transfer
+					}
+				);
+				my $letter;
+				$letter = $template->unblessed if ($template);
                 if ( $letter && $letter->{'content'} ) {
                     $lettertemplates->{$transfer}->{'letter'} = $letter;
                     $lettertemplates->{$transfer}->{'transportType'}  = $transfer;

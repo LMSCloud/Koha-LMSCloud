@@ -1,3 +1,4 @@
+[% USE raw %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Frequencies &rsaquo; Serials &rsaquo; Koha</title>
@@ -5,31 +6,29 @@
 </head>
 
 <body id="ser_subscription_frequencies" class="ser">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'serials-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'serials-search.inc' %]
+[% END %]
 
 [% BLOCK translate_frequnit %]
 [%  SWITCH frequnit %]
-[%   CASE 'day'     %] day
-[%   CASE 'week'    %] week
-[%   CASE 'month'   %] month
-[%   CASE 'year'    %] year
+[%   CASE 'day'   %]<span> day</span>
+[%   CASE 'week'  %]<span> week</span>
+[%   CASE 'month' %]<span> month</span>
+[%   CASE 'year'  %]<span> year</span>
 [%  END %]
 [% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/serials/serials-home.pl">Serials</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">Frequencies</a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Frequencies</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -94,7 +93,7 @@
             </ol>
           </fieldset>
           <fieldset class="action">
-            <input type="submit" value="Save" />
+            <input type="submit" class="btn btn-primary" value="Save" />
             <a href="/cgi-bin/koha/serials/subscription-frequencies.pl" class="cancel">Cancel</a>
           </fieldset>
         </form>
@@ -133,35 +132,37 @@
         [% END %]
 
         [% IF (frequencies_loop.size) %]
-          <table id="frequenciest">
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th>Unit</th>
-                <th>Issues per unit</th>
-                <th>Units per issue</th>
-                <th>Display order</th>
-                <th class="noExport">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              [% FOREACH frequency IN frequencies_loop %]
-                <tr>
-                  <td>[% frequency.description | html %]</td>
-                  <td>[% PROCESS translate_frequnit frequnit=frequency.unit %]</td>
-                  <td>[% frequency.issuesperunit | html %]</td>
-                  <td>[% frequency.unitsperissue | html %]</td>
-                  <td>[% frequency.displayorder | html %]</td>
-                  <td class="actions">
-                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/serials/subscription-frequencies.pl?op=modify&frequencyid=[% frequency.id | html %]"><i class="fa fa-pencil"></i> Edit</a>
-                    <a class="delete_frequency btn btn-default btn-xs" href="/cgi-bin/koha/serials/subscription-frequencies.pl?op=del&frequencyid=[% frequency.id | html %]"><i class="fa fa-trash"></i> Delete</a>
-                  </td>
-                </tr>
-              [% END %]
-            </tbody>
-          </table>
+            <div class="page-section">
+                <table id="frequenciest">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Unit</th>
+                            <th>Issues per unit</th>
+                            <th>Units per issue</th>
+                            <th>Display order</th>
+                            <th class="noExport">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        [% FOREACH frequency IN frequencies_loop %]
+                            <tr>
+                                <td>[% frequency.description | html %]</td>
+                                <td>[% PROCESS translate_frequnit frequnit=frequency.unit %]</td>
+                                <td>[% frequency.issuesperunit | html %]</td>
+                                <td>[% frequency.unitsperissue | html %]</td>
+                                <td>[% frequency.displayorder | html %]</td>
+                                <td class="actions">
+                                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/serials/subscription-frequencies.pl?op=modify&frequencyid=[% frequency.id | html %]"><i class="fa fa-pencil"></i> Edit</a>
+                                    <a class="delete_frequency btn btn-default btn-xs" href="/cgi-bin/koha/serials/subscription-frequencies.pl?op=del&frequencyid=[% frequency.id | html %]"><i class="fa fa-trash"></i> Delete</a>
+                                </td>
+                            </tr>
+                        [% END %]
+                    </tbody>
+                </table>
+            </div> <!-- /.page-section -->
         [% ELSE %]
-          <p>There is no defined frequency.</p>
+            <p>There is no defined frequency.</p>
         [% END %]
       [% END %]
 

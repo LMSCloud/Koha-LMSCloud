@@ -21,29 +21,22 @@
 use Modern::Perl;
 
 use Koha::Script -cron;
-use C4::Reports::Guided; # 0.12
+use C4::Reports::Guided qw( store_results execute_query );
 use Koha::Reports;
 use C4::Context;
-use C4::Log;
+use C4::Log qw( cronlogaction );
 use Koha::Email;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::SMTP::Servers;
 
-use Getopt::Long qw(:config auto_help auto_version);
-use Pod::Usage;
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 use Text::CSV::Encoded;
 use CGI qw ( -utf8 );
-use Carp;
-use Encode;
+use Carp qw( carp );
+use Encode qw( decode );
 use JSON qw( to_json );
-use Try::Tiny;
-
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
+use Try::Tiny qw( catch try );
 
 =head1 NAME
 
@@ -94,7 +87,11 @@ Verbose. Without this flag set, only fatal errors are reported.
 
 =item B<--format>
 
-Current options are text, html, csv, and tsv. At the moment, text and tsv both produce tab-separated tab-separated output.
+Current options are text, html, csv, and tsv. At the moment, text and tsv both produce tab-separated output.
+
+=item B<--separator>
+
+Separator character, only for csv format. Default to comma.
 
 =item B<--email>
 
@@ -171,6 +168,8 @@ Reports - Guided Reports
 
 =cut
 
+binmode STDOUT, ":encoding(UTF-8)";
+
 # These variables can be set by command line options,
 # initially set to default values.
 
@@ -188,16 +187,20 @@ my $separator = ',';
 my $quote = '"';
 my $store_results = 0;
 my $csv_header = 0;
+my $csv_separator = "";
 
 my $username = undef;
 my $password = undef;
 my $method = 'LOGIN';
+
+my $command_line_options = join(" ",@ARGV);
 
 GetOptions(
     'help|?'            => \$help,
     'man'               => \$man,
     'verbose'           => \$verbose,
     'format=s'          => \$format,
+    'separator=s'       => \$csv_separator,
     'to=s'              => \$to,
     'from=s'            => \$from,
     'subject=s'         => \$subject,
@@ -215,11 +218,19 @@ pod2usage( -verbose => 2 ) if ($man);
 pod2usage( -verbose => 2 ) if ($help and $verbose);
 pod2usage(1) if $help;
 
-cronlogaction();
+cronlogaction({ info => $command_line_options });
 
 unless ($format) {
     $verbose and print STDERR "No format specified, assuming 'text'\n";
     $format = 'text';
+}
+
+if ($csv_separator) {
+    if ( $format eq 'csv' ) {
+        $separator = "$csv_separator";
+    } else {
+        print STDERR "Cannot specify separator if not using CSV format\n";
+    }
 }
 
 if ($format eq 'tsv' || $format eq 'text') {
@@ -269,7 +280,13 @@ foreach my $report_id (@ARGV) {
     my $params_needed = ( $sql =~ s/(<<[^>]+>>)/\?/g );
     die("You supplied ". scalar @params . " parameter(s) and $params_needed are required by the report") if scalar @params != $params_needed;
 
-    my ($sth) = execute_query( $sql, undef, undef, \@params, $report_id );
+    my ($sth) = execute_query(
+        {
+            sql        => $sql,
+            sql_params => \@params,
+            report_id  => $report_id,
+        }
+    );
     my $count = scalar($sth->rows);
     unless ($count) {
         print "NO OUTPUT: 0 results from execute_query\n";
@@ -360,3 +377,5 @@ foreach my $report_id (@ARGV) {
         print $message;
     }
 }
+
+cronlogaction({ action => 'End', info => "COMPLETED" });

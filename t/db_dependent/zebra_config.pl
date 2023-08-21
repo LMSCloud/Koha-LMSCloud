@@ -2,10 +2,10 @@
 
 use Modern::Perl;
 
-use File::Copy;
-use File::Path qw(make_path);
-use File::Find;
-use File::Basename;
+use File::Copy qw( copy );
+use File::Path qw( make_path );
+use File::Find qw( find );
+use File::Basename qw( dirname );
 use File::Spec;
 
 use C4::Context;
@@ -36,6 +36,7 @@ make_path("$destination/var/lib/zebradb/authorities/key");
 make_path("$destination/var/lib/zebradb/authorities/register");
 make_path("$destination/var/lib/zebradb/authorities/shadow");
 make_path("$destination/var/lib/zebradb/authorities/tmp");
+make_path("$destination/var/log/koha");
 make_path("$destination/var/run/zebradb");
 
 $ENV{'INSTALL_BASE'} = $destination;
@@ -48,8 +49,12 @@ $ENV{'__DB_PORT__'} = C4::Context->config('port')      // '3306';
 $ENV{'__DB_USER__'} = C4::Context->config('user')      // 'kohaadmin';
 $ENV{'__DB_PASS__'} = C4::Context->config('pass')      // 'katikoan';
 
-my @files = ( "$source/etc/koha-conf.xml",
-            );
+$ENV{'__LOG_DIR__'} = "$destination/var/log/koha";
+
+my @files = (
+    "$source/etc/koha-conf.xml",
+    "$source/etc/log4perl.conf",
+);
 
 find(sub { push @files, $File::Find::name if ( -f $File::Find::name ); }, "$source/etc/zebradb");
 
@@ -57,6 +62,7 @@ foreach my $file (@files) {
     my $target = "$file";
     $target =~ s#$source#$destination#;
     $target =~ s#etc/zebradb#etc/koha/zebradb#;
+    $target =~ s#etc/log4perl\.conf#etc/koha/log4perl.conf#;
     unlink($target);
     make_path(dirname($target));
     copy("$file", "$target");

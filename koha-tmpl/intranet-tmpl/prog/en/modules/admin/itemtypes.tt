@@ -25,85 +25,81 @@
 Item types &rsaquo; Administration &rsaquo; Koha
 </title>
 [% INCLUDE 'doc-head-close.inc' %]
-<style>
-	fieldset.rows div.toptabs li { clear:none;margin-right:.5em;padding-bottom:0;width:auto; }
-  fieldset.rows div.toptabs .ui-tabs-nav li.ui-tabs-active {background-color : #F4F8F9; }
-	fieldset.rows .ui-tabs-panel { margin-right : 10px; margin-left : 10px;margin-bottom:10px;}
-  fieldset.rows .ui-tabs-nav { margin-left : 10px; }
-</style>
+[% FILTER collapse %]
+    <style>
+        fieldset.rows div.toptabs li {
+            clear: none;
+            margin-right:.4em;
+            padding-bottom: 0;
+            width: auto;
+        }
+        .itemtype-icons {
+            display: flex;
+            flex-wrap: wrap;
+            clear: both;
+        }
+        .itemtype-icons label {
+            float: none;
+            width: auto;
+        }
+    </style>
+[% END %]
 </head>
 
 <body id="admin_itemtypes" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+       [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
+        [% END %]
+
+        [% IF op == 'add_form' || op == 'delete_confirm' || op == 'delete_confirmed' %]
+           [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/admin/itemtypes.pl">Item types</a>
+            [% END %]
+        [% END %]
 
         [% IF op == 'add_form' %]
-            <li>
-                <a href="/cgi-bin/koha/admin/itemtypes.pl">Item types</a>
-            </li>
             [% IF itemtype %]
-                <li>
-                    <a href="#" aria-current="page">
-                        Modify item type '[% itemtype.itemtype | html %]'
-                    </a>
-                </li>
+               [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Modify item type '[% itemtype.itemtype | html %]'</span>
+                [% END %]
             [% ELSE %]
-                <li>
-                    <a href="#" aria-current="page">
-                        Add item type
-                    </a>
-                </li>
+               [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Add item type</span>
+                [% END %]
             [% END %]
         [% END %]
 
         [% IF op == 'delete_confirm' %]
-            <li>
-                <a href="/cgi-bin/koha/admin/itemtypes.pl">Item types</a>
-            </li>
             [% IF total %]
-                <li>
-                    <a href="#" aria-current="page">
-                        Cannot delete item type '[% itemtype.itemtype | html %]'
-                    </a>
-                </li>
+               [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Cannot delete item type '[% itemtype.itemtype | html %]'</span>
+                [% END %]
             [% ELSE %]
-                <li>
-                    <a href="#" aria-current="page">
-                        Delete item type '[% itemtype.itemtype | html %]'?
-                    </a>
-                </li>
+               [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Delete item type '[% itemtype.itemtype | html %]'?</span>
+                [% END %]
             [% END %]
         [% END %]
 
         [% IF op == 'delete_confirmed' %]
-            <li>
-                <a href="/cgi-bin/koha/admin/itemtypes.pl">Item types</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Data deleted
-                </a>
-            </li>
+           [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Data deleted</span>
+            [% END %]
         [% END %]
 
         [% IF op == 'list' %]
-            <li>
-                <a href="#" aria-current="page">
-                    Item types administration
-                </a>
-            </li>
+           [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Item types administration</span>
+            [% END %]
         [% END %]
-    </ol>
-</nav>
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -118,23 +114,23 @@ Item types &rsaquo; Administration &rsaquo; Koha
     <div class="dialog [% m.type | html %]">
         [% SWITCH m.code %]
         [% CASE 'error_on_update' %]
-            An error occurred when updating this item type. Perhaps the value already exists.
+            <span>An error occurred when updating this item type. Perhaps the value already exists</span>
         [% CASE 'error_on_insert' %]
-            An error occurred when inserting this item type. Perhaps the value already exists.
+            <span>An error occurred when inserting this item type. Perhaps the value already exists</span>
         [% CASE 'error_on_delete' %]
-            An error occurred when deleting this item type. Check the logs.
+            <span>An error occurred when deleting this item type. Check the logs</span>
         [% CASE 'success_on_update' %]
-            Item type updated successfully.
+            <span>Item type updated successfully</span>
         [% CASE 'success_on_insert' %]
-            Item type inserted successfully.
+            <span>Item type inserted successfully</span>
         [% CASE 'success_on_delete' %]
-            Item type deleted successfully.
+            <span>Item type deleted successfully</span>
         [% CASE 'already_exists' %]
-            This item type already exists.
+            <span>This item type already exists</span>
         [% CASE 'cannot_be_deleted' %]
-            Cannot delete this item type. <p><strong>This record is in use</strong>. Deletion is not possible.</p>
+            <span>Cannot delete this item type. <p><strong>This record is in use</strong>. Deletion is not possible.</p></span>
         [% CASE %]
-            [% m.code | html %]
+            <span>[% m.code | html %]</span>
         [% END %]
     </div>
 [% END %]
@@ -142,9 +138,9 @@ Item types &rsaquo; Administration &rsaquo; Koha
 
 [% IF op == 'add_form' %]
     [% IF itemtype %]
-        <h3>Modify item type</h3>
+        <h1>Modify item type</h1>
     [% ELSE %]
-        <h3>Add item type</h3>
+        <h1>Add item type</h1>
     [% END %]
     <form action="/cgi-bin/koha/admin/itemtypes.pl" name="Aform" method="post" id="itemtypeentry">
         <input type="hidden" name="op" value="add_validate" />
@@ -182,7 +178,7 @@ Item types &rsaquo; Administration &rsaquo; Koha
                     <input type="text" id="parent_type" value="[% parent_type | html %]" name="parent_type" size="10" maxlength="10" disabled/>
                     <p>No available parent types</p>
                     [% END %]
-                    <span class="hint">Defining a parent type will apply checkout limits for all children as described on the circulation rules page.</span>
+                    <div class="hint">Defining a parent type will apply checkout limits for all children as described on the circulation rules page.</div>
                 </li>
                 <li>
                     <label for="description" class="required">Description: </label>
@@ -192,7 +188,7 @@ Item types &rsaquo; Administration &rsaquo; Koha
                     [% END %]
                 </li>
                 <li>
-                    <span class="label">Search category</span>
+                    <label for="searchcategory">Search category: </label>
                     <select id="searchcategory" name="searchcategory">
                     <option value="">None</option>
                         [% FOREACH cat IN searchcategory %]
@@ -207,7 +203,13 @@ Item types &rsaquo; Administration &rsaquo; Koha
                             [% END %]
                         [% END %]
                     </select>
-                    <span class="hint">Options are defined as the authorized values for the ITEMTYPECAT category.</span>
+                    <div class="hint">
+                        [% IF ( CAN_user_parameters_manage_auth_values ) %]
+                            <span>Options are defined by the authorized value <a target="_blank" href="/cgi-bin/koha/admin/authorised_values.pl?searchfield=ITEMTYPECAT">ITEMTYPECAT</a>.</span>
+                        [% ELSE %]
+                            <span>Options are defined by the authorized value ITEMTYPECAT.</span>
+                        [% END %]
+                    </div>
                 </li>
                 [% IF ( Koha.Preference('noItemTypeImages') && Koha.Preference('OpacNoItemTypeImages') ) %]
                     <li>
@@ -215,72 +217,11 @@ Item types &rsaquo; Administration &rsaquo; Koha
                     </li>
                 [% END %]
             </ol>
+
             [% UNLESS Koha.Preference('noItemTypeImages') && Koha.Preference('OpacNoItemTypeImages') %]
-                <div id="icons" class="toptabs" style="clear:both">
-                    <h5 style="margin-left:10px;">Choose an icon:</h5>
-                    <ul>
-                        <li><a href="#none">None</a></li>
-                        [% FOREACH imageset IN imagesets %]
-                            [% IF ( imageset.imagesetactive ) %]
-                                <li class="ui-tabs-active">
-                            [% ELSE %]
-                                <li>
-                            [% END %]
-                            <a href="#[% imageset.imagesetname | uri %]">[% imageset.imagesetname | html %]</a>
-                            </li>
-                        [% END %]
-                        [% IF itemtype.image_location('intranet').match('^http') %]<li class="ui-tabs-active">[% ELSE %]<li>[% END %]<a href="#remote">Remote image</a></li>
-                    </ul>
-                    <div id="none">
-                        <ul>
-                            <li><label for="noimage">No image: </label><input type="radio" name="image" id="noimage" value="removeImage" /></li>
-                        </ul>
-                        <br class="clear" />
-                    </div>
-
-                    [% FOREACH imageset IN imagesets %]
-                        <div id="[% imageset.imagesetname | html %]">
-                            <ul>
-                                [% FOREACH image IN imageset.images %]
-                                    <li style="float: none; display: inline-block; clear : none; width: auto;">
-                                        <label>
-                                            [% IF image.StaffImageUrl %]
-                                                <img src="[% image.StaffImageUrl | html %]" alt="[% image.StaffImageUrl | html %]" title="[% image.StaffImageUrl | html %]" />
-                                            [% END %]
-                                            [% IF image.checked %]
-                                                <input type="radio" name="image" value="[% image.KohaImage | html %]" checked="checked" />
-                                            [% ELSIF image.KohaImage %] <!-- to delete the radio button if there is no image after -->
-                                                <input type="radio" name="image" value="[% image.KohaImage | html %]" />
-                                            [% END %]
-                                        </label>
-                                    </li>
-                                [% END %]
-                            </ul>
-                            <br class="clear" />
-                        </div>
-                    [% END %]
-
-                    <div id="remote">
-                        <ul>
-                            <li>
-                                <label for="remote_image_check"> Remote image:</label>
-                                [% SET image_location = itemtype.image_location('intranet') %]
-                                [% IF image_location.match('^http') %]
-                                    <input type="radio" id="remote_image_check" name="image" value="remoteImage" checked="checked" />
-                                    <input type="text" name="remoteImage" size="48" maxlength="200" value="[% image_location | html %]" onmousedown="document.getElementById('remote_image_check').checked = true;" />
-                                    [% IF itemtype.imageurl %]
-                                        <img src="[% image_location | html %]" alt="" />
-                                    [% END %]
-                                [% ELSE %]
-                                    <input type="radio" id="remote_image_check" name="image" value="remoteImage" />
-                                    <input type="text" name="remoteImage" size="48" maxlength="200" value="" onmousedown="document.getElementById('remote_image_check').checked = true;" />
-                                [% END %]
-                            </li>
-                        </ul>
-                        <br class="clear" />
-                    </div>
-                </div>
+                [% INCLUDE 'admin-icon-selection.inc' context = "itemtype" %]
             [% END %]
+
             <ol class="oladditemtype">
                 <li>
                     <label for="hideinopac">Hide in OPAC: </label>
@@ -312,12 +253,12 @@ Item types &rsaquo; Administration &rsaquo; Koha
                 <li>
                     <label for="rentalcharge">Rental charge: </label>
                     <input type="text" id="rentalcharge" name="rentalcharge" size="10" value="[% itemtype.rentalcharge | $Price on_editing => 1 %]" min="0" />
-                    <span class="hint">This fee is charged once per checkout/renewal per item</span>
+                    <div class="hint">This fee is charged once per checkout/renewal per item</div>
                 </li>
                 <li>
                     <label for="rentalcharge_daily">Daily rental charge: </label>
                     <input type="text" id="rentalcharge_daily" name="rentalcharge_daily" size="10" value="[% itemtype.rentalcharge_daily | $Price on_editing => 1 %]" min="0" />
-                    <span class="hint">This fee is charged at checkout/renewal time for each day between the checkout/renewal date and due date for loans specified in days.</span>
+                    <div class="hint">This fee is charged at checkout/renewal time for each day between the checkout/renewal date and due date for loans specified in days.</div>
                 </li>
                 <li>
                     <label for="rentalcharge_daily_calendar">Daily rentals use calendar: </label>
@@ -331,7 +272,7 @@ Item types &rsaquo; Administration &rsaquo; Koha
                 <li>
                     <label for="rentalcharge_hourly">Hourly rental charge: </label>
                     <input type="text" id="rentalcharge_hourly" name="rentalcharge_hourly" size="10" value="[% itemtype.rentalcharge_hourly | $Price on_editing => 1 %]" min="0" />
-                    <span class="hint">This fee is charged at checkout/renewal time for each hour between the checkout/renewal date and due date for loans specified in hours.</span>
+                    <div class="hint">This fee is charged at checkout/renewal time for each hour between the checkout/renewal date and due date for loans specified in hours.</div>
                 </li>
                 <li>
                     <label for="rentalcharge_hourly_calendar">Hourly rentals use calendar: </label>
@@ -356,7 +297,7 @@ Item types &rsaquo; Administration &rsaquo; Koha
                 </li>
                 <li>
                     <label for="checkinmsgtype">Checkin message type: </label>
-                    <select type="text" id="checkinmsgtype" name="checkinmsgtype">
+                    <select id="checkinmsgtype" name="checkinmsgtype">
                         [% IF itemtype.checkinmsgtype == 'message' %]
                             <option value="message" selected="selected">Message</option>
                         [% ELSE %]
@@ -387,19 +328,19 @@ Item types &rsaquo; Administration &rsaquo; Koha
                         <option value="">All libraries</option>
                         [% PROCESS options_for_libraries libraries => Branches.all( selected => itemtype.get_library_limits, unfiltered => 1, do_not_select_my_library => 1 ) %]
                     </select>
-                    <span class="hint">Select 'All libraries' if all libraries use this item type. Otherwise, select the specific libraries that use this item type.</span>
+                    <div class="hint">Select 'All libraries' if all libraries use this item type. Otherwise, select the specific libraries that use this item type.</div>
                 </li>
                 <li>
                     <label for="summary">Summary: </label>
                    <textarea id="summary" name="summary" cols="55" rows="5">[% itemtype.summary | html %]</textarea>
-                    <p>Enter a summary that will overwrite the default one in search results lists. Example, for a website itemtype : </p>
-                    <p><strong>&lt;a href="[856u]"&gt;open site&lt;/a&gt;</strong> will show the link just below the title</p>
+                    <div class="hint">Enter a summary that will overwrite the default one in search results lists. Example, for a website itemtype : </div>
+                    <div class="hint"><strong>&lt;a href="[856u]"&gt;open site&lt;/a&gt;</strong> will show the link just below the title</div>
                 </li>
             </ol>
         </fieldset>
 
         <fieldset class="action">
-            <input type="submit" value="Save changes" />
+            <input type="submit" class="btn btn-primary" value="Save changes" />
             <a href="/cgi-bin/koha/admin/itemtypes.pl" class="cancel">Cancel</a>
         </fieldset>
     </form>
@@ -407,7 +348,7 @@ Item types &rsaquo; Administration &rsaquo; Koha
 
 [% IF op == 'delete_confirm' %]
     <div class="dialog alert">
-        <h3>Delete item type '[% itemtype.itemtype | html %]'?</h3>
+        <h1>Delete item type '[% itemtype.itemtype | html %]'?</h1>
         <table>
             <tr>
                 <th scope="row">Item type</th>
@@ -436,8 +377,9 @@ Item types &rsaquo; Administration &rsaquo; Koha
 [% END %]
 
 [% IF op == 'list' %]
-    <h2>Item types administration</h2>
+    <h1>Item types administration</h1>
     [% IF itemtypes %]
+    <div class="page-section">
         <table id="table_item_type">
           <thead>
             [% UNLESS Koha.Preference('noItemTypeImages') && Koha.Preference('OpacNoItemTypeImages') %]<th class="noExport">Image</th>[% END %]
@@ -468,13 +410,13 @@ Item types &rsaquo; Administration &rsaquo; Koha
             <td>
                 [% IF itemtype.parent_type %]
                     [% IF itemtype.parent.translated_descriptions.size %]
-                        [% itemtype.parent.description | html %] (default)<br/>
+                        [% itemtype.parent.description | html %] <span>(default)</span><br/>
                     [% ELSE %]
                         [% itemtype.parent.description | html %]
                     [% END %]
                     </br>
                     [% IF itemtype.translated_descriptions.size %]
-                        [% itemtype.description | html %] (default)<br/>
+                        [% itemtype.description | html %] <span>(default)</span><br/>
                         [% FOR description IN itemtype.translated_descriptions %]
                             [% IF description.translation == itemtype.translated_description %]
                             --    <strong>[% description.translation | html %]</strong>
@@ -488,7 +430,7 @@ Item types &rsaquo; Administration &rsaquo; Koha
                     [% END %]
                 [% ELSE %]
                     [% IF itemtype.translated_descriptions.size %]
-                        [% itemtype.description | html %] (default)<br/>
+                        [% itemtype.description | html %] <span>(default)</span><br/>
                         [% FOR description IN itemtype.translated_descriptions %]
                             [% IF description.translation == itemtype.translated_description %]
                                 <strong>[% description.translation | html %]</strong>
@@ -545,12 +487,12 @@ Item types &rsaquo; Administration &rsaquo; Koha
                     [% END %]
                     <span class="library_limitation" title="[% library_str | html %]">
                         [% IF library_limits.count > 1 %]
-                            [% library_limits.count | html %] library limitations
+                            <span>[% library_limits.count | html %] library limitations</span>
                         [% ELSE %]
-                            [% library_limits.count | html %] library limitation
+                            <span>[% library_limits.count | html %] library limitation</span>
                         [% END %]
                 [% ELSE %]
-                    No limitation
+                    <span>No limitation</span>
                 [% END %]
             </td>
             <td>[% IF ( itemtype.automatic_checkin ) %]Yes[% ELSE %]&nbsp;[% END %]</td>
@@ -561,6 +503,7 @@ Item types &rsaquo; Administration &rsaquo; Koha
           </tr>
           [% END %]
         </table>
+    </div>
     [% ELSE %]
         <div class="dialog message">There are no itemtypes defined</div>
     [% END %]
@@ -583,18 +526,15 @@ Item types &rsaquo; Administration &rsaquo; Koha
     [% INCLUDE 'columns_settings.inc' %]
     <script>
          $(document).ready(function() {
-            $('#icons').tabs();
-            var columns_settings = [% TablesSettings.GetColumns( 'admin', 'itemtypes', 'table_item_type', 'json' ) | $raw %];
+            var table_settings = [% TablesSettings.GetTableSettings( 'admin', 'itemtypes', 'table_item_type', 'json' ) | $raw %];
             [% IF ( Koha.Preference('noItemTypeImages') && Koha.Preference('OpacNoItemTypeImages') ) %]
-                columns_settings.shift(); // Remove item type image column from configuration
+                table_settings['columns'].shift(); // Remove item type image column from configuration
             [% END %]
 
             $(document).ready(function() {
                 KohaTable("table_item_type", {
-                "aaSorting": [[ 1, "asc" ]],
-                "iDisplayLength": 10,
                 "sPaginationType": "full"
-                }, columns_settings);
+                }, table_settings);
             });
 
             $( "#itemtypeentry" ).validate({
@@ -611,6 +551,9 @@ Item types &rsaquo; Administration &rsaquo; Koha
                 toUC(this);
             });
             $(".library_limitation").tooltip();
+            if( $("#icons .tab-pane.active").length < 1 ){
+                $("#icons a:first").tab("show");
+            }
          });
     </script>
 [% END %]

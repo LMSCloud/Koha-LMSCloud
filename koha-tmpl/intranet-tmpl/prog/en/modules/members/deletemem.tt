@@ -8,24 +8,23 @@
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="pat_deletemem" class="pat">
-[% INCLUDE 'header.inc' %]
-[% PROCESS 'patron-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'patron-search-header.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Delete patron [% patron.firstname | html %] [% patron.surname | html %]
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber | uri %]">[% INCLUDE 'patron-title.inc' %]</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Delete patron</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -35,7 +34,7 @@
     [% INCLUDE 'members-toolbar.inc' %]
     [% IF ItemsOnIssues || debits || is_guarantor || cash_register_branchcode %]
         <div class="dialog alert">
-        <h3>Cannot delete patron</h3>
+        <h1>Cannot delete patron</h1>
             <ul>
             [% IF ( ItemsOnIssues ) %]
                 <li>Patron has [% ItemsOnIssues | html %] item(s) checked out.</li>
@@ -67,7 +66,8 @@
                     [% END %]
                 </ul>
             [% END %]
-            <h3>Are you sure you want to delete the patron [% patron.firstname | html %] [% patron.surname | html %]? This cannot be undone.</h3>
+            <h1>Are you sure you want to delete the patron [% patron.firstname | html %] [% patron.surname | html %]?</h1>
+            <p>This cannot be undone.</p>
             <form action="/cgi-bin/koha/members/deletemem.pl">
                 <input type="hidden" name="csrf_token" value="[% csrf_token | html %]" />
                 <input type="hidden" name="member" value="[% patron.borrowernumber | html %]"/>

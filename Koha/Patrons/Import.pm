@@ -17,20 +17,20 @@ package Koha::Patrons::Import;
 
 use Modern::Perl;
 use Moo;
-use namespace::clean;
 
-use Carp;
+use Carp qw( carp );
 use Text::CSV;
 use Encode qw( decode_utf8 );
-use Try::Tiny;
+use Try::Tiny qw( catch try );
 
-use C4::Members;
+use C4::Members qw( checkcardnumber );
+use C4::Letters qw( GetPreparedLetter EnqueueLetter );
 
 use Koha::Libraries;
 use Koha::Patrons;
 use Koha::Patron::Categories;
-use Koha::Patron::Debarments;
-use Koha::DateUtils;
+use Koha::Patron::Debarments qw( AddDebarment );
+use Koha::DateUtils qw( dt_from_string output_pref );
 
 =head1 NAME
 
@@ -57,6 +57,7 @@ Further pod documentation needed here.
 =cut
 
 has 'today_iso' => ( is => 'ro', lazy => 1,
+    # FIXME We shouldn't need to call output_pref here, passing a DateTime object should work
     default => sub { output_pref( { dt => dt_from_string(), dateonly => 1, dateformat => 'iso' } ); }, );
 
 has 'text_csv' => ( is => 'rw', lazy => 1,
@@ -70,12 +71,16 @@ sub import_patrons {
 
     my $matchpoint           = $params->{matchpoint};
     my $defaults             = $params->{defaults};
+    my $preserve_fields      = $params->{preserve_fields};
     my $ext_preserve         = $params->{preserve_extended_attributes};
     my $overwrite_cardnumber = $params->{overwrite_cardnumber};
     my $overwrite_passwords  = $params->{overwrite_passwords};
     my $dry_run              = $params->{dry_run};
+    my $send_welcome         = $params->{send_welcome};
     my $extended             = C4::Context->preference('ExtendedPatronAttributes');
     my $set_messaging_prefs  = C4::Context->preference('EnhancedMessagingPreferences');
+    my $update_dateexpiry            = $params->{update_dateexpiry};
+    my $update_dateexpiry_from_today = $params->{update_dateexpiry_from_today};
 
     my $schema = Koha::Database->new->schema;
     $schema->storage->txn_begin if $dry_run;
@@ -139,6 +144,7 @@ sub import_patrons {
         }
 
         $borrower{cardnumber} = undef if $borrower{cardnumber} eq "";
+        $borrower{auth_method} = undef if $borrower{auth_method} eq "";
 
         # Check if borrower category code exists and if it matches to a known category. Pushing error to missing_criticals otherwise.
         $self->check_borrower_category($borrower{categorycode}, $borrowerline, $line_number, \@missing_criticals);
@@ -167,7 +173,8 @@ sub import_patrons {
 
         # Default date enrolled and date expiry if not already set.
         $borrower{dateenrolled} = $self->today_iso() unless $borrower{dateenrolled};
-        $borrower{dateexpiry} = Koha::Patron::Categories->find( $borrower{categorycode} )->get_expiry_date( $borrower{dateenrolled} ) unless $borrower{dateexpiry};
+        my $expiration_start_date = $update_dateexpiry_from_today ? dt_from_string : $borrower{dateenrolled};
+        $borrower{dateexpiry} = Koha::Patron::Categories->find( $borrower{categorycode} )->get_expiry_date( $expiration_start_date ) if $update_dateexpiry;
 
         my $borrowernumber;
         my ( $member, $patron );
@@ -196,11 +203,13 @@ sub import_patrons {
             }
         }
 
+        my $is_new = 0;
         if ($patron) {
             $member = $patron->unblessed;
             $borrowernumber = $member->{'borrowernumber'};
         } else {
             $member = {};
+            $is_new = 1;
         }
 
         if ( C4::Members::checkcardnumber( $borrower{cardnumber}, $borrowernumber ) ) {
@@ -257,6 +266,13 @@ sub import_patrons {
                 next LINE;
             }
             $borrower{'borrowernumber'} = $borrowernumber;
+
+            if ( $preserve_fields ) {
+                for my $field ( @$preserve_fields ) {
+                    $borrower{$field} = $patron->$field;
+                }
+            }
+
             for my $col ( keys %borrower ) {
 
                 # use values from extant patron unless our csv file includes this column or we provided a default.
@@ -270,7 +286,6 @@ sub import_patrons {
                 }
             }
 
-            my $patron = Koha::Patrons->find( $borrowernumber );
             try {
                 $schema->storage->txn_do(sub {
                     $patron->set(\%borrower)->store;
@@ -278,16 +293,15 @@ sub import_patrons {
                     if ( $borrower{debarred} && ( ( $borrower{debarred} ne $member->{debarred} ) || ( $borrower{debarredcomment} ne $member->{debarredcomment} ) ) ) {
 
                         # Check to see if this debarment already exists
-                        my $debarrments = GetDebarments(
+                        my $restrictions = $patron->restrictions->search(
                             {
-                                borrowernumber => $borrowernumber,
-                                expiration     => $borrower{debarred},
-                                comment        => $borrower{debarredcomment}
+                                expiration => $borrower{debarred},
+                                comment    => $borrower{debarredcomment}
                             }
                         );
 
                         # If it doesn't, then add it!
-                        unless (@$debarrments) {
+                        unless ($restrictions->count) {
                             AddDebarment(
                                 {
                                     borrowernumber => $borrowernumber,
@@ -319,7 +333,7 @@ sub import_patrons {
                             }
                         }
                     }
-                    if ($extended) {
+                    if ($extended && @$patron_attributes) {
                         if ($ext_preserve) {
                             $patron_attributes = $patron->extended_attributes->merge_and_replace_with( $patron_attributes );
                         }
@@ -366,7 +380,7 @@ sub import_patrons {
         else {
             try {
                 $schema->storage->txn_do(sub {
-                    my $patron = Koha::Patron->new(\%borrower)->store;
+                    $patron = Koha::Patron->new(\%borrower)->store;
                     $borrowernumber = $patron->id;
 
                     if ( $patron->is_debarred ) {
@@ -379,7 +393,7 @@ sub import_patrons {
                         );
                     }
 
-                    if ($extended) {
+                    if ($extended && @$patron_attributes) {
                         # FIXME Hum, we did not filter earlier and now we do?
                         $patron->extended_attributes->filter_by_branch_limitations->delete;
                         $patron->extended_attributes($patron_attributes);
@@ -431,6 +445,50 @@ sub import_patrons {
         }
 
         next LINE unless $success;
+
+        # Send WELCOME welcome email is the user is new and we're set to send mail
+        if ($send_welcome && $is_new) {
+            my $emailaddr = $patron->notice_email_address;
+
+            # if we manage to find a valid email address, send notice
+            if ($emailaddr) {
+                eval {
+                    my $letter = GetPreparedLetter(
+                        module      => 'members',
+                        letter_code => 'WELCOME',
+                        branchcode  => $patron->branchcode,
+                        lang        => $patron->lang || 'default',
+                        tables      => {
+                            'branches'  => $patron->branchcode,
+                            'borrowers' => $patron->borrowernumber,
+                        },
+                        want_librarian => 1,
+                    ) or return;
+
+                    my $message_id = EnqueueLetter(
+                        {
+                            letter                 => $letter,
+                            borrowernumber         => $patron->id,
+                            to_address             => $emailaddr,
+                            message_transport_type => 'email',
+                            branchcode             => $patron->branchcode,
+                        }
+                    );
+                };
+                if ($@) {
+                    push @errors, { welcome_email_err => 1, borrowernumber => $borrowernumber };
+                } else {
+                    push(
+                        @feedback,
+                        {
+                            feedback     => 1,
+                            name         => 'welcome_sent',
+                            value        => $borrower{'surname'} . ' / ' . $borrowernumber . ' / ' . $emailaddr
+                        }
+                    );
+                }
+            }
+        }
 
         # Add a guarantor if we are given a relationship
         if ( $guarantor_id ) {

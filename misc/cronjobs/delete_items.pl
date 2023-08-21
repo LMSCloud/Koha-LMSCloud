@@ -1,13 +1,29 @@
-#! /usr/bin/perl
+#!/usr/bin/perl
 
-use Getopt::Long;
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
+use Modern::Perl;
+
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 
 use Koha::Script -cron;
+
 use C4::Context;
-use C4::Items;
-use C4::Circulation;
-use Modern::Perl;
-use Pod::Usage;
+use Koha::Items;
 
 my $dbh = C4::Context->dbh();
 
@@ -62,12 +78,12 @@ DELITEM: while ( my $item = $GLOBAL->{sth}->{target_items}->fetchrow_hashref() )
 
     my $item_object = Koha::Items->find($item->{itemnumber});
     my $safe_to_delete = $item_object->safe_to_delete;
-    if( $safe_to_delete eq '1' )  {
+    if( $safe_to_delete )  {
         $item_object->safe_delete
             if $OPTIONS->{flags}->{commit};
         verbose "Deleting '$item->{itemnumber}'";
     } else {
-        verbose "Item '$item->{itemnumber}' not deleted: $safe_to_delete";
+        verbose sprintf "Item '%s' not deleted: %s", $item->{itemnumber}, @{$safe_to_delete->messages}[0]->message
     }
 }
 

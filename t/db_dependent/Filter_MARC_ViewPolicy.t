@@ -29,7 +29,7 @@ use List::MoreUtils qw/any/;
 use MARC::Record;
 use MARC::Field;
 use C4::Context;
-use C4::Biblio;
+use C4::Biblio qw( GetMarcFromKohaField );
 use Koha::Caches;
 use Koha::Database;
 
@@ -205,3 +205,5 @@ subtest 'Koha::Filter::MARC::ViewPolicy intranet tests' => sub {
     $schema->storage->txn_rollback();
 };
 
+my $cache = Koha::Caches->get_instance();
+$cache->flush_all(); # Clear cache for the other tests

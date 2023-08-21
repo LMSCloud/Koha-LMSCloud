@@ -21,6 +21,7 @@ use Mojo::Base 'Mojolicious::Controller';
 
 use Koha::Illrequest::Config;
 use Koha::Illrequests;
+use Koha::Illbackend;
 
 =head1 NAME
 
@@ -37,16 +38,17 @@ Return a list of available ILL backends and its capabilities
 sub list {
     my $c = shift->openapi->valid_input;
 
-    my $config = Koha::Illrequest::Config->new;
+    my $config   = Koha::Illrequest::Config->new;
     my $backends = $config->available_backends;
 
     my @data;
-    foreach my $b ( @$backends ) {
-        my $backend = Koha::Illrequest->new->load_backend( $b );
-        push @data, {
+    foreach my $b (@$backends) {
+        my $backend = Koha::Illrequest->new->load_backend($b);
+        push @data,
+          {
             ill_backend_id => $b,
-            capabilities => $backend->capabilities,
-        };
+            capabilities   => $backend->capabilities,
+          };
     }
     return $c->render( status => 200, openapi => \@data );
 }
@@ -63,17 +65,32 @@ sub get {
     my $backend_id = $c->validation->param('ill_backend_id');
 
     return try {
-        my $backend = Koha::Illrequest->new->load_backend( $backend_id );
+
+        #FIXME: Should we move load_backend into Koha::Illbackend...
+        #       or maybe make Koha::Ill::Backend a base class for all
+        #       backends?
+        my $backend = Koha::Illrequest->new->load_backend($backend_id);
+
+        my $backend_module = Koha::Illbackend->new;
+
+        my $embed =
+          $backend_module->embed( $backend_id,
+            $c->req->headers->header('x-koha-embed') );
+
+        #TODO: We need a to_api method in Koha::Illbackend
+        my $return = {
+            ill_backend_id => $backend_id,
+            capabilities   => $backend->capabilities,
+        };
+
         return $c->render(
-            status => 200,
-            openapi => {
-                ill_backend_id => $backend_id,
-                capabilities => $backend->capabilities
-            }
+            status  => 200,
+            openapi => $embed ? { %$return, %$embed } : $return,
         );
-    } catch {
+    }
+    catch {
         return $c->render(
-            status => 404,
+            status  => 404,
             openapi => { error => "ILL backend does not exist" }
         );
     };

@@ -148,24 +148,20 @@
 </head>
 
 <body id="catalog_itemsearch" class="catalog">
-  [% INCLUDE 'header.inc' %]
-  [% INCLUDE 'home-search.inc' %]
+  [% WRAPPER 'header.inc' %]
+    [% INCLUDE 'home-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/catalogue/search.pl">Catalog</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Item search
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Item search</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -173,14 +169,15 @@
 
     <div id="item-search-block">
       <h1>Item search</h1>
-      <p><a href="/cgi-bin/koha/catalogue/search.pl">Go to advanced search</a></p>
+
       <form action="/cgi-bin/koha/catalogue/itemsearch.pl" method="get" id="itemsearchform">
           <div id="toolbar" class="btn-toolbar">
-              <fieldset class="action">
-                  <div class="btn-group">
-                      <button class="btn btn-default"><i class="fa fa-search"></i> Search</button>
-                  </div>
-              </fieldset>
+                <div class="btn-group">
+                    <button class="btn btn-primary"><i class="fa fa-search"></i> Search</button>
+                </div>
+                <div class="btn-group">
+                    <a href="/cgi-bin/koha/catalogue/search.pl" class="btn btn-default"><i class="fa fa-search"></i> Go to advanced search</a>
+                </div>
           </div>
           <fieldset>
             [% INCLUDE form_field_select name="homebranch" options = homebranches empty_option = "All libraries" %]
@@ -203,6 +200,13 @@
             [% IF withdrawns.size %]
                 [% INCLUDE form_field_select name="withdrawn" options = withdrawns empty_option = "All statuses" %]
             [% END %]
+            <div class="form-field">
+                <label class="form-field-label">Availability:</label>
+                <input type="radio" name="onloan" id="onloan_indifferent" value="" checked="checked"/>
+                <label for="onloan_indifferent">Ignore</label>
+                <input type="radio" name="onloan" id="onloan_yes" value="IS NOT NULL" />
+                <label for="onloan_yes">Checked out</label>
+            </div>
           </fieldset>
           <fieldset>
             [% INCLUDE form_field_select_text %]
@@ -316,6 +320,7 @@
                 + '      <th id="items_publisher">' + _("Publisher") + '</th>'
                 + '      <th id="items_collection">' + _("Collection") + '</th>'
                 + '      <th id="items_barcode">' + _("Barcode") + '</th>'
+                + '      <th id="items_enumchron">' + _("Serial enumeration") + '</th>'
                 + '      <th id="items_callno">' + _("Call number") + '</th>'
                 + '      <th id="items_homebranch">' + _("Home library") + '</th>'
                 + '      <th id="items_holdingbranch">' + _("Current library") + '</th>'
@@ -326,14 +331,16 @@
                 + '      <th id="items_itemlost">' + _("Lost status") + '</th>'
                 + '      <th id="items_widthdrawn">' + _("Withdrawn status") + '</th>'
                 + '      <th id="items_checkouts">' + _("Checkouts") + '</th>'
+                + '      <th id="items_date_due">' + _("Due date") + '</th>'
                 + '      <th id=""></th>'
                 + '    </tr>'
             var table = ''
+                + '<div class="page-section">'
                 + '<table id="results">'
                 + '  <thead>' + tr + tr + '</thead>'
                 + '  <tbody></tbody>'
-                + '</table>';
-
+                + '</table>'
+                + '</div>';
             var advSearchLink = $('<a>')
                 .attr('href', '/cgi-bin/koha/catalogue/search.pl')
                 .html(_("Go to advanced search"));
@@ -472,6 +479,7 @@
                     { 'sName': 'publishercode' },
                     { 'sName': 'ccode' },
                     { 'sName': 'barcode' },
+                    { 'sName': 'enumchron' },
                     { 'sName': 'itemcallnumber' },
                     { 'sName': 'homebranch' },
                     { 'sName': 'holdingbranch' },
@@ -482,6 +490,7 @@
                     { 'sName': 'itemlost' },
                     { 'sName': 'withdrawn' },
                     { 'sName': 'issues' },
+                    { 'sName': 'date_due' },
                     { 'sName': 'actions', 'bSortable': false }
                 ],
                 "sPaginationType": "full_numbers",
@@ -498,6 +507,7 @@
                     [% ELSE %]
                         null,
                     [% END %]
+                    { 'type': 'text' },
                     { 'type': 'text' },
                     { 'type': 'text' },
                     { 'type': 'select', 'values': [% INCLUDE escape_html_value_label elts => homebranches %] },
@@ -528,6 +538,7 @@
                     [% ELSE %]
                         null,
                     [% END %]
+                    { 'type': 'text' },
                     { 'type': 'text' },
                     null
                 ]

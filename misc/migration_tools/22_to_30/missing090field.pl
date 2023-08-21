@@ -4,18 +4,12 @@
 #  Revised by Joshua Ferraro on 03/31/2006
 use strict;
 #use warnings; FIXME - Bug 2505
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../../kohalib.pl" };
-}
 
 # Koha modules used
 
 use C4::Context;
-use C4::Biblio;
-use MARC::Record;
+use C4::Biblio qw( GetMarcFromKohaField ModBiblioMarc );
+use Koha::Biblios;
 use MARC::File::USMARC;
 
 $|=1;
@@ -26,7 +20,8 @@ $sth->execute();
 
 my $i=1;
 while (my ($biblionumber,$biblioitemnumber)=$sth->fetchrow ){
- my $record = GetMarcBiblio({ biblionumber => $biblionumber });
+ my $biblio = Koha::Biblios->find($biblionumber);
+ my $record = $biblio->metadata->record;
     print ".";
     print "\r$i" unless $i %100;
     MARCmodbiblionumber($biblionumber,$biblioitemnumber,$record);

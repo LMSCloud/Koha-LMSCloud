@@ -13,49 +13,41 @@
 </head>
 
 <body id="admin_currency" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'currencies-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'currencies-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
-        <li>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/currency.pl">Currencies &amp; Exchange rates</a>
-        </li>
+        [% END %]
 
         [% IF op == 'add_form' %]
-            <li>
-                <a href="#" aria-current="page">
-                    [% IF currency %]
-                        Modify currency '[% currency.currency | html %]'
-                    [% ELSE %]
-                        New currency
-                    [% END %]
-                </a>
-            </li>
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% IF currency %]
+                    <span>Modify currency '[% currency.currency | html %]'</span>
+                [% ELSE %]
+                    <span>New currency</span>
+                [% END %]
+            [% END %]
         [% END %]
 
         [% IF op == 'delete_confirm' %]
-            <li>
-                <a href="#" aria-current="page">
-                    Confirm deletion of currency [% currency.currency | $HtmlTags tag='span' attributes=>'class="ex"' %]
-                </a>
-            </li>
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Confirm deletion of currency [% currency.currency | $HtmlTags tag='span' attributes=>'class="ex"' %]</span>
+            [% END %]
 
         [% ELSIF op == 'list' %]
-            <li>
-                <a href="#" aria-current="page">
-                    Currencies
-                </a>
-            </li>
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Currencies</span>
+            [% END %]
         [% END %]
-    </ol>
-</nav>
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -72,19 +64,19 @@
     <div class="dialog [% m.type | html %]">
         [% SWITCH m.code %]
         [% CASE 'error_on_update' %]
-            An error occurred when updating this currency. Perhaps it already exists.
+            <span>An error occurred when updating this currency. Perhaps it already exists</span>
         [% CASE 'error_on_insert' %]
-            An error occurred when adding this currency. The currency code might already exist.
+            <span>An error occurred when adding this currency. The currency code might already exist</span>
         [% CASE 'error_on_delete' %]
-            An error occurred when deleting this currency. Check the logs.
+            <span>An error occurred when deleting this currency. Check the logs</span>
         [% CASE 'success_on_update' %]
-            Currency updated successfully.
+            <span>Currency updated successfully</span>
         [% CASE 'success_on_insert' %]
-            Currency added successfully.
+            <span>Currency added successfully</span>
         [% CASE 'success_on_delete' %]
-            Currency deleted successfully.
+            <span>Currency deleted successfully</span>
         [% CASE %]
-            [% m.code | html %]
+            <span>[% m.code | html %]</span>
         [% END %]
     </div>
 [% END %]
@@ -97,11 +89,13 @@
     <input type="hidden" name="op" value="add_validate" />
     <fieldset class="rows">
         <legend>
-            [% IF currency %]
-                Modify currency
-            [% ELSE %]
-                New currency
-            [% END %]
+            <h1>
+                [% IF currency %]
+                    <span>Modify currency</span>
+                [% ELSE %]
+                    <span>New currency</span>
+                [% END %]
+            </h1>
         </legend>
         <ol>
             <li>
@@ -111,7 +105,7 @@
                     <input type="hidden" name="currency_code" id="currency" value="[% currency.currency | html %]" />[% currency.currency | html %]
                 [% ELSE %]
                     <label for="currency_code" class="required">Currency: </label>
-                    <input type="text" name="currency_code" id="currency_code" size="50" maxlength="50" required="required" class="required" /> <span class="required">Required</span>
+                    <input type="text" name="currency_code" id="currency_code" class="focus" size="50" maxlength="50" required="required" class="required" /> <span class="required">Required</span>
                 [% END %]
             </li>
             <li>
@@ -150,7 +144,7 @@
     </fieldset>
 
     <fieldset class="action">
-        <input type="submit" value="Submit" />
+        <input type="submit" class="btn btn-primary" value="Submit" />
         <a href="/cgi-bin/koha/admin/currency.pl" class="cancel">Cancel</a>
     </fieldset>
     </form>
@@ -160,14 +154,14 @@
 [% IF op =='delete_confirm' %]
     [% IF nb_of_orders or nb_of_vendors %]
     <div class="dialog alert">
-        <h3>Cannot delete currency [% currency.currency | $HtmlTags tag='span' attributes=>'class="ex"' %]</h3>
+        <h1>Cannot delete currency [% currency.currency | $HtmlTags tag='span' attributes=>'class="ex"' %]</h1>
         <p>
             [% IF nb_of_orders %]
-                This currency is used by [% nb_of_orders | html %] orders.
+                <span>This currency is used by [% nb_of_orders | html %] orders.</span>
             [% ELSIF nb_of_vendors %]
-                This currency is used by [% nb_of_vendors | html %] vendors.
+                <span>This currency is used by [% nb_of_vendors | html %] vendors.</span>
             [% END %]
-            Deletion not possible
+            <span>Deletion not possible</span>
         </p>
         <form action="/cgi-bin/koha/admin/currency.pl" method="post">
             <button type="submit" class="approve"><i class="fa fa-fw fa-check"></i> OK</button>
@@ -175,7 +169,7 @@
     </div>
     [% ELSE %]
     <div class="dialog alert">
-        <h3>Confirm deletion of currency [% currency.currency | $HtmlTags tag='span' attributes=>'class="ex"' %]</h3>
+        <h1>Confirm deletion of currency [% currency.currency | $HtmlTags tag='span' attributes=>'class="ex"' %]</h1>
         <table>
             <tr><th>Currency</th>
                 <td>[% currency.currency | html %]</td>
@@ -198,7 +192,7 @@
 
 [% IF op == 'list' %]
 
-<h2>Currencies and exchange rates</h2>
+<h1>Currencies and exchange rates</h1>
 
     [% IF currencies and no_active_currency %]
         <div class="dialog alert"><h3>No active currency is defined</h3><p>Please edit one currency and mark it as active.</p></div>
@@ -208,39 +202,40 @@
         You searched for [% searchfield | html %]</span>
     [% END %]
 
-    <table id='currencies-table'>
-      <thead>
-        <tr>
-            <th>Currency</th>
-            <th>Rate</th>
-            <th>Symbol</th>
-            <th>ISO code</th>
-            <th>Last updated</th>
-            <th>Active</th>
-            <th>Archived</th>
-            <th class="NoSort noExport">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        [% FOREACH currency IN currencies %]
-          <tr>
-            <td>[% currency.currency | html %]</td>
-            <td>[% currency.rate | html %]</td>
-            <td>[% currency.symbol | html %]</td>
-            <td>[% currency.isocode | html %]</td>
-            <td data-order="[% currency.timestamp | html %]">[% currency.timestamp | $KohaDates %]</td>
-            <td style="color:green;">[% IF currency.active %]✓[% END %]</td>
-            <td>[% IF currency.archived %]Yes[% END %]</td>
-            <td class="actions">
-              <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/currency.pl?op=add_form&amp;currency_code=[% currency.currency | html %]"><i class="fa fa-pencil"></i> Edit</a>
-              <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/currency.pl?op=delete_confirm&amp;currency_code=[% currency.currency | html %]"><i class="fa fa-trash"></i> Delete</a>
-            </td>
-          </tr>
-        [% END %]
-      </tbody>
-    </table>
+    <div class="page-section">
+        <table id='currencies-table'>
+        <thead>
+            <tr>
+                <th>Currency</th>
+                <th>Rate</th>
+                <th>Symbol</th>
+                <th>ISO code</th>
+                <th>Last updated</th>
+                <th>Active</th>
+                <th>Archived</th>
+                <th class="NoSort noExport">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            [% FOREACH currency IN currencies %]
+            <tr>
+                <td>[% currency.currency | html %]</td>
+                <td>[% currency.rate | html %]</td>
+                <td>[% currency.symbol | html %]</td>
+                <td>[% currency.isocode | html %]</td>
+                <td data-order="[% currency.timestamp | html %]">[% currency.timestamp | $KohaDates %]</td>
+                <td style="color:green;">[% IF currency.active %]✓[% END %]</td>
+                <td>[% IF currency.archived %]Yes[% END %]</td>
+                <td class="actions">
+                <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/currency.pl?op=add_form&amp;currency_code=[% currency.currency | html %]"><i class="fa fa-pencil"></i> Edit</a>
+                <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/currency.pl?op=delete_confirm&amp;currency_code=[% currency.currency | html %]"><i class="fa fa-trash"></i> Delete</a>
+                </td>
+            </tr>
+            [% END %]
+        </tbody>
+        </table>
+    </div>
 
-    <br />
     <div class="hint">
         <p>
             When importing MARC files via the staging tools, the tool will attempt to find and use the price of the currently active currency.
@@ -281,7 +276,7 @@
         }
 
         $(document).ready(function() {
-            columns_settings = [% TablesSettings.GetColumns( 'admin', 'currency', 'currencies-table', 'json' ) | $raw %]
+            columns_settings = [% TablesSettings.GetTableSettings( 'admin', 'currency', 'currencies-table', 'json' ) | $raw %]
             var issuest = KohaTable("currencies-table", {
                 dom: 'B<"clearfix">t',
             }, columns_settings );

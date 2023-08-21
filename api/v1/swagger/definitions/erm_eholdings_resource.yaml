@@ -1,0 +1,60 @@
+---
+type: object
+properties:
+  resource_id:
+    type: string
+    description: internally assigned identifier
+    readOnly: true
+  title_id:
+    description: foreign key to the title
+    type:
+      - integer
+      - "null"
+  package_id:
+    description: foreign key to the package
+    type:
+      - string
+      - "null"
+  vendor_id:
+    description: foreign key to aqbooksellers
+    type:
+      - integer
+      - "null"
+  started_on:
+    description: Start date
+    type:
+      - string
+      - "null"
+  ended_on:
+    description: End date
+    type:
+      - string
+      - "null"
+  proxy:
+    description: Proxy to access this resource
+    type:
+      - string
+      - "null"
+  is_selected:
+    type:
+      - boolean
+      - "null"
+  title:
+    description: Information about the title
+    type:
+      - object
+      - "null"
+  package:
+    description: Information about the package
+    type:
+      - object
+      - "null"
+  vendor:
+    description: Information about the vendor
+    type:
+      - object
+      - "null"
+
+additionalProperties: false
+required:
+  - package_id

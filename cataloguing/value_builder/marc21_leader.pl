@@ -22,9 +22,9 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 
 my $builder = sub {
     my ( $params ) = @_;
@@ -62,7 +62,6 @@ my $launcher = sub {
             query           => $input,
             type            => "intranet",
             flagsrequired   => { editcatalogue => '*' },
-            debug           => 1,
         }
     );
     $result = "     nam a22     7a 4500" unless $result;

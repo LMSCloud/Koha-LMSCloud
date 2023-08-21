@@ -15,23 +15,20 @@ div#result { margin-top: 1em; }
 </head>
 
 <body id="cat_merge" class="cat">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cataloging-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cataloging-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
-            <a href="/cgi-bin/koha/cataloguing/addbooks.pl">Cataloging</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Merging records
-            </a>
-        </li>
-</nav>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/cataloguing/cataloging-home.pl">Cataloging</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Merging records</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -53,48 +50,50 @@ div#result { margin-top: 1em; }
        [% END %]
 
     [% ELSE %]
-        <p>The merge was successful. <a href="/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber=[% ref_biblionumber | uri %]">View the merged record.</a></p>
-        <h3>Report</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Biblionumber</th>
-                    [% FOREACH key IN report_header.keys.sort %]
-                        [% tag = key.substr(0, 3) %]
-                        [% code = key.substr(3, 1) %]
-                        [% IF code == '@' %]
-                            [% header = tag %]
-                        [% ELSE %]
-                            [% header = tag _ '$' _ code %]
-                        [% END %]
-                        <th>[% header | html %]</th>
-                    [% END %]
-                </tr>
-            </thead>
-            <tbody>
-                [% FOREACH record IN report_records %]
+        <div class="dialog message">The merge was successful. <a href="/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber=[% ref_biblionumber | uri %]">View the merged record.</a></div>
+        <div class="page-section">
+            <h3>Report</h3>
+            <table>
+                <thead>
                     <tr>
-                        <td>
-                            [% record.biblionumber | html %]
-                            [% IF loop.first %]
-                                (record kept)
-                            [% END %]
-                        </td>
+                        <th>Biblionumber</th>
                         [% FOREACH key IN report_header.keys.sort %]
-                            <td>
-                                [% values = record.fields.$key %]
-                                [% IF values %]
-                                    [% FOREACH value IN record.fields.$key %]
-                                        [% value | html %]
-                                        [% UNLESS loop.last %]<br />[% END %]
-                                    [% END %]
-                                [% END %]
-                            </td>
+                            [% tag = key.substr(0, 3) %]
+                            [% code = key.substr(3, 1) %]
+                            [% IF code == '@' %]
+                                [% header = tag %]
+                            [% ELSE %]
+                                [% header = tag _ '$' _ code %]
+                            [% END %]
+                            <th>[% header | html %]</th>
                         [% END %]
                     </tr>
-                [% END %]
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    [% FOREACH record IN report_records %]
+                        <tr>
+                            <td>
+                                [% record.biblionumber | html %]
+                                [% IF loop.first %]
+                                    <span>(record kept)</span>
+                                [% END %]
+                            </td>
+                            [% FOREACH key IN report_header.keys.sort %]
+                                <td>
+                                    [% values = record.fields.$key %]
+                                    [% IF values %]
+                                        [% FOREACH value IN record.fields.$key %]
+                                            [% value | html %]
+                                            [% UNLESS loop.last %]<br />[% END %]
+                                        [% END %]
+                                    [% END %]
+                                </td>
+                            [% END %]
+                        </tr>
+                    [% END %]
+                </tbody>
+            </table>
+        </div> <!-- /.page-section -->
     [% END %]
 
 [% ELSE %]
@@ -133,9 +132,9 @@ div#result { margin-top: 1em; }
     [% FOREACH record IN records %]
         <input type="hidden" name="biblionumber" value="[% record.biblionumber | html %]" />
     [% END %]
-    <fieldset class="action">
-        <input type="submit" value="Next" />
     </fieldset>
+    <fieldset class="action">
+        <input type="submit" class="btn btn-primary" value="Next" />
     </fieldset>
 </form>
 
@@ -180,7 +179,7 @@ div#result { margin-top: 1em; }
 <input type="hidden" name="frameworkcode" value="[% framework | html %]" />
 
 <fieldset class="action">
-    <input type="submit" name="merge" value="Merge" />
+    <input type="submit" name="merge" class="btn btn-primary" value="Merge" />
     <label for="report_fields">Fields to display in report:</label>
     <input type="text" name="report_fields" id="report_fields" value="[% MergeReportFields | html %]" />
     <span class="hint">(Example: "001,245ab,600")</span>
@@ -289,13 +288,14 @@ div#result { margin-top: 1em; }
               rebuild_target($("#tabs"), $("#resultul"));
             });
 
-            // Creating tabs
-            $("#tabs").tabs();
+            if( $("#tabs .tab-pane.active").length < 1 ){
+                $("#tabs a:first").tab("show");
+            }
 
-            // Check all checkboxes in first tab, and uncheck all others to avoid
-            // inconsistencies from a page refresh.
-            $('#tabs div#tabrecord[% ref_biblionumber | html %]').find('input[type="checkbox"]').prop('checked', true);
-            $('#tabs > div:not("#tabrecord[% ref_biblionumber | html %]")').find('input[type="checkbox"]').prop('checked', false);
+            // Uncheck all checkboxes in both tabs, then check all checkboxes in first tab
+            // to avoid inconsistencies from a page refresh.
+            $("#tabs input[type='checkbox']").prop("checked", false);
+            $("#tabrecord[% ref_biblionumber | html %]_panel input[type='checkbox']").prop("checked", true );
 
             //Set focus to cataloging search
             $("input[name=q]:eq(0)").focus();

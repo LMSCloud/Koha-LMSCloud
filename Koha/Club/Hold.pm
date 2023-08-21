@@ -19,7 +19,6 @@ package Koha::Club::Hold;
 
 use Modern::Perl;
 
-use Carp;
 
 use Koha::Database;
 
@@ -32,7 +31,7 @@ use Koha::Club::Hold::PatronHold;
 use Koha::Clubs;
 use Koha::Patrons;
 
-use List::Util 'shuffle';
+use List::Util qw( shuffle );
 
 =head1 NAME
 
@@ -54,6 +53,7 @@ Class (static) method that returns a new Koha::Club::Hold instance
 
 sub add {
     my ( $params ) = @_;
+    my $itemnumber = $params->{item_id};
 
     # check for mandatory params
     my @mandatory = ( 'biblio_id', 'club_id' );
@@ -88,11 +88,12 @@ sub add {
         my $pickup_id = $params->{pickup_library_id};
 
         my $can_place_hold;
+        my $patron = Koha::Patrons->find($patron_id);
+        my $item = $itemnumber ? Koha::Items->find( $itemnumber ) : undef;
         if($params->{default_patron_home}) {
-            my $patron = Koha::Patrons->find($patron_id);
             my $patron_home = $patron->branchcode;
-            $can_place_hold = $params->{item_id}
-                ? C4::Reserves::CanItemBeReserved( $patron_id, $params->{item_id}, $patron_home )
+            $can_place_hold = $itemnumber
+                ? C4::Reserves::CanItemBeReserved( $patron, $item, $patron_home )
                 : C4::Reserves::CanBookBeReserved( $patron_id, $params->{biblio_id}, $patron_home );
             $pickup_id = $patron_home if $can_place_hold->{status} eq 'OK';
             unless ( $can_place_hold->{status} eq 'OK' ) {
@@ -101,8 +102,8 @@ sub add {
         }
 
         unless ( defined $can_place_hold && $can_place_hold->{status} eq 'OK' ) {
-            $can_place_hold = $params->{item_id}
-                ? C4::Reserves::CanItemBeReserved( $patron_id, $params->{item_id}, $pickup_id )
+            $can_place_hold = $itemnumber
+                ? C4::Reserves::CanItemBeReserved( $patron, $item, $pickup_id )
                 : C4::Reserves::CanBookBeReserved( $patron_id, $params->{biblio_id}, $pickup_id );
         }
 

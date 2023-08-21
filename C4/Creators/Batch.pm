@@ -6,8 +6,6 @@ use warnings;
 use autouse 'Data::Dumper' => qw(Dumper);
 
 use C4::Context;
-use C4::Debug;
-
 
 sub _check_params {
     my $given_params = {};
@@ -182,7 +180,7 @@ sub delete {
         @query_params = ($opts{'batch_id'}, $opts{'branch_code'});
     }
     if ($query_params[0] eq '') {   # If there is no template id then we cannot delete it
-        warn sprintf('%s : Cannot delete batch as the batch id is invalid or non-existent.', $call_type);
+        warn sprintf('%s : Cannot delete batch as the batch ID is invalid or non-existent.', $call_type);
         return -1;
     }
     my $query = "DELETE FROM creator_batches WHERE batch_id = ? AND branch_code =?";

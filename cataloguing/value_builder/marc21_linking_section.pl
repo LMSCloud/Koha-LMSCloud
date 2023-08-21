@@ -22,16 +22,15 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
-use C4::Search;
-use C4::Auth;
-use C4::Output;
+use C4::Search qw( new_record_from_zebra );
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 
-use C4::Biblio;
-use C4::Koha;
-use MARC::Record;
+use C4::Biblio qw( TransformMarcToKoha );
 
+use Koha::Biblios;
 use Koha::ItemTypes;
 
 use Koha::SearchEngine;
@@ -79,12 +78,12 @@ my $launcher = sub {
                 query           => $query,
                 type            => "intranet",
                 flagsrequired   => { editcatalogue => '*' },
-                debug           => 1,
             }
         );
 
         #get marc record
-        $marcrecord = GetMarcBiblio({ biblionumber => $biblionumber });
+        my $biblio = Koha::Biblios->find($biblionumber);
+        $marcrecord = $biblio->metadata->record;
 
         my $subfield_value_9 = $biblionumber;
         my $subfield_value_0 = $biblionumber;
@@ -171,7 +170,7 @@ my $launcher = sub {
         my $startfrom      = $query->param('startfrom');
         my $resultsperpage = $query->param('resultsperpage') || 20;
         my $orderby;
-        my $op = 'and';
+        my $op = 'AND';
 
         my $searcher = Koha::SearchEngine::Search->new(
             { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
@@ -191,7 +190,6 @@ my $launcher = sub {
             {   template_name   => "cataloguing/value_builder/marc21_linking_section.tt",
                 query           => $query,
                 type            => 'intranet',
-                debug           => 1,
             }
         );
 
@@ -206,7 +204,7 @@ my $launcher = sub {
         my @field_data = ($search);
         for ( my $i = 0 ; $i < $total && $i < $resultsperpage ; $i++ ) {
             my $record = C4::Search::new_record_from_zebra( 'biblioserver', $results->[$i] );
-            my $rechash = TransformMarcToKoha( $record );
+            my $rechash = TransformMarcToKoha({ record => $record });
             my $pos;
             my $countitems = $rechash->{itembumber} ? 1 : 0;
             while ( index( $rechash->{itemnumber}, '|', $pos ) > 0 ) {
@@ -259,7 +257,6 @@ my $launcher = sub {
         } else {
             $to = $from + $resultsperpage;
         }
-        my $defaultview = 'BiblioDefaultView' . C4::Context->preference('BiblioDefaultView');
 
         #         my $link="/cgi-bin/koha/cataloguing/value_builder/unimarc4XX.pl?op=do_search&q=$search_desc&resultsperpage=$resultsperpage&startfrom=$startfrom&search=$search";
         #           foreach my $sort (@sort_by){
@@ -289,7 +286,6 @@ my $launcher = sub {
             to             => $to,
             numbers        => \@numbers,
             search         => $search,
-            $defaultview   => 1,
             Search         => 0
         );
 
@@ -301,7 +297,7 @@ my $launcher = sub {
             }
         );
 
-        my @itemtypes = Koha::ItemTypes->search;
+        my @itemtypes = Koha::ItemTypes->search->as_list;
 
         $template->param(
             itypeloop => \@itemtypes,

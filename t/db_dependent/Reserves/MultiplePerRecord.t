@@ -23,7 +23,7 @@ use Test::More tests => 16;
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
-use C4::Reserves qw( GetMaxPatronHoldsForRecord AddReserve CanBookBeReserved );
+use C4::Reserves qw( GetMaxPatronHoldsForRecord CanBookBeReserved AddReserve );
 use Koha::Database;
 use Koha::Holds;
 
@@ -205,6 +205,14 @@ $hold->store();
 $holds = Koha::Holds->search( { borrowernumber => $patron->{borrowernumber} } );
 is( $holds->forced_hold_level, 'item', "Item level hold forces item level holds" );
 
+my $item_group = Koha::Biblio::ItemGroup->new( { biblio_id => $biblio->id } )->store();
+$hold->itemnumber( undef );
+$hold->item_group_id( $item_group->id );
+$hold->store();
+
+$holds = Koha::Holds->search( { borrowernumber => $patron->{borrowernumber} } );
+is( $holds->forced_hold_level, 'item_group', "Item group level hold forces item group level holds" );
+
 $hold->delete();
 
 # Test multi-hold via AddReserve
@@ -250,8 +258,5 @@ is( $can->{status}, 'tooManyHoldsForThisRecord', 'Third hold exceeds limit of ho
 Koha::Holds->find($hold_id)->found("W")->store;
 $can = CanBookBeReserved($patron->{borrowernumber}, $biblio->biblionumber);
 is( $can->{status}, 'tooManyHoldsForThisRecord', 'Third hold exceeds limit of holds per record' );
-
-$can = CanBookBeReserved($patron->{borrowernumber}, $biblio->biblionumber, undef, { ignore_found_holds => 1 });
-is( $can->{status}, 'OK', 'Third hold is allowed when ignoring waiting holds' );
 
 $schema->storage->txn_rollback;

@@ -40,15 +40,42 @@
     <div class="container-fluid">
         <div class="row">
             <div id="installer-step3" class="installer-main col-sm-8 col-sm-offset-2 col-md-8 col-md-offset-2">
-                <h1 id="logo"><a href="#">Koha</a></h1>
+                <div id="logo"><a href="#">Koha</a></div>
                 [% IF ( finish ) %]
-                    <h2>Web installer &rsaquo; Installation complete</h2>
+                    <h1>Web installer &rsaquo; Installation complete</h1>
+
+                    <div id="steps">
+                        <ol>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Choose your language</li>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Check Perl dependencies</li>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Database settings</li>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Set up database</li>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Install basic configuration settings</li>
+                            <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Onboarding</li>
+                        </ol>
+                    </div>
+
                     <h3>Congratulations, installation complete</h3>
                     <p><a class="btn btn-primary" href="/cgi-bin/koha/installer/onboarding.pl">Begin the onboarding process</a></p>
                 [% END %]
 
                 [% IF ( choosemarc ) %]
                     <h2>Select your MARC flavor</h2>
+
+                    <div id="steps">
+                        <ol>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Choose your language</li>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Check Perl dependencies</li>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Database settings</li>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Set up database</li>
+                            <li class="current open"><i class="fa fa-square-o" aria-hidden="true"></i> Install basic configuration settings</li>
+                                <ol>
+                                    <li class="current open"><i class="fa fa-square-o" aria-hidden="true"></i> Select your MARC flavor</li>
+                                    <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Selecting default settings</li>
+                                </ol>
+                            <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Onboarding</li>
+                        </ol>
+                    </div>
 
                     <form name="frameworkselection" method="post" action="install.pl">
                         <input type="hidden" name="step" value="3" />
@@ -59,11 +86,11 @@
                         [% FOREACH flavourloo IN flavourloop %]
                             [% IF ( flavourloo.label == "Unimarc") %]
                                  <p>
-                                     <label><input type="radio" name="marcflavour" value="[% flavourloo.code | html %]" /> [% flavourloo.label | html %]</label>
+                                     <label><input type="radio" name="marcflavour" id="marcflavour" value="[% flavourloo.code | html %]" /> [% flavourloo.label | html %]</label>
                                  </p>
                             [% ELSE %]
                                  <p>
-                                     <label><input type="radio" name="marcflavour" value="[% flavourloo.code | html %]" checked="checked" /> [% flavourloo.label | html %]</label>
+                                     <label><input type="radio" name="marcflavour" id="marcflavour" value="[% flavourloo.code | html %]" checked="checked" /> [% flavourloo.label | html %]</label>
                                  </p>
                             [% END %]
                         [% END %]
@@ -72,8 +99,22 @@
                 [% END # / IF choosemarc %]
 
                 [% IF ( selectframeworks ) %]
-                    <h2>Web installer &rsaquo; Selecting default settings</h2>
+                    <h1>Web installer &rsaquo; Selecting default settings</h1>
 
+                    <div id="steps">
+                        <ol>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Choose your language</li>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Check Perl dependencies</li>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Database settings</li>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Set up database</li>
+                            <li class="current open"><i class="fa fa-square-o" aria-hidden="true"></i> Install basic configuration settings</li>
+                                <ol>
+                                    <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Select your MARC flavor</li>
+                                    <li class="current open"><i class="fa fa-square-o" aria-hidden="true"></i> Selecting default settings</li>
+                                </ol>
+                            <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Onboarding</li>
+                        </ol>
+                    </div>
 
                     <form name="frameworkselection" method="post" action="install.pl">
                         <input type="hidden" name="step" value="3" />
@@ -161,7 +202,23 @@
                 [% END # / IF selectframeworks %]
 
                 [% IF ( addframeworks ) %]
-                    <h2>Web installer &rsaquo; Default data loaded</h2>
+                    <h1>Web installer &rsaquo; Default data loaded</h1>
+
+                    <div id="steps">
+                        <ol>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Choose your language</li>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Check Perl dependencies</li>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Database settings</li>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Set up database</li>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Install basic configuration settings</li>
+                                <ol>
+                                    <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Select your MARC flavor</li>
+                                    <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Selecting default settings</li>
+                                </ol>
+                            <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Onboarding</li>
+                        </ol>
+                    </div>
+
                     [% FOREACH lis IN list %]
                         [% IF lis.level == 'mandatory' %]
                             <h3>Mandatory data added</h3>
@@ -211,8 +268,20 @@
                         <div class="alert alert-warning"><p>[% error | html %] </p></div>
                         <p>Please contact your system administrator</p>
                     [% ELSE %]
-                        <h2>Web installer &rsaquo; Success</h2>
+                        <h1>Web installer &rsaquo; Success</h1>
                         <div class="alert alert-success"><p>Database tables created</p></div>
+
+                        <div id="steps">
+                            <ol>
+                                <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Choose your language</li>
+                                <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Check Perl dependencies</li>
+                                <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Database settings</li>
+                                <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Set up database</li>
+                                <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Install basic configuration settings</li>
+                                <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Onboarding</li>
+                            </ol>
+                        </div>
+
                         <form action="install.pl" method="post">
                             <input type="hidden" name="step" value="3" />
                             <p><input value="Continue to the next step" class="btn btn-primary" type="submit" /></p>
@@ -221,7 +290,19 @@
                 [% END # / IF importdatastructure %]
 
                 [% IF ( proposeimport ) %]
-                    <h2>Web installer &rsaquo; Set up database</h2>
+                    <h1>Web installer &rsaquo; Set up database</h1>
+
+                    <div id="steps">
+                        <ol>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Choose your language</li>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Check Perl dependencies</li>
+                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Database settings</li>
+                            <li class="current open"><i class="fa fa-square-o" aria-hidden="true"></i> Set up database</li>
+                            <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Install basic configuration settings</li>
+                            <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Onboarding</li>
+                        </ol>
+                    </div>
+
                     <p>Now we're ready to create the database tables and fill them with some default data.</p>
                     <form action="install.pl" method="post">
                         <input type="hidden" name="step" value="3" />
@@ -232,20 +313,40 @@
 
                 [% IF ( default ) %]
                     [% IF ( upgrading ) %]
-                        <h2>Web installer &rsaquo; Update database</h2>
+                        <h1>Web installer &rsaquo; Update database</h1>
                         <p>We are upgrading from Koha [% dbversion | html %] to [% kohaversion | html %]</p>
                         <p><a href="install.pl?step=3&amp;op=updatestructure" class="btn btn-primary">Update your database</a></p>
                     [% ELSE %]
-                        <h2>Web installer &rsaquo; Install basic configuration settings</h2>
+                        <h1>Web installer &rsaquo; Install basic configuration settings</h1>
+
+                        <div id="steps">
+                            <ol>
+                                <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Choose your language</li>
+                                <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Check Perl dependencies</li>
+                                <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Database settings</li>
+                                <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Set up database</li>
+                                <li class="current open"><i class="fa fa-square-o" aria-hidden="true"></i> Install basic configuration settings</li>
+                                <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Onboarding</li>
+                            </ol>
+                        </div>
+
                         <p>We are ready to do some basic configuration.</p>
-                        <p><a href="install.pl?step=3&amp;op=choosemarc" class="btn btn-primary">Continue to the next step</a></p>
+                        <form action="install.pl" method="post">
+                            <input type="hidden" name="step" value="3" />
+                            <input type="hidden" name="op" value="choosemarc" />
+                            <p><input value="Continue to the next step" class="btn btn-primary" type="submit" /></p>
+                        </form>
                     [% END %]
                 [% END # / IF default %]
 
                 [% IF ( updatestructure ) %]
                     <h2>Updating database structure</h2>
-                    [% IF ( has_update_succeeds ) %]
+                    [% IF has_update_succeeds || success %]
                         <p>Update report :</p>
+                    [% END %]
+
+                    [%# Success for old versions %]
+                    [% IF has_update_succeeds %]
                         <ul>
                             [% FOREACH l IN update_report %]
                                 [% SET line = l.line %]
@@ -257,18 +358,91 @@
                             [% END %]
                         </ul>
                     [% END %]
-                    [% IF ( has_update_errors ) %]
-                        <p>Update errors :</p>
+
+                    [%# Success for new versions %]
+                    [% IF success.size %]
                         <ul>
-                            [% FOREACH update_error IN update_errors %]
-                                <li class="update_error">[% update_error.line | html %]</li>
+                            [% FOR s IN success %]
+                                [% FOR o IN s.output %]
+                                    <li>[% o | html %]</li>
+                                    [% IF s.output.size > 1 %]
+                                        [% IF loop.first %]<ul>[% ELSIF loop.last %]</ul>[% END %]
+                                    [% END %]
+                                [% END %]
                             [% END %]
                         </ul>
                     [% END %]
-                    [% UNLESS ( has_update_errors ) %]
-                        <p>Everything went okay. Update done.</p>
+
+                    [% IF atomic_updates.success.size %]
+                        <p>Atomic updates:</p>
+                        <ul>
+                            [% FOR s IN atomic_updates.success %]
+                                [% FOR o IN s.output %]
+                                    <li>[% o | html %]</li>
+                                    [% IF s.output.size > 1 %]
+                                        [% IF loop.first %]<ul>[% ELSIF loop.last %]</ul>[% END %]
+                                    [% END %]
+                                [% END %]
+                            [% END %]
+                        </ul>
                     [% END %]
-                    <p><a href="install.pl?step=3&amp;op=finished" class="btn btn-primary">Continue to log in to Koha</a></p>
+
+                    [% IF has_update_errors OR error.size %]
+                        <p>Update errors :</p>
+                        [%# Errors for old versions %]
+                        [% IF has_update_errors %]
+                            <ul>
+                                [% FOREACH update_error IN update_errors %]
+                                    <li class="update_error">[% update_error.line | html %]</li>
+                                [% END %]
+                            </ul>
+                        [% END %]
+
+                        [%# Errors for new versions %]
+                        [% IF error.size %]
+                            <ul>
+                                [% FOR e IN error %]
+                                    [% FOR o IN e.output %]
+                                        <li class="update_error">
+                                            [% o | html %]
+                                            <br/>
+                                            ERROR: [% e.error | html %]
+
+                                            [% IF e.output.size > 1 %]
+                                                [% IF loop.first %]<ul>[% ELSIF loop.last %]</ul>[% END %]
+                                            [% END %]
+                                        </li>
+                                    [% END %]
+                                [% END %]
+                            </ul>
+                        [% END %]
+                    [% END %]
+
+                    [% IF atomic_updates.error.size %]
+                        <p>Atomic update error :</p>
+                        <ul>
+                            [% FOR e IN atomic_updates.error %]
+                                [% FOR o IN e.output %]
+                                    <li class="update_error">
+                                        [% o | html %]
+                                        <br/>
+                                        ERROR: [% e.error | html %]
+
+                                        [% IF e.output.size > 1 %]
+                                            [% IF loop.first %]<ul>[% ELSIF loop.last %]</ul>[% END %]
+                                        [% END %]
+                                    </li>
+                                [% END %]
+                            [% END %]
+                        </ul>
+                    [% END %]
+
+                    [% UNLESS error OR has_update_errors %]
+                        <p>Everything went okay. Update done.</p>
+                        <p><a href="install.pl?step=3&amp;op=finished" class="btn btn-primary">Continue to log in to Koha</a></p>
+                    [% ELSE %]
+                        <p><a href="install.pl?step=3&amp;op=updatestructure" class="btn btn-primary">Try again</a></p>
+                    [% END %]
                [% END # / IF updatestructure %]
             </div> <!-- / #installer-step3 -->
         </div> <!-- / .row -->

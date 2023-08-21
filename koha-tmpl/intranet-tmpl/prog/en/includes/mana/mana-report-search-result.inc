@@ -12,8 +12,9 @@
 </head>
 
 <body id="rep_mana_search" class="rep">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'circ-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+[% END %]
 
 <div id="breadcrumbs">
     <a href="/cgi-bin/koha/mainpage.pl">Home</a>
@@ -104,9 +105,9 @@
                     [% ELSE %]
                         <h4>
                             [% IF ( msg ) %]
-                                [% msg | html %] (Statuscode: [% statuscode | html %])
+                                [% msg | html %] <span>(Status code: [% statuscode | html %])</span>
                             [% ELSE %]
-                                No results found
+                                <span>No results found</span>
                             [% END %]
                         </h4>
                     [% END %]

@@ -19,15 +19,12 @@
 use Modern::Perl;
 use C4::Context;
 use CGI qw ( -utf8 );
-use C4::Output;
-use C4::Auth;
-use C4::Overdues;
-use C4::Biblio;
-use C4::Koha;
-use C4::Debug;
-use Koha::DateUtils;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
+use C4::Overdues qw( GetOverduesForBranch );
+use C4::Biblio qw( GetMarcFromKohaField GetMarcStructure );
+use C4::Koha qw( GetAuthorisedValues );
 use Koha::BiblioFrameworks;
-use Data::Dumper;
 
 =head1 branchoverdues.pl
 
@@ -46,7 +43,6 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user({
         query           => $input,
         type            => "intranet",
         flagsrequired   => { circulate => "circulate_remaining_permissions" },
-        debug           => 1,
 });
 
 my $default = C4::Context->userenv->{'branch'};
@@ -63,7 +59,6 @@ my $location       = $input->param('location');
 
 my @overduesloop;
 my @getoverdues = GetOverduesForBranch( $default, $location );
-$debug and warn "HERE : $default / $location" . Dumper(@getoverdues);
 # search for location authorised value
 my ($tag,$subfield) = GetMarcFromKohaField( 'items.location' );
 my $tagslib = &GetMarcStructure(1,'');
@@ -75,8 +70,7 @@ if ($tagslib->{$tag}->{$subfield}->{authorised_value}) {
 # now display infos
 foreach my $num (@getoverdues) {
     my %overdueforbranch;
-    my $dt = dt_from_string($num->{date_due}, 'sql');
-    $overdueforbranch{'date_due'}          = output_pref($dt);
+    $overdueforbranch{'date_due'}          = $num->{date_due};
     $overdueforbranch{'title'}             = $num->{'title'};
     $overdueforbranch{'subtitle'}          = $num->{'subtitle'};
     $overdueforbranch{'medium'}            = $num->{'medium'};

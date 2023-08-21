@@ -38,27 +38,18 @@ the OPAC.
 
 use strict;
 use warnings;
-use Getopt::Long;
-use Pod::Usage;
-use Data::Dumper;
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 use Koha::Script -cron;
-use C4::Biblio;
 use C4::Context;
 use C4::Letters;
 use C4::Members;
 use C4::Members::Messaging;
-use C4::Overdues;
-use Koha::DateUtils;
-use C4::Log;
+use C4::Log qw( cronlogaction );
 use Koha::Items;
 use Koha::Libraries;
 use Koha::Patrons;
+use Koha::DateUtils qw( dt_from_string output_pref );
 
 =head1 OPTIONS
 
@@ -195,6 +186,8 @@ my $itemscontent = join(',',qw( date_due title author barcode ));
 my $help    = 0;
 my $man     = 0;
 
+my $command_line_options = join(" ",@ARGV);
+
 GetOptions(
             'help|?'         => \$help,
             'man'            => \$man,
@@ -225,7 +218,7 @@ END_WARN
 unless ($confirm) {
      pod2usage(1);
 }
-cronlogaction();
+cronlogaction({ info => $command_line_options });
 
 my %branches = ();
 if (@branchcodes) {
@@ -303,20 +296,25 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
             $sth->execute($upcoming->{'borrowernumber'},$upcoming->{'itemnumber'},'0');
             my $titles = "";
             my @items = ();
-            while ( my $item_info = $sth->fetchrow_hashref()) {
+            my $item_info;
+            while ($item_info = $sth->fetchrow_hashref()) {
                 $titles .= C4::Letters::get_item_content( { item => $item_info, item_content_fields => \@item_content_fields } );
                 push @items, $item_info;
             }
 
             ## Get branch info for borrowers home library.
             foreach my $transport ( keys %{$borrower_preferences->{'transports'}} ) {
+                next if $transport eq 'itiva';
                 my $letter = parse_letter( { letter_code    => $letter_type,
                                       borrowernumber => $upcoming->{'borrowernumber'},
                                       branchcode     =>  Koha::Libraries->get_effective_branch($branchcode),
                                       biblionumber   => $item->biblionumber,
                                       itemnumber     => $upcoming->{'itemnumber'},
                                       items          => \@items,
-                                      substitute     => { 'items.content' => $titles },
+                                      substitute     => {
+                                          'items.content' => $titles,
+                                          checkout        => $item_info,
+                                      },
                                       message_transport_type => $transport,
                                     } )
                     or warn "no letter of type '$letter_type' found for borrowernumber ".$upcoming->{'borrowernumber'}.". Please see sample_notices.sql";
@@ -353,20 +351,25 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
             $sth->execute($upcoming->{'borrowernumber'},$upcoming->{'itemnumber'},$borrower_preferences->{'days_in_advance'});
             my $titles = "";
             my @items = ();
-            while ( my $item_info = $sth->fetchrow_hashref()) {
+            my $item_info;
+            while ($item_info = $sth->fetchrow_hashref()) {
                 $titles .= C4::Letters::get_item_content( { item => $item_info, item_content_fields => \@item_content_fields } );
                 push @items, $item_info;
             }
 
             ## Get branch info for borrowers home library.
             foreach my $transport ( keys %{$borrower_preferences->{'transports'}} ) {
+                next if $transport eq 'itiva';
                 my $letter = parse_letter( { letter_code    => $letter_type,
                                       borrowernumber => $upcoming->{'borrowernumber'},
                                       branchcode     => Koha::Libraries->get_effective_branch($branchcode),
                                       biblionumber   => $item->biblionumber,
                                       itemnumber     => $upcoming->{'itemnumber'},
                                       items          => \@items,
-                                      substitute     => { 'items.content' => $titles },
+                                      substitute     => {
+                                          'items.content' => $titles,
+                                          checkout        => $item_info,
+                                      },
                                       message_transport_type => $transport,
                                     } )
                     or warn "no letter of type '$letter_type' found for borrowernumber ".$upcoming->{'borrowernumber'}.". Please see sample_notices.sql";
@@ -533,6 +536,7 @@ sub parse_letter {
         lang => $patron->lang,
         tables     => \%table_params,
         repeat => { item => \@item_tables },
+        ( $params->{itemnumbers} ? ( loops => { items => $params->{itemnumbers} } ) : () ),
         message_transport_type => $params->{message_transport_type},
     );
 }
@@ -628,23 +632,29 @@ sub send_digests {
             borrower_preferences => $borrower_preferences
         });
         my $titles = "";
-        my @items = ();
+        my @itemnumbers;
+        my @checkouts;
         while ( my $item_info = $next_item_info->()) {
+            push @itemnumbers, $item_info->{itemnumber};
+            push( @checkouts, $item_info );
             $titles .= C4::Letters::get_item_content( { item => $item_info, item_content_fields => \@item_content_fields } );
-            push @items, $item_info;
         }
 
         foreach my $transport ( keys %{ $borrower_preferences->{'transports'} } ) {
+            next if $transport eq 'itiva';
             my $letter = parse_letter(
                 {
                     letter_code    => $params->{letter_code},
                     borrowernumber => $borrowernumber,
-                    items          => \@items,
+                    items          => \@checkouts,
+                    checkouts      => \@checkouts,
                     substitute     => {
                         count           => $count,
                         'items.content' => $titles,
+                        checkouts       => \@checkouts,
                         %branch_info
                     },
+                    itemnumbers    => \@itemnumbers,
                     branchcode     => Koha::Libraries->get_effective_branch($branchcode),
                     message_transport_type => $transport
                 }
@@ -676,6 +686,7 @@ sub send_digests {
     }
 }
 
+cronlogaction({ action => 'End', info => "COMPLETED" });
 
 1;
 

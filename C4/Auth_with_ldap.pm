@@ -18,24 +18,22 @@ package C4::Auth_with_ldap;
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Carp;
+use Carp qw( croak );
 
-use C4::Debug;
 use C4::Context;
 use C4::Members::Messaging;
-use C4::Auth qw(checkpw_internal);
+use C4::Auth qw( checkpw_internal );
+use C4::Letters qw( GetPreparedLetter EnqueueLetter SendQueuedMessages );
 use Koha::Patrons;
-use Koha::AuthUtils qw(hash_password);
-use List::MoreUtils qw( any );
+use Koha::AuthUtils qw( hash_password );
 use Net::LDAP;
 use Net::LDAP::Filter;
 
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $debug);
-
+our (@ISA, @EXPORT_OK);
 BEGIN {
 	require Exporter;
 	@ISA    = qw(Exporter);
-	@EXPORT = qw( checkpw_ldap );
+	@EXPORT_OK = qw( checkpw_ldap );
 }
 
 # Redefine checkpw_ldap:
@@ -61,9 +59,9 @@ $ldapname     = $ldap->{user}		;
 $ldappassword = $ldap->{pass}		;
 our %mapping  = %{$ldap->{mapping}}; # FIXME dpavlin -- don't die because of || (); from 6eaf8511c70eb82d797c941ef528f4310a15e9f9
 my @mapkeys = keys %mapping;
-$debug and print STDERR "Got ", scalar(@mapkeys), " ldap mapkeys (  total  ): ", join ' ', @mapkeys, "\n";
+#warn "Got ", scalar(@mapkeys), " ldap mapkeys (  total  ): ", join ' ', @mapkeys, "\n";
 @mapkeys = grep {defined $mapping{$_}->{is}} @mapkeys;
-$debug and print STDERR "Got ", scalar(@mapkeys), " ldap mapkeys (populated): ", join ' ', @mapkeys, "\n";
+#warn "Got ", scalar(@mapkeys), " ldap mapkeys (populated): ", join ' ', @mapkeys, "\n";
 
 my %categorycode_conversions;
 my $default_categorycode;
@@ -77,7 +75,8 @@ if(defined $ldap->{categorycode_mapping}) {
 my %config = (
     anonymous => defined ($ldap->{anonymous_bind}) ? $ldap->{anonymous_bind} : 1,
     replicate => defined($ldap->{replicate}) ? $ldap->{replicate} : 1,  #    add from LDAP to Koha database for new user
-       update => defined($ldap->{update}   ) ? $ldap->{update}    : 1,  # update from LDAP to Koha database for existing user
+    welcome   => defined($ldap->{welcome}) ? $ldap->{welcome} : 0,  #    send welcome notice when patron is added via replicate
+    update    => defined($ldap->{update}) ? $ldap->{update} : 1,  # update from LDAP to Koha database for existing user
 );
 
 sub description {
@@ -112,7 +111,7 @@ sub search_method {
 }
 
 sub checkpw_ldap {
-    my ($dbh, $userid, $password) = @_;
+    my ($userid, $password) = @_;
     my @hosts = split(',', $prefhost);
     my $db = Net::LDAP->new(\@hosts);
     unless ( $db ) {
@@ -120,7 +119,6 @@ sub checkpw_ldap {
         return 0;
     }
 
-	#$debug and $db->debug(5);
     my $userldapentry;
 
     # first, LDAP authentication
@@ -209,7 +207,7 @@ sub checkpw_ldap {
     if (( $borrowernumber and $config{update}   ) or
         (!$borrowernumber and $config{replicate})   ) {
         %borrower = ldap_entry_2_hash($userldapentry,$userid);
-        $debug and print STDERR "checkpw_ldap received \%borrower w/ " . keys(%borrower), " keys: ", join(' ', keys %borrower), "\n";
+        #warn "checkpw_ldap received \%borrower w/ " . keys(%borrower), " keys: ", join(' ', keys %borrower), "\n";
     }
 
     if ($borrowernumber) {
@@ -229,7 +227,44 @@ sub checkpw_ldap {
         )->store;
         die "Insert of new patron failed" unless $patron;
         $borrowernumber = $patron->borrowernumber;
-        C4::Members::Messaging::SetMessagingPreferencesFromDefaults( { borrowernumber => $borrowernumber, categorycode => $borrower{'categorycode'} } );
+        C4::Members::Messaging::SetMessagingPreferencesFromDefaults(
+            {
+                borrowernumber => $borrowernumber,
+                categorycode   => $borrower{'categorycode'}
+            }
+        );
+
+        # Send welcome email if enabled
+        if ( $config{welcome} ) {
+            my $emailaddr = $patron->notice_email_address;
+
+            # if we manage to find a valid email address, send notice
+            if ($emailaddr) {
+                my $letter = C4::Letters::GetPreparedLetter(
+                    module      => 'members',
+                    letter_code => 'WELCOME',
+                    branchcode  => $patron->branchcode,
+                    lang        => $patron->lang || 'default',
+                    tables      => {
+                        'branches'  => $patron->branchcode,
+                        'borrowers' => $patron->borrowernumber,
+                    },
+                    want_librarian => 1,
+                ) or return;
+
+                my $message_id = C4::Letters::EnqueueLetter(
+                    {
+                        letter                 => $letter,
+                        borrowernumber         => $patron->id,
+                        to_address             => $emailaddr,
+                        message_transport_type => 'email',
+                        branchcode             => $patron->branchcode
+                    }
+                );
+
+                C4::Letters::SendQueuedMessages( { message_id => $message_id } );
+            }
+        }
    } else {
         return 0;   # B2, D2
     }
@@ -266,21 +301,18 @@ sub ldap_entry_2_hash {
 	my %borrower = ( cardnumber => shift );
 	my %memberhash;
 	$userldapentry->exists('uid');	# This is bad, but required!  By side-effect, this initializes the attrs hash. 
-	if ($debug) {
-		foreach (keys %$userldapentry) {
-			print STDERR "\n\nLDAP key: $_\t", sprintf('(%s)', ref $userldapentry->{$_}), "\n";
-		}
-	}
+    #foreach (keys %$userldapentry) {
+    #    print STDERR "\n\nLDAP key: $_\t", sprintf('(%s)', ref $userldapentry->{$_}), "\n";
+    #}
 	my $x = $userldapentry->{attrs} or return;
 	foreach (keys %$x) {
 		$memberhash{$_} = join ' ', @{$x->{$_}};	
-		$debug and print STDERR sprintf("building \$memberhash{%s} = ", $_, join(' ', @{$x->{$_}})), "\n";
+        #warn sprintf("building \$memberhash{%s} = ", $_, join(' ', @{$x->{$_}})), "\n";
 	}
-	$debug and print STDERR "Finsihed \%memberhash has ", scalar(keys %memberhash), " keys\n",
-					"Referencing \%mapping with ", scalar(keys %mapping), " keys\n";
+    #warn "Finished \%memberhash has ", scalar(keys %memberhash), " keys\n", "Referencing \%mapping with ", scalar(keys %mapping), " keys\n";
 	foreach my $key (keys %mapping) {
 		my  $data = $memberhash{ lc($mapping{$key}->{is}) }; # Net::LDAP returns all names in lowercase
-		$debug and printf STDERR "mapping %20s ==> %-20s (%s)\n", $key, $mapping{$key}->{is}, $data;
+        #warn "mapping %20s ==> %-20s (%s)\n", $key, $mapping{$key}->{is}, $data;
 		unless (defined $data) { 
             $data = $mapping{$key}->{content} || undef;
 		}
@@ -305,7 +337,7 @@ sub ldap_entry_2_hash {
 	$sth->execute( uc($borrower{'categorycode'}) );
 	unless ( my $row = $sth->fetchrow_hashref ) {
 		my $default = $mapping{'categorycode'}->{content};
-		$debug && warn "Can't find ", $borrower{'categorycode'}, " default to: $default for ", $borrower{userid};
+        #warn "Can't find ", $borrower{'categorycode'}, " default to: $default for ", $borrower{userid};
 		$borrower{'categorycode'} = $default
 	}
 
@@ -319,12 +351,12 @@ sub exists_local {
 
 	my $sth = $dbh->prepare("$select WHERE userid=?");	# was cardnumber=?
 	$sth->execute($arg);
-	$debug and printf STDERR "Userid '$arg' exists_local? %s\n", $sth->rows;
+    #warn "Userid '$arg' exists_local? %s\n", $sth->rows;
 	($sth->rows == 1) and return $sth->fetchrow;
 
 	$sth = $dbh->prepare("$select WHERE cardnumber=?");
 	$sth->execute($arg);
-	$debug and printf STDERR "Cardnumber '$arg' exists_local? %s\n", $sth->rows;
+    #warn "Cardnumber '$arg' exists_local? %s\n", $sth->rows;
 	($sth->rows == 1) and return $sth->fetchrow;
 	return 0;
 }
@@ -359,10 +391,10 @@ sub _do_changepassword {
     }
 
     my $digest = hash_password($password);
-    $debug and print STDERR "changing local password for borrowernumber=$borrowerid to '$digest'\n";
+    #warn "changing local password for borrowernumber=$borrowerid to '$digest'\n";
     Koha::Patrons->find($borrowerid)->set_password({ password => $password, skip_validation => 1 });
 
-    my ($ok, $cardnum) = checkpw_internal(C4::Context->dbh, $userid, $password);
+    my ($ok, $cardnum) = checkpw_internal($userid, $password);
     return $cardnum if $ok;
 
     warn "Password mismatch after update to borrowernumber=$borrowerid";
@@ -383,7 +415,7 @@ sub update_local {
         while ( my $attribute_type = $attribute_types->next ) {
            my $code = $attribute_type->code;
            @keys = grep { $_ ne $code } @keys;
-           $debug and printf STDERR "ignoring extended patron attribute '%s' in update_local()\n", $code;
+           #warn "ignoring extended patron attribute '%s' in update_local()\n", $code;
         }
     }
 
@@ -392,11 +424,8 @@ sub update_local {
         join(',', map {"$_=?"} @keys) .
         "\nWHERE   borrowernumber=? ";
     my $sth = $dbh->prepare($query);
-    if ($debug) {
-        print STDERR $query, "\n",
-            join "\n", map {"$_ = '" . $borrower->{$_} . "'"} @keys;
-        print STDERR "\nuserid = $userid\n";
-    }
+    #warn $query, "\n", join "\n", map {"$_ = '" . $borrower->{$_} . "'"} @keys;
+    #warn "\nuserid = $userid\n";
     $sth->execute(
         ((map {$borrower->{$_}} @keys), $borrowerid)
     );
@@ -518,6 +547,7 @@ Example XML stanza for LDAP configuration in KOHA_CONF.
     <user>cn=Manager,dc=metavore,dc=com</user>             <!-- DN, if not anonymous -->
     <pass>metavore</pass>          <!-- password, if not anonymous -->
     <replicate>1</replicate>       <!-- add new users from LDAP to Koha database -->
+    <welcome>1</welcome>           <!-- send new users the welcome email when added via replicate -->
     <update>1</update>             <!-- update existing users in Koha database -->
     <auth_by_bind>0</auth_by_bind> <!-- set to 1 to authenticate by binding instead of
                                         password comparison, e.g., to use Active Directory -->

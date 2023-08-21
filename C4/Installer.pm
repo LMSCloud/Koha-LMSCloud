@@ -19,18 +19,22 @@ package C4::Installer;
 
 use Modern::Perl;
 
-use Encode qw( encode is_utf8 );
+use Try::Tiny;
+use Encode qw( encode decode is_utf8 );
 use DBIx::RunSQL;
 use YAML::XS;
-use C4::Context;
+use File::Slurp qw( read_file );
 use DBI;
+
+use C4::Context;
+use Koha::Schema;
 use Koha;
 
 use vars qw(@ISA @EXPORT);
 BEGIN {
     require Exporter;
     @ISA = qw( Exporter );
-    push @EXPORT, qw( primary_key_exists foreign_key_exists index_exists column_exists TableExists);
+    push @EXPORT, qw( primary_key_exists unique_key_exists foreign_key_exists index_exists column_exists TableExists marc_framework_sql_list TransformToNum CheckVersion NewVersion SetVersion sanitize_zero_date update get_db_entries get_atomic_updates run_atomic_updates has_non_dynamic_row_format );
 };
 
 =head1 NAME
@@ -69,7 +73,7 @@ sub new {
     my $self = {};
 
     # get basic information from context
-    $self->{'dbname'}   = C4::Context->config("database");
+    $self->{'dbname'}   = C4::Context->config("database_test") || C4::Context->config("database");
     $self->{'dbms'}     = C4::Context->config("db_scheme") ? C4::Context->config("db_scheme") : "mysql";
     $self->{'hostname'} = C4::Context->config("hostname");
     $self->{'port'}     = C4::Context->config("port");
@@ -119,19 +123,20 @@ sub marc_framework_sql_list {
 
     undef $/;
     my $dir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/$lang/marcflavour/".lc($marcflavour);
-    unless (opendir( MYDIR, $dir )) {
+    my $dir_h;
+    unless (opendir( $dir_h, $dir )) {
         if ($lang eq 'en') {
             warn "cannot open MARC frameworks directory $dir";
         } else {
             # if no translated MARC framework is available,
             # default to English
             $dir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/en/marcflavour/".lc($marcflavour);
-            opendir(MYDIR, $dir) or warn "cannot open English MARC frameworks directory $dir";
+            opendir($dir_h, $dir) or warn "cannot open English MARC frameworks directory $dir";
             $defaulted_to_en = 1;
         }
     }
-    my @listdir = sort grep { !/^\.|marcflavour/ && -d "$dir/$_" } readdir(MYDIR);
-    closedir MYDIR;
+    my @listdir = sort grep { !/^\.|marcflavour/ && -d "$dir/$_" } readdir($dir_h);
+    closedir $dir_h;
 
     my @fwklist;
     my $request = $self->{'dbh'}->prepare("SELECT value FROM systempreferences WHERE variable='FrameworksLoaded'");
@@ -144,9 +149,10 @@ sub marc_framework_sql_list {
     }
 
     foreach my $requirelevel (@listdir) {
-        opendir( MYDIR, "$dir/$requirelevel" );
-        my @listname = grep { !/^\./ && -f "$dir/$requirelevel/$_" && $_ =~ m/\.(sql|yml)$/ } readdir(MYDIR);
-        closedir MYDIR;
+        my $dir_h;
+        opendir( $dir_h, "$dir/$requirelevel" );
+        my @listname = grep { !/^\./ && -f "$dir/$requirelevel/$_" && $_ =~ m/\.(sql|yml)$/ } readdir($dir_h);
+        closedir $dir_h;
         my %cell;
         my @frameworklist;
         map {
@@ -202,19 +208,20 @@ sub sample_data_sql_list {
 
     undef $/;
     my $dir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/$lang";
-    unless (opendir( MYDIR, $dir )) {
+    my $dir_h;
+    unless (opendir( $dir_h, $dir )) {
         if ($lang eq 'en') {
             warn "cannot open sample data directory $dir";
         } else {
             # if no sample data is available,
             # default to English
             $dir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/en";
-            opendir(MYDIR, $dir) or warn "cannot open English sample data directory $dir";
+            opendir($dir_h, $dir) or warn "cannot open English sample data directory $dir";
             $defaulted_to_en = 1;
         }
     }
-    my @listdir = sort grep { !/^\.|marcflavour/ && -d "$dir/$_" } readdir(MYDIR);
-    closedir MYDIR;
+    my @listdir = sort grep { !/^\.|marcflavour/ && -d "$dir/$_" } readdir($dir_h);
+    closedir $dir_h;
 
     my @levellist;
     my $request = $self->{'dbh'}->prepare("SELECT value FROM systempreferences WHERE variable='FrameworksLoaded'");
@@ -227,9 +234,10 @@ sub sample_data_sql_list {
     }
 
     foreach my $requirelevel (@listdir) {
-        opendir( MYDIR, "$dir/$requirelevel" );
-        my @listname = grep { !/^\./ && -f "$dir/$requirelevel/$_" && $_ =~ m/\.(sql|yml)$/ } readdir(MYDIR);
-        closedir MYDIR;
+        my $dir_h;
+        opendir( $dir_h, "$dir/$requirelevel" );
+        my @listname = grep { !/^\./ && -f "$dir/$requirelevel/$_" && $_ =~ m/\.(sql|yml)$/ } readdir($dir_h);
+        closedir $dir_h;
         my %cell;
         my @frameworklist;
         map {
@@ -281,6 +289,7 @@ sub load_db_schema {
     my $datadir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}";
 
     # Disable checks before load
+    # NOTE: These lines are found in kohastructure itself, but DBIx::RunSQL ignores them!
     $self->{'dbh'}->do(q{SET NAMES utf8mb4});
     $self->{'dbh'}->do(q{SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0});
     $self->{'dbh'}->do(q{SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0});
@@ -360,13 +369,10 @@ sub load_sql_in_order {
     push @fnames, "$global_mandatory_dir/userflags.sql",
                   "$global_mandatory_dir/userpermissions.sql",
                   "$global_mandatory_dir/audio_alerts.sql",
-                  "$global_mandatory_dir/account_offset_types.sql",
-                  "$global_mandatory_dir/account_credit_types.sql",
-                  "$global_mandatory_dir/account_debit_types.sql",
                   ;
     my $localization_file = C4::Context->config('intranetdir') .
                             "/installer/data/$self->{dbms}/localization/$langchoice/custom.sql";
-    if ( $langchoice ne 'en' and -f $localization_file ) {
+    if ( -f $localization_file ) {
         push @fnames, $localization_file;
     }
 
@@ -421,10 +427,10 @@ sub load_sql_in_order {
 Set the 'marcflavour' system preference.  The incoming
 C<$marcflavour> references to a subdirectory of
 installer/data/$dbms/$lang/marcflavour, and is
-normalized to MARC21, UNIMARC or NORMARC.
+normalized to MARC21 or UNIMARC.
 
 FIXME: this method assumes that the MARC flavour will be either
-MARC21, UNIMARC or NORMARC.
+MARC21 or UNIMARC.
 
 =cut
 
@@ -436,10 +442,9 @@ sub set_marcflavour_syspref {
     # marc_cleaned finds the marcflavour, without the variant.
     my $marc_cleaned = 'MARC21';
     $marc_cleaned = 'UNIMARC' if $marcflavour =~ /unimarc/i;
-    $marc_cleaned = 'NORMARC' if $marcflavour =~ /normarc/i;
     my $request =
         $self->{'dbh'}->prepare(
-          "INSERT IGNORE INTO `systempreferences` (variable,value,explanation,options,type) VALUES('marcflavour','$marc_cleaned','Define global MARC flavor (MARC21, UNIMARC or NORMARC) used for character encoding','MARC21|UNIMARC|NORMARC','Choice');"
+          "INSERT IGNORE INTO `systempreferences` (variable,value,explanation,options,type) VALUES('marcflavour','$marc_cleaned','Define global MARC flavor (MARC21 or UNIMARC) used for character encoding','MARC21|UNIMARC','Choice');"
         );
     $request->execute;
 }
@@ -631,12 +636,15 @@ sub get_file_path_from_name {
 sub primary_key_exists {
     my ( $table_name, $key_name ) = @_;
     my $dbh = C4::Context->dbh;
-    my ($exists) = $dbh->selectrow_array(
-        qq|
-        SHOW INDEX FROM $table_name
-        WHERE key_name = 'PRIMARY' AND column_name = ?
-        |, undef, $key_name
-    );
+    my $sql = qq| SHOW INDEX FROM $table_name WHERE key_name='PRIMARY' |;
+    my $exists;
+    if( $key_name ){
+        $sql .= 'AND column_name = ? ' if $key_name;
+        ($exists) = $dbh->selectrow_array( $sql, undef, $key_name );
+    } else {
+        ($exists) = $dbh->selectrow_array( $sql, undef );
+    }
+
     return $exists;
 }
 
@@ -645,6 +653,13 @@ sub foreign_key_exists {
     my $dbh = C4::Context->dbh;
     my (undef, $infos) = $dbh->selectrow_array(qq|SHOW CREATE TABLE $table_name|);
     return $infos =~ m|CONSTRAINT `$constraint_name` FOREIGN KEY|;
+}
+
+sub unique_key_exists {
+    my ( $table_name, $constraint_name ) = @_;
+    my $dbh = C4::Context->dbh;
+    my (undef, $infos) = $dbh->selectrow_array(qq|SHOW CREATE TABLE $table_name|);
+    return $infos =~ m|UNIQUE KEY `$constraint_name`|;
 }
 
 sub index_exists {
@@ -684,6 +699,368 @@ sub TableExists { # Could be renamed table_exists for consistency
     return 0;
 }
 
+sub version_from_file {
+    my $file = shift;
+    return unless $file =~ m|(^\|/)(\d{2})(\d{2})(\d{2})(\d{3}).pl$|;
+    return sprintf "%s.%s.%s.%s", $2, $3, $4, $5;
+}
+
+sub get_db_entries {
+    my $db_revs_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/db_revs';
+    opendir my $dh, $db_revs_dir or die "Cannot open $db_revs_dir dir ($!)";
+    my @files = sort grep { m|\.pl$| && ! m|skeleton\.pl$| } readdir $dh;
+    my @need_update;
+    for my $file ( @files ) {
+        my $version = version_from_file( $file );
+
+        unless ( $version ) {
+            warn "Invalid db_rev found: " . $file;
+            next
+        }
+
+        next unless CheckVersion( $version );
+
+        push @need_update, sprintf( "%s/%s", $db_revs_dir, $file );
+    }
+    return \@need_update;
+}
+
+sub run_db_rev {
+    my ($file) = @_;
+
+    my $db_rev = do $file;
+
+    my $error;
+    my $out = '';
+    open my $outfh, '>', \$out;
+    try {
+        my $schema = Koha::Database->new->schema;
+        $schema->txn_do(
+            sub {
+                $db_rev->{up}->( { dbh => $schema->storage->dbh, out => $outfh } );
+            }
+        );
+    }
+    catch {
+        $error = $_;
+    };
+
+    close $outfh;
+    $out = decode( 'UTF-8', $out );
+
+    my $db_entry = {
+        filepath    => $file,
+        bug_number  => $db_rev->{bug_number},
+        description => $db_rev->{description},
+        exec_output => $out,
+        version     => scalar version_from_file($file),
+        time        => POSIX::strftime( "%H:%M:%S", localtime ),
+        error       => $error
+    };
+    $db_entry->{output} = generate_output_db_entry($db_entry, $out);
+    return $db_entry;
+}
+
+sub update {
+    my ( $files, $params ) = @_;
+
+    my $force = $params->{force} || 0;
+
+    my ( @done, @errors );
+    for my $file ( @$files ) {
+
+        my $db_entry = run_db_rev($file);
+
+        if ( $db_entry->{error} ) {
+            push @errors, $db_entry;
+            $force ? next : last ;
+                # We stop the update if an error occurred!
+        }
+
+        SetVersion($db_entry->{version});
+        push @done, $db_entry;
+    }
+    return { success => \@done, error => \@errors };
+}
+
+sub generate_output_db_entry {
+    my ( $db_entry ) = @_;
+
+    my $description = $db_entry->{description};
+    my $output      = $db_entry->{output};
+    my $DBversion   = $db_entry->{version};
+    my $bug_number  = $db_entry->{bug_number};
+    my $time        = $db_entry->{time};
+    my $exec_output = $db_entry->{exec_output};
+    my $done        = defined $db_entry->{done}
+                       ? $db_entry->{done}
+                           ? " done"
+                           : " failed"
+                       : ""; # For old versions, we don't know if we succeed or failed
+
+    my @output;
+
+    if ( $DBversion ) {
+        if ($bug_number) {
+            push @output, sprintf('Upgrade to %s %s [%s]: Bug %5s - %s', $DBversion, $done, $time, $bug_number, $description);
+        } else {
+            push @output, sprintf('Upgrade to %s %s [%s]: %s', $DBversion, $done, $time, $description);
+        }
+    } else { # Atomic update
+        if ($bug_number) {
+            push @output, sprintf('DEV atomic update %s %s [%s]: Bug %5s - %s', $db_entry->{filepath}, $done, $time, $bug_number, $description);
+        } else { # Old atomic update syntax
+            push @output, sprintf('DEV atomic update %s %s [%s]', $db_entry->{filepath}, $done, $time);
+        }
+    }
+
+    if ($exec_output) {
+        foreach my $line (split /\n/, $exec_output) {
+            push @output, sprintf "\t%s", $line;
+        }
+    }
+
+    return \@output;
+}
+
+sub get_atomic_updates {
+    my @atomic_upate_files;
+    # if there is anything in the atomicupdate, read and execute it.
+    my $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';
+    opendir( my $dirh, $update_dir );
+    foreach my $file ( sort readdir $dirh ) {
+        next if $file !~ /\.(perl|pl)$/;  #skip other files
+        next if $file eq 'skeleton.perl' || $file eq 'skeleton.pl'; # skip the skeleton files
+
+        push @atomic_upate_files, $file;
+    }
+    return \@atomic_upate_files;
+}
+
+sub run_atomic_updates {
+    my ( $files ) = @_;
+
+    my $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';
+    my ( @done, @errors );
+    for my $file ( @$files ) {
+        my $filepath = $update_dir . $file;
+
+        my $atomic_update;
+        if ( $file =~ m{\.perl$} ) {
+            my $code = read_file( $filepath );
+            my ( $out, $err ) = ('', '');
+            {
+                open my $oldout, qw{>}, "&STDOUT";
+                close STDOUT;
+                open STDOUT,'>:encoding(utf8)', \$out;
+                my $DBversion = Koha::version; # We need $DBversion and $dbh for the eval
+                my $dbh = C4::Context->dbh;
+                eval $code; ## no critic (StringyEval)
+                $err = $@;
+                warn $err if $err;
+                close STDOUT;
+                open STDOUT, ">&", $oldout;
+            }
+
+            $atomic_update = {
+                filepath    => $filepath,
+                description => '',
+                version     => undef,
+                time        => POSIX::strftime( "%H:%M:%S", localtime ),
+            };
+
+
+            $atomic_update->{output} =
+              $out
+              ? [ split "\n", $out ]
+              : generate_output_db_entry($atomic_update); # There wad an error, we didn't reach NewVersion)
+
+            $atomic_update->{error} = $err if $err;
+        } elsif ( $file =~ m{\.pl$} ) {
+            $atomic_update = run_db_rev($filepath);
+        } else {
+            warn "Atomic update must be .perl or .pl ($file)";
+        }
+
+        if ( $atomic_update->{error} ) {
+            push @errors, $atomic_update;
+        } else {
+            push @done, $atomic_update;
+        }
+    }
+
+    return { success => \@done, error => \@errors };
+}
+
+=head2 DropAllForeignKeys($table)
+
+Drop all foreign keys of the table $table
+
+=cut
+
+sub DropAllForeignKeys {
+    my ($table) = @_;
+    # get the table description
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare("SHOW CREATE TABLE $table");
+    $sth->execute;
+    my $vsc_structure = $sth->fetchrow;
+    # split on CONSTRAINT keyword
+    my @fks = split /CONSTRAINT /,$vsc_structure;
+    # parse each entry
+    foreach (@fks) {
+        # isolate what is before FOREIGN KEY, if there is something, it's a foreign key to drop
+        $_ = /(.*) FOREIGN KEY.*/;
+        my $id = $1;
+        if ($id) {
+            # we have found 1 foreign, drop it
+            $dbh->do("ALTER TABLE $table DROP FOREIGN KEY $id");
+            $id="";
+        }
+    }
+}
+
+
+=head2 TransformToNum
+
+Transform the Koha version from a 4 parts string
+to a number, with just 1 .
+
+=cut
+
+sub TransformToNum {
+    my $version = shift;
+    # remove the 3 last . to have a Perl number
+    $version =~ s/(.*\..*)\.(.*)\.(.*)/$1$2$3/;
+    # three X's at the end indicate that you are testing patch with dbrev
+    # change it into 999
+    # prevents error on a < comparison between strings (should be: lt)
+    $version =~ s/XXX$/999/;
+    return $version;
+}
+
+=head2 SetVersion
+
+set the DBversion in the systempreferences
+
+=cut
+
+sub SetVersion {
+    return if $_[0]=~ /XXX$/;
+      #you are testing a patch with a db revision; do not change version
+    my $kohaversion = TransformToNum($_[0]);
+    my $dbh = C4::Context->dbh;
+    if (C4::Context->preference('Version')) {
+      my $finish=$dbh->prepare("UPDATE systempreferences SET value=? WHERE variable='Version'");
+      $finish->execute($kohaversion);
+    } else {
+      my $finish=$dbh->prepare("INSERT into systempreferences (variable,value,explanation) values ('Version',?,'The Koha database version. WARNING: Do not change this value manually, it is maintained by the webinstaller')");
+      $finish->execute($kohaversion);
+    }
+    C4::Context::clear_syspref_cache(); # invalidate cached preferences
+}
+
+# DEPRECATED Don't use it!
+# Used for compatibility with older versions (from updatedatabase.pl)
+sub NewVersion {
+    my ( $DBversion, $bug_number, $descriptions ) = @_;
+
+    SetVersion($DBversion);
+
+    my ( $description, $report );
+    if ( ref($descriptions) ) {
+        $description = shift @$descriptions;
+        $report      = join( "\n", @{$descriptions} );
+    }
+    else {
+        $description = $descriptions;
+    }
+
+    my $output = generate_output_db_entry( {
+            bug_number  => $bug_number,
+            description => $description,
+            report      => $report,
+            version     => $DBversion,
+            time        => POSIX::strftime( "%H:%M:%S", localtime ),
+    });
+
+    say join "\n", @$output;
+
+}
+
+=head2 CheckVersion
+
+Check whether a given update should be run when passed the proposed version
+number. The update will always be run if the proposed version is greater
+than the current database version and less than or equal to the version in
+kohaversion.pl. The update is also run if the version contains XXX, though
+this behavior will be changed following the adoption of non-linear updates
+as implemented in bug 7167.
+
+=cut
+
+sub CheckVersion {
+    my ($proposed_version) = @_;
+    my $version_number = TransformToNum($proposed_version);
+
+    # The following line should be deleted when bug 7167 is pushed
+    return 1 if ( $proposed_version =~ m/XXX/ );
+
+    if ( C4::Context->preference("Version") < $version_number
+        && $version_number <= TransformToNum( $Koha::VERSION ) )
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
+sub sanitize_zero_date {
+    my ( $table_name, $column_name ) = @_;
+
+    my $dbh = C4::Context->dbh;
+
+    my (undef, $datatype) = $dbh->selectrow_array(qq|
+        SHOW COLUMNS FROM $table_name WHERE Field = ?|, undef, $column_name);
+
+    if ( $datatype eq 'date' ) {
+        $dbh->do(qq|
+            UPDATE $table_name
+            SET $column_name = NULL
+            WHERE CAST($column_name AS CHAR(10)) = '0000-00-00';
+        |);
+    } else {
+        $dbh->do(qq|
+            UPDATE $table_name
+            SET $column_name = NULL
+            WHERE CAST($column_name AS CHAR(19)) = '0000-00-00 00:00:00';
+        |);
+    }
+}
+
+=head3 has_non_dynamic_row_format
+
+Return the number of tables with row_format that is not Dynamic
+
+=cut
+
+sub has_non_dynamic_row_format {
+    my ($class) = @_;
+    my $database = C4::Context->config('database');
+    my $count = 0;
+    if ($database){
+        my $dbh = C4::Context->dbh;
+        my $sql = q#
+            SELECT count(table_name)
+            FROM information_schema.tables
+            WHERE
+                table_schema = ?
+                AND row_format != "Dynamic"
+        #;
+        ( $count ) = $dbh->selectrow_array($sql, undef, $database);
+    }
+    return $count;
+}
 
 =head1 AUTHOR
 

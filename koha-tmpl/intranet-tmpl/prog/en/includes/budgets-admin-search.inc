@@ -1,45 +1,64 @@
 [% USE Koha %]
 [% USE Branches %]
-<div class="gradient">
-<h1 id="logo"><a href="/cgi-bin/koha/mainpage.pl">[% LibraryName | html %]</a></h1><!-- Begin Fund Admin Resident Search Box -->
+<!-- budgets-admin-search.inc -->
 
-<div id="header_search">
-    <div id="budgets_search" class="residentsearch">
-        <p class="tip">Search funds:</p>
-        <form action="/cgi-bin/koha/admin/aqbudgets.pl" method="post">
-            <label for="filter_budgetname">Fund code: </label><input class="query" type="text" name="filter_budgetname" id="filter_budgetname" size="20" value="[% filter_budgetname | html %]" />
-            <label for="filter_budgetbranch">Library: </label>
-            <select name="filter_budgetbranch" id="filter_budgetbranch" style="width:10em;">
-                <option value=""></option>
-                    [% FOREACH branchloo IN Branches.all( selected => selected_branchcode ) %]
-                        [% IF branchloo.selected %]
-                        <option value="[% branchloo.branchcode | html %]" selected="selected">[% branchloo.branchname | html %]</option>
-                        [% ELSE %]
-                        <option value="[% branchloo.branchcode | html %]" >[% branchloo.branchname | html %]</option>
+<div id="header_search" role="tablist">
+    <div class="tab-content">
+        <div id="budgets_search" role="tabpanel" class="tab-pane active">
+            <form action="/cgi-bin/koha/admin/aqbudgets.pl" method="post">
+                <input type="hidden" name="budget_period_id" value="[% budget_period_id | html %]" />
+
+                <div class="form-title">
+                    <label class="control-label">Search funds</label>
+                </div>
+
+                <div class="form-content">
+                    <input class="query form-control" type="text" name="filter_budgetname" id="filter_budgetname" value="[% filter_budgetname | html %]" placeholder="Search funds" />
+
+                    <button type="button" class="form-extra-content-toggle"><i class="fa fa-sliders"></i></button>
+                </div>
+
+                <button type="submit"><i class="fa fa-arrow-right"></i></button>
+
+                <div class="form-extra-content">
+                    <label for="filter_budgetbranch">Library</label>
+
+                    <select name="filter_budgetbranch" id="filter_budgetbranch" class="form-control">
+                        <option value="">All libraries</option>
+                        [% FOREACH branchloo IN Branches.all( selected => selected_branchcode ) %]
+                            [% IF branchloo.selected %]
+                                <option value="[% branchloo.branchcode | html %]" selected="selected">[% branchloo.branchname | html %]</option>
+                            [% ELSE %]
+                                <option value="[% branchloo.branchcode | html %]" >[% branchloo.branchname | html %]</option>
+                            [% END %]
                         [% END %]
-                    [% END %]
-            </select>
-          <input type="hidden"  name="budget_period_id" value="[% budget_period_id | html %]" />
-          <input type="submit" class="submit" name="filter" value="Submit" />
-        </form>
-    </div>
+                    </select>
+                </div>
+            </form>
+        </div>
 
-[% INCLUDE 'patron-search-box.inc' %]
+        [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
+            [% INCLUDE 'patron-search-box.inc' %]
+        [% END %]
+        [% IF ( CAN_user_catalogue ) %]
+            [% INCLUDE 'catalogue-search-box.inc' %]
+        [% END %]
 
-    [% IF ( CAN_user_catalogue ) %]
-    <div id="catalog_search" class="residentsearch">
-        <form action="/cgi-bin/koha/catalogue/search.pl"  method="get" id="cat-search-block">
-            <label class="tip" for="search-form">Enter search keywords:</label>
-             [% IF ( Koha.Preference('IntranetCatalogSearchPulldown') ) %][% INCLUDE 'search_indexes.inc' %][% END %]
-             <input type="text" name="q" id="search-form" size="40" value="" title="Enter the terms you wish to search for." class="query form-text" />
-                <input type="submit" value="Submit"  class="submit" />
-        </form>
-    </div>[% END %]
-            <ul>
-            <li><a class="keep_text" href="#budgets_search">Search funds</a></li>
-            [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]<li><a class="keep_text" href="#circ_search">Check out</a></li>[% END %]
-            [% IF ( CAN_user_catalogue ) %]<li><a class="keep_text" href="#catalog_search">Search the catalog</a></li>[% END %]
-            </ul>
-</div>
-</div>
-<!-- End Suggestions Resident Search Box -->
+    </div><!-- /.tab-content -->
+    <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="active">
+            <a title="Search funds" href="#budgets_search" aria-controls="budgets_search" aria-expanded="true" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-credit-card"></i> <span class="tab-title">Search funds</span></a>
+        </li>
+        [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
+            <li role="presentation">
+                <a title="Check out" href="#circ_search" aria-controls="circ_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-upload"></i> <span class="tab-title">Check out</span></a>
+            </li>
+        [% END %]
+        [% IF ( CAN_user_catalogue ) %]
+            <li role="presentation">
+                <a title="Search catalog" href="#catalog_search" aria-controls="catalog_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-fw fa-search"></i> <span class="tab-title">Search catalog</span></a>
+            </li>
+        [% END %]
+    </ul>
+</div><!-- /#header_search -->
+<!-- /budgets-admin-search.inc -->

@@ -20,12 +20,15 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use Data::Dumper;
 
 use C4::Context;
-use C4::Auth qw(get_template_and_user);
-use C4::Output qw(output_html_with_http_headers);
-use C4::Creators::Lib qw(get_all_templates get_all_layouts get_output_formats);
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Creators::Lib qw(
+    get_all_layouts
+    get_all_templates
+    get_output_formats
+);
 use C4::Labels::Batch;
 
 my $cgi = CGI->new;
@@ -35,7 +38,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $cgi,
         type            => "intranet",
         flagsrequired   => { catalogue => 1 },
-        debug           => 1,
     }
 );
 
@@ -52,8 +54,11 @@ my @item_numbers;
 my $output_format = $cgi->param('output_format') || 'pdf';
 my $referer = $cgi->param('referer') || undef;
 
-my $from = $cgi->param('from') || undef;
-my $to = $cgi->param('to') || undef;
+my $txt_from = $cgi->param('from') || undef;
+my $txt_to = $cgi->param('to') || undef;
+my $from = int($txt_from) || undef;
+my $to = int($txt_to) || undef;
+my $barcode_length = length($txt_from) || undef;
 
 my $layouts = undef;
 my $templates = undef;
@@ -125,6 +130,7 @@ if ($op eq 'export') {
         push (@batches, {create_script   => 'label-create-pdf.pl',
                  from            => $from,
                  to              => $to,
+                 barcode_length  => $barcode_length,
                  template_id     => $template_id,
                  layout_id       => $layout_id,
                  start_label     => $start_label,
@@ -157,7 +163,10 @@ elsif ($op eq 'none') {
                     item_count                  => $item_count,
                     referer                     => $referer,
                     from                        => $from,
-                    to                          => $to
+                    to                          => $to,
+                    barcode_length              => $barcode_length,
+                    txt_from                    => $txt_from,
+                    txt_to                      => $txt_to
                     );
 }
 output_html_with_http_headers $cgi, $cookie, $template->output;

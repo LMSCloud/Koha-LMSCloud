@@ -4,16 +4,16 @@ use DateTime::TimeZone;
 
 use C4::Context;
 
-use Test::More tests => 79;
+use Test::More tests => 83;
 
 use Test::MockModule;
 use Test::Warn;
 use Time::HiRes qw/ gettimeofday /;
 use Try::Tiny;
 
-use t::lib::Mocks;
+use Koha::DateUtils qw( dt_from_string output_pref format_sqldatetime flatpickr_date_format );
 
-BEGIN { use_ok('Koha::DateUtils'); }
+use t::lib::Mocks;
 
 t::lib::Mocks::mock_preference('dateformat', 'us');
 t::lib::Mocks::mock_preference('TimeFormat', 'This_is_not_used_but_called');
@@ -134,8 +134,61 @@ cmp_ok( $dt0->epoch(), 'eq', '1325462340', 'dt_from_string handles seconds with 
 $dt0 = dt_from_string( '2012-01-01t23:59:59.999z', 'rfc3339' );
 cmp_ok( $dt0->epoch(), 'eq', '1325462399', 'dt_from_string handles seconds with 3 decimal places' );
 
-$dt0 = dt_from_string( '2012-01-01T23:59:59.999Z+02:00', 'rfc3339' );
-cmp_ok( $dt0->epoch(), 'eq', '1325462399', 'dt_from_string handles seconds with 3 decimal places and a timezone' );
+$dt0 = dt_from_string( '2012-01-01T23:59:59.999+02:00', 'rfc3339' );
+cmp_ok( $dt0->epoch(), 'eq', '1325455199', 'dt_from_string handles seconds with 3 decimal places and a timezone' );
+
+eval {
+    $dt0 = dt_from_string( '2012-01-01T23:59:59.999Z+02:00', 'rfc3339' ); # Do not combine Z with +02 !
+};
+like( $@, qr/.*does not match the date format \(rfc3339\).*/, 'dt_from_string should die when passed a bad rfc3339 date string' );
+
+eval {
+    $dt0 = dt_from_string('2021-11-03T10:16:59Z+00:00', 'iso'); # Z and +00 are the same, but should not be together
+};
+like( $@, qr/.*does not match the date format \(iso\).*/, 'dt_from_string should die when passed a bad iso date string' );
+
+# ISO string tests
+subtest 'dt_from_string - iso format' => sub {
+    plan tests => 7;
+
+    my $module_context = Test::MockModule->new('C4::Context');
+    $module_context->mock(
+        'tz',
+        sub {
+            return DateTime::TimeZone->new( name => 'Europe/Paris' );
+        }
+    );
+
+    # Dateonly
+    my $dt_iso = dt_from_string( '2012-01-01', 'iso' );
+    cmp_ok( $dt_iso->epoch(), 'eq', '1325372400', 'dt_from_string handles dateonly string' );
+    # Saturday December 31, 2011 23:00:00 (UTC) == Sunday January 01, 2012 00:00:00 Europe/Paris (CET/+01:00)
+
+    eval {
+        $dt_iso = dt_from_string( '2012-01-32', 'iso' );
+    };
+    like( $@, qr/^Validation failed/, 'Fail on invalid dateonly string');
+
+    # Datetime
+    $dt_iso = dt_from_string( '2012-01-01T23:59:59', 'iso' );
+    cmp_ok( $dt_iso->epoch(), 'eq', '1325458799', 'dt_from_string with no offset assumes "local"' );
+    # Sunday January 01, 2012 22:59:59 (UTC) == Sunday January 01, 2012 23:59:59 Europe/Paris (CET/+01:00)
+
+    # Datetime with timezone
+    $dt_iso = dt_from_string( '2012-01-01T23:59:59Z', 'iso' );
+    cmp_ok( $dt_iso->epoch(), 'eq', '1325462399', 'dt_from_string with UTC prescribed as Z' );
+    # Sunday January 01, 2012 23:59:59 (UTC)
+
+    $dt_iso = dt_from_string( '2012-01-01T23:59:59+02:00', 'iso' );
+    cmp_ok( $dt_iso->epoch(), 'eq', '1325455199', 'dt_from_string with offset +02:00' );
+    # Sunday January 01, 2012 21:59:59 (UTC) == Sunday January 01, 2012 23:59:59 Europe/Athens (EET/+02:00)
+    # Allow +02 or +0200 too
+    $dt_iso = dt_from_string( '2012-01-01T23:59:59+02', 'iso' );
+    cmp_ok( $dt_iso->epoch(), 'eq', '1325455199', 'dt_from_string with offset +02' );
+    $dt_iso = dt_from_string( '2012-01-01T23:59:59+0200', 'iso' );
+    cmp_ok( $dt_iso->epoch(), 'eq', '1325455199', 'dt_from_string with offset +0200' );
+
+};
 
 # Return undef if passed mysql 0 dates
 $dt0 = dt_from_string( '0000-00-00', 'iso' );
@@ -208,6 +261,22 @@ $module_context->mock(
 
 $dt = dt_from_string('2014-03-30 02:00:00');
 isa_ok( $dt, 'DateTime', 'dt_from_string should return a DateTime object if a DST is given' );
+
+# Test output_pref for invalid local time explosion
+$dt = DateTime->new(
+    year       => 2017,
+    month      => 3,
+    day        => 26,
+    hour       => 1,
+    minute     => 35,
+);
+$module_context->mock(
+    'tz',
+    sub {
+        return DateTime::TimeZone->new( name => 'Europe/London' );
+    }
+);
+is( output_pref( { dt => $dt, dateonly => 0 } ), '03/26/2017 01:35', 'output_pref should return even if an invalid DST time is passed' );
 
 # Test dt_from_string
 t::lib::Mocks::mock_preference('dateformat', 'metric');
@@ -318,6 +387,16 @@ try {
     ok( 0, 'output_pref should carp if str and dt parameters are passed together' );
 } catch {
     is( ref($_), 'Koha::Exceptions::WrongParameter', 'output_pref should throw an exception if str and dt parameters are passed together' );
+};
+
+subtest 'flatpickr_date_format' => sub {
+    plan tests => 4;
+
+    t::lib::Mocks::mock_preference('dateformat', 'iso');
+    is( flatpickr_date_format(), 'Y-m-d', 'check fallback to pref' );
+    is( flatpickr_date_format(q{}), undef, 'empty string' );
+    is( flatpickr_date_format('metric'), 'd/m/Y', 'check valid arg' );
+    is( flatpickr_date_format('zz'), undef, 'wrong arg' );
 };
 
 # End of tests

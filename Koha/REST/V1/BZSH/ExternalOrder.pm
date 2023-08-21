@@ -34,8 +34,8 @@ use Koha::Library;
 use Koha::Libraries;
 use Koha::ExternalOrder;
 use Koha::ExternalOrders;
+use Koha::Biblios;
 
-use C4::Biblio qw(GetMarcBiblio);
 use C4::Context;
 
 use LWP::UserAgent;
@@ -164,7 +164,8 @@ sub handleBZSHExternalOrderRequest {
             
             # check biblionumber of order item
             if ( $orderItem && exists($orderItem->{biblionumber}) ) {
-                my $record = GetMarcBiblio( { biblionumber => $orderItem->{biblionumber} } );
+				my $biblio = Koha::Biblios->find( $orderItem->{biblionumber} );
+				my $record = $biblio ? $biblio->metadata->record : undef;
                 push @errors, "Bibliographic record with ID " . $orderItem->{biblionumber} . " of order item $i does not exist." if ( ! $record );
             } else {
                 push @errors, "Bibliographic record for order item $i is missing.";

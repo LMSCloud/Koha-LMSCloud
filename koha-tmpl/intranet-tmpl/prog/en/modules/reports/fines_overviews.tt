@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Branches %]
 [% USE KohaDates %]
@@ -10,22 +11,20 @@
 </head>
 
 <body id="circ_managecashregister" class="rep">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
-        </li>
-        <li>
-            <a href="/cgi-bin/koha/reports/fines_overviews.pl">Fines overviews</a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Fines overviews</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -46,8 +45,6 @@
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
-    [% Asset.js("lib/jquery/plugins/jquery-ui-timepicker-addon.min.js") %]
-    [% INCLUDE 'timepicker.inc' %]
     
     <script type="text/javascript">
         $(document).ready( function() {

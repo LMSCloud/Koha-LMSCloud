@@ -21,8 +21,8 @@ use Modern::Perl;
 
 use CGI;
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use Koha::Patrons;
 
 my $cgi = CGI->new;
@@ -39,8 +39,8 @@ my $borrowernumber = $cgi->param('borrowernumber');
 
 my $borrower = Koha::Patrons->find($borrowernumber);
 
-my @enrollments = $borrower->get_club_enrollments();
-my @clubs = $borrower->get_enrollable_clubs( my $opac = 1 );
+my @enrollments = $borrower->get_club_enrollments->as_list;
+my @clubs = $borrower->get_enrollable_clubs( my $opac = 1 )->as_list;
 
 $template->param(
     enrollments => \@enrollments,

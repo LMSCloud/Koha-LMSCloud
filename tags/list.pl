@@ -20,13 +20,13 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 
-use C4::Auth qw(:DEFAULT check_cookie_auth);
-use C4::Biblio;
+use C4::Auth qw( get_template_and_user );
+use C4::Biblio qw( GetBiblioData );
 use C4::Context;
-use C4::Items;
-use C4::Koha;
-use C4::Tags qw(get_tags remove_tag get_tag_rows);
-use C4::Output;
+use C4::Tags qw( get_tag_rows get_tags remove_tag );
+use C4::Output qw( output_html_with_http_headers );
+
+use Koha::Biblios;
 
 my $needed_flags = { tools => 'moderate_tags'
 };    # FIXME: replace when more specific permission is created.
@@ -42,7 +42,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         template_name   => "tags/list.tt",
         query           => $query,
         type            => "intranet",
-        debug           => 1,
         flagsrequired   => $needed_flags,
     }
 );
@@ -59,11 +58,12 @@ else {
     if ($tag) {
         my $taglist = get_tag_rows( { term => $tag } );
         for ( @{$taglist} ) {
+            # FIXME We should use Koha::Biblio here
             my $dat    = &GetBiblioData( $_->{biblionumber} );
-            my @items = GetItemsInfo( $_->{biblionumber} );
+            my $items = Koha::Items->search_ordered({ 'me.biblionumber' => $dat->{biblionumber} });
             $dat->{biblionumber} = $_->{biblionumber};
             $dat->{tag_id}       = $_->{tag_id};
-            $dat->{items}        = \@items;
+            $dat->{items}        = $items;
             $dat->{TagLoop}      = get_tags(
                 {
                     biblionumber => $_->{biblionumber},

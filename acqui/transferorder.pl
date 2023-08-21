@@ -22,10 +22,10 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
-use C4::Acquisition;
+use C4::Acquisition qw( GetOrder GetBasket TransferOrder GetBasketsByBookseller SearchOrders );
 use Koha::Acquisition::Booksellers;
 
 my $input = CGI->new;
@@ -117,13 +117,13 @@ if( $basketno && $ordernumber) {
     # Search for booksellers to transfer from/to
     $op = '' unless $op;
     if( $op eq "do_search" ) {
-        my @booksellers = Koha::Acquisition::Booksellers->search(
+        my $booksellers = Koha::Acquisition::Booksellers->search(
                             { name     => { -like => "%$query%" } },
                             { order_by => { -asc => 'name' } } );
         $template->param(
             query => $query,
             do_search => 1,
-            booksellersloop => \@booksellers,
+            booksellers => $booksellers,
         );
     }
 }

@@ -21,15 +21,15 @@ use Modern::Perl;
 
 use JSON qw( encode_json );
 use C4::Service;
-use C4::Auth qw /check_cookie_auth/;
+use C4::Auth qw( check_cookie_auth get_template_and_user );
 use C4::Letters;
 use CGI;
-use C4::Output qw(:DEFAULT :ajax);
+use C4::Output qw( is_ajax output_with_http_headers );
 use C4::Scrubber;
 use C4::Circulation;
 use C4::Biblio;
 use Koha::Checkouts;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Patrons;
 
 =head1 NAME
@@ -43,7 +43,7 @@ svc/checkout_notes - Web service for setting patron notes on items
 # AJAX requests
 my $is_ajax = is_ajax();
 my $query = CGI->new;
-my ( $auth_status, $sessionID ) = check_cookie_auth( $query->cookie('CGISESSID'), {} );
+my ( $auth_status ) = check_cookie_auth( $query->cookie('CGISESSID'), {} );
 if ( $auth_status ne "ok" ) {
     exit 0;
 }

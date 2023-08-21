@@ -23,10 +23,10 @@ use CGI qw ( -utf8 );
 use CGI::Cookie;
 use Encode;
 use JSON;
-use URI::Escape;
+use URI::Escape qw( uri_unescape );
 
 use C4::Context;
-use C4::Auth qw/check_cookie_auth haspermission/;
+use C4::Auth qw( check_cookie_auth get_session );
 use Koha::Uploader;
 
 # upload-file.pl must authenticate the user
@@ -39,7 +39,7 @@ use Koha::Uploader;
 
 my %cookies = CGI::Cookie->fetch;
 my $sid = $cookies{'CGISESSID'}->value;
-my ( $auth_status, $sessionID ) = check_cookie_auth( $sid );
+my ( $auth_status ) = check_cookie_auth( $sid );
 my $uid = C4::Auth::get_session($sid)->param('id');
 my $allowed = Koha::Uploader->allows_add_by( $uid );
 

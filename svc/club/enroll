@@ -30,7 +30,7 @@ use Koha::Clubs;
 
 my $cgi = CGI->new;
 
-my ( $auth_status, $sessionID ) =
+my ( $auth_status ) =
   check_cookie_auth( $cgi->cookie('CGISESSID'), { clubs => 'enroll' } );
 if ( $auth_status ne "ok" ) {
     exit 0;
@@ -54,7 +54,7 @@ if ($club) {
     )->store();
 
     if ($enrollment) {
-        my @enrollment_fields = $club->club_template()->club_template_enrollment_fields();
+        my @enrollment_fields = $club->club_template()->club_template_enrollment_fields->as_list;
 
         foreach my $e (@enrollment_fields) {
             my $club_enrollment_field = Koha::Club::Enrollment::Field->new(

@@ -18,19 +18,22 @@ package Koha::AuthUtils;
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Crypt::Eksblowfish::Bcrypt qw(bcrypt en_base64);
-use Encode qw( encode is_utf8 );
-use Fcntl qw/O_RDONLY/; # O_RDONLY is used in generate_salt
-use List::MoreUtils qw/ any /;
+use Crypt::Eksblowfish::Bcrypt qw( bcrypt en_base64 );
+use Encode;
+use Fcntl qw( O_RDONLY ); # O_RDONLY is used in generate_salt
+use List::MoreUtils qw( any );
 use String::Random qw( random_string );
 use Koha::Exceptions::Password;
 
 use C4::Context;
 
-use base 'Exporter';
 
-our @EXPORT_OK   = qw(hash_password get_script_name);
-
+our (@ISA, @EXPORT_OK);
+BEGIN {
+    require Exporter;
+    @ISA = qw(Exporter);
+    @EXPORT_OK = qw(hash_password get_script_name is_password_valid);
+};
 =head1 NAME
 
 Koha::AuthUtils - utility routines for authentication
@@ -119,7 +122,8 @@ sub generate_salt {
         $source = '/dev/urandom'; # non-blocking
     }
 
-    sysopen SOURCE, $source, O_RDONLY
+    my $source_fh;
+    sysopen $source_fh, $source, O_RDONLY
         or die "failed to open source '$source' in Koha::AuthUtils::generate_salt\n";
 
     # $bytes is the bytes just read
@@ -129,7 +133,7 @@ sub generate_salt {
     # keep reading until we have $length bytes in $strength
     while( length($string) < $length ){
         # return the number of bytes read, 0 (EOF), or -1 (ERROR)
-        my $return = sysread SOURCE, $bytes, $length - length($string);
+        my $return = sysread $source_fh, $bytes, $length - length($string);
 
         # if no bytes were read, keep reading (if using /dev/random it is possible there was insufficient entropy so this may block)
         next unless $return;
@@ -140,7 +144,7 @@ sub generate_salt {
         $string .= $bytes;
     }
 
-    close SOURCE;
+    close $source_fh;
     return $string;
 }
 
@@ -205,9 +209,7 @@ outside this context.
 =cut
 
 sub get_script_name {
-    # This is the method about.pl uses to detect Plack; now that two places use it, it MUST be
-    # right.
-    if ( ( any { /(^psgi\.|^plack\.)/i } keys %ENV ) && $ENV{SCRIPT_NAME} =~ m,^/(intranet|opac)(.*), ) {
+    if ( ( C4::Context->psgi_env ) && $ENV{SCRIPT_NAME} && $ENV{SCRIPT_NAME} =~ m,^/(intranet|opac)(.*), ) {
         return '/cgi-bin/koha' . $2;
     } else {
         return $ENV{SCRIPT_NAME};

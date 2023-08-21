@@ -19,10 +19,12 @@
 
 use Modern::Perl;
 
-use Test::More tests => 24;
+use Test::More tests => 23;
 use Test::Exception;
 use Test::MockModule;
 use Test::Warn;
+
+use C4::Context;
 
 use Koha::Authority::Types;
 use Koha::Cities;
@@ -139,7 +141,9 @@ subtest 'find' => sub {
 };
 
 subtest 'search_related' => sub {
-    plan tests => 6;
+
+    plan tests => 3;
+
     my $builder   = t::lib::TestBuilder->new;
     my $patron_1  = $builder->build( { source => 'Borrower' } );
     my $patron_2  = $builder->build( { source => 'Borrower' } );
@@ -158,26 +162,6 @@ subtest 'search_related' => sub {
         'Koha::Objects->search_related should work as expected' );
     ok( eq_array(
         [ $libraries->get_column('branchcode') ],
-        [ $patron_1->{branchcode}, $patron_2->{branchcode} ] ),
-        'Koha::Objects->search_related should work as expected'
-    );
-
-    my @libraries = Koha::Patrons->search(
-        {
-            -or => {
-                borrowernumber =>
-                  [ $patron_1->{borrowernumber}, $patron_2->{borrowernumber} ]
-            }
-        }
-    )->search_related('branchcode');
-    is(
-        ref( $libraries[0] ), 'Koha::Library',
-        'Koha::Objects->search_related should return a list of Koha::Object-based objects'
-    );
-    is( scalar(@libraries), 2,
-        'Koha::Objects->search_related should work as expected' );
-    ok( eq_array(
-        [ map { $_->branchcode } @libraries ],
         [ $patron_1->{branchcode}, $patron_2->{branchcode} ] ),
         'Koha::Objects->search_related should work as expected'
     );
@@ -209,7 +193,7 @@ subtest 'last' => sub {
 
 subtest 'get_column' => sub {
     plan tests => 1;
-    my @cities = Koha::Cities->search;
+    my @cities = Koha::Cities->search->as_list;
     my @city_names = map { $_->city_name } @cities;
     is_deeply( [ Koha::Cities->search->get_column('city_name') ], \@city_names, 'Koha::Objects->get_column should be allowed' );
 };
@@ -285,35 +269,9 @@ subtest '->is_paged and ->pager tests' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest '->search() tests' => sub {
-
-    plan tests => 12;
-
-    $schema->storage->txn_begin;
-
-    my $count = Koha::Patrons->search->count;
-
-    # Create 10 patrons
-    foreach (1..10) {
-        $builder->build_object({ class => 'Koha::Patrons' });
-    }
-
-    my $patrons = Koha::Patrons->search();
-    is( ref($patrons), 'Koha::Patrons', 'search in scalar context returns the Koha::Object-based type' );
-    my @patrons = Koha::Patrons->search();
-    is( scalar @patrons, $count + 10, 'search in list context returns a list of objects' );
-    my $i = 0;
-    foreach (1..10) {
-        is( ref($patrons[$i]), 'Koha::Patron', 'Objects in the list have the singular type' );
-        $i++;
-    }
-
-    $schema->storage->txn_rollback;
-};
-
 subtest "to_api() tests" => sub {
 
-    plan tests => 18;
+    plan tests => 19;
 
     $schema->storage->txn_begin;
 
@@ -395,6 +353,68 @@ subtest "to_api() tests" => sub {
 
         $i++;
     }
+
+    subtest 'unprivileged request tests' => sub {
+
+        my @all_attrs = Koha::Libraries->columns();
+        my $public_attrs = { map { $_ => 1 } @{ Koha::Library->public_read_list() } };
+        my $mapping = Koha::Library->to_api_mapping;
+
+        # Create sample libraries
+        my $library_1 = $builder->build_object({ class => 'Koha::Libraries' });
+        my $library_2 = $builder->build_object({ class => 'Koha::Libraries' });
+        my $libraries = Koha::Libraries->search(
+            {
+                branchcode => {
+                    '-in' => [
+                        $library_1->branchcode, $library_2->branchcode
+                    ]
+                }
+            }
+        );
+
+        plan tests => scalar @all_attrs * 2 * $libraries->count;
+
+        my $libraries_unprivileged_representation = $libraries->to_api({ public => 1 });
+        my $libraries_privileged_representation   = $libraries->to_api();
+
+        for (my $i = 0; $i < $libraries->count; $i++) {
+            my $privileged_representation   = $libraries_privileged_representation->[$i];
+            my $unprivileged_representation = $libraries_unprivileged_representation->[$i];
+            foreach my $attr (@all_attrs) {
+                my $mapped = exists $mapping->{$attr} ? $mapping->{$attr} : $attr;
+                if ( defined($mapped) ) {
+                    ok(
+                        exists $privileged_representation->{$mapped},
+                        "Attribute '$attr' is present when privileged"
+                    );
+                    if ( exists $public_attrs->{$attr} ) {
+                        ok(
+                            exists $unprivileged_representation->{$mapped},
+                            "Attribute '$attr' is present when public"
+                        );
+                    }
+                    else {
+                        ok(
+                            !exists $unprivileged_representation->{$mapped},
+                            "Attribute '$attr' is not present when public"
+                        );
+                    }
+                }
+                else {
+                    ok(
+                        !exists $privileged_representation->{$attr},
+                        "Unmapped attribute '$attr' is not present when privileged"
+                    );
+                    ok(
+                        !exists $unprivileged_representation->{$attr},
+                        "Unmapped attribute '$attr' is not present when public"
+                    );
+                }
+            }
+        }
+    };
+
 
     $schema->storage->txn_rollback;
 };

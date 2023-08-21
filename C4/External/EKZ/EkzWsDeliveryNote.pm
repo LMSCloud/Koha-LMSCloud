@@ -28,7 +28,7 @@ use Exporter;
 use Try::Tiny;
 
 use C4::Acquisition qw( NewBasket GetBasket GetBaskets ModBasket ReopenBasket GetBasketgroupsGeneric NewBasketgroup CloseBasketgroup ReOpenBasketgroup GetOrderFromItemnumber ModOrderDeliveryNote );
-use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField GetMarcBiblio );
+use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField );
 use C4::Context;
 use C4::Items qw( ModItemFromMarc );    # additionally GetMarcItem is required here, but it is not exported by C4::Items, so we have to use it inofficially
 use C4::External::EKZ::lib::EkzWebServices;
@@ -42,6 +42,7 @@ use Koha::Item;
 use Koha::Items;
 use Koha::Logger;
 use Koha::Patrons;
+use Koha::Biblios;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw( readLSFromEkzWsLieferscheinList readLSFromEkzWsLieferscheinDetail genKohaRecords updBiblioIndex );
@@ -341,7 +342,8 @@ sub genKohaRecords {
                                 $biblionumber = 0;
                                 $biblioExisting = 0;
                                 $lsEkzArtikelNr = '';
-                                my $record = C4::Biblio::GetMarcBiblio( { biblionumber => $selBiblionumber, embed_items => 0 } );
+                                my $biblio = Koha::Biblios->find( $selBiblionumber );
+                                my $record = $biblio ? $biblio->metadata->record : undef;
                                 if ( defined($record) ) {
                                     $titleHits->{'count'} = 1;
                                     $titleHits->{'records'}->[0] = $record;
@@ -463,7 +465,8 @@ sub genKohaRecords {
                                 $biblionumber = 0;
                                 $biblioExisting = 0;
                                 $lsEkzArtikelNr = '';
-                                my $record = C4::Biblio::GetMarcBiblio( { biblionumber => $selBiblionumber, embed_items => 0 } );
+                                my $biblio = Koha::Biblios->find( $selBiblionumber );
+                                my $record = $biblio ? $biblio->metadata->record : undef;
                                 if ( defined($record) ) {
                                     $titleHits->{'count'} = 1;
                                     $titleHits->{'records'}->[0] = $record;

@@ -12,8 +12,7 @@ use t::lib::TestBuilder;
 
 use C4::Context;
 use Koha::Database;
-use Koha::DateUtils;
-use Koha::UploadedFile;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::UploadedFiles;
 use Koha::Uploader;
 
@@ -176,11 +175,11 @@ subtest 'Test delete via UploadedFile as well as UploadedFiles' => sub {
     isnt( -e $path, 1, 'File no longer found after delete' );
 
     # add another record with TestBuilder, so file does not exist
-    # catch warning
-    my $upload01 = $builder->build({ source => 'UploadedFile' });
+    # catch warning (which occurs when deleting permanent file)
+    my $upload01 = $builder->build({ source => 'UploadedFile', value => { permanent => 1 } });
     warning_like { $delete = Koha::UploadedFiles->find( $upload01->{id} )->delete; }
         qr/file was missing/,
-        'delete warns when file is missing';
+        'delete warns when permanent file is missing';
     ok( $delete, 'Deleting record was successful' );
     is( Koha::UploadedFiles->count, 4, 'Back to four uploads now' );
 
@@ -218,7 +217,7 @@ subtest 'Test delete_missing' => sub {
 subtest 'Call search_term with[out] private flag' => sub {
     plan tests => 3;
 
-    my @recs = Koha::UploadedFiles->search_term({ term => 'file' });
+    my @recs = Koha::UploadedFiles->search_term({ term => 'file' })->as_list;
     is( @recs, 1, 'Returns only one public result' );
     is( $recs[0]->filename, 'file3', 'Should be file3' );
 
@@ -290,10 +289,10 @@ subtest 'Testing delete_temporary' => sub {
     my $today = dt_from_string;
     $today->subtract( minutes => 2 ); # should be enough :)
     my $dt = $today->clone->subtract( days => 1 );
-    foreach my $rec ( Koha::UploadedFiles->search({ permanent => 1 }) ) {
+    foreach my $rec ( Koha::UploadedFiles->search({ permanent => 1 })->as_list ) {
         $rec->dtcreated($dt)->store;
     }
-    my @recs = Koha::UploadedFiles->search({ permanent => 0 });
+    my @recs = Koha::UploadedFiles->search({ permanent => 0 })->as_list;
     $dt = $today->clone->subtract( days => 3 );
     $recs[0]->dtcreated($dt)->store;
     $dt = $today->clone->subtract( days => 5 );

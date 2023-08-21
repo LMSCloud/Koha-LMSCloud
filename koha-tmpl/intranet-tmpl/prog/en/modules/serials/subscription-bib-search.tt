@@ -17,7 +17,7 @@
     <ol>
         <li>
             <label for="q">Keyword: </label>
-            <input type="text" id="q"  name="q" />
+            <input type="text" id="q" name="q" autofocus="autofocus" />
         </li>
         <li>
             <label for="itemtypelimit">Limit item type to: </label>
@@ -46,7 +46,7 @@
     </ol>
     </fieldset>
     <fieldset class="action">
-        <input type="submit" value="Search" />
+        <input type="submit" class="btn btn-primary" value="Search" />
     </fieldset>
 </form>
 

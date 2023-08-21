@@ -10,24 +10,23 @@
 </head>
 
 <body id="pat_files" class="pat">
-[% INCLUDE 'header.inc' %]
-[% PROCESS 'patron-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'patron-search-header.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Files for [% INCLUDE 'patron-title.inc' %]
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber | uri %]">[% INCLUDE 'patron-title.inc' %]</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Files</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -46,29 +45,31 @@
                 [% END %]
 
                 [% IF ( files ) %]
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Type</th>
-                            <th>Description</th>
-                            <th>Uploaded</th>
-                            [% IF CAN_user_borrowers_edit_borrowers %]<th>&nbsp;</th>[% END %]
-                        </tr>
-                    </thead>
+                    <div class="page-section">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                    <th>Uploaded</th>
+                                    [% IF CAN_user_borrowers_edit_borrowers %]<th>&nbsp;</th>[% END %]
+                                </tr>
+                            </thead>
 
-                    <tbody>
-                        [% FOREACH f IN files %]
-                            <tr>
-                                 <td><a href="?borrowernumber=[% patron.borrowernumber | uri %]&amp;op=download&amp;file_id=[% f.file_id | uri %]">[% f.file_name | html %]</a></td>
-                                 <td>[% f.file_type | html %]</td>
-                                 <td>[% f.file_description | html %]</td>
-                                 <td>[% f.date_uploaded | $KohaDates %]</td>
-                                 [% IF CAN_user_borrowers_edit_borrowers %]<td><a class="btn btn-default btn-xs confirmdelete" href="?borrowernumber=[% patron.borrowernumber | html %]&amp;op=delete&amp;file_id=[% f.file_id | html %]"><i class="fa fa-trash"></i> Delete</a></td>[% END %]
-                            </tr>
-                        [% END %]
-                    </tbody>
-                </table>
+                            <tbody>
+                                [% FOREACH f IN files %]
+                                    <tr>
+                                        <td><a href="?borrowernumber=[% patron.borrowernumber | uri %]&amp;op=download&amp;file_id=[% f.file_id | uri %]">[% f.file_name | html %]</a></td>
+                                        <td>[% f.file_type | html %]</td>
+                                        <td>[% f.file_description | html %]</td>
+                                        <td>[% f.date_uploaded | $KohaDates %]</td>
+                                        [% IF CAN_user_borrowers_edit_borrowers %]<td><a class="btn btn-default btn-xs confirmdelete" href="?borrowernumber=[% patron.borrowernumber | html %]&amp;op=delete&amp;file_id=[% f.file_id | html %]"><i class="fa fa-trash"></i> Delete</a></td>[% END %]
+                                    </tr>
+                                [% END %]
+                            </tbody>
+                        </table>
+                    </div>
                 [% ELSE %]
                 <div class="dialog message">
                     <p>This patron has no files attached.</p>
@@ -89,7 +90,9 @@
                         <li><label for="uploadfile">File:</label><input name="uploadfile" type="file" id="uploadfile" /></li>
 
                         </ol>
-                        <fieldset class="action"><input name="upload" type="submit" id="upload" value="Upload file" /></fieldset>
+                    </fieldset>
+                    <fieldset class="action">
+                        <input name="upload" type="submit" id="upload" class="btn btn-primary" value="Upload file" />
                     </fieldset>
                 </form>
 

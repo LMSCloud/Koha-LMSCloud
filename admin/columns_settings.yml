@@ -1,7 +1,37 @@
 modules:
   acqui:
+    acq_acqui-home:
+      accounts:
+        columns:
+            -
+              columnname: active
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+            -
+              columnname: budget_period_descriptions
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+            -
+              columnname: fund_code
+            -
+              columnname: fund_name
+            -
+              columnname: owner
+            -
+              columnname: library
+            -
+              columnname: amount
+            -
+              columnname: ordered
+            -
+              columnname: spent
+            -
+              columnname: total_available
+
     histsearch:
       histsearcht:
+        default_display_length: 20
+        default_sort_order: 0
         columns:
             -
               columnname: order_line
@@ -33,9 +63,15 @@ modules:
               columnname: unit_cost
             -
               columnname: fund
+            -
+              columnname: internalnote
+            -
+              columnname: vendornote
 
     lateorders:
       late_orders:
+        default_display_length: 20
+        default_sort_order: 0
         columns:
             -
               columnname: checkbox
@@ -115,6 +151,8 @@ modules:
             -
               columnname: fund
             -
+              columnname: estimated_delivery_date
+            -
               columnname: supplier_report
             -
               columnname: modify
@@ -137,7 +175,11 @@ modules:
             -
               columnname: suggested_by
             -
+              columnname: suggested_category
+            -
               columnname: suggested_on
+            -
+              columnname: patron_reason
             -
               columnname: managed_by
             -
@@ -153,6 +195,8 @@ modules:
             -
               columnname: library_fund
             -
+              columnname: staff_note
+            -
               columnname: suggestion_status
             -
               columnname: actions
@@ -161,6 +205,8 @@ modules:
   admin:
     cities:
       table_cities:
+        default_display_length: 20
+        default_sort_order: 0
         columns:
             -
               columnname: city_id
@@ -201,6 +247,8 @@ modules:
 
     categories:
       patron_categories:
+        default_display_length: 20
+        default_sort_order: 1
         columns:
             -
               columnname: code
@@ -210,6 +258,8 @@ modules:
               columnname: type
             -
               columnname: enrollment_period
+            -
+              columnname: password_expiration
             -
               columnname: age_required
             -
@@ -227,7 +277,11 @@ modules:
             -
               columnname: branches_limitations
             -
+              columnname: can_be_guarantee
+            -
               columnname: default_privacy
+            -
+              columnname: exclude_from_local_holds_priority
             -
               columnname: actions
               cannot_be_toggled: 1
@@ -235,6 +289,8 @@ modules:
 
     itemtypes:
       table_item_type:
+        default_display_length: 10
+        default_sort_order: 1
         columns:
             -
               columnname: image
@@ -274,6 +330,8 @@ modules:
 
     libraries:
       libraries:
+        default_display_length: 20
+        default_sort_order: 0
         columns:
             -
               columnname: library_name
@@ -287,6 +345,8 @@ modules:
               columnname: library_ip
             -
               columnname: is_pickup_location
+            -
+              columnname: public
             -
               columnname: smtp_server
             -
@@ -313,19 +373,27 @@ modules:
             -
               columnname: holdings_ccode
             -
+              columnname: holdings_item_group
+            -
               columnname: holdings_itemcallnumber
+            -
+              columnname: holdings_enumchron
             -
               columnname: holdings_status
             -
               columnname: holdings_lastseen
             -
+              columnname: holdings_issues
+              is_hidden: 1
+            -
+              columnname: holdings_renewals
+              is_hidden: 1
+            -
               columnname: holdings_dateaccessioned
             -
               columnname: holdings_datelastborrowed
             -
-              columnname: holdings_barcode
-            -
-              columnname: holdings_enumchron
+              columnname: holdings_barcodes
             -
               columnname: holdings_uri
             -
@@ -342,8 +410,6 @@ modules:
               columnname: holdings_hostrecord
             -
               columnname: holdings_usedin
-            -
-              columnname: holdings_usedin_col
             -
               columnname: holdings_course_reserves
             -
@@ -370,17 +436,27 @@ modules:
             -
               columnname: otherholdings_ccode
             -
+              columnname: otherholdings_item_group
+            -
               columnname: otherholdings_itemcallnumber
+            -
+              columnname: otherholdings_enumchron
             -
               columnname: otherholdings_status
             -
               columnname: otherholdings_lastseen
             -
+              columnname: otherholdings_issues
+              is_hidden: 1
+            -
+              columnname: otherholdings_renewals
+              is_hidden: 1
+            -
               columnname: otherholdings_dateaccessioned
             -
-              columnname: otherholdings_barcode
+              columnname: otherholdings_datelastborrowed
             -
-              columnname: otherholdings_enumchron
+              columnname: otherholdings_barcode
             -
               columnname: otherholdings_uri
             -
@@ -397,8 +473,6 @@ modules:
               columnname: otherholdings_hostrecord
             -
               columnname: otherholdings_usedin
-            -
-              columnname: otherholdings_usedin_col
             -
               columnname: otherholdings_course_reserves
             -
@@ -438,6 +512,7 @@ modules:
               columnname: subscription_callnumber
 
       checkoutshistory-table:
+        default_display_length: 20
         columns:
             -
               columnname: patron
@@ -450,6 +525,8 @@ modules:
             -
               columnname: checked_out_from
             -
+              columnname: checked_out_by
+            -
               columnname: renewed
             -
               columnname: checkout_on
@@ -458,7 +535,40 @@ modules:
             -
               columnname: checkin_on
 
+      bundle_tables:
+        columns:
+            -
+              columnname: title
+              cannot_be_toggled: 1
+            -
+              columnname: author
+            -
+              columnname: callnumber
+            -
+              columnname: barcode
+            -
+              columnname: status
+            -
+              columnname: bundle_actions
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+
   cataloguing:
+    addbooks:
+      reservoir-table:
+        columns:
+            -
+              columnname: title
+            -
+              columnname: isbn
+            -
+              columnname: coming_from
+            -
+              columnname: import_date
+            -
+              columnname: actions
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
     additem:
       itemst:
         # NOTE: These columns are in the same order as kohastructure.sql, and contain all items
@@ -531,6 +641,7 @@ modules:
 
     z3950_search:
       resultst:
+        default_sort_order: 1
         columns:
             -
               columnname: server
@@ -554,6 +665,8 @@ modules:
   coursereserves:
     courses:
       course_reserves_table:
+        default_display_length: 20
+        default_sort_order: 0
         columns:
             -
               columnname: name
@@ -578,6 +691,8 @@ modules:
 
     reserves:
       course_reserves_table:
+        default_display_length: 20
+        default_sort_order: 0
         columns:
             -
               columnname: title
@@ -594,7 +709,9 @@ modules:
             -
               columnname: location
             -
-              columnname: library
+              columnname: home_library
+            -
+              columnname: holding_library
             -
               columnname: staff_note
             -
@@ -608,12 +725,89 @@ modules:
               cannot_be_toggled: 1
               cannot_be_modified: 1
 
+  erm:
+    agreements:
+      agreements:
+        columns:
+            -
+              columnname: name
+            -
+              columnname: vendor
+            -
+              columnname: description
+            -
+              columnname: status
+            -
+              columnname: closure_reason
+            -
+              columnname: is_perpetual
+            -
+              columnname: renewal_priority
+            -
+              columnname: actions
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+    licenses:
+      licenses:
+        columns:
+            -
+              columnname: name
+            -
+              columnname: vendor
+            -
+              columnname: description
+            -
+              columnname: type
+            -
+              columnname: status
+            -
+              columnname: started_on
+            -
+              columnname: ended_on
+            -
+              columnname: actions
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+    eholdings:
+      packages:
+        columns:
+            -
+              columnname: name
+            -
+              columnname: vendor
+            -
+              columnname: type
+            -
+              columnname: content_type
+            -
+              columnname: created_on
+            -
+              columnname: notes
+            -
+              columnname: actions
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+      titles:
+        columns:
+            -
+              columnname: title
+            -
+              columnname: contributors
+            -
+              columnname: publication_type
+            -
+              columnname: identifier
+            -
+              columnname: actions
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+
   illrequests:
     ill-requests:
       ill-requests:
         columns:
             -
-              columnname: illrequest_id
+              columnname: ill_request_id
             -
               columnname: metadata_author
             -
@@ -643,32 +837,19 @@ modules:
             -
               columnname: status
             -
-              columnname: placed
-              cannot_be_toggled: 1
-              cannot_be_modified: 1
-              is_hidden: 1
-            -
               columnname: placed_formatted
-            -
-              columnname: updated
-              cannot_be_toggled: 1
-              cannot_be_modified: 1
-              is_hidden: 1
             -
               columnname: updated_formatted
             -
               columnname: replied
-            -
-              columnname: completed
-              cannot_be_toggled: 1
-              cannot_be_modified: 1
-              is_hidden: 1
             -
               columnname: completed_formatted
             -
               columnname: accessurl
             -
               columnname: cost
+            -
+              columnname: price_paid
             -
               columnname: comments
             -
@@ -687,6 +868,7 @@ modules:
   members:
     fines:
       account-fines:
+        default_display_length: 20
         columns:
             -
               columnname: date
@@ -708,9 +890,9 @@ modules:
             -
               columnname: issuedate
             -
-              columnname: home_library
-            -
               columnname: checked_out_from
+            -
+              columnname: home_library
             -
               columnname: note
             -
@@ -728,6 +910,8 @@ modules:
 
     pay:
       pay-fines-table:
+        default_display_length: 20
+        default_sort_order: 3
         columns:
             -
               columnname: checkbox
@@ -746,6 +930,8 @@ modules:
             -
               columnname: barcode
             -
+              columnname: callnumber
+            -
               columnname: date_due
             -
               columnname: returndate
@@ -753,6 +939,8 @@ modules:
               columnname: issuedate
             -
               columnname: checked_out_from
+            -
+              columnname: home_library
             -
               columnname: note
             -
@@ -774,9 +962,9 @@ modules:
             -
               columnname: dateofbirth
             -
-              columnname: category
-            -
               columnname: library
+            -
+              columnname: category
             -
               columnname: expires_on
             -
@@ -854,8 +1042,50 @@ modules:
               cannot_be_toggled: 1
               cannot_be_modified: 1
 
+      relatives-issues-table:
+        columns:
+            -
+              columnname: due_date_unformatted
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+              is_hidden: 1
+            -
+              columnname: due_date
+            -
+              columnname: title
+            -
+              columnname: record_type
+            -
+              columnname: item_type
+            -
+              columnname: collection
+            -
+              columnname: location
+            -
+              columnname: checkout_on_unformatted
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+              is_hidden: 1
+            -
+              columnname: checkout_on
+            -
+              columnname: checkout_from
+            -
+              columnname: callno
+            -
+              columnname: copynumber
+            -
+              columnname: charge
+            -
+              columnname: fine
+            -
+              columnname: price
+            -
+              columnname: patron
+
     holdshistory:
       holdshistory-table:
+        default_display_length: 20
         columns:
             -
               columnname: title
@@ -882,6 +1112,7 @@ modules:
 
     checkouthistory:
       checkouthistory-table:
+        default_display_length: 20
         columns:
             - columnname: type
               cannot_be_toggled: 1
@@ -894,6 +1125,8 @@ modules:
               columnname: author
             -
               columnname: call_number
+            -
+              columnname: enumchron
             -
               columnname: barcode
             -
@@ -909,6 +1142,8 @@ modules:
 
     patron-lists:
       patron-list-table:
+        default_display_length: 20
+        default_sort_order: 3
         columns:
             -
               columnname: checkbox
@@ -1012,6 +1247,8 @@ modules:
 
     saved-sql:
       table_reports:
+        default_display_length: 20
+        default_sort_order: 0
         columns:
             -
               columnname: selection
@@ -1119,6 +1356,47 @@ modules:
               cannot_be_toggled: 1
               cannot_be_modified: 1
 
+      relatives-issues-table:
+        columns:
+            -
+              columnname: due_date_unformatted
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+              is_hidden: 1
+            -
+              columnname: due_date
+            -
+              columnname: title
+            -
+              columnname: record_type
+            -
+              columnname: item_type
+            -
+              columnname: collection
+            -
+              columnname: location
+            -
+              columnname: checkout_on_unformatted
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+              is_hidden: 1
+            -
+              columnname: checkout_on
+            -
+              columnname: checkout_from
+            -
+              columnname: callno
+            -
+              columnname: copynumber
+            -
+              columnname: charge
+            -
+              columnname: fine
+            -
+              columnname: price
+            -
+              columnname: patron
+
       table_borrowers:
         columns:
             -
@@ -1153,7 +1431,7 @@ modules:
             -
               columnname: homelibrary
             -
-              columnname: holdinglibrary
+              columnname: transferlibrary
             -
               columnname: location
             -
@@ -1174,9 +1452,13 @@ modules:
 
     view_holdsqueue:
       holds-table:
+        default_sort_order: 3
         columns:
             -
               columnname: title
+            -
+              columnname: holdingbranch
+              is_hidden: 1
             -
               columnname: collection
             -
@@ -1192,6 +1474,8 @@ modules:
             -
               columnname: patron
             -
+              columnname: patroncategory
+            -
               columnname: send_to
             -
               columnname: date
@@ -1200,6 +1484,8 @@ modules:
 
     holds:
       holds-to-pull:
+        default_display_length: 20
+        default_sort_order: 0
         columns:
             -
               columnname: pull_items
@@ -1226,6 +1512,8 @@ modules:
             -
               columnname: locations
             -
+              columnname: collection
+            -
               columnname: hold_date
             -
               columnname: reserve_notes
@@ -1236,6 +1524,7 @@ modules:
 
     holdsratios:
       holds-ratios:
+        default_display_length: 20
         columns:
             -
               columnname: holds
@@ -1262,9 +1551,15 @@ modules:
       holdst:
         columns:
             -
+              columnname: checkbox
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+            -
               columnname: waiting_since
             -
               columnname: date_hold_placed
+            -
+              columnname: expiration_date
             -
               columnname: title
             -
@@ -1287,9 +1582,15 @@ modules:
       holdso:
         columns:
             -
+              columnname: checkbox
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+            -
               columnname: waiting_since
             -
               columnname: date_hold_placed
+            -
+              columnname: expiration_date
             -
               columnname: title
             -
@@ -1309,8 +1610,41 @@ modules:
             -
               columnname: action
 
+      holdscr:
+        columns:
+            -
+                columnname: checkbox
+                cannot_be_toggled: 1
+                cannot_be_modified: 1
+            -
+                columnname: waiting_since
+            -
+                columnname: date_hold_placed
+            -
+                columnname: expiration_date
+            -
+                columnname: title
+            -
+                columnname: patron
+            -
+                columnname: home_library
+            -
+                columnname: current_location
+            -
+                columnname: shelving_location
+            -
+                columnname: call_number
+            -
+                columnname: copy_number
+            -
+                columnname: enumeration
+            -
+                columnname: action
+
     overdues:
       circ-overdues:
+        default_display_length: 20
+        default_sort_order: 0
         columns:
             -
               columnname: due_date
@@ -1330,6 +1664,8 @@ modules:
               columnname: holding_library
               is_hidden: 1
             -
+              columnname: shelving_location
+            -
               columnname: barcode
             -
               columnname: call_number
@@ -1340,6 +1676,58 @@ modules:
               columnname: price
             -
               columnname: non-public_note
+            -
+              columnname: claims_returned
+
+    print_summary:
+        print-summary-checkouts:
+            columns:
+                -
+                    columnname: title
+                -
+                    columnname: author
+                -
+                    columnname: call_number
+                -
+                    columnname: item_type
+                -
+                    columnname: date_due
+                -
+                    columnname: barcode
+                -
+                    columnname: inventory_number
+                -
+                    columnname: charge
+                -
+                    columnname: price
+                -
+                    columnname: status
+
+        print-summary-holds:
+            columns:
+                -
+                    columnname: title
+                -
+                    columnname: author
+                -
+                    columnname: placed_on
+                -
+                    columnname: expires_on
+                -
+                    columnname: pick up_location
+
+        print-summary-fines:
+            columns:
+                -
+                    columnname: date
+                -
+                    columnname: description_of_charges
+                -
+                    columnname: note
+                -
+                    columnname: amount
+                -
+                    columnname: outstanding
 
   opac:
     biblio-detail:
@@ -1520,6 +1908,7 @@ modules:
 
     logviewer:
       logst:
+        default_display_length: 20
         columns:
             -
               columnname: date
@@ -1549,6 +1938,7 @@ modules:
               cannot_be_modified: 1
     notices:
       lettert:
+        default_sort_order: 3
         columns:
             -
               columnname: library
@@ -1604,6 +1994,29 @@ modules:
               cannot_be_toggled: 1
               cannot_be_modified: 1
 
+    upload:
+      uploadresults:
+        default_display_length: 20
+        columns:
+            -
+              columnname: filename
+            -
+              columnname: size
+            -
+              columnname: hashvalue
+            -
+              columnname: date
+              is_hidden: 1
+            -
+              columnname: category
+            -
+              columnname: public
+            -
+              columnname: temporary
+            -
+              columnname: actions
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
   pos:
     pay:
       invoices:

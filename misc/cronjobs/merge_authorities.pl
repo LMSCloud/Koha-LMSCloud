@@ -1,12 +1,12 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
-use Getopt::Long;
-use Pod::Usage;
-use Time::HiRes qw(gettimeofday);
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
+use Time::HiRes qw( gettimeofday );
 
 use Koha::Script -cron;
-use C4::AuthoritiesMarc;
+use C4::AuthoritiesMarc qw( GetAuthority merge );
 use Koha::Authority::MergeRequests;
 
 use constant RESET_HOURS => 24;

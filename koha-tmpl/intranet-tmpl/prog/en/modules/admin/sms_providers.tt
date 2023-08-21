@@ -7,24 +7,20 @@
 </head>
 
 <body id="admin_sms_providers" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                SMS cellular providers
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>SMS cellular providers</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -35,39 +31,39 @@
                     <a class="btn btn-default" id="new_provider" href="#"><i class="fa fa-plus"></i> New SMS provider</a>
                 </div>
 
-                <h2>SMS cellular providers</h2>
+                <h1>SMS cellular providers</h1>
 
-                [% IF providers.size %]
-
-                    <table id="providerst">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Domain</th>
-                                <th title="Patrons using this provider">Patrons</th>
-                                <th>&nbsp;</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            [% FOREACH p IN providers %]
+                [% IF providers.count %]
+                    <div id="providers" class="page-section">
+                        <table>
+                            <thead>
                                 <tr>
-                                    <td id="name_[% p.id | html %]">[% p.name | html %]</td>
-                                    <td id="domain_[% p.id | html %]">[% p.domain | html %]</td>
-                                    <td id="patrons_using_[% p.id | html %]">[% p.patrons_using | html %]</td>
-                                    <td class="actions">
-                                        <a class="btn btn-default btn-xs edit" href="#" id="edit_[% p.id | html %]" data-providerid="[% p.id | html %]">
-                                            <i class="fa fa-pencil"></i> Edit
-                                        </a>
-                                        <a class="btn btn-default btn-xs delete" href="#" data-providerid="[% p.id | html %]" data-patrons_using="[% p.patrons_using | html %]" id="delete_[% p.id | html %]">
-                                            <i class="fa fa-trash"></i> Delete
-                                        </a>
-                                    </td>
+                                    <th>Name</th>
+                                    <th>Domain</th>
+                                    <th title="Patrons using this provider">Patrons</th>
+                                    <th>&nbsp;</th>
                                 </tr>
-                            [% END %]
-                        </tbody>
-                    </table>
+                            </thead>
 
+                            <tbody>
+                                [% FOREACH p IN providers %]
+                                    <tr>
+                                        <td id="name_[% p.id | html %]">[% p.name | html %]</td>
+                                        <td id="domain_[% p.id | html %]">[% p.domain | html %]</td>
+                                        <td id="patrons_using_[% p.id | html %]">[% p.patrons_using | html %]</td>
+                                        <td class="actions">
+                                            <a class="btn btn-default btn-xs edit" href="#" id="edit_[% p.id | html %]" data-providerid="[% p.id | html %]">
+                                                <i class="fa fa-pencil"></i> Edit
+                                            </a>
+                                            <a class="btn btn-default btn-xs delete" href="#" data-providerid="[% p.id | html %]" data-patrons_using="[% p.patrons_using | html %]" id="delete_[% p.id | html %]">
+                                                <i class="fa fa-trash"></i> Delete
+                                            </a>
+                                        </td>
+                                    </tr>
+                                [% END %]
+                            </tbody>
+                        </table>
+                    </div> <!-- /.page-section -->
                 [% ELSE %]
 
                     <div class="dialog message">
@@ -96,8 +92,8 @@
                             </ol>
                         </fieldset>
                         <fieldset class="action">
-                            <input type="submit" id="submit_save" value="Submit" />
-                            <input type="submit" value="Submit" id="submit_update" />
+                            <input type="submit" id="submit_save" class="btn btn-primary" value="Submit" />
+                            <input type="submit" id="submit_update" class="btn btn-primary" value="Submit" />
                             <a class="cancel cancel_edit" id="cancel" href="sms_providers.pl">Cancel</a>
                         </fieldset>
                     </form>

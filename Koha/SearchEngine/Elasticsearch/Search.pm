@@ -43,17 +43,16 @@ use Modern::Perl;
 use base qw(Koha::SearchEngine::Elasticsearch);
 use C4::Context;
 use C4::AuthoritiesMarc;
-use C4::Biblio qw( GetMarcBiblio );
 use Koha::ItemTypes;
 use Koha::AuthorisedValues;
 use Koha::SearchEngine::QueryBuilder;
 use Koha::SearchEngine::Search;
 use Koha::Exceptions::Elasticsearch;
+use Koha::Biblios;
 use MARC::Record;
 use MARC::File::XML;
-use Data::Dumper; #TODO remove
-use Carp qw(cluck);
-use MIME::Base64;
+use MIME::Base64 qw( decode_base64 );
+use JSON;
 
 Koha::SearchEngine::Elasticsearch::Search->mk_accessors(qw( store ));
 
@@ -96,11 +95,15 @@ sub search {
     my $results = eval {
         $elasticsearch->search(
             index => $self->index_name,
+            track_total_hits => 1000000,
             body => $query
         );
     };
     if ($@) {
         die $self->process_error($@);
+    }
+    if (ref $results->{hits}->{total} eq 'HASH') {
+        $results->{hits}->{total} = $results->{hits}->{total}->{value};
     }
     return $results;
 }
@@ -122,10 +125,14 @@ sub count {
     # and just return number of hits
     my $result = $elasticsearch->search(
         index => $self->index_name,
+        track_total_hits => JSON::true,
         body => $query
     );
 
-    return $result->{hits}->{total}->{value};
+    if (ref $result->{hits}->{total} eq 'HASH') {
+        return $result->{hits}->{total}->{value};
+    }
+    return $result->{hits}->{total};
 }
 
 =head2 search_compat
@@ -173,7 +180,7 @@ sub search_compat {
     # consumers of this expect a name-spaced result, we provide the default
     # configuration.
     my %result;
-    $result{biblioserver}{hits} = $hits->{'total'}->{'value'};
+    $result{biblioserver}{hits} = $hits->{'total'};
     $result{biblioserver}{RECORDS} = \@records;
     return (undef, \%result, $self->_convert_facets($results->{aggregations}));
 }
@@ -298,8 +305,8 @@ How many results to skip from the start of the results.
 
 =item C<$max_results>
 
-The max number of results to return. The default is 100 (because unlimited
-is a pretty terrible thing to do.)
+The max number of results to return.
+The default is the result of method max_result_window().
 
 =item C<%options>
 
@@ -337,7 +344,7 @@ sub simple_search_compat {
     my %options;
     $offset = 0 if not defined $offset or $offset < 0;
     $options{offset} = $offset;
-    $max_results //= 100;
+    $max_results //= $self->max_result_window;
 
     unless (ref $query) {
         # We'll push it through the query builder to sanitise everything.
@@ -350,7 +357,7 @@ sub simple_search_compat {
     foreach my $es_record (@{$hits->{'hits'}}) {
         push @records, $self->decode_record_from_result($es_record->{'_source'},0);
     }
-    return (undef, \@records, $hits->{'total'}->{'value'});
+    return (undef, \@records, $hits->{'total'});
 }
 
 =head2 extract_biblionumber
@@ -382,7 +389,8 @@ sub decode_record_from_result {
     if ($result->{marc_format} eq 'base64ISO2709') {
         my $record = MARC::Record->new_from_usmarc(decode_base64($result->{marc_data}));
         if ( !$isAuth && !($record && $record->subfield('999', 'c')) && exists($result->{biblioitemnumber}) ) {
-            $record = GetMarcBiblio({ biblionumber => $result->{biblioitemnumber}->[0], embed_items  => 1 });
+			my $biblio = Koha::Biblios->find( $result->{biblioitemnumber}->[0] );
+            $record = $biblio ? $biblio->metadata->record({ embed_items => 1 }) : undef;
         }
         return $record;
     }
@@ -465,10 +473,10 @@ sub _convert_facets {
 
     # We also have some special cases, e.g. itypes that need to show the
     # value rather than the code.
-    my @itypes = Koha::ItemTypes->search;
-    my @libraries = Koha::Libraries->search;
+    my @itypes = Koha::ItemTypes->search->as_list;
+    my @libraries = Koha::Libraries->search->as_list;
     my $library_names = { map { $_->branchcode => $_->branchname } @libraries };
-    my @locations = Koha::AuthorisedValues->search( { category => 'LOC' } );
+    my @locations = Koha::AuthorisedValues->search( { category => 'LOC' } )->as_list;
     my $opac = C4::Context->interface eq 'opac' ;
     my %special = (
         itype    => { map { $_->itemtype         => $_->description } @itypes },
@@ -492,6 +500,7 @@ sub _convert_facets {
         $limit = @{ $data->{buckets} } if ( $limit > @{ $data->{buckets} } );
         foreach my $term ( @{ $data->{buckets} }[ 0 .. $limit - 1 ] ) {
             my $t = $term->{key};
+            next unless length($t); # FIXME Currently we cannot search for an empty faceted field i.e. ln:"" to find records missing languages, though ES does count them correctly
             my $c = $term->{doc_count};
             my $label;
             if ( exists( $special{$type} ) ) {

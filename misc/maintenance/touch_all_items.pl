@@ -19,21 +19,14 @@
 
 use strict;
 use warnings;
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
 
 # possible modules to use
-use Getopt::Long;
+use Getopt::Long qw( GetOptions );
 
 use Koha::Script;
 use C4::Context;
-use C4::Items;
 use Koha::Items;
-use Pod::Usage;
+use Pod::Usage qw( pod2usage );
 
 
 sub usage {

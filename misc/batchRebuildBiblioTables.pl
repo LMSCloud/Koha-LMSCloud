@@ -5,22 +5,18 @@
 use strict;
 #use warnings; FIXME - Bug 2505
 
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/kohalib.pl" };
-}
-
 # Koha modules used
 use Koha::Script;
 use MARC::Record;
 use C4::Charset;
 use C4::Context;
-use C4::Biblio;
-use Time::HiRes qw(gettimeofday);
+use C4::Biblio qw(
+    GetXmlBiblio
+    TransformMarcToKoha
+);
+use Time::HiRes qw( gettimeofday );
 
-use Getopt::Long;
+use Getopt::Long qw( GetOptions );
 
 my ($version, $confirm);
 GetOptions(
@@ -70,7 +66,7 @@ while (my ($biblionumber, $frameworkcode) = $sth->fetchrow) {
         next;
     }
 
-    my $biblio = TransformMarcToKoha($record);
+    my $biblio = TransformMarcToKoha({ record => $record });
     C4::Biblio::_koha_modify_biblio($dbh, $biblio, $frameworkcode);
     C4::Biblio::_koha_modify_biblioitem_nonmarc($dbh, $biblio);
 

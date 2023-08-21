@@ -19,18 +19,12 @@
 
 use Modern::Perl;
 use C4::Context;
-use C4::Scheduler;
-use C4::Reports::Guided;
-use C4::Auth;
+use C4::Scheduler qw( add_at_job get_jobs remove_at_job );
+use C4::Reports::Guided qw( get_saved_reports );
+use C4::Auth qw( get_template_and_user );
 use CGI qw ( -utf8 );
-use C4::Output;
-use Koha::DateUtils;;
-
-use vars qw($debug);
-
-BEGIN {
-    $debug = $ENV{DEBUG} || 0;
-}
+use C4::Output qw( output_html_with_http_headers );
+use Koha::DateUtils qw( dt_from_string );;
 
 my $input = CGI->new;
 my $base;
@@ -50,7 +44,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { tools => 'schedule_tasks' },
-        debug           => 1,
     }
 );
 
@@ -59,12 +52,10 @@ my $id   = $input->param('id');
 
 if ( $mode eq 'job_add' ) {
 
-    # Retrieving the date according to the dateformat syspref
-    my $c4date = output_pref({ dt => dt_from_string( scalar $input->param('startdate') ), dateformat => 'iso', dateonly => 1 });
+    my $startdate = dt_from_string( scalar $input->param('startdate'), 'iso' )->ymd;
 
     # Formatting it for Schedule::At
-    my $startdate = join('', (split /-/, $c4date));
-
+    $startdate = join('', (split /-/, $startdate));
     my $starttime = $input->param('starttime');
     $starttime =~ s/\://g;
     my $start  = $startdate . $starttime;
@@ -116,7 +107,4 @@ $template->param( 'savedreports' => $reports );
 $template->param( JOBS           => \@jobloop );
 my $time = localtime(time);
 $template->param( 'time' => $time );
-$template->param(
-    debug                    => $debug,
-);
 output_html_with_http_headers $input, $cookie, $template->output;

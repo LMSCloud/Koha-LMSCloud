@@ -1,18 +1,18 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
+use Modern::Perl;
+
 BEGIN {
     # find Koha's Perl modules
     # test carefully before changing this
-    use FindBin;
+    use FindBin ();
     eval { require "$FindBin::Bin/kohalib.pl" };
 }
 
 use Koha::Script;
 use C4::Context;
-use C4::ImportBatch;
-use Getopt::Long;
+use C4::ImportBatch qw( GetAllImportBatches GetImportBatch BatchCommitRecords BatchRevertRecords );
+use Getopt::Long qw( GetOptions );
 
 $| = 1;
 
@@ -21,10 +21,12 @@ my $batch_number = "";
 my $list_batches = 0;
 my $revert = 0;
 my $want_help = 0;
+my $framework = '';
 
 my $result = GetOptions(
     'batch-number:s' => \$batch_number,
     'list-batches'   => \$list_batches,
+    'framework:s'    => \$framework,
     'revert'         => \$revert,
     'h|help'         => \$want_help
 );
@@ -43,8 +45,6 @@ if ($list_batches) {
 # in future, probably should tie to a real user account
 C4::Context->set_userenv(0, 'batch', 0, 'batch', 'batch', 'batch', 'batch');
 
-my $dbh = C4::Context->dbh;
-$dbh->{AutoCommit} = 0;
 if ($batch_number =~ /^\d+$/ and $batch_number > 0) {
     my $batch = GetImportBatch($batch_number);
     die "$0: import batch $batch_number does not exist in database\n" unless defined $batch;
@@ -57,7 +57,6 @@ if ($batch_number =~ /^\d+$/ and $batch_number > 0) {
             unless $batch->{'import_status'} eq "staged" or $batch->{'import_status'} eq "reverted";
         process_batch($batch_number);
     }
-    $dbh->commit();
 } else {
     die "$0: please specify a numeric batch ID\n";
 }
@@ -84,7 +83,12 @@ sub process_batch {
 
     print "... importing MARC records -- please wait\n";
     my ($num_added, $num_updated, $num_items_added, $num_items_replaced, $num_items_errored, $num_ignored) =
-        BatchCommitRecords($import_batch_id, '', 100, \&print_progress_and_commit);
+        BatchCommitRecords({
+            batch_id => $import_batch_id,
+            framework => $framework,
+            progress_interval => 100,
+            progress_callback => \&print_progress
+        });
     print "... finished importing MARC records\n";
 
     print <<_SUMMARY_;
@@ -109,7 +113,7 @@ sub revert_batch {
 
     print "... reverting batch -- please wait\n";
     my ($num_deleted, $num_errors, $num_reverted, $num_items_deleted, $num_ignored) =
-        BatchRevertRecords($import_batch_id, 100, \&print_progress_and_commit);
+        BatchRevertRecords( $import_batch_id );
     print "... finished reverting batch\n";
 
     print <<_SUMMARY_;
@@ -121,16 +125,15 @@ Number of records deleted:       $num_deleted
 Number of errors:                $num_errors
 Number of records reverted:      $num_reverted
 Number of records ignored:       $num_ignored
-Number of items added:           $num_items_deleted
+Number of items deleted:         $num_items_deleted
 
 _SUMMARY_
 }
 
 
-sub print_progress_and_commit {
-    my $recs = shift;
+sub print_progress {
+    my ( $recs ) = @_;
     print "... processed $recs records\n";
-    $dbh->commit();
 }
 
 sub print_usage {
@@ -145,6 +148,8 @@ stage_file.pl or by the Koha Tools option
 Parameters:
     --batch-number <#>   number of the record batch
                          to import
+    --framework <code>   add new records using this framework.  If
+                         omitted, the default framework is used.
     --list-batches       print a list of record batches
                          available to commit
     --revert             revert a batch instead of importing it

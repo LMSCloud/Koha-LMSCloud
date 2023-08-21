@@ -25,20 +25,20 @@ use Modern::Perl;
 use MARC::Record; # marc2marcxml, marcxml2marc, changeEncoding
 use MARC::File::XML; # marc2marcxml, marcxml2marc, changeEncoding
 use Biblio::EndnoteStyle;
-use Unicode::Normalize; # _entity_encode
-use C4::Biblio; #marc2bibtex
+use Unicode::Normalize qw( NFC ); # _entity_encode
+use C4::Biblio qw( GetFrameworkCode );
 use C4::Koha; #marc2csv
-use C4::XSLT ();
+use C4::XSLT;
 use YAML::XS; #marcrecords2csv
 use Encode;
 use Template;
 use Text::CSV::Encoded; #marc2csv
 use Koha::Items;
-use Koha::SimpleMARC qw(read_field);
+use Koha::SimpleMARC qw( read_field );
 use Koha::XSLT::Base;
 use Koha::CsvProfiles;
 use Koha::AuthorisedValues;
-use Carp;
+use Carp qw( carp croak );
 
 use vars qw(@ISA @EXPORT);
 
@@ -48,16 +48,17 @@ use vars qw(@ISA @EXPORT);
 # only export API methods
 
 @EXPORT = qw(
-  &marc2endnote
-  &marc2marc
-  &marc2marcxml
-  &marcxml2marc
-  &marc2dcxml
-  &marc2modsxml
-  &marc2madsxml
-  &marc2bibtex
-  &marc2csv
-  &changeEncoding
+  marc2endnote
+  marc2marc
+  marc2marcxml
+  marcxml2marc
+  marc2dcxml
+  marc2modsxml
+  marc2madsxml
+  marc2bibtex
+  marc2csv
+  marcrecord2csv
+  changeEncoding
 );
 
 =head1 NAME
@@ -230,7 +231,7 @@ EXAMPLE
 Convert MARC or MARCXML to Dublin Core metadata (XSLT Transformation),
 optionally can get an XML directly from biblio_metadata
 without item information. This method take into consideration the syspref
-'marcflavour' (UNIMARC, MARC21 and NORMARC).
+'marcflavour' (UNIMARC or MARC21).
 Return an XML file with the format defined in C<$format>
 
 C<$marc> - an ISO-2709 scalar or MARC::Record object
@@ -264,23 +265,12 @@ sub marc2dcxml {
         $marcxml = $xml;
     }
 
-    # only proceed if MARC21 or UNIMARC; else clause is executed if marcflavour set it to NORMARC
-    # generate MARC::Record object to see if not a marcxml record
-    unless ( C4::Context->preference('marcflavour') eq 'NORMARC' ) {
-        eval { $record = MARC::Record->new_from_xml(
-                         $marcxml,
-                         'UTF-8',
-                         C4::Context->preference('marcflavour')
-               );
-        };
-    } else {
-        eval { $record = MARC::Record->new_from_xml(
-                         $marcxml,
-                        'UTF-8',
-                        'MARC21'
-               );
-        };
-    }
+    eval { $record = MARC::Record->new_from_xml(
+                     $marcxml,
+                     'UTF-8',
+                     C4::Context->preference('marcflavour')
+           );
+    };
 
     # conversion to MARC::Record object failed
     if ( $@ ) {
@@ -464,18 +454,19 @@ C<$itemnumbers> a list of itemnumbers to export
 =cut
 
 sub marcrecord2csv {
-    my ($biblio, $id, $header, $csv, $fieldprocessing, $itemnumbers) = @_;
+    my ($biblionumber, $id, $header, $csv, $fieldprocessing, $itemnumbers) = @_;
     my $output;
 
     # Getting the record
-    my $record = GetMarcBiblio({ biblionumber => $biblio });
+    my $biblio = Koha::Biblios->find($biblionumber);
+    return unless $biblio;
+    my $record = eval {
+        $biblio->metadata->record(
+            { embed_items => 1, itemnumbers => $itemnumbers } );
+    };
     return unless $record;
-    C4::Biblio::EmbedItemsInMarcBiblio({
-        marc_record  => $record,
-        biblionumber => $biblio,
-        item_numbers => $itemnumbers });
     # Getting the framework
-    my $frameworkcode = GetFrameworkCode($biblio);
+    my $frameworkcode = $biblio->frameworkcode;
 
     # Getting information about the csv profile
     my $profile = Koha::CsvProfiles->find($id);

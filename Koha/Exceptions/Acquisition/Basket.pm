@@ -17,10 +17,12 @@ package Koha::Exceptions::Acquisition::Basket;
 
 use Modern::Perl;
 
+use Koha::Exception;
+
 use Exception::Class (
 
     'Koha::Exceptions::Acquisition::Basket' => {
-        description => 'Something went wrong!',
+        isa => 'Koha::Exception',
     },
     'Koha::Exceptions::Acquisition::Basket::AlreadyClosed' => {
         isa         => 'Koha::Exceptions::Acquisition::Basket',

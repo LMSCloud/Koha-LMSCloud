@@ -1,0 +1,56 @@
+/zkshp_illrequests:
+  post:
+    x-mojo-to: ZKSH_illrequests#add
+    operationId: addzkshp_illrequest
+    description: Receive and process a passive ZKSH ILL request
+    summary: Receive and process a passive ZKSH ILL request
+    tags:
+      - zkshp_illrequests
+    parameters:
+      - name: body
+        in: body
+        description: A JSON object containing information about the new ILLZKSHA request
+        required: true
+        schema:
+          $ref: "../swagger.yaml#/definitions/zkshp_illrequest"
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      '201':
+        description: A successfully created ILLZKSHA request
+        schema:
+          items:
+            $ref: ../swagger.yaml#/definitions/zkshp_illrequest
+      '400':
+        description: Bad parameter
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '401':
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '403':
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '404':
+        description: Resource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '409':
+        description: Conflict in creating resource
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '500':
+        description: Internal server error
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '503':
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        parameters: ill

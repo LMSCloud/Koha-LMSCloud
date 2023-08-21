@@ -45,6 +45,9 @@ search:
         search_analyzer: analyzer_phrase
       raw:
         type: keyword
+      ci_raw:
+        type: keyword
+        normalizer: icu_folding_normalizer
   string_plus:
     type: text
     analyzer: analyzer_standard
@@ -101,3 +104,7 @@ sort:
     numeric: true
     language: de
     country: DE
+  cn_sort:
+    type: icu_collation_keyword
+    index: false
+    numeric: false

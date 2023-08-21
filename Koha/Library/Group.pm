@@ -19,10 +19,9 @@ package Koha::Library::Group;
 
 use Modern::Perl;
 
-use Carp;
 
 use Koha::Database;
-use Koha::DateUtils qw(dt_from_string);
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Libraries;
 
 use base qw(Koha::Object);
@@ -97,7 +96,7 @@ sub library {
 
 =head3 libraries
 
-my @libraries = $group->libraries( { [invert => 1] } );
+my $libraries = $group->libraries( { [invert => 1] } );
 
 Returns the libraries set as direct children of this group.
 
@@ -112,15 +111,13 @@ sub libraries {
 
     my $in_or_not = $invert ? '-not_in' : '-in';
 
-    my @children = Koha::Library::Groups->search(
+    my @branchcodes = Koha::Library::Groups->search(
         {
             parent_id  => $self->id,
             branchcode => { '!=' => undef },
         },
         { order_by => 'branchcode' }
-    );
-
-    my @branchcodes = map { $_->branchcode } @children;
+    )->get_column('branchcode');
 
     return Koha::Libraries->search(
         {
@@ -145,8 +142,8 @@ sub all_libraries {
 
     my @libraries;
 
-    push (@libraries, $self->libraries);
-    my @children = $self->children->search({ branchcode => undef });
+    push (@libraries, $self->libraries->as_list);
+    my @children = $self->children->search({ branchcode => undef })->as_list;
     foreach my $c (@children) {
         push( @libraries, $c->all_libraries );
     }
@@ -160,7 +157,7 @@ sub all_libraries {
 
 =head3 libraries_not_direct_children
 
-my @libraries = $group->libraries_not_direct_children();
+my $libraries = $group->libraries_not_direct_children();
 
 Returns the libraries *not* set as direct children of this group
 

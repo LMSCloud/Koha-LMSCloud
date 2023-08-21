@@ -18,11 +18,10 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use C4::Output;
-use C4::Auth;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Koha;
 
 use Koha::Authority::Types;
 use Koha::AuthorisedValues;
@@ -42,7 +41,6 @@ my ($template, $borrowernumber, $cookie) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { parameters => 'manage_marc_frameworks' },
-        debug           => 1,
     }
 );
 my $pagesize = 30;
@@ -80,7 +78,7 @@ if ($op eq 'add_form') {
         push @authorised_value_categories, 'itemtypes';
 
         # build thesaurus categories list
-        my @authtypes = uniq( "", map { $_->authtypecode } Koha::Authority::Types->search );
+        my @authtypes = uniq( "", map { $_->authtypecode } Koha::Authority::Types->search->as_list );
 
 	# build value_builder list
 	my @value_builder=('');
@@ -89,19 +87,20 @@ if ($op eq 'add_form') {
 	# 2 cases here : on CVS install, $cgidir does not need a /cgi-bin
 	# on a standard install, /cgi-bin need to be added. 
 	# test one, then the other
-    my $cgidir = C4::Context->config('intranetdir') ."/cgi-bin";
-	unless (opendir(DIR, "$cgidir/cataloguing/value_builder")) {
+    my $cgidir = C4::Context->config('intranetdir') . "/cgi-bin";
+    my $dir_h;
+    unless ( opendir( $dir_h, "$cgidir/cataloguing/value_builder" ) ) {
         $cgidir = C4::Context->config('intranetdir');
-		opendir(DIR, "$cgidir/cataloguing/value_builder") || die "can't opendir $cgidir/value_builder: $!";
-	} 
-	while (my $line = readdir(DIR)) {
-        if ( $line =~ /\.pl$/ &&
-             $line !~ /EXAMPLE\.pl$/ ) { # documentation purposes
-            push (@value_builder,$line);
-		}
-	}
-        @value_builder= sort {$a cmp $b} @value_builder;
-	closedir DIR;
+        opendir( $dir_h, "$cgidir/cataloguing/value_builder" ) || die "can't opendir $cgidir/value_builder: $!";
+    }
+    while ( my $line = readdir($dir_h) ) {
+        if (   $line =~ /\.pl$/
+            && $line !~ /EXAMPLE\.pl$/ ) {    # documentation purposes
+            push( @value_builder, $line );
+        }
+    }
+    @value_builder = sort { $a cmp $b } @value_builder;
+    closedir $dir_h;
 
     my @loop_data;
     my $asses = Koha::Authority::Subfields->search({ tagfield => $tagfield, authtypecode => $authtypecode}, {order_by => 'display_order'})->unblessed;
@@ -140,7 +139,7 @@ if ($op eq 'add_form') {
 	$template->param('heading_edit_subfields_p' => 1);
 	$template->param(action => "Edit subfields",
 							tagfield => $tagfield,
-							tagfieldinput => "<input type=\"hidden\" name=\"tagfield\" value=\"$tagfield\" />",
+                            tagsubfield => $tagsubfield,
 							loop => \@loop_data,
 							more_tag => $tagfield);
 

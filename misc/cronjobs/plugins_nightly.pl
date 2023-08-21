@@ -2,15 +2,16 @@
 
 use Modern::Perl;
 
-use Try::Tiny;
+use Try::Tiny qw( catch try );
 
 use C4::Context;
-use C4::Log;
+use C4::Log qw( cronlogaction );
 use Koha::Logger;
 use Koha::Plugins;
 use Koha::Script -cron;
 
-cronlogaction();
+my $command_line_options = join(" ",@ARGV);
+cronlogaction({ info => $command_line_options });
 
 my $logger = Koha::Logger->get();
 if ( C4::Context->config("enable_plugins") ) {
@@ -30,6 +31,8 @@ if ( C4::Context->config("enable_plugins") ) {
         };
     }
 }
+
+cronlogaction({ action => 'End', info => "COMPLETED" });
 
 =head1 NAME
 

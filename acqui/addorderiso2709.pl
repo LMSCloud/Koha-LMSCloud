@@ -23,23 +23,25 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use Carp;
 use YAML::XS;
-use List::MoreUtils qw/uniq/;
+use List::MoreUtils;
 use Encode;
 
 use C4::Context;
-use C4::Auth;
-use C4::Output;
-use C4::ImportBatch;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::ImportBatch qw( SetImportBatchStatus GetImportBatch GetImportBatchRangeDesc GetNumberOfNonZ3950ImportBatches GetImportBatchOverlayAction GetImportBatchNoMatchAction GetImportBatchItemAction );
 use C4::Matcher;
-use C4::Search qw/FindDuplicate/;
-use C4::Acquisition;
-use C4::Biblio;
-use C4::Items;
-use C4::Koha;
-use C4::Budgets;
-use C4::Acquisition;
+use C4::Search qw( FindDuplicate );
+use C4::Biblio qw(
+    AddBiblio
+    GetMarcFromKohaField
+    GetMarcPrice
+    GetMarcQuantity
+    TransformHtmlToXml
+);
+use C4::Items qw( PrepareItemrecordDisplay AddItemFromMarc );
+use C4::Budgets qw( GetBudget GetBudgets GetBudgetHierarchy CanUserUseBudget GetBudgetByCode );
 use C4::Suggestions;    # GetSuggestion
 use C4::Members;
 
@@ -49,6 +51,8 @@ use Koha::Acquisition::Baskets;
 use Koha::Acquisition::Currencies;
 use Koha::Acquisition::Orders;
 use Koha::Acquisition::Booksellers;
+use Koha::ImportBatches;
+use Koha::Import::Records;
 use Koha::Patrons;
 
 my $input = CGI->new;
@@ -57,7 +61,6 @@ my ($template, $loggedinuser, $cookie, $userflags) = get_template_and_user({
     query => $input,
     type => "intranet",
     flagsrequired   => { acquisition => 'order_manage' },
-    debug => 1,
 });
 
 my $cgiparams = $input->Vars;
@@ -93,12 +96,11 @@ if ($op eq ""){
 #
 } elsif ($op eq "batch_details"){
 #display lines inside the selected batch
-    # get currencies (for change rates calcs if needed)
-    my @currencies = Koha::Acquisition::Currencies->search;
 
     $template->param("batch_details" => 1,
                      "basketno"      => $cgiparams->{'basketno'},
-                     currencies => \@currencies,
+                     # get currencies (for change rates calcs if needed)
+                     currencies => Koha::Acquisition::Currencies->search,
                      bookseller => $bookseller,
                      "allmatch" => $allmatch,
                      );
@@ -134,7 +136,11 @@ if ($op eq ""){
 
     # retrieve the file you want to import
     my $import_batch_id = $cgiparams->{'import_batch_id'};
-    my $biblios = GetImportRecordsRange($import_batch_id);
+    my $import_batch = Koha::ImportBatches->find( $import_batch_id );
+    my $overlay_action = $import_batch->overlay_action;
+    my $import_records = Koha::Import::Records->search({
+        import_batch_id => $import_batch_id,
+    });
     my $duplinbatch;
     my $imported = 0;
     my @import_record_id_selected = $input->multi_param("import_record_id");
@@ -148,26 +154,31 @@ if ($op eq ""){
     my $matcher_id = $input->param('matcher_id');
     my $active_currency = Koha::Acquisition::Currencies->get_active;
     my $biblio_count = 0;
-    for my $biblio (@$biblios){
+    while( my $import_record = $import_records->next ){
         $biblio_count++;
         my $duplifound = 0;
         # Check if this import_record_id was selected
-        next if not grep { $_ eq $$biblio{import_record_id} } @import_record_id_selected;
-        my ( $marcblob, $encoding ) = GetImportRecordMarc( $biblio->{'import_record_id'} );
-        my $marcrecord = MARC::Record->new_from_usmarc($marcblob) || die "couldn't translate marc information";
-        my $match = GetImportRecordMatches( $biblio->{'import_record_id'}, 1 );
-        my $biblionumber=$#$match > -1?$match->[0]->{'biblionumber'}:0;
+        next if not grep { $_ eq $import_record->import_record_id } @import_record_id_selected;
+        my $marcrecord = $import_record->get_marc_record || die "couldn't translate marc information";
+        my $matches = $import_record->get_import_record_matches({ chosen => 1 });
+        my $match = $matches->count ? $matches->next : undef;
+        my $biblionumber = $match ? $match->candidate_match_id : 0;
         my $c_quantity = shift( @quantities ) || GetMarcQuantity($marcrecord, C4::Context->preference('marcflavour') ) || 1;
         my $c_budget_id = shift( @budgets_id ) || $input->param('all_budget_id') || $budget_id;
         my $c_discount = shift ( @discount);
-        $c_discount = $c_discount / 100 if $c_discount > 1;
         my $c_sort1 = shift( @sort1 ) || $input->param('all_sort1') || '';
         my $c_sort2 = shift( @sort2 ) || $input->param('all_sort2') || '';
         my $c_replacement_price = shift( @orderreplacementprices );
         my $c_price = shift( @prices ) || GetMarcPrice($marcrecord, C4::Context->preference('marcflavour'));
 
         # Insert the biblio, or find it through matcher
-        unless ( $biblionumber ) {
+        if ( $biblionumber ) { # If matched during staging we can continue
+            $import_record->status('imported')->store;
+            if( $overlay_action eq 'replace' ){
+                my $biblio = Koha::Biblios->find( $biblionumber );
+                $import_record->replace({ biblio => $biblio });
+            }
+        } else { # Otherwise we check for duplicates, and skip if they exist
             if ($matcher_id) {
                 if ( $matcher_id eq '_TITLE_AUTHOR_' ) {
                     $duplifound = 1 if FindDuplicate($marcrecord);
@@ -181,10 +192,8 @@ if ($op eq ""){
                 $duplinbatch = $import_batch_id and next if $duplifound;
             }
 
-            # add the biblio
-            my $bibitemnum;
-
-            # remove ISBN -
+            # remove hyphens (-) from ISBN
+            # FIXME: This should probably be optional
             my ( $isbnfield, $isbnsubfield ) = GetMarcFromKohaField( 'biblioitems.isbn' );
             if ( $marcrecord->field($isbnfield) ) {
                 foreach my $field ( $marcrecord->field($isbnfield) ) {
@@ -195,30 +204,30 @@ if ($op eq ""){
                     }
                 }
             }
-            ( $biblionumber, $bibitemnum ) = AddBiblio( $marcrecord, $cgiparams->{'frameworkcode'} || '' );
-            SetImportRecordStatus( $biblio->{'import_record_id'}, 'imported' );
-        } else {
-            SetImportRecordStatus( $biblio->{'import_record_id'}, 'imported' );
+
+            # add the biblio
+            ( $biblionumber, undef ) = AddBiblio( $marcrecord, $cgiparams->{'frameworkcode'} || '' );
+            $import_record->status('imported')->store;
         }
 
-        SetMatchedBiblionumber( $biblio->{import_record_id}, $biblionumber );
+        $import_record->import_biblio->matched_biblionumber($biblionumber)->store;
 
         # Add items from MarcItemFieldsToOrder
-        my @homebranches = $input->multi_param('homebranch_' . $biblio_count);
+        my @homebranches = $input->multi_param('homebranch_' . $import_record->import_record_id);
         my $count = scalar @homebranches;
-        my @holdingbranches = $input->multi_param('holdingbranch_' . $biblio_count);
-        my @itypes = $input->multi_param('itype_' . $biblio_count);
-        my @nonpublic_notes = $input->multi_param('nonpublic_note_' . $biblio_count);
-        my @public_notes = $input->multi_param('public_note_' . $biblio_count);
-        my @locs = $input->multi_param('loc_' . $biblio_count);
-        my @ccodes = $input->multi_param('ccode_' . $biblio_count);
-        my @notforloans = $input->multi_param('notforloan_' . $biblio_count);
-        my @uris = $input->multi_param('uri_' . $biblio_count);
-        my @copynos = $input->multi_param('copyno_' . $biblio_count);
-        my @budget_codes = $input->multi_param('budget_code_' . $biblio_count);
-        my @itemprices = $input->multi_param('itemprice_' . $biblio_count);
-        my @replacementprices = $input->multi_param('replacementprice_' . $biblio_count);
-        my @itemcallnumbers = $input->multi_param('itemcallnumber_' . $biblio_count);
+        my @holdingbranches = $input->multi_param('holdingbranch_' . $import_record->import_record_id);
+        my @itypes = $input->multi_param('itype_' . $import_record->import_record_id);
+        my @nonpublic_notes = $input->multi_param('nonpublic_note_' . $import_record->import_record_id);
+        my @public_notes = $input->multi_param('public_note_' . $import_record->import_record_id);
+        my @locs = $input->multi_param('loc_' . $import_record->import_record_id);
+        my @ccodes = $input->multi_param('ccode_' . $import_record->import_record_id);
+        my @notforloans = $input->multi_param('notforloan_' . $import_record->import_record_id);
+        my @uris = $input->multi_param('uri_' . $import_record->import_record_id);
+        my @copynos = $input->multi_param('copyno_' . $import_record->import_record_id);
+        my @budget_codes = $input->multi_param('budget_code_' . $import_record->import_record_id);
+        my @itemprices = $input->multi_param('itemprice_' . $import_record->import_record_id);
+        my @replacementprices = $input->multi_param('replacementprice_' . $import_record->import_record_id);
+        my @itemcallnumbers = $input->multi_param('itemcallnumber_' . $import_record->import_record_id);
         my $itemcreation = 0;
 
         my @itemnumbers;
@@ -272,19 +281,14 @@ if ($op eq ""){
                         # in this case, the price will be x100 when unformatted ! Replace the . by a , to get a proper price calculation
                         $price =~ s/\./,/ if C4::Context->preference("CurrencyFormat") eq "FR";
                         $price = Koha::Number::Price->new($price)->unformat;
-                        $orderinfo{tax_rate} = $bookseller->tax_rate;
-                        my $c = $c_discount ? $c_discount : $bookseller->discount / 100;
-                        $orderinfo{discount} = $c;
-                        if ( $c_discount ) {
-                            $orderinfo{ecost} = $price;
-                            $orderinfo{rrp}   = $orderinfo{ecost} / ( 1 - $c );
-                        } else {
-                            $orderinfo{ecost} = $price * ( 1 - $c );
-                            $orderinfo{rrp}   = $price;
-                        }
+                        $orderinfo{tax_rate_on_ordering} = $bookseller->tax_rate;
+                        $orderinfo{tax_rate_on_receiving} = $bookseller->tax_rate;
+                        my $order_discount = $c_discount ? $c_discount : $bookseller->discount;
+                        $orderinfo{discount} = $order_discount;
+                        $orderinfo{rrp} = $price;
+                        $orderinfo{ecost} = $order_discount ? $price * ( 1 - $order_discount / 100 ) : $price;
                         $orderinfo{listprice} = $orderinfo{rrp} / $active_currency->rate;
                         $orderinfo{unitprice} = $orderinfo{ecost};
-                        $orderinfo{total} = $orderinfo{ecost} * $infos->{quantity};
                     } else {
                         $orderinfo{listprice} = 0;
                     }
@@ -293,18 +297,10 @@ if ($op eq ""){
                     # remove uncertainprice flag if we have found a price in the MARC record
                     $orderinfo{uncertainprice} = 0 if $orderinfo{listprice};
 
-                    %orderinfo = %{
-                        C4::Acquisition::populate_order_with_prices(
-                            {
-                                order        => \%orderinfo,
-                                booksellerid => $booksellerid,
-                                ordering     => 1,
-                                receiving    => 1,
-                            }
-                        )
-                    };
-
-                    my $order = Koha::Acquisition::Order->new( \%orderinfo )->store;
+                    my $order = Koha::Acquisition::Order->new( \%orderinfo );
+                    $order->populate_with_prices_for_ordering();
+                    $order->populate_with_prices_for_receiving();
+                    $order->store;
                     $order->add_item( $_ ) for @{ $budget_hash->{$budget_id}->{itemnumbers} };
                 }
             }
@@ -333,63 +329,40 @@ if ($op eq ""){
                 # in this case, the price will be x100 when unformatted ! Replace the . by a , to get a proper price calculation
                 $c_price =~ s/\./,/ if C4::Context->preference("CurrencyFormat") eq "FR";
                 $c_price = Koha::Number::Price->new($c_price)->unformat;
-                $orderinfo{tax_rate} = $bookseller->tax_rate;
-                my $c = $c_discount ? $c_discount : $bookseller->discount / 100;
-                $orderinfo{discount} = $c;
-                if ( $c_discount ) {
-                    $orderinfo{ecost} = $c_price;
-                    $orderinfo{rrp}   = $orderinfo{ecost} / ( 1 - $c );
-                } else {
-                    $orderinfo{ecost} = $c_price * ( 1 - $c );
-                    $orderinfo{rrp}   = $c_price;
-                }
+                $orderinfo{tax_rate_on_ordering} = $bookseller->tax_rate;
+                $orderinfo{tax_rate_on_receiving} = $bookseller->tax_rate;
+                my $order_discount = $c_discount ? $c_discount : $bookseller->discount;
+                $orderinfo{discount} = $order_discount;
+                $orderinfo{rrp}   = $c_price;
+                $orderinfo{ecost} = $order_discount ? $c_price * ( 1 - $order_discount / 100 ) : $c_price;
                 $orderinfo{listprice} = $orderinfo{rrp} / $active_currency->rate;
                 $orderinfo{unitprice} = $orderinfo{ecost};
-                $orderinfo{total} = $orderinfo{ecost} * $c_quantity;
             } else {
                 $orderinfo{listprice} = 0;
             }
 
-        # remove uncertainprice flag if we have found a price in the MARC record
-        $orderinfo{uncertainprice} = 0 if $orderinfo{listprice};
+            # remove uncertainprice flag if we have found a price in the MARC record
+            $orderinfo{uncertainprice} = 0 if $orderinfo{listprice};
 
-        %orderinfo = %{
-            C4::Acquisition::populate_order_with_prices(
-                {
-                    order        => \%orderinfo,
-                    booksellerid => $booksellerid,
-                    ordering     => 1,
-                    receiving    => 1,
+            my $order = Koha::Acquisition::Order->new( \%orderinfo );
+            $order->populate_with_prices_for_ordering();
+            $order->populate_with_prices_for_receiving();
+            $order->store;
+
+            # 4th, add items if applicable
+            # parse the item sent by the form, and create an item just for the import_record_id we are dealing with
+            # this is not optimised, but it's working !
+            if ( $basket->effective_create_items eq 'ordering' && !$basket->is_standing ) {
+                my @tags         = $input->multi_param('tag');
+                my @subfields    = $input->multi_param('subfield');
+                my @field_values = $input->multi_param('field_value');
+                my @serials      = $input->multi_param('serial');
+                my $xml = TransformHtmlToXml( \@tags, \@subfields, \@field_values );
+                my $record = MARC::Record::new_from_xml( $xml, 'UTF-8' );
+                for (my $qtyloop=1;$qtyloop <= $c_quantity;$qtyloop++) {
+                    my ( $biblionumber, undef, $itemnumber ) = AddItemFromMarc( $record, $biblionumber );
+                    $order->add_item( $itemnumber );
                 }
-            )
-        };
-
-        my $order = Koha::Acquisition::Order->new( \%orderinfo )->store;
-
-        # 4th, add items if applicable
-        # parse the item sent by the form, and create an item just for the import_record_id we are dealing with
-        # this is not optimised, but it's working !
-        if ( $basket->effective_create_items eq 'ordering' && !$basket->is_standing ) {
-            my @tags         = $input->multi_param('tag');
-            my @subfields    = $input->multi_param('subfield');
-            my @field_values = $input->multi_param('field_value');
-            my @serials      = $input->multi_param('serial');
-            my @ind_tag   = $input->multi_param('ind_tag');
-            my @indicator = $input->multi_param('indicator');
-            my $item;
-            push @{ $item->{tags} },         $tags[0];
-            push @{ $item->{subfields} },    $subfields[0];
-            push @{ $item->{field_values} }, $field_values[0];
-            push @{ $item->{ind_tag} },      $ind_tag[0];
-            push @{ $item->{indicator} },    $indicator[0];
-            my $xml = TransformHtmlToXml( \@tags, \@subfields, \@field_values, \@indicator, \@ind_tag );
-            my $record = MARC::Record::new_from_xml( $xml, 'UTF-8' );
-            for (my $qtyloop=1;$qtyloop <= $c_quantity;$qtyloop++) {
-                my ( $biblionumber, $bibitemnum, $itemnumber ) = AddItemFromMarc( $record, $biblionumber );
-                $order->add_item( $itemnumber );
-                }
-            } else {
-                SetImportRecordStatus( $biblio->{'import_record_id'}, 'imported' );
             }
         }
         $imported++;
@@ -397,8 +370,8 @@ if ($op eq ""){
 
     # If all bibliographic records from the batch have been imported we modifying the status of the batch accordingly
     SetImportBatchStatus( $import_batch_id, 'imported' )
-        if    @{ GetImportRecordsRange( $import_batch_id, undef, undef, 'imported' )}
-           == @{ GetImportRecordsRange( $import_batch_id )};
+        if Koha::Import::Records->search({import_batch_id => $import_batch_id, status => 'imported' })->count
+           == Koha::Import::Records->search({import_batch_id => $import_batch_id})->count;
 
     # go to basket page
     if ( $imported ) {
@@ -447,8 +420,11 @@ sub import_batches_list {
     foreach my $batch (@$batches) {
         if ( $batch->{'import_status'} =~ /^staged$|^reverted$/ && $batch->{'record_type'} eq 'biblio') {
             # check if there is at least 1 line still staged
-            my $stagedList=GetImportRecordsRange($batch->{'import_batch_id'}, undef, 1, $batch->{import_status}, { order_by_direction => 'ASC' });
-            if (scalar @$stagedList) {
+            my $import_records_count = Koha::Import::Records->search({
+                import_batch_id => $batch->{'import_batch_id'},
+                status          => $batch->{import_status}
+            })->count;
+            if ( $import_records_count ) {
                 push @list, {
                         import_batch_id => $batch->{'import_batch_id'},
                         num_records => $batch->{'num_records'},
@@ -474,7 +450,10 @@ sub import_biblios_list {
     my ($template, $import_batch_id) = @_;
     my $batch = GetImportBatch($import_batch_id,'staged');
     return () unless $batch and $batch->{import_status} =~ /^staged$|^reverted$/;
-    my $biblios = GetImportRecordsRange($import_batch_id,'','',$batch->{import_status});
+    my $import_records = Koha::Import::Records->search({
+        import_batch_id => $import_batch_id,
+        status => $batch->{import_status}
+    });
     my @list = ();
     my $item_error = 0;
 
@@ -496,30 +475,24 @@ sub import_biblios_list {
     }
 
     my $biblio_count = 0;
-    foreach my $biblio (@$biblios) {
+    while ( my $import_record = $import_records->next ) {
         my $item_id = 1;
         $biblio_count++;
-        my $citation = $biblio->{'title'};
-        $citation .= " $biblio->{'author'}" if $biblio->{'author'};
-        $citation .= " (" if $biblio->{'issn'} or $biblio->{'isbn'};
-        $citation .= $biblio->{'isbn'} if $biblio->{'isbn'};
-        $citation .= ", " if $biblio->{'issn'} and $biblio->{'isbn'};
-        $citation .= $biblio->{'issn'} if $biblio->{'issn'};
-        $citation .= ")" if $biblio->{'issn'} or $biblio->{'isbn'};
-        my $match = GetImportRecordMatches($biblio->{'import_record_id'}, 1);
+        my $matches = $import_record->get_import_record_matches({ chosen => 1 });
+        my $match = $matches->count ? $matches->next : undef;
+        my $match_biblio = $match ? Koha::Biblios->find({ biblionumber => $match->candidate_match_id }) : undef;
         my %cellrecord = (
-            import_record_id => $biblio->{'import_record_id'},
-            citation => $citation,
+            import_record_id => $import_record->import_record_id,
+            import_biblio => $import_record->import_biblio,
             import  => 1,
-            status => $biblio->{'status'},
-            record_sequence => $biblio->{'record_sequence'},
-            overlay_status => $biblio->{'overlay_status'},
-            match_biblionumber => $#$match > -1 ? $match->[0]->{'biblionumber'} : 0,
-            match_citation     => $#$match > -1 ? $match->[0]->{'title'} || '' . ' ' . $match->[0]->{'author'} || '': '',
-            match_score => $#$match > -1 ? $match->[0]->{'score'} : 0,
+            status => $import_record->status,
+            record_sequence => $import_record->record_sequence,
+            overlay_status => $import_record->overlay_status,
+            match_biblionumber => $match ? $match->candidate_match_id : 0,
+            match_citation     => $match_biblio ? ($match_biblio->title || '') . ' ' .( $match_biblio->author || ''): '',
+            match_score => $match ? $match->score : 0,
         );
-        my ( $marcblob, $encoding ) = GetImportRecordMarc( $biblio->{'import_record_id'} );
-        my $marcrecord = MARC::Record->new_from_usmarc($marcblob) || die "couldn't translate marc information";
+        my $marcrecord = $import_record->get_marc_record || die "couldn't translate marc information";
 
         my $infos = get_infos_syspref('MarcFieldsToOrder', $marcrecord, ['price', 'quantity', 'budget_code', 'discount', 'sort1', 'sort2','replacementprice']);
         my $price = $infos->{price};
@@ -616,8 +589,7 @@ sub import_biblios_list {
     my $overlay_action = GetImportBatchOverlayAction($import_batch_id);
     my $nomatch_action = GetImportBatchNoMatchAction($import_batch_id);
     my $item_action = GetImportBatchItemAction($import_batch_id);
-    my @itypes = Koha::ItemTypes->search;
-    $template->param(biblio_list => \@list,
+    $template->param(import_biblio_list => \@list,
                         num_results => $num_records,
                         import_batch_id => $import_batch_id,
                         "overlay_action_${overlay_action}" => 1,
@@ -627,9 +599,9 @@ sub import_biblios_list {
                         "item_action_${item_action}" => 1,
                         item_action => $item_action,
                         item_error => $item_error,
-                        libraries => scalar Koha::Libraries->search(),
+                        libraries => Koha::Libraries->search,
                         locationloop => \@locations,
-                        itypeloop => \@itypes,
+                        itemtypes => Koha::ItemTypes->search,
                         ccodeloop => \@ccodes,
                         notforloanloop => \@notforloans,
                     );

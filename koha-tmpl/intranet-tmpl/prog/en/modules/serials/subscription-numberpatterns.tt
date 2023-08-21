@@ -7,45 +7,35 @@
 </head>
 
 <body id="ser_subscription_numberpatterns" class="ser">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'serials-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'serials-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/serials/serials-home.pl">Serials</a>
-        </li>
-
-        [% IF ( new ) %]
-            <li>
-                <a href="/cgi-bin/koha/serials/subscription-numberpatterns.pl">Numbering patterns</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    New numbering pattern
-                </a>
-            </li>
-        [% ELSIF ( modify ) %]
-            <li>
-                <a href="/cgi-bin/koha/serials/subscription-numberpatterns.pl">Numbering patterns</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Modifying numbering pattern '[% label | html %]'
-                </a>
-            </li>
-        [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Numbering patterns
-                </a>
-            </li>
         [% END %]
-    </ol>
-</nav>
+        [% IF ( new || modify ) %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/serials/subscription-numberpatterns.pl">Numbering patterns</a>
+            [% END %]
+        [% END %]
+        [% IF ( new ) %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>New numbering pattern</span>
+            [% END %]
+        [% ELSIF ( modify ) %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Modifying numbering pattern '[% label | html %]'</span>
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Numbering patterns</span>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -180,7 +170,7 @@
               </table>
             </fieldset>
             <fieldset class="action">
-              <button type="submit" class="btn btn-default">Save</button>
+              <button type="submit" class="btn btn-primary">Save</button>
               <button type="reset" class="btn btn-default">Reset</button>
               <a class="cancel" href="/cgi-bin/koha/serials/subscription-numberpatterns.pl">Cancel</a>
             </fieldset>
@@ -200,7 +190,7 @@
                 </li>
                 <li>
                   <label for="firstacquidate">First issue publication date: </label>
-                  <input type="text" id="firstacquidate" class="datepicker" size="10" />
+                  <input type="text" id="firstacquidate" class="flatpickr" size="10" />
                 </li>
                 <li>
                   <label for="sublength">Subscription length:</label>
@@ -246,10 +236,10 @@
                   </tr>
                 </tbody>
               </table>
-              <fieldset class="action">
-                  <button type="button" id="test_pattern" class="btn btn-default">Test pattern</button>
-              </fieldset>
               <div id="predictionpattern"></div>
+            </fieldset>
+            <fieldset class="action">
+                <button type="button" id="test_pattern" class="btn btn-default">Test pattern</button>
             </fieldset>
           </form>
 

@@ -39,14 +39,22 @@ oai_sets_mappings, and then fill table oai_sets_biblios with builded infos.
 use Modern::Perl;
 use MARC::Record;
 use MARC::File::XML;
-use List::MoreUtils qw/uniq/;
-use Getopt::Std;
+use List::MoreUtils qw( uniq );
+use Getopt::Std qw( getopts );
 
 use Koha::Script;
 use C4::Context;
-use C4::Charset qw/StripNonXmlChars/;
-use C4::Biblio;
-use C4::OAI::Sets;
+use C4::Charset qw( StripNonXmlChars );
+use C4::OAI::Sets qw(
+    AddOAISetsBiblios
+    CalcOAISetsBiblio
+    GetOAISet
+    GetOAISetBySpec
+    GetOAISets
+    GetOAISetsMappings
+    ModOAISetsBiblios
+);
+use Koha::Biblio::Metadata;
 
 my %opts;
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
@@ -71,12 +79,12 @@ my $mappings = GetOAISetsMappings;
 # Get all biblionumbers and marcxml
 print "Retrieving biblios... " if $verbose;
 my $query = qq{
-    SELECT biblionumber, metadata
+    SELECT biblionumber, metadata, 0 as "deleted"
     FROM biblio_metadata
     WHERE format='marcxml'
     AND  `schema` = ?
     UNION
-    SELECT biblionumber, metadata
+    SELECT biblionumber, metadata, 1 as "deleted"
     FROM deletedbiblio_metadata
     WHERE format='marcxml'
     AND  `schema` = ?
@@ -132,10 +140,14 @@ foreach my $res (@$results) {
         warn "(biblio $biblionumber) Error while creating record from marcxml: $@";
         next;
     }
-    if($embed_items) {
-        C4::Biblio::EmbedItemsInMarcBiblio({
-            marc_record  => $record,
-            biblionumber => $biblionumber });
+    if( $embed_items && !($res->{'deleted'}) ) {
+        $record = Koha::Biblio::Metadata->record(
+            {
+                record       => $record,
+                embed_items  => 1,
+                biblionumber => $biblionumber,
+            }
+        );
     }
 
     my @biblio_sets = CalcOAISetsBiblio($record, $mappings);

@@ -4,11 +4,10 @@ use Modern::Perl;
 
 use C4::Auth qw( get_session );
 use C4::Context;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 
-use JSON qw( encode_json decode_json );
-use URI::Escape;
-use Encode;
+use JSON qw( decode_json encode_json );
+use URI::Escape qw( uri_escape uri_unescape );
 
 sub add {
     my ($params)   = @_;
@@ -52,6 +51,7 @@ sub add_to_session {
         query_cgi  => $query_cgi,
         total      => "$total",
         type       => $type,
+        # FIXME We shouldn't store the formatted date
         time       => output_pref( { dt => $now, dateformat => 'iso', timeformat => '24hr' } ),
         id         => $id,
     };
@@ -219,6 +219,7 @@ sub set_to_session {
     return () unless $session;
     $session->param( 'search_history',
         uri_escape( encode_json($search_history) ) );
+    $session->flush;
 }
 
 1;

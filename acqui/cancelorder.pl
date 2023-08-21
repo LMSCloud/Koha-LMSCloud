@@ -32,9 +32,9 @@ and add possibility to indicate a reason for cancellation
 use Modern::Perl;
 
 use CGI;
-use C4::Auth;
-use C4::Output;
-use C4::Acquisition;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Log qw(logaction);
 use Koha::Acquisition::Baskets;
 
 my $input = CGI->new;
@@ -43,7 +43,6 @@ my ($template, $loggedinuser, $cookie, $flags) = get_template_and_user( {
     query           => $input,
     type            => 'intranet',
     flagsrequired   => { 'acquisition' => 'order_manage' },
-    debug           => 1,
 } );
 
 my $action = $input->param('action');
@@ -57,8 +56,17 @@ my $delete_biblio = $input->param('del_biblio') ? 1 : 0;
 if( $action and $action eq "confirmcancel" ) {
     my $reason = $input->param('reason');
     my $order  = Koha::Acquisition::Orders->find($ordernumber);
-    $order->cancel({ reason => $reason, delete_biblio => $delete_biblio });
-    my @messages = @{ $order->object_messages };
+    my @messages;
+    if( !$order ) {
+        push @messages, Koha::Object::Message->new({ message => 'error_order_not_found', type => 'error' });
+        $template->param( error_order_not_found => 1 );
+    } elsif( $order->datecancellationprinted ) {
+        push @messages, Koha::Object::Message->new({ message => 'error_order_already_cancelled', type => 'error' });
+        $template->param( error_order_already_cancelled => 1 );
+    } else {
+        $order->cancel({ reason => $reason, delete_biblio => $delete_biblio });
+        @messages = @{ $order->object_messages };
+    }
 
     if ( scalar @messages > 0 ) {
         $template->param( error_delitem => 1 )
@@ -66,6 +74,10 @@ if( $action and $action eq "confirmcancel" ) {
         $template->param( error_delbiblio => 1 )
             if $messages[0]->message eq 'error_delbiblio';
     } else {
+        # Log the cancellation of the order
+        if (C4::Context->preference("AcquisitionLog")) {
+            logaction('ACQUISITIONS', 'CANCEL_ORDER', $ordernumber);
+        }
         $template->param(success_cancelorder => 1);
     }
     $template->param(confirmcancel => 1);

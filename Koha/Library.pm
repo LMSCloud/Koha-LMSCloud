@@ -19,15 +19,17 @@ package Koha::Library;
 
 use Modern::Perl;
 
-use Carp;
 
 use C4::Context;
 
+use Koha::Caches;
 use Koha::Database;
 use Koha::StockRotationStages;
 use Koha::SMTP::Servers;
 
 use base qw(Koha::Object);
+
+my $cache = Koha::Caches->get_instance();
 
 =head1 NAME
 
@@ -36,6 +38,46 @@ Koha::Library - Koha Library Object class
 =head1 API
 
 =head2 Class methods
+
+=head3 store
+
+Library specific store to ensure relevant caches are flushed on change
+
+=cut
+
+sub store {
+    my ($self) = @_;
+
+    my $flush = 0;
+
+    if ( !$self->in_storage ) {
+        $flush = 1;
+    }
+    else {
+        my $self_from_storage = $self->get_from_storage;
+        $flush = 1 if ( $self_from_storage->branchname ne $self->branchname );
+    }
+
+    $self = $self->SUPER::store;
+
+    if ($flush) {
+        $cache->clear_from_cache('libraries:name');
+    }
+
+    return $self;
+}
+
+=head2 delete
+
+Library specific C<delete> to clear relevant caches on delete.
+
+=cut
+
+sub delete {
+    my $self = shift @_;
+    $cache->clear_from_cache('libraries:name');
+    $self->SUPER::delete(@_);
+}
 
 =head3 stockrotationstages
 
@@ -227,38 +269,6 @@ sub cash_registers {
     return Koha::Cash::Registers->_new_from_dbic( $rs );
 }
 
-=head3 to_api_mapping
-
-This method returns the mapping for representing a Koha::Library object
-on the API.
-
-=cut
-
-sub to_api_mapping {
-    return {
-        branchcode       => 'library_id',
-        branchname       => 'name',
-        branchaddress1   => 'address1',
-        branchaddress2   => 'address2',
-        branchaddress3   => 'address3',
-        branchzip        => 'postal_code',
-        branchcity       => 'city',
-        branchstate      => 'state',
-        branchcountry    => 'country',
-        branchphone      => 'phone',
-        branchfax        => 'fax',
-        branchemail      => 'email',
-        branchillemail   => 'illemail',
-        branchreplyto    => 'reply_to_email',
-        branchreturnpath => 'return_path_email',
-        branchurl        => 'url',
-        issuing          => undef,
-        branchip         => 'ip',
-        branchnotes      => 'notes',
-        marcorgcode      => 'marc_org_code',
-    };
-}
-
 =head3 get_hold_libraries
 
 Return all libraries (including self) that belong to the same hold groups
@@ -297,6 +307,73 @@ sub validate_hold_sibling {
     my $branchcode = $params->{branchcode};
     return $self->get_hold_libraries->search( { branchcode => $branchcode } )
       ->count > 0;
+}
+
+=head3 public_read_list
+
+This method returns the list of publicly readable database fields for both API and UI output purposes
+
+=cut
+
+sub public_read_list {
+    return [
+        'branchcode',     'branchname',     'branchaddress1',
+        'branchaddress2', 'branchaddress3', 'branchzip',
+        'branchcity',     'branchstate',    'branchcountry',
+        'branchfax',      'branchemail',    'branchurl'
+    ];
+}
+
+=head3 to_api_mapping
+
+This method returns the mapping for representing a Koha::Library object
+on the API.
+
+=cut
+
+sub to_api_mapping {
+    return {
+        branchcode       => 'library_id',
+        branchname       => 'name',
+        branchaddress1   => 'address1',
+        branchaddress2   => 'address2',
+        branchaddress3   => 'address3',
+        branchzip        => 'postal_code',
+        branchcity       => 'city',
+        branchstate      => 'state',
+        branchcountry    => 'country',
+        branchphone      => 'phone',
+        branchfax        => 'fax',
+        branchemail      => 'email',
+        branchillemail   => 'illemail',
+        branchreplyto    => 'reply_to_email',
+        branchreturnpath => 'return_path_email',
+        branchurl        => 'url',
+        issuing          => undef,
+        branchip         => 'ip',
+        branchnotes      => 'notes',
+        marcorgcode      => 'marc_org_code',
+    };
+}
+
+=head3 opac_info
+
+    $library->opac_info({ lang => $lang });
+
+Returns additional contents block OpacLibraryInfo for $lang or 'default'.
+
+Note: This replaces the former branches.opac_info column.
+
+=cut
+
+sub opac_info {
+    my ( $self, $params ) = @_;
+    return Koha::AdditionalContents->find_best_match({
+        category => 'html_customizations',
+        location => 'OpacLibraryInfo',
+        lang => $params->{lang},
+        library_id => $self->branchcode,
+    });
 }
 
 =head2 Internal methods

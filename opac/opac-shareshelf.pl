@@ -26,11 +26,10 @@ use constant SHELVES_URL =>
 
 use CGI qw ( -utf8 );
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
 use C4::Letters;
-use C4::Members ();
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 
 use Koha::Email;
 use Koha::Patrons;
@@ -82,7 +81,7 @@ sub _init {
     $shelf = Koha::Virtualshelves->find( $shelfnumber ) unless $param->{errcode};
     $param->{shelfname} = $shelf ? $shelf->shelfname : q||;
     $param->{owner}     = $shelf ? $shelf->owner : -1;
-    $param->{category}  = $shelf ? $shelf->category : -1;
+    $param->{public}    = $shelf ? $shelf->public : 0;
 
     load_template($param);
     return $param;
@@ -129,7 +128,7 @@ sub show_accept {
     # You must not be the owner and the list must be private
     if( !$shelf ) {
         $param->{errcode} = 2;
-    } elsif( $shelf->category == 2 ) {
+    } elsif( $shelf->public ) {
         $param->{errcode} = 5;
     } elsif( $shelf->owner == $param->{loggedinuser} ) {
         $param->{errcode} = 8;
@@ -267,7 +266,7 @@ sub check_owner_category {
     #sharing user should be the owner
     #list should be private
     $param->{errcode} = 4 if $param->{owner} != $param->{loggedinuser};
-    $param->{errcode} = 5 if !$param->{errcode} && $param->{category} != 1;
+    $param->{errcode} = 5 if !$param->{errcode} && $param->{public};
     return !defined $param->{errcode};
 }
 

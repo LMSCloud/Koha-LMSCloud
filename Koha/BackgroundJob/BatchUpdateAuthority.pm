@@ -16,13 +16,14 @@ package Koha::BackgroundJob::BatchUpdateAuthority;
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use JSON qw( encode_json decode_json );
 
-use C4::MarcModificationTemplates;
-use C4::AuthoritiesMarc;
+use C4::MarcModificationTemplates qw( ModifyRecordWithTemplate );
+use C4::AuthoritiesMarc qw( ModAuthority );
 use Koha::BackgroundJobs;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::MetadataRecord::Authority;
+use Koha::SearchEngine;
+use Koha::SearchEngine::Indexer;
 
 use base 'Koha::BackgroundJob';
 
@@ -55,14 +56,12 @@ Process the modification.
 sub process {
     my ( $self, $args ) = @_;
 
-    my $job = Koha::BackgroundJobs->find( $args->{job_id} );
-
-    if ( !exists $args->{job_id} || !$job || $job->status eq 'cancelled' ) {
+    if ( $self->status eq 'cancelled' ) {
         return;
     }
 
     my $job_progress = 0;
-    $job->started_on(dt_from_string)
+    $self->started_on(dt_from_string)
         ->progress($job_progress)
         ->status('started')
         ->store;
@@ -83,14 +82,14 @@ sub process {
             my $authority = Koha::MetadataRecord::Authority->get_from_authid( $authid );
             my $record = $authority->record;
             ModifyRecordWithTemplate( $mmtid, $record );
-            ModAuthority( $authid, $record, $authority->authtypecode );
+            ModAuthority( $authid, $record, $authority->authtypecode, { skip_record_index => 1 } );
         };
         if ( $error and $error != $authid or $@ ) {
             push @messages, {
                 type => 'error',
                 code => 'authority_not_modified',
                 authid => $authid,
-                error => ($@ ? $@ : 0),
+                error => ($@ ? "$@" : 0),
             };
         } else {
             push @messages, {
@@ -100,17 +99,21 @@ sub process {
             };
             $report->{total_success}++;
         }
-        $job->progress( ++$job_progress )->store;
+        $self->progress( ++$job_progress )->store;
     }
 
-    my $job_data = decode_json $job->data;
+    my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::AUTHORITIES_INDEX });
+    $indexer->index_records( \@record_ids, "specialUpdate", "authorityserver" );
+
+    my $json = $self->json;
+    my $job_data = $json->decode($self->data);
     $job_data->{messages} = \@messages;
     $job_data->{report} = $report;
 
-    $job->ended_on(dt_from_string)
-        ->data(encode_json $job_data);
-    $job->status('finished') if $job->status ne 'cancelled';
-    $job->store;
+    $self->ended_on(dt_from_string)
+        ->data($json->encode($job_data));
+    $self->status('finished') if $self->status ne 'cancelled';
+    $self->store;
 
 }
 
@@ -131,8 +134,9 @@ sub enqueue {
     my @record_ids = @{ $args->{record_ids} };
 
     $self->SUPER::enqueue({
-        job_size => scalar @record_ids,
-        job_args => {mmtid => $mmtid, record_ids => \@record_ids,}
+        job_size  => scalar @record_ids,
+        job_args  => {mmtid => $mmtid, record_ids => \@record_ids,},
+        job_queue => 'long_tasks',
     });
 }
 

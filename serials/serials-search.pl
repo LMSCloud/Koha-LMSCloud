@@ -30,14 +30,13 @@ this script is the search page for serials
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Koha qw( GetAuthorisedValues );
-use C4::Output;
-use C4::Serials;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Serials qw( CloseSubscription ReopenSubscription SearchSubscriptions check_routing );
 use Koha::AdditionalFields;
 
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::SharedContent;
 
 my $query         = CGI->new;
@@ -63,7 +62,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $query,
         type            => "intranet",
         flagsrequired   => { serials => '*' },
-        debug           => 1,
     }
 );
 
@@ -78,7 +76,7 @@ if ( $op and $op eq "close" ) {
 }
 
 
-my @additional_fields = Koha::AdditionalFields->search( { tablename => 'subscription', searchable => 1 } );
+my @additional_fields = Koha::AdditionalFields->search( { tablename => 'subscription', searchable => 1 } )->as_list;
 my @additional_field_filters;
 for my $field ( @additional_fields ) {
     my $value = $query->param( 'additional_field_' . $field->id );
@@ -90,7 +88,6 @@ for my $field ( @additional_fields ) {
     }
 }
 
-my $expiration_date_dt = $expiration_date ? dt_from_string( $expiration_date ) : undef;
 my @subscriptions;
 my $mana_statuscode;
 if ($searched){
@@ -117,7 +114,7 @@ if ($searched){
             branch       => $branch,
             additional_fields => \@additional_field_filters,
             location     => $location,
-            expiration_date => $expiration_date_dt,
+            expiration_date => $expiration_date,
         });
     }
 }
@@ -135,7 +132,7 @@ if ($mana) {
         bookseller_filter  => $bookseller,
         branch_filter => $branch,
         location_filter => $location,
-        expiration_date_filter => $expiration_date_dt,
+        expiration_date_filter => $expiration_date,
         done_searched => $searched,
         routing       => $routing,
         additional_field_filters => \@additional_field_filters,
@@ -165,7 +162,7 @@ else
         }
     }
 
-    my @branches = Koha::Libraries->search( {}, { order_by => ['branchcode'] } );
+    my @branches = Koha::Libraries->search( {}, { order_by => ['branchcode'] } )->as_list;
     my @branches_loop;
     foreach my $b ( @branches ) {
         my $selected = 0;
@@ -189,7 +186,7 @@ else
         bookseller_filter  => $bookseller,
         branch_filter => $branch,
         location_filter => $location,
-        expiration_date_filter => $expiration_date_dt,
+        expiration_date_filter => $expiration_date,
         branches_loop => \@branches_loop,
         done_searched => $searched,
         routing       => $routing,

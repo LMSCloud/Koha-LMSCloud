@@ -1,6 +1,6 @@
-/* global KOHA biblionumber new_results_browser addMultiple vShelfAdd openWindow search_result SEARCH_RESULTS PREF_LocalCoverImages PREF_IntranetCoce PREF_CoceProviders CoceHost CoceProviders addRecord delSingleRecord PREF_BrowseResultSelection resetSearchContext addBibToContext delBibToContext getContextBiblioNumbers holdfor_cardnumber holdforclub strQuery PREF_NotHighlightedWords __ Cookies */
+/* global KOHA biblionumber new_results_browser addMultiple vShelfAdd openWindow search_result SEARCH_RESULTS PREF_LocalCoverImages PREF_IntranetCoce PREF_CoceProviders CoceHost CoceProviders addRecord delSingleRecord PREF_BrowseResultSelection resetSearchContext addBibToContext delBibToContext getContextBiblioNumbers holdfor_cardnumber holdforclub strQuery PREF_StaffHighlightedWords PREF_NotHighlightedWords __ */
 
-function verify_images() {
+function verify_cover_images() {
     /* Loop over each container in the template which contains covers */
     var coverSlides = $(".cover-slides"); /* One coverSlides for each search result */
     coverSlides.each( function( index ){
@@ -54,11 +54,11 @@ function verify_images() {
                     if( div.hasClass("coce-coverimg") ){
                         /* Identify which service's image is being loaded by IntranetCoce system pref */
                         if( $(img).attr("src").indexOf('amazon.com') >= 0 ){
-                            div.find(".hint").html(_("Coce image from Amazon.com"));
+                            div.find(".hint").html(__("Coce image from Amazon.com"));
                         } else if( $(img).attr("src").indexOf('google.com') >= 0 ){
-                            div.find(".hint").html(_("Coce image from Google Books"));
+                            div.find(".hint").html(__("Coce image from Google Books"));
                         } else if( $(img).attr("src").indexOf('openlibrary.org') >= 0 ){
-                            div.find(".hint").html(_("Coce image from Open Library"));
+                            div.find(".hint").html(__("Coce image from Open Library"));
                         } else {
                             blanks.push( coverId );
                             div.remove();
@@ -101,7 +101,7 @@ function verify_images() {
 }
 
 $(window).load(function() {
-    verify_images();
+    verify_cover_images();
 });
 
 var Sticky;
@@ -202,16 +202,21 @@ $(document).ready(function() {
         while ( q_array.length > 0 && q_array[q_array.length-1] == "") {
             q_array = q_array.splice(0,-1);
         }
-        highlightOn();
-        $("#highlight_toggle_on" ).hide().click(function(e) {
-            e.preventDefault();
-            highlightOn();
-        });
-        $("#highlight_toggle_off").show().click(function(e) {
+        $("#highlight_toggle_off" ).hide().click(function(e) {
             e.preventDefault();
             highlightOff();
         });
+        $("#highlight_toggle_on").show().click(function(e) {
+            e.preventDefault();
+            highlightOn();
+        });
+        if( PREF_StaffHighlightedWords == 1 ){
+            highlightOn();
+        } else {
+            highlightOff();
+        }
     }
+
 
     if( SEARCH_RESULTS ){
         var browser = KOHA.browser( search_result.searchid, parseInt( biblionumber, 10));
@@ -341,19 +346,22 @@ function placeHold () {
         alert( __("Nothing is selected") );
         return false;
     }
-    var bibs = "";
+    var bibs = [];
     $(checkedItems).each(function() {
         var bib = $(this).val();
-        bibs += bib + "/";
+        bibs.push(bib);
     });
-    $("#hold_form_biblios").val(bibs);
+    bibs.forEach(function (bib) {
+        var bib_param = $("<input>").attr("type", "hidden").attr("name", "biblionumber").val(bib);
+	$('#hold_form').append(bib_param);
+    });
     $("#hold_form").submit();
     return false;
 }
 
 function forgetPatronAndClub(){
-    Cookies.remove("holdfor", { path: '/' });
-    Cookies.remove("holdforclub", { path: '/' });
+    Cookies.remove("holdfor", { path: '/', SameSite: 'Lax' });
+    Cookies.remove("holdforclub", { path: '/', SameSite: 'Lax' });
     $(".holdforlink").remove();
     $("#placeholdc").html("<a class=\"btn btn-default btn-xs placehold\" href=\"#\"><i class=\"fa fa-sticky-note-o\"></i> " + __("Place hold") + "</a>");
 }
@@ -389,7 +397,7 @@ function addToList () {
 /* this function open a popup to search on z3950 server.  */
 function PopupZ3950() {
     if( strQuery ){
-        window.open("/cgi-bin/koha/cataloguing/z3950_search.pl?biblionumber=" + biblionumber + strQuery,"z3950search",'width=740,height=450,location=yes,toolbar=no,scrollbars=yes,resize=yes');
+        window.open("/cgi-bin/koha/cataloguing/z3950_search.pl?" + strQuery,"z3950search",'width=740,height=450,location=yes,toolbar=no,scrollbars=yes,resize=yes');
     }
 }
 

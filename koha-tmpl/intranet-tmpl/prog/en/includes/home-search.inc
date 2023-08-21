@@ -1,53 +1,40 @@
-[% USE Koha %]
-<div class="gradient">
-<h1 id="logo"><a href="/cgi-bin/koha/mainpage.pl">[% LibraryName | html %]</a></h1><!-- Begin Main page Resident Search Box -->
-
-<div id="header_search">
-    [% INCLUDE 'patron-search-box.inc' %]
-[% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
-<div id="checkin_search" class="residentsearch">
-    <label class="tip" for="ret_barcode">Scan a barcode to check in:</label>
-    <form method="post" action="/cgi-bin/koha/circ/returns.pl" autocomplete="off">
-        <input name="barcode" class="head-searchbox" id="ret_barcode" size="40" accesskey="r" type="text" />
-        <input value="Submit" class="submit" type="submit" />
-    </form>
-</div>
-<div id="renew_search" class="residentsearch">
-    <label class="tip" for="ren_barcode">Scan a barcode to renew:</label>
-        <form method="post" action="/cgi-bin/koha/circ/renew.pl" autocomplete="off">
-            <input class="head-searchbox" name="barcode" id="ren_barcode" size="40" type="text" />
-            <input value="Submit" class="submit" type="submit" />
-        </form>
-    </div>
-[% END %]
-
-[% IF CAN_user_borrowers_edit_borrowers %]
-<div id="patron_search" class="residentsearch">
-    <label class="tip" for="searchmember">Enter patron card number or partial name:</label>
-    <form action="/cgi-bin/koha/members/member.pl" method="post">
-        <input name="searchmember" class="head-searchbox" id="searchmember" size="40" type="text" autocomplete="off" />
-        <input type="hidden" name="quicksearch" value="1" />
-        <input value="Submit" class="submit" type="submit" />
-    </form>
-</div>[% END %]
-[% IF ( CAN_user_catalogue ) %]
-<div id="catalog_search" class="residentsearch">
-    <label class="tip" for="search-form">Enter search keywords:</label>
-    <form action="/cgi-bin/koha/catalogue/search.pl"  method="get" id="cat-search-block">
-        [% IF ( Koha.Preference('IntranetCatalogSearchPulldown') ) %][% INCLUDE 'search_indexes.inc' %][% END %]
-        <input type="text" name="q" id="search-form" class="head-searchbox" size="40" accesskey="q" />
-        <input type="submit" class="submit" value="Submit"/>
-    </form>
-</div>[% END %]
-
-<ul>
-    [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]<li><a class="keep_text" href="#circ_search">Check out</a></li>[% END %]
-    [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]<li><a class="keep_text" href="#checkin_search">Check in</a></li>[% END %]
-    [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]<li><a class="keep_text" href="#renew_search">Renew</a></li>[% END %]
-    [% IF CAN_user_borrowers_edit_borrowers %]<li><a class="keep_text" href="#patron_search">Search patrons</a></li>[% END %]
-    [% IF ( CAN_user_catalogue ) %]<li><a class="keep_text" href="#catalog_search">Search the catalog</a></li>[% END %]
-</ul>
-
-</div><!-- /header_search -->
-</div><!-- /gradient -->
-<!-- End Main page Resident Search Box -->
+<!-- home-search.inc -->
+<div id="header_search" role="tablist">
+    <div class="tab-content">
+        [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
+            [% INCLUDE 'patron-search-box.inc' bs_tab_active= 1 %]
+            [% INCLUDE 'checkin-search-box.inc' %]
+            [% INCLUDE 'renew-search-box.inc' %]
+        [% END %]
+        [% IF ( CAN_user_borrowers_edit_borrowers ) %]
+            [% INCLUDE 'member-search-box.inc' %]
+        [% END %]
+        [% IF ( CAN_user_catalogue ) %]
+            [% INCLUDE 'catalogue-search-box.inc' %]
+        [% END %]
+    </div><!-- /.tab-content -->
+    <ul class="nav nav-tabs" role="tablist">
+        [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
+            <li role="presentation" class="active">
+                <a title="Check out" href="#circ_search" aria-controls="circ_search" role="tab" aria-expanded="true" data-toggle="tab" class="keep_text"><i class="fa fa-upload"></i> <span class="tab-title">Check out</span></a>
+            </li>
+            <li role="presentation">
+                <a title="Check in" href="#checkin_search" aria-controls="checkin_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-download"></i> <span class="tab-title">Check in</span></a>
+            </li>
+            <li role="presentation">
+                <a title="Renew" href="#renew_search" aria-controls="renew_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-retweet"></i> <span class="tab-title">Renew</span></a>
+            </li>
+        [% END %]
+        [% IF ( CAN_user_borrowers_edit_borrowers ) %]
+            <li role="presentation">
+                <a title="Search patrons" href="#patron_search" aria-controls="patron_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-fw fa-id-card-o"></i> <span class="tab-title">Search patrons</span></a>
+            </li>
+        [% END %]
+        [% IF ( CAN_user_catalogue ) %]
+            <li role="presentation">
+                <a title="Search catalog" href="#catalog_search" aria-controls="catalog_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-fw fa-search"></i> <span class="tab-title">Search catalog</span></a>
+            </li>
+        [% END %]
+    </ul>
+</div><!-- /#header_search -->
+<!-- /home-search.inc -->

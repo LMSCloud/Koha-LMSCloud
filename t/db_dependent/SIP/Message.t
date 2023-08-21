@@ -21,7 +21,7 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 11;
+use Test::More tests => 16;
 use Test::Exception;
 use Test::MockObject;
 use Test::MockModule;
@@ -30,11 +30,11 @@ use Test::Warn;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
-use C4::Reserves qw(AddReserve);
-use C4::Circulation qw( AddReturn );
+use C4::Reserves qw( AddReserve );
+use C4::Circulation qw( AddIssue AddReturn );
 use Koha::Database;
 use Koha::AuthUtils qw(hash_password);
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Items;
 use Koha::Checkouts;
 use Koha::Old::Checkouts;
@@ -71,16 +71,34 @@ subtest 'Testing Patron Info Request V2' => sub {
 subtest 'Checkout V2' => sub {
     my $schema = Koha::Database->new->schema;
     $schema->storage->txn_begin;
-    plan tests => 3;
+    plan tests => 5;
     $C4::SIP::Sip::protocol_version = 2;
     test_checkout_v2();
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Test checkout desensitize' => sub {
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
+    plan tests => 6;
+    $C4::SIP::Sip::protocol_version = 2;
+    test_checkout_desensitize();
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Test renew desensitize' => sub {
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
+    plan tests => 6;
+    $C4::SIP::Sip::protocol_version = 2;
+    test_renew_desensitize();
     $schema->storage->txn_rollback;
 };
 
 subtest 'Checkin V2' => sub {
     my $schema = Koha::Database->new->schema;
     $schema->storage->txn_begin;
-    plan tests => 35;
+    plan tests => 39;
     $C4::SIP::Sip::protocol_version = 2;
     test_checkin_v2();
     $schema->storage->txn_rollback;
@@ -95,9 +113,44 @@ subtest 'Test hold_patron_bcode' => sub {
     $schema->storage->txn_rollback;
 };
 
+subtest 'UseLocationAsAQInSIP syspref tests' => sub {
+    plan tests => 2;
+
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
+
+    my $builder = t::lib::TestBuilder->new();
+
+    my $branchcode = $builder->build({ source => 'Branch' })->{branchcode};
+
+    t::lib::Mocks::mock_preference('UseLocationAsAQInSIP', 0);
+
+     my $item = $builder->build_sample_item(
+        {
+            damaged       => 0,
+            withdrawn     => 0,
+            itemlost      => 0,
+            restricted    => 0,
+            homebranch    => $branchcode,
+            holdingbranch => $branchcode,
+            permanent_location => "PERMANENT_LOCATION"
+        }
+    );
+
+    my $sip_item = C4::SIP::ILS::Item->new( $item->barcode );
+    is( $sip_item->permanent_location, $branchcode, "When UseLocationAsAQInSIP is not set SIP item has permanent_location set to value of homebranch" );
+
+    t::lib::Mocks::mock_preference('UseLocationAsAQInSIP', 1);
+
+    $sip_item = C4::SIP::ILS::Item->new( $item->barcode );
+    is( $sip_item->permanent_location, "PERMANENT_LOCATION", "When UseLocationAsAQInSIP is set SIP item has permanent_location set to value of item permanent_location" );
+
+    $schema->storage->txn_rollback;
+};
+
 subtest 'hold_patron_name() tests' => sub {
 
-    plan tests => 2;
+    plan tests => 3;
 
     my $schema = Koha::Database->new->schema;
     $schema->storage->txn_begin;
@@ -124,8 +177,11 @@ subtest 'hold_patron_name() tests' => sub {
 
     is( $sip_item->hold_patron_name, q{}, "SIP item with no hold returns empty string for patron name" );
 
-    my $resp .= C4::SIP::Sip::maybe_add( FID_CALL_NUMBER, $sip_item->hold_patron_name, $server );
+    my $resp = C4::SIP::Sip::maybe_add( FID_CALL_NUMBER, $sip_item->hold_patron_name, $server );
     is( $resp, q{}, "maybe_add returns empty string for SIP item with no hold returns empty string" );
+
+    $resp = C4::SIP::Sip::maybe_add( FID_CALL_NUMBER, "0", $server );
+    is( $resp, q{CS0|}, "maybe_add will create the field of the string '0'" );
 
     $schema->storage->txn_rollback;
 };
@@ -181,6 +237,90 @@ subtest 'Lastseen response' => sub {
 
 };
 
+subtest "Test patron_status_string" => sub {
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
+
+    plan tests => 9;
+
+    my $builder = t::lib::TestBuilder->new();
+    my $branchcode = $builder->build({ source => 'Branch' })->{branchcode};
+    my $patron = $builder->build({
+        source => 'Borrower',
+        value  => {
+            branchcode => $branchcode,
+        },
+    });
+    my $sip_patron = C4::SIP::ILS::Patron->new( $patron->{cardnumber} );
+
+    t::lib::Mocks::mock_userenv({ branchcode => $branchcode });
+
+     my $item1 = $builder->build_sample_item(
+        {
+            damaged       => 0,
+            withdrawn     => 0,
+            itemlost      => 0,
+            restricted    => 0,
+            homebranch    => $branchcode,
+            holdingbranch => $branchcode,
+            permanent_location => "PERMANENT_LOCATION"
+        }
+    );
+     AddIssue( $patron, $item1->barcode );
+
+     my $item2 = $builder->build_sample_item(
+        {
+            damaged       => 0,
+            withdrawn     => 0,
+            itemlost      => 0,
+            restricted    => 0,
+            homebranch    => $branchcode,
+            holdingbranch => $branchcode,
+            permanent_location => "PERMANENT_LOCATION"
+        }
+    );
+    AddIssue( $patron, $item2->barcode );
+
+    is( Koha::Checkouts->search({ borrowernumber => $patron->{borrowernumber} })->count, 2, "Found 2 checkouts for this patron" );
+
+    $item1->itemlost(1)->store();
+    $item2->itemlost(2)->store();
+
+    is( Koha::Checkouts->search({ borrowernumber => $patron->{borrowernumber}, 'itemlost' => { '>', 0 } }, { join => 'item'} )->count, 2, "Found 2 lost checkouts for this patron" );
+
+    my $server->{account}->{lost_block_checkout} = undef;
+    my $patron_status_string = C4::SIP::Sip::MsgType::patron_status_string( $sip_patron, $server );
+    is( substr($patron_status_string, 9, 1), q{ }, "lost_block_checkout = 0 does not block checkouts with 2 lost checkouts" );;
+
+    $server->{account}->{lost_block_checkout} = 0;
+    $patron_status_string = C4::SIP::Sip::MsgType::patron_status_string( $sip_patron, $server );
+    is( substr($patron_status_string, 9, 1), q{ }, "lost_block_checkout = 0 does not block checkouts with 2 lost checkouts" );;
+
+    $server->{account}->{lost_block_checkout} = 1;
+    $patron_status_string = C4::SIP::Sip::MsgType::patron_status_string( $sip_patron, $server );
+    is( substr($patron_status_string, 9, 1), q{Y}, "lost_block_checkout = 1 does block checkouts with 2 lost checkouts" );;
+
+    $server->{account}->{lost_block_checkout} = 2;
+    $patron_status_string = C4::SIP::Sip::MsgType::patron_status_string( $sip_patron, $server );
+    is( substr($patron_status_string, 9, 1), q{Y}, "lost_block_checkout = 2 does block checkouts with 2 lost checkouts" );;
+
+    $server->{account}->{lost_block_checkout} = 3;
+    $patron_status_string = C4::SIP::Sip::MsgType::patron_status_string( $sip_patron, $server );
+    is( substr($patron_status_string, 9, 1), q{ }, "lost_block_checkout = 3 does not block checkouts with 2 lost checkouts" );;
+
+    $server->{account}->{lost_block_checkout} = 2;
+    $server->{account}->{lost_block_checkout_value} = 2;
+    $patron_status_string = C4::SIP::Sip::MsgType::patron_status_string( $sip_patron, $server );
+    is( substr($patron_status_string, 9, 1), q{ }, "lost_block_checkout = 2, lost_block_checkout_value = 2 does not block checkouts with 2 lost checkouts where only 1 has itemlost = 2" );
+
+    $server->{account}->{lost_block_checkout} = 1;
+    $server->{account}->{lost_block_checkout_value} = 2;
+    $patron_status_string = C4::SIP::Sip::MsgType::patron_status_string( $sip_patron, $server );
+    is( substr($patron_status_string, 9, 1), q{Y}, "lost_block_checkout = 2, lost_block_checkout_value = 2 does block checkouts with 2 lost checkouts where only 1 has itemlost = 2" );
+
+    $schema->storage->txn_rollback;
+};
+
 subtest "Test build_additional_item_fields_string" => sub {
     my $schema = Koha::Database->new->schema;
     $schema->storage->txn_begin;
@@ -209,8 +349,38 @@ subtest "Test build_additional_item_fields_string" => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest "Test cr_item_field" => sub {
+subtest "Test build_custom_field_string" => sub {
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
+
     plan tests => 2;
+
+    my $builder = t::lib::TestBuilder->new();
+
+    my $item = $builder->build_sample_item;
+    my $item_id = $item->id;
+    my $item_barcode = $item->barcode;
+    my $ils_item = C4::SIP::ILS::Item->new( $item->barcode );
+
+    my $server = {};
+    $server->{account}->{custom_item_field}->{field} = "XY";
+    $server->{account}->{custom_item_field}->{template} = "[% item.id %] [% item.barcode %], woo!";
+    my $attribute_string = $ils_item->build_additional_item_fields_string( $server );
+    is( $attribute_string, "XY$item_id $item_barcode, woo!|", 'Attribute field generated correctly with single param' );
+
+    $server = {};
+    $server->{account}->{custom_item_field}->[0]->{field} = "ZY";
+    $server->{account}->{custom_item_field}->[0]->{template} = "[% item.id %]!";
+    $server->{account}->{custom_item_field}->[1]->{field} = "ZX";
+    $server->{account}->{custom_item_field}->[1]->{template} = "[% item.barcode %]*";
+    $attribute_string = $ils_item->build_additional_item_fields_string( $server );
+    is( $attribute_string, sprintf("ZY%s!|ZX%s*|", $item_id, $item_barcode), 'Attribute field generated correctly with multiple params' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest "Test cr_item_field" => sub {
+    plan tests => 8;
 
     my $builder = t::lib::TestBuilder->new();
     my $branchcode  = $builder->build({ source => 'Branch' })->{branchcode};
@@ -235,6 +405,7 @@ subtest "Test cr_item_field" => sub {
         restricted => 0,
         homebranch => $branchcode,
         holdingbranch => $branchcode,
+        datelastseen => '1900-01-01',
     });
 
     my $mockILS = $mocks->{ils};
@@ -278,10 +449,39 @@ subtest "Test cr_item_field" => sub {
 
     $server->{account}->{cr_item_field} = 'itype';
 
+    $server->{account}->{seen_on_item_information} = '';
     $msg->handle_item_information( $server );
+    $item_object->get_from_storage;
+    is( $item_object->datelastseen, "1900-01-01", "datelastseen remains unchanged" );
+
+    $item_object->update({ itemlost => 1, datelastseen => '1900-01-01' });
+    $server->{account}->{seen_on_item_information} = 'keep_lost';
+    $msg->handle_item_information( $server );
+    $item_object = Koha::Items->find( $item_object->id );
+    isnt( $item_object->datelastseen, "1900-01-01", "datelastseen updated" );
+    is( $item_object->itemlost, 1, "item remains lost" );
+
+    $item_object->update({ itemlost => 1, datelastseen => '1900-01-01' });
+    $server->{account}->{seen_on_item_information} = 'mark_found';
+    $msg->handle_item_information( $server );
+    $item_object = Koha::Items->find( $item_object->id );
+    isnt( $item_object->datelastseen, "1900-01-01", "datelastseen updated" );
+    is( $item_object->itemlost, 0, "item is no longer lost" );
 
     my $itype = $item_object->itype;
     ok( $response =~ m/CR$itype/, "Found correct CR field in response");
+
+    $server->{account}->{format_due_date} = 1;
+    t::lib::Mocks::mock_preference( 'dateFormat',  'sql' );
+    my $issue = Koha::Checkout->new({ branchcode => $branchcode, borrowernumber => $patron1->{borrowernumber}, itemnumber => $item_object->itemnumber, date_due => "1999-01-01 12:59:00" })->store;
+    $siprequest = ITEM_INFORMATION . 'YYYYMMDDZZZZHHMMSS' .
+        FID_INST_ID . $branchcode . '|'.
+        FID_ITEM_ID . $item_object->barcode . '|' .
+        FID_TERMINAL_PWD . 'ignored' . '|';
+    undef $response;
+    $msg = C4::SIP::Sip::MsgType->new( $siprequest, 0 );
+    $msg->handle_item_information( $server );
+    ok( $response =~ m/AH1999-01-01 12:59/, "Found correct CR field in response");
 };
 
 subtest 'Patron info summary > 5 should not crash server' => sub {
@@ -614,6 +814,15 @@ sub test_checkout_v2 {
     $msg->handle_checkout( $server );
     $respcode = substr( $response, 0, 2 );
     is( Koha::Checkouts->search({ itemnumber => $item_object->id })->count, 1, "Item was checked out (prevcheckout_block_checkout disabled)");
+
+    $msg->handle_checkout( $server );
+    ok( $response =~ m/AH\d{8}    \d{6}/, "Found AH field as timestamp in response");
+    $server->{account}->{format_due_date} = 1;
+    t::lib::Mocks::mock_preference( 'dateFormat',  'sql' );
+    undef $response;
+    $msg->handle_checkout( $server );
+    ok( $response =~ m/AH\d{4}-\d{2}-\d{2}/, "Found AH field as SQL date in response");
+
 }
 
 sub test_checkin_v2 {
@@ -804,11 +1013,23 @@ sub test_checkin_v2 {
     $msg->handle_checkin( $server );
     is( substr($response,2,1), '0', 'OK flag is false when we check in an item on hold and we do not allow it' );
     is( substr($response,5,1), 'Y', 'Alert flag is set' );
-    check_field( $respcode, $response, FID_SCREEN_MSG, 'Item is on hold, please return to circulation desk', 'Screen message is correct' );
     is( Koha::Checkouts->search({ itemnumber => $item_object->id })->count, 1, "Item was not checked in");
-    $hold->delete();
+    $hold->discard_changes;
+    is( $hold->found, undef, "Hold was not marked as found by SIP when holds_block_checkin enabled");
     $server->{account}->{holds_block_checkin} = 0;
 
+    # Test account option holds_get_captured that automatically sets the hold as found for a hold and possibly sets it to in transit
+    $server->{account}->{holds_get_captured} = 0;
+    undef $response;
+    $msg = C4::SIP::Sip::MsgType->new( $siprequest, 0 );
+    $msg->handle_checkin( $server );
+    is( substr($response,2,1), '1', 'OK flag is true when we check in an item on hold and we allow it but do not capture it' );
+    is( substr($response,5,1), 'Y', 'Alert flag is set' );
+    is( Koha::Checkouts->search({ itemnumber => $item_object->id })->count, 0, "Item was checked in");
+    $hold->discard_changes;
+    is( $hold->found, undef, "Hold was not marked as found by SIP when holds_get_captured disabled");
+    $hold->delete();
+    $server->{account}->{holds_get_captured} = 1;
 }
 
 sub test_hold_patron_bcode {
@@ -828,8 +1049,182 @@ sub test_hold_patron_bcode {
 
     is( $sip_item->hold_patron_bcode, q{}, "SIP item with no hold returns empty string" );
 
-    my $resp .= C4::SIP::Sip::maybe_add( FID_CALL_NUMBER, $sip_item->hold_patron_bcode, $server );
+    my $resp = C4::SIP::Sip::maybe_add( FID_CALL_NUMBER, $sip_item->hold_patron_bcode, $server );
     is( $resp, q{}, "maybe_add returns empty string for SIP item with no hold returns empty string" );
+}
+
+sub test_checkout_desensitize {
+    my $builder = t::lib::TestBuilder->new();
+    my $branchcode  = $builder->build({ source => 'Branch' })->{branchcode};
+    my ( $response, $findpatron );
+    my $mocks = create_mocks( \$response, \$findpatron, \$branchcode );
+
+    # create some data
+    my $patron1 = $builder->build({
+        source => 'Borrower',
+        value  => {
+            password => hash_password( PATRON_PW ),
+        },
+    });
+    my $card1 = $patron1->{cardnumber};
+    my $sip_patron1 = C4::SIP::ILS::Patron->new( $card1 );
+    my $patron_category = $sip_patron1->ptype();
+    $findpatron = $sip_patron1;
+    my $item_object = $builder->build_sample_item({
+        damaged => 0,
+        withdrawn => 0,
+        itemlost => 0,
+        restricted => 0,
+        homebranch => $branchcode,
+        holdingbranch => $branchcode,
+    });
+    my $itemtype = $item_object->effective_itemtype;
+
+    my $mockILS = $mocks->{ils};
+    my $server = { ils => $mockILS, account => {} };
+    $mockILS->mock( 'institution', sub { $branchcode; } );
+    $mockILS->mock( 'supports', sub { return; } );
+    $mockILS->mock( 'checkout', sub {
+        shift;
+        return C4::SIP::ILS->checkout(@_);
+    });
+    my $today = dt_from_string;
+    t::lib::Mocks::mock_userenv({ branchcode => $branchcode, flags => 1 });
+    t::lib::Mocks::mock_preference( 'CheckPrevCheckout',  'hardyes' );
+
+    my $siprequest = CHECKOUT . 'YN' . siprequestdate($today) .
+    siprequestdate( $today->clone->add( days => 1) ) .
+    FID_INST_ID . $branchcode . '|'.
+    FID_PATRON_ID . $sip_patron1->id . '|' .
+    FID_ITEM_ID . $item_object->barcode . '|' .
+    FID_TERMINAL_PWD . 'ignored' . '|';
+
+    undef $response;
+    my $msg = C4::SIP::Sip::MsgType->new( $siprequest, 0 );
+    $server->{account}->{inhouse_patron_categories} = "A,$patron_category,Z";
+    $msg->handle_checkout( $server );
+    my $respcode = substr( $response, 5, 1 );
+    is( $respcode, 'N', "Desensitize flag was not set for patron category in inhouse_patron_categories" );
+
+    undef $response;
+    $server->{account}->{inhouse_patron_categories} = "A,B,C";
+    $msg->handle_checkout( $server );
+    $respcode = substr( $response, 5, 1 );
+    is( $respcode, 'Y', "Desensitize flag was set for patron category not in inhouse_patron_categories" );
+
+    undef $response;
+    $server->{account}->{inhouse_patron_categories} = "";
+    $msg->handle_checkout( $server );
+    $respcode = substr( $response, 5, 1 );
+    is( $respcode, 'Y', "Desensitize flag was set for empty inhouse_patron_categories" );
+
+    $server->{account}->{inhouse_patron_categories} = "";
+
+    undef $response;
+    $server->{account}->{inhouse_item_types} = "A,$itemtype,Z";
+    $msg->handle_checkout( $server );
+    $respcode = substr( $response, 5, 1 );
+    is( $respcode, 'N', "Desensitize flag was not set for itemtype in inhouse_item_types" );
+
+    undef $response;
+    $server->{account}->{inhouse_item_types} = "A,B,C";
+    $msg->handle_checkout( $server );
+    $respcode = substr( $response, 5, 1 );
+    is( $respcode, 'Y', "Desensitize flag was set for item type not in inhouse_item_types" );
+
+    undef $response;
+    $server->{account}->{inhouse_item_types} = "";
+    $msg->handle_checkout( $server );
+    $respcode = substr( $response, 5, 1 );
+    is( $respcode, 'Y', "Desensitize flag was set for empty inhouse_item_types" );
+}
+
+sub test_renew_desensitize {
+    my $builder = t::lib::TestBuilder->new();
+    my $branchcode  = $builder->build({ source => 'Branch' })->{branchcode};
+    my ( $response, $findpatron );
+    my $mocks = create_mocks( \$response, \$findpatron, \$branchcode );
+
+    # create some data
+    my $patron1 = $builder->build({
+        source => 'Borrower',
+        value  => {
+            password => hash_password( PATRON_PW ),
+        },
+    });
+    my $card1 = $patron1->{cardnumber};
+    my $sip_patron1 = C4::SIP::ILS::Patron->new( $card1 );
+    my $patron_category = $sip_patron1->ptype();
+    $findpatron = $sip_patron1;
+    my $item_object = $builder->build_sample_item({
+        damaged => 0,
+        withdrawn => 0,
+        itemlost => 0,
+        restricted => 0,
+        homebranch => $branchcode,
+        holdingbranch => $branchcode,
+    });
+    my $itemtype = $item_object->effective_itemtype;
+
+    my $mockILS = $mocks->{ils};
+    my $server = { ils => $mockILS, account => {} };
+    $mockILS->mock( 'institution', sub { $branchcode; } );
+    $mockILS->mock( 'supports', sub { return; } );
+    $mockILS->mock( 'checkout', sub {
+        shift;
+        return C4::SIP::ILS->checkout(@_);
+    });
+    my $today = dt_from_string;
+    t::lib::Mocks::mock_userenv({ branchcode => $branchcode, flags => 1 });
+
+    my $issue = Koha::Checkout->new({ branchcode => $branchcode, borrowernumber => $patron1->{borrowernumber}, itemnumber => $item_object->itemnumber })->store;
+
+    my $siprequest = RENEW . 'YN' . siprequestdate($today) .
+    siprequestdate( $today->clone->add( days => 1) ) .
+    FID_INST_ID . $branchcode . '|'.
+    FID_PATRON_ID . $sip_patron1->id . '|' .
+    FID_ITEM_ID . $item_object->barcode . '|' .
+    FID_TERMINAL_PWD . 'ignored' . '|';
+
+    undef $response;
+    my $msg = C4::SIP::Sip::MsgType->new( $siprequest, 0 );
+    $server->{account}->{inhouse_patron_categories} = "A,$patron_category,Z";
+    $msg->handle_checkout( $server );
+    my $respcode = substr( $response, 5, 1 );
+    is( $respcode, 'N', "Desensitize flag was not set for patron category in inhouse_patron_categories" );
+
+    undef $response;
+    $server->{account}->{inhouse_patron_categories} = "A,B,C";
+    $msg->handle_checkout( $server );
+    $respcode = substr( $response, 5, 1 );
+    is( $respcode, 'Y', "Desensitize flag was set for patron category not in inhouse_patron_categories" );
+
+    undef $response;
+    $server->{account}->{inhouse_patron_categories} = "";
+    $msg->handle_checkout( $server );
+    $respcode = substr( $response, 5, 1 );
+    is( $respcode, 'Y', "Desensitize flag was set for empty inhouse_patron_categories" );
+
+    $server->{account}->{inhouse_patron_categories} = "";
+
+    undef $response;
+    $server->{account}->{inhouse_item_types} = "A,B,C";
+    $msg->handle_checkout( $server );
+    $respcode = substr( $response, 5, 1 );
+    is( $respcode, 'Y', "Desensitize flag was set for item type not in inhouse_item_types" );
+
+    undef $response;
+    $server->{account}->{inhouse_item_types} = "";
+    $msg->handle_checkout( $server );
+    $respcode = substr( $response, 5, 1 );
+    is( $respcode, 'Y', "Desensitize flag was set for empty inhouse_item_types" );
+
+    undef $response;
+    $server->{account}->{inhouse_item_types} = "A,$itemtype,Z";
+    $msg->handle_checkout( $server );
+    $respcode = substr( $response, 5, 1 );
+    is( $respcode, 'N', "Desensitize flag was not set for itemtype in inhouse_item_types" );
+
 }
 
 # Helper routines

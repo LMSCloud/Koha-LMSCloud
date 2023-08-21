@@ -19,13 +19,13 @@
 
 use Modern::Perl;
 
-use Test::More tests => 12;
+use Test::More tests => 13;
 use Test::Exception;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
-use C4::Acquisition;
+use C4::Acquisition qw( NewBasket ModBasket ModBasketHeader );
 use Koha::Database;
 use Koha::DateUtils qw(dt_from_string);
 
@@ -303,6 +303,55 @@ subtest 'orders' => sub {
     $schema->storage->txn_rollback;
 };
 
+subtest 'edi_order' => sub {
+
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+
+    my $basket = $builder->build_object(
+        {
+            class => 'Koha::Acquisition::Baskets'
+        }
+    );
+
+    is( $basket->edi_order, undef,
+        'edi_order returns undefined if there are no edi_messages of type "ORDER" attached' );
+
+    my $order_message_1 = $builder->build(
+        {
+            source => 'EdifactMessage',
+            value  => {
+                basketno      => $basket->basketno,
+                message_type  => 'ORDERS',
+                transfer_date => '2019-07-30',
+                deleted       => 0,
+            }
+        }
+    );
+
+    my $edi_message = $basket->edi_order;
+    is( ref($edi_message), 'Koha::Schema::Result::EdifactMessage',
+        'edi_order returns an EdifactMessage if one is attached' );
+
+    my $order_message_2 = $builder->build(
+        {
+            source => 'EdifactMessage',
+            value  => {
+                basketno     => $basket->basketno,
+                message_type => 'ORDERS',
+                deleted      => 0
+            }
+        }
+    );
+
+    $edi_message = $basket->edi_order;
+    is( $edi_message->id, $order_message_2->{id},
+        'edi_order returns the most recently associated ORDERS EdifactMessage' );
+
+    $schema->storage->txn_rollback;
+};
+
 subtest 'is_closed() tests' => sub {
 
     plan tests => 2;
@@ -376,7 +425,7 @@ subtest 'close() tests' => sub {
         'Koha::Exceptions::Acquisition::Basket::AlreadyClosed',
         'Trying to close an already closed basket throws an exception';
 
-    my @close_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'CLOSE_BASKET', object => $basket->id });
+    my @close_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'CLOSE_BASKET', object => $basket->id })->as_list;
     is (scalar @close_logs, 1, 'Basket closure is logged');
 
     $schema->storage->txn_rollback;

@@ -27,18 +27,19 @@ use C4::Output qw( output_html_with_http_headers );
 
 
 sub plugin_javascript {
-    my ( $dbh, $record, $tagslib, $field_number, $tabloop ) = @_;
+    my ( $dbh, $record, $tagslib, $field_number ) = @_;
     my $res           = "
         <script type='text/javascript'>
-            function Clic$field_number(i) {
+            function Clic$field_number(event) {
+                event.preventDefault();
                 var defaultvalue;
                 try {
-                    defaultvalue = document.getElementById(i).value;
+                    defaultvalue = document.getElementById(event.data.id).value;
                 } catch(e) {
-                    alert('error when getting '+i);
+                    alert('error when getting '+event.data.id);
                     return;
                 }
-                window.open(\"/cgi-bin/koha/cataloguing/plugin_launcher.pl?plugin_name=unimarc_leader_authorities.pl&index=\"+i+\"&result=\"+defaultvalue,\"unimarc_field_000\",'width=1000,height=600,toolbar=false,scrollbars=yes');
+                window.open(\"/cgi-bin/koha/cataloguing/plugin_launcher.pl?plugin_name=unimarc_leader_authorities.pl&index=\" + event.data.id + \"&result=\"+defaultvalue,\"unimarc_field_000\",'width=1000,height=600,toolbar=false,scrollbars=yes');
             }
         </script>
 ";

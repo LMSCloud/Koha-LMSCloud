@@ -17,13 +17,12 @@ package Koha::Patron::Category;
 
 use Modern::Perl;
 
-use Carp;
-use List::MoreUtils qw(any);
+use List::MoreUtils qw( any );
 
 use C4::Members::Messaging;
 
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 
 use base qw(Koha::Object Koha::Object::Limit::Library);
 
@@ -114,6 +113,26 @@ sub get_expiry_date {
     }
 }
 
+=head3 get_password_expiry_date
+
+Returns date based on password expiry days set for the category. If the value is not set
+we return undef, password does not expire
+
+my $expiry_date = $category->get_password_expiry_date();
+
+=cut
+
+sub get_password_expiry_date {
+    my ($self, $date ) = @_;
+    if ( $self->password_expiry_days ) {
+        $date ||= dt_from_string;
+        $date = dt_from_string( $date ) unless ref $date;
+        return $date->add( days => $self->password_expiry_days )->ymd;
+    } else {
+        return;
+    }
+}
+
 =head3 effective_reset_password
 
 Returns if patrons in this category can reset their password. If set in $self->reset_password
@@ -183,7 +202,31 @@ TODO: Remove on bug 22547
 sub override_hidden_items {
     my ($self) = @_;
     return any { $_ eq $self->categorycode }
-    split( /\|/, C4::Context->preference('OpacHiddenItemsExceptions') );
+    split( ',', C4::Context->preference('OpacHiddenItemsExceptions') );
+}
+
+=head3 can_make_suggestions
+
+
+    if ( $patron->category->can_make_suggestions ) {
+        ...
+    }
+
+Returns if the OPAC logged-in user is allowed to make OPAC purchase suggestions.
+
+=cut
+
+sub can_make_suggestions {
+    my ( $self ) = @_;
+
+    if ( C4::Context->preference('suggestion') ) {
+
+        my @patron_categories = split ',', C4::Context->preference('suggestionPatronCategoryExceptions') // q{};
+
+        return !any {$_ eq $self->categorycode } @patron_categories;
+    }
+
+    return 0;
 }
 
 =head2 Internal methods

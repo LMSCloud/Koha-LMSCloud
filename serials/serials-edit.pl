@@ -63,21 +63,20 @@ op can be :
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use Encode qw( decode is_utf8 );
-use C4::Auth;
-use C4::Biblio;
-use C4::Items;
-use C4::Koha;
-use C4::Output;
+use Encode;
+use C4::Auth qw( get_template_and_user haspermission );
+use C4::Biblio qw( GetMarcFromKohaField TransformHtmlToXml );
+use C4::Items qw( AddItemFromMarc ModItemFromMarc PrepareItemrecordDisplay );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
-use C4::Serials;
-use C4::Search qw/enabled_staff_search_views/;
+use C4::Serials qw( GetSerials GetSerials2 GetSerialInformation HasSubscriptionExpired GetSubscription abouttoexpire NewIssue ModSerialStatus GetPreviousSerialid AddItem2Serial );
+use C4::Search qw( enabled_staff_search_views );
 
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Items;
 use Koha::Serial::Items;
 
-use List::MoreUtils qw/uniq/;
+use List::MoreUtils qw( uniq );
 
 my $query           = CGI->new();
 my $dbh             = C4::Context->dbh;
@@ -123,14 +122,13 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $query,
         type            => 'intranet',
         flagsrequired   => { serials => 'receive_serials' },
-        debug           => 1,
     }
 );
 
 my @serialdatalist;
 my %processedserialid;
 
-my $today = output_pref( { dt => dt_from_string, dateonly => 1 } );
+my $today = dt_from_string;
 
 foreach my $serialid (@serialids) {
 
@@ -142,14 +140,6 @@ foreach my $serialid (@serialids) {
     {
         my $serinfo = GetSerialInformation($serialid); #TODO duplicates work done by GetSerials2 above
 
-        for my $d ( qw( publisheddate planneddate )){
-            if ( $serinfo->{$d} =~m/^00/ ) {
-                $serinfo->{$d} = q{};
-            }
-            else {
-                $serinfo->{$d} = output_pref( { dt => dt_from_string( $serinfo->{$d} ), dateonly => 1 } );
-            }
-        }
         $serinfo->{arriveddate} = $today;
 
         $serinfo->{'editdisable'} = (
@@ -218,10 +208,10 @@ if ( $op and $op eq 'serialchangestatus' ) {
         my ($plan_date, $pub_date);
 
         if (defined $planneddates[$i] && $planneddates[$i] ne 'XXX') {
-            $plan_date = eval { output_pref( { dt => dt_from_string( $planneddates[$i] ), dateonly => 1, dateformat => 'iso' } ); };
+            $plan_date = $planneddates[$i];
         }
         if (defined $publisheddates[$i] && $publisheddates[$i] ne 'XXX') {
-            $pub_date = eval { output_pref( { dt => dt_from_string( $publisheddates[$i] ), dateonly => 1, dateformat => 'iso' } ); };
+            $pub_date = $publisheddates[$i];
         }
 
         if ( $serialids[$i] && $serialids[$i] eq 'NEW' ) {
@@ -287,8 +277,6 @@ if ( $op and $op eq 'serialchangestatus' ) {
         my @serials      = $query->multi_param('serial');
         my @bibnums      = $query->multi_param('bibnum');
         my @itemid       = $query->multi_param('itemid');
-        my @ind_tag      = $query->multi_param('ind_tag');
-        my @indicator    = $query->multi_param('indicator');
         my @num_copies   = $query->multi_param('number_of_copies');
 
         #Rebuilding ALL the data for items into a hash
@@ -315,8 +303,6 @@ if ( $op and $op eq 'serialchangestatus' ) {
             push @{ $itemhash{ $itemid[$i] }->{'subfields'} }, $subfields[$i];
             push @{ $itemhash{ $itemid[$i] }->{'field_values'} },
               $field_values[$i];
-            push @{ $itemhash{ $itemid[$i] }->{'ind_tag'} },   $ind_tag[$i];
-            push @{ $itemhash{ $itemid[$i] }->{'indicator'} }, $indicator[$i];
         }
         foreach my $item ( keys %itemhash ) {
 
@@ -336,8 +322,8 @@ if ( $op and $op eq 'serialchangestatus' ) {
                     $itemhash{$item}->{'tags'},
                     $itemhash{$item}->{'subfields'},
                     $itemhash{$item}->{'field_values'},
-                    $itemhash{$item}->{'indicator'},
-                    $itemhash{$item}->{'ind_tag'}
+                    undef,
+                    undef
                 );
 
                 # warn $xml;
@@ -431,7 +417,6 @@ if ( $op and $op eq 'serialchangestatus' ) {
     }
 }
 my $location = $serialdatalist[0]->{'location'};
-my $default_bib_view = get_default_view();
 
 $template->param(
     subscriptionid  => $serialdatalist[0]->{subscriptionid},
@@ -441,24 +426,8 @@ $template->param(
     bibliotitle     => $biblio->title,
     biblionumber    => $serialdatalist[0]->{'biblionumber'},
     serialslist     => \@serialdatalist,
-    default_bib_view => $default_bib_view,
     location         => $location,
     (uc(C4::Context->preference("marcflavour"))) => 1
 
 );
 output_html_with_http_headers $query, $cookie, $template->output;
-
-sub get_default_view {
-    my $defaultview = C4::Context->preference('IntranetBiblioDefaultView');
-    my %views       = C4::Search::enabled_staff_search_views();
-    if ( $defaultview eq 'isbd' && $views{can_view_ISBD} ) {
-        return 'ISBDdetail';
-    }
-    elsif ( $defaultview eq 'marc' && $views{can_view_MARC} ) {
-        return 'MARCdetail';
-    }
-    elsif ( $defaultview eq 'labeled_marc' && $views{can_view_labeledMARC} ) {
-        return 'labeledMARCdetail';
-    }
-    return 'detail';
-}

@@ -21,14 +21,14 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use C4::Auth;
-use C4::Output;
-use C4::Acquisition qw(GetHistory);
-use C4::Budgets qw(GetBudgetPeriods GetBudgetHierarchy CanUserUseBudget);
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_and_exit output_html_with_http_headers );
+use C4::Acquisition qw( GetHistory );
+use C4::Budgets qw( GetBudgetHierarchy GetBudget CanUserUseBudget GetBudgetPeriods GetBudgetPeriod );
 use Koha::Acquisition::Baskets;
 use Koha::Acquisition::Currencies;
 use Koha::Acquisition::Orders;
-use Koha::DateUtils qw(dt_from_string output_pref);
+use Koha::DateUtils qw( dt_from_string );
 
 my $input    = CGI->new;
 my $basketno = $input->param('basketno');
@@ -76,10 +76,8 @@ unless ( $input->param('from') ) {
     # Fill the form with year-1
     $from_placed_on->set_time_zone('floating')->subtract( years => 1 );
 }
-$filters->{from_placed_on} =
-  output_pref( { dt => $from_placed_on, dateformat => 'iso', dateonly => 1 } ),
-  $filters->{to_placed_on} =
-  output_pref( { dt => $to_placed_on, dateformat => 'iso', dateonly => 1 } ),
+$filters->{from_placed_on} = $from_placed_on;
+$filters->{to_placed_on}   = $to_placed_on;
 
   my ( @result_order_loop, @selected_order_loop );
 my @ordernumbers = split ',', scalar $input->param('ordernumbers') || '';
@@ -117,9 +115,8 @@ elsif ( $op eq 'batch_edit' ) {
     @{$budget_loop} =
       sort { uc( $a->{b_txt} ) cmp uc( $b->{b_txt} ) } @{$budget_loop};
 
-    my @currencies = Koha::Acquisition::Currencies->search;
     $template->param(
-        currencies  => \@currencies,
+        currencies  => Koha::Acquisition::Currencies->search,
         budget_loop => $budget_loop,
     );
 }

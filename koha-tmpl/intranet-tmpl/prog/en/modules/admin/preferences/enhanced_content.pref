@@ -1,20 +1,4 @@
 Enhanced content:
-    Adlibris:
-        -
-            - <strong>NOTE:</strong> Using resources such as external images might leak sensitive data to third parties.
-        -
-            - pref: AdlibrisCoversEnabled
-              default: 0
-              choices:
-                  0: "Don't show"
-                  1: "Show"
-            - cover images in OPAC results and detail listing from Swedish retailer <a href="https://www.adlibris.com/se">Adlibris</a>.
-        -
-            - "Use base URL: "
-            - pref: AdlibrisCoversURL
-              class: url
-              default: "http://www.adlibris.com/se/organisationer/showimagesafe.aspx"
-            - for the <a href="https://www.adlibris.com/se">Adlibris</a> cover service.
     All:
         -
             - <strong>NOTE:</strong> you can only choose one source of cover images from below, otherwise Koha will show the images from all sources selected.
@@ -223,7 +207,7 @@ Enhanced content:
               choices:
                   1: Show
                   0: "Don't show"
-            - cover images from Syndetics on search results and item detail pages on the OPAC in a
+            - cover images from Syndetics on search results and item detail pages in the OPAC and the staff interface in a
             - pref: SyndeticsCoverImageSize
               choices:
                   MC: medium
@@ -321,14 +305,14 @@ Enhanced content:
         -
             - pref: LocalCoverImages
               choices:
-                  1: Display
-                  0: "Don't display"
+                  1: Show
+                  0: "Don't show"
             - local cover images on staff interface search and details pages.
         -
             - pref: OPACLocalCoverImages
               choices:
-                  1: Display
-                  0: "Don't display"
+                  1: Show
+                  0: "Don't show"
             - local cover images on OPAC search and details pages.
         -
             - pref: AllowMultipleCovers
@@ -339,13 +323,13 @@ Enhanced content:
         -
             - pref: CustomCoverImages
               choices:
-                  1: Display
-                  0: "Don't display"
+                  1: Show
+                  0: "Don't show"
             - "custom remote URL images in the staff interface.<br/>"
             - pref: OPACCustomCoverImages
               choices:
-                  1: Display
-                  0: "Don't display"
+                  1: Show
+                  0: "Don't show"
             - "custom remote URL images at the OPAC.<br/>"
             - "Using the following URL:"
             - pref: CustomCoverImagesURL
@@ -412,18 +396,6 @@ Enhanced content:
             - for user access to OverDrive. <br />
             - If you enable access you must have a SIP connection registered with
             - OverDrive for patron authentication against Koha
-    RecordedBooks:
-        -
-            - Include RecordedBooks availability information with the client secret
-            - pref: RecordedBooksClientSecret
-            - .
-        -
-            - Show items from the RecordedBooks catalog of library ID
-            - pref: RecordedBooksLibraryID
-            - .
-        -
-            - RecordedBooks domain
-            - pref: RecordedBooksDomain
     Coce cover images cache:
         -
             - pref: OpacCoce
@@ -688,6 +660,7 @@ Enhanced content:
         -
             - Location of the Koha manual
             - pref: KohaManualBaseURL
+              class: url
             - You can specify the location of the Koha manual to use. By default it is https://koha-community.org/manual/
             - If starts with '/',  the value of <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=staffClientBaseURL">staffClientBaseURL</a> will be used as a prefix.
             - Note that it will be suffixed by the version / the language / the format (/17.11/en/html)

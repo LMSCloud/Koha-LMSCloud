@@ -7,9 +7,11 @@
 </head>
 
 <body id="ocirc_process_koc" class="circ ocirc">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'circ-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+[% END %]
 
+[% WRAPPER 'sub-header.inc' %]
 <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
     <ol>
         <li>
@@ -37,13 +39,14 @@
         [% END %]
     </ol>
 </nav>
+[% END %]
 
 <div class="main container-fluid">
     <div class="row">
         <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
 
 [% IF ( transactions_loaded ) %]
-  <h2>Koha offline circulation</h2>
+  <h1>Koha offline circulation</h1>
   <p>Your data was processed. Here are the results:</p>
   [% FOREACH message IN messages %]
     [% IF ( message.message ) %]
@@ -58,7 +61,7 @@
     [% IF ( message.payment ) %]<p>Accepted payment ([% message.amount | html %]) from <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% message.borrowernumber | uri %]">[% message.firstname | html %] [% message.surname | html %]</a> ([% message.cardnumber | html %]): [% message.datetime | html %]</p>[% END %]
   [% END %]
 [% ELSE %]
-   <h2>Upload offline circulation data</h2>
+   <h1>Upload offline circulation data</h1>
 
    <div id="fileuploadform">
      <form method="post" action="/cgi-bin/koha/offline_circ/process_koc.pl" enctype="multipart/form-data" class="validated">
@@ -67,8 +70,10 @@
             <input class="required" required="required" type="file" id="fileToUpload" size="50" name="fileToUpload" />
             <span class="required">Required</span>
        </li></ol>
-       <fieldset class="action"><input type="button" class="submit" value="Upload file" id="upload_file" /></fieldset>
 	   </fieldset>
+        <fieldset class="action">
+            <input type="button" class="btn btn-primary" value="Upload file" id="upload_file" />
+        </fieldset>
      </form>
      <div id="fileuploadstatus" class="progress_panel" style="display:none">Upload progress: <progress id="fileuploadprogress" max="100" value="0"></progress> <span class="fileuploadpercent">0</span>%</div>
      <div id="fileuploadfailed" style="display:none"></div>

@@ -19,16 +19,22 @@ package Koha::Plugins;
 
 use Modern::Perl;
 
-use Array::Utils qw(array_minus);
+use Array::Utils qw( array_minus );
 use Class::Inspector;
-use List::MoreUtils qw(any);
-use Module::Load::Conditional qw(can_load);
-use Module::Load qw(load);
+use List::MoreUtils qw( any );
+use Module::Load::Conditional qw( can_load );
+use Module::Load;
 use Module::Pluggable search_path => ['Koha::Plugin'], except => qr/::Edifact(|::Line|::Message|::Order|::Segment|::Transport)$/;
+use Try::Tiny;
 
 use C4::Context;
 use C4::Output;
+
+use Koha::Cache::Memory::Lite;
+use Koha::Exceptions::Plugin;
 use Koha::Plugins::Methods;
+
+use constant ENABLED_PLUGINS_CACHE_KEY => 'enabled_plugins';
 
 BEGIN {
     my $pluginsdir = C4::Context->config("pluginsdir");
@@ -40,6 +46,10 @@ BEGIN {
 =head1 NAME
 
 Koha::Plugins - Module for loading and managing plugins.
+
+=head2 new
+
+Constructor
 
 =cut
 
@@ -59,27 +69,74 @@ Calls a plugin method for all enabled plugins
 
     @responses = Koha::Plugins->call($method, @args)
 
+Note: Pass your arguments as refs, when you want subsequent plugins to use the value
+updated by preceding plugins, provided that these plugins support that.
+
 =cut
 
 sub call {
     my ($class, $method, @args) = @_;
 
+    return unless C4::Context->config('enable_plugins');
+
     my @responses;
-    if (C4::Context->config('enable_plugins')) {
-        my @plugins = $class->new({ enable_plugins => 1 })->GetPlugins({ method => $method });
-        @plugins = grep { $_->can($method) } @plugins;
-        foreach my $plugin (@plugins) {
-            my $response = eval { $plugin->$method(@args) };
-            if ($@) {
-                warn sprintf("Plugin error (%s): %s", $plugin->get_metadata->{name}, $@);
+    my @plugins = $class->get_enabled_plugins();
+    @plugins = grep { $_->can($method) } @plugins;
+
+    # TODO: Remove warn when after_hold_create is removed from the codebase
+    warn "after_hold_create is deprecated and will be removed soon. Contact the following plugin's authors: " . join( ', ', map {$_->{metadata}->{name}} @plugins)
+        if $method eq 'after_hold_create' and @plugins;
+
+    foreach my $plugin (@plugins) {
+        my $response = eval { $plugin->$method(@args) };
+        if ($@) {
+            warn sprintf("Plugin error (%s): %s", $plugin->get_metadata->{name}, $@);
+            next;
+        }
+
+        push @responses, $response;
+    }
+
+    return @responses;
+}
+
+=head2 get_enabled_plugins
+
+Returns a list of enabled plugins.
+
+    @plugins = Koha::Plugins->get_enabled_plugins();
+
+=cut
+
+sub get_enabled_plugins {
+    my ($class) = @_;
+
+    return unless C4::Context->config('enable_plugins');
+
+    my $enabled_plugins = Koha::Cache::Memory::Lite->get_from_cache(ENABLED_PLUGINS_CACHE_KEY);
+    unless ($enabled_plugins) {
+        $enabled_plugins = [];
+        my $rs = Koha::Database->schema->resultset('PluginData');
+        $rs = $rs->search({ plugin_key => '__ENABLED__', plugin_value => 1 });
+        my @plugin_classes = $rs->get_column('plugin_class')->all();
+        foreach my $plugin_class (@plugin_classes) {
+            unless (can_load(modules => { $plugin_class => undef }, nocache => 1)) {
+                warn "Failed to load $plugin_class: $Module::Load::Conditional::ERROR";
                 next;
             }
 
-            push @responses, $response;
-        }
+            my $plugin = eval { $plugin_class->new() };
+            if ($@ || !$plugin) {
+                warn "Failed to instantiate plugin $plugin_class: $@";
+                next;
+            }
 
+            push @$enabled_plugins, $plugin;
+        }
+        Koha::Cache::Memory::Lite->set_in_cache(ENABLED_PLUGINS_CACHE_KEY, $enabled_plugins);
     }
-    return @responses;
+
+    return @$enabled_plugins;
 }
 
 =head2 GetPlugins
@@ -93,7 +150,6 @@ method or metadata value.
     });
 
 The method and metadata parameters are optional.
-Available methods currently are: 'report', 'tool', 'to_marc', 'edifact'.
 If you pass multiple keys in the metadata hash, all keys must match.
 
 =cut
@@ -119,11 +175,23 @@ sub GetPlugins {
     while ( my $plugin_class = $plugin_classes->next ) {
 
         if ( can_load( modules => { $plugin_class => undef }, nocache => 1 ) ) {
-            my $plugin = $plugin_class->new({
-                enable_plugins => $self->{'enable_plugins'}
-                    # loads even if plugins are disabled
-                    # FIXME: is this for testing without bothering to mock config?
-            });
+
+            my $plugin;
+            my $failed_instantiation;
+
+            try {
+                $plugin = $plugin_class->new({
+                    enable_plugins => $self->{'enable_plugins'}
+                        # loads even if plugins are disabled
+                        # FIXME: is this for testing without bothering to mock config?
+                });
+            }
+            catch {
+                warn "$_";
+                $failed_instantiation = 1;
+            };
+
+            next if $failed_instantiation;
 
             next unless $plugin->is_enabled or
                         defined($params->{all}) && $params->{all};
@@ -153,7 +221,7 @@ This method iterates through all plugins physically present on a system.
 For each plugin module found, it will test that the plugin can be loaded,
 and if it can, will store its available methods in the plugin_methods table.
 
-NOTE: We re-load all plugins here as a protective measure in case someone
+NOTE: We reload all plugins here as a protective measure in case someone
 has removed a plugin directly from the system without using the UI
 
 =cut
@@ -168,7 +236,18 @@ sub InstallPlugins {
         if ( can_load( modules => { $plugin_class => undef }, nocache => 1 ) ) {
             next unless $plugin_class->isa('Koha::Plugins::Base');
 
-            my $plugin = $plugin_class->new({ enable_plugins => $self->{'enable_plugins'} });
+            my $plugin;
+            my $failed_instantiation;
+
+            try {
+                $plugin = $plugin_class->new({ enable_plugins => $self->{'enable_plugins'} });
+            }
+            catch {
+                warn "$_";
+                $failed_instantiation = 1;
+            };
+
+            next if $failed_instantiation;
 
             Koha::Plugins::Methods->search({ plugin_class => $plugin_class })->delete();
 
@@ -188,35 +267,14 @@ sub InstallPlugins {
             warn $error unless $error =~ m|^Could not find or check module '$plugin_class'|;
         }
     }
+
+    Koha::Cache::Memory::Lite->clear_from_cache(ENABLED_PLUGINS_CACHE_KEY);
+
     return @plugins;
 }
 
 1;
 __END__
-
-=head1 AVAILABLE HOOKS
-
-=head2 after_hold_create
-
-=head3 Parameters
-
-=over
-
-=item * C<$hold> - A Koha::Hold object that has just been inserted in database
-
-=back
-
-=head3 Return value
-
-None
-
-=head3 Example
-
-    sub after_hold_create {
-        my ($self, $hold) = @_;
-
-        warn "New hold for borrower " . $hold->borrower->borrowernumber;
-    }
 
 =head1 AUTHOR
 

@@ -21,11 +21,10 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
-use C4::Koha;
-use C4::Circulation qw{ IsBranchTransferAllowed DeleteBranchTransferLimits CreateBranchTransferLimit };
+use C4::Output qw( output_html_with_http_headers );
+use C4::Circulation qw( DeleteBranchTransferLimits CreateBranchTransferLimit IsBranchTransferAllowed );
 
 my $input = CGI->new;
 
@@ -34,7 +33,6 @@ my ($template, $loggedinuser, $cookie)
 			     query => $input,
 			     type => "intranet",
                  flagsrequired => {parameters => 'manage_transfers'},
-			     debug => 1,
 			     });
 
 my $dbh = C4::Context->dbh;
@@ -54,23 +52,13 @@ my $limitType = C4::Context->preference("BranchTransferLimitsType") || "ccode";
 my @codes;
 my @branchcodes;
 
-my $sth;
 if ( $limitType eq 'ccode' ) {
-	$sth = $dbh->prepare('SELECT authorised_value AS ccode FROM authorised_values WHERE category = "CCODE"');
+    @codes = Koha::AuthorisedValues->search({ category => 'CCODE' })->get_column('authorised_value');
 } elsif ( $limitType eq 'itemtype' ) {
-	$sth = $dbh->prepare('SELECT itemtype FROM itemtypes');
-}
-$sth->execute();
-while ( my $row = $sth->fetchrow_hashref ) {
-	push( @codes, $row->{ $limitType } );
+    @codes = Koha::ItemTypes->search->get_column('itemtype');
 }
 
-$sth = $dbh->prepare("SELECT branchcode FROM branches WHERE mobilebranch is NULL or mobilebranch = ''");
-$sth->execute();
-while ( my $row = $sth->fetchrow_hashref ) {
-	push( @branchcodes, $row->{'branchcode'} );
-}
-
+@branchcodes = Koha::Libraries->search({ -or => [ mobilebranch => undef, mobilebranch => '' ] })->get_column('branchcode');
 ## If Form Data Passed, Update the Database
 if ( $input->param('updateLimits') ) {
     DeleteBranchTransferLimits($branchcode);

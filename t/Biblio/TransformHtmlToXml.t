@@ -17,12 +17,12 @@
 
 use Modern::Perl;
 
-use Test::More tests => 3;
+use Test::More tests => 2;
 use t::lib::Mocks;
 
 use XML::Simple;
 
-use C4::Biblio qw/TransformHtmlToXml/;
+use C4::Biblio qw( TransformHtmlToXml );
 
 
 sub run_tests {
@@ -71,9 +71,3 @@ subtest "->TransformHtmlToXml (UNIMARC) tests" => sub {
     plan tests => 4;
     run_tests('UNIMARC');
 };
-
-subtest "->TransformHtmlToXml (NORMARC) tests" => sub {
-    plan tests => 4;
-    run_tests('NORMARC');
-};
-

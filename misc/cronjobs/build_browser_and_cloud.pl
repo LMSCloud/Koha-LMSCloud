@@ -3,23 +3,19 @@
 
 use strict;
 #use warnings; FIXME - Bug 2505
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
 
 use Koha::Script -cron;
 use C4::Koha;
 use C4::Context;
-use C4::Biblio;
 use Date::Calc;
 use Time::HiRes qw(gettimeofday);
 use ZOOM;
 use MARC::File::USMARC;
 use Getopt::Long;
 use C4::Log;
+use Koha::Biblios;
+
+my $command_line_options = join(" ",@ARGV);
 
 my ( $input_marc_file, $number) = ('',0);
 my ($version, $confirm,$field,$batch,$max_digits,$cloud_tag);
@@ -63,7 +59,7 @@ my $browser_subfield = $2;
 warn "browser : $browser_tag / $browser_subfield" unless $batch;
 die "no cloud or browser field/subfield defined : nothing to do !" unless $browser_tag or $cloud_tag;
 
-cronlogaction();
+cronlogaction({ info => $command_line_options });
 
 my $dbh = C4::Context->dbh;
 
@@ -91,8 +87,9 @@ while ((my ($biblionumber)= $sth->fetchrow)) {
     print "." unless $batch;
     #now, parse the record, extract the item fields, and store them in somewhere else.
     my $Koharecord;
+    my $biblio = Koha::Biblios->find($biblionumber);
     eval{
-        $Koharecord = GetMarcBiblio({ biblionumber => $biblionumber });
+        $Koharecord = $biblio->metadata->record
     };
     if($@){
 	    warn 'pb when getting biblio '.$i.' : '.$@;
@@ -170,6 +167,7 @@ if ($cloud_tag) {
 my $timeneeded = time() - $starttime;
 print "$i records done in $timeneeded seconds\n" unless $batch;
 
+cronlogaction({ action => 'End', info => "COMPLETED" });
 
 sub dewey_french {
 return {

@@ -19,13 +19,18 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Biblio;
-use C4::Koha;
-use C4::Items;
+use C4::Auth qw( get_template_and_user haspermission );
+use C4::Circulation qw( barcodedecode );
+use C4::Context;
+use C4::Koha qw(
+    GetNormalizedEAN
+    GetNormalizedISBN
+    GetNormalizedOCLCNumber
+    GetNormalizedUPC
+);
 use C4::Members;
-use C4::Output;
-use C4::XSLT;
+use C4::Output qw( pagination_bar output_html_with_http_headers );
+use C4::XSLT qw( XSLTParse4Display );
 
 use Koha::Biblios;
 use Koha::Biblioitems;
@@ -36,6 +41,7 @@ use Koha::Patrons;
 use Koha::Virtualshelves;
 
 use constant ANYONE => 2;
+use constant STAFF  => 3;
 
 my $query = CGI->new;
 
@@ -47,11 +53,12 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
-my $op       = $query->param('op')       || 'list';
-my $referer  = $query->param('referer')  || $op;
-my $category = $query->param('category') || 1;
-my ( $shelf, $shelfnumber, @messages );
+my $op       = $query->param('op')      || 'list';
+my $referer  = $query->param('referer') || $op;
+my $public   = $query->param('public') ? 1 : 0;
+my ( $shelf, $shelfnumber, @messages, $allow_transfer );
 
+# PART1: Perform a few actions
 if ( $op eq 'add_form' ) {
     # Only pass default
     $shelf = { allow_change_from_owner => 1 };
@@ -60,7 +67,7 @@ if ( $op eq 'add_form' ) {
     $shelf       = Koha::Virtualshelves->find($shelfnumber);
 
     if ( $shelf ) {
-        $category = $shelf->category;
+        $public = $shelf->public;
         my $patron = Koha::Patrons->find( $shelf->owner )->unblessed;
         $template->param( owner => $patron, );
         unless ( $shelf->can_be_managed( $loggedinuser ) ) {
@@ -76,9 +83,10 @@ if ( $op eq 'add_form' ) {
         $shelf = Koha::Virtualshelf->new(
             {   shelfname          => scalar $query->param('shelfname'),
                 sortfield          => scalar $query->param('sortfield'),
-                category           => scalar $query->param('category'),
+                public             => $public,
                 allow_change_from_owner => $allow_changes_from > 0,
                 allow_change_from_others => $allow_changes_from == ANYONE,
+                allow_change_from_staff => $allow_changes_from == STAFF,
                 owner              => scalar $query->param('owner'),
             }
         );
@@ -108,7 +116,8 @@ if ( $op eq 'add_form' ) {
             my $allow_changes_from = $query->param('allow_changes_from');
             $shelf->allow_change_from_owner( $allow_changes_from > 0 );
             $shelf->allow_change_from_others( $allow_changes_from == ANYONE );
-            $shelf->category( scalar $query->param('category') );
+            $shelf->allow_change_from_staff( $allow_changes_from == STAFF );
+            $shelf->public( scalar $query->param('public') );
             eval { $shelf->store };
 
             if ($@) {
@@ -149,7 +158,7 @@ if ( $op eq 'add_form' ) {
             if ( $shelf->can_biblios_be_added( $loggedinuser ) ) {
                 my @barcodes = split /\n/, $barcodes; # Entries are effectively passed in as a <cr> separated list
                 foreach my $barcode (@barcodes){
-                    $barcode =~ s/\r$//; # strip any naughty return chars
+                    $barcode = barcodedecode( $barcode ) if $barcode;
                     next if $barcode eq '';
                     my $item = Koha::Items->find({barcode => $barcode});
                     if ( $item ) {
@@ -225,8 +234,26 @@ if ( $op eq 'add_form' ) {
         push @messages, { type => 'alert', code => 'does_not_exist' };
     }
     $op = $referer;
+} elsif ( $op eq 'transfer' ) {
+    $shelfnumber = $query->param('shelfnumber');
+    $shelf = Koha::Virtualshelves->find($shelfnumber) if $shelfnumber;
+    my $new_owner = $query->param('new_owner'); # is a borrowernumber
+    my $error_code = $shelf
+        ? $shelf->cannot_be_transferred({ by => $loggedinuser, to => $new_owner, interface => 'intranet' })
+        : 'does_not_exist';
+
+    if( !$new_owner && $error_code eq 'missing_to_parameter' ) {
+        # show form
+    } elsif( $error_code ) {
+        push @messages, { type => 'error', code => $error_code };
+        $op = 'list';
+    } else {
+        $shelf->owner($new_owner)->store;
+        $op = 'list';
+    }
 }
 
+# PART2: After a possible action, further prepare form
 if ( $op eq 'view' ) {
     $shelfnumber ||= $query->param('shelfnumber');
     $shelf = Koha::Virtualshelves->find($shelfnumber);
@@ -253,25 +280,25 @@ if ( $op eq 'view' ) {
                 }
             );
 
-            my $xslfile = C4::Context->preference('XSLTListsDisplay');
-            my $lang   = $xslfile ? C4::Languages::getlanguage()  : undef;
-            my $sysxml = $xslfile ? C4::XSLT::get_xslt_sysprefs() : undef;
-
             my @items;
             while ( my $content = $contents->next ) {
                 my $this_item;
                 my $biblionumber = $content->biblionumber;
-                my $record       = GetMarcBiblio({ biblionumber => $biblionumber });
+                my $biblio       = Koha::Biblios->find($biblionumber);
+                my $record       = $biblio->metadata->record;
 
-                if ( $xslfile ) {
-                    $this_item->{XSLTBloc} = XSLTParse4Display( $biblionumber, $record, "XSLTListsDisplay",
-                                                                1, undef, $sysxml, $xslfile, $lang);
-                }
+                $this_item->{XSLTBloc} = XSLTParse4Display(
+                    {
+                        biblionumber => $biblionumber,
+                        record       => $record,
+                        xsl_syspref  => 'XSLTListsDisplay',
+                        fix_amps     => 1,
+                    }
+                );
 
                 my $marcflavour = C4::Context->preference("marcflavour");
                 my $itemtype = Koha::Biblioitems->search({ biblionumber => $content->biblionumber })->next->itemtype;
                 $itemtype = Koha::ItemTypes->find( $itemtype );
-                my $biblio = Koha::Biblios->find( $content->biblionumber );
                 $this_item->{title}             = $biblio->title;
                 $this_item->{subtitle}          = $biblio->subtitle;
                 $this_item->{medium}            = $biblio->medium;
@@ -295,8 +322,8 @@ if ( $op eq 'view' ) {
                 }
 
                 # Getting items infos for location display
-                my @items_infos = &GetItemsLocationInfo( $biblionumber );
-                $this_item->{'ITEM_RESULTS'} = \@items_infos;
+                my $items = $biblio->items;
+                $this_item->{'ITEM_RESULTS'} = $items;
                 $this_item->{biblionumber} = $biblionumber;
                 push @items, $this_item;
             }
@@ -305,14 +332,14 @@ if ( $op eq 'view' ) {
                 {
                     borrowernumber => $loggedinuser,
                     add_allowed    => 1,
-                    category       => 1,
+                    public         => 0,
                 }
             );
             my $some_public_shelves = Koha::Virtualshelves->get_some_shelves(
                 {
                     borrowernumber => $loggedinuser,
                     add_allowed    => 1,
-                    category       => 2,
+                    public         => 1,
                 }
             );
 
@@ -344,6 +371,9 @@ if ( $op eq 'view' ) {
     } else {
         push @messages, { type => 'alert', code => 'does_not_exist' };
     }
+} elsif( $op eq 'list' ) {
+    $allow_transfer = haspermission( C4::Context->userenv->{id}, { lists => 'edit_public_lists' } ) ? 1 : 0;
+        # this check only serves for button display
 }
 
 $template->param(
@@ -351,9 +381,10 @@ $template->param(
     referer  => $referer,
     shelf    => $shelf,
     messages => \@messages,
-    category => $category,
+    public   => $public,
     print    => scalar $query->param('print') || 0,
-    csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc', used_for => 'export_records' }) ],
+    csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc', used_for => 'export_records' })->as_list ],
+    allow_transfer => $allow_transfer,
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

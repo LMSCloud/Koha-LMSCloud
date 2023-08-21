@@ -21,9 +21,9 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use C4::Auth;
-use Koha::DateUtils;
-use Koha::Patron::Debarments;
+use C4::Auth qw( checkauth );
+use Koha::DateUtils qw( dt_from_string );
+use Koha::Patron::Debarments qw( AddDebarment DelDebarment );
 
 my $cgi = CGI->new;
 
@@ -44,6 +44,7 @@ if ( $action eq 'del' ) {
     DelDebarment( scalar $cgi->param('borrower_debarment_id') );
 } elsif ( $action eq 'add' ) {
     my $expiration = $cgi->param('expiration');
+    my $type = $cgi->param('debarred_type') // 'MANUAL';
     if ($expiration) {
         $expiration = dt_from_string($expiration);
         $expiration = $expiration->ymd();
@@ -51,7 +52,7 @@ if ( $action eq 'del' ) {
 
     AddDebarment(
         {   borrowernumber => $borrowernumber,
-            type           => 'MANUAL',
+            type           => $type,
             comment        => scalar $cgi->param('comment'),
             expiration     => $expiration,
         }

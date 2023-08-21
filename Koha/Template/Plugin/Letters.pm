@@ -20,7 +20,7 @@ use Modern::Perl;
 use Template::Plugin;
 use base qw( Template::Plugin );
 
-use C4::Letters;
+use C4::Letters qw( GetPatronLetters );
 
 sub all {
     my ( $self, $params ) = @_;

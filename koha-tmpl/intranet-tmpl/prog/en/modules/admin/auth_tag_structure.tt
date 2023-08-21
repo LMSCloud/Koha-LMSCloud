@@ -38,127 +38,77 @@ Authority MARC framework &rsaquo; Administration &rsaquo; Koha
 </head>
 
 <body id="admin_auth_tag_structure" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
-        <li>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/authtypes.pl">Authority types</a>
-        </li>
+        [% END %]
+
+        [% IF ( add_form || delete_confirm || delete_confirmed ) %]
+            [% IF ( authtypecode ) %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/admin/auth_tag_structure.pl?authtypecode=[% authtypecode | uri %]">[% authtypecode | html %] Framework</a>
+                [% END %]
+            [% ELSE %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/admin/auth_tag_structure.pl">Default framework</a>
+                [% END %]
+            [% END %]
+        [% END %]
 
         [% IF ( add_form ) %]
             [% IF ( use_heading_flags_p ) %]
-
                 [% IF ( heading_modify_tag_p ) %]
-                    [% IF ( authtypecode ) %]
-                        <li>
-                            <a href="/cgi-bin/koha/admin/auth_tag_structure.pl?authtypecode=[% authtypecode | uri %]">[% authtypecode | html %] Framework</a>
-                        </li>
-                    [% ELSE %]
-                        <li>
-                            <a href="/cgi-bin/koha/admin/auth_tag_structure.pl">Default framework</a>
-                        </li>
+                    [% WRAPPER breadcrumb_item bc_active= 1 %]
+                        <span>Modify tag</span>
                     [% END %]
-                    <li>
-                        <a href="#" aria-current="page">
-                            Modify tag
-                        </a>
-                    </li>
                 [% END %]
 
                 [% IF ( heading_add_tag_p ) %]
-                    [% IF ( authtypecode ) %]
-                        <li>
-                            <a href="/cgi-bin/koha/admin/auth_tag_structure.pl?authtypecode=[% authtypecode | uri %]">[% authtypecode | html %] framework</a>
-                        </li>
-                    [% ELSE %]
-                        <li>
-                            <a href="/cgi-bin/koha/admin/auth_tag_structure.pl">Default framework</a>
-                        </li>
+                    [% WRAPPER breadcrumb_item bc_active= 1 %]
+                        <span>New tag</span>
                     [% END %]
-                    <li>
-                        <a href="#" aria-current="page">
-                            New tag
-                        </a>
-                    </li>
                 [% END %]
 
             [% ELSE %]
-                [% IF ( authtypecode ) %]
-                    <li>
-                        <a href="/cgi-bin/koha/admin/auth_tag_structure.pl?authtypecode=[% authtypecode | uri %]">[% authtypecode | html %] Framework</a>
-                    </li>
-                [% ELSE %]
-                    <li>
-                        <a href="/cgi-bin/koha/admin/auth_tag_structure.pl">Default framework</a>
-                    </li>
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    [% action | html %]
                 [% END %]
-                <li>
-                    <a href="#" aria-current="page">
-                        [% action | html %]
-                    </a>
-                </li>
             [% END %]
 
         [% ELSE %]
             [% IF ( delete_confirm ) %]
-                [% IF ( authtypecode ) %]
-                    <li>
-                        <a href="/cgi-bin/koha/admin/auth_tag_structure.pl?authtypecode=[% authtypecode | uri %]">[% authtypecode | html %] framework</a>
-                    </li>
-                [% ELSE %]
-                    <li>
-                        <a href="/cgi-bin/koha/admin/auth_tag_structure.pl">Default framework</a>
-                    </li>
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Confirm deletion</span>
                 [% END %]
-                <li>
-                    <a href="#" aria-current="page">
-                        Confirm deletion
-                    </a>
-                </li>
             [% ELSE %]
                 [% IF ( delete_confirmed ) %]
-                    [% IF ( authtypecode ) %]
-                        <li>
-                            <a href="/cgi-bin/koha/admin/auth_tag_structure.pl?authtypecode=[% authtypecode | uri %]">[% authtypecode | html %] framework</a>
-                        </li>
-                    [% ELSE %]
-                        <li>
-                            <a href="/cgi-bin/koha/admin/auth_tag_structure.pl">Default framework</a>
-                        </li>
+                    [% WRAPPER breadcrumb_item bc_active= 1 %]
+                        <span>Data deleted</span>
                     [% END %]
-                    <li>
-                        <a href="#" aria-current="page">
-                            Data deleted
-                        </a>
-                    </li>
                 [% ELSE %]
                     [% IF ( authtypecode ) %]
-                        <li>
-                            <a href="#" aria-current="page">
-                                [% authtypecode | html %] Framework
-                            </a>
-                        </li>
+                        [% WRAPPER breadcrumb_item bc_active= 1 %]
+                            [% authtypecode | html %] Framework
+                        [% END %]
                     [% ELSE %]
-                        <li>
-                            <a href="#" aria-current="page">
-                                Default framework
-                            </a>
-                        </li>
+                        [% WRAPPER breadcrumb_item bc_active= 1 %]
+                            <span>Default framework</span>
+                        [% END %]
                     [% END %]
                 [% END %]
 
             [% END %]
         [% END %]
-    </ol>
-</nav>
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -171,8 +121,12 @@ Authority MARC framework &rsaquo; Administration &rsaquo; Koha
 [% IF ( add_form ) %]
 
     <h2>
-    [% IF ( heading_modify_tag_p ) %]Modify tag[% END %]
-    [% IF ( heading_add_tag_p ) %]New tag[% END %]
+        [% IF ( heading_modify_tag_p ) %]
+            <span>Modify tag</span>
+        [% END %]
+        [% IF ( heading_add_tag_p ) %]
+            <span>New tag</span>
+        [% END %]
     </h2>
     <form action="[% script_name | html %]" name="Aform" method="post" class="validated">
         <input type="hidden" name="op" value="add_validate" />
@@ -214,12 +168,12 @@ Authority MARC framework &rsaquo; Administration &rsaquo; Koha
                 <option value=""></option>
                 [% PROCESS options_for_authorised_value_categories authorised_value_categories => AuthorisedValues.GetCategories( selected => authorised_value ) %]
             </select>
-            (if you select a value here, the indicators will be limited to the authorized value list)
+            <div class="hint">If you select a value here, the indicators will be limited to the authorized value list</div>
         </li>
         </ol>
         </fieldset>
         <fieldset class="action">
-            <input type="submit" value="Submit" />
+            <input type="submit" class="btn btn-primary" value="Submit" />
             <a href="/cgi-bin/koha/admin/auth_tag_structure.pl?authtypecode=[% authtypecode | uri %]" class="cancel">Cancel</a>
         </fieldset>
     </form>
@@ -250,7 +204,7 @@ Authority MARC framework &rsaquo; Administration &rsaquo; Koha
     <form action="[% script_name | html %]" method="post">
     <input type="hidden" name="authtypecode" value="[% authtypecode | html %]" />
     <input type="hidden" name="searchfield" value="[% searchfield | html %]" />
-    <input type="submit" value="OK" class="submit" />
+    <input type="submit" value="OK" class="btn btn-primary" />
     </form></div>
 [% END %]
 [% IF ( authtype_create ) %]
@@ -268,7 +222,7 @@ Authority MARC framework &rsaquo; Administration &rsaquo; Koha
             [% END %]
         [% END %]
         </select>
-        <input type="submit" value="OK" class="submit" />
+        <input type="submit" value="OK" class="btn btn-primary" />
     </form>
 [% END %]
 
@@ -291,10 +245,12 @@ Authority MARC framework &rsaquo; Administration &rsaquo; Koha
     [% END %]
     </select>
     <input type="text" name="searchfield" value="[% searchfield | html %]" />
-    <input type="submit" value="OK" class="submit" />
+    <input type="submit" value="OK" class="btn btn-primary" />
 </form><br />
 <div id="pagertable_authtagstructure">
 </div>
+
+<div class="page-section">
 <table id="table_authtagstructure">
     <thead>
         <tr>
@@ -329,7 +285,7 @@ Authority MARC framework &rsaquo; Administration &rsaquo; Koha
         [% END %]
     </tbody>
     </table>
-
+</div> <!-- /.page-section -->
 [% END %]
 
             </main>

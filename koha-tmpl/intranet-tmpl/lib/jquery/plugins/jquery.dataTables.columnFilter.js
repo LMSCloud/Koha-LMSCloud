@@ -241,95 +241,6 @@
 
         }
 
-
-        function fnCreateDateRangeInput(oTable) {
-
-            var aoFragments = sRangeFormat.split(/[}{]/);
-
-            th.html("");
-            //th.html(_fnRangeLabelPart(0));
-            var sFromId = oTable.attr("id") + '_range_from_' + i;
-            var from = $('<input type="text" class="date_range_filter" id="' + sFromId + '" rel="' + i + '"/>');
-            from.datepicker();
-            //th.append(from);
-            //th.append(_fnRangeLabelPart(1));
-            var sToId = oTable.attr("id") + '_range_to_' + i;
-            var to = $('<input type="text" class="date_range_filter" id="' + sToId + '" rel="' + i + '"/>');
-            //th.append(to);
-            //th.append(_fnRangeLabelPart(2));
-
-            for (ti = 0; ti < aoFragments.length; ti++) {
-
-                if (aoFragments[ti] == properties.sDateFromToken) {
-                    th.append(from);
-                } else {
-                    if (aoFragments[ti] == properties.sDateToToken) {
-                        th.append(to);
-                    } else {
-                        th.append(aoFragments[ti]);
-                    }
-                }
-
-
-            }
-
-
-            th.wrapInner('<span class="filter_column filter_date_range" />');
-            to.datepicker();
-            var index = i;
-            aiCustomSearch_Indexes.push(i);
-
-
-            //------------start date range filtering function
-
-            //$.fn.dataTableExt.afnFiltering.push(
-            oTable.dataTableExt.afnFiltering.push(
-	        function (oSettings, aData, iDataIndex) {
-	            if (oTable.attr("id") != oSettings.sTableId)
-	                return true;
-
-	            var dStartDate = from.datepicker("getDate");
-
-	            var dEndDate = to.datepicker("getDate");
-
-	            if (dStartDate == null && dEndDate == null) {
-	                return true;
-	            }
-
-	            var dCellDate = null;
-	            try {
-	                if (aData[_fnColumnIndex(index)] == null || aData[_fnColumnIndex(index)] == "")
-	                    return false;
-	                dCellDate = $.datepicker.parseDate($.datepicker.regional[""].dateFormat, aData[_fnColumnIndex(index)]);
-	            } catch (ex) {
-	                return false;
-	            }
-	            if (dCellDate == null)
-	                return false;
-
-
-	            if (dStartDate == null && dCellDate <= dEndDate) {
-	                return true;
-	            }
-	            else if (dStartDate <= dCellDate && dEndDate == null) {
-	                return true;
-	            }
-	            else if (dStartDate <= dCellDate && dCellDate <= dEndDate) {
-	                return true;
-	            }
-	            return false;
-	        }
-        );
-            //------------end date range filtering function
-
-            $('#' + sFromId + ',#' + sToId, th).change(function () {
-                oTable.fnDraw();
-                fnOnFiltered();
-            });
-
-
-        }
-
         function fnCreateColumnSelect(oTable, aData, iColumn, nTh, sLabel, bRegex, oSelected) {
             if (aData == null)
                 aData = _fnGetColumnValues(oTable.fnSettings(), iColumn, true, false, true);
@@ -612,17 +523,20 @@
             var sFilterRow = "tr"; //Before fix for ColVis
 
             if (properties.sPlaceHolder == "head:after") {
-                var tr = $("tr:first", oTable.fnSettings().nTHead).detach();
-                //tr.appendTo($(oTable.fnSettings().nTHead));
-                if (oTable.fnSettings().bSortCellsTop) {
-                    tr.prependTo($(oTable.fnSettings().nTHead));
-                    //tr.appendTo($("thead", oTable));
-                    aoFilterCells = oTable.fnSettings().aoHeader[1];
-                }
-                else {
-                    tr.appendTo($(oTable.fnSettings().nTHead));
-                    //tr.prependTo($("thead", oTable));
-                    aoFilterCells = oTable.fnSettings().aoHeader[0];
+
+                if (!properties.bFiltersAlreadyActivated) {
+                    var tr = $("tr:first", oTable.fnSettings().nTHead).detach();
+                    //tr.appendTo($(oTable.fnSettings().nTHead));
+                    if (oTable.fnSettings().bSortCellsTop) {
+                        tr.prependTo($(oTable.fnSettings().nTHead));
+                        //tr.appendTo($("thead", oTable));
+                        aoFilterCells = oTable.fnSettings().aoHeader[1];
+                    }
+                    else {
+                        tr.appendTo($(oTable.fnSettings().nTHead));
+                        //tr.prependTo($("thead", oTable));
+                        aoFilterCells = oTable.fnSettings().aoHeader[0];
+                    }
                 }
 
                 sFilterRow = "tr:last";
@@ -630,27 +544,30 @@
 
             } else if (properties.sPlaceHolder == "head:before") {
 
-                if (oTable.fnSettings().bSortCellsTop) {
-                    var tr = $("tr:first", oTable.fnSettings().nTHead).detach();
-                    tr.appendTo($(oTable.fnSettings().nTHead));
-                    aoFilterCells = oTable.fnSettings().aoHeader[1];
-                } else {
-                    aoFilterCells = oTable.fnSettings().aoHeader[0];
+                if (!properties.bFiltersAlreadyActivated) {
+                    if (oTable.fnSettings().bSortCellsTop) {
+                        var tr = $("tr:first", oTable.fnSettings().nTHead).detach();
+                        tr.appendTo($(oTable.fnSettings().nTHead));
+                        aoFilterCells = oTable.fnSettings().aoHeader[1];
+                    } else {
+                        aoFilterCells = oTable.fnSettings().aoHeader[0];
+                    }
+                    /*else {
+                    //tr.prependTo($("thead", oTable));
+                    sFilterRow = "tr:first";
+                    }*/
                 }
-                /*else {
-                //tr.prependTo($("thead", oTable));
-                sFilterRow = "tr:first";
-                }*/
 
                 sFilterRow = "tr:first";
-
                 oHost = oTable.fnSettings().nTHead;
-
 
             }
 
-            //$(sFilterRow + " th", oHost).each(function (index) {//bug with ColVis
-            $(aoFilterCells).each(function (index) {//fix for ColVis
+            $(sFilterRow + " th", oHost).each(function (index) {
+            //$(aoFilterCells).each(function (index) {//fix for ColVis
+
+                var bHeaderHasInput = $(this).find('input').length;
+
                 i = index;
                 var aoColumn = { type: "text",
                     bRegex: false,
@@ -658,16 +575,20 @@
                     iMaxLenght: -1,
                     iFilterLength: 0
                 };
+
                 if (properties.aoColumns != null) {
                     if (properties.aoColumns.length < i || properties.aoColumns[i] == null)
                         return;
                     aoColumn = properties.aoColumns[i];
                 }
-                //label = $(this).text(); //Before fix for ColVis
-                label = $($(this)[0].cell).text(); //Fix for ColVis
+                if (bHeaderHasInput)
+                    label = $(this).find('input').val();
+                else
+                    label = $(this).text();
+                //label = $($(this)[0].cell).text(); //Fix for ColVis
                 if (aoColumn.sSelector == null) {
-                    //th = $($(this)[0]);//Before fix for ColVis
-                    th = $($(this)[0].cell); //Fix for ColVis
+                    th = $($(this)[0]);
+                    //th = $($(this)[0].cell); //Fix for ColVis
                 }
                 else {
                     th = $(aoColumn.sSelector);

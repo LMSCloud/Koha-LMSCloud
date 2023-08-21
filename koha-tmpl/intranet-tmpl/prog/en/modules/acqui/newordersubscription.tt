@@ -11,101 +11,99 @@
 </head>
 
 <body id="acq_newordersubscription" class="acq">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'acquisitions-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'acquisitions-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a>
-        </li>
-        <li>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% booksellername | html %]</a>
-        </li>
-        <li>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/basket.pl?basketno=[% basketno | uri %]">Basket [% basketno | html %]</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Add order from a subscription
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Add order from a subscription</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
         <div class="col-sm-10 col-sm-push-2">
             <main>
 
-            <h2>Serials subscriptions</h2>
-            [% IF (done_searched) %]
-                <label for="show_only_renewed">
-                    <input type="checkbox" style="vertical-align: middle;" id="show_only_renewed" />
-                    Show only renewed
-                </label>
-                [% IF (subs_loop) %]
-                    <table id="srlt">
-                        <thead>
-                            <tr>
-                                <th>ISSN</th>
-                                <th class="anti-the">Title</th>
-                                <th> Notes </th>
-                                <th>Vendor</th>
-                                <th>Library</th>
-                                <th>Call number</th>
-                                <th>Expiration date</th>
-                                <th class="NoSort"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        [% FOREACH sub IN subs_loop %]
-                            <tr data-reneweddate="[% sub.reneweddate | html %]" >
-                                <td>[% sub.issn | html %]</td>
-                                <td><a href="/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=[% sub.subscriptionid | uri %]" class="button" title="subscription detail">[% IF (sub.title) %][% sub.title | html %][% ELSE %]
-                                ---
-                            [% END %][% IF (sub.unititle) %], [% sub.unititle | html %][% END %]</a>
-                                </td>
-                                <td>[% IF (sub.publicnotes) %][% sub.publicnotes | html %][% END %]
-                                    [% IF (sub.internalnotes) %]([% sub.internalnotes | html %])[% END %]
-                                </td>
-                                <td>
-                                    [% IF (sub.vendorname) %][% sub.vendorname | html %][% END %]
-                                </td>
-                                <td>
-                                    [% IF (sub.branchcode) %][% Branches.GetName( sub.branchcode ) | html %][% END %]
-                                </td>
-                                <td>
-                                    [% IF (sub.callnumber) %][% sub.callnumber | html %][% END %]
-                                </td>
-                                <td data-order="[% sub.enddate | html %]">
-                                    [% sub.enddate | $KohaDates %]
-                                </td>
-                                <td class="actions">
-                                    [% IF (sub.alreadyOnOrder) %]
-                                        Outstanding order
-                                    [% END %]
-                                    [% IF not sub.aqbooksellerid || booksellerid == sub.aqbooksellerid %]
-                                        <a href="/cgi-bin/koha/acqui/neworderempty.pl?booksellerid=[% booksellerid | uri %]&amp;basketno=[% basketno | uri %]&amp;biblionumber=[% sub.biblionumber | uri %]&amp;from_subscriptionid=[% sub.subscriptionid | uri %]" title="Order this one" class="btn btn-default btn-xs">
-                                            <i class="fa fa-plus"></i> [% tp('verb', 'Order') | html %]
-                                        </a>
-                                    [% ELSE %]
-                                        <a title="This subscription depends on another supplier" style="cursor:help">Cannot be ordered</a>
-                                    [% END %]
-                                </td>
-                            </tr>
-                        [% END %]
-                        </tbody>
-                    </table>
+            <h1>Serials subscriptions</h1>
+            <div class="page-section">
+                [% IF (done_searched) %]
+                    <label for="show_only_renewed">
+                        <input type="checkbox" style="vertical-align: middle;" id="show_only_renewed" />
+                        Show only renewed
+                    </label>
+                    [% IF (subs_loop) %]
+                        <table id="srlt">
+                            <thead>
+                                <tr>
+                                    <th>ISSN</th>
+                                    <th class="anti-the">Title</th>
+                                    <th> Notes </th>
+                                    <th>Vendor</th>
+                                    <th>Library</th>
+                                    <th>Call number</th>
+                                    <th>Expiration date</th>
+                                    <th class="NoSort"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            [% FOREACH sub IN subs_loop %]
+                                <tr data-reneweddate="[% sub.reneweddate | html %]" >
+                                    <td>[% sub.issn | html %]</td>
+                                    <td><a href="/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=[% sub.subscriptionid | uri %]" class="button" title="subscription detail">[% IF (sub.title) %][% sub.title | html %][% ELSE %]
+                                    ---
+                                [% END %][% IF (sub.unititle) %], [% sub.unititle | html %][% END %]</a>
+                                    </td>
+                                    <td>[% IF (sub.publicnotes) %][% sub.publicnotes | html %][% END %]
+                                        [% IF (sub.internalnotes) %]([% sub.internalnotes | html %])[% END %]
+                                    </td>
+                                    <td>
+                                        [% IF (sub.vendorname) %][% sub.vendorname | html %][% END %]
+                                    </td>
+                                    <td>
+                                        [% IF (sub.branchcode) %][% Branches.GetName( sub.branchcode ) | html %][% END %]
+                                    </td>
+                                    <td>
+                                        [% IF (sub.callnumber) %][% sub.callnumber | html %][% END %]
+                                    </td>
+                                    <td data-order="[% sub.enddate | html %]">
+                                        [% sub.enddate | $KohaDates %]
+                                    </td>
+                                    <td class="actions">
+                                        [% IF (sub.alreadyOnOrder) %]
+                                            Outstanding order
+                                        [% END %]
+                                        [% IF not sub.aqbooksellerid || booksellerid == sub.aqbooksellerid %]
+                                            <a href="/cgi-bin/koha/acqui/neworderempty.pl?booksellerid=[% booksellerid | uri %]&amp;basketno=[% basketno | uri %]&amp;biblionumber=[% sub.biblionumber | uri %]&amp;from_subscriptionid=[% sub.subscriptionid | uri %]" title="Order this one" class="btn btn-default btn-xs">
+                                                <i class="fa fa-plus"></i> [% tp('verb', 'Order') | html %]
+                                            </a>
+                                        [% ELSE %]
+                                            <a title="This subscription depends on another supplier" style="cursor:help">Cannot be ordered</a>
+                                        [% END %]
+                                    </td>
+                                </tr>
+                            [% END %]
+                            </tbody>
+                        </table>
+                    [% ELSE %]
+                        <p>Sorry, there is no result for your search.</p>
+                    [% END %]
                 [% ELSE %]
-                    <p>Sorry, there is no result for your search.</p>
+                    <p>Use the search form on the left to find subscriptions.</p>
                 [% END %]
-            [% ELSE %]
-                <p>Use the search form on the left to find subscriptions.</p>
-            [% END %]
+            </div> <!-- /.page-section -->
         </main>
     </div> <!-- /.col-sm-10.col-sm-push-2 -->
 

@@ -1,0 +1,76 @@
+---
+type: object
+properties:
+  package_id:
+    type: string
+    description: internally assigned package identifier
+    readOnly: true
+  vendor_id:
+    description: foreign key to aqbooksellers
+    type:
+      - integer
+      - "null"
+  name:
+    description: name of the package
+    type: string
+  provider:
+    description: external id of the package
+    type:
+      - string
+      - "null"
+  external_id:
+    description: external id of the package
+    type:
+      - string
+      - "null"
+  koha_internal_id:
+    description: internal id of the package
+    type:
+      - integer
+      - "null"
+  package_type:
+    description: type of the package
+    type:
+      - string
+      - "null"
+  content_type:
+    description: content type of the package
+    type:
+      - string
+      - "null"
+  notes:
+    description: notes about the package
+    type:
+      - string
+      - "null"
+  created_on:
+    description: date of creation
+    type:
+      - string
+      - "null"
+  package_agreements:
+    type: array
+    description: agreements
+    items:
+      $ref: erm_eholdings_package_agreement.yaml
+  resources:
+    type: array
+    description: resources
+    items:
+      $ref: erm_eholdings_resource.yaml
+  vendor:
+    type:
+      - object
+      - "null"
+  is_selected:
+    type:
+      - boolean
+      - "null"
+  resources_count:
+    type:
+      - integer
+      - "null"
+
+additionalProperties: false
+required:
+  - name

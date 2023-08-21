@@ -2,13 +2,22 @@ package Koha::Exceptions::Patron;
 
 use Modern::Perl;
 
+use Koha::Exception;
+
 use Exception::Class (
     'Koha::Exceptions::Patron' => {
-        description => "Something went wrong!"
+        isa => 'Koha::Exception',
+    },
+    'Koha::Exceptions::Patron::MissingEmailAddress' => {
+        description => "Patron has no email address",
     },
     'Koha::Exceptions::Patron::FailedDelete' => {
         isa         => 'Koha::Exceptions::Patron',
         description => "Deleting patron failed"
+    },
+    'Koha::Exceptions::Patron::FailedAnonymizing' => {
+        isa         => 'Koha::Exceptions::Patron',
+        description => "Anonymizing patron reading history failed"
     },
     'Koha::Exceptions::Patron::FailedDeleteAnonymousPatron' => {
         isa         => 'Koha::Exceptions::Patron',

@@ -1,5 +1,6 @@
 [% USE raw %]
 [% USE Asset %]
+[% USE KohaDates %]
 [% USE Price %]
 [% USE TablesSettings %]
 [% SET footerjs = 1 %]
@@ -8,35 +9,29 @@
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="rep_orders_by_budget" class="rep">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
-        </li>
-        [% IF ( get_orders ) %]
-            <li>
-                <a href="/cgi-bin/koha/reports/orders_by_fund.pl">Orders by fund</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Results
-                </a>
-            </li>
-        [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Orders by fund
-                </a>
-            </li>
         [% END %]
-    </ol>
-</nav>
+        [% IF ( get_orders ) %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/reports/orders_by_fund.pl">Orders by fund</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Results</span>
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Orders by fund</span>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -88,8 +83,8 @@
             <td>[% ordersloo.quantity | html %]</td>
             <td>[% ordersloo.total_rrp | $Price %]</td>
             <td>[% ordersloo.total_ecost | $Price %]</td>
-            <td>[% ordersloo.entrydate | html %]</td>
-            <td>[% ordersloo.datereceived | html %]</td>
+            <td data-order="[% ordersloo.entrydate | html %]">[% ordersloo.entrydate | $KohaDates %]</td>
+            <td data-order="[% ordersloo.datereceived | html %]">[% ordersloo.datereceived | $KohaDates %]</td>
             <td>[% ordersloo.order_internalnote | html %]</td>
             <td>[% ordersloo.order_vendornote | html %]</td>
             </tr>
@@ -113,7 +108,7 @@
                 [% bdgclass=budgetsloo.active? "": "b_inactive" | html %]
                     <option class="[% bdgclass | html %]" value="[% budgetsloo.value | html %]">
             [% END %]
-            [% budgetsloo.description | html %] [% IF !budgetsloo.active %](inactive)[% END %]
+            [% budgetsloo.description | html %] [% IF !budgetsloo.active %]<span>(inactive)</span>[% END %]
             </option>
         [% END %]
         </select>
@@ -151,7 +146,7 @@
         </fieldset>
 
         <fieldset class="action">
-        <input type="submit" value="Submit" />
+        <input type="submit" class="btn btn-primary" value="Submit" />
         <input type="hidden" name="get_orders" value="1" /></fieldset>
         </form>
 
@@ -171,14 +166,11 @@
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'columns_settings.inc' %]
     <script>
-        var columns_settings = [% TablesSettings.GetColumns( 'reports', 'orders_by_fund', 'funds-table', 'json' ) | $raw %];
-        [% SET table_settings = TablesSettings.GetTableSettings( 'reports', 'orders_by_fund', 'funds-table' ) %];
+        var table_settings = [% TablesSettings.GetTableSettings( 'reports', 'orders_by_fund', 'funds-table', 'json' ) | $raw %];
         $(document).ready( function () {
             var funds_table = KohaTable("funds", {
-                "pageLength": [% table_settings.default_display_length | html %],
-                "order": [[ [% table_settings.default_sort_order | html %], 'asc']],
                 'autoWidth': false,
-            }, columns_settings );
+            }, table_settings );
 
             showallbudgets = $('#budgetfilter').html();
             $('#budgetfilter .b_inactive').remove();

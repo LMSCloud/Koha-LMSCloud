@@ -6,15 +6,16 @@
 [% USE ItemTypes %]
 [% USE AuthorisedValues %]
 [% USE TablesSettings %]
+[% PROCESS 'i18n.inc' %]
 [% PROCESS 'member-display-address-style.inc' %]
 [% SET footerjs = 1 %]
 [% BLOCK display_bormessagepref %]
     [% IF ( bormessagepref ) %]
-        <li class="notification_method">Patron notification:
+        <li class="notification_method"><span>Patron notification:</span>
             [% FOREACH mtt IN bormessagepref.keys %]
-                [%~ IF ( mtt == 'email' ) %] Email[% END ~%]
-                [%~ IF ( mtt == 'phone' ) %] Phone[% END ~%]
-                [%~ IF ( mtt == 'sms' ) %] SMS[% END ~%]
+                [%~ IF ( mtt == 'email' ) %] <span>Email</span>[% END ~%]
+                [%~ IF ( mtt == 'phone' ) %] <span>Phone</span>[% END ~%]
+                [%~ IF ( mtt == 'sms' ) %] <span>SMS</span>[% END ~%]
                 [%~ UNLESS loop.last %], [% ELSE %].[% END ~%]
             [% END %]
         </li>
@@ -35,24 +36,20 @@
 <body id="circ_returns" class="circ">
     <span class="audio-alert-success"></span>
 
-    [% INCLUDE 'header.inc' %]
-    [% INCLUDE 'checkin-search.inc' %]
+    [% WRAPPER 'header.inc' %]
+        [% INCLUDE 'checkin-search.inc' %]
+    [% END %]
 
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-        <ol>
-            <li>
-                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-            </li>
-            <li>
+    [% WRAPPER 'sub-header.inc' %]
+        [% WRAPPER breadcrumbs %]
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Check in
-                </a>
-            </li>
-        </ol>
-    </nav>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Check in</span>
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
+    [% END #/ WRAPPER sub-header.inc %]
 
     <div class="main container-fluid">
         <div class="row">
@@ -125,16 +122,16 @@
                                      <h3>Reason for transfer</h3>
                                      <p>
                                          [%- SWITCH trigger -%]
-                                             [%- CASE 'Manual' -%]Manual
-                                             [%- CASE 'StockrotationAdvance' -%]Stock rotation advance
-                                             [%- CASE 'StockrotationRepatriation' -%]Stock rotation repatriation
-                                             [%- CASE 'ReturnToHome' -%]Return to home library
-                                             [%- CASE 'ReturnToHolding' -%]Return to holding library
-                                             [%- CASE 'RotatingCollection' -%]Rotating collection
-                                             [%- CASE 'Reserve' -%]Reserve
-                                             [%- CASE 'LostReserve' -%]Lost reserve
-                                             [%- CASE 'CancelReserve' -%]Cancelled reserve
-                                             [%- CASE 'TransferCancellation' -%]Transfer was cancelled whilst in transit
+                                             [%- CASE 'Manual' -%]<span>Manual</span>
+                                             [%- CASE 'StockrotationAdvance' -%]<span>Stock rotation advance</span>
+                                             [%- CASE 'StockrotationRepatriation' -%]<span>Stock rotation repatriation</span>
+                                             [%- CASE 'ReturnToHome' -%]<span>Return to home library</span>
+                                             [%- CASE 'ReturnToHolding' -%]<span>Return to holding library</span>
+                                             [%- CASE 'RotatingCollection' -%]<span>Rotating collection</span>
+                                             [%- CASE 'Reserve' -%]<span>Hold</span>
+                                             [%- CASE 'LostReserve' -%]<span>Lost hold</span>
+                                             [%- CASE 'CancelReserve' -%]<span>Cancelled hold</span>
+                                             [%- CASE 'TransferCancellation' -%]<span>Transfer was cancelled whilst in transit</span>
                                          [%- END -%]
                                      </p>
                                  </div>
@@ -153,7 +150,7 @@
                             [% END %]
 
                             [% IF additional_materials && !needs_confirm && !multiple_confirmed %]
-                                <div class="dialog message" id="materials">
+                                <div id="materials" class="dialog message">
                                     Note about the accompanying materials: [% additional_materials | html %]
                                 </div>
                             [% END %]
@@ -192,7 +189,7 @@
                                     <ul>
                                         [% FOREACH rc IN ReturnClaims %]
                                             <li>
-                                                [% INCLUDE 'patron-title.inc' patron=rc.patron hide_patron_infos_if_needed=1 invert_name=1 %]
+                                                [% INCLUDE 'patron-title.inc' patron=rc.patron hide_patron_infos_if_needed=1 invert_name=1 %] <a class="btn btn-default btn-xs return-claim-tools-resolve" role="button" data-return-claim-id="[% rc.id | html %]" data-current-lost-status="0"><i class="fa fa-check-square"></i> Resolve</a>
                                             </li>
                                         [% END %]
                                     </ul>
@@ -217,6 +214,39 @@
                                 </div>
                             [% END %]
 
+                            <!-- Bundle has items missing -->
+                            [% IF missing_items %]
+                                <div id="bundle_missing_items" class="dialog alert">
+                                    <h3>Bundle had missing items</h3>
+                                    <p>Bundle contents list updated</p>
+                                    <p>
+                                        <a class="btn btn-default btn-xs" role="button" data-toggle="modal" href="#bundleContentsModal"><i class="fa fa-eye" aria-hidden="true"></i> View updated contents list</a>
+                                        <a class="btn btn-default btn-xs" role="button" data-toggle="modal" href="#bundleMissingModal"><i class="fa fa-eye" aria-hidden="true"></i> View list of missing items</a>
+                                    </p>
+                                </div>
+                            [% END %]
+
+                            <!-- Bundle contained unexpected items -->
+                            [% IF unexpected_items %]
+                                <div id="bundle_unexpected_items" class="dialog alert">
+                                    <h3>Bundle had unexpected items</h3>
+                                    <p>Please place the following items to one side</p>
+                                    <ul>
+                                    [% FOREACH unexpected_item IN unexpected_items %]
+                                        <li>[% INCLUDE 'biblio-title.inc' biblio=unexpected_item.biblio %] - [% unexpected_item.barcode | html %]</li>
+                                    [% END %]
+                                    </ul>
+                                </div>
+                            [% END %]
+
+                            <!-- Item checked in outside of bundle -->
+                            [% IF InBundle %]
+                                <div id="bundle_item_outside" class="dialog alert audio-alert-warning">
+                                    <h3>Item belongs in bundle</h3>
+                                    <p>This item belongs to a bundle: [% INCLUDE 'biblio-title.inc' biblio=InBundle.biblio %] - [% InBundle.barcode | html %]</p>
+                                    <p><button class="btn btn-default btn-xs bundle_remove" role="button" data-itemnumber="[% itemnumber | uri %]" data-hostnumber="[% InBundle.itemnumber | uri %]"><i class="fa fa-minus"></i> Remove from bundle</button></p>
+                                </div>
+                            [% END %]
 
                             [% IF ( errmsgloop ) %]
                                 <div class="dialog alert audio-alert-warning">
@@ -227,6 +257,9 @@
                                     [% FOREACH errmsgloo IN errmsgloop %]
                                         [% IF ( errmsgloo.NotForLoanStatusUpdated ) %]
                                             <p class="problem ret_nflupdate">
+                                            [% IF errmsgloo.NotForLoanStatusUpdated.to == 'ONLYMESSAGE' %]
+                                                [% AuthorisedValues.GetByCode( 'NOT_LOAN', errmsgloo.NotForLoanStatusUpdated.from ) | html %]
+                                            [% ELSE %]
                                                 Not for loan status updated.
                                                 <br />Old value:
                                                 [% IF errmsgloo.NotForLoanStatusUpdated.from %]
@@ -244,23 +277,24 @@
                                                 [% ELSE %]
                                                     Available for loan.
                                                 [% END %]
+                                            [% END %]
                                             </p>
                                         [% END %]
                                         [% IF ( errmsgloo.ItemLocationUpdated ) %]
                                              <p class="problem ret_location_update">
                                                  Item shelving location updated.
-                                                <br />Old value:
+                                                <br /><span>Old value:</span>
                                                 [% IF errmsgloo.ItemLocationUpdated.from %]
                                                     [% SET av_description = AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => errmsgloo.ItemLocationUpdated.from ) %]
                                                     [% IF errmsgloo.ItemLocationUpdated.from == '' %]
-                                                        empty
+                                                        <span>empty</span>
                                                     [% ELSIF av_description == '' %]
-                                                        [% errmsgloo.ItemLocationUpdated.from | html %] (No description available)
+                                                        [% errmsgloo.ItemLocationUpdated.from | html %] (<span>No description available</span>)
                                                     [% ELSE %]
                                                         [% av_description | html %]
                                                     [% END %]
                                                 [% ELSE %]
-                                                    "Blank"
+                                                    <span>"Blank"</span>
                                                 [% END %]
                                                 <br />New value:
                                                 [% IF errmsgloo.ItemLocationUpdated.to %]
@@ -299,7 +333,7 @@
                                                 <p class="problem ret_checkedin">Item was lost, now found.</p>
                                             [% END %]
                                             [% IF LostItemFeeRefunded and not Koha.Preference('BlockReturnOfLostItems') %]
-                                                <p class="problem ret_refund">A refund has been applied to the borrowing patron's account.</p>
+                                                <p class="problem ret_refund">A refund for the lost item charge has been applied to the borrowing patron's account.</p>
                                             [% ELSIF LostItemFeeCharged and not Koha.Preference('BlockReturnOfLostItems') %]
                                                 <p class="problem ret_charged">A refund for the lost item charge has been applied to the borrowing patron's account, and new overdue charge has been calculated and applied.</p>
                                             [% ELSIF LostItemFeeRestored and not Koha.Preference('BlockReturnOfLostItems') %]
@@ -309,6 +343,11 @@
                                                <p><strong>NOT CHECKED IN</strong></p>
                                             [% ELSE %]
                                                 <p class="problem ret_feeremains">Any lost item fees for this item will remain on the patron's account.</p>
+                                            [% END %]
+                                            [% IF ProcessingFeeRefunded and not Koha.Preference('BlockReturnOfLostItems') %]
+                                                <p class="problem ret_refund">A refund for the lost item processing charge has been applied to the borrowing patron's account.</p>
+                                            [% ELSE %]
+                                                <p class="problem ret_feeremains">Any processing fees for this item will remain on the patron's account.</p>
                                             [% END %]
                                         [% END %]
                                         [% IF ( errmsgloo.withdrawn ) %]
@@ -344,9 +383,17 @@
                                 [% ELSE %]
                                     <div class="dialog message">
                                 [% END %]
-                                        <p class="problem ret_checkinmsg">[% checkinmsg | html_line_break %]</p>
+                                        <p class="ret_checkinmsg">[% checkinmsg | html_line_break %]</p>
                                     </div>
                             [% END # /IF checkinmsg %]
+
+                            [% IF bundle_items && !missing_items %]
+                                <div class="dialog message">
+                                    <h3>Bundle verified</h3>
+                                    <p>The bundle content was verified</p>
+                                    <p><a class="btn btn-default btn-xs" role="button" data-toggle="modal" href="#bundleContentsModal"><i class="fa fa-eye" aria-hidden="true"></i> View contents list</a></p>
+                                </div>
+                            [% END %]
                         [% END # /BLOCK all_checkin_messages %]
 
                         [% IF needs_confirm %]
@@ -367,6 +414,7 @@
                                             <form method="post" action="/cgi-bin/koha/circ/returns.pl" autocomplete="off">
                                                 <input type="hidden" name="barcode" value="[% item.barcode | html %]" />
                                                 <input type="hidden" name="multiple_confirm" value="1" />
+                                                <input type="hidden" name="dropboxmode" value="[% dropboxmode | html %]" />
                                                 [% FOREACH inputloo IN inputloop %]
                                                     <input type="hidden" name="ri-[% inputloo.counter | html %]" value="[% inputloo.barcode | html %]" />
                                                     <input type="hidden" name="dd-[% inputloo.counter | html %]" value="[% inputloo.duedate | html %]" />
@@ -379,6 +427,91 @@
                                     </div>
                                 </div>
                             </div>
+                        [% END %]
+
+                        [% IF items_bundle_return_confirmation %]
+                        <div id="bundle-needsconfirmation-modal" class="modal fade audio-alert-action block">
+                            <div class="modal-dialog modal-wide">
+                                <div class="modal-content">
+                                    <form method="post">
+                                        <div class="modal-header">
+                                            <h3>Please confirm bundle contents for [% item.barcode | html %]</h3>
+                                        </div>
+                                        <div class="modal-body">
+
+                                            <table class="table table-condensed table-bordered" id="items-bundle-contents-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Title</th>
+                                                        <th>Author</th>
+                                                        <th>Item type</th>
+                                                        <th>Barcode</th>
+                                                        [% IF !item.onloan %]
+                                                        <th>Status</th>
+                                                        [% END %]
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    [% FOREACH bundle_item IN item.bundle_items %]
+                                                    [% IF !item.onloan %]
+                                                    <tr data-barcode="[% bundle_item.barcode | html %]">
+                                                        <td>[% INCLUDE 'biblio-title.inc' biblio=bundle_item.biblio link = 1 %]</td>
+                                                        <td>[% bundle_item.biblio.author | html %]</td>
+                                                        <td>[% ItemTypes.GetDescription(bundle_item.itype) | html %]</td>
+                                                        <td>[% bundle_item.barcode | html %]</td>
+                                                        <td>
+                                                            [% IF bundle_item.itemlost %]
+                                                                [% itemlost_description = AuthorisedValues.GetDescriptionByKohaField({ kohafield = 'items.itemlost', authorised_value = bundle_item.itemlost }) %]
+                                                                <span class="lost">[% itemlost_description | html %]</span>
+                                                            [% ELSE %]
+                                                                Present
+                                                            [% END %]
+                                                        </td>
+                                                    </tr>
+                                                    [% ELSIF !bundle_item.itemlost %]
+                                                    <tr data-barcode="[% bundle_item.barcode | html %]">
+                                                        <td>[% INCLUDE 'biblio-title.inc' biblio=bundle_item.biblio link = 1 %]</td>
+                                                        <td>[% bundle_item.biblio.author | html %]</td>
+                                                        <td>[% ItemTypes.GetDescription(bundle_item.itype) | html %]</td>
+                                                        <td>[% bundle_item.barcode | html %]</td>
+                                                    </tr>
+                                                    [% END %]
+                                                    [% END %]
+                                                </tbody>
+                                            </table>
+
+                                            <div class="form-group">
+                                                <label for="verify-items-bundle-contents-barcodes">Barcodes <span id="verify-progress" class="pull-right" style="display: none"><span id="verified">0</span> of <span id="expected"></span> verified</span></label>
+                                                <textarea autocomplete="off" id="verify-items-bundle-contents-barcodes" name="verify-items-bundle-contents-barcodes" class="form-control"></textarea>
+                                                [% IF item.onloan %]
+                                                <div class="help-block">Scan all barcodes of items found in the items bundle. If any items are missing, they will be marked as lost</div>
+                                                [% ELSE %]
+                                                <div class="help-block">Optionally scan all barcodes of items found in the items bundle to perform an inventory check. If any items are missing, they will be marked as lost</div>
+                                                [% END %]
+                                            </div>
+
+                                            <div id="bundle-feedback" class="alert" style="display:none"></div>
+
+                                        </div>
+                                        <div class="modal-footer">
+                                            <input type="hidden" name="barcode" value="[% item.barcode | html %]">
+                                            <input type="hidden" name="confirm_items_bundle_return" value="1">
+                                            [% FOREACH inputloo IN inputloop %]
+                                            <input type="hidden" name="ri-[% inputloo.counter | html %]" value="[% inputloo.barcode | html %]" />
+                                            <input type="hidden" name="dd-[% inputloo.counter | html %]" value="[% inputloo.duedate | html %]" />
+                                            <input type="hidden" name="bn-[% inputloo.counter | html %]" value="[% inputloo.borrowernumber | html %]" />
+                                            [% END %]
+                                            [% IF item.onloan %]
+                                            <button type="submit" class="btn btn-default"><i class="fa fa-check"></i> Confirm checkin and mark missing items as lost</button>
+                                            [% ELSE %]
+                                            <button type="submit" class="btn btn-default"><i class="fa fa-check"></i> Confirm inventory check and mark items as lost</button>
+                                            [% END %]
+                                            <button type="button" data-dismiss="modal" class="btn btn-default"><i class="fa fa-close"></i> Cancel</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
                         [% END %]
 
                         [% IF wrongbranch %]
@@ -456,11 +589,11 @@
 
                                                 <div class="modal-footer">
                                                     <!-- CONFIRM -->
-                                                    <button class="btn btn-default approve" type="submit"><i class="fa fa-check"></i> OK</button>
+                                                    <button class="btn btn-default approve" type="submit" accesskey="y"><i class="fa fa-check"></i> OK (Y)</button>
                                                     <!-- PRINT SLIP -->
-                                                    <button type="button" data-dismiss="modal" class="btn btn-default submit openWin" data-transfer="[% NewTransfer | html %]" data-url="transfer-slip.pl?transferitem=[% itemnumber | uri %]&amp;&amp;branchcode=[% TransferWaitingAt | uri %]&amp;op=slip"><i class="fa fa-print"></i> Print transfer slip</button>
+                                                    <button type="button" data-dismiss="modal" class="btn btn-default submit openWin" data-transfer="[% NewTransfer | html %]" data-url="transfer-slip.pl?transferitem=[% itemnumber | uri %]&amp;&amp;branchcode=[% TransferWaitingAt | uri %]&amp;op=slip" accesskey="p"><i class="fa fa-print"></i> Print transfer slip (P)</button>
                                                     <!-- CANCEL TRANSFER -->
-                                                    <button type="button" data-dismiss="modal" class="btn btn-default deny cancel"><i class="fa fa-times"></i> Cancel transfer</button>
+                                                    <button type="button" data-dismiss="modal" class="btn btn-default deny cancel" accesskey="x"><i class="fa fa-times"></i> Cancel transfer (X)</button>
                                                 </div> <!-- /.modal-footer -->
                                             </form> <!-- /wrongtransferform -->
                                         </div> <!-- /.modal-content -->
@@ -545,17 +678,20 @@
                                                     <input type="hidden" name="cancel_reserve" value="0" />
                                                     <input id="confirm-hold-barcode" type="hidden" name="barcode" value="[% barcode | html %]" />
 
-                                                    <button type="submit" class="btn btn-default approve" data-dismiss="modal">
-                                                        <i class="fa fa-check"></i> Confirm hold
+                                                    <button type="submit" class="btn btn-default approve" data-dismiss="modal" accesskey="y">
+                                                        <i class="fa fa-check"></i> Confirm hold (Y)
                                                     </button>
 
                                                     <input type="hidden" name="print_slip" value="0" />
-                                                    <button type="button" class="btn btn-default print">
-                                                        <i class="fa fa-print"></i> Print slip and confirm
+                                                    <button type="button" class="btn btn-default print" accesskey="P">
+                                                        <i class="fa fa-print"></i> Print slip and confirm (P)
+                                                    </button>
+                                                    <button data-dismiss="modal" aria-hidden="true" type="submit" class="btn btn-default" accesskey="I">
+                                                        <i class="fa fa-remove"></i> Ignore (I)
                                                     </button>
 
-                                                    <button type="button" class="btn btn-default deny cancel-hold">
-                                                        <i class="fa fa-times"></i> Cancel hold
+                                                    <button type="button" class="btn btn-default deny cancel-hold" accesskey="X">
+                                                        <i class="fa fa-trash"></i> Cancel hold (X)
                                                     </button>
                                                 </div> <!-- /.modal-footer -->
                                             </form> <!-- /.confirm -->
@@ -600,12 +736,12 @@
                                                 </div>
                                                 <div class="modal-footer">
                                                     [% IF !transfer %]
-                                                        <button type="submit" name="dotransfer" value="Yes" class="btn btn-default approve"><i class="fa fa-check"></i> Yes</button>
+                                                        <button type="submit" name="dotransfer" value="Yes" class="btn btn-default approve" accesskey="y"><i class="fa fa-check"></i> Yes (Y)</button>
                                                         <button type="button" name="dotransfer" class="btn btn-default print openWin" data-url="transfer-slip.pl?transferitem=[% itemnumber | uri %]&amp;&amp;branchcode=[% returnbranch | uri %]&amp;op=slip"><i class="fa fa-print"></i> Yes, print slip</button>
-                                                        <button type="button" data-dismiss="modal" class="btn btn-default deny" name="notransfer" value="No"><i class="fa fa-times"></i> No</button>
+                                                        <button type="button" data-dismiss="modal" class="btn btn-default deny" name="notransfer" value="No" accesskey="n"><i class="fa fa-times"></i> No (N)</button>
                                                     [% ELSE %]
-                                                        <button type="button" data-dismiss="modal" class="btn btn-default approve"><i class="fa fa-check"></i> OK</button>
-                                                        <button type="button" data-dismiss="modal" class="btn btn-default print openWin" data-url="transfer-slip.pl?transferitem=[% itemnumber | uri %]&amp;branchcode=[% transfer | uri %]&amp;op=slip"><i class="fa fa-print"></i> Print slip</button>
+                                                        <button type="button" data-dismiss="modal" class="btn btn-default approve" accesskey="y"><i class="fa fa-check"></i> OK (Y)</button>
+                                                        <button type="button" data-dismiss="modal" class="btn btn-default print openWin" data-url="transfer-slip.pl?transferitem=[% itemnumber | uri %]&amp;branchcode=[% transfer | uri %]&amp;op=slip" accesskey="p"><i class="fa fa-print"></i> Print slip (P)</button>
                                                     [% END %]
                                                     <input type="hidden" name="return_date_override" value="[% return_date_override | html %]" />
                                                     <input type="hidden" name="return_date_override_remember" value="[% return_date_override_remember | html %]" />
@@ -624,8 +760,8 @@
                                 </div> <!-- /#item-transfer-modal -->
                             [% END # /IF transfer || needstransfer %]
 
-                            <!-- case of simple return no issue or transfer but with a reservation  -->
-                            [% IF ( reserved ) %]
+                            <!-- case of simple return no issue or transfer but with a hold  -->
+                            [% IF ( reserved and !recalled and !waitingrecall ) %]
                                 <!-- reserved -->
                                 <div id="hold-found2" class="modal fade audio-alert-action block">
                                     <div class="modal-dialog">
@@ -713,23 +849,23 @@
 
                                                 <div class="modal-footer">
                                                     [% IF ( transfertodo ) %]
-                                                        <button type="submit" class="btn btn-default approve">
-                                                            <i class="fa fa-check"></i> Confirm hold and transfer
+                                                        <button type="submit" class="btn btn-default approve" accesskey="y">
+                                                            <i class="fa fa-check"></i> Confirm hold and transfer (Y)
                                                         </button>
-                                                        <button type="button" class="btn btn-default print">
-                                                            <i class="fa fa-print"></i> Print slip, transfer, and confirm
+                                                        <button type="button" class="btn btn-default print" accesskey="p">
+                                                            <i class="fa fa-print"></i> Print slip, transfer, and confirm (P)
                                                         </button>
                                                     [% ELSE %]
-                                                        <button type="submit" class="btn btn-default approve">
-                                                            <i class="fa fa-check"></i> Confirm hold
+                                                        <button type="submit" class="btn btn-default approve" accesskey="y">
+                                                            <i class="fa fa-check"></i> Confirm hold (Y)
                                                         </button>
-                                                        <button type="button" class="btn btn-default print">
-                                                            <i class="fa fa-print"></i> Print slip and confirm
+                                                        <button type="button" class="btn btn-default print" accesskey="p">
+                                                            <i class="fa fa-print"></i> Print slip and confirm (P)
                                                         </button>
                                                     [% END %]
 
-                                                    <button data-dismiss="modal" aria-hidden="true" type="submit" class="btn btn-default deny">
-                                                        <i class="fa fa-times"></i> Ignore
+                                                    <button data-dismiss="modal" aria-hidden="true" type="submit" class="btn btn-default deny" accesskey="i">
+                                                        <i class="fa fa-remove"></i> Ignore (I)
                                                     </button>
                                                 </div> <!-- /.modal-footer -->
                                             </form> <!-- /.confirm -->
@@ -737,6 +873,199 @@
                                     </div> <!-- /.modal-dialog -->
                                 </div> <!-- /#hold-found2 -->
                             [% END #/IF reserved %]
+
+                            [% IF ( recalled ) %]
+                                <!-- recalled -->
+                                <div id="recalled" class="modal fade audio-alert-action block">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <form method="post" action="/cgi-bin/koha/circ/returns.pl" class="confirm">
+
+                                                <div class="modal-header">
+                                                    <h3>
+                                                        Recall found:
+                                                        <br/>
+                                                        <a href="/cgi-bin/koha/catalogue/detail.pl?type=intra&amp;biblionumber=[% recall.biblio_id | uri %]">[% recall.biblio.title | html %]</a>
+                                                        [% IF recall.item %]
+                                                            <div class="recall-found-barcode">
+                                                                (<a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% recall.biblio_id | uri %]&amp;itemnumber=[% recall.item_id | uri %]">[% recall.item.barcode | html %]</a>)
+                                                            </div>
+                                                        [% END %]
+                                                    </h3>
+                                                </div>
+
+                                                <div class="modal-body">
+                                                    [% IF ( recall.notes ) %]
+                                                        <h4>Notes:</h4>
+                                                        <p>[% recall.notes | html %]</p>
+                                                        <hr />
+                                                    [% END %]
+                                                    <h5>Recall placed by:</h5>
+                                                    <ul>
+                                                        <li>
+                                                            [% INCLUDE 'patron-title.inc' patron=recall.patron hide_patron_infos_if_needed=1 invert_name=1 link_to="circulation_recalls" %]
+                                                            <span class="patron-category"> - [% recall.patron.category.description | html %]</span>
+                                                        </li>
+
+                                                        [% INCLUDE display_holdpatron_address patron=recall.patron %]
+
+                                                        [% IF ( recall.patron.phone ) %]
+                                                            <li>[% recall.patron.phone | html %]</li>
+                                                        [% END %]
+
+                                                        [% IF ( recall.patron.email ) %]
+                                                            <li>
+                                                                [% IF ( transfertodo ) %]
+                                                                    [% recall.patron.email | html %]
+                                                                [% ELSE %]
+                                                                    <a id="boremail" href="mailto:[% recall.patron.email | html %]">[% recall.patron.email | html %]</a>
+                                                                [% END %]
+                                                            </li>
+                                                        [% END %]
+
+                                                        [% UNLESS ( transfertodo) %]
+                                                            [% INCLUDE display_bormessagepref %]
+                                                        [% END %]
+
+                                                        [% IF ( recall.patron.is_debarred ) %]
+                                                            <li class="error">Patron is RESTRICTED</li>
+                                                        [% END %]
+
+                                                        [% IF ( recall.patron.gonenoaddress ) %]
+                                                            <li class="error">Patron's address is in doubt</li>
+                                                        [% END %]
+                                                    </ul>
+                                                    [% IF ( transfertodo ) %]
+                                                        <h4><strong>Transfer to:</strong> [% Branches.GetName( recall.pickup_library_id ) | html %]</h4>
+                                                    [% ELSE %]
+                                                        <h4><strong>Recall at</strong> [% Branches.GetName( recall.pickup_library_id ) | html %]</h4>
+                                                    [% END %]
+
+                                                    <input type="hidden" name="recall_id" value="[% recall.id | html %]">
+                                                    <input type="hidden" name="itemnumber" value="[% itemnumber | html %]">
+                                                    <input type="hidden" name="returnbranch" value="[% Branches.GetLoggedInBranchcode | html %]">
+                                                    <input type="hidden" name="recall_slip" value="0">
+
+                                                </div>
+
+                                                <div class="modal-footer">
+                                                    [% IF ( transfertodo ) %]
+                                                        <button type="submit" class="btn btn-default approve" accesskey="Y">
+                                                            <i class="fa fa-check"></i> Confirm recall and transfer (Y)
+                                                        </button>
+                                                        <button type="button" class="btn btn-default print-recall" accesskey="P">
+                                                            <i class="fa fa-print"></i> Print slip, transfer, and confirm (P)
+                                                        </button>
+                                                    [% ELSE %]
+                                                        <button type="submit" class="btn btn-default approve" accesskey="Y">
+                                                            <i class="fa fa-check"></i> Confirm recall (Y)
+                                                        </button>
+                                                        <button type="button" class="btn btn-default print-recall" accesskey="P">
+                                                            <i class="fa fa-print"></i> Print slip and confirm (P)
+                                                        </button>
+                                                    [% END %]
+
+                                                    <button data-dismiss="modal" aria-hidden="true" type="submit" class="btn btn-default">
+                                                        <i class="fa fa-remove"></i> Ignore
+                                                    </button>
+                                                </div> <!-- /.modal-footer -->
+                                            </form> <!-- /.confirm -->
+                                        </div> <!-- /.modal-content -->
+                                    </div> <!-- /.modal-dialog -->
+                                </div> <!-- /#recalled -->
+                            [% END #/IF recalled %]
+
+                            [% IF ( waitingrecall ) %]
+                                <!-- recalled -->
+                                <div id="recalledwaiting" class="modal fade audio-alert-action block">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <form method="post" action="/cgi-bin/koha/circ/returns.pl" class="confirm">
+
+                                                <div class="modal-header">
+                                                    <h3>
+                                                        Recall found (item is already waiting):
+                                                        <br/>
+                                                        <a href="/cgi-bin/koha/catalogue/detail.pl?type=intra&amp;biblionumber=[% recall.biblio_id | uri %]">[% recall.biblio.title | html %]</a>
+                                                        [% IF recall.item %]
+                                                            <div class="recall-found-barcode">
+                                                                (<a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% recall.biblio_id | uri %]&amp;itemnumber=[% recall.item_id | uri %]">[% recall.item.barcode | html %]</a>)
+                                                            </div>
+                                                        [% END %]
+                                                    </h3>
+                                                </div>
+
+                                                <div class="modal-body">
+                                                    [% IF ( recall.notes ) %]
+                                                        <h4>Notes:</h4>
+                                                        <p>[% recall.notes | html %]</p>
+                                                        <hr />
+                                                    [% END %]
+                                                    <h5>Recall placed by:</h5>
+                                                    <ul>
+                                                        <li>
+                                                            [% INCLUDE 'patron-title.inc' patron=recall.patron hide_patron_infos_if_needed=1 invert_name=1 link_to="circulation_recalls" %]
+                                                            <span class="patron-category"> - [% recall.patron.category.description | html %]</span>
+                                                        </li>
+
+                                                        [% INCLUDE display_holdpatron_address patron=recall.patron %]
+
+                                                        [% IF ( recall.patron.phone ) %]
+                                                            <li>[% recall.patron.phone | html %]</li>
+                                                        [% END %]
+
+                                                        [% IF ( recall.patron.email ) %]
+                                                            <li>
+                                                                [% IF ( transfertodo ) %]
+                                                                    [% recall.patron.email | html %]
+                                                                [% ELSE %]
+                                                                    <a id="boremail" href="mailto:[% recall.patron.email | html %]">[% recall.patron.email | html %]</a>
+                                                                [% END %]
+                                                            </li>
+                                                        [% END %]
+
+                                                        [% UNLESS ( transfertodo) %]
+                                                            [% INCLUDE display_bormessagepref %]
+                                                        [% END %]
+
+                                                        [% IF ( recall.patron.is_debarred ) %]
+                                                            <li class="error">Patron is RESTRICTED</li>
+                                                        [% END %]
+
+                                                        [% IF ( recall.patron.gonenoaddress ) %]
+                                                            <li class="error">Patron's address is in doubt</li>
+                                                        [% END %]
+                                                    </ul>
+                                                    [% IF ( transfertodo ) %]
+                                                        <h4><strong>Transfer to:</strong> [% Branches.GetName( recall.pickup_library_id ) | html %]</h4>
+                                                    [% ELSE %]
+                                                        <h4><strong>Wait for pickup at</strong> [% Branches.GetName( recall.pickup_library_id ) | html %]</h4>
+                                                    [% END %]
+
+                                                    <input type="hidden" name="recall_id" value="[% recall.id | html %]">
+                                                    <input type="hidden" name="itemnumber" value="[% itemnumber | html %]">
+                                                    <input type="hidden" name="returnbranch" value="[% Branches.GetLoggedInBranchcode | html %]">
+                                                    <input type="hidden" name="recall_slip" value="0">
+
+                                                </div>
+
+                                                <div class="modal-footer">
+                                                    <button type="submit" class="btn btn-default approve" accesskey="Y">
+                                                        <i class="fa fa-check"></i> Confirm recall (Y)
+                                                    </button>
+                                                    <button type="button" class="btn btn-default print-recall" accesskey="P">
+                                                        <i class="fa fa-print"></i> Print slip and confirm (P)
+                                                    </button>
+
+                                                    <button data-dismiss="modal" aria-hidden="true" type="submit" class="btn btn-default deny" accesskey="I">
+                                                        <i class="fa fa-remove"></i> Ignore (I)
+                                                    </button>
+                                                </div> <!-- /.modal-footer -->
+                                            </form> <!-- /.confirm -->
+                                        </div> <!-- /.modal-content -->
+                                    </div> <!-- /.modal-dialog -->
+                                </div> <!-- /#recalledwaiting-->
+                            [% END #/IF recalledwaiting %]
                         [% END # /IF found %]
 
                         <div class="static_checkin_messages">
@@ -746,28 +1075,29 @@
                         <form id="checkin-form" method="post" action="/cgi-bin/koha/circ/returns.pl" autocomplete="off" >
                             <fieldset id="circ_returns_checkin">
                                 <div class="show_checkin_dialog" style="float:right;display:none"><button type="button" class="btn btn-default btn-sm" data-toggle="tooltip" title="Show the last checkin message"><i class="fa fa-info"></i></button></div>
-                                <h3>Check in</h3>
+                                <h1>Check in</h1>
                                 <div class="row">
                                     <div class="col-sm-6">
-                                        <div class="hint">Enter item barcode:</div>
                                             <div class="form-control-group">
                                                 [% IF ( exemptfine ) %]
-                                                    <input name="barcode" id="barcode" size="14" class="focus input-warning" type="text" />
+                                                    <input name="barcode" id="barcode" size="14" placeholder="Enter item barcode" class="focus input-warning" type="text" />
                                                 [% ELSIF ( dropboxmode ) %]
-                                                    <input name="barcode" id="barcode" size="14" class="barcode focus input-warning" />
+                                                    <input name="barcode" id="barcode" size="14" placeholder="Enter item barcode" class="barcode focus input-warning" />
                                                 [% ELSE %]
-                                                    <input name="barcode" id="barcode" size="14" class="barcode focus" />
+                                                    <input name="barcode" id="barcode" size="14" placeholder="Enter item barcode" class="barcode focus" />
                                                 [% END %]
-                                                <button type="submit" class="btn btn-default">Check in</button>
+
+                                                <div id="show-circ-settings">
+                                                    <a href="#" title="Checkin settings"><i class="fa fa-sliders"></i></a>
+                                                </div>
+
+                                                <button type="submit" class="btn btn-primary">Check in</button>
                                                 [% FOREACH inputloo IN inputloop %]
                                                     <input type="hidden" name="ri-[% inputloo.counter | html %]" value="[% inputloo.barcode | html %]" />
                                                     <input type="hidden" name="dd-[% inputloo.counter | html %]" value="[% inputloo.duedate | html %]" />
                                                     <input type="hidden" name="bn-[% inputloo.counter | html %]" value="[% inputloo.borrowernumber | html %]" />
                                                 [% END %]
                                             </div>
-                                        <div id="show-circ-settings">
-                                            <a href="#"><i class="fa circ-settings-icon fa-caret-down"></i> Checkin settings</a>
-                                        </div>
                                     </div>
                                     <div class="col-sm-6">
                                         [% IF ( exemptfine ) %]
@@ -808,11 +1138,8 @@
                                         <div class="date-select" id="return_date_override_fields">
                                             <div class="hint">Specify return date [% INCLUDE 'date-format.inc' %]: </div>
 
-                                            <input type="text" size="13" id="return_date_override" name="return_date_override" value="[% return_date_override | html %]" />
+                                            <input type="text" size="20" id="return_date_override" name="return_date_override" value="[% return_date_override | html %]" class="flatpickr" data-flatpickr-pastinclusive="true" data-flatpickr-enable-time="true" data-flatpickr-on-close-focus="#barcode" />
 
-
-
-                                            <button type="button" class="action btn btn-default btn-xs" id="cleardate" name="cleardate">Clear</button>
                                             <div class="circ-setting">
                                                 [% IF ( return_date_override_remember ) %]
                                                     <input type="checkbox" id="return_date_override_remember" name="return_date_override_remember" checked="checked" />
@@ -860,113 +1187,115 @@
                         </form> <!-- /#checkin-form -->
 
                         [% IF ( riloop ) %]
-                            <h2>Checked-in items</h2>
-                            <table id="checkedintable">
-                                <thead>
-                                    <tr>
-                                        <th class="ci-duedate">Due date</th>
-                                        <th class="ci-title">Title</th>
-                                        <th class="ci-author">Author</th>
-                                        <th class="ci-barcode">Barcode</th>
-                                        <th class="ci-homelibrary">Home library</th>
-                                        <th class="ci-holdinglibrary">Holding library</th>
-                                        <th class="ci-shelvinglocation">Shelving location</th>
-                                        <th class="ci-callnumber">Call number</th>
-                                        <th class="ci-dateaccessioned">Date acquired</th>
-                                        <th class="ci-recordlevelitemtype">Record-level itemtype</th>
-                                        <th class="ci-itemtype">Item type</th>
-                                        <th class="ci-collection">Collection</th>
-                                        <th class="ci-patron">Patron</th>
-                                        <th class="ci-note">Note</th>
-                                    </tr>
-                                </thead>
+                            <div class="page-section">
+                                <h2>Checked-in items</h2>
+                                <table id="checkedintable">
+                                    <thead>
+                                        <tr>
+                                            <th class="ci-duedate">Due date</th>
+                                            <th class="ci-title">Title</th>
+                                            <th class="ci-author">Author</th>
+                                            <th class="ci-barcode">Barcode</th>
+                                            <th class="ci-homelibrary">Home library</th>
+                                            <th class="ci-transferlibrary">Transfer to</th>
+                                            <th class="ci-shelvinglocation">Shelving location</th>
+                                            <th class="ci-callnumber">Call number</th>
+                                            <th class="ci-dateaccessioned">Date acquired</th>
+                                            <th class="ci-recordlevelitemtype">Record-level itemtype</th>
+                                            <th class="ci-itemtype">Item type</th>
+                                            <th class="ci-collection">Collection</th>
+                                            <th class="ci-patron">Patron</th>
+                                            <th class="ci-note">Note</th>
+                                        </tr>
+                                    </thead>
 
-                                [% FOREACH riloo IN riloop %]
-                                    <tr>
-                                        <td class="ci-duedate">
-                                            [% IF ( riloo.duedate ) %]
-                                                [% IF ( riloo.return_overdue ) %]
-                                                    <span class="overdue">[% riloo.duedate | html %] (overdue)</span>
+                                    [% FOREACH riloo IN riloop %]
+                                        <tr>
+                                            <td class="ci-duedate">
+                                                [% IF ( riloo.duedate ) %]
+                                                    [% IF ( riloo.return_overdue ) %]
+                                                        <span class="overdue">[% riloo.duedate | $KohaDates as_due_date => 1 %] (overdue)</span>
+                                                    [% ELSE %]
+                                                        [% riloo.duedate | $KohaDates as_due_date => 1 %]
+                                                    [% END %]
                                                 [% ELSE %]
-                                                    [% riloo.duedate | html %]
+                                                    <span>Not checked out</span>
                                                 [% END %]
-                                            [% ELSE %]
-                                                Not checked out
-                                            [% END %]
-                                            [% IF ( riloo.damaged ) %]
-                                                <span class="dmg">[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.damaged', authorised_value => riloo.damaged ) | html %]</span>
-                                            [% END %]
-                                        </td>
-                                        <td class="ci-title">
-                                            <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% riloo.itembiblionumber | uri %]">
-                                                [% riloo.itemtitle | html %]
-                                                [% FOREACH subtitle IN riloo.subtitle.split(' \\| ') %] <span class="subtitle">[% subtitle | html %]</span>[% END %]
-                                                [% FOREACH part_number IN riloo.part_number.split(' \\| ') %] <span class="part_number">[% part_number | html %]</span>[% END %]
-                                                [% FOREACH part_name IN riloo.part_name.split(' \\| ') %] <span class="part_name">[% part_name | html %]<span>[% END %]
-                                            </a>
-                                            [% IF ( riloo.enumchron ) %]
-                                                <br/>
-                                                <span class="item_enumeration" style="white-space: nowrap;">[% riloo.enumchron | html %]</span>
-                                            [% END %]
-                                        </td>
-                                        <td class="ci-author">[% riloo.itemauthor | html %]</td>
-                                        <td class="ci-barcode">
-                                            <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% riloo.itembiblionumber | uri %]&amp;itemnumber=[% riloo.itemnumber | uri %]#item[% riloo.itemnumber | uri %]">[% IF (lastReturnedBarcode && lastReturnedBarcode == riloo.barcode) %]<span class="lastcheckinbarcode">[% riloo.barcode | html %]</span>[% ELSE %][% riloo.barcode | html %][% END %]</a>
-                                        </td>
-                                        <td class="ci-homelibrary">
-                                            [% Branches.GetName( riloo.homebranch ) | html %]
-                                        </td>
-                                        <td class="ci-holdinglibrary">
-                                            [% Branches.GetName( riloo.holdingbranch ) | html %]
-                                        </td>
-                                        <td class="ci-shelvinglocation">
-                                            <span class="shelvingloc">[% riloo.location | html %]</span>
-                                        </td>
-                                        <td class="ci-callnumber">
-                                            [% riloo.itemcallnumber | html %]
-                                        </td>
-                                        <td class="ci-dateaccessioned">
-                                            [% riloo.dateaccessioned | $KohaDates %]
-                                        </td>
-                                        <td class="ci-recordlevelitemtype">
-                                            [% ItemTypes.GetDescription( riloo.recordtype ) | html %]
-                                        </td>
-                                        <td class="ci-itemtype">
-                                            [% ItemTypes.GetDescription( riloo.itemtype ) | html %]
-                                        </td>
-                                        <td class="ci-collection">
-                                            [% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => riloo.ccode) | html %]
-                                        </td>
-                                        <td class="ci-patron">
-                                            [% IF ( riloo.duedate ) %]
-                                                [% INCLUDE 'patron-title.inc' patron=riloo.patron hide_patron_infos_if_needed=1 invert_name=1 %]
-                                                [% IF riloo.borissuescount %]
-                                                    <span class="results_summary nowrap">
-                                                        <span class="label">Checkouts:</span>
-                                                        <span class="number_box">
-                                                            <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% riloo.patron.borrowernumber | uri %]">[% riloo.borissuescount | html %]</a>
+                                                [% IF ( riloo.damaged ) %]
+                                                    <span class="dmg">[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.damaged', authorised_value => riloo.damaged ) | html %]</span>
+                                                [% END %]
+                                            </td>
+                                            <td class="ci-title">
+                                                <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% riloo.itembiblionumber | uri %]">
+                                                    [% riloo.itemtitle | html %]
+                                                    [% FOREACH subtitle IN riloo.subtitle.split(' \\| ') %] <span class="subtitle">[% subtitle | html %]</span>[% END %]
+                                                    [% FOREACH part_number IN riloo.part_number.split(' \\| ') %] <span class="part_number">[% part_number | html %]</span>[% END %]
+                                                    [% FOREACH part_name IN riloo.part_name.split(' \\| ') %] <span class="part_name">[% part_name | html %]<span>[% END %]
+                                                </a>
+                                                [% IF ( riloo.enumchron ) %]
+                                                    <br/>
+                                                    <span class="item_enumeration" style="white-space: nowrap;">[% riloo.enumchron | html %]</span>
+                                                [% END %]
+                                            </td>
+                                            <td class="ci-author">[% riloo.itemauthor | html %]</td>
+                                            <td class="ci-barcode">
+                                                <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% riloo.itembiblionumber | uri %]&amp;itemnumber=[% riloo.itemnumber | uri %]#item[% riloo.itemnumber | uri %]">[% IF (lastReturnedBarcode && lastReturnedBarcode == riloo.barcode) %]<span class="lastcheckinbarcode">[% riloo.barcode | html %]</span>[% ELSE %][% riloo.barcode | html %][% END %]</a>
+                                            </td>
+                                            <td class="ci-homelibrary">
+                                                [% Branches.GetName( riloo.homebranch ) | html %]
+                                            </td>
+                                            <td class="ci-transferlibrary">
+                                                [% Branches.GetName( riloo.transferbranch ) | html %]
+                                            </td>
+                                            <td class="ci-shelvinglocation">
+                                                <span class="shelvingloc">[% riloo.location | html %]</span>
+                                            </td>
+                                            <td class="ci-callnumber">
+                                                [% riloo.itemcallnumber | html %]
+                                            </td>
+                                            <td class="ci-dateaccessioned">
+                                                [% riloo.dateaccessioned | $KohaDates %]
+                                            </td>
+                                            <td class="ci-recordlevelitemtype">
+                                                [% ItemTypes.GetDescription( riloo.recordtype ) | html %]
+                                            </td>
+                                            <td class="ci-itemtype">
+                                                [% ItemTypes.GetDescription( riloo.itemtype ) | html %]
+                                            </td>
+                                            <td class="ci-collection">
+                                                [% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => riloo.ccode) | html %]
+                                            </td>
+                                            <td class="ci-patron">
+                                                [% IF ( riloo.duedate ) %]
+                                                    [% INCLUDE 'patron-title.inc' patron=riloo.patron hide_patron_infos_if_needed=1 invert_name=1 %]
+                                                    [% IF riloo.borissuescount %]
+                                                        <span class="results_summary nowrap">
+                                                            <span class="label">Checkouts:</span>
+                                                            <span class="number_box">
+                                                                <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% riloo.patron.borrowernumber | uri %]">[% riloo.borissuescount | html %]</a>
+                                                            </span>
                                                         </span>
-                                                    </span>
+                                                    [% END %]
+                                                    <a class="btn btn-default btn-xs printcheckinslip" href="#" data-borrowernumber="[% riloo.patron.borrowernumber | html %]"><i class="fa fa-print"></i> Print checkin slip</a>
+                                                [% ELSE %]
+                                                    Not checked out
                                                 [% END %]
-                                                <a class="btn btn-default btn-xs printcheckinslip" href="#" data-borrowernumber="[% riloo.patron.borrowernumber | html %]"><i class="fa fa-print"></i> Print checkin slip</a>
-                                            [% ELSE %]
-                                                Not checked out
-                                            [% END %]
-                                        </td>
-                                        <td class="ci-note">
-                                            [% IF ( riloo.patron.borrowernotes ) %]
-                                                <p><span class="circ-hlt patron-note">[% riloo.patron.borrowernotes | html %]</span></p>
-                                            [% END %]
-                                            [% IF ( riloo.itemnote ) %]
-                                                <p><span class="circ-hlt item-note-public">[% riloo.itemnote | html %]</span></p>
-                                            [% END %]
-                                            [% IF ( riloo.itemnotes_nonpublic ) %]
-                                                <p><span class="circ-hlt item-note-nonpublic">[% riloo.itemnotes_nonpublic | html %]</span></p>
-                                            [% END %]
-                                        </td>
-                                    </tr>
-                                [% END # /FOREACH riloo %]
-                            </table> <!-- /#checkedintable -->
+                                            </td>
+                                            <td class="ci-note">
+                                                [% IF ( riloo.patron.borrowernotes ) %]
+                                                    <p><span class="circ-hlt patron-note">[% riloo.patron.borrowernotes | $raw | html_line_break %]</span></p>
+                                                [% END %]
+                                                [% IF ( riloo.itemnote ) %]
+                                                    <p><span class="circ-hlt item-note-public">[% riloo.itemnote | html %]</span></p>
+                                                [% END %]
+                                                [% IF ( riloo.itemnotes_nonpublic ) %]
+                                                    <p><span class="circ-hlt item-note-nonpublic">[% riloo.itemnotes_nonpublic | html %]</span></p>
+                                                [% END %]
+                                            </td>
+                                        </tr>
+                                    [% END # /FOREACH riloo %]
+                                </table> <!-- /#checkedintable -->
+                            </div><!-- /.page-section -->
                         [% END # /IF riloop %]
 
                     [% IF Koha.Preference('CircSidebar') %]
@@ -986,13 +1315,62 @@
             </div> <!-- /.col-sm-12 -->
         </div> <!-- /.row -->
 
+    [% IF ( ReturnClaims ) %]
+        [% INCLUDE 'modals/resolve_return_claim.inc' %]
+    [% END %]
+
+    [% INCLUDE 'modals/bundle_contents.inc' %]
+
+    [% IF ( missing_items ) %]
+    <!-- Bundle missing modal -->
+    <div class="modal printable" id="bundleMissingModal" tabindex="-1" role="dialog" aria-labelledby="bundleMissingLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="bundleMissingLabel">Items missing from bundle at checkin for [% item.barcode | html %]</h4>
+                </div>
+                <div class="modal-body">
+                    <table style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Barcode</th>
+                                <th>Title</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        [% FOREACH bundle_item IN missing_items %]
+                            <tr>
+                                <td>[% bundle_item.barcode | html %]</td>
+                                <td>[% INCLUDE 'biblio-title.inc' biblio=bundle_item.biblio %]</td>
+                            </tr>
+                        [% END %]
+                        </tbody>
+                        <tfoot>
+                        </tfoot>
+                    </table>
+                </div> <!-- /.modal-body -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="printModal btn btn-primary"><i class="fa fa-print"></i> Print</button>
+                </div> <!-- /.modal-footer -->
+            </div> <!-- /.modal-content -->
+        </div> <!-- /.modal-dialog -->
+    </div> <!-- /#bundleMissingModal -->
+    [% END %]
+
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'columns_settings.inc' %]
     [% INCLUDE 'calendar.inc' %]
-    [% Asset.js("lib/jquery/plugins/jquery-ui-timepicker-addon.min.js") | $raw %]
     [% Asset.js("js/pages/circulation.js") | $raw %]
-    [% INCLUDE 'timepicker.inc' %]
+    [% IF ( ReturnClaims ) %]
+        <script>
+            /* Set a variable needed by resolve_claim_modal.js */
+            var logged_in_user_borrowernumber = "[% logged_in_user.borrowernumber | html %]";
+        </script>
+        [% Asset.js("js/resolve_claim_modal.js") | $raw %]
+    [% END %]
 
     <script>
         function Dopop(link) {
@@ -1032,52 +1410,19 @@
                     Dopop('hold-transfer-slip.pl?reserve_id=[% reserve_id | uri %]');
                 [% END %]
             [% END %]
-            var columns_settings = [% TablesSettings.GetColumns( 'circ', 'returns', 'checkedintable', 'json' ) | $raw %]
+            var table_settings = [% TablesSettings.GetTableSettings( 'circ', 'returns', 'checkedintable', 'json' ) | $raw %]
+
+            [% IF recall_slip %]
+                Dopop('/cgi-bin/koha/recalls/recall_pickup_slip.pl?recall_id=[% recall_id | uri %]');
+            [% END %]
+
             var returns_table = KohaTable("checkedintable", {
                     "bFilter":false,
                     "bPaginate":false,
                     "bInfo":false,
                     "bSort":false,
-                    "dom": 'B<"clearfix">t',
-                    }, columns_settings);
-
-            $("#return_date_override").datetimepicker({
-                onClose: function(dateText, inst) {
-                    if (validate_date(dateText, inst) ) {
-                        $("#barcode").focus();
-                    }
-                },
-                defaultDate: -1,
-                hour: 23,
-                minute: 59,
-                maxDate: 0
-            }).on("change", function(e, value) {
-                if ( ! is_valid_date( $(this).val() ) ) {$(this).val("");}
-            });
-            $("#return_date_override").on("blur", function() {
-                check_valid_return_date();
-            });
-            $("#checkin-form").submit(function( event ) {
-                if ( !check_valid_return_date() ) {
-                    event.preventDefault();
-                }
-            });
-
-            function check_valid_return_date() {
-                if ( $("#return_date_override").val() ) {
-                    var datetime = DateTime_from_syspref( $("#return_date_override").val() );
-                    var now = new Date();
-                    if ( !datetime || datetime > now ) {
-                        alert("Invalid return date/time!");
-                        $("#return_date_override").val("")
-                        return false;
-                    }
-                }
-                // Add saved date information to onscreen message, which
-                // may or may not be hidden
-                $("#saved_return_date").text( $("#return_date_override").val() );
-                return true;
-            }
+                    "dom": '<"table_controls"B>rt',
+                    }, table_settings);
 
             $("#exemptcheck").change(function () {
                 if (this.checked == true) {
@@ -1089,22 +1434,22 @@
                 }
                 $("#barcode").focus();
             });
+
             $("#dropboxcheck").change(function () {
                 if (this.checked == true) {
                     $("#barcode").addClass("input-warning");
                     $("#dropboxmode").show();
 
                     $("#return_date_override_fields :input").prop('disabled', true);
-                    $("#return_date_override").datetimepicker("disable");
                 } else {
                     $("#barcode").removeClass("input-warning");
                     $("#dropboxmode").hide();
 
                     $("#return_date_override_fields :input").prop('disabled', false);
-                    $("#return_date_override").datetimepicker("enable");
                 }
                 $("#barcode").focus();
             });
+
             $("#forgivemanualholdsexpire").change(function () {
                 if (this.checked == true) {
                     $("#barcode").addClass("input-warning");
@@ -1154,6 +1499,16 @@
                 this.form.submit();
             });
 
+            $('.print-recall').on("click",function(e){
+                this.form.recall_slip.value = 1;
+                this.form.submit();
+            });
+
+            $('.approve').on("click",function(e){
+                let barcode = document.getElementById('confirm-hold-barcode');
+                if ( barcode ) barcode.remove();
+                this.form.submit();
+            });
             $('.cancel-hold').on("click",function(e){
                 this.form.cancel_reserve.value = 1;
                 this.form.submit();
@@ -1188,8 +1543,93 @@
                 window.open("/cgi-bin/koha/members/printslip.pl?borrowernumber=" + borrowernumber + "&amp;print=checkinslip", "printwindow");
             });
 
+            // item bundles
+            $('#verify-items-bundle-contents-barcodes').on('input', function (ev) {
+                let char = ev.target.value.slice(-1);
+                if ( char.match(/\n/) ) {
+                    const barcodes = ev.target.value.split('\n').map(function(s) { return s.trim().toUpperCase() });
+                    const expected = [];
+                    let found = 0;
+                    $('#items-bundle-contents-table tbody > tr').each(function () {
+                        const barcode = this.getAttribute('data-barcode').toUpperCase();
+                        expected.push(barcode);
+                        if (barcodes.includes(barcode)) {
+                            this.classList.add('ok');
+                            found++;
+                        } else {
+                            this.classList.remove('ok');
+                        }
+                    });
+                    const last = barcodes[barcodes.length -2];
+                    const feedback = $('#bundle-feedback');
+                    let string;
+                    if ( !expected.includes(last) ) {
+                        feedback.fadeOut(100, function(){
+                            string = _("Unexpected: ") +last;
+                            feedback.addClass('alert-danger').removeClass('alert-success').html(string).fadeIn(100);
+                        });
+                    } else {
+                        feedback.fadeOut(100, function(){
+                            string = _("Verified: ")+last;
+                            feedback.addClass('alert-success').removeClass('alert-danger').html(string).fadeIn(100);
+                        });
+                    }
+                    $('#verify-progress').show();
+                    $('#verified').text(found);
+                    $('#expected').text(expected.length);
+                }
+            });
+
+            $('.bundle_remove').on('click', function() {
+                var component_itemnumber = $(this).data('itemnumber');
+                var host_itemnumber = $(this).data('hostnumber');
+                var alert = $(this).closest('div');
+                var unlink_item_url = "/api/v1/items/" + host_itemnumber + "/bundled_items/item/" + component_itemnumber;
+                $.ajax({
+                    type: "DELETE",
+                    url: unlink_item_url,
+                    success: function(){
+                        alert.remove();
+                    }
+                });
+            });
+
+            $('#items-bundle-contents-table').dataTable($.extend(true, {}, dataTablesDefaults, {
+                "bFilter": false,
+                "bPaginate": false,
+                "bInfo": false,
+                "order": [[ 1, 'asc' ], [ 0, 'asc' ]]
+            }));
+
+            // print modals
+            $('.modal.printable').on('shown.bs.modal', function() {
+                $('.modal-dialog', this).addClass('focused');
+                $('body').addClass('modalprinter');
+
+                if ($(this).hasClass('autoprint')) {
+                    window.print();
+                }
+            }).on('hidden.bs.modal', function() {
+                $('.modal-dialog', this).removeClass('focused');
+                $('body').removeClass('modalprinter');
+            });
+
+            $('.printModal').click(function() {
+                window.print();
+            });
+            [% IF ( !(Koha.Preference('TransfersBlockCirc')) && Koha.Preference('AutomaticConfirmTransfer') ) %]
+                $("#wrong-transfer-modal").on('hidden.bs.modal',function(){
+                    $("#wrongtransferform").submit();
+                });
+                [% IF (transfer) %]
+                    $("#item-transfer-modal").on('hidden.bs.modal',function(){
+                        $("#mainform").submit();
+                    });
+                [% END %]
+            [% END %]
         });
     </script>
+
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

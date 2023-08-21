@@ -24,8 +24,9 @@ $|=1;
 
 use Koha::Script;
 use C4::Context;
-use C4::Biblio;
-use Getopt::Long;
+use C4::Biblio qw( GetFrameworkCode ModBiblio );
+use Koha::Biblios;
+use Getopt::Long qw( GetOptions );
 
 my ($wherestring, $run, $silent, $want_help);
 my $result = GetOptions(
@@ -50,8 +51,9 @@ while (my $biblionumber = $query->fetchrow){
     $count++;
     print "." unless $silent;
     print "\r$count" unless ($silent or ($count % 100)); 
-    my $record = GetMarcBiblio({ biblionumber => $biblionumber });
-    
+    my $biblio = Koha::Biblios->find($biblionumber);
+    my $record = $biblio->metadata->record;
+
     if ($record) {
         ModBiblio($record, $biblionumber, GetFrameworkCode($biblionumber)) ;
     }

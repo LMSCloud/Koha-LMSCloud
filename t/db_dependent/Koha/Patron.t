@@ -19,12 +19,14 @@
 
 use Modern::Perl;
 
-use Test::More tests => 8;
+use Test::More tests => 20;
 use Test::Exception;
 use Test::Warn;
 
+use Koha::CirculationRules;
 use Koha::Database;
 use Koha::DateUtils qw(dt_from_string);
+use Koha::ArticleRequests;
 use Koha::Patrons;
 use Koha::Patron::Relationships;
 
@@ -240,7 +242,7 @@ subtest 'add_enrolment_fee_if_needed() tests' => sub {
         $enrollment_fee = $patron->add_enrolment_fee_if_needed(1);
         is( $patron->account->balance * 1, 60, 'Patron charged the enrolment fees' );
 
-        my @debits = $account->outstanding_debits;
+        my @debits = $account->outstanding_debits->as_list;
         is( scalar @debits, 3, '3 enrolment fees' );
         is( $debits[0]->debit_type_code, 'ACCOUNT', 'Account type set correctly' );
         is( $debits[1]->debit_type_code, 'ACCOUNT', 'Account type set correctly' );
@@ -278,7 +280,7 @@ subtest 'add_enrolment_fee_if_needed() tests' => sub {
         my $account = $patron->account;
         is( $patron->account->balance, 0, 'Patron not charged anything' );
 
-        my @debits = $account->outstanding_debits;
+        my @debits = $account->outstanding_debits->as_list;
         is( scalar @debits, 0, 'no debits' );
 
         $schema->storage->txn_rollback;
@@ -370,10 +372,12 @@ subtest 'is_superlibrarian() tests' => sub {
 
 subtest 'extended_attributes' => sub {
 
-    plan tests => 15;
+    plan tests => 16;
 
     my $schema = Koha::Database->new->schema;
     $schema->storage->txn_begin;
+
+    Koha::Patron::Attribute::Types->search->delete;
 
     my $patron_1 = $builder->build_object({class=> 'Koha::Patrons'});
     my $patron_2 = $builder->build_object({class=> 'Koha::Patrons'});
@@ -505,6 +509,7 @@ subtest 'extended_attributes' => sub {
         plan tests => 3;
 
         $schema->storage->txn_begin;
+        Koha::Patron::Attribute::Types->search->delete;
 
         my $patron = $builder->build_object({ class => 'Koha::Patrons' });
         my $attribute_type = $builder->build_object(
@@ -539,6 +544,7 @@ subtest 'extended_attributes' => sub {
         plan tests => 5;
 
         $schema->storage->txn_begin;
+        Koha::Patron::Attribute::Types->search->delete;
 
         my $patron_1 = $builder->build_object({ class => 'Koha::Patrons' });
         my $patron_2 = $builder->build_object({ class => 'Koha::Patrons' });
@@ -546,14 +552,14 @@ subtest 'extended_attributes' => sub {
         my $attribute_type_1 = $builder->build_object(
             {
                 class => 'Koha::Patron::Attribute::Types',
-                value => { unique => 1 }
+                value => { unique_id => 1 }
             }
         );
 
         my $attribute_type_2 = $builder->build_object(
             {
                 class => 'Koha::Patron::Attribute::Types',
-                value => { unique => 0 }
+                value => { unique_id => 0 }
             }
         );
 
@@ -591,6 +597,7 @@ subtest 'extended_attributes' => sub {
         plan tests => 3;
 
         $schema->storage->txn_begin;
+        Koha::Patron::Attribute::Types->search->delete;
 
         my $patron = $builder->build_object({ class => 'Koha::Patrons' });
 
@@ -635,20 +642,21 @@ subtest 'extended_attributes' => sub {
         plan tests => 5;
 
         $schema->storage->txn_begin;
+        Koha::Patron::Attribute::Types->search->delete;
 
         my $patron = $builder->build_object({ class => 'Koha::Patrons' });
 
         my $attribute_type_1 = $builder->build_object(
             {
                 class => 'Koha::Patron::Attribute::Types',
-                value => { mandatory => 1, class => 'a' }
+                value => { mandatory => 1, class => 'a', category_code => undef }
             }
         );
 
         my $attribute_type_2 = $builder->build_object(
             {
                 class => 'Koha::Patron::Attribute::Types',
-                value => { mandatory => 0, class => 'a' }
+                value => { mandatory => 0, class => 'a', category_code => undef }
             }
         );
 
@@ -680,6 +688,41 @@ subtest 'extended_attributes' => sub {
         $schema->storage->txn_rollback;
 
     };
+
+    subtest 'limited category mandatory attributes tests' => sub {
+
+        plan tests => 2;
+
+        $schema->storage->txn_begin;
+        Koha::Patron::Attribute::Types->search->delete;
+
+        my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+
+        my $attribute_type_1 = $builder->build_object(
+            {
+                class => 'Koha::Patron::Attribute::Types',
+                value => { mandatory => 1, class => 'a', category_code => $patron->categorycode }
+            }
+        );
+
+        $patron->extended_attributes(
+            [
+                { code => $attribute_type_1->code, attribute => 'a' }
+            ]
+        );
+
+        is( $patron->extended_attributes->count, 1, 'Extended attributes succeeded' );
+
+        $patron = $builder->build_object({ class => 'Koha::Patrons' });
+        # new patron, new category - they shouldn't be required to have any attributes
+
+
+        ok( $patron->extended_attributes([]), "We can set no attributes, mandatory attribute for other category not required");
+
+
+    };
+
+
 
 };
 
@@ -716,4 +759,625 @@ subtest 'can_log_into() tests' => sub {
     ok( $patron->can_log_into( $library ), 'Patron can log into any library' );
 
     $schema->storage->txn_rollback;
+};
+
+subtest 'can_request_article() tests' => sub {
+
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'ArticleRequests', 1 );
+
+    my $item = $builder->build_sample_item;
+
+    my $library_1 = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $library_2 = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $patron    = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    t::lib::Mocks::mock_userenv( { branchcode => $library_2->id } );
+
+    Koha::CirculationRules->set_rule(
+        {
+            categorycode => undef,
+            branchcode   => $library_1->id,
+            rule_name    => 'open_article_requests_limit',
+            rule_value   => 4,
+        }
+    );
+
+    $builder->build_object(
+        {
+            class => 'Koha::ArticleRequests',
+            value => { status => 'REQUESTED', borrowernumber => $patron->id }
+        }
+    );
+    $builder->build_object(
+        {
+            class => 'Koha::ArticleRequests',
+            value => { status => 'PENDING', borrowernumber => $patron->id }
+        }
+    );
+    $builder->build_object(
+        {
+            class => 'Koha::ArticleRequests',
+            value => { status => 'PROCESSING', borrowernumber => $patron->id }
+        }
+    );
+    $builder->build_object(
+        {
+            class => 'Koha::ArticleRequests',
+            value => { status => 'CANCELED', borrowernumber => $patron->id }
+        }
+    );
+
+    ok(
+        $patron->can_request_article( $library_1->id ),
+        '3 current requests, 4 is the limit: allowed'
+    );
+
+    # Completed request, same day
+    my $completed = $builder->build_object(
+        {
+            class => 'Koha::ArticleRequests',
+            value => {
+                status         => 'COMPLETED',
+                borrowernumber => $patron->id
+            }
+        }
+    );
+
+    ok( !$patron->can_request_article( $library_1->id ),
+        '3 current requests and a completed one the same day: denied' );
+
+    $completed->updated_on(
+        dt_from_string->add( days => -1 )->set(
+            hour   => 23,
+            minute => 59,
+            second => 59,
+        )
+    )->store;
+
+    ok( $patron->can_request_article( $library_1->id ),
+        '3 current requests and a completed one the day before: allowed' );
+
+    Koha::CirculationRules->set_rule(
+        {
+            categorycode => undef,
+            branchcode   => $library_2->id,
+            rule_name    => 'open_article_requests_limit',
+            rule_value   => 3,
+        }
+    );
+
+    ok( !$patron->can_request_article,
+        'Not passing the library_id param makes it fallback to userenv: denied'
+    );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'article_requests() tests' => sub {
+
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+
+    my $library = $builder->build_object({ class => 'Koha::Libraries' });
+    t::lib::Mocks::mock_userenv( { branchcode => $library->id } );
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    my $article_requests = $patron->article_requests;
+    is( ref($article_requests), 'Koha::ArticleRequests',
+        'In scalar context, type is correct' );
+    is( $article_requests->count, 0, 'No article requests' );
+
+    foreach my $i ( 0 .. 3 ) {
+
+        my $item = $builder->build_sample_item;
+
+        Koha::ArticleRequest->new(
+            {
+                borrowernumber => $patron->id,
+                biblionumber   => $item->biblionumber,
+                itemnumber     => $item->id,
+                title          => "Title",
+            }
+        )->request;
+    }
+
+    $article_requests = $patron->article_requests;
+    is( $article_requests->count, 4, '4 article requests' );
+
+    $schema->storage->txn_rollback;
+
+};
+
+subtest 'can_patron_change_staff_only_lists() tests' => sub {
+
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+
+    # make a user with no special permissions
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                flags => undef
+            }
+        }
+    );
+    is( $patron->can_patron_change_staff_only_lists(), 0, 'Patron without permissions cannot change staff only lists');
+
+    # make it a 'Catalogue' permission
+    $patron->set({ flags => 4 })->store->discard_changes;
+    is( $patron->can_patron_change_staff_only_lists(), 1, 'Catalogue patron can change staff only lists');
+
+
+    # make it a superlibrarian
+    $patron->set({ flags => 1 })->store->discard_changes;
+    is( $patron->can_patron_change_staff_only_lists(), 1, 'Superlibrarian patron can change staff only lists');
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'password expiration tests' => sub {
+
+    plan tests => 5;
+
+    $schema->storage->txn_begin;
+    my $date = dt_from_string();
+    my $category = $builder->build_object({ class => 'Koha::Patron::Categories', value => {
+            password_expiry_days => 10,
+            require_strong_password => 0,
+        }
+    });
+    my $patron = $builder->build_object({ class=> 'Koha::Patrons', value => {
+            categorycode => $category->categorycode,
+            password => 'hats'
+        }
+    });
+
+    $patron->delete()->store()->discard_changes(); # Make sure we are storing a 'new' patron
+
+    is( $patron->password_expiration_date(), $date->add( days => 10 )->ymd() , "Password expiration date set correctly on patron creation");
+
+    $patron = $builder->build_object({ class => 'Koha::Patrons', value => {
+            categorycode => $category->categorycode,
+            password => undef
+        }
+    });
+    $patron->delete()->store()->discard_changes();
+
+    is( $patron->password_expiration_date(), undef, "Password expiration date is not set if patron does not have a password");
+
+    $category->password_expiry_days(undef)->store();
+    $patron = $builder->build_object({ class => 'Koha::Patrons', value => {
+            categorycode => $category->categorycode
+        }
+    });
+    $patron->delete()->store()->discard_changes();
+    is( $patron->password_expiration_date(), undef, "Password expiration date is not set if category does not have expiry days set");
+
+    $schema->storage->txn_rollback;
+
+    subtest 'password_expired' => sub {
+
+        plan tests => 3;
+
+        $schema->storage->txn_begin;
+        my $date = dt_from_string();
+        $patron = $builder->build_object({ class => 'Koha::Patrons', value => {
+                password_expiration_date => undef
+            }
+        });
+        is( $patron->password_expired, 0, "Patron with no password expiration date, password not expired");
+        $patron->password_expiration_date( $date )->store;
+        $patron->discard_changes();
+        is( $patron->password_expired, 1, "Patron with password expiration date of today, password expired");
+        $date->subtract( days => 1 );
+        $patron->password_expiration_date( $date )->store;
+        $patron->discard_changes();
+        is( $patron->password_expired, 1, "Patron with password expiration date in past, password expired");
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest 'set_password' => sub {
+
+        plan tests => 4;
+
+        $schema->storage->txn_begin;
+
+        my $date = dt_from_string();
+        my $category = $builder->build_object({ class => 'Koha::Patron::Categories', value => {
+                password_expiry_days => 10
+            }
+        });
+        my $patron = $builder->build_object({ class => 'Koha::Patrons', value => {
+                categorycode => $category->categorycode,
+                password_expiration_date =>  $date->subtract( days => 1 )
+            }
+        });
+        is( $patron->password_expired, 1, "Patron password is expired");
+
+        $date = dt_from_string();
+        $patron->set_password({ password => "kitten", skip_validation => 1 })->discard_changes();
+        is( $patron->password_expired, 0, "Patron password no longer expired when new password set");
+        is( $patron->password_expiration_date(), $date->add( days => 10 )->ymd(), "Password expiration date set correctly on patron creation");
+
+
+        $category->password_expiry_days( undef )->store();
+        $patron->set_password({ password => "puppies", skip_validation => 1 })->discard_changes();
+        is( $patron->password_expiration_date(), undef, "Password expiration date is unset if category does not have expiry days");
+
+        $schema->storage->txn_rollback;
+    };
+
+};
+
+subtest 'safe_to_delete() tests' => sub {
+
+    plan tests => 14;
+
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+
+    ## Make it the anonymous
+    t::lib::Mocks::mock_preference( 'AnonymousPatron', $patron->id );
+
+    ok( !$patron->safe_to_delete, 'Cannot delete, it is the anonymous patron' );
+    my $message = $patron->safe_to_delete->messages->[0];
+    is( $message->type, 'error', 'Type is error' );
+    is( $message->message, 'is_anonymous_patron', 'Cannot delete, it is the anonymous patron' );
+    # cleanup
+    t::lib::Mocks::mock_preference( 'AnonymousPatron', 0 );
+
+    ## Make it have a checkout
+    my $checkout = $builder->build_object(
+        {
+            class => 'Koha::Checkouts',
+            value => { borrowernumber => $patron->id }
+        }
+    );
+
+    ok( !$patron->safe_to_delete, 'Cannot delete, has checkouts' );
+    $message = $patron->safe_to_delete->messages->[0];
+    is( $message->type, 'error', 'Type is error' );
+    is( $message->message, 'has_checkouts', 'Cannot delete, has checkouts' );
+    # cleanup
+    $checkout->delete;
+
+    ## Make it have a guarantee
+    t::lib::Mocks::mock_preference( 'borrowerRelationship', 'parent' );
+    $builder->build_object({ class => 'Koha::Patrons' })
+            ->add_guarantor({ guarantor_id => $patron->id, relationship => 'parent' });
+
+    ok( !$patron->safe_to_delete, 'Cannot delete, has guarantees' );
+    $message = $patron->safe_to_delete->messages->[0];
+    is( $message->type, 'error', 'Type is error' );
+    is( $message->message, 'has_guarantees', 'Cannot delete, has guarantees' );
+
+    # cleanup
+    $patron->guarantee_relationships->delete;
+
+    ## Make it have debt
+    my $debit = $patron->account->add_debit({ amount => 10, interface => 'intranet', type => 'MANUAL' });
+
+    ok( !$patron->safe_to_delete, 'Cannot delete, has debt' );
+    $message = $patron->safe_to_delete->messages->[0];
+    is( $message->type, 'error', 'Type is error' );
+    is( $message->message, 'has_debt', 'Cannot delete, has debt' );
+    # cleanup
+    $patron->account->pay({ amount => 10, debits => [ $debit ] });
+
+    ## Happy case :-D
+    ok( $patron->safe_to_delete, 'Can delete, all conditions met' );
+    my $messages = $patron->safe_to_delete->messages;
+    is_deeply( $messages, [], 'Patron can be deleted, no messages' );
+};
+
+subtest 'article_request_fee() tests' => sub {
+
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+
+    # Cleanup, to avoid interference
+    Koha::CirculationRules->search( { rule_name => 'article_request_fee' } )->delete;
+
+    t::lib::Mocks::mock_preference( 'ArticleRequests', 1 );
+
+    my $item = $builder->build_sample_item;
+
+    my $library_1 = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $library_2 = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $patron    = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    # Rule that should never be picked, because the patron's category is always picked
+    Koha::CirculationRules->set_rule(
+        {   categorycode => undef,
+            branchcode   => undef,
+            rule_name    => 'article_request_fee',
+            rule_value   => 1,
+        }
+    );
+
+    is( $patron->article_request_fee( { library_id => $library_2->id } ), 1, 'library_id used correctly' );
+
+    Koha::CirculationRules->set_rule(
+        {   categorycode => $patron->categorycode,
+            branchcode   => undef,
+            rule_name    => 'article_request_fee',
+            rule_value   => 2,
+        }
+    );
+
+    Koha::CirculationRules->set_rule(
+        {   categorycode => $patron->categorycode,
+            branchcode   => $library_1->id,
+            rule_name    => 'article_request_fee',
+            rule_value   => 3,
+        }
+    );
+
+    is( $patron->article_request_fee( { library_id => $library_2->id } ), 2, 'library_id used correctly' );
+
+    t::lib::Mocks::mock_userenv( { branchcode => $library_1->id } );
+
+    is( $patron->article_request_fee(), 3, 'env used correctly' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'add_article_request_fee_if_needed() tests' => sub {
+
+    plan tests => 12;
+
+    $schema->storage->txn_begin;
+
+    my $amount = 0;
+
+    my $patron_mock = Test::MockModule->new('Koha::Patron');
+    $patron_mock->mock( 'article_request_fee', sub { return $amount; } );
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    is( $patron->article_request_fee, $amount, 'article_request_fee mocked' );
+
+    my $library_1 = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $library_2 = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $staff     = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $item      = $builder->build_sample_item;
+
+    t::lib::Mocks::mock_userenv(
+        { branchcode => $library_1->id, patron => $staff } );
+
+    my $debit = $patron->add_article_request_fee_if_needed();
+    is( $debit, undef, 'No fee, no debit line' );
+
+    # positive value
+    $amount = 1;
+
+    $debit = $patron->add_article_request_fee_if_needed({ item_id => $item->id });
+    is( ref($debit), 'Koha::Account::Line', 'Debit object type correct' );
+    is( $debit->amount, $amount,
+        'amount set to $patron->article_request_fee value' );
+    is( $debit->manager_id, $staff->id,
+        'manager_id set to userenv session user' );
+    is( $debit->branchcode, $library_1->id,
+        'branchcode set to userenv session library' );
+    is( $debit->debit_type_code, 'ARTICLE_REQUEST',
+        'debit_type_code set correctly' );
+    is( $debit->itemnumber, $item->id,
+        'itemnumber set correctly' );
+
+    $amount = 100;
+
+    $debit = $patron->add_article_request_fee_if_needed({ library_id => $library_2->id });
+    is( ref($debit), 'Koha::Account::Line', 'Debit object type correct' );
+    is( $debit->amount, $amount,
+        'amount set to $patron->article_request_fee value' );
+    is( $debit->branchcode, $library_2->id,
+        'branchcode set to userenv session library' );
+    is( $debit->itemnumber, undef,
+        'itemnumber set correctly to undef' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'messages' => sub {
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $messages = $patron->messages;
+    is( $messages->count, 0, "No message yet" );
+    my $message_1 = $builder->build_object(
+        {
+            class => 'Koha::Patron::Messages',
+            value => { borrowernumber => $patron->borrowernumber }
+        }
+    );
+    my $message_2 = $builder->build_object(
+        {
+            class => 'Koha::Patron::Messages',
+            value => { borrowernumber => $patron->borrowernumber }
+        }
+    );
+
+    $messages = $patron->messages;
+    is( $messages->count, 2, "There are two messages for this patron" );
+    is( $messages->next->message, $message_1->message );
+    is( $messages->next->message, $message_2->message );
+    $schema->storage->txn_rollback;
+};
+
+subtest 'recalls() tests' => sub {
+
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $biblio1 = $builder->build_object({ class => 'Koha::Biblios' });
+    my $item1 = $builder->build_object({ class => 'Koha::Items' }, { value => { biblionumber => $biblio1->biblionumber } });
+    my $biblio2 = $builder->build_object({ class => 'Koha::Biblios' });
+    my $item2 = $builder->build_object({ class => 'Koha::Items' }, { value => { biblionumber => $biblio2->biblionumber } });
+
+    Koha::Recall->new(
+        {   biblio_id         => $biblio1->biblionumber,
+            patron_id         => $patron->borrowernumber,
+            item_id           => $item1->itemnumber,
+            pickup_library_id => $patron->branchcode,
+            created_date      => \'NOW()',
+            item_level        => 1,
+        }
+    )->store;
+    Koha::Recall->new(
+        {   biblio_id         => $biblio2->biblionumber,
+            patron_id         => $patron->borrowernumber,
+            item_id           => $item2->itemnumber,
+            pickup_library_id => $patron->branchcode,
+            created_date      => \'NOW()',
+            item_level        => 1,
+        }
+    )->store;
+    Koha::Recall->new(
+        {   biblio_id         => $biblio1->biblionumber,
+            patron_id         => $patron->borrowernumber,
+            item_id           => undef,
+            pickup_library_id => $patron->branchcode,
+            created_date      => \'NOW()',
+            item_level        => 0,
+        }
+    )->store;
+    my $recall = Koha::Recall->new(
+        {   biblio_id         => $biblio1->biblionumber,
+            patron_id         => $patron->borrowernumber,
+            item_id           => undef,
+            pickup_library_id => $patron->branchcode,
+            created_date      => \'NOW()',
+            item_level        => 0,
+        }
+    )->store;
+    $recall->set_cancelled;
+
+    is( $patron->recalls->count,                                                                       4, "Correctly gets this patron's recalls" );
+    is( $patron->recalls->filter_by_current->count,                                                    3, "Correctly gets this patron's active recalls" );
+    is( $patron->recalls->filter_by_current->search( { biblio_id => $biblio1->biblionumber } )->count, 2, "Correctly gets this patron's active recalls on a specific biblio" );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'encode_secret and decoded_secret' => sub {
+    plan tests => 5;
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_config('encryption_key', 't0P_secret');
+
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+    is( $patron->decoded_secret, undef, 'TestBuilder does not initialize it' );
+    $patron->secret(q{});
+    is( $patron->decoded_secret, q{}, 'Empty string case' );
+
+    $patron->encode_secret('encrypt_me'); # Note: lazy testing; should be base32 string normally.
+    is( length($patron->secret) > 0, 1, 'Secret length' );
+    isnt( $patron->secret, 'encrypt_me', 'Encrypted column' );
+    is( $patron->decoded_secret, 'encrypt_me', 'Decrypted column' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'notify_library_of_registration()' => sub {
+
+    plan tests => 6;
+
+    $schema->storage->txn_begin;
+    my $dbh = C4::Context->dbh;
+
+    my $library = $builder->build_object(
+        {
+            class => 'Koha::Libraries',
+            value => {
+                branchemail   => 'from@mybranch.com',
+                branchreplyto => 'to@mybranch.com'
+            }
+        }
+    );
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                branchcode => $library->branchcode
+            }
+        }
+    );
+
+    t::lib::Mocks::mock_preference( 'KohaAdminEmailAddress', 'root@localhost' );
+    t::lib::Mocks::mock_preference( 'EmailAddressForPatronRegistrations', 'library@localhost' );
+
+    # Test when EmailPatronRegistrations equals BranchEmailAddress
+    t::lib::Mocks::mock_preference( 'EmailPatronRegistrations', 'BranchEmailAddress' );
+    is( $patron->notify_library_of_registration(C4::Context->preference('EmailPatronRegistrations')), 1, 'OPAC_REG email is queued if EmailPatronRegistration syspref equals BranchEmailAddress');
+    my $sth = $dbh->prepare("SELECT to_address FROM message_queue where borrowernumber = ?");
+    $sth->execute( $patron->borrowernumber );
+    my $to_address = $sth->fetchrow_array;
+    is( $to_address, 'to@mybranch.com', 'OPAC_REG email queued to go to branchreplyto address when EmailPatronRegistration equals BranchEmailAddress' );
+    $dbh->do(q|DELETE FROM message_queue|);
+
+    # Test when EmailPatronRegistrations equals EmailAddressForPatronRegistrations
+    t::lib::Mocks::mock_preference( 'EmailPatronRegistrations', 'EmailAddressForPatronRegistrations' );
+    is( $patron->notify_library_of_registration(C4::Context->preference('EmailPatronRegistrations')), 1, 'OPAC_REG email is queued if EmailPatronRegistration syspref equals EmailAddressForPatronRegistrations');
+    $sth->execute( $patron->borrowernumber );
+    $to_address = $sth->fetchrow_array;
+    is( $to_address, 'library@localhost', 'OPAC_REG email queued to go to EmailAddressForPatronRegistrations syspref when EmailPatronRegistration equals EmailAddressForPatronRegistrations' );
+    $dbh->do(q|DELETE FROM message_queue|);
+
+    # Test when EmailPatronRegistrations equals KohaAdminEmailAddress
+    t::lib::Mocks::mock_preference( 'EmailPatronRegistrations', 'KohaAdminEmailAddress' );
+    t::lib::Mocks::mock_preference( 'ReplyToDefault', 'root@localhost' ); # FIXME Remove localhost
+    is( $patron->notify_library_of_registration(C4::Context->preference('EmailPatronRegistrations')), 1, 'OPAC_REG email is queued if EmailPatronRegistration syspref equals KohaAdminEmailAddress');
+    $sth->execute( $patron->borrowernumber );
+    $to_address = $sth->fetchrow_array;
+    is( $to_address, 'root@localhost', 'OPAC_REG email queued to go to KohaAdminEmailAddress syspref when EmailPatronRegistration equals KohaAdminEmailAddress' );
+    $dbh->do(q|DELETE FROM message_queue|);
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'update privacy tests' => sub {
+
+    plan tests => 5;
+
+    my $patron = $builder->build_object({ class => 'Koha::Patrons', value => { privacy => 1 } });
+
+    my $old_checkout = $builder->build_object({ class => 'Koha::Old::Checkouts', value => { borrowernumber => $patron->id } });
+
+    t::lib::Mocks::mock_preference( 'AnonymousPatron', '0' );
+
+    $patron->privacy(2); #set to never
+
+    throws_ok{ $patron->store } 'Koha::Exceptions::Patron::FailedAnonymizing', 'We throw an exception when anonymizing fails';
+
+    $old_checkout->discard_changes; #refresh from db
+    $patron->discard_changes;
+
+    is( $old_checkout->borrowernumber, $patron->id, "When anonymizing fails, we don't clear the checkouts");
+    is( $patron->privacy(), 1, "When anonymizing fails, we don't chaneg the privacy");
+
+    my $anon_patron = $builder->build_object({ class => 'Koha::Patrons'});
+    t::lib::Mocks::mock_preference( 'AnonymousPatron', $anon_patron->id );
+
+    $patron->privacy(2)->store(); #set to never
+
+    $old_checkout->discard_changes; #refresh from db
+    $patron->discard_changes;
+
+    is( $old_checkout->borrowernumber, $anon_patron->id, "Checkout is successfully anonymized");
+    is( $patron->privacy(), 2, "Patron privacy is successfully updated");
 };

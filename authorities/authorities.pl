@@ -21,23 +21,21 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Output;
-use C4::AuthoritiesMarc;
-use C4::ImportBatch; #GetImportRecordMarc
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::AuthoritiesMarc qw( AddAuthority ModAuthority GetAuthority GetTagsLabels GetAuthMARCFromKohaField FindDuplicateAuthority );
 use C4::Context;
-use C4::Koha;
-use Date::Calc qw(Today);
+use Date::Calc qw( Today );
 use MARC::File::USMARC;
 use MARC::File::XML;
-use C4::Biblio;
+use C4::Biblio qw( TransformHtmlToMarc );
 use Koha::Authority::Types;
+use Koha::Import::Records;
 use Koha::ItemTypes;
 use vars qw( $tagslib);
 use vars qw( $authorised_values_sth);
 use vars qw( $is_a_modif );
 
-my $itemtype; # created here because it can be used in build_authorized_values_list sub
 our($authorised_values_sth,$is_a_modif,$usedTagsLib,$mandatory_z3950);
 
 =head1 FUNCTIONS
@@ -50,71 +48,40 @@ builds list, depending on authorised value...
 
 =cut
 
-sub MARCfindbreeding_auth {
-    my ( $id ) = @_;
-    my ($marc, $encoding) = GetImportRecordMarc($id);
-    if ($marc) {
-        my $record = MARC::Record->new_from_usmarc($marc);
-        if ( !defined(ref($record)) ) {
-                return -1;
-        } else {
-            return $record, $encoding;
-        }
-    } else {
-        return -1;
-    }
-}
-
 sub build_authorized_values_list {
     my ( $tag, $subfield, $value, $dbh, $authorised_values_sth,$index_tag,$index_subfield ) = @_;
 
     my @authorised_values;
     my %authorised_lib;
 
-
-    #---- branch
     my $category = $tagslib->{$tag}->{$subfield}->{'authorised_value'};
-    if ( $category eq "branches" ) {
-        my $sth =
-        $dbh->prepare(
-            "select branchcode,branchname from branches order by branchname");
-        $sth->execute;
-        push @authorised_values, ""
-        unless ( $tagslib->{$tag}->{$subfield}->{mandatory} );
+    push @authorised_values, q{} unless $tagslib->{$tag}->{$subfield}->{mandatory} && $value;
 
+    if ( $category eq "branches" ) {
+        my $sth = $dbh->prepare( "select branchcode,branchname from branches order by branchname" );
+        $sth->execute;
         while ( my ( $branchcode, $branchname ) = $sth->fetchrow_array ) {
             push @authorised_values, $branchcode;
             $authorised_lib{$branchcode} = $branchname;
         }
     }
     elsif ( $category eq "itemtypes" ) {
-        push @authorised_values, ""
-          unless ( $tagslib->{$tag}->{$subfield}->{mandatory}
-            && ( $value || $tagslib->{$tag}->{$subfield}->{defaultvalue} ) );
-
-        my $itemtype;
         my $itemtypes = Koha::ItemTypes->search_with_localization;
-        while ( $itemtype = $itemtypes->next ) {
+        while ( my $itemtype = $itemtypes->next ) {
             push @authorised_values, $itemtype->itemtype;
             $authorised_lib{$itemtype->itemtype} = $itemtype->translated_description;
         }
-        $value = $itemtype unless ($value);
-
-        #---- "true" authorised value
     }
-    else {
+    else { # "true" authorised value
         $authorised_values_sth->execute(
-            $tagslib->{$tag}->{$subfield}->{authorised_value} );
-
-        push @authorised_values, ""
-          unless ( $tagslib->{$tag}->{$subfield}->{mandatory}
-            && ( $value || $tagslib->{$tag}->{$subfield}->{defaultvalue} ) );
-
+            $tagslib->{$tag}->{$subfield}->{authorised_value}
+        );
         while ( my ( $value, $lib ) = $authorised_values_sth->fetchrow_array ) {
             push @authorised_values, $value;
             $authorised_lib{$value} = $lib;
         }
     }
+
     return {
         type     => 'select',
         id       => "tag_".$tag."_subfield_".$subfield."_".$index_tag."_".$index_subfield,
@@ -126,7 +93,6 @@ sub build_authorized_values_list {
     };
 }
 
-
 =item create_input
 
 builds the <input ...> entry for a subfield.
@@ -134,9 +100,9 @@ builds the <input ...> entry for a subfield.
 =cut
 
 sub create_input {
-    my ( $tag, $subfield, $value, $index_tag, $tabloop, $rec, $authorised_values_sth,$cgi ) = @_;
-    
-    my $index_subfield = CreateKey(); # create a specifique key for each subfield
+    my ( $tag, $subfield, $value, $index_tag, $rec, $authorised_values_sth, $cgi ) = @_;
+
+    my $index_subfield = CreateKey(); # create a specific key for each subfield
 
     # determine maximum length; 9999 bytes per ISO 2709 except for leader and MARC21 008
     my $max_length = 9999;
@@ -146,8 +112,16 @@ sub create_input {
         $max_length = 40;
     }
 
-    # if there is no value provided but a default value in parameters, get it
-    if ($value eq '') {
+    # Apply optional framework default value when it is a new record,
+    # or when editing as new (duplicating a record),
+    # based on the ApplyFrameworkDefaults setting.
+    # Substitute date parts, user name
+    my $applydefaults = C4::Context->preference('ApplyFrameworkDefaults');
+    if ( $value eq '' && (
+        ( $applydefaults =~ /new/ && !$cgi->param('authid') ) ||
+        ( $applydefaults =~ /duplicate/ && $cgi->param('op') eq 'duplicate' ) ||
+        ( $applydefaults =~ /imported/ && $cgi->param('breedingid') )
+    ) ) {
         $value = $tagslib->{$tag}->{$subfield}->{defaultvalue};
         if (!defined $value) {
             $value = q{};
@@ -214,7 +188,7 @@ sub create_input {
             name => $tagslib->{$tag}->{$subfield}->{'value_builder'},
         });
         my $pars=  { dbh => $dbh, record => $rec, tagslib =>$tagslib,
-            id => $subfield_data{id}, tabloop => $tabloop };
+            id => $subfield_data{id} };
         $plugin->build( $pars );
         if( !$plugin->errstr ) {
             $subfield_data{marc_value} = {
@@ -341,14 +315,14 @@ sub GetMandatoryFieldZ3950 {
     }else{
         return {
             '200a' => 'authorpersonal',
-            '210a' => 'authormeetingcon', #210 in UNIMARC is used for both corporation and meeting
+            '210a' => 'authorcorp', #210 in UNIMARC is used for both corporation and meeting
             '230a' => 'uniformtitle',
         };
     }
 }
 
 sub build_tabs {
-    my ( $template, $record, $dbh, $encoding,$input ) = @_;
+    my ( $template, $record, $dbh, $input ) = @_;
 
     # fill arrays
     my @loop_data = ();
@@ -384,7 +358,7 @@ sub build_tabs {
 
             # if MARC::Record is not empty =>use it as master loop, then add missing subfields that should be in the tab.
             # if MARC::Record is empty => use tab as master loop.
-            if ( $record != -1 && ( $record->field($tag) || $tag eq '000' ) ) {
+            if ( $record && ( $record->field($tag) || $tag eq '000' ) ) {
                 my @fields;
                 if ( $tag ne '000' ) {
                                 @fields = $record->field($tag);
@@ -411,7 +385,7 @@ sub build_tabs {
                         push(
                             @subfields_data,
                             &create_input(
-                                $tag, $subfield, $value, $index_tag, $tabloop, $record,
+                                $tag, $subfield, $value, $index_tag, $record,
                                 $authorised_values_sth,$input
                             )
                         );
@@ -427,7 +401,7 @@ sub build_tabs {
                             push(
                                 @subfields_data,
                                 &create_input(
-                                    $tag, $subfield, $value, $index_tag, $tabloop,
+                                    $tag, $subfield, $value, $index_tag,
                                     $record, $authorised_values_sth,$input
                                 )
                             );
@@ -445,7 +419,7 @@ sub build_tabs {
                         push(
                             @subfields_data,
                             &create_input(
-                                $tag, $subfield, '', $index_tag, $tabloop, $record,
+                                $tag, $subfield, '', $index_tag, $record,
                                 $authorised_values_sth,$input
                             )
                         );
@@ -487,7 +461,7 @@ sub build_tabs {
                     push(
                         @subfields_data,
                         &create_input(
-                            $tag, $subfield->{subfield}, '', $index_tag, $tabloop, $record,
+                            $tag, $subfield->{subfield}, '', $index_tag, $record,
                             $authorised_values_sth,$input
                         )
                     );
@@ -576,25 +550,28 @@ if(!$authtypecode) {
     $authtypecode = $authid ? Koha::Authorities->find($authid)->authtypecode : '';
 }
 
+my $authobj = Koha::Authorities->find($authid);
+my $count = $authobj ? $authobj->get_usage_count : 0;
+
 my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "authorities/authorities.tt",
                             query => $input,
                             type => "intranet",
                             flagsrequired => {editauthorities => 1},
-                            debug => 1,
                             });
-$template->param(nonav   => $nonav,index=>$myindex,authtypecode=>$authtypecode,breedingid=>$breedingid);
+$template->param(nonav   => $nonav,index=>$myindex,authtypecode=>$authtypecode,breedingid=>$breedingid, count=>$count);
 
 $tagslib = GetTagsLabels(1,$authtypecode);
 $mandatory_z3950 = GetMandatoryFieldZ3950($authtypecode);
 
-my $record=-1;
-my $encoding="";
-if (($authid) && !($breedingid)){
-    $record = GetAuthority($authid);
-}
+my $record;
 if ($breedingid) {
-    ( $record, $encoding ) = MARCfindbreeding_auth( $breedingid );
+    my $import_record = Koha::Import::Records->find($breedingid);
+    if ($import_record) {
+        $record = $import_record->get_marc_record();
+    }
+} elsif ($authid) {
+    $record = GetAuthority($authid);
 }
 
 my ($oldauthnumtagfield,$oldauthnumtagsubfield);
@@ -602,8 +579,8 @@ my ($oldauthtypetagfield,$oldauthtypetagsubfield);
 $is_a_modif=0;
 if ($authid) {
     $is_a_modif=1;
-    ($oldauthnumtagfield,$oldauthnumtagsubfield) = &GetAuthMARCFromKohaField("auth_header.authid",$authtypecode);
-    ($oldauthtypetagfield,$oldauthtypetagsubfield) = &GetAuthMARCFromKohaField("auth_header.authtypecode",$authtypecode);
+    ($oldauthnumtagfield,$oldauthnumtagsubfield) = GetAuthMARCFromKohaField("auth_header.authid",$authtypecode);
+    ($oldauthtypetagfield,$oldauthtypetagsubfield) = GetAuthMARCFromKohaField("auth_header.authtypecode",$authtypecode);
 }
 $op ||= q{};
 #------------------------------------------------------------------------------------------------------------------------------
@@ -636,7 +613,7 @@ if ($op eq "add") {
         exit;
     } else {
     # it may be a duplicate, warn the user and do nothing
-        build_tabs($template, $record, $dbh, $encoding,$input);
+        build_tabs($template, $record, $dbh, $input);
         build_hidden_data;
         $template->param(authid =>$authid,
                         duplicateauthid     => $duplicateauthid,
@@ -657,7 +634,7 @@ if ($op eq "duplicate")
         {
                 $authid = "";
         }
-        build_tabs ($template, $record, $dbh,$encoding,$input);
+        build_tabs ($template, $record, $dbh, $input);
         build_hidden_data;
         $template->param(oldauthtypetagfield=>$oldauthtypetagfield, oldauthtypetagsubfield=>$oldauthtypetagsubfield,
                         oldauthnumtagfield=>$oldauthnumtagfield, oldauthnumtagsubfield=>$oldauthnumtagsubfield,

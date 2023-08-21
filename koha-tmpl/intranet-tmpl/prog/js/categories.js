@@ -21,7 +21,6 @@ jQuery.validator.addMethod( "enrollment_period", function(){
     }, __("Please choose an enrollment period in months OR by date.")
 );
 
-
 $(document).ready(function() {
     KohaTable("patron_categories", {
         "aoColumnDefs": [{
@@ -32,16 +31,9 @@ $(document).ready(function() {
             "aTargets": [3, 4, 5],
             "sType": "natural"
         }, ],
-        "aaSorting": [
-            [1, "asc"]
-        ],
         "sPaginationType": "full",
         "exportColumns": [0,1,2,3,4,5,6,7,8,9,10,11,12],
-    }, columns_settings);
-
-    $("#enrolmentperioddate").datepicker({
-        minDate: 1
-    }); // Require that "until date" be in the future
+    }, table_settings);
 
     if ($("#branches option:selected").length < 1) {
         $("#branches option:first").attr("selected", "selected");
@@ -71,6 +63,9 @@ $(document).ready(function() {
                     return $("#enrolmentperiod").val() === "";
                 },
                 enrollment_period: true
+            },
+            password_expiry_days: {
+                digits: true
             },
             dateofbirthrequired: {
                 digits: true

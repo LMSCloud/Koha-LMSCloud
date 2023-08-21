@@ -22,11 +22,21 @@
         <div class="row">
             <div id="installer-step1" class="installer-main col-sm-8 col-sm-offset-2 col-md-8 col-md-offset-2">
 
-                <h1 id="logo"><a href="#">Koha</a></h1>
+                <div id="logo"><a href="#">Koha</a></div>
 
                 [% UNLESS ( language ) %]
-                    <h2>Web installer &rsaquo; Choose your language</h2>
-                    <p>You are about to install Koha.</p>
+                    <h1>Web installer &rsaquo; Choose your language</h1>
+
+                    <div id="steps">
+                        <ol>
+                            <li class="current open"><i class="fa fa-square-o" aria-hidden="true"></i> Choose your language</li>
+                            <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Check Perl dependencies</li>
+                            <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Database settings</li>
+                            <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Set up database</li>
+                            <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Install basic configuration settings</li>
+                            <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Onboarding</li>
+                        </ol>
+                    </div>
 
                     <p>Please pick your language from the following list. If your language is not listed, please inform your system administrator.</p>
 
@@ -56,7 +66,19 @@
                 [% IF ( language ) %]
                     [% UNLESS ( checkmodule ) %]
                         [% IF ( missing_modules ) %]
-                            <h2>Web installer &rsaquo; Perl modules missing</h2>
+                            <h1>Web installer &rsaquo; Perl modules missing</h1>
+
+                            <div id="steps">
+                                <ol>
+                                <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Choose your language</li>
+                                    <li class="current open"><i class="fa fa-square-o" aria-hidden="true"></i> Check Perl dependencies</li>
+                                    <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Database settings</li>
+                                    <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Set up database</li>
+                                    <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Install basic configuration settings</li>
+                                    <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Onboarding</li>
+                                </ol>
+                            </div>
+
                             <p>Some Perl modules are missing. <span class="label label-danger">Important: </span>Required modules must be installed before you may continue.<br />
                             <ul>
                                 [% FOREACH missing_module IN missing_modules %]
@@ -68,7 +90,19 @@
                         [% END %]
 
                         [% IF ( upgrade_modules ) %]
-                            <h2>Web installer &rsaquo; Perl modules due for upgrade</h2>
+                            <h1>Web installer &rsaquo; Perl modules due for upgrade</h1>
+
+                            <div id="steps">
+                                <ol>
+                                <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Choose your language</li>
+                                    <li class="current open"><i class="fa fa-square-o" aria-hidden="true"></i> Check Perl dependencies</li>
+                                    <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Database settings</li>
+                                    <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Set up database</li>
+                                    <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Install basic configuration settings</li>
+                                    <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Onboarding</li>
+                                </ol>
+                            </div>
+
                             <p>Some Perl modules require upgrade. <span class="label label-danger">Important: </span>Required modules must be installed at the correct version before you may continue.<br />
                             <ul>
                                 [% FOREACH upgrade_module IN upgrade_modules %]
@@ -82,7 +116,19 @@
                         [% END %]
 
                         [% IF ( problems ) %]
-                            <h2>Web installer &rsaquo; Perl version too old</h2>
+                            <h1>Web installer &rsaquo; Perl version too old</h1>
+
+                            <div id="steps">
+                                <ol>
+                                <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Choose your language</li>
+                                    <li class="current open"><i class="fa fa-square-o" aria-hidden="true"></i> Check Perl dependencies</li>
+                                    <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Database settings</li>
+                                    <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Set up database</li>
+                                    <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Install basic configuration settings</li>
+                                    <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Onboarding</li>
+                                </ol>
+                            </div>
+
                             <p>I encountered some problems.</p>
                             <ul>
                                 [% IF ( perlversion ) %]
@@ -97,7 +143,19 @@
                         </form>
 
                     [% ELSE # IF checkmodule %]
-                        <h2>Web installer &rsaquo; Check Perl dependencies</h2>
+                        <h1>Web installer &rsaquo; Check Perl dependencies</h1>
+
+                        <div id="steps">
+                            <ol>
+                                <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Choose your language</li>
+                                <li class="current open"><i class="fa fa-square-o" aria-hidden="true"></i> Check Perl dependencies</li>
+                                <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Database settings</li>
+                                <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Set up database</li>
+                                <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Install basic configuration settings</li>
+                                <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Onboarding</li>
+                            </ol>
+                        </div>
+
                         <p>All required Perl modules appear to be installed.</p>
                         <p> All dependencies installed.</p>
 

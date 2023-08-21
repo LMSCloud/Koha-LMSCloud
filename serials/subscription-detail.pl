@@ -17,23 +17,19 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Acquisition;
-use C4::Auth;
-use C4::Budgets;
-use C4::Koha;
-use C4::Serials;
-use C4::Output;
+use C4::Auth qw( get_template_and_user checkauth );
+use C4::Serials qw( CloseSubscription ReopenSubscription GetSubscription GetExpirationDate GetSerials HasSubscriptionStrictlyExpired CountIssues HasItems DelSubscription check_routing abouttoexpire can_edit_subscription );
+use C4::Output qw( output_and_exit output_html_with_http_headers );
 use C4::Context;
-use C4::Search qw/enabled_staff_search_views/;
+use C4::Search qw( enabled_staff_search_views );
 
 use Koha::AdditionalFields;
 use Koha::AuthorisedValues;
-use Koha::DateUtils;
+use Koha::DateUtils qw( output_pref );
 use Koha::Acquisition::Bookseller;
 use Koha::Subscriptions;
 
-use Date::Calc qw/Today Day_of_Year Week_of_Year Add_Delta_Days/;
-use Carp;
+use Carp qw( carp );
 
 use Koha::SharedContent;
 
@@ -60,7 +56,6 @@ my ($template, $loggedinuser, $cookie)
                 query => $query,
                 type => "intranet",
                 flagsrequired => {serials => $permission},
-                debug => 1,
                 });
 
 my $subs = GetSubscription($subscriptionid);
@@ -119,6 +114,8 @@ for my $date ( qw(startdate enddate firstacquidate histstartdate histenddate) ) 
 }
 my $av = Koha::AuthorisedValues->search({ category => 'LOC', authorised_value => $subs->{location} });
 $subs->{location} = $av->count ? $av->next->lib : '';
+$av = Koha::AuthorisedValues->search({ category => 'CCODE', authorised_value => $subs->{ccode} });
+$subs->{ccode} = $av->count ? $av->next->lib : '';
 $subs->{abouttoexpire}  = abouttoexpire($subs->{subscriptionid});
 $template->param(%{ $subs });
 $template->param(biblionumber_for_new_subscription => $subs->{bibnum});
@@ -127,11 +124,9 @@ my @irregular_issues = split /;/, $subs->{irregularity};
 my $frequency = C4::Serials::Frequency::GetSubscriptionFrequency($subs->{periodicity});
 my $numberpattern = C4::Serials::Numberpattern::GetSubscriptionNumberpattern($subs->{numberpattern});
 
-my $default_bib_view = get_default_view();
-
 my $subscription_object = Koha::Subscriptions->find( $subscriptionid );
 $template->param(
-    available_additional_fields => [ Koha::AdditionalFields->search( { tablename => 'subscription' } ) ],
+    available_additional_fields => Koha::AdditionalFields->search( { tablename => 'subscription' } ),
     additional_field_values => {
         map { $_->field->name => $_->value }
           $subscription_object->additional_field_values->as_list
@@ -170,25 +165,9 @@ $template->param(
     intranetstylesheet => C4::Context->preference('intranetstylesheet'),
     intranetcolorstylesheet => C4::Context->preference('intranetcolorstylesheet'),
     irregular_issues => scalar @irregular_issues,
-    default_bib_view => $default_bib_view,
     orders_grouped => $orders_grouped,
     (uc(C4::Context->preference("marcflavour"))) => 1,
     mana_comments => $subs->{comments},
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;
-
-sub get_default_view {
-    my $defaultview = C4::Context->preference('IntranetBiblioDefaultView');
-    my %views       = C4::Search::enabled_staff_search_views();
-    if ( $defaultview eq 'isbd' && $views{can_view_ISBD} ) {
-        return 'ISBDdetail';
-    }
-    elsif ( $defaultview eq 'marc' && $views{can_view_MARC} ) {
-        return 'MARCdetail';
-    }
-    elsif ( $defaultview eq 'labeled_marc' && $views{can_view_labeledMARC} ) {
-        return 'labeledMARCdetail';
-    }
-    return 'detail';
-}

@@ -20,8 +20,8 @@
 
 use Modern::Perl;
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_and_exit_if_error output_and_exit output_html_with_http_headers );
 use CGI qw ( -utf8 );
 use C4::Letters;
 use Koha::Account::Lines;
@@ -57,6 +57,18 @@ output_and_exit_if_error(
 );
 
 my $letter = C4::Letters::GetPreparedLetter(
+    module                 => 'circulation',
+    letter_code            => 'DEBIT_' . $debit->debit_type_code,
+    branchcode             => C4::Context::mybranch,
+    message_transport_type => 'print',
+    lang                   => $patron->lang,
+    tables                 => {
+        debits    => $debit_id,
+        borrowers => $patron->borrowernumber
+    }
+);
+
+$letter //= C4::Letters::GetPreparedLetter(
     module                 => 'circulation',
     letter_code            => 'ACCOUNT_DEBIT',
     branchcode             => C4::Context::mybranch,

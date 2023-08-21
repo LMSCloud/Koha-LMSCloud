@@ -20,21 +20,18 @@ package C4::ShelfBrowser;
 use strict;
 use warnings;
 
-use C4::Biblio;
+use C4::Biblio qw( GetAuthorisedValueDesc );
 use C4::Context;
-use C4::Koha;
+use C4::Koha qw( GetNormalizedUPC GetNormalizedOCLCNumber GetNormalizedISBN GetNormalizedEAN );
 use Koha::Biblios;
 use Koha::Libraries;
 
-use vars qw(@ISA @EXPORT @EXPORT_OK);
-
+our (@ISA, @EXPORT_OK);
 BEGIN {
-	require Exporter;
-	@ISA    = qw(Exporter);
-	@EXPORT = qw(
-	    &GetNearbyItems
-    );
+    require Exporter;
+    @ISA       = qw(Exporter);
     @EXPORT_OK = qw(
+      GetNearbyItems
     );
 }
 
@@ -229,7 +226,7 @@ sub GetShelfInfo {
         $item->{medium}        = $biblio->medium;
         $item->{part_number}   = $biblio->part_number;
         $item->{part_name}     = $biblio->part_name;
-        my $this_record = GetMarcBiblio({ biblionumber => $biblio->biblionumber });
+        my $this_record = $biblio->metadata->record;
         $item->{'browser_normalized_upc'} = GetNormalizedUPC($this_record,$marcflavour);
         $item->{'browser_normalized_oclc'} = GetNormalizedOCLCNumber($this_record,$marcflavour);
         $item->{'browser_normalized_isbn'} = GetNormalizedISBN(undef,$this_record,$marcflavour);

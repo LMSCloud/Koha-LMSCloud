@@ -1,7 +1,6 @@
 package C4::ClassSource;
 
-# Copyright (C) 2007 LibLime
-# 
+# Copyright 2022 Koha Development Team
 # This file is part of Koha.
 #
 # Koha is free software; you can redistribute it and/or modify it
@@ -17,15 +16,22 @@ package C4::ClassSource;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
-require Exporter;
 use C4::Context;
-use C4::ClassSortRoutine;
+use C4::ClassSortRoutine qw( GetClassSortKey );
 
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-
+our (@ISA, @EXPORT_OK);
+BEGIN {
+    require Exporter;
+    @ISA    = qw(Exporter);
+    @EXPORT_OK = qw(
+        GetClassSources
+        GetClassSource
+        GetClassSortRule
+        GetClassSort
+    );
+}
 
 =head1 NAME
 
@@ -43,17 +49,6 @@ sources and sorting rules.
 =head1 FUNCTIONS
 
 =cut
-
-
-@ISA    = qw(Exporter);
-@EXPORT = qw(
-    &GetClassSources
-    &GetClassSource
-    &GetClassSortRule
-
-    &GetClassSort
-
-);
 
 =head2 GetClassSources
 

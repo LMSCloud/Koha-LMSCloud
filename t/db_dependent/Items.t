@@ -19,8 +19,9 @@ use Modern::Perl;
 use Data::Dumper;
 
 use MARC::Record;
-use C4::Items;
-use C4::Biblio;
+use C4::Items qw( ModItemTransfer SearchItems AddItemFromMarc ModItemFromMarc get_hostitemnumbers_of Item2Marc ModDateLastSeen );
+use C4::Biblio qw( GetMarcFromKohaField AddBiblio );
+use C4::Circulation qw( AddIssue );
 use Koha::Items;
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string );
@@ -33,7 +34,7 @@ use Koha::AuthorisedValues;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
-use Test::More tests => 14;
+use Test::More tests => 12;
 
 use Test::Warn;
 
@@ -189,183 +190,6 @@ subtest 'ModItemTransfer tests' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'GetHiddenItemnumbers tests' => sub {
-
-    plan tests => 11;
-
-    # This sub is controlled by the OpacHiddenItems system preference.
-
-    $schema->storage->txn_begin;
-
-    my $builder = t::lib::TestBuilder->new;
-    my $library1 = $builder->build({
-        source => 'Branch',
-    });
-
-    my $library2 = $builder->build({
-        source => 'Branch',
-    });
-    my $itemtype = $builder->build({
-        source => 'Itemtype',
-    });
-
-    # Create a new biblio
-    t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
-    my $biblio = $builder->build_sample_biblio();
-
-    # Add two items
-    my $item1_itemnumber = $builder->build_sample_item(
-        {
-            biblionumber => $biblio->biblionumber,
-            library      => $library1->{branchcode},
-            withdrawn    => 1,
-            itype        => $itemtype->{itemtype}
-        }
-    )->itemnumber;
-    my $item2_itemnumber = $builder->build_sample_item(
-        {
-            biblionumber => $biblio->biblionumber,
-            library      => $library2->{branchcode},
-            withdrawn    => 0,
-            itype        => $itemtype->{itemtype}
-        }
-    )->itemnumber;
-    my $opachiddenitems;
-    my @itemnumbers = ($item1_itemnumber,$item2_itemnumber);
-    my @hidden;
-    my @items;
-    push @items, Koha::Items->find( $item1_itemnumber )->unblessed;
-    push @items, Koha::Items->find( $item2_itemnumber )->unblessed;
-
-    # Empty OpacHiddenItems
-    t::lib::Mocks::mock_preference('OpacHiddenItems','');
-    ok( !defined( GetHiddenItemnumbers( { items => \@items } ) ),
-        "Hidden items list undef if OpacHiddenItems empty");
-
-    # Blank spaces
-    t::lib::Mocks::mock_preference('OpacHiddenItems','  ');
-    ok( scalar GetHiddenItemnumbers( { items => \@items } ) == 0,
-        "Hidden items list empty if OpacHiddenItems only contains blanks");
-
-    # One variable / value
-    $opachiddenitems = "
-        withdrawn: [1]";
-    t::lib::Mocks::mock_preference( 'OpacHiddenItems', $opachiddenitems );
-    @hidden = GetHiddenItemnumbers( { items => \@items } );
-    ok( scalar @hidden == 1, "Only one hidden item");
-    is( $hidden[0], $item1_itemnumber, "withdrawn=1 is hidden");
-
-    # One variable, two values
-    $opachiddenitems = "
-        withdrawn: [1,0]";
-    t::lib::Mocks::mock_preference( 'OpacHiddenItems', $opachiddenitems );
-    @hidden = GetHiddenItemnumbers( { items => \@items } );
-    ok( scalar @hidden == 2, "Two items hidden");
-    is_deeply( \@hidden, \@itemnumbers, "withdrawn=1 and withdrawn=0 hidden");
-
-    # Two variables, a value each
-    $opachiddenitems = "
-        withdrawn: [1]
-        homebranch: [$library2->{branchcode}]
-    ";
-    t::lib::Mocks::mock_preference( 'OpacHiddenItems', $opachiddenitems );
-    @hidden = GetHiddenItemnumbers( { items => \@items } );
-    ok( scalar @hidden == 2, "Two items hidden");
-    is_deeply( \@hidden, \@itemnumbers, "withdrawn=1 and homebranch library2 hidden");
-
-    # Override hidden with patron category
-    t::lib::Mocks::mock_preference( 'OpacHiddenItemsExceptions', 'S' );
-    @hidden = GetHiddenItemnumbers( { items => \@items, borcat => 'PT' } );
-    ok( scalar @hidden == 2, "Two items still hidden");
-    @hidden = GetHiddenItemnumbers( { items => \@items, borcat => 'S' } );
-    ok( scalar @hidden == 0, "Two items not hidden");
-
-    # Valid OpacHiddenItems, empty list
-    @items = ();
-    @hidden = GetHiddenItemnumbers( { items => \@items } );
-    ok( scalar @hidden == 0, "Empty items list, no item hidden");
-
-    $schema->storage->txn_rollback;
-};
-
-subtest 'GetItemsInfo tests' => sub {
-
-    plan tests => 9;
-
-    $schema->storage->txn_begin;
-
-    my $builder = t::lib::TestBuilder->new;
-    my $library1 = $builder->build({
-        source => 'Branch',
-    });
-    my $library2 = $builder->build({
-        source => 'Branch',
-    });
-    my $itemtype = $builder->build({
-        source => 'Itemtype',
-    });
-
-    Koha::AuthorisedValues->delete;
-    my $av1 = Koha::AuthorisedValue->new(
-        {
-            category         => 'RESTRICTED',
-            authorised_value => '1',
-            lib              => 'Restricted Access',
-            lib_opac         => 'Restricted Access OPAC',
-        }
-    )->store();
-
-    # Add a biblio
-    my $biblio = $builder->build_sample_biblio();
-    # Add an item
-    my $itemnumber = $builder->build_sample_item(
-        {
-            biblionumber  => $biblio->biblionumber,
-            homebranch    => $library1->{branchcode},
-            holdingbranch => $library2->{branchcode},
-            itype         => $itemtype->{itemtype},
-            restricted    => 1,
-        }
-    )->itemnumber;
-
-    my $library = Koha::Libraries->find( $library1->{branchcode} );
-    $library->opac_info("homebranch OPAC info");
-    $library->store;
-
-    $library = Koha::Libraries->find( $library2->{branchcode} );
-    $library->opac_info("holdingbranch OPAC info");
-    $library->store;
-
-    my @results = GetItemsInfo( $biblio->biblionumber );
-    ok( @results, 'GetItemsInfo returns results');
-
-    is( $results[0]->{ home_branch_opac_info }, "homebranch OPAC info",
-        'GetItemsInfo returns the correct home branch OPAC info notice' );
-    is( $results[0]->{ holding_branch_opac_info }, "holdingbranch OPAC info",
-        'GetItemsInfo returns the correct holding branch OPAC info notice' );
-    is( exists( $results[0]->{ onsite_checkout } ), 1,
-        'GetItemsInfo returns a onsite_checkout key' );
-    is( $results[0]->{ restricted }, 1,
-        'GetItemsInfo returns a restricted value code' );
-    is( $results[0]->{ restrictedvalue }, "Restricted Access",
-        'GetItemsInfo returns a restricted value description (staff)' );
-    is( $results[0]->{ restrictedvalueopac }, "Restricted Access OPAC",
-        'GetItemsInfo returns a restricted value description (OPAC)' );
-
-    #place item into holds queue
-    my $dbh = C4::Context->dbh;
-    @results = GetItemsInfo( $biblio->biblionumber );
-    is( $results[0]->{ has_pending_hold }, "0",
-        'Hold not marked as pending/unavailable if nothing in tmp_holdsqueue for item' );
-
-    $dbh->do(q{INSERT INTO tmp_holdsqueue (biblionumber, itemnumber, surname, borrowernumber ) VALUES (?, ?, "Zorro", 42)}, undef, $biblio->biblionumber, $itemnumber);
-    @results = GetItemsInfo( $biblio->biblionumber );
-    is( $results[0]->{ has_pending_hold }, "1",
-        'Hold marked as pending/unavailable if tmp_holdsqueue is not empty for item' );
-
-    $schema->storage->txn_rollback;
-};
-
 subtest q{Test Koha::Database->schema()->resultset('Item')->itemtype()} => sub {
 
     plan tests => 4;
@@ -407,7 +231,7 @@ subtest q{Test Koha::Database->schema()->resultset('Item')->itemtype()} => sub {
 };
 
 subtest 'SearchItems test' => sub {
-    plan tests => 17;
+    plan tests => 20;
 
     $schema->storage->txn_begin;
     my $dbh = C4::Context->dbh;
@@ -432,13 +256,14 @@ subtest 'SearchItems test' => sub {
     my (undef, $initial_items_count) = SearchItems(undef, {rows => 1});
 
     # Add two items
-    my $item1_itemnumber = $builder->build_sample_item(
+    my $item1 = $builder->build_sample_item(
         {
             biblionumber => $biblio->biblionumber,
             library      => $library1->{branchcode},
             itype        => $itemtype->{itemtype}
         }
-    )->itemnumber;
+    );
+    my $item1_itemnumber = $item1->itemnumber;
     my $item2_itemnumber = $builder->build_sample_item(
         {
             biblionumber => $biblio->biblionumber,
@@ -450,6 +275,7 @@ subtest 'SearchItems test' => sub {
     my ($items, $total_results);
 
     ($items, $total_results) = SearchItems();
+
     is($total_results, $initial_items_count + 2, "Created 2 new items");
     is(scalar @$items, $total_results, "SearchItems() returns all items");
 
@@ -538,7 +364,6 @@ subtest 'SearchItems test' => sub {
     my $cache = Koha::Caches->get_instance();
     $cache->clear_from_cache("MarcStructure-0-$frameworkcode");
     $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
-    $cache->clear_from_cache("default_value_for_mod_marc-");
     $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
 
     my $item3_record = MARC::Record->new;
@@ -569,7 +394,6 @@ subtest 'SearchItems test' => sub {
     # Clear cache
     $cache->clear_from_cache("MarcStructure-0-$frameworkcode");
     $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
-    $cache->clear_from_cache("default_value_for_mod_marc-");
     $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
 
     ModItemFromMarc($item3_record, $biblio->biblionumber, $item3_itemnumber);
@@ -628,6 +452,88 @@ subtest 'SearchItems test' => sub {
     ($items, $total_results) = SearchItems($filter);
     is($total_results, 1, 'found all items of library1 with new_status=0 with ifnull = 0');
 
+    t::lib::Mocks::mock_userenv({ branchcode => $item1->homebranch });
+    my $patron_borrower = $builder->build_object({ class => 'Koha::Patrons' })->unblessed;
+    AddIssue( $patron_borrower, $item1->barcode );
+    # Search item where item is checked out
+    $filter = {
+        conjunction => 'AND',
+        filters => [
+            {
+                field => 'onloan',
+                query => 'not null',
+                operator => 'is',
+            },
+            {
+                field => 'homebranch',
+                query => $item1->homebranch,
+                operator => '=',
+            },
+        ],
+    };
+    ($items, $total_results) = SearchItems($filter);
+    ok(scalar @$items == 1, 'found 1 checked out item');
+
+    # When sorting by descending availability, checked out item should show first
+    my $params = {
+        sortby => 'availability',
+        sortorder => 'DESC',
+    };
+    $filter = {
+        field => 'homebranch',
+        query => $item1->homebranch,
+        operator => '=',
+    };
+    ($items, $total_results) = SearchItems($filter,$params);
+    is($items->[0]->{barcode}, $item1->barcode, 'Items sorted as expected by availability');
+
+    subtest 'Search items by ISSN and ISBN with variations' => sub {
+        plan tests => 4;
+
+        my $marc_record = MARC::Record->new;
+        # Prepare ISBN for biblio:
+        $marc_record->append_fields( MARC::Field->new( '020', '', '', 'a' => '9780136019701' ) );
+        # Prepare ISSN for biblio:
+        $marc_record->append_fields( MARC::Field->new( '022', '', '', 'a' => '2434561X' ) );
+        my ( $isbnissn_biblionumber ) = AddBiblio( $marc_record, '' );
+        my $isbnissn_biblio = Koha::Biblios->find($isbnissn_biblionumber);
+
+        my $item = $builder->build_sample_item(
+            {
+                biblionumber => $isbnissn_biblio->biblionumber,
+            }
+        );
+        my $item_itemnumber = $item->itemnumber;
+
+        my $filter_isbn = {
+            field => 'isbn',
+            query => '978013-6019701',
+            operator => 'like',
+        };
+
+        t::lib::Mocks::mock_preference('SearchWithISBNVariations', 0);
+        ($items, $total_results) = SearchItems($filter_isbn);
+        is($total_results, 0, "Search items finds ISBN, no variations");
+
+        t::lib::Mocks::mock_preference('SearchWithISBNVariations', 1);
+        ($items, $total_results) = SearchItems($filter_isbn);
+        is($total_results, 1, "Search items finds ISBN with variations");
+
+        my $filter_issn = {
+            field => 'issn',
+            query => '2434-561X',
+            operator => 'like',
+        };
+
+        t::lib::Mocks::mock_preference('SearchWithISSNVariations', 0);
+        ($items, $total_results) = SearchItems($filter_issn);
+        is($total_results, 0, "Search items finds ISSN, no variations");
+
+        t::lib::Mocks::mock_preference('SearchWithISSNVariations', 1);
+        ($items, $total_results) = SearchItems($filter_issn);
+        is($total_results, 1, "Search items finds ISSN with variations");
+    };
+
     $schema->storage->txn_rollback;
 };
 
@@ -678,127 +584,6 @@ subtest 'Koha::Item(s) tests' => sub {
 
     $schema->storage->txn_rollback;
 };
-
-subtest 'C4::Biblio::EmbedItemsInMarcBiblio' => sub {
-    plan tests => 8;
-
-    $schema->storage->txn_begin();
-
-    my $builder = t::lib::TestBuilder->new;
-    my $library1 = $builder->build({
-        source => 'Branch',
-    });
-    my $library2 = $builder->build({
-        source => 'Branch',
-    });
-    my $itemtype = $builder->build({
-        source => 'Itemtype',
-    });
-
-    my $biblio = $builder->build_sample_biblio();
-    my $item_infos = [
-        { homebranch => $library1->{branchcode}, holdingbranch => $library1->{branchcode} },
-        { homebranch => $library1->{branchcode}, holdingbranch => $library1->{branchcode} },
-        { homebranch => $library1->{branchcode}, holdingbranch => $library1->{branchcode} },
-        { homebranch => $library2->{branchcode}, holdingbranch => $library2->{branchcode} },
-        { homebranch => $library2->{branchcode}, holdingbranch => $library2->{branchcode} },
-        { homebranch => $library1->{branchcode}, holdingbranch => $library2->{branchcode} },
-        { homebranch => $library1->{branchcode}, holdingbranch => $library2->{branchcode} },
-        { homebranch => $library1->{branchcode}, holdingbranch => $library2->{branchcode} },
-    ];
-    my $number_of_items = scalar @$item_infos;
-    my $number_of_items_with_homebranch_is_CPL =
-      grep { $_->{homebranch} eq $library1->{branchcode} } @$item_infos;
-
-    my @itemnumbers;
-    for my $item_info (@$item_infos) {
-        my $itemnumber = $builder->build_sample_item(
-            {
-                biblionumber  => $biblio->biblionumber,
-                homebranch    => $item_info->{homebranch},
-                holdingbranch => $item_info->{holdingbranch},
-                itype         => $itemtype->{itemtype}
-            }
-        )->itemnumber;
-
-        push @itemnumbers, $itemnumber;
-    }
-
-    # Emptied the OpacHiddenItems pref
-    t::lib::Mocks::mock_preference( 'OpacHiddenItems', '' );
-
-    my ($itemfield) =
-      C4::Biblio::GetMarcFromKohaField( 'items.itemnumber' );
-    my $record = C4::Biblio::GetMarcBiblio({ biblionumber => $biblio->biblionumber });
-    warning_is { C4::Biblio::EmbedItemsInMarcBiblio() }
-    { carped => 'EmbedItemsInMarcBiblio: No MARC record passed' },
-      'Should carp is no record passed.';
-
-    C4::Biblio::EmbedItemsInMarcBiblio({
-        marc_record  => $record,
-        biblionumber => $biblio->biblionumber });
-    my @items = $record->field($itemfield);
-    is( scalar @items, $number_of_items, 'Should return all items' );
-
-    my $marc_with_items = C4::Biblio::GetMarcBiblio({
-        biblionumber => $biblio->biblionumber,
-        embed_items  => 1 });
-    is_deeply( $record, $marc_with_items, 'A direct call to GetMarcBiblio with items matches');
-
-    C4::Biblio::EmbedItemsInMarcBiblio({
-        marc_record  => $record,
-        biblionumber => $biblio->biblionumber,
-        item_numbers => [ $itemnumbers[1], $itemnumbers[3] ] });
-    @items = $record->field($itemfield);
-    is( scalar @items, 2, 'Should return all items present in the list' );
-
-    C4::Biblio::EmbedItemsInMarcBiblio({
-        marc_record  => $record,
-        biblionumber => $biblio->biblionumber,
-        opac         => 1 });
-    @items = $record->field($itemfield);
-    is( scalar @items, $number_of_items, 'Should return all items for opac' );
-
-    my $opachiddenitems = "
-        homebranch: ['$library1->{branchcode}']";
-    t::lib::Mocks::mock_preference( 'OpacHiddenItems', $opachiddenitems );
-
-    C4::Biblio::EmbedItemsInMarcBiblio({
-        marc_record  => $record,
-        biblionumber => $biblio->biblionumber });
-    @items = $record->field($itemfield);
-    is( scalar @items,
-        $number_of_items,
-        'Even with OpacHiddenItems set, all items should have been embedded' );
-
-    C4::Biblio::EmbedItemsInMarcBiblio({
-        marc_record  => $record,
-        biblionumber => $biblio->biblionumber,
-        opac         => 1 });
-    @items = $record->field($itemfield);
-    is(
-        scalar @items,
-        $number_of_items - $number_of_items_with_homebranch_is_CPL,
-'For OPAC, the pref OpacHiddenItems should have been take into account. Only items with homebranch ne CPL should have been embedded'
-    );
-
-    $opachiddenitems = "
-        homebranch: ['$library1->{branchcode}', '$library2->{branchcode}']";
-    t::lib::Mocks::mock_preference( 'OpacHiddenItems', $opachiddenitems );
-    C4::Biblio::EmbedItemsInMarcBiblio({
-        marc_record  => $record,
-        biblionumber => $biblio->biblionumber,
-        opac         => 1 });
-    @items = $record->field($itemfield);
-    is(
-        scalar @items,
-        0,
-'For OPAC, If all items are hidden, no item should have been embedded'
-    );
-
-    $schema->storage->txn_rollback;
-};
-
 
 subtest 'get_hostitemnumbers_of' => sub {
     plan tests => 3;
@@ -981,7 +766,7 @@ subtest 'Split subfields in Item2Marc (Bug 21774)' => sub {
 };
 
 subtest 'ModItemFromMarc' => sub {
-    plan tests => 6;
+    plan tests => 8;
     $schema->storage->txn_begin;
 
     my $builder = t::lib::TestBuilder->new;
@@ -1035,6 +820,42 @@ subtest 'ModItemFromMarc' => sub {
         $marc = C4::Items::Item2Marc( { %{$item->unblessed}, itemcallnumber => 'yyy' }, $item->biblionumber );
         ModItemFromMarc( $marc, $item->biblionumber, $item->itemnumber );
         is( $item->get_from_storage->cn_sort, 'YYY', 'cn_sort has been updated' );
+    };
+
+    subtest 'onloan' => sub {
+        plan tests => 3;
+
+        my $item = $builder->build_sample_item;
+        $item->set({ onloan => '2022-03-19' })->store;
+        is( $item->onloan, '2022-03-19', 'init values set are expected' );
+
+        my $marc = C4::Items::Item2Marc( $item->get_from_storage->unblessed, $item->biblionumber );
+        my ( $MARCfield, $MARCsubfield ) = GetMarcFromKohaField( 'items.onloan' );
+        $marc->field($MARCfield)->delete_subfield( code => $MARCsubfield );
+        ModItemFromMarc( $marc, $item->biblionumber, $item->itemnumber );
+        is( $item->get_from_storage->onloan, '2022-03-19', 'onloan has not been updated if not passed' );
+
+        $marc = C4::Items::Item2Marc( { %{$item->unblessed}, onloan => '2022-03-26' }, $item->biblionumber );
+        ModItemFromMarc( $marc, $item->biblionumber, $item->itemnumber );
+        is( $item->get_from_storage->onloan, '2022-03-26', 'onloan has been updated when passed in' );
+    };
+
+    subtest 'dateaccessioned' => sub {
+        plan tests => 3;
+
+        my $item = $builder->build_sample_item;
+        $item->set({ dateaccessioned => '2022-03-19' })->store->discard_changes;
+        is( $item->dateaccessioned, '2022-03-19', 'init values set are expected' );
+
+        my $marc = C4::Items::Item2Marc( $item->get_from_storage->unblessed, $item->biblionumber );
+        my ( $MARCfield, $MARCsubfield ) = GetMarcFromKohaField( 'items.dateaccessioned' );
+        $marc->field($MARCfield)->delete_subfield( code => $MARCsubfield );
+        ModItemFromMarc( $marc, $item->biblionumber, $item->itemnumber );
+        is( $item->get_from_storage->dateaccessioned, '2022-03-19', 'dateaccessioned has not been updated if not passed' );
+
+        $marc = C4::Items::Item2Marc( { %{$item->unblessed}, dateaccessioned => '2022-03-26' }, $item->biblionumber );
+        ModItemFromMarc( $marc, $item->biblionumber, $item->itemnumber );
+        is( $item->get_from_storage->dateaccessioned, '2022-03-26', 'dateaccessioned has been updated when passed in' );
     };
 
     subtest 'permanent_location' => sub {
@@ -1126,4 +947,28 @@ subtest 'ModItemFromMarc' => sub {
 
     $schema->storage->txn_rollback;
     Koha::Caches->get_instance->clear_from_cache( "MarcSubfieldStructure-" );
-}
+};
+
+subtest 'ModDateLastSeen' => sub {
+    plan tests => 5;
+    $schema->storage->txn_begin;
+
+    my $builder = t::lib::TestBuilder->new;
+    my $item = $builder->build_sample_item;
+    t::lib::Mocks::mock_preference('CataloguingLog', '1');
+    my $logs_before = Koha::ActionLogs->search({ module => 'CATALOGUING', action => 'MODIFY', object => $item->itemnumber })->count;
+    ModDateLastSeen($item->itemnumber);
+    my $logs_after = Koha::ActionLogs->search({ module => 'CATALOGUING', action => 'MODIFY', object => $item->itemnumber })->count;
+    is( $logs_after, $logs_before, "ModDateLastSeen doesn't log if item not lost");
+    $item->itemlost(1)->store({ log_action => 0 });
+    ModDateLastSeen($item->itemnumber, 1);
+    $item->discard_changes;
+    $logs_after = Koha::ActionLogs->search({ module => 'CATALOGUING', action => 'MODIFY', object => $item->itemnumber })->count;
+    is( $item->itemlost, 1, "Item left lost when parameter is passed");
+    is( $logs_after, $logs_before, "ModDateLastSeen doesn't log if item not lost");
+    ModDateLastSeen($item->itemnumber);
+    $item->discard_changes;
+    $logs_after = Koha::ActionLogs->search({ module => 'CATALOGUING', action => 'MODIFY', object => $item->itemnumber })->count;
+    is( $item->itemlost, 0, "Item no longer lost when no parameter is passed");
+    is( $logs_after, $logs_before + 1, "ModDateLastSeen logs if item was lost and now found");
+};

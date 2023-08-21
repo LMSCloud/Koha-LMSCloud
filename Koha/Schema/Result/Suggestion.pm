@@ -136,6 +136,13 @@ is the suggestion archived?
 
 note entered on the suggestion
 
+=head2 staff_note
+
+  data_type: 'longtext'
+  is_nullable: 1
+
+non-public note entered on the suggestion
+
 =head2 author
 
   data_type: 'varchar'
@@ -325,6 +332,8 @@ __PACKAGE__->add_columns(
   "archived",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "note",
+  { data_type => "longtext", is_nullable => 1 },
+  "staff_note",
   { data_type => "longtext", is_nullable => 1 },
   "author",
   { data_type => "varchar", is_nullable => 1, size => 80 },
@@ -548,8 +557,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:3hkIGEbrTi7MUug0zjvyFg
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-09-07 20:40:07
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:NSX5a0b7SJyhLVT8Fx4jaQ
 
 __PACKAGE__->belongs_to(
   "suggester",

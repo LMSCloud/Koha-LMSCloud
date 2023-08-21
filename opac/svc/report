@@ -24,7 +24,7 @@
 use Modern::Perl;
 
 use C4::Output qw(output_with_http_headers);
-use C4::Reports::Guided;
+use C4::Reports::Guided qw( execute_query );
 use Koha::Reports;
 use JSON;
 use CGI qw ( -utf8 );
@@ -37,8 +37,11 @@ my $report_name = $query->param('name');
 my $report_annotation = $query->param('annotated');
 
 my $report_recs = Koha::Reports->search( $report_name ? { 'report_name' => $report_name } : { 'id' => $report_id } );
+
 if ( !$report_recs || $report_recs->count == 0 ) { die "There is no such report.\n"; }
 my $report_rec = $report_recs->next();
+
+$report_id = $report_rec->id;
 
 die "Sorry this report is not public\n" unless $report_rec->public;
 
@@ -58,13 +61,18 @@ if ($cache_active) {
 }
 
 unless ($json_text) {
-    my $offset = 0;
     my $limit = C4::Context->preference("SvcMaxReportRows") || 10;
 
     my ( $sql, undef ) = $report_rec->prep_report( \@param_names, \@sql_params );
 
-    my ( $sth, $errors ) =
-      execute_query( $sql, $offset, $limit, undef, $report_id );
+    my ( $sth, $errors ) = execute_query(
+        {
+            sql        => $sql,
+            offset     => 0,
+            limit      => $limit,
+            report_id  => $report_id,
+        }
+    );
     if ($sth) {
         my $lines;
         if ($report_annotation) {

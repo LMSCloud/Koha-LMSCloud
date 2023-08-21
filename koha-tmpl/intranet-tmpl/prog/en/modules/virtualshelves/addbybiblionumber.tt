@@ -7,6 +7,7 @@
     <div class="container-fluid">
 
 [% UNLESS (authorized) %]
+<h1>Error adding to list</h1>
     <p align="center">
         [% IF (errcode==1) %]Could not create a new list. Please check the name.<br/>[% END %]
         [% IF (errcode==2) %]Sorry, you do not have permission to add items to this list.<br/>[% END %]
@@ -94,9 +95,9 @@
     </li>
     <li>
         <label for="category">Category:</label>
-        <select name="category" id="category">
-        <option value="1">Private</option>
-        <option value="2">Public</option>
+        <select name="public" id="public">
+        <option value="0">Private</option>
+        <option value="1">Public</option>
         </select>
     </li></ol>
     </fieldset>
@@ -108,7 +109,7 @@
 <!-- SAVE -->
             <fieldset class="action">
             <input type="hidden" name="sortfield" value="title" />
-            <input type="submit" value="Save" class="submit" /> <a class="close cancel" href="#">Cancel</a>
+            <input type="submit" class="btn btn-primary" value="Save" /> <a class="close cancel" href="#">Cancel</a>
             </fieldset>
         </form>
 <!-- /SAVE -->

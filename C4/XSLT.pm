@@ -24,31 +24,24 @@ package C4::XSLT;
 use Modern::Perl;
 
 use C4::Context;
-use C4::Items;
-use C4::Koha;
-use C4::Biblio;
-use C4::Circulation;
-use C4::Reserves;
+use C4::Koha qw( xml_escape );
+use C4::Biblio qw( GetAuthorisedValueDesc GetFrameworkCode GetMarcStructure );
 use Koha::AuthorisedValues;
 use Koha::ItemTypes;
+use Koha::RecordProcessor;
 use Koha::XSLT::Base;
 use Koha::Libraries;
-
-use Encode;
-
-use vars qw(@ISA @EXPORT);
+use Koha::Recalls;
 
 my $engine; #XSLT Handler object
-my %authval_per_framework;
-    # Cache for tagfield-tagsubfield to decode per framework.
-    # Should be preferably be placed in Koha-core...
 
+our (@ISA, @EXPORT_OK);
 BEGIN {
     require Exporter;
     @ISA = qw(Exporter);
-    @EXPORT = qw(
-        &XSLTParse4Display
-        &transformMARCXML4XSLT
+    @EXPORT_OK = qw(
+        buildKohaItemsNamespace
+        XSLTParse4Display
     );
     $engine=Koha::XSLT::Base->new( { do_not_return_source => 1 } );
 }
@@ -58,76 +51,6 @@ BEGIN {
 C4::XSLT - Functions for displaying XSLT-generated content
 
 =head1 FUNCTIONS
-
-=head2 transformMARCXML4XSLT
-
-Replaces codes with authorized values in a MARC::Record object
-Is only used in this module currently.
-
-=cut
-
-sub transformMARCXML4XSLT {
-    my ($biblionumber, $record) = @_;
-    my $frameworkcode = GetFrameworkCode($biblionumber) || '';
-    my $tagslib = &GetMarcStructure(1, $frameworkcode, { unsafe => 1 });
-    my @fields;
-    # FIXME: wish there was a better way to handle exceptions
-    eval {
-        @fields = $record->fields();
-    };
-    if ($@) { warn "PROBLEM WITH RECORD"; next; }
-    my $marcflavour = C4::Context->preference('marcflavour');
-    my $av = getAuthorisedValues4MARCSubfields($frameworkcode);
-    foreach my $tag ( keys %$av ) {
-        foreach my $field ( $record->field( $tag ) ) {
-            if ( $av->{ $tag } ) {
-                my @new_subfields = ();
-                for my $subfield ( $field->subfields() ) {
-                    my ( $letter, $value ) = @$subfield;
-                    # Replace the field value with the authorised value *except* for MARC21/NORMARC field 942$n (suppression in opac)
-                    if ( !( $tag eq '942' && $subfield->[0] eq 'n' ) || $marcflavour eq 'UNIMARC' ) {
-                        $value = GetAuthorisedValueDesc( $tag, $letter, $value, '', $tagslib )
-                            if $av->{ $tag }->{ $letter };
-                    }
-                    push( @new_subfields, $letter, $value );
-                } 
-                $field ->replace_with( MARC::Field->new(
-                    $tag,
-                    $field->indicator(1),
-                    $field->indicator(2),
-                    @new_subfields
-                ) );
-            }
-        }
-    }
-    return $record;
-}
-
-=head2 getAuthorisedValues4MARCSubfields
-
-Returns a ref of hash of ref of hash for tag -> letter controlled by authorised values
-Is only used in this module currently.
-
-=cut
-
-sub getAuthorisedValues4MARCSubfields {
-    my ($frameworkcode) = @_;
-    unless ( $authval_per_framework{ $frameworkcode } ) {
-        my $dbh = C4::Context->dbh;
-        my $sth = $dbh->prepare("SELECT DISTINCT tagfield, tagsubfield
-                                 FROM marc_subfield_structure
-                                 WHERE authorised_value IS NOT NULL
-                                   AND authorised_value!=''
-                                   AND frameworkcode=?");
-        $sth->execute( $frameworkcode );
-        my $av = { };
-        while ( my ( $tag, $letter ) = $sth->fetchrow() ) {
-            $av->{ $tag }->{ $letter } = 1;
-        }
-        $authval_per_framework{ $frameworkcode } = $av;
-    }
-    return $authval_per_framework{ $frameworkcode };
-}
 
 =head2 XSLTParse4Display
 
@@ -189,6 +112,7 @@ sub get_xslt_sysprefs {
                               IncludeAdditionalMARCFieldsInStaffDetailView
                               IncludeAdditionalMARCFieldsInStaffResultView
                               OpenURLResolverURL OpenURLImageLocation
+                              OPACResultsMaxItems OPACResultsMaxItemsUnavailable OPACResultsUnavailableGroupingBy
                               OpenURLText OPACShowMusicalInscripts OPACPlayMusicalInscripts / )
     {
         my $sp = C4::Context->preference( $syspref );
@@ -205,15 +129,15 @@ sub get_xslt_sysprefs {
     return $sysxml;
 }
 
-sub XSLTParse4Display {
-    my ( $biblionumber, $orig_record, $xslsyspref, $fixamps, $hidden_items, $sysxml, $xslfilename, $lang, $variables, $items_rs ) = @_;
+sub get_xsl_filename {
+    my ( $xslsyspref ) = @_;
 
-    $sysxml ||= C4::Context->preference($xslsyspref);
-    $xslfilename ||= C4::Context->preference($xslsyspref);
-    $lang ||= C4::Languages::getlanguage();
+    my $lang   = C4::Languages::getlanguage();
+
+    my $xslfilename = C4::Context->preference($xslsyspref) || "default";
 
     if ( $xslfilename =~ /^\s*"?default"?\s*$/i ) {
-        
+
         my ( $htdocs, $theme, $xslfile );
         my $is_intranet = 0;
         my $customdocs;
@@ -275,8 +199,39 @@ sub XSLTParse4Display {
         $xslfilename =~ s/\{langcode\}/$lang/;
     }
 
+    return $xslfilename;
+}
+
+sub XSLTParse4Display {
+    my ( $params ) = @_;
+
+    my $biblionumber = $params->{biblionumber};
+    my $record       = $params->{record};
+    my $xslsyspref   = $params->{xsl_syspref};
+    my $fixamps      = $params->{fix_amps};
+    my $hidden_items = $params->{hidden_items} || [];
+    my $variables    = $params->{xslt_variables};
+    my $items_rs     = $params->{items_rs};
+    my $interface    = C4::Context->interface;
+
+    die "Mandatory \$params->{xsl_syspref} was not provided, called with biblionumber $params->{biblionumber}"
+        if not defined $params->{xsl_syspref};
+
+    my $xslfilename = get_xsl_filename( $xslsyspref);
+
+    my $frameworkcode = GetFrameworkCode($biblionumber) || '';
+    my $record_processor = Koha::RecordProcessor->new(
+        {
+            filters => [ 'ExpandCodedFields' ],
+            options => {
+                interface     => $interface,
+                frameworkcode => $frameworkcode
+            }
+        }
+    );
+    $record_processor->process($record);
+
     # grab the XML, run it through our stylesheet, push it out to the browser
-    my $record = transformMARCXML4XSLT($biblionumber, $orig_record);
     my $itemsxml;
     if ( $xslsyspref eq "OPACXSLTDetailsDisplay" || $xslsyspref eq "XSLTDetailsDisplay" || $xslsyspref eq "XSLTResultsDisplay" ) {
         $itemsxml = ""; #We don't use XSLT for items display on these pages
@@ -286,9 +241,10 @@ sub XSLTParse4Display {
     my $xmlrecord = $record->as_xml(C4::Context->preference('marcflavour'));
 
     $variables ||= {};
-    if (C4::Context->preference('OPACShowOpenURL')) {
+    my $biblio;
+    if ( $interface eq 'opac' && C4::Context->preference('OPACShowOpenURL')) {
         my @biblio_itemtypes;
-        my $biblio = Koha::Biblios->find($biblionumber);
+        $biblio //= Koha::Biblios->find($biblionumber);
         if (C4::Context->preference('item-level_itypes')) {
             @biblio_itemtypes = $biblio->items->get_column("itype");
         } else {
@@ -301,6 +257,7 @@ sub XSLTParse4Display {
             $variables->{OpenURLResolverURL} = $biblio->get_openurl;
         }
     }
+
     my $varxml = "<variables>\n";
     while (my ($key, $value) = each %$variables) {
         $value //= q{};
@@ -308,6 +265,7 @@ sub XSLTParse4Display {
     }
     $varxml .= "</variables>\n";
 
+    my $sysxml = get_xslt_sysprefs();
     $xmlrecord =~ s/\<\/record\>/$itemsxml$sysxml$varxml\<\/record\>/;
     if ($fixamps) { # We need to correct the ampersand entities that Zebra outputs
         $xmlrecord =~ s/\&amp;amp;/\&amp;/g;
@@ -359,7 +317,7 @@ sub buildKohaItemsNamespace {
     my $ccodes =
       { map { $_->{authorised_value} => $_->{opac_description} } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => "", kohafield => 'items.ccode' } ) };
 
-    my %branches = map { $_->branchcode => $_->branchname } Koha::Libraries->search({}, { order_by => 'branchname' });
+    my %branches = map { $_->branchcode => $_->branchname } Koha::Libraries->search({}, { order_by => 'branchname' })->as_list;
 
     my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search->unblessed } };
     my $xml = '';
@@ -369,27 +327,44 @@ sub buildKohaItemsNamespace {
     while ( my $item = $items->next ) {
         my $status;
         my $substatus = '';
+        my $recalls_count;
 
-        if ($item->has_pending_hold) {
-            $status = 'Pending hold';
+        if ( C4::Context->preference('UseRecalls') ) {
+            $recalls_count = Koha::Recalls->search({ item_id => $item->itemnumber, status => 'waiting' })->count;
+        }
+
+        if ($recalls_count) {
+            # recalls take priority over holds
+            $status = 'other';
+            $substatus = 'Recall waiting';
+        }
+        elsif ( $item->has_pending_hold ) {
+            $status = 'other';
+            $substatus = 'Pending hold';
         }
         elsif ( $item->holds->waiting->count ) {
-            $status = 'Waiting';
+            $status = 'other';
+            $substatus = 'Hold waiting';
         }
         elsif ($item->get_transfer) {
-            $status = 'In transit';
+            $status = 'other';
+            $substatus = 'In transit';
         }
         elsif ($item->damaged) {
-            $status = "Damaged";
+            $status = 'other';
+            $substatus = "Damaged";
         }
         elsif ($item->itemlost) {
-            $status = "Lost";
+            $status = 'other';
+            $substatus = "Lost";
         }
         elsif ( $item->withdrawn) {
-            $status = "Withdrawn";
+            $status = 'other';
+            $substatus = "Withdrawn";
         }
         elsif ($item->onloan) {
-            $status = "Checked out";
+            $status = 'other';
+            $substatus = "Checked out";
         }
         elsif ( $item->notforloan ) {
             $status = $item->notforloan =~ /^($ref_status)$/
@@ -409,16 +384,18 @@ sub buildKohaItemsNamespace {
         else {
             $status = "available";
         }
-        my $homebranch     = xml_escape($branches{$item->homebranch});
-        my $holdingbranch  = xml_escape($branches{$item->holdingbranch});
-        my $location       = xml_escape($item->location && exists $shelflocations->{$item->location} ? $shelflocations->{$item->location} : $item->location);
-        my $ccode          = xml_escape($item->ccode    && exists $ccodes->{$item->ccode}            ? $ccodes->{$item->ccode}            : $item->ccode);
-        my $itemcallnumber = xml_escape($item->itemcallnumber);
-        my $stocknumber    = xml_escape($item->stocknumber);
+        my $homebranch     = C4::Koha::xml_escape($branches{$item->homebranch});
+        my $holdingbranch  = C4::Koha::xml_escape($branches{$item->holdingbranch});
+        my $resultbranch   = C4::Context->preference('OPACResultsLibrary') eq 'homebranch' ? $homebranch : $holdingbranch;
+        my $location       = C4::Koha::xml_escape($item->location && exists $shelflocations->{$item->location} ? $shelflocations->{$item->location} : $item->location);
+        my $ccode          = C4::Koha::xml_escape($item->ccode    && exists $ccodes->{$item->ccode}            ? $ccodes->{$item->ccode}            : $item->ccode);
+        my $itemcallnumber = C4::Koha::xml_escape($item->itemcallnumber);
+        my $stocknumber    = C4::Koha::xml_escape($item->stocknumber);
         $xml .=
             "<item>"
           . "<homebranch>$homebranch</homebranch>"
           . "<holdingbranch>$holdingbranch</holdingbranch>"
+          . "<resultbranch>$resultbranch</resultbranch>"
           . "<location>$location</location>"
           . "<ccode>$ccode</ccode>"
           . "<status>".( $status // q{} )."</status>"

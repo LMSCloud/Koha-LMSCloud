@@ -140,14 +140,15 @@ use Modern::Perl;
 
 ## load Koha modules
 use C4::Context;
-use C4::Output;
-use C4::Auth qw(:DEFAULT get_session);
-use C4::Search;
-use C4::Languages qw(getLanguages);
-use C4::Koha;
+use C4::Output qw( output_html_with_http_headers pagination_bar );
+use C4::Circulation qw( barcodedecode );
+use C4::Auth qw( get_template_and_user );
+use C4::Search qw( searchResults enabled_staff_search_views z3950_search_args new_record_from_zebra );
+use C4::Languages qw( getlanguage getLanguages );
+use C4::Koha qw( getitemtypeimagelocation GetAuthorisedValues );
 use URI::Escape;
 use POSIX qw(ceil floor);
-use C4::Search::History;
+use C4::Search qw( searchResults enabled_staff_search_views z3950_search_args new_record_from_zebra );
 
 use Koha::ItemTypes;
 use Koha::Library::Groups;
@@ -156,8 +157,10 @@ use Koha::SearchEngine::Search;
 use Koha::SearchEngine::QueryBuilder;
 use Koha::Virtualshelves;
 use Koha::SearchFields;
+use Koha::SearchFilters;
 
 use URI::Escape;
+use JSON qw( decode_json encode_json );
 
 my $DisplayMultiPlaceHold = C4::Context->preference("DisplayMultiPlaceHold");
 # create a new CGI object
@@ -168,8 +171,15 @@ my $cgi = CGI->new;
 # decide which template to use
 my $template_name;
 my $template_type;
-my @params = $cgi->multi_param("limit");
-if ((@params>=1) || ($cgi->param("q")) || ($cgi->param('multibranchlimit')) || ($cgi->param('limit-yr')) || ($cgi->param('limit-copydate')) ) {
+# limits are used to limit to results to a pre-defined category such as branch or language
+my @limits = map uri_unescape($_), $cgi->multi_param("limit");
+my @nolimits = map uri_unescape($_), $cgi->multi_param('nolimit');
+my %is_nolimit = map { $_ => 1 } @nolimits;
+@limits = grep { not $is_nolimit{$_} } @limits;
+if  (
+        !$cgi->param('edit_search') && !$cgi->param('edit_filter') &&
+        ( (@limits>=1) || (defined $cgi->param("q") && $cgi->param("q") ne "" ) || ($cgi->param('limit-yr')) || ($cgi->param('limit-copydate')) )
+    ) {
     $template_name = 'catalogue/results.tt';
     $template_type = 'results';
 }
@@ -196,10 +206,8 @@ if($cgi->cookie("holdfor")){
     my $holdfor_patron = Koha::Patrons->find( $cgi->cookie("holdfor") );
     if ( $holdfor_patron ) { # may have been deleted in the meanwhile
         $template->param(
-            holdfor => $cgi->cookie("holdfor"),
-            holdfor_surname => $holdfor_patron->surname,
-            holdfor_firstname => $holdfor_patron->firstname,
-            holdfor_cardnumber => $holdfor_patron->cardnumber,
+            holdfor        => $cgi->cookie("holdfor"),
+            holdfor_patron => $holdfor_patron,
         );
     }
 }
@@ -231,11 +239,17 @@ if($cgi->cookie("intranet_bib_list")){
 }
 
 my @search_groups =
-  Koha::Library::Groups->get_search_groups( { interface => 'staff' } );
-@search_groups = sort { $a->title cmp $b->title } @search_groups;
+  Koha::Library::Groups->get_search_groups( { interface => 'staff' } )->as_list;
+
+my $branch_limit = '';
+my $limit_param = $cgi->param('limit');
+if ( $limit_param and $limit_param =~ /branch:([\w-]+)/ ) {
+    $branch_limit = $1;
+}
 
 $template->param(
     search_groups    => \@search_groups,
+    branch_limit     => $branch_limit
 );
 
 # load the Type stuff
@@ -245,8 +259,62 @@ $template->param(advancedsearchesloop => $advancedsearchesloop);
 
 $template->param( searchid => scalar $cgi->param('searchid'), );
 
+my $default_sort_by = C4::Context->default_catalog_sort_by;
+
 # The following should only be loaded if we're bringing up the advanced search template
 if ( $template_type eq 'advsearch' ) {
+
+    my @operands;
+    my @operators;
+    my @indexes;
+    my $expanded = $cgi->param('expanded_options');
+    if( $cgi->param('edit_search') ){
+        @operands = $cgi->multi_param('q');
+        @operators = $cgi->multi_param('op');
+        @indexes   = $cgi->multi_param('idx');
+        $template->param(
+           sort      => $cgi->param('sort_by'),
+        );
+        # determine what to display next to the search boxes
+    } elsif ( $cgi->param('edit_filter') ){
+        my $search_filter = Koha::SearchFilters->find( $cgi->param('edit_filter') );
+        if( $search_filter ){
+            my $query = decode_json( $search_filter->query );
+            my $limits = decode_json( $search_filter->limits );
+            @operands  = @{ $query->{operands} };
+            @indexes   = @{ $query->{indexes} };
+            @operators = @{ $query->{operators} };
+            @limits    = @{ $limits->{limits} };
+            $template->param( edit_filter => $search_filter );
+        } else {
+            $template->param( unknown_filter => 1 );
+        }
+    }
+
+    while( scalar @operands < 3 ){
+        push @operands, "";
+    }
+    $template->param( operands  => \@operands );
+    $template->param( operators => \@operators );
+    $template->param( indexes   => \@indexes );
+
+    my %limit_hash;
+    foreach my $limit (@limits){
+        if ( $limit eq 'available' ){
+            $template->param( limit_available => 1 );
+        } else {
+            my ($index,$value) = split(':',$limit);
+            $value =~ s/"//g;
+            if ( $index =~ /mc-/ ){
+                $limit_hash{$index . "_" . $value} = 1;
+            } else {
+                push @{$limit_hash{$index}}, $value;
+            }
+        }
+    };
+    $template->param( limits => \%limit_hash );
+
+    $expanded = 1 if scalar @operators || scalar @limits;
 
     # load the servers (used for searching -- to do federated searching, etc.)
     my $primary_servers_loop;# = displayPrimaryServers();
@@ -256,43 +324,11 @@ if ( $template_type eq 'advsearch' ) {
     $template->param(outer_sup_servers_loop => $secondary_servers_loop,);
 
     # set the default sorting
-    if (   C4::Context->preference('defaultSortField')
-        && C4::Context->preference('defaultSortOrder') ) {
-        my $default_sort_by =
-            C4::Context->preference('defaultSortField') . '_'
-          . C4::Context->preference('defaultSortOrder');
-        $template->param( sort_by => $default_sort_by  );
+    if ($default_sort_by) {
+        $template->param( sort_by => $default_sort_by );
     }
 
-    # determine what to display next to the search boxes (ie, boolean option
-    # shouldn't appear on the first one, scan indexes should, adding a new
-    # box should only appear on the last, etc.
-    my @search_boxes_array;
-    my $search_boxes_count = 3; # begin with 3 boxes
-    # FIXME: all this junk can be done in TMPL using __first__ and __last__
-    for (my $i=1;$i<=$search_boxes_count;$i++) {
-        # if it's the first one, don't display boolean option, but show scan indexes
-        if ($i==1) {
-            push @search_boxes_array, {scan_index => 1};
-        }
-        # if it's the last one, show the 'add field' box
-        elsif ($i==$search_boxes_count) {
-            push @search_boxes_array,
-                {
-                boolean => 1,
-                add_field => 1,
-                };
-        }
-        else {
-            push @search_boxes_array,
-                {
-                boolean => 1,
-                };
-        }
-
-    }
-    $template->param(uc(C4::Context->preference("marcflavour")) => 1,
-                      search_boxes_loop => \@search_boxes_array);
+    $template->param(uc(C4::Context->preference("marcflavour")) =>1 );
 
     # load the language limits (for search)
     my $languages_limit_loop = getLanguages($lang, 1);
@@ -301,7 +337,6 @@ if ( $template_type eq 'advsearch' ) {
     # Expanded search options in advanced search:
     # use the global setting by default, but let the user override it
     {
-        my $expanded = $cgi->param('expanded_options');
         $expanded = C4::Context->preference("expandedSearchOption") || 0
             if !defined($expanded) || $expanded !~ /^0|1$/;
         $template->param( expanded_options => $expanded );
@@ -324,14 +359,6 @@ my $params = $cgi->Vars;
 # sort by is used to sort the query
 # in theory can have more than one but generally there's just one
 my @sort_by;
-my $default_sort_by;
-if (   C4::Context->preference('defaultSortField')
-    && C4::Context->preference('defaultSortOrder') ) {
-    $default_sort_by =
-        C4::Context->preference('defaultSortField') . '_'
-      . C4::Context->preference('defaultSortOrder');
-}
-
 @sort_by = $cgi->multi_param('sort_by');
 $sort_by[0] = $default_sort_by unless $sort_by[0];
 foreach my $sort (@sort_by) {
@@ -359,24 +386,20 @@ if ($indexes[0] && (!$indexes[1] || $params->{'scan'})) {
     my $idx = "ms_".$indexes[0];
     $idx =~ s/\,/comma/g;  # template toolkit doesn't like variables with a , in it
     $idx =~ s/-/dash/g;  # template toolkit doesn't like variables with a dash in it
-    $template->param($idx => 1);
+    $template->param(header_pulldown => $idx);
 }
 
 # an operand can be a single term, a phrase, or a complete ccl query
 my @operands = map uri_unescape($_), $cgi->multi_param('q');
 
 # if a simple search, display the value in the search box
+my $basic_search = 0;
 if ($operands[0] && !$operands[1]) {
     my $ms_query = $operands[0];
     $ms_query =~ s/ #\S+//;
     $template->param(ms_value => $ms_query);
+    $basic_search=1;
 }
-
-# limits are use to limit to results to a pre-defined category such as branch or language
-my @limits = map uri_unescape($_), $cgi->multi_param('limit');
-my @nolimits = map uri_unescape($_), $cgi->multi_param('nolimit');
-my %is_nolimit = map { $_ => 1 } @nolimits;
-@limits = grep { not $is_nolimit{$_} } @limits;
 
 my $available;
 foreach my $limit(@limits) {
@@ -391,7 +414,7 @@ my $limit_yr;
 my $limit_yr_value;
 if ($params->{'limit-yr'}) {
     if ($params->{'limit-yr'} =~ /\d{4}/) {
-        $limit_yr = "yr,st-numeric=$params->{'limit-yr'}";
+        $limit_yr = "yr,st-numeric:$params->{'limit-yr'}";
         $limit_yr_value = $params->{'limit-yr'};
     }
     push @limits,$limit_yr;
@@ -448,6 +471,11 @@ my $builder = Koha::SearchEngine::QueryBuilder->new(
 my $searcher = Koha::SearchEngine::Search->new(
     { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
 
+# If index indicates the value is a barocode, we need to preproccess it before searching
+for ( my $i = 0; $i < @operands; $i++ ) {
+    $operands[$i] = barcodedecode($operands[$i]) if $indexes[$i] eq 'bc';
+}
+
 ## I. BUILD THE QUERY
 (
     $error,             $query, $simple_query, $query_cgi,
@@ -487,6 +515,7 @@ $template->param ( QUERY_INPUTS => \@query_inputs,
 
 ## parse the limit_cgi string and put it into a form suitable for <input>s
 my @limit_inputs;
+my %active_filters;
 if ($limit_cgi) {
     for my $this_cgi ( split('&', $limit_cgi) ) {
         next unless $this_cgi;
@@ -500,6 +529,11 @@ if ($limit_cgi) {
         my $input_value = $2;
         $input_name =~ s/=$//;
         push @limit_inputs, { input_name => $input_name, input_value => Encode::decode_utf8( uri_unescape($input_value) ) };
+        if( $input_value =~ /search_filter/ ){
+            my ($filter_id) = ( uri_unescape($input_value) =~ /^search_filter:(.*)$/ );
+            $active_filters{$filter_id} = 1;
+        }
+
     }
 }
 $template->param ( LIMIT_INPUTS => \@limit_inputs );
@@ -534,6 +568,31 @@ for (my $i=0;$i<@servers;$i++) {
     my $server = $servers[$i];
     if ($server =~/biblioserver/) { # this is the local bibliographic server
         my $hits = $results_hashref->{$server}->{"hits"} // 0;
+        if ( $hits == 0 && $basic_search ){
+            $operands[0] = '"'.$operands[0].'"'; #quote it
+            ## I. BUILD THE QUERY
+            (
+                $error,             $query, $simple_query, $query_cgi,
+                $query_desc,        $limit, $limit_cgi,    $limit_desc,
+                $query_type
+              )
+              = $builder->build_query_compat( \@operators, \@operands, \@indexes, \@limits,
+                \@sort_by, $scan, $lang, { weighted_fields => $weight_search, whole_record => $whole_record });
+            my $quoted_results_hashref;
+            eval {
+                my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
+                ( $error, $quoted_results_hashref, $facets ) = $searcher->search_compat(
+                    $query,            $simple_query, \@sort_by,       ['biblioserver'],
+                    $results_per_page, $offset,       undef,           $itemtypes,
+                    $query_type,       $scan
+                );
+            };
+            my $quoted_hits = $quoted_results_hashref->{$server}->{"hits"} // 0;
+            if ( $quoted_hits ){
+                $results_hashref->{'biblioserver'} = $quoted_results_hashref->{'biblioserver'};
+                $hits = $quoted_hits;
+            }
+        }
         my $page = $cgi->param('page') || 0;
         my @newresults = searchResults({ 'interface' => 'intranet' }, $query_desc, $hits, $results_per_page, $offset, $scan,
                                        $results_hashref->{$server}->{"RECORDS"});
@@ -582,6 +641,21 @@ for (my $i=0;$i<@servers;$i++) {
         # set up parameters if user wishes to re-run the search
         # as a Z39.50 search
         $template->param (z3950_search_params => C4::Search::z3950_search_args($z3950par || $query_desc));
+        $template->param(limit_cgi => $limit_cgi);
+        $template->param(query_cgi => $query_cgi);
+        $template->param(query_json => encode_json({
+            operators => \@operators,
+            operands => \@operands,
+            indexes => \@indexes
+        }));
+        $template->param(limit_json => encode_json({
+            limits => \@limits
+        }));
+        $template->param(query_desc => $query_desc);
+        $template->param(limit_desc => $limit_desc);
+        $template->param(offset     => $offset);
+        $template->param(offset     => $offset);
+
 
         if ($hits) {
             $template->param(total => $hits);
@@ -590,11 +664,6 @@ for (my $i=0;$i<@servers;$i++) {
                 $limit_cgi_not_availablity =~ s/&limit=available//g;
                 $template->param(limit_cgi_not_availablity => $limit_cgi_not_availablity);
             }
-            $template->param(limit_cgi => $limit_cgi);
-            $template->param(query_cgi => $query_cgi);
-            $template->param(query_desc => $query_desc);
-            $template->param(limit_desc => $limit_desc);
-            $template->param(offset     => $offset);
             $template->param(DisplayMultiPlaceHold => $DisplayMultiPlaceHold);
             if ($query_desc || $limit_desc) {
                 $template->param(searchdesc => 1);
@@ -675,6 +744,12 @@ for my $facet ( @$facets ) {
     }
 }
 
+
+$template->param(
+    search_filters => Koha::SearchFilters->search({ staff_client => 1 }, { order_by => "name" }),
+    active_filters => \%active_filters,
+) if C4::Context->preference('SavedSearchFilters');
+
 $template->param(
             #classlist => $classlist,
             total => $total,
@@ -695,14 +770,14 @@ my $some_private_shelves = Koha::Virtualshelves->get_some_shelves(
     {
         borrowernumber => $borrowernumber,
         add_allowed    => 1,
-        category       => 1,
+        public         => 0,
     }
 );
 my $some_public_shelves = Koha::Virtualshelves->get_some_shelves(
     {
         borrowernumber => $borrowernumber,
         add_allowed    => 1,
-        category       => 2,
+        public         => 1,
     }
 );
 

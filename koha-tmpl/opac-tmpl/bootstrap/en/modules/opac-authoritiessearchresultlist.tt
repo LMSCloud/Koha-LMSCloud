@@ -1,7 +1,11 @@
 [% USE raw %]
 [% USE Koha %]
+[% USE AdditionalContents %]
+[% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% PROCESS 'opac-authorities.inc' %]
 [% PROCESS 'authorities-search-results.inc' %]
+[% PROCESS 'i18n.inc' %]
 [% BLOCK pagination %]
     <nav class="pagination pagination-sm noprint" aria-label="Search results pagination">
         <ul class="pagination">
@@ -42,19 +46,19 @@
 [% INCLUDE 'masthead.inc' %]
 
     <div class="main">
-        <nav aria-label="breadcrumb">
-            <ul class="breadcrumb">
+        <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
+            <ol class="breadcrumb">
                 <li class="breadcrumb-item">
                     <a href="/cgi-bin/koha/opac-main.pl">Home</a>
                 </li>
                 <li class="breadcrumb-item">
                     <a href="/cgi-bin/koha/opac-authorities-home.pl">Authority search</a>
                 </li>
-                <li class="breadcrumb-item" aria-current="page">
-                    <a href="#">Results</a>
+                <li class="breadcrumb-item active">
+                    <a href="#" aria-current="page">Results</a>
                 </li>
-            </ul>
-        </nav>
+            </ol>
+        </nav> <!-- /#breadcrumbs -->
 
         <div class="container-fluid">
             <div class="row">
@@ -95,19 +99,29 @@
                                             <th colspan="2">Authorized headings</th>
                                             <th>Type of heading</th>
                                             [% UNLESS ( isEDITORS ) %]
-                                                <th>Biblio records</th>
+                                                <th>Records</th>
                                             [% END %]
                                         </tr>
                                     </thead>
                                     <tbody>
                                         [% FOREACH resul IN result %]
                                             <tr>
-                                                <td>[% PROCESS authresult summary=resul.summary %]</td>
+                                                <td>
+                                                    [% IF resul.html %]
+                                                        [% resul.html | $raw %]
+                                                    [% ELSE %]
+                                                        [% PROCESS authresult summary=resul.summary authid=resul.authid %]
+                                                    [% END %]
+                                                </td>
                                                 <td><a href="/cgi-bin/koha/opac-authoritiesdetail.pl?authid=[% resul.authid | uri %]">Details</a>
                                                 <td>[% resul.authtype | html %]</td>
                                                 [% UNLESS ( resul.isEDITORS ) %]
                                                     <td>
-                                                         [% IF resul.used > 0 %]<a href="/cgi-bin/koha/opac-search.pl?type=opac&amp;op=do_search&amp;q=an=[% resul.authid | uri %]">[% resul.used | html %] biblios</a>[% ELSE %]0 biblios[% END %]
+                                                         [% IF resul.used > 0 %]
+                                                            <a href="/cgi-bin/koha/opac-search.pl?type=opac&amp;op=do_search&amp;q=an,phr:[% resul.authid | uri %]">[% resul.used | html %] [% tn('record', 'records', resul.used ) | html %]</a>
+                                                        [% ELSE %]
+                                                            0 records
+                                                        [% END %]
                                                     </td>
                                                 [% END %]
                                             </tr>

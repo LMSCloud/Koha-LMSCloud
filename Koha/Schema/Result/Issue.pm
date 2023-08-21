@@ -35,7 +35,7 @@ primary key for issues table
 
   data_type: 'integer'
   is_foreign_key: 1
-  is_nullable: 1
+  is_nullable: 0
 
 foreign key, linking this to the borrowers table for the patron this item was checked out to
 
@@ -51,7 +51,7 @@ foreign key, linking this to the borrowers table for the user who checked out th
 
   data_type: 'integer'
   is_foreign_key: 1
-  is_nullable: 1
+  is_nullable: 0
 
 foreign key, linking this to the items table for the item that was checked out
 
@@ -87,7 +87,7 @@ date the item was returned, will be NULL until moved to old_issues
 
 date the item was last renewed
 
-=head2 renewals
+=head2 renewals_count
 
   data_type: 'tinyint'
   default_value: 0
@@ -172,11 +172,11 @@ __PACKAGE__->add_columns(
   "issue_id",
   { data_type => "integer", is_auto_increment => 1, is_nullable => 0 },
   "borrowernumber",
-  { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
+  { data_type => "integer", is_foreign_key => 1, is_nullable => 0 },
   "issuer_id",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "itemnumber",
-  { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
+  { data_type => "integer", is_foreign_key => 1, is_nullable => 0 },
   "date_due",
   {
     data_type => "datetime",
@@ -197,7 +197,7 @@ __PACKAGE__->add_columns(
     datetime_undef_if_invalid => 1,
     is_nullable => 1,
   },
-  "renewals",
+  "renewals_count",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "unseen_renewals",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
@@ -272,12 +272,7 @@ __PACKAGE__->belongs_to(
   "borrowernumber",
   "Koha::Schema::Result::Borrower",
   { borrowernumber => "borrowernumber" },
-  {
-    is_deferrable => 1,
-    join_type     => "LEFT",
-    on_delete     => "RESTRICT",
-    on_update     => "CASCADE",
-  },
+  { is_deferrable => 1, on_delete => "RESTRICT", on_update => "CASCADE" },
 );
 
 =head2 issuer
@@ -312,17 +307,12 @@ __PACKAGE__->belongs_to(
   "itemnumber",
   "Koha::Schema::Result::Item",
   { itemnumber => "itemnumber" },
-  {
-    is_deferrable => 1,
-    join_type     => "LEFT",
-    on_delete     => "RESTRICT",
-    on_update     => "CASCADE",
-  },
+  { is_deferrable => 1, on_delete => "RESTRICT", on_update => "CASCADE" },
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-11-17 10:01:24
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:kDcP8DNMT8sLUmzBFfz3fg
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-09-12 11:34:50
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:eNzDAKc3bmTLWeDu8u4nTQ
 
 __PACKAGE__->add_columns(
     '+auto_renew'      => { is_boolean => 1 },
@@ -331,7 +321,7 @@ __PACKAGE__->add_columns(
 );
 
 __PACKAGE__->belongs_to(
-    "borrower",
+    "patron",
     "Koha::Schema::Result::Borrower",
     { borrowernumber => "borrowernumber" },
     { join_type => "LEFT", on_delete => "CASCADE", on_update => "CASCADE" },
@@ -373,6 +363,21 @@ __PACKAGE__->belongs_to(
   },
 );
 
+=head2 renewals
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::CheckoutRenewal>
+
+=cut
+
+__PACKAGE__->has_many(
+    "renewals",
+    "Koha::Schema::Result::CheckoutRenewal",
+    { "foreign.checkout_id" => "self.issue_id" },
+    { cascade_copy       => 0, cascade_delete => 0 },
+);
+
 =head2 return_claim
 
 Type: might_have
@@ -384,6 +389,13 @@ Related object: L<Koha::Schema::Result::ReturnClaim>
 __PACKAGE__->might_have(
     "return_claim",
     "Koha::Schema::Result::ReturnClaim",
+    { "foreign.issue_id" => "self.issue_id" },
+    { cascade_copy       => 0, cascade_delete => 0 },
+);
+
+__PACKAGE__->has_many(
+    "account_lines",
+    "Koha::Schema::Result::Accountline",
     { "foreign.issue_id" => "self.issue_id" },
     { cascade_copy       => 0, cascade_delete => 0 },
 );

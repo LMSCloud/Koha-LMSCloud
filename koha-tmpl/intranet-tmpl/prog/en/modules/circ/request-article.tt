@@ -1,43 +1,87 @@
 [% USE raw %]
 [% USE Asset %]
+[% USE Context %]
 [% USE KohaDates %]
 [% USE Branches %]
+[% USE Categories %]
 [% USE ItemTypes %]
+[% USE AuthorisedValues %]
+[% USE Price %]
 [% SET footerjs = 1 %]
 [% SET article_requests_view = 1 %]
 [% SET biblionumber = biblio.biblionumber %]
 [% INCLUDE 'doc-head-open.inc' %]
+[% SET libraries = Branches.all %]
+[% SET categories = Categories.all.unblessed %]
+[% SET columns = ['name', 'address', 'cardnumber', 'dateofbirth', 'category', 'branch', 'phone'] %]
+[% PROCESS "patron-search.inc" %]
 <title>Request article &rsaquo; Circulation &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
+[% BLOCK cancel_modal %]
+    <div id="cancelModal" class="modal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
+                    <h3>Confirm deletion</h3>
+                </div>
+
+                <div class="modal-body">
+                    <p>Are you sure you want to cancel this article request?</p>
+
+                    <fieldset class="action">
+                        [% SET ar_cancellation = AuthorisedValues.GetAuthValueDropbox('AR_CANCELLATION') %]
+                        [% IF ar_cancellation.count %]
+                            <label for="cancellation-reason" class="col-sm-4">Cancellation reason: </label>
+                            <select class="cancellation-reason col-sm-8" name="cancellation-reason" id="modal-cancellation-reason">
+                                <option value="" selected>Other reasons</option>
+                                [% FOREACH reason IN ar_cancellation %]
+                                    <option value="[% reason.authorised_value | html %]">[% reason.lib | html %]</option>
+                                [% END %]
+                            </select>
+                        [% END %]
+                    </fieldset>
+                    <fieldset class="action">
+                        <div class="hint col-sm-offset-4">Enter reason</div>
+                        <input type="text" class="notes col-sm-offset-4 col-sm-8" name="notes" id="modal-notes"/>
+                    </fieldset>
+                </div>
+
+                <div class="modal-footer">
+                    <button id="cancelModalConfirmBtn" type="button" class="btn btn-danger" data-dismiss="modal">Confirm cancellation</button>
+                    <a href="#" data-dismiss="modal">Cancel</a>
+                </div>
+            </div>
+        </div>
+    </div>
+[% END %]
+
 <body id="circ_request-article" class="circ">
-    [% INCLUDE 'header.inc' %]
+    [% WRAPPER 'header.inc' %]
     [% INCLUDE 'circ-search.inc' %]
+[% END %]
 
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-        <ol>
-            <li>
-                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-            </li>
-
-            [% IF blocking_error %]
-                <li>
-                    <a href="#" aria-current="page">
-                        Catalog
-                    </a>
-                </li>
-
-            [% ELSE %]
-                [% INCLUDE 'biblio-title.inc' link = 1 %]
-                <li>
-                    <a href="#" aria-current="page">
-                        Request article
-                    </a>
-                </li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% IF blocking_error %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Catalog</span>
             [% END %]
-        </ol>
-    </nav>
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/catalogue/search.pl">Catalog</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item %]
+                [% INCLUDE 'biblio-title.inc' link = 1 %]
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Request article</span>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 [% INCLUDE 'blocking_errors.inc' %]
 <div class="main container-fluid">
@@ -46,55 +90,27 @@
             <main>
 
                     <h1>Request article from [% INCLUDE 'biblio-title.inc' link = 1 %]</h1>
-                    [% IF no_patrons_found %]
+                    [% IF error_message %]
                         <div class="dialog alert">
-                            <h3>Patron not found</h3>
-                            <p>No patron with this name, please, try another</p>
+                        [% SWITCH error_message %]
+                            [% CASE 'article_request_limit_reached'       %]<p>Patron reached daily limit.</p>
+                            [% CASE 'article_request_unhandled_exception' %]<p>An error has occurred. Check the logs.</p>
+                        [% END %]
                         </div>
-                    [% ELSIF patrons %]
-                        <form id="article_request_patron_results" method="post">
-                            <fieldset>
-                                <table id="table_borrowers">
-                                    <thead>
-                                        <tr>
-                                            <th></th>
-                                            <th>Name</th>
-                                            <th>Cardnumber</th>
-                                            <th>Category</th>
-                                            <th>Library</th>
-                                            <th>Address</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        [% FOREACH patron IN patrons %]
-                                            <tr>
-                                                <td><input type="radio" name="patron_id" value="[% patron.borrowernumber | html %]"/></td>
-                                                <td>[% patron.surname | html %], [% patron.firstname | html %]</td>
-                                                <td>[% patron.cardnumber | html %]</td>
-                                                <td>[% patron.categorycode | html %]</td>
-                                                <td>[% patron.branchcode | html %]</td>
-                                                <td>[% patron.address | html %]</td>
-                                            </tr>
-                                        [% END %]
-                                    </tbody>
-                                </table>
-                                <input type="hidden" name="biblionumber" value="[% biblionumber | html %]" />
-                                <fieldset class="action"><input type="submit" value="Select" /></fieldset>
-                            </fieldset>
-                        </form>
-                    [% ELSIF !patron %]
-                        <form id="article_requests_patronsearch" action="request-article.pl" method="post">
-                            <fieldset class="brief">
-                                <label for="patron">Patron: </label>
-                                <div class="hint">Enter patron card number or partial name:</div>
-                                <input type="text" size="40" id="patron" class="focus" name="patron_cardnumber" />
-                                <input type="submit" value="Search" />
-                                <input type="hidden" name="biblionumber" value="[% biblio.id | html %]" />
-                            </fieldset>
-                        </form>
+                    [% END %]
+                    [% UNLESS patron %]
+                        <fieldset class="brief">
+                            <label>Search patrons</label>
+                            [% PROCESS patron_search_filters_simple %]
+                            [% PROCESS patron_search_table table_id => 'table_borrowers', open_on_row_click => 1 %]
+                        </fieldset>
                     [% ELSE %]
                         [% IF biblio.can_article_request( patron ) %]
-
+                            [% IF article_request_fee > 0 %]
+                                <div class="dialog alert">
+                                    Patron will be charged with <strong>[% article_request_fee | $Price %]</strong> for every request
+                                </div>
+                            [% END %]
                             <form id="place-article-request" method="post" action="/cgi-bin/koha/circ/request-article.pl">
                                 <input type="hidden" name="action" value="create" />
                                 <input type="hidden" name="biblionumber" id="biblionumber" value="[% biblio.biblionumber | html %]" />
@@ -102,7 +118,7 @@
 
                                 <fieldset class="rows">
                                     <legend>Place article request from [% biblio.title | html %] for [% patron.firstname | html %] [% patron.surname | html %] ( [% patron.cardnumber | html %] )</legend>
-                                    <ul>
+                                    <ol>
                                         <li>
                                             <label for="title">Title:</label>
                                             <input type="text" name="title" id="title" size="50"/>
@@ -129,6 +145,11 @@
                                         </li>
 
                                         <li>
+                                            <label for="toc_request">Table of contents:</label>
+                                            <input type="checkbox" name="toc_request" value="1"/>
+                                        </li>
+
+                                        <li>
                                             <label for="pages">Pages:</label>
                                             <input type="text" name="pages" id="pages" size="50"/>
                                         </li>
@@ -144,6 +165,14 @@
                                         </li>
 
                                         <li>
+                                            <label for="format">Format:</label>
+                                            <select name="format" id="format">
+                                                <option value="PHOTOCOPY">Photocopy</option>
+                                                <option value="SCAN">Digital scan</option>
+                                            </select>
+                                        </li>
+
+                                        <li>
                                             <label for="branchcode">Pickup library:</label>
                                             <select name="branchcode" id="branchcode">
                                                 [% FOREACH b IN Branches.all %]
@@ -155,67 +184,69 @@
                                                 [% END %]
                                             </select>
                                         </li>
-                                    </ul>
+                                    </ol>
                                 </fieldset>
 
                                 [% SET article_request_type = biblio.article_request_type( patron ) %]
                                 [% IF article_request_type != 'bib_only' %]
-                                    <table id="current-requests-table" class="ar-table table table-bordered table-striped">
-                                        <caption>Select item:</caption>
-                                        <thead>
-                                            <tr>
-                                                <th>&nbsp;</th>
-                                                <th>Item type</th>
-                                                <th>Barcode</th>
-                                                <th>Home library</th>
-                                                <th>Call number</th>
-                                                <th>Enumeration</th>
-                                            </tr>
-                                        </thead>
+                                    <div class="page-section">
+                                        <table id="current-requests-table" class="ar-table table table-bordered table-striped">
+                                            <caption>Select item:</caption>
+                                            <thead>
+                                                <tr>
+                                                    <th>&nbsp;</th>
+                                                    <th>Item type</th>
+                                                    <th>Barcode</th>
+                                                    <th>Home library</th>
+                                                    <th>Call number</th>
+                                                    <th>Enumeration</th>
+                                                </tr>
+                                            </thead>
 
-                                        <tbody>
-                                            [% FOREACH item IN biblio.items %]
-                                                [% IF item.can_article_request( patron ) %]
+                                            <tbody>
+                                                [% FOREACH item IN biblio.items %]
+                                                    [% IF item.can_article_request( patron ) %]
+                                                        <tr>
+                                                            <td>
+                                                                [% IF article_request_type == 'item_only' && !checked %]
+                                                                    [% SET checked = 1 %]
+                                                                    <input type="radio" name="itemnumber" value="[% item.itemnumber | html %]" checked="checked" />
+                                                                [% ELSE %]
+                                                                    <input type="radio" name="itemnumber" value="[% item.itemnumber | html %]" />
+                                                                [% END %]
+                                                            </td>
+                                                            <td>
+                                                                [% ItemTypes.GetDescription( item.itype ) | html %]
+                                                            </td>
+                                                            <td>
+                                                                [% item.barcode | html %]
+                                                            </td>
+                                                            <td>
+                                                                [% Branches.GetName( item.homebranch ) | html %]
+                                                            </td>
+                                                            <td>
+                                                                [% item.itemcallnumber | html %]
+                                                            </td>
+                                                            <td>
+                                                                [% item.enumchron | html %]
+                                                            </td>
+                                                        </tr>
+                                                    [% END %]
+                                                [% END %]
+
+                                                [% IF article_request_type != 'item_only' %]
                                                     <tr>
                                                         <td>
-                                                            [% IF article_request_type == 'item_only' && !checked %]
-                                                                [% SET checked = 1 %]
-                                                                <input type="radio" name="itemnumber" value="[% item.itemnumber | html %]" checked="checked" />
-                                                            [% ELSE %]
-                                                                <input type="radio" name="itemnumber" value="[% item.itemnumber | html %]" />
-                                                            [% END %]
+                                                            <input type="radio" name="itemnumber" value="" checked="checked"/>
                                                         </td>
-                                                        <td>
-                                                            [% ItemTypes.GetDescription( item.itype ) | html %]
-                                                        </td>
-                                                        <td>
-                                                            [% item.barcode | html %]
-                                                        </td>
-                                                        <td>
-                                                            [% Branches.GetName( item.homebranch ) | html %]
-                                                        </td>
-                                                        <td>
-                                                            [% item.itemcallnumber | html %]
-                                                        </td>
-                                                        <td>
-                                                            [% item.enumchron | html %]
+                                                        <td colspan="5">
+                                                            Any item
                                                         </td>
                                                     </tr>
                                                 [% END %]
-                                            [% END %]
-
-                                            [% IF article_request_type != 'item_only' %]
-                                                <tr>
-                                                    <td>
-                                                        <input type="radio" name="itemnumber" value="" checked="checked"/>
-                                                    </td>
-                                                    <td colspan="5">
-                                                        Any item
-                                                    </td>
-                                                </tr>
-                                            [% END %]
-                                        </tbody>
-                                    </table>
+                                            </tbody>
+                                        </table>
+                                    </div><!-- /.page-section -->
                                 [% END %]
 
                                 <p>
@@ -228,7 +259,8 @@
 
                     [% END %]
 
-                    [% IF biblio.article_requests_current && !patron %]
+                    [% SET biblio_current_article_requests = Context.Scalar( Context.Scalar( biblio, 'article_requests' ), 'filter_by_current' ) %]
+                    [% IF biblio_current_article_requests.count > 0 && !patron %]
                         <fieldset class="rows left" id="current-article-requests-fieldset">
                             <legend>Current article requests</legend>
 
@@ -241,16 +273,18 @@
                                     <th>Volume</th>
                                     <th>Issue</th>
                                     <th>Date</th>
+                                    <th>TOC</th>
                                     <th>Pages</th>
                                     <th>Chapters</th>
                                     <th>Patron notes</th>
+                                    <th>Format</th>
                                     <th>Item</th>
                                     <th>Status</th>
                                     <th>Pickup library</th>
                                     <th>&nbsp;</th>
                                 </tr>
 
-                                [% FOREACH ar IN biblio.article_requests_current %]
+                                [% FOREACH ar IN biblio_current_article_requests %]
                                     <tr>
                                         <td>[% ar.created_on | $KohaDates %]</td>
                                         <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% ar.borrowernumber | uri %]">[% ar.borrower.firstname | html %] [% ar.borrower.surname | html %]</a></td>
@@ -259,9 +293,11 @@
                                         <td>[% ar.volume | html %]</td>
                                         <td>[% ar.issue | html %]</td>
                                         <td>[% ar.date | html %]</td>
+                                        <td>[% IF ar.toc_request %]Yes[% END %]</td>
                                         <td>[% ar.pages | html %]</td>
                                         <td>[% ar.chapters | html %]</td>
                                         <td>[% ar.patron_notes | html %]</td>
+                                        <td>[% IF ar.format == 'PHOTOCOPY' %]Copy[% ELSIF ar.format == 'SCAN' %]Scan[% END %]</td>
                                         <td>
                                             [% IF ar.item %]
                                                 <a href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% ar.itemnumber | uri %]&biblionumber=[% ar.biblionumber | uri %]">[% ar.item.barcode | html %]</a>
@@ -269,13 +305,15 @@
                                         </td>
                                         <td>
                                             [% IF ar.status == 'PENDING' %]
-                                                Pending
+                                                <span>Pending</span>
                                             [% ELSIF ar.status == 'PROCESSING' %]
-                                                Processing
+                                                <span>Processing</span>
+                                            [% ELSIF ar.status == 'REQUESTED' %]
+                                                <span>New</span>
                                             [% ELSIF ar.status == 'COMPLETED' %]
-                                                Completed
+                                                <span>Completed</span>
                                             [% ELSIF ar.status == 'CANCELED' %]
-                                                Canceled
+                                                <span>Canceled</span>
                                             [% END %]
                                         </td>
                                         <td>
@@ -300,6 +338,7 @@
                                 [% END %]
                             </table>
                         </fieldset>
+                        [% PROCESS cancel_modal %]
                     [% END %]
 
             </main>
@@ -321,39 +360,6 @@
         });
 
         $(document).ready(function() {
-            if ( $( "#patron" ).size() ){
-                $( "#patron" ).autocomplete({
-                    source: "/cgi-bin/koha/circ/ysearch.pl",
-                    minLength: 3,
-                    select: function( event, ui ) {
-                        $( "#patron" ).val( ui.item.cardnumber );
-                        $( "#holds_patronsearch" ).submit();
-                        return false;
-                    }
-                })
-                .data( "ui-autocomplete" )._renderItem = function( ul, item ) {
-                    return $( "<li></li>" )
-                    .data( "ui-autocomplete-item", item )
-                    .append(
-                        "<a>"
-                            + ( item.surname ? item.surname.escapeHtml() : "" )
-                            + ", "
-                            + ( item.firstname ? item.firstname.escapeHtml() : "" )
-                            + " (" + ( item.cardnumber ? item.cardnumber.escapeHtml() : "" ) + ")"
-                            + " "
-                            + "<small>"
-                                + ( item.address ? item.address.escapeHtml() : "" )
-                                + " "
-                                + ( item.city ? item.city.escapeHtml() : "" )
-                                + " "
-                                + ( item.zipcode ? item.zipcode.escapeHtml() : "" )
-                                + " "
-                                + ( item.country ? item.country.escapeHtml() : "" )
-                            + "</small>"
-                        + "</a>" )
-                    .appendTo( ul );
-                };
-            }
 
             $( ".ar-update-branchcode" ).on('focus', function(){
                 previous_branchcode = this.value;
@@ -384,32 +390,53 @@
                 }
             });
 
-            $(".ar-cancel-request").on("click", function(){
-                var a = $(this);
-                var notes = prompt(_("Reason for cancellation:"));
+            $('#modal-cancellation-reason').on('change', function(e) {
+                let reason = $(this).val();
+                $('#modal-notes').attr('disabled', !!reason);
+            })
 
-                if ( notes != null ) {
-                    var id = this.id.split("cancel-")[1];
-                    $("#cancel-processing-" + id ).hide('slow');
-                    $("#cancel-processing-spinner-" + id ).show('slow');
+            let cancel_a;
+            $("#cancelModalConfirmBtn").on("click",function(e) {
+                var id = cancel_a.attr('id').split("cancel-")[1];
+                $("#cancel-processing-" + id ).hide('slow');
+                $("#cancel-processing-spinner-" + id ).show('slow');
 
-                    $.ajax({
-                        type: "POST",
-                        url: '/cgi-bin/koha/svc/article_request',
-                        data: {
-                            action: 'cancel',
-                            id: id,
-                            notes: notes
-                        },
-                        success: function( data ) {
-                            a.parents('tr').hide('slow');
-                        },
-                        dataType: 'json'
-                    });
-                }
+                let reason = $("#modal-cancellation-reason").val();
+                let notes = $("#modal-notes").val();
+                let query = '?'+(reason?'cancellation_reason='+reason:'notes='+notes)
+
+                $.ajax({
+                    type: "DELETE",
+                    url: '/api/v1/article_requests/'+id+query,
+                    success: function( data ) {
+                        cancel_a.parents('tr').hide('slow');
+                    }
+                });
             });
+
+
+            $(".ar-cancel-request").on("click", function(){
+                cancel_a = $(this);
+                $('#cancelModal').modal();
+            });
+
+            // Initialize format(s)
+            var supported_formats = "[% Koha.Preference('ArticleRequestsSupportedFormats') | $raw %]";
+            if( !supported_formats.match(/PHOTOCOPY/) )
+                $('#format option[value="PHOTOCOPY"]').remove();
+            if( !supported_formats.match(/SCAN/) )
+                $('#format option[value="SCAN"]').remove();
+
+            if( $('#format option').length > 1 ) {
+            // Select first listed format
+                var first_format = supported_formats.split('|')[0].replace(/^\s*|\s*$/g, '');
+                $('#format option[value="'+first_format+'"]').attr('selected', true);
+            }
         });
     </script>
+
+    [% PROCESS patron_search_js table_id => 'table_borrowers', categories => categories, libraries => libraries, extended_attribute_types => attribute_type_codes, columns => columns, open_on_row_click => 1, on_click_url => '/cgi-bin/koha/circ/request-article.pl?biblionumber=' _ biblio.biblionumber, redirect_if_one_result => 1, redirect_url => '/cgi-bin/koha/circ/request-article.pl?biblionumber=' _ biblio.biblionumber %]
+
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

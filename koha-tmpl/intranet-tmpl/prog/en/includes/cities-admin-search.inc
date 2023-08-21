@@ -1,35 +1,43 @@
 [% USE Koha %]
-<div class="gradient">
-<h1 id="logo"><a href="/cgi-bin/koha/mainpage.pl">[% LibraryName | html %]</a></h1><!-- Begin Cities Resident Search Box -->
-<div id="header_search">
-	<div id="city_search" class="residentsearch">
-	<form action="[% script_name | html %]" method="post">
-        <label class="tip" for="city_name_filter">City search:</label>
-        <input class="head-searchbox" type="text" name="city_name_filter" id="city_name_filter" value="[% city_name_filter | html %]" size="40" />
-		<input type="submit" name="submit" value="OK" class="submit" />
-	</form>
-	</div>
+<!-- cities-admin-search.inc -->
+<div id="header_search" role="tablist">
+    <div class="tab-content">
+        <div id="city_search" role="tabpanel" class="tab-pane active">
+            <form action="[% script_name | html %]" method="post">
+                <div class="form-title">
+                    <label class="control-label">Search cities</label>
+                </div>
 
-    [% INCLUDE 'patron-search-box.inc' %]
+                <div class="form-content">
+                    <input class="head-searchbox form-control" type="text" name="city_name_filter" id="city_name_filter" value="[% city_name_filter | html %]" placeholder="City search" />
+                </div>
 
-	[% IF ( CAN_user_catalogue ) %]
-    <div id="catalog_search" class="residentsearch">
-		<form action="/cgi-bin/koha/catalogue/search.pl"  method="get" id="cat-search-block">
-            [% IF ( Koha.Preference('IntranetCatalogSearchPulldown') ) %]
-                <label class="tip" for="search-form">Enter search keywords:</label>
-                [% INCLUDE 'search_indexes.inc' %]
-            [% ELSE %]
-                <label class="tip" for="search-form">Enter search keywords:</label>
-            [% END %]
-             <input type="text" name="q" id="search-form" size="40" value="" title="Enter the terms you wish to search for." class="head-searchbox form-text" />
-				<input type="submit" value="Submit"  class="submit" />
-		</form>
-	</div>[% END %]
-			<ul>
-            <li><a class="keep_text" href="#city_search">Search cities</a></li>
-            [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]<li><a class="keep_text" href="#circ_search">Check out</a></li>[% END %]
-            [% IF ( CAN_user_catalogue ) %]<li><a class="keep_text" href="#catalog_search">Search the catalog</a></li>[% END %]
-			</ul>	
-</div>
-</div>
-<!-- End Cities Resident Search Box -->
+                <button type="submit"><i class="fa fa-arrow-right"></i></button>
+            </form>
+        </div>
+
+        [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
+            [% INCLUDE 'patron-search-box.inc' %]
+        [% END %]
+        [% IF ( CAN_user_catalogue ) %]
+            [% INCLUDE 'catalogue-search-box.inc' %]
+        [% END %]
+
+    </div><!-- /.tab-content -->
+    <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="active">
+            <a title="Search cities" href="#city_search" aria-controls="city_search" role="tab" aria-expanded="true" data-toggle="tab" class="keep_text"><i class="fa fa-building-o"></i> <span class="tab-title">Search cities</span></a>
+        </li>
+        [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
+            <li role="presentation">
+                <a title="Check out" href="#circ_search" aria-controls="circ_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-upload"></i> <span class="tab-title">Check out</span></a>
+            </li>
+        [% END %]
+        [% IF ( CAN_user_catalogue ) %]
+            <li role="presentation">
+                <a title="Search catalog" href="#catalog_search" aria-controls="catalog_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-fw fa-search"></i> <span class="tab-title">Search catalog</span></a>
+            </li>
+        [% END %]
+    </ul>
+</div><!-- /#header_search -->
+<!-- cities-admin-search.inc -->

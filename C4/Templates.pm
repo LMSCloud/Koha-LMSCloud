@@ -2,9 +2,9 @@ package C4::Templates;
 
 use strict;
 use warnings;
-use Carp;
+use Carp qw( carp );
 use CGI qw ( -utf8 );
-use List::MoreUtils qw/ any uniq /;
+use List::MoreUtils qw( uniq );
 
 # Copyright 2009 Chris Cormack and The Koha Dev Team
 #
@@ -31,8 +31,7 @@ C4::Templates - Object for manipulating templates for use with Koha
 
 use base qw(Class::Accessor);
 use Template;
-use Template::Constants qw( :debug );
-use C4::Languages qw(getTranslatedLanguages get_bidi regex_lang_subtags language_get_description accept_language );
+use C4::Languages qw( get_bidi getTranslatedLanguages regex_lang_subtags );
 
 use C4::Context;
 
@@ -123,6 +122,12 @@ sub output {
         C4::Context->preference('OpacAdditionalStylesheet');
     $vars->{opaclayoutstylesheet} =
         C4::Context->preference('opaclayoutstylesheet');
+
+    if(exists $self->{VARS}{lang}) {
+        warn "Preventing \$template->lang='" . ($self->{vars}{lang}//'-undef-')
+            . "' to be overwritten by template->{VARS}{lang}='" . ($self->{VARS}{lang}//'-undef-') . "'";
+        delete $self->{VARS}{lang};
+    }
 
     # add variables set via param to $vars for processing
     $vars = { %$vars, %{ $self->{VARS} } };
@@ -234,7 +239,6 @@ sub badtemplatecheck {
 
 sub gettemplate {
     my ( $tmplbase, $interface, $query ) = @_;
-    ($query) or warn "no query in gettemplate";
     my ($htdocs, $theme, $lang, $filename)
        =  _get_template_file($tmplbase, $interface, $query);
     badtemplatecheck( $filename ); # single trip for bad templates
@@ -294,7 +298,6 @@ the use case where the DB is not populated already when rewriting/fixing.
 
 sub themelanguage {
     my ($htdocs, $tmpl, $interface, $query) = @_;
-    ($query) or warn "no query in themelanguage";
 
     # Select a language based on cookie, syspref available languages & browser
     my $lang = C4::Languages::getlanguage($query);
@@ -373,57 +376,12 @@ sub getlanguagecookie {
         -name    => 'KohaOpacLanguage',
         -value   => $language,
         -HttpOnly => 1,
-        -expires => '+3y'
+        -expires => '+3y',
+        -sameSite => 'Lax',
+        -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
     );
 
     return $cookie;
-}
-
-=head2 GetColumnDefs
-
-    my $columns = GetColumnDefs( $cgi )
-
-It is passed a CGI object and returns a hash of hashes containing
-the column names and descriptions for each table defined in the
-columns.def file corresponding to the CGI object.
-
-=cut
-
-sub GetColumnDefs {
-
-    my $query = shift;
-
-    my $columns = {};
-
-    my $htdocs = C4::Context->config('intrahtdocs');
-    my $columns_file = 'columns.def';
-
-    # Get theme and language to build the path to columns.def
-    my ($theme, $lang, $availablethemes) =
-        themelanguage($htdocs, 'about.tt', 'intranet', $query);
-    # Build columns.def path
-    my $path = "$htdocs/$theme/$lang/$columns_file";
-    my $fh;
-    if ( ! open ( $fh, q{<:encoding(utf-8)}, $path ) )  {
-        carp "Error opening $path. Check your templates.";
-        return;
-    }
-    # Loop through the columns.def file
-    while ( my $input = <$fh> ){
-        chomp $input;
-        if ( $input =~ m|<field name="(.*)">(.*)</field>| ) {
-            my ( $table, $column ) =  split( '\.', $1);
-            my $description        = $2;
-            # Initialize the table array if needed.
-            @{$columns->{ $table }} = () if ! defined $columns->{ $table };
-            # Push field and description
-            push @{$columns->{ $table }},
-                { field => $column, description => $description };
-        }
-    }
-    close $fh;
-
-    return $columns;
 }
 
 1;

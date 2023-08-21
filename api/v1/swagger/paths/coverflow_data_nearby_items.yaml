@@ -1,0 +1,42 @@
+/public/coverflow_data_nearby_items/{item_id}:
+  get:
+    x-mojo-to: CoverflowDataNearbyItems#get
+    operationId: getCoverflowDataNearbyItems
+    description: Get coverflow data of nearby items on the shelf
+    summary: Get coverflow data of nearby items on the shelf
+    tags:
+      - coverflow_data_nearby_items
+    summary: Get coverflow data of nearby items from itemnumber
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/item_id_pp"
+      - name: quantity
+        in: query
+        description: The number of items to be returned for each direction of itemcallnumers
+        required: false
+        type: integer
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      '200':
+        description: An object that contains coverflow data of nearby items and additional metadata about the selection
+        schema:
+          type: object
+          items:
+            $ref: "../swagger.yaml#/definitions/coverflow_data_nearby_items"
+      '403':
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '500':
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '503':
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"

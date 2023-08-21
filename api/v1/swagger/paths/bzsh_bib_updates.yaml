@@ -1,0 +1,47 @@
+/bzsh/bib_updates:
+  get:
+    x-mojo-to: BZSH::BibUpdates#getBibUpdates
+    operationId: getBibUpdates
+    description: Retrieve lists of inserted/updated/deleted BZSH biblio record numbers with MARC record field 998[bz]$n=BZShopJa
+    summary: Retrieve lists of inserted/updated/deleted BZSH biblio record numbers
+    tags:
+      - BZSH
+    produces:
+      - application/json
+    parameters:
+      - name: since
+        in: query
+        description: 'Provide a timestamp to check for bibliographic records which are updated since that time. '
+        required: false
+        type: string
+        format: date
+    responses:
+      '200':
+        description: Provide cataloge updates in blocks of created, updated and deleted that contains list of bib record identifiers.
+        schema:
+          type: object
+          items:
+            $ref: "../swagger.yaml#/definitions/bzsh_bib_updates"
+      '401':
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '403':
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '404':
+        description: Vendor not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '500':
+        description: Internal server error
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '503':
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        parameters: edit_catalogue

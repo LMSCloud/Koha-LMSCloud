@@ -5,30 +5,29 @@
 [% PROCESS 'permissions.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>
-    Set permissions for [% patron.surname | html %], [% patron.firstname | html %] &rsaquo; Patrons &rsaquo; Koha
+    Set permissions for [% INCLUDE 'patron-title.inc' no_html = 1 %] &rsaquo; Patrons &rsaquo; Koha
 </title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
 <body id="pat_member-flags" class="pat">
-[% INCLUDE 'header.inc' %]
-[% PROCESS 'patron-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'patron-search-header.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Set permissions for [% patron.surname | html %], [% patron.firstname | html %]
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber | uri %]">[% INCLUDE 'patron-title.inc' %]</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Set permissions</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -41,11 +40,11 @@
     <input type="hidden" name="csrf_token" value="[% csrf_token | html %]" />
     <input type="hidden" name="member" id="borrowernumber" value="[% patron.borrowernumber | html %]" />
     <input type="hidden" name="newflags" value="1" />
-    <h1>Set permissions for [% patron.surname | html %], [% patron.firstname | html %]</h1>
+    <h1>Set permissions for [% INCLUDE 'patron-title.inc' no_html = 1 %]</h1>
 
     <div id="permissionstree">
         <div id="permissions_toolbar" class="btn-toolbar">
-            <button type="submit" class="btn btn-default"><i class="fa fa-save"></i> Save</button>
+            <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save</button>
             <a class="btn btn-default" href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber | html %]"><i class="fa fa-remove"></i> Cancel</a>
             <a class="toggleall toggleall_on btn btn-link" href="#"><i class="fa fa-plus-square-o"></i> Show all</a>
             <a class="toggleall toggleall_off btn btn-link" href="#"><i class="fa fa-minus-square-o"></i> Hide all</a>

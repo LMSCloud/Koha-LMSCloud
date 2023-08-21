@@ -22,9 +22,9 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 
 =head1 DESCRIPTION
 
@@ -43,8 +43,8 @@ my $builder = sub {
     my ( $params ) = @_;
     my $res="
     <script>
-        function Blur$params->{id}() {
-                var code = document.getElementById('$params->{id}');
+        function Blur$params->{id}(ev) {
+                var code = document.getElementById(ev.data.id);
                 var url = '../cataloguing/plugin_launcher.pl?plugin_name=callnumber.pl&code=' + code.value;
                 var req = \$.get(url);
                 req.done(function(resp){
@@ -69,7 +69,6 @@ my $launcher = sub {
         query           => $input,
         type            => "intranet",
         flagsrequired   => {editcatalogue => '*'},
-        debug           => 1,
     });
 
     my $dbh = C4::Context->dbh;

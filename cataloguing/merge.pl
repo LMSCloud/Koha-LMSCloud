@@ -21,16 +21,23 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 
-use C4::Output;
-use C4::Auth;
-use C4::Items;
-use C4::Biblio;
-use C4::Serials;
-use C4::Koha;
-use C4::Reserves qw/MergeHolds/;
-use C4::Acquisition qw/ModOrder GetOrdersByBiblionumber/;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
+use C4::Biblio qw(
+    DelBiblio
+    GetBiblioData
+    GetFrameworkCode
+    GetMarcFromKohaField
+    GetMarcStructure
+    ModBiblio
+    TransformHtmlToMarc
+);
+use C4::Serials qw( CountSubscriptionFromBiblionumber );
+use C4::Reserves qw( MergeHolds );
+use C4::Acquisition qw( ModOrder GetOrdersByBiblionumber );
 
 use Koha::BiblioFrameworks;
+use Koha::Biblios;
 use Koha::Items;
 use Koha::MetadataRecord;
 
@@ -77,28 +84,20 @@ if ($merge) {
     }
 
     # Rewriting the leader
-    $record->leader(GetMarcBiblio({ biblionumber => $ref_biblionumber })->leader());
+    my $biblio = Koha::Biblios->find($ref_biblionumber);
+    $record->leader($biblio->metadata->record->leader());
 
     my $frameworkcode = $input->param('frameworkcode');
-    my @notmoveditems;
 
     # Modifying the reference record
     ModBiblio($record, $ref_biblionumber, $frameworkcode);
 
-    # Moving items from the other record to the reference record
+    # Moving items and article requests from the other record to the reference record
+    $biblio = $biblio->get_from_storage;
     foreach my $biblionumber (@biblionumbers) {
-        my $items = Koha::Items->search({ biblionumber => $biblionumber });
-        while ( my $item = $items->next) {
-            my $res = MoveItemFromBiblio( $item->itemnumber, $biblionumber, $ref_biblionumber );
-            if ( not defined $res ) {
-                push @notmoveditems, $item->itemnumber;
-            }
-        }
-    }
-    # If some items could not be moved :
-    if (scalar(@notmoveditems) > 0) {
-        my $itemlist = join(' ',@notmoveditems);
-        push @errors, { code => "CANNOT_MOVE", value => $itemlist };
+        my $from_biblio = Koha::Biblios->find($biblionumber);
+        $from_biblio->items->move_to_biblio($biblio);
+        $from_biblio->article_requests->update({ biblionumber => $ref_biblionumber }, { no_triggers => 1 });
     }
 
     my $sth_subscription = $dbh->prepare("
@@ -117,7 +116,8 @@ if ($merge) {
     my $report_header = {};
     foreach my $biblionumber ($ref_biblionumber, @biblionumbers) {
         # build report
-        my $marcrecord = GetMarcBiblio({ biblionumber => $biblionumber });
+        my $biblio = Koha::Biblios->find($biblionumber);
+        my $marcrecord = $biblio->metadata->record;
         my %report_record = (
             biblionumber => $biblionumber,
             fields => {},
@@ -162,7 +162,7 @@ if ($merge) {
     # Moving suggestions
     $sth_suggestions->execute($ref_biblionumber, $biblionumber);
 
-    # Moving orders (orders linked to items of frombiblio have already been moved by MoveItemFromBiblio)
+    # Moving orders (orders linked to items of frombiblio have already been moved by move_to_biblio)
     my @allorders = GetOrdersByBiblionumber($biblionumber);
     foreach my $myorder (@allorders) {
         $myorder->{'biblionumber'} = $ref_biblionumber;
@@ -205,7 +205,8 @@ if ($merge) {
         # Creating a loop for display
         my @records;
         foreach my $biblionumber (@biblionumbers) {
-            my $marcrecord = GetMarcBiblio({ biblionumber => $biblionumber });
+            my $biblio = Koha::Biblios->find($biblionumber);
+            my $marcrecord = $biblio->metadata->record;
             my $frameworkcode = GetFrameworkCode($biblionumber);
             my $recordObj = Koha::MetadataRecord->new({'record' => $marcrecord, schema => $marcflavour});
             my $record = {

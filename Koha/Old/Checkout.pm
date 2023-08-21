@@ -18,6 +18,7 @@ package Koha::Old::Checkout;
 use Modern::Perl;
 
 use Koha::Database;
+use Koha::Exceptions::SysPref;
 use Koha::Libraries;
 
 use base qw(Koha::Object);
@@ -41,7 +42,22 @@ Return the checked out item
 sub item {
     my ( $self ) = @_;
     my $item_rs = $self->_result->item;
+    return unless $item_rs;
     return Koha::Item->_new_from_dbic( $item_rs );
+}
+
+=head3 account_lines
+
+my $account_lines = $checkout->account_lines;
+
+Return the checked out account_lines
+
+=cut
+
+sub account_lines {
+    my ( $self ) = @_;
+    my $account_lines_rs = $self->_result->account_lines;
+    return Koha::Account::Lines->_new_from_dbic( $account_lines_rs );
 }
 
 =head3 library
@@ -69,7 +85,7 @@ Return the patron for who the checkout has been done
 
 sub patron {
     my ( $self ) = @_;
-    my $patron_rs = $self->_result->borrower;
+    my $patron_rs = $self->_result->patron;
     return unless $patron_rs;
     return Koha::Patron->_new_from_dbic( $patron_rs );
 }
@@ -87,6 +103,40 @@ sub issuer {
     my $issuer_rs = $self->_result->issuer;
     return unless $issuer_rs;
     return Koha::Patron->_new_from_dbic( $issuer_rs );
+}
+
+=head3 renewals
+
+  my $renewals = $checkout->renewals;
+
+Return a Koha::Checkouts::Renewals set attached to this checkout
+
+=cut
+
+sub renewals {
+    my ( $self ) = @_;
+    my $renewals_rs = $self->_result->renewals;
+    return unless $renewals_rs;
+    return Koha::Checkouts::Renewals->_new_from_dbic( $renewals_rs );
+}
+
+=head3 anonymize
+
+    $checkout->anonymize();
+
+Anonymize the given I<Koha::Old::Checkout> object.
+
+=cut
+
+sub anonymize {
+    my ($self) = @_;
+
+    my $anonymous_id = C4::Context->preference('AnonymousPatron');
+
+    Koha::Exceptions::SysPref::NotSet->throw( syspref => 'AnonymousPatron' )
+        unless $anonymous_id;
+
+    return $self->update( { borrowernumber => $anonymous_id } );
 }
 
 =head3 to_api_mapping

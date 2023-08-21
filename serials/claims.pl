@@ -19,13 +19,11 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Serials;
-use C4::Acquisition;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Serials qw( GetSuppliersWithLateIssues GetLateOrMissingIssues updateClaim can_claim_subscription );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
-use C4::Letters;
-use C4::Koha qw( GetAuthorisedValues );
+use C4::Letters qw( GetLetters SendAlerts );
 
 use Koha::AdditionalFields;
 use Koha::CsvProfiles;
@@ -44,7 +42,6 @@ my ($template, $loggedinuser, $cookie)
             query => $input,
             type => 'intranet',
             flagsrequired => {serials => 'claim_serials'},
-            debug => 1,
             });
 
 # supplierlist is returned in name order
@@ -62,7 +59,7 @@ my @serialnums=$input->multi_param('serialid');
 if (@serialnums) { # i.e. they have been flagged to generate claims
     my $err;
     eval {
-        $err = SendAlerts('claimissues',\@serialnums,$input->param("letter_code"));
+        $err = SendAlerts( 'claimissues', \@serialnums, scalar $input->param("letter_code") );
         if ( not ref $err or not exists $err->{error} ) {
             C4::Serials::updateClaim( \@serialnums );
         }
@@ -99,7 +96,7 @@ $template->param(
         supplierid => $supplierid,
         claimletter => $claimletter,
         additional_fields_for_subscription => $additional_fields,
-        csv_profiles => [ Koha::CsvProfiles->search({ type => 'sql', used_for => 'late_issues' }) ],
+        csv_profiles => Koha::CsvProfiles->search({ type => 'sql', used_for => 'late_issues' }),
         letters => $letters,
         (uc(C4::Context->preference("marcflavour"))) => 1
         );

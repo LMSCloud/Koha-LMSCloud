@@ -20,23 +20,19 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Koha;
-use C4::Languages qw(getTranslatedLanguages);
-use C4::ClassSource;
-use C4::Log;
-use C4::Output;
+use C4::Koha qw( getallthemes );
+use C4::Languages qw( getTranslatedLanguages );
+use C4::ClassSource qw( GetClassSources GetClassSource );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Templates;
 use Koha::Acquisition::Currencies;
-use File::Spec;
+use Koha::Database::Columns;
 use IO::File;
 use YAML::XS;
 use Encode;
-use List::MoreUtils qw(any);
-
-# use Smart::Comments;
-#
+use List::MoreUtils qw( any );
 
 sub GetTab {
     my ( $input, $tab ) = @_;
@@ -67,6 +63,7 @@ sub _get_chunk {
     if( $options{'type'} && $options{'type'} eq 'modalselect' ){
         $chunk->{'source'} = $options{'source'};
         $chunk->{'exclusions'} = $options{'exclusions'} // "";
+        $chunk->{'required'} = $options{'required'} // "";
         $chunk->{'type'} = 'modalselect';
     }
 
@@ -103,7 +100,7 @@ sub _get_chunk {
             } elsif ( $options{'choices'} eq 'staff-templates' ) {
                 $options{'choices'} = { map { $_ => $_ } getallthemes( 'intranet' ) }
             } elsif ( $options{choices} eq 'patron-categories' ) {
-                $options{choices} = { map { $_->categorycode => $_->description } Koha::Patron::Categories->search };
+                $options{choices} = { map { $_->categorycode => $_->description } Koha::Patron::Categories->search->as_list };
                 $add_blank = 1;
             } else {
                 die 'Unrecognized source of preference values: ' . $options{'choices'};
@@ -340,7 +337,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { parameters => 'manage_sysprefs' },
-        debug           => 1,
     }
 );
 
@@ -406,6 +402,9 @@ if ( $tab ) {
     );
 }
 
-$template->param( TABS => \@TABS );
+$template->param(
+    TABS => \@TABS,
+    db_columns => Koha::Database::Columns->columns,
+);
 
 output_html_with_http_headers $input, $cookie, $template->output;

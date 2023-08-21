@@ -23,9 +23,9 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 use autouse 'Data::Dumper' => qw(Dumper);
 
-use C4::Auth qw(get_template_and_user);
-use C4::Output qw(output_html_with_http_headers);
-use C4::Creators;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Creators qw( get_all_profiles get_unit_values );
 use C4::Patroncards;
 
 my $cgi = CGI->new;
@@ -35,7 +35,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $cgi,
         type            => "intranet",
         flagsrequired   => { tools => 'label_creator' },
-        debug           => 1,
     }
 );
 
@@ -48,10 +47,10 @@ my $units = get_unit_values();
 
 if ($op eq 'edit') {
     $card_template = C4::Patroncards::Template->retrieve(template_id => $template_id);
-    $profile_list = get_all_profiles({ fields => [ qw( profile_id printer_name paper_bin ) ], filters => {template_id => [ $template_id, '' ]} } );
+    $profile_list = get_all_profiles({ fields => [ qw( profile_id printer_name paper_bin ) ], filters => {template_id => [ $template_id, 0 ], creator => 'Patroncards'} } );
 }
 elsif ($op eq 'save') {
-    my @params = (      profile_id      => scalar $cgi->param('profile_id') || '',
+    my @params = (      profile_id      => scalar $cgi->param('profile_id') || 0,
                         template_code   => scalar $cgi->param('template_code'),
                         template_desc   => scalar $cgi->param('template_desc'),
                         page_width      => scalar $cgi->param('page_width'),

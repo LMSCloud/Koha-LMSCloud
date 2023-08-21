@@ -35,16 +35,12 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Auth qw/:DEFAULT get_session/;
-use C4::Output;
-use C4::Members;
-use C4::Koha;
-use Koha::DateUtils;
+use C4::Auth qw( get_session get_template_and_user );
+use C4::Output qw( output_and_exit_if_error output_and_exit output_html_with_http_headers );
+use C4::Members qw( IssueSlip );
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Database;
 use Koha::Libraries;
-
-#use Smart::Comments;
-#use Data::Dumper;
 
 use vars qw($debug);
 
@@ -56,7 +52,6 @@ my $input = CGI->new;
 my $sessionID = $input->cookie("CGISESSID");
 my $session = get_session($sessionID);
 
-$debug or $debug = $input->param('debug') || 0;
 my $print = $input->param('print');
 my $error = $input->param('error');
 
@@ -70,7 +65,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => $flagsrequired,
-        debug           => 1,
     }
 );
 

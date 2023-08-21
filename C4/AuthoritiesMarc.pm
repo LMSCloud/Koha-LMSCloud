@@ -23,13 +23,12 @@ use warnings;
 use MARC::Field;
 
 use C4::Context;
-use MARC::Record;
-use C4::Biblio;
-use C4::Search;
+use C4::Biblio qw( GetFrameworkCode ModBiblio );
+use C4::Search qw( FindDuplicate new_record_from_zebra );
 use C4::AuthoritiesMarc::MARC21;
 use C4::AuthoritiesMarc::UNIMARC;
-use C4::Charset;
-use C4::Log;
+use C4::Charset qw( SetUTF8Flag );
+use C4::Log qw( logaction );
 use Koha::MetadataRecord::Authority;
 use Koha::Authorities;
 use Koha::Authority::MergeRequests;
@@ -40,35 +39,39 @@ use Koha::SearchEngine;
 use Koha::SearchEngine::Indexer;
 use Koha::SearchEngine::Search;
 
-use vars qw(@ISA @EXPORT);
-
+our (@ISA, @EXPORT_OK);
 BEGIN {
 
-	require Exporter;
-	@ISA = qw(Exporter);
-	@EXPORT = qw(
-	    &GetTagsLabels
-    	&GetAuthMARCFromKohaField 
+    require Exporter;
+    @ISA       = qw(Exporter);
+    @EXPORT_OK = qw(
+      GetTagsLabels
+      GetAuthMARCFromKohaField
 
-    	&AddAuthority
-    	&ModAuthority
-    	&DelAuthority
-    	&GetAuthority
-    	&GetAuthorityXML
+      AddAuthority
+      ModAuthority
+      DelAuthority
+      GetAuthority
+      GetAuthorityXML
+      GetAuthorizedHeading
 
-    	&SearchAuthorities
-    
-        &BuildSummary
-        &BuildAuthHierarchies
-        &BuildAuthHierarchy
-        &GenerateHierarchy
-    
-    	&merge
-    	&FindDuplicateAuthority
+      SearchAuthorities
 
-        &GuessAuthTypeCode
-        &GuessAuthId
- 	);
+      BuildSummary
+      BuildAuthHierarchies
+      BuildAuthHierarchy
+      GenerateHierarchy
+      GetHeaderAuthority
+      AddAuthorityTrees
+      CompareFieldWithAuthority
+
+      merge
+      FindDuplicateAuthority
+
+      GuessAuthTypeCode
+      GuessAuthId
+      compare_fields
+    );
 }
 
 
@@ -181,8 +184,8 @@ sub SearchAuthorities {
                 $attr .= " \@attr 4=107 ";    #Number Exact match
             }
             elsif ( $operator and $operator eq "start" ) {
-                $attr .= " \@attr 3=2 \@attr 4=1 \@attr 5=1 "
-                  ;    #Firstinfield Phrase, Right truncated
+                $attr .= " \@attr 3=2 \@attr 4=1 \@attr 5=1 \@attr 6=3 "
+                  ;    #Firstinfield Phrase, Right truncated, Complete field
             }
             elsif ( $operator and $operator eq "exact" ) {
                 $attr .= " \@attr 4=1  \@attr 5=100 \@attr 6=3 "
@@ -204,10 +207,26 @@ sub SearchAuthorities {
         }    #if value
     }
     ##Add how many queries generated
-    if (defined $query && $query=~/\S+/){
-      $query= $and x $attr_cnt . $query . (defined $q2 ? $q2 : '');
+    if ( defined $query && $query =~ /\S+/ ) {
+        #NOTE: This code path is used by authority search in cataloguing plugins...
+        #FIXME: This does not quite work the way the author probably intended.
+        #It creates a ($query prefix) AND (query 1) AND (query 2) structure instead of
+        #($query prefix) AND (query 1 AND query 2)
+        $query = $and x $attr_cnt . $query . ( defined $q2 ? $q2 : '' );
     } else {
-      $query= $q2;
+        #NOTE: This code path is used by authority search in authority home and record matching rules...
+        my $op_prefix = '';
+        #NOTE: Without the following code, multiple queries will never be joined together
+        #with a Boolean operator.
+        if ( $attr_cnt > 1 ) {
+            #NOTE: We always need 1 less operator than we have operands,
+            #so long as there is more than 1 operand
+            my $or_cnt = $attr_cnt - 1;
+            #NOTE: We hard-code OR here because that's what Elasticsearch does
+            $op_prefix = ' @or ' x $or_cnt;
+            #NOTE: This evaluates to a logical structure like (query 1) OR (query 2) OR (query 3)
+        }
+        $query = $op_prefix . $q2;
     }
     ## Adding order
     #$query=' @or  @attr 7=2 @attr 1=Heading 0 @or  @attr 7=1 @attr 1=Heading 1'.$query if ($sortby eq "HeadingDsc");
@@ -298,6 +317,18 @@ sub SearchAuthorities {
                 $thisauthtype = Koha::Authority::Types->find($thisauthtypecode);
             }
             my $summary = BuildSummary( $authrecord, $authid, $thisauthtypecode );
+
+            if ( C4::Context->preference('ShowHeadingUse') ) {
+                # checking valid heading use
+                my $f008 = $authrecord->field('008');
+                my $pos14to16 = substr( $f008->data, 14, 3 );
+                my $main = substr( $pos14to16, 0, 1 );
+                $newline{main} = 1 if $main eq 'a';
+                my $subject = substr( $pos14to16, 1, 1);
+                $newline{subject} = 1 if $subject eq 'a';
+                my $series = substr( $pos14to16, 2, 1 );
+                $newline{series} = 1 if $series eq 'a';
+            }
 
             $newline{authtype}     = defined($thisauthtype) ?
                                         $thisauthtype->authtypetext : '';
@@ -451,7 +482,7 @@ sub GetTagsLabels {
   my $dbh=C4::Context->dbh;
   $authtypecode="" unless $authtypecode;
   my $sth;
-  my $libfield = ($forlibrarian == 1)? 'liblibrarian' : 'libopac';
+  my $libfield = ($forlibrarian) ? 'liblibrarian' : 'libopac';
 
 
   # check that authority exists
@@ -531,7 +562,10 @@ returns authid of the newly created authority
 
 sub AddAuthority {
 # pass the MARC::Record to this function, and it will create the records in the authority table
-  my ($record,$authid,$authtypecode) = @_;
+    my ( $record, $authid, $authtypecode, $params ) = @_;
+
+    my $skip_record_index = $params->{skip_record_index} || 0;
+
   my $dbh=C4::Context->dbh;
 	my $leader='     nz  a22     o  4500';#Leader for incomplete MARC21 record
 
@@ -626,22 +660,29 @@ sub AddAuthority {
 
     # Save record into auth_header, update 001
     my $action;
+    my $authority;
     if (!$authid ) {
         $action = 'create';
         # Save a blank record, get authid
-        $dbh->do( "INSERT INTO auth_header (datecreated,marcxml) values (NOW(),?)", undef, '' );
-        $authid = $dbh->last_insert_id( undef, undef, 'auth_header', 'authid' );
+        $authority = Koha::Authority->new({ datecreated => \'NOW()', marcxml => '' })->store();
+        $authority->discard_changes();
+        $authid = $authority->authid;
         logaction( "AUTHORITIES", "ADD", $authid, "authority" ) if C4::Context->preference("AuthoritiesLog");
     } else {
         $action = 'modify';
+        $authority = Koha::Authorities->find($authid);
     }
+
     # Insert/update the recordID in MARC record
     $record->delete_field( $record->field('001') );
     $record->insert_fields_ordered( MARC::Field->new( '001', $authid ) );
     # Update
-    $dbh->do( "UPDATE auth_header SET authtypecode=?, marc=?, marcxml=? WHERE authid=?", undef, $authtypecode, $record->as_usmarc, $record->as_xml_record($format), $authid ) or die $DBI::errstr;
-    my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::AUTHORITIES_INDEX });
-    $indexer->index_records( $authid, "specialUpdate", "authorityserver", $record );
+    $authority->update({ authtypecode => $authtypecode, marc => $record->as_usmarc, marcxml => $record->as_xml_record($format) });
+
+    unless ( $skip_record_index ) {
+        my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::AUTHORITIES_INDEX });
+        $indexer->index_records( $authid, "specialUpdate", "authorityserver", $record );
+    }
 
     _after_authority_action_hooks({ action => $action, authority_id => $authid });
     return ( $authid );
@@ -655,12 +696,16 @@ Deletes $authid and calls merge to cleanup linked biblio records.
 Parameter skip_merge is used in authorities/merge.pl. You should normally not
 use it.
 
+skip_record_index will skip the indexation step.
+
 =cut
 
 sub DelAuthority {
     my ( $params ) = @_;
     my $authid = $params->{authid} || return;
     my $skip_merge = $params->{skip_merge};
+    my $skip_record_index = $params->{skip_record_index} || 0;
+
     my $dbh = C4::Context->dbh;
 
     # Remove older pending merge requests for $authid to itself. (See bug 22437)
@@ -670,8 +715,10 @@ sub DelAuthority {
     merge({ mergefrom => $authid }) if !$skip_merge;
     $dbh->do( "DELETE FROM auth_header WHERE authid=?", undef, $authid );
     logaction( "AUTHORITIES", "DELETE", $authid, "authority" ) if C4::Context->preference("AuthoritiesLog");
-    my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::AUTHORITIES_INDEX });
-    $indexer->index_records( $authid, "recordDelete", "authorityserver", undef );
+    unless ( $skip_record_index ) {
+        my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::AUTHORITIES_INDEX });
+        $indexer->index_records( $authid, "recordDelete", "authorityserver", undef );
+    }
 
     _after_authority_action_hooks({ action => 'delete', authority_id => $authid });
 }
@@ -683,13 +730,18 @@ sub DelAuthority {
 Modifies authority record, optionally updates attached biblios.
 The parameter skip_merge is optional and should be used with care.
 
+skip_record_index will skip the indexation step.
+
 =cut
 
 sub ModAuthority {
     my ( $authid, $record, $authtypecode, $params ) = @_;
+
+    my $skip_record_index = $params->{skip_record_index} || 0;
+
     my $oldrecord = GetAuthority($authid);
     #Now rewrite the $record to table with an add
-    $authid = AddAuthority($record, $authid, $authtypecode);
+    $authid = AddAuthority($record, $authid, $authtypecode, { skip_record_index => $skip_record_index });
     merge({ mergefrom => $authid, MARCfrom => $oldrecord, mergeto => $authid, MARCto => $record }) if !$params->{skip_merge};
     logaction( "AUTHORITIES", "MODIFY", $authid, "authority BEFORE=>" . $oldrecord->as_formatted ) if C4::Context->preference("AuthoritiesLog");
     return $authid;
@@ -753,15 +805,11 @@ Comments : an improvement would be to return All the records that match.
 sub FindDuplicateAuthority {
 
     my ($record,$authtypecode)=@_;
-#    warn "IN for ".$record->as_formatted;
     my $dbh = C4::Context->dbh;
-#    warn "".$record->as_formatted;
     my $auth_tag_to_report = Koha::Authority::Types->find($authtypecode)->auth_tag_to_report;
-#     warn "record :".$record->as_formatted."  auth_tag_to_report :$auth_tag_to_report";
     # build a request for SearchAuthorities
     my $op = 'AND';
-    $authtypecode =~ s#/#\\/#; # GENRE/FORM contains forward slash which is a reserved character
-    my $query='at:'.$authtypecode.' ';
+    my $query='at:"'.$authtypecode.'" '; # Quote authtype code to avoid unescaping slash in GENRE/FORM later
     my $filtervalues=qr([\001-\040\Q!'"`#$%&*+,-./:;<=>?@(){[}_|~\E\]]);
     if ($record->field($auth_tag_to_report)) {
         foreach ($record->field($auth_tag_to_report)->subfields()) {
@@ -1389,8 +1437,18 @@ sub merge {
     # Search authtypes and reporting tags
     my $authfrom = Koha::Authorities->find($mergefrom);
     my $authto = Koha::Authorities->find($mergeto);
-    my $authtypefrom = $authfrom ? Koha::Authority::Types->find($authfrom->authtypecode) : undef;
+    my $authtypefrom;
     my $authtypeto   = $authto ? Koha::Authority::Types->find($authto->authtypecode) : undef;
+    if( $mergeto && $mergefrom == $mergeto && $MARCfrom ) {
+        # bulkmarcimport may have changed the authtype; see BZ 19693
+        my $old_type = $MARCfrom->subfield( get_auth_type_location() ); # going via default
+        if( $old_type && $authto && $old_type ne $authto->authtypecode ) {
+            # Type change: handled by simulating a postponed merge where the auth record has been deleted already
+            # This triggers a walk through all auth controlled tags
+            undef $authfrom;
+        }
+    }
+    $authtypefrom = Koha::Authority::Types->find($authfrom->authtypecode) if $authfrom;
     my $auth_tag_to_report_from = $authtypefrom ? $authtypefrom->auth_tag_to_report : '';
     my $auth_tag_to_report_to   = $authtypeto ? $authtypeto->auth_tag_to_report : '';
 
@@ -1434,8 +1492,9 @@ sub merge {
 
     my $counteditedbiblio = 0;
     foreach my $biblionumber ( @biblionumbers ) {
-        my $marcrecord = GetMarcBiblio({ biblionumber => $biblionumber });
-        next if !$marcrecord;
+        my $biblio = Koha::Biblios->find($biblionumber);
+        next unless $biblio;
+        my $marcrecord = $biblio->metadata->record;
         my $update = 0;
         foreach my $tagfield (@$tags_using_authtype) {
             my $countfrom = 0;    # used in strict mode to remove duplicates

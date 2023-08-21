@@ -23,14 +23,13 @@
 
 use Modern::Perl;
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use CGI;
 use C4::Context;
-use C4::Output;
-use C4::Koha;
-use File::stat qw(stat);
-use Digest::MD5 qw(md5_hex);
-use Encode;
+use C4::Output qw( output_html_with_http_headers );
+use File::stat qw( stat );
+use Digest::MD5 qw( md5_hex );
+use Encode qw( decode );
 
 my $input = CGI->new;
 my $file_id = $input->param("id");
@@ -62,8 +61,9 @@ else {
     #Get the files list
     my @files_list;
     foreach my $dir(@directories){
-        opendir(DIR, $dir);
-        foreach my $filename (readdir(DIR)) {
+        my $dir_h;
+        opendir($dir_h, $dir);
+        foreach my $filename (readdir($dir_h)) {
             my $full_path = "$dir/$filename";
             my $id = md5_hex($full_path);
             next if ($filename =~ /^\./ or -d $full_path);
@@ -85,7 +85,7 @@ else {
                                size => $st->size,
                                id   => $id});
         }
-        closedir(DIR);
+        closedir($dir_h);
     }
 
     my %files_hash = map { $_->{id} => $_ } @files_list;

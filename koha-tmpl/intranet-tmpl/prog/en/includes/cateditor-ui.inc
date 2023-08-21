@@ -99,8 +99,8 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
                         return $result[0];
                     },
                     postCreate: function() {
-                        var value = defaultvalue;
                         var widget = this;
+                        var value = widget.text || defaultvalue;
 
                         $.each( authvals, function() {
                             if ( this.value == widget.text ) {
@@ -112,9 +112,18 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
 
                         $( '<select></select>' ).appendTo( this.node );
                         var $node = $( this.node ).find( 'select' );
+                        var matched = false;
                         $.each( authvals, function( undef, authval ) {
-                            $node.append( '<option value="' + authval.value + '"' + (authval.value == value ? ' selected="selected"' : '') + '>' + authval.lib + '</option>' );
+                            selected = '';
+                            if (authval.value == value){
+                                matched=true;
+                                selected = ' selected="selected" ';
+                            };
+                            $node.append( '<option value="' + authval.value + '"' + selected + '>' + authval.lib + '</option>' );
                         } );
+                        if( !matched ){
+                            $node.append( "<option value='" + value + "' selected='selected'>" + value + " " + _("(Not an authorised value)") + " " + "</option>" );
+                        }
                         $node.val( this.text );
 
                         $node.change( $.proxy( function() {
@@ -251,13 +260,17 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
             saveLabel: _("Duplicate"),
             get: function( id, callback ) {
                 if ( !id ) return false;
+                var remove_control_num = [% IF Koha.Preference('autoControlNumber') == 'OFF' %] false [% ELSE %] true [% END %];
 
-                KohaBackend.GetRecord( id, callback );
+                KohaBackend.GetRecord( id, remove_control_num, callback );
             },
             save: function( id, record, done ) {
                 function finishCb( data ) {
                     done( { error: data.error, newRecord: data.marcxml && data.marcxml[0], newId: data.biblionumber && [ 'catalog', data.biblionumber ] } );
                 }
+                [% IF Koha.Preference('autoControlNumber') != 'OFF' %]
+                    record.removeField("001");
+                [% END %]
 
                 KohaBackend.CreateRecord( record, finishCb );
             }
@@ -272,7 +285,7 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
             get: function( id, callback ) {
                 if ( !id ) return false;
 
-                KohaBackend.GetRecord( id, callback );
+                KohaBackend.GetRecord( id, false, callback );
             },
             save: function( id, record, done ) {
                 function finishCb( data ) {
@@ -408,6 +421,8 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
 
         backends[ parts[0] ].get( parts[1], function( record ) {
             if ( !record.error ) {
+                var remove_control_num = [% IF Koha.Preference('autoControlNumber') == 'OFF' %] false [% ELSE %] true [% END %];
+                if( remove_control_num ){ record.removeField("001"); }
                 editor.displayRecord( record );
                 editor.focus();
             }
@@ -1014,11 +1029,15 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
                 resizeTimer = null;
 
                 var pos = $('#editor .CodeMirror').offset();
-                $('#editor .CodeMirror').height( $(window).height() - pos.top - 24 - $('#changelanguage').height() ); // 24 is hardcoded value but works well
-
+                if ( $('#changelanguage').length ) {
+                    $('#editor .CodeMirror').height( $(window).height() - pos.top - 24 - $('#changelanguage').height() ); // 24 is hardcoded value but works well
+                } else {
+                    $('#editor .CodeMirror').height( $(window).height() - pos.top - 24 );
+                }
                 $('.modal-body').each( function() {
                     $(this).height( $(window).height() * .8 - $(this).prevAll('.modal-header').height() );
                 } );
+                editor.refresh();
             }, 100);
         }
 
@@ -1207,7 +1226,7 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
         $( '#switch-editor' ).click( function() {
             if ( !confirm( _("Any changes will not be saved. Continue?") ) ) return;
 
-            Cookies.set( "catalogue_editor_[% logged_in_user.borrowernumber | html %]", "basic", { expires: 365, path: '/' } );
+            Cookies.set( "catalogue_editor_[% logged_in_user.borrowernumber | html %]", "basic", { expires: 365, path: '/', sameSite: 'Lax'} );
 
             if ( state.backend == 'catalog' ) {
                 window.location = '/cgi-bin/koha/cataloguing/addbiblio.pl?biblionumber=' + state.recordID;
@@ -1296,6 +1315,15 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
                 return '<div id="alerts-container"><ul>' + prevAlerts.join('') + '</ul></div>';
             },
         });
+
+        // Whitelist table elements to ensure popover displays all the info
+        $.fn.popover.Constructor.DEFAULTS.whiteList.table = [];
+        $.fn.popover.Constructor.DEFAULTS.whiteList.tr = [];
+        $.fn.popover.Constructor.DEFAULTS.whiteList.td = [];
+        $.fn.popover.Constructor.DEFAULTS.whiteList.div = [];
+        $.fn.popover.Constructor.DEFAULTS.whiteList.tbody = [];
+        $.fn.popover.Constructor.DEFAULTS.whiteList.thead = [];
+        // https://getbootstrap.com/docs/3.4/javascript/#popovers
 
         $('#show-shortcuts').popover({
             html: true,

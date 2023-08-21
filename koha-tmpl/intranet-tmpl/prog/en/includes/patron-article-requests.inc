@@ -1,5 +1,7 @@
-<div id="article-requests">
-[% IF patron.article_requests_current.count %]
+[% USE Context %]
+[% SET current_article_requests = Context.Scalar( Context.Scalar( patron, 'article_requests' ), 'filter_by_current' ) %]
+<div id="article-requests" role="tabpanel" class="tab-pane">
+[% IF current_article_requests.count > 0 %]
     <table id="article-requests-table" class="table table-bordered table-striped">
         <thead>
             <tr>
@@ -10,19 +12,21 @@
                 <th class="article-request-volume">Volume</th>
                 <th class="article-request-issue">Issue</th>
                 <th class="article-request-date">Date</th>
+                <th class="article-request-toc" title="Table of contents">TOC</th>
                 <th class="article-request-pages">Pages</th>
                 <th class="article-request-chapters">Chapters</th>
                 <th class="article-request-notes">Notes</th>
+                <th class="article-request-format">Format</th>
                 <th class="article-request-status">Status</th>
                 <th class="article-request-branchcode">Pickup library</th>
             </tr>
         </thead>
 
         <tbody>
-            [% FOREACH ar IN patron.article_requests_current %]
+            [% FOREACH ar IN current_article_requests %]
                 <tr>
                     <td class="article-request-record-title">
-                        <a class="article-request-title" href="/cgi-bin/koha/circ/request-article.pl?biblionumber=[% ar.biblionumber | html %]">
+                        <a class="article-request-record-link-title" href="/cgi-bin/koha/circ/request-article.pl?biblionumber=[% ar.biblionumber | html %]">
                             [% ar.biblio.title | html %]
                             [% ar.item.enumchron | html %]
                         </a>
@@ -54,6 +58,10 @@
                         [% ar.date | html %]
                     </td>
 
+                    <td class="article-request-toc">
+                        [% IF ar.toc_request %]<span>Yes</span>[% END %]
+                    </td>
+
                     <td class="article-request-pages">
                         [% ar.pages | html %]
                     </td>
@@ -66,15 +74,21 @@
                         [% ar.patron_notes | html %]
                     </td>
 
+                    <td class="article-request-format">
+                        [% IF ar.format == 'PHOTOCOPY' %]<span>Copy</span>
+                        [% ELSIF ar.format == 'SCAN' %]<span>Scan</span>
+                        [% END %]
+                    </td>
+
                     <td class="article-request-status">
                         [% IF ar.status == 'PENDING' %]
-                            Pending
+                            <span>Pending</span>
                         [% ELSIF ar.status == 'PROCESSING' %]
-                            Processing
+                            <span>Processing</span>
                         [% ELSIF ar.status == 'COMPLETED' %]
-                            Completed
+                            <span>Completed</span>
                         [% ELSIF ar.status == 'CANCELED' %]
-                            Canceled
+                            <span>Canceled</span>
                         [% END %]
                     </td>
 
@@ -86,6 +100,6 @@
         </tbody>
     </table>
     [% ELSE %]
-        Patron has no current article requests.
+        <span>Patron has no current article requests.</span>
     [% END %]
 </div>

@@ -47,16 +47,15 @@ script to administer the budget periods table
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use List::Util qw/min/;
-use Koha::DateUtils;
+use JSON qw( encode_json );
 use Koha::Database;
 use C4::Koha;
 use C4::Context;
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Acquisition;
-use C4::Budgets;
-use C4::Debug;
+use C4::Budgets qw( GetBudgetPeriod GetBudgetHierarchy GetBudgetPeriods ModBudgetPeriod AddBudgetPeriod GetBudgets DelBudgetPeriod CloneBudgetPeriod MoveOrders );
+use C4::Log qw(logaction);
 use Koha::Acquisition::Currencies;
 
 my $dbh = C4::Context->dbh;
@@ -72,8 +71,8 @@ my $op                   = $input->param('op')||"else";
 # get only the columns of aqbudgetperiods in budget_period_hashref
 my @columns = Koha::Database->new()->schema->source('Aqbudgetperiod')->columns;
 my $budget_period_hashref = { map { join(' ',@columns) =~ /$_/ ? ( $_ => scalar $input->param($_) )  : () } keys( %{$input->Vars()} ) } ;
-$budget_period_hashref->{budget_period_startdate} = dt_from_string( scalar $input->param('budget_period_startdate') );
-$budget_period_hashref->{budget_period_enddate}   = dt_from_string( scalar $input->param('budget_period_enddate') );
+$budget_period_hashref->{budget_period_startdate} = $input->param('budget_period_startdate');
+$budget_period_hashref->{budget_period_enddate}   = $input->param('budget_period_enddate');
 
 $searchfield =~ s/\,//g;
 
@@ -83,7 +82,6 @@ my ($template, $borrowernumber, $cookie, $staff_flags ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { acquisition => 'period_manage' },
-        debug           => 1,
     }
 );
 
@@ -115,14 +113,35 @@ elsif ( $op eq 'add_validate' ) {
 ## add or modify a budget period (confirmation)
 
     ## update budget period data
-	if ( $budget_period_id ne '' ) {
-		$$budget_period_hashref{$_}||=0 for qw(budget_period_active budget_period_locked);
-		my $status=ModBudgetPeriod($budget_period_hashref);
-	} 
-	else {    # ELSE ITS AN ADD
-		my $budget_period_id=AddBudgetPeriod($budget_period_hashref);
-	}
-	$op='else';
+    if ( $budget_period_id ne '' ) {
+        # Grab the previous values so we can log them
+        my $budgetperiod_old=GetBudgetPeriod($budget_period_id);
+        $$budget_period_hashref{$_}||=0 for qw(budget_period_active budget_period_locked);
+        my $status=ModBudgetPeriod($budget_period_hashref);
+        # Log the budget modification
+        if (C4::Context->preference("AcquisitionLog")) {
+            my $diff = 0 - ($budgetperiod_old->{budget_period_total} - $budget_period_hashref->{budget_period_total});
+            my $infos = {
+                budget_period_startdate     => $input->param('budget_period_startdate'),
+                budget_period_enddate       => $input->param('budget_period_enddate'),
+                budget_period_total         => $budget_period_hashref->{budget_period_total},
+                budget_period_startdate_old => $budgetperiod_old->{budget_period_startdate},
+                budget_period_enddate_old   => $budgetperiod_old->{budget_period_enddate},
+                budget_period_total_old     => $budgetperiod_old->{budget_period_total},
+                budget_period_total_change  => $diff
+            };
+            logaction(
+                'ACQUISITIONS',
+                'MODIFY_BUDGET',
+                $budget_period_id,
+                encode_json($infos)
+            );
+        }
+    }
+    else {    # ELSE ITS AN ADD
+        my $budget_period_id=AddBudgetPeriod($budget_period_hashref);
+    }
+    $op='else';
 }
 
 #--------------------------------------------------
@@ -170,15 +189,15 @@ elsif ( $op eq 'duplicate_form'){
 elsif ( $op eq 'duplicate_budget' ){
     die "please specify a budget period id\n" if( !defined $budget_period_id || $budget_period_id eq '' );
 
-    my $budget_period_startdate = dt_from_string scalar $input->param('budget_period_startdate');
-    my $budget_period_enddate   = dt_from_string scalar $input->param('budget_period_enddate');
+    my $budget_period_startdate = $input->param('budget_period_startdate');
+    my $budget_period_enddate   = $input->param('budget_period_enddate');
     my $budget_period_description = $input->param('budget_period_description');
     my $amount_change_percentage = $input->param('amount_change_percentage');
     my $amount_change_round_increment = $input->param('amount_change_round_increment');
     my $mark_original_budget_as_inactive = $input->param('mark_original_budget_as_inactive');
     my $reset_all_budgets = $input->param('reset_all_budgets');
 
-    my $new_budget_period_id = C4::Budgets::CloneBudgetPeriod(
+    my $new_budget_period_id = CloneBudgetPeriod(
         {
             budget_period_id        => $budget_period_id,
             budget_period_startdate => $budget_period_startdate,
@@ -200,7 +219,7 @@ elsif ( $op eq 'close_form' ) {
     my $budget_period = GetBudgetPeriod($budget_period_id);
 
     my $active_budget_periods =
-      C4::Budgets::GetBudgetPeriods( { budget_period_active => 1 } );
+      GetBudgetPeriods( { budget_period_active => 1 } );
 
     # Remove the budget period from the list
     $active_budget_periods =
@@ -237,7 +256,7 @@ elsif ( $op eq 'close_form' ) {
 elsif ( $op eq 'close_confirmed' ) {
     my $to_budget_period_id    = $input->param('to_budget_period_id');
     my $move_remaining_unspent = $input->param('move_remaining_unspent');
-    my $report                 = C4::Budgets::MoveOrders(
+    my $report                 = MoveOrders(
         {
             from_budget_period_id  => $budget_period_id,
             to_budget_period_id    => $to_budget_period_id,

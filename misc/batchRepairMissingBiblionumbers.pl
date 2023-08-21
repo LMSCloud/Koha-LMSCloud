@@ -4,17 +4,12 @@
 #  Revised by Joshua Ferraro on 03/31/2006
 use strict;
 use warnings;
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/kohalib.pl" };
-}
 
 # Koha modules used
 use Koha::Script;
 use C4::Context;
-use C4::Biblio;
+use C4::Biblio qw( ModBiblioMarc );
+use Koha::Biblios;
 
 
 my $dbh = C4::Context->dbh;
@@ -23,7 +18,8 @@ my $sth=$dbh->prepare("SELECT biblio.biblionumber, biblioitemnumber, frameworkco
 $sth->execute();
 
 while (my ($biblionumber,$biblioitemnumber,$frameworkcode)=$sth->fetchrow ){
-    my $record = GetMarcBiblio({ biblionumber => $biblionumber });
+    my $biblio = Koha::Biblios->find($biblionumber);
+    my $record = $biblio->metadata->record;
     C4::Biblio::_koha_marc_update_bib_ids($record, $frameworkcode, $biblionumber, $biblioitemnumber);
     my $biblionumber = eval {ModBiblioMarc( $record, $biblionumber )};
     if($@){

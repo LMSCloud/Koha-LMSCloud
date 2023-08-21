@@ -22,17 +22,11 @@ use warnings;
 
 # Script to switch the MARC21 440$anv and 490$av information
 
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
-
 use Koha::Script;
-use C4::Biblio;
+use C4::Biblio qw( GetFrameworkCode ModBiblioMarc );
 use C4::Context;
-use Getopt::Long;
+use Koha::Biblios;
+use Getopt::Long qw( GetOptions );
 
 my $commit;
 my $add_links;
@@ -140,7 +134,8 @@ while ( my ( $biblionumber ) = $bibs_sth->fetchrow ) {
     my ( @newfields );
 
     # Get biblio marc
-    my $biblio = GetMarcBiblio({ biblionumber => $biblionumber });
+    my $biblio = Koha::Biblios->find($biblionumber);
+    $biblio  &&= $biblio->metadata->record;
 
     foreach my $field ( $biblio->field( '440' ) ) {
         my @newsubfields;

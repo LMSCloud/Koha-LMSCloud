@@ -20,20 +20,22 @@
 
 use Modern::Perl;
 
-use Date::Calc qw( Today );
+use Date::Calc;
 
 use Koha::Util::FrameworkPlugin qw(wrapper);
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 
 
 sub plugin_javascript {
-    my ( $dbh, $record, $tagslib, $field_number, $tabloop ) = @_;
+    my ( $dbh, $record, $tagslib, $field_number ) = @_;
     my $res           = "
         <script>
-            function Clic$field_number(i) {
+            function Clic$field_number(event) {
+                event.preventDefault();
+                const i = event.data.id;
                 var defaultvalue;
                 try {
                     defaultvalue = document.getElementById(i).value;
@@ -66,7 +68,6 @@ sub plugin {
             query         => $input,
             type          => "intranet",
             flagsrequired   => { editcatalogue => '*' },
-            debug           => 1,
         }
     );
     $result = "        d        u  y0".$defaultlanguage."y50      ba" unless $result;

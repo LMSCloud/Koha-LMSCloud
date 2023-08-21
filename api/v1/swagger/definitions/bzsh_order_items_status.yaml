@@ -1,0 +1,15 @@
+---
+type: object
+properties:
+  count_items:
+    type: integer
+    description: count of result items
+  order_items:
+    type: array
+    description: An array of order item object information.
+    items:
+      $ref: bzsh_order_item_status.yaml
+additionalProperties: false
+required:
+  - count_items
+  - order_items

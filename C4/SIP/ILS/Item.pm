@@ -14,20 +14,18 @@ use Carp;
 use Template;
 
 use C4::SIP::ILS::Transaction;
-use C4::SIP::Sip qw(add_field);
+use C4::SIP::Sip qw(add_field maybe_add);
 
 use C4::Biblio;
-use C4::Circulation;
+use C4::Circulation qw( barcodedecode );
 use C4::Context;
-use C4::Debug;
 use C4::Items;
 use C4::Members;
-use C4::Reserves;
 use Koha::Biblios;
 use Koha::Checkouts::ReturnClaims;
 use Koha::Checkouts;
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Holds;
 use Koha::Items;
 use Koha::Patrons;
@@ -88,7 +86,11 @@ sub new {
     $self->{_object}            = $item;
     $item->{itemnumber}         = $item->itemnumber;
     $self->{id}                 = $item->barcode; # to SIP, the barcode IS the id.
-    $self->{permanent_location} = $item->homebranch;
+    if (C4::Context->preference('UseLocationAsAQInSIP')) {
+        $self->{permanent_location} = $item->permanent_location;
+    } else {
+        $self->{permanent_location} = $item->homebranch;
+    }
     $self->{collection_code}    = $item->ccode;
     $self->{call_number}        = $item->itemcallnumber;
     $self->{location}                      = $item->location;
@@ -98,6 +100,7 @@ sub new {
     $self->{object} = $item;
 
     my $it = $item->effective_itemtype;
+    $self->{itemtype} = $it;
     my $itemtype = Koha::Database->new()->schema()->resultset('Itemtype')->find( $it );
     $self->{sip_media_type} = $itemtype->sip_media_type() if $itemtype;
     
@@ -157,6 +160,7 @@ my %fields = (
     location            => 0,
     author              => 0,
     title               => 0,
+    itemtype            => 0,
 );
 
 sub next_hold {
@@ -291,7 +295,7 @@ sub sip_circulation_status {
     elsif ( grep { $_->{itemnumber} == $self->{itemnumber}  } @{ $self->{hold_attached} } ) {
         return '08';    # waiting on hold shelf
     }
-    elsif ( $self->{location} eq 'CART' ) {
+    elsif ( $self->{location} and $self->{location} eq 'CART' ) {
         return '09';    # waiting to be re-shelved
     }
     elsif ( $self->{damaged} ) {
@@ -410,7 +414,6 @@ sub available {
 	my ($self, $for_patron) = @_;
 	my $count  = (defined $self->{pending_queue}) ? scalar @{$self->{pending_queue}} : 0;
     my $count2 = (defined $self->{hold_attached}   ) ? scalar @{$self->{hold_attached}   } : 0;
-    $debug and print STDERR "availability check: pending_queue size $count, hold_attached size $count2\n";
     if (defined($self->{borrowernumber})) {
         ($self->{borrowernumber} eq $for_patron) or return 0;
 		return ($count ? 0 : 1);
@@ -434,14 +437,6 @@ sub barcode_is_borrowernumber {    # because hold_queue only has borrowernumber.
     my $converted = _barcode_to_borrowernumber($barcode);
     return unless $converted;
     return ($number == $converted);
-}
-sub fill_reserve {
-    my $self = shift;
-    my $hold = shift or return;
-    foreach (qw(biblionumber borrowernumber reservedate)) {
-        $hold->{$_} or return;
-    }
-    return ModReserveFill($hold);
 }
 
 =head2 build_additional_item_fields_string
@@ -469,7 +464,67 @@ sub build_additional_item_fields_string {
         }
     }
 
+    if ( $server->{account}->{custom_item_field} ) {
+        my @custom_fields =
+            ref $server->{account}->{custom_item_field} eq "ARRAY"
+            ? @{ $server->{account}->{custom_item_field} }
+            : $server->{account}->{custom_item_field};
+
+        foreach my $custom_field ( @custom_fields ) {
+            my $field = $custom_field->{field};
+            return q{} unless defined $field;
+            my $template = $custom_field->{template};
+            my $formatted = $self->format( $template );
+            my $substring = maybe_add( $field, $formatted, $server );
+            $string .= $substring;
+        }
+    }
+
     return $string;
+}
+
+=head2 build_custom_field_string
+
+This method builds the part of the sip message for custom item fields as defined in the sip config
+
+=cut
+
+sub build_custom_field_string {
+    my ( $self, $server ) = @_;
+
+    my $string = q{};
+
+
+    return $string;
+}
+
+=head2 format
+
+This method uses a template to build a string from a Koha::Item object
+If errors are encountered in processing template we log them and return nothing
+
+=cut
+
+sub format {
+    my ( $self, $template ) = @_;
+
+    if ($template) {
+        require Template;
+
+        my $tt = Template->new();
+
+        my $item = $self->{_object};
+
+        my $output;
+        eval {
+            $tt->process( \$template, { item => $item }, \$output );
+        };
+        if ( $@ ){
+            siplog("LOG_DEBUG", "Error processing template: $template");
+            return "";
+        }
+        return $output;
+    }
 }
 
 1;

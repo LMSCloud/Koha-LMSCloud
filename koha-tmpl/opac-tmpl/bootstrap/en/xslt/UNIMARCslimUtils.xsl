@@ -189,34 +189,169 @@
     </xsl:if>
   </xsl:template>
 
+  <xsl:template name="tag_210-214">
+    <xsl:choose>
+      <xsl:when test="marc:datafield[@tag=210] and marc:datafield[@tag=214]">
+        <xsl:call-template name="tag_214" />
+      </xsl:when>
+      <xsl:when test="marc:datafield[@tag=214]">
+        <xsl:call-template name="tag_214" />
+      </xsl:when>
+      <xsl:when test="marc:datafield[@tag=210]">
+        <xsl:call-template name="tag_210" />
+      </xsl:when>
+    </xsl:choose>
+  </xsl:template>
+
   <xsl:template name="tag_210">
     <span class="results_summary publication">
       <span class="label">Publication: </span>
       <xsl:for-each select="marc:datafield[@tag=210]">
+        <xsl:if test="not(position() = 1)">
+          <br/>
+        </xsl:if>
+        <span class="value">
+          <xsl:call-template name="addClassRtl" />
+          <xsl:for-each select="marc:subfield[@code='a' or @code='b' or @code='c' or @code='d' or @code='g']">
+            <xsl:choose>
+              <xsl:when test="@code='a'">
+                <xsl:value-of select="."/>
+                <xsl:if test="position() != last()">
+                  <xsl:text> : </xsl:text>
+                </xsl:if>
+              </xsl:when>
+              <xsl:when test="@code='b'">
+                <xsl:value-of select="."/>
+                <xsl:if test="position() != last()">
+                  <xsl:text>, </xsl:text>
+                </xsl:if>
+              </xsl:when>
+              <xsl:when test="@code='c' or @code='g'">
+                <a>
+                  <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=pb:<xsl:value-of select="str:encode-uri(., true())"/></xsl:attribute>
+                  <xsl:attribute name="title">Search for publisher</xsl:attribute>
+                  <xsl:value-of select="."/>
+                </a>
+                <xsl:if test="position() != last()">
+                  <xsl:text>, </xsl:text>
+                </xsl:if>
+              </xsl:when>
+              <xsl:when test="@code='d'">
+                <xsl:value-of select="."/>
+                <xsl:if test="position() != last()">
+                  <xsl:text>, </xsl:text>
+                </xsl:if>
+              </xsl:when>
+            </xsl:choose>
+          </xsl:for-each>
+        </span>
+      </xsl:for-each>
+    </span>
+  </xsl:template>
+
+  <xsl:template name="tag_214">
+    <xsl:for-each select="marc:datafield[@tag=214]">
+      <xsl:sort select="@ind2" data-type="number" />
+      <span class="results_summary publication">
+        <span class="label">
+          <xsl:choose>
+            <xsl:when test="@ind2=1">Production: </xsl:when>
+            <xsl:when test="@ind2=2">Distribution: </xsl:when>
+            <xsl:when test="@ind2=3">Manufacture: </xsl:when>
+            <xsl:when test="@ind2=4">
+              <xsl:choose>
+                <xsl:when test="substring(marc:subfield[@code='d'],1,1)='C'">Copyright date: </xsl:when>
+                <xsl:when test="substring(marc:subfield[@code='d'],1,1)='P'">Protection date: </xsl:when>
+                <xsl:otherwise>Copyright date / protection date: </xsl:otherwise>
+              </xsl:choose>
+            </xsl:when>
+            <xsl:otherwise>Publication: </xsl:otherwise>
+          </xsl:choose>
+        </span>
         <span>
           <xsl:call-template name="addClassRtl" />
           <xsl:for-each select="marc:subfield">
             <xsl:choose>
-              <xsl:when test="@code='c' or @code='g'">
-                <xsl:if test="position()>1">
+              <xsl:when test="@code='a'">
+                <xsl:value-of select="."/>
+                <xsl:if test="position() != last()">
                   <xsl:text> : </xsl:text>
                 </xsl:if>
-                <xsl:value-of select="."/>
               </xsl:when>
-              <xsl:otherwise>
-                <xsl:if test="position()>1">
+              <xsl:when test="@code='b'">
+                <xsl:value-of select="."/>
+                <xsl:if test="position() != last()">
                   <xsl:text>, </xsl:text>
                 </xsl:if>
-                <xsl:value-of select="."/>
-              </xsl:otherwise>
+              </xsl:when>
+              <xsl:when test="@code='c'">
+                <a>
+                  <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=pb:<xsl:value-of select="str:encode-uri(., true())"/></xsl:attribute>
+                  <xsl:attribute name="title">Search for publisher</xsl:attribute>
+                  <xsl:value-of select="."/>
+                </a>
+              </xsl:when>
+              <xsl:when test="@code='d'">
+                <xsl:if test="not(position()=1)">
+                  <xsl:text>, </xsl:text>
+                </xsl:if>
+                <xsl:choose>
+                  <xsl:when test="substring(.,1,1)='C'">
+                    <xsl:value-of select="substring(.,2)"/>
+                  </xsl:when>
+                  <xsl:when test="substring(.,1,1)='P'">
+                    <xsl:value-of select="substring(.,2)"/>
+                  </xsl:when>
+                  <xsl:otherwise>
+                    <xsl:value-of select="."/>
+                  </xsl:otherwise>
+                </xsl:choose>
+              </xsl:when>
             </xsl:choose>
           </xsl:for-each>
-          <xsl:if test="not (position() = last())">
-            <xsl:text> • </xsl:text>
-          </xsl:if>
         </span>
-      </xsl:for-each>
-    </span>
+      </span>
+    </xsl:for-each>
+    <xsl:call-template name="tag_214_r" />
+    <xsl:call-template name="tag_214_s" />
+  </xsl:template>
+
+  <xsl:template name="tag_214_s">
+    <xsl:if test="marc:datafield[@tag=214]/marc:subfield[@code='s']">
+      <span class="results_summary tag_214_s">
+        <span class="label">Printing and/or Publishing Information Transcribed as Found in the Colophon: </span>
+        <xsl:for-each select="marc:datafield[@tag=214]/marc:subfield[@code='s']">
+          <xsl:value-of select="."/>
+          <xsl:choose>
+            <xsl:when test="position()=last()">
+              <xsl:text>.</xsl:text>
+            </xsl:when>
+            <xsl:otherwise>
+              <xsl:text>, </xsl:text>
+            </xsl:otherwise>
+          </xsl:choose>
+        </xsl:for-each>
+      </span>
+    </xsl:if>
+  </xsl:template>
+
+  <xsl:template name="tag_214_r">
+    <xsl:if test="marc:datafield[@tag=214]/marc:subfield[@code='r']">
+      <span class="results_summary tag_214_r">
+        <span class="label">Printing and/or Publishing Information Transcribed as Found in the Main Source of Information: </span>
+        <xsl:for-each select="marc:datafield[@tag=214]/marc:subfield[@code='r']">
+          <xsl:value-of select="."/>
+          <xsl:choose>
+            <xsl:when test="position()=last()">
+              <xsl:text>.</xsl:text>
+            </xsl:when>
+            <xsl:otherwise>
+              <xsl:text>, </xsl:text>
+            </xsl:otherwise>
+          </xsl:choose>
+        </xsl:for-each>
+      </span>
+    </xsl:if>
   </xsl:template>
 
   <xsl:template name="tag_215">

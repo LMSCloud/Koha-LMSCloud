@@ -1,4 +1,5 @@
 [% USE raw %]
+[% USE KohaDates %]
 [% USE Asset %]
 [% USE KohaDates %]
 [% SET footerjs = 1 %]
@@ -35,7 +36,7 @@
     [% IF op == 'view' %]
         Details of job #[% job.id | html %] &rsaquo;
     [% END %]
-    Background jobs &rsaquo;
+    Jobs &rsaquo;
     Administration &rsaquo; Koha
 </title>
 
@@ -43,38 +44,35 @@
 </head>
 
 <body id="admin_background_jobs" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-
-    [% IF CAN_user_parameters_manage_background_jobs %]
-        <li>
-            <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
-        [% IF op == 'view' %]
-            <li>
-                <a href="/cgi-bin/koha/admin/background_jobs.pl">Background jobs</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">Details of job #[% job.id | html %]</a>
-            </li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% IF CAN_user_parameters_manage_background_jobs %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
+            [% END %]
+            [% IF op == 'view' %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/admin/background_jobs.pl">Jobs</a>
+                [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Details of job #[% job.id | html %]</span>
+                [% END %]
+            [% ELSE %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Jobs</span>
+                [% END %]
+            [% END %]
         [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">Background jobs</a>
-            </li>
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Administration</span>
+            [% END %]
         [% END %]
-    [% ELSE %]
-        <li>
-            <a href="#" aria-current="page">Administration</a>
-        </li>
-    [% END %]
-    </ol>
-</nav>
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -95,118 +93,44 @@
 [% IF op == 'view' %]
     <h1>Details of job #[% job.id | html %]</h1>
 
-    <fieldset class="rows">
-        <ol>
-            <li><span class="label">Job ID: </span>[% job.id | html %]</li>
-            <li>
-                <label for="job_status">Status: </label>
-                [% PROCESS show_job_status %]
-            </li>
-            <li><label for="job_progress">Progress: </label>[% job.progress || 0 | html %] / [% job.size | html %]</li>
-            <li>
-                <label for="job_type">Type: </label>
-                [% PROCESS show_job_type %]
-            </li>
-            <li>
-                <label for="job_enqueued_on">Queued: </label>
-                [% job.enqueued_on | $KohaDates with_hours = 1 %]
-            </li>
-            <li>
-                <label for="job_started_on">Started: </label>
-                [% job.started_on | $KohaDates with_hours = 1 %]
-            </li>
-            <li>
-                <label for="job_ended_on">Ended: </label>
-                [% job.ended_on | $KohaDates with_hours = 1 %]
-            </li>
-            <li><label for="job_data">Report: </label>
-                [% SWITCH job.type %]
-                [% CASE 'batch_biblio_record_modification' %]
-                    [% SET report = job.report %]
-                    [% IF report %]
-                        [% IF report.total_records == report.total_success %]
-                            <div class="dialog message">
-                                All records have successfully been modified! <a href="/cgi-bin/koha/tools/batch_record_modification.pl" title="New batch record modification">New batch record modification</a>
-                                [% IF lists.count %]
-                                    <br />
-                                    Add modified records to the following list:
-                                    <select name="add_bibs_to_list" id="add_bibs_to_list">
-                                        <option value="">Select a list</option>
-                                        [% FOREACH list IN lists %]
-                                            <option class="shelf" value="[% list.shelfnumber | html %]">[% list.shelfname | html %]</option>
-                                        [% END %]
-                                    </select>
-                                [% END %]
-                            </div>
-                        [% ELSE %]
-                            <div class="dialog message">
-                                [% report.total_success | html %] / [% report.total_records | html %] records have successfully been modified. Some errors occurred.
-                                [% IF job.status == 'cancelled' %]The job has been cancelled before it finished.[% END %]
-                                <a href="/cgi-bin/koha/tools/batch_record_modification.pl" title="New batch record modification">New batch record modification</a>
-                            </div>
-                        [% END %]
-                    [% END %]
-                [% CASE 'batch_authority_record_modification' %]
-                    [% SET report = job.report %]
-                    [% IF report %]
-                        [% IF report.total_records == report.total_success %]
-                            <div class="dialog message">
-                                All records have successfully been modified! <a href="/cgi-bin/koha/tools/batch_record_modification.pl" title="New batch record modification">New batch record modification</a>
-                            </div>
-                        [% ELSE %]
-                            <div class="dialog message">
-                                [% report.total_success | html %] / [% report.total_records | html %] records have successfully been modified. Some errors occurred.
-                                [% IF job.status == 'cancelled' %]The job has been cancelled before it finished.[% END %]
-                                <a href="/cgi-bin/koha/tools/batch_record_modification.pl" title="New batch record modification">New batch record modification</a>
-                            </div>
-                        [% END %]
-                    [% END %]
-                [% CASE %]Job type "[% job.type | html %]" not handled in the template
-                [% END %]
-            </li>
-            <li><label for="job_data">Detailed messages: </label>
-                [% SWITCH job.type %]
-                [% CASE 'batch_biblio_record_modification' %]
-                    [% FOR m IN job.messages %]
-                        <div class="dialog message">
-                            [% IF m.type == 'success' %]
-                                <i class="fa fa-check success"></i>
-                            [% ELSIF m.type == 'warning' %]
-                                <i class="fa fa-warning warn"></i>
-                            [% ELSIF m.type == 'error' %]
-                                <i class="fa fa-exclamation error"></i>
-                            [% END %]
-                            [% SWITCH m.code %]
-                            [% CASE 'biblio_not_modified' %]
-                                Bibliographic record <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% m.biblionumber | uri %]">[% m.biblionumber | html %]</a> has not been modified. An error occurred on modifying it.[% IF m.error %] ([% m.error | html %])[% END %].
-                            [% CASE 'biblio_modified' %]
-                                Bibliographic record <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% m.biblionumber | uri %]">[% m.biblionumber | html %]</a> has successfully been modified.
-                            [% END %]
-                        </div>
-                    [% END %]
-                [% CASE 'batch_authority_record_modification' %]
-                    [% FOR m IN job.messages %]
-                        <div class="dialog message">
-                            [% IF m.type == 'success' %]
-                                <i class="fa fa-check success"></i>
-                            [% ELSIF m.type == 'warning' %]
-                                <i class="fa fa-warning warn"></i>
-                            [% ELSIF m.type == 'error' %]
-                                <i class="fa fa-exclamation error"></i>
-                            [% END %]
-                            [% SWITCH m.code %]
-                            [% CASE 'authority_not_modified' %]
-                                Authority record <a href="/cgi-bin/koha/authorities/detail.pl?authid=[% m.authid | uri %]">[% m.authid | html %]</a> has not been modified. An error occurred on modifying it[% IF m.error %] ([% m.error | html %])[% END %].
-                            [% CASE 'authority_modified' %]
-                                Authority record <a href="/cgi-bin/koha/authorities/detail.pl?authid=[% m.authid | uri %]">[% m.authid | html %]</a> has successfully been modified.
-                            [% END %]
-                        </div>
-                    [% END %]
-                [% CASE %]Job type "[% job.type | html %]" not handled in the template
-                [% END %]
-            </li>
-        </ol>
-    </fieldset>
+    [% PROCESS "background_jobs/${job.type}.inc" %]
+
+    <div id="job_details" style="display:none">
+        <fieldset class="rows">
+            <ol>
+                <li><span class="label">Job ID: </span>[% job.id | html %]</li>
+                <li>
+                    <label for="job_status">Status: </label>
+                    <span id="job_status_description"></span>
+                </li>
+                <li><label for="job_progress">Progress: </label>[% job.progress || 0 | html %] / [% job.size | html %]</li>
+                <li>
+                    <label for="job_type">Type: </label>
+                    <span id="job_type_description"></span>
+                </li>
+                <li>
+                    <label for="job_enqueued_on">Queued: </label>
+                    [% job.enqueued_on | $KohaDates with_hours = 1 %]
+                </li>
+                <li>
+                    <label for="job_started_on">Started: </label>
+                    [% job.started_on | $KohaDates with_hours = 1 %]
+                </li>
+                <li>
+                    <label for="job_ended_on">Ended: </label>
+                    [% job.ended_on | $KohaDates with_hours = 1 %]
+                </li>
+            </ol>
+        </fieldset>
+        <div class="page-section">
+            <h2>Report</h2>
+            [% IF job.status != 'new' %][% PROCESS 'report' %][% END %]
+        </div>
+        <div class="page-section">
+            <h2>Detailed messages</h2>
+            [% IF job.status != 'new' %][% PROCESS 'detail' %][% END %]
+        </div>
+    </div> <!-- /#job_details -->
 
     [% IF CAN_user_parameters_manage_background_jobs %]
         <fieldset class="action">
@@ -217,55 +141,34 @@
 
 [% IF op == 'list' %]
 
-    <h2>Background jobs</h2>
+    <h1>Jobs</h1>
 
-    [% IF jobs.count %]
-        <table id="table_background_jobs">
+    <div>
+        <input type="checkbox" id="only_current" checked />
+        <label for="only_current">Current jobs only</label>
+    </div>
+
+    <div>
+        <input type="checkbox" id="include_last_hour" checked />
+        <label for="include_last_hour">Only include jobs enqueued in the last hour</label>
+    </div>
+
+    <div class="page-section">
+        <table id="table_jobs">
             <thead>
                 <tr>
                     <th>Job ID</th>
-                    <th>Status</th>
+                    <th data-filter="job_statuses">Status</th>
                     <th>Progress</th>
-                    <th>Type</th>
+                    <th data-filter="job_types">Type</th>
                     <th>Queued</th>
                     <th>Started</th>
                     <th>Ended</th>
                     <th class="noExport">Actions</th>
                 </tr>
             </thead>
-            <tbody>
-                [% FOREACH job IN jobs %]
-                <tr>
-                    <td>[% job.id | html %]</td>
-                    <td>
-                        [% PROCESS show_job_status %]
-                    </td>
-                    <td>[% job.progress || 0 | html %] / [% job.size | html %]</td>
-                    <td>
-                        [% SWITCH job.type %]
-                        [% CASE 'batch_biblio_record_modification' %]Batch bibliographic record modification
-                        [% CASE 'batch_authority_record_modification' %]Batch authority record modification
-                        [% CASE %][% job.type | html %]
-                        [% END %]
-                    </td>
-                    <td>[% job.enqueued_on | $KohaDates with_hours = 1 %]</td>
-                    <td>[% job.started_on| $KohaDates with_hours = 1 %]</td>
-                    <td>[% job.ended_on| $KohaDates with_hours = 1 %]</td>
-                    <td class="actions">
-                        <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/background_jobs.pl?op=view&amp;id=[% job.id | html %]"><i class="fa fa-eye"></i> View</a>
-                        [% IF job.status == 'new' || job.status == 'started' %]
-                            <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/background_jobs.pl?op=cancel&amp;id=[% job.id | html %]"><i class="fa fa-trash"></i> Cancel</a>
-                        [% END %]
-                    </td>
-                </tr>
-                [% END %]
-            </tbody>
         </table>
-    [% ELSE %]
-        <div class="dialog message">
-            There are no background jobs yet.
-        </div>
-    [% END %]
+    </div>
 [% END %]
 
             </main>
@@ -280,34 +183,202 @@
 
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/admin-menu.js") | $raw %]
+    [% INCLUDE 'js-date-format.inc' %]
     [% INCLUDE 'datatables.inc' %]
     <script>
-        $(document).ready(function() {
-            $("#table_background_jobs").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "aTargets": [ -1, -2 ], "bSortable": false, "bSearchable": false },
-                ],
-                "aaSorting": [[ 0, "desc" ]],
-                "iDisplayLength": 10,
-                "sPaginationType": "full_numbers"
-            }));
+        const job_statuses = [
+            {'_id': 'new',       '_str': _("New")},
+            {'_id': 'cancelled', '_str': _("Cancelled")},
+            {'_id': 'finished',  '_str': _("Finished")},
+            {'_id': 'started',   '_str': _("Started")},
+            {'_id': 'running',   '_str': _("Running")},
+            {'_id': 'failed',    '_str': _("Failed")},
+        ];
+        function get_job_status (status) {
+            let status_lib = job_statuses.find( s => s._id == status );
+            if (status_lib) {
+                return status_lib._str;
+            }
+            return status;
+        }
 
-            $("#add_bibs_to_list").change(function(){
-                var selected = $("#add_bibs_to_list").find("option:selected");
-                if ( selected.attr("class") == "shelf" ){
-                    var shelfnumber = selected.attr("value");
-                    var bibs = new Array();
-                    [% FOREACH message IN job.messages %]
-                        [% IF message.code == 'biblio_modified' %]
-                            bibs.push("biblionumber="+[% message.biblionumber | html %]);
-                        [% END %]
-                    [% END %]
-                    var bibstring = bibs.join("&");
-                    window.open('/cgi-bin/koha/virtualshelves/addbybiblionumber.pl?shelfnumber='+shelfnumber+'&confirm=1&'+bibstring, 'popup', 'width=500,height=500,toolbar=false,scrollbars=yes,resizable=yes');
-                    return false;
+        const job_types = [
+            {
+                '_id': 'batch_biblio_record_modification',
+                '_str': _("Batch bibliographic record modification")
+            },
+            {
+                '_id': 'batch_biblio_record_deletion',
+                '_str': _("Batch bibliographic record deletion")
+            },
+            {
+                '_id': 'batch_authority_record_modification',
+                '_str': _("Batch authority record modification")
+            },
+            {
+                '_id': 'batch_authority_record_deletion',
+                '_str': _("Batch authority record deletion")
+            },
+            {
+                '_id': 'batch_item_record_modification',
+                '_str': _("Batch item record modification")
+            },
+            {
+                '_id': 'batch_item_record_deletion',
+                '_str': _("Batch item record deletion")
+            },
+            {
+                '_id': 'batch_hold_cancel',
+                '_str': _("Batch hold cancellation")
+            },
+            {
+                '_id': 'create_eholdings_from_biblios',
+                '_str': _("Create eHolding titles")
+            },
+            {
+                '_id': 'update_elastic_index',
+                '_str': _("Update Elasticsearch index")
+            },
+            {
+                '_id': 'update_holds_queue_for_biblios',
+                '_str': _("Holds queue update")
+            },
+            {
+                '_id': 'stage_marc_for_import',
+                '_str': _("Staged MARC records for import")
+            },
+            {
+                '_id': 'marc_import_commit_batch',
+                '_str': _("Import MARC records")
+            },
+            {
+                '_id': 'marc_import_revert_batch',
+                '_str': _("Revert import MARC records")
+            },
+        ];
+
+        function get_job_type (job_type) {
+            let job_type_lib = job_types.find( t => t._id == job_type );
+            if ( job_type_lib ) {
+                return job_type_lib._str;
+            }
+            return _("Unknown job type '%s'").format(job_type);
+        }
+
+        $(document).ready(function() {
+            [% IF op == 'view' %]
+                $("#job_status_description").html( get_job_status("[% job.status | html %]") );
+                $("#job_type_description").html( get_job_type("[% job.type | html %]") );
+                $("#job_details").show();
+            [% END %]
+
+            let additional_filters = {
+                enqueued_on: function(){
+                    let now = new Date();
+                    if ( $("#include_last_hour").is(":checked") ) {
+                        now.setHours(now.getHours() - 1);
+                        return { ">": now.toISOString() };
+                    } else {
+                        return { "<": now.toISOString() };
+                    }
                 }
+            };
+
+            let only_current_filter = function(){
+                if ( $("#only_current").is(":checked") ) {
+                    return 'only_current=1';
+                } else {
+                    return 'only_current=0';
+                }
+            }
+
+            let jobs_table = $("#table_jobs").kohaTable({
+                "ajax": {
+                    "url": "/api/v1/jobs?" + only_current_filter()
+                },
+                "order": [[ 1, "desc" ]],
+                "columns": [
+                    {
+                        "data": "job_id",
+                        "searchable": true,
+                        "orderable": true
+                    },
+                    {
+                        "data": "status",
+                        "searchable": true,
+                        "orderable": true,
+                        "render": function(data, type, row, meta) {
+                            return get_job_status(row.status).escapeHtml();
+                        }
+                    },
+                    {
+                        "data": "progress,size",
+                        "searchable": false,
+                        "orderable": true,
+                        "render": function(data, type, row, meta) {
+                            return "%s/%s".format(row.progress, row.size).escapeHtml();
+                        }
+                    },
+                    {
+                        "data": "type",
+                        "searchable": true,
+                        "orderable": true,
+                        "render": function(data, type, row, meta) {
+                            return get_job_type(row.type).escapeHtml();
+                        }
+                    },
+                    {
+                        "data": "enqueued_date",
+                        "searchable": true,
+                        "orderable": true,
+                        "render": function(data, type, row, meta) {
+                            return $datetime(row.enqueued_date);
+                        }
+                    },
+                    {
+                        "data": "started_date",
+                        "searchable": true,
+                        "orderable": true,
+                        "render": function(data, type, row, meta) {
+                            return $datetime(row.started_date);
+                        }
+                    },
+                    {
+                        "data": "ended_date",
+                        "searchable": true,
+                        "orderable": true,
+                        "render": function(data, type, row, meta) {
+                            return $datetime(row.ended_date);
+                        }
+                    },
+                    {
+                        "data": function( row, type, val, meta ) {
+                            var result = '<a class="btn btn-default btn-xs" role="button" href="/cgi-bin/koha/admin/background_jobs.pl?op=view&amp;id='+ encodeURIComponent(row.job_id) +'"><i class="fa fa-eye" aria-hidden="true"></i> '+_("View")+'</a>'+"\n";
+                            if ( row.status == 'new' || row.status == 'started' ) {
+                                result += '<a class="btn btn-default btn-xs" role="button" href="/cgi-bin/koha/admin/background_jobs.pl?op=cancel&amp;id='+ encodeURIComponent(row.job_id) +'"><i class="fa fa-trash" aria-hidden="true"></i> '+_("Cancel")+'</a>';
+                            }
+                            return result;
+                        },
+                        "searchable": false,
+                        "orderable": false
+                    }
+                ]
+            }, null, 1, additional_filters);
+
+            $("#include_last_hour").on("change", function(){
+                jobs_table.DataTable().draw();
+                return false;
+            });
+
+            $("#only_current").on("change", function(){
+                jobs_table.DataTable().ajax.url("/api/v1/jobs?" + only_current_filter()).load();
+                return false;
             });
         });
     </script>
+    [% IF op == 'view' %]
+        [% PROCESS 'js' %]
+    [% END %]
 [% END %]
+
 [% INCLUDE 'intranet-bottom.inc' %]

@@ -43,9 +43,25 @@ Patron associated with request
 =head2 biblio_id
 
   data_type: 'integer'
+  is_foreign_key: 1
   is_nullable: 1
 
 Potential bib linked to request
+
+=head2 deleted_biblio_id
+
+  data_type: 'integer'
+  is_nullable: 1
+
+Deleted bib linked to request
+
+=head2 due_date
+
+  data_type: 'datetime'
+  datetime_undef_if_invalid: 1
+  is_nullable: 1
+
+Custom date due specified by backend, leave NULL for default date_due calculation
 
 =head2 branchcode
 
@@ -179,7 +195,15 @@ __PACKAGE__->add_columns(
   "borrowernumber",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "biblio_id",
+  { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
+  "deleted_biblio_id",
   { data_type => "integer", is_nullable => 1 },
+  "due_date",
+  {
+    data_type => "datetime",
+    datetime_undef_if_invalid => 1,
+    is_nullable => 1,
+  },
   "branchcode",
   { data_type => "varchar", is_foreign_key => 1, is_nullable => 0, size => 50 },
   "status",
@@ -230,6 +254,26 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("illrequest_id");
 
 =head1 RELATIONS
+
+=head2 biblio
+
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::Biblio>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "biblio",
+  "Koha::Schema::Result::Biblio",
+  { biblionumber => "biblio_id" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "SET NULL",
+    on_update     => "CASCADE",
+  },
+);
 
 =head2 borrowernumber
 
@@ -317,9 +361,40 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ek47WcMZpSBpxUajJuEN+Q
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-06-05 16:11:04
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:6b58Mo/KzvheZCurYvKu7A
 
+__PACKAGE__->has_many(
+  "comments",
+  "Koha::Schema::Result::Illcomment",
+  { "foreign.illrequest_id" => "self.illrequest_id" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
 
-# You can replace this text with custom code or comments, and it will be preserved on regeneration
+__PACKAGE__->has_many(
+  "extended_attributes",
+  "Koha::Schema::Result::Illrequestattribute",
+  { "foreign.illrequest_id" => "self.illrequest_id" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+__PACKAGE__->belongs_to(
+  "library",
+  "Koha::Schema::Result::Branch",
+  { branchcode => "branchcode" },
+  { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
+);
+
+__PACKAGE__->belongs_to(
+  "patron",
+  "Koha::Schema::Result::Borrower",
+  { borrowernumber => "borrowernumber" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "CASCADE",
+    on_update     => "CASCADE",
+  },
+);
+
 1;

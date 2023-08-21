@@ -3,6 +3,9 @@
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Branches %]
+[% USE AdditionalContents %]
+[% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Your interlibrary loan requests &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
@@ -18,8 +21,8 @@
 [% END %]
 [% INCLUDE 'masthead.inc' %]
 <div class="main">
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
+    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
+        <ol class="breadcrumb">
             <li class="breadcrumb-item">
                 <a href="/cgi-bin/koha/opac-main.pl">Home</a>
             </li>
@@ -30,25 +33,25 @@
             [% END %]
 
             [% IF method != 'list' %]
-                <li class="breadcrumb-item" aria-current="page">
+                <li class="breadcrumb-item active">
                     <a href="/cgi-bin/koha/opac-illrequests.pl">Interlibrary loan requests</a>
                 </li>
                 [% IF method == 'create' %]
-                    <li class="breadcrumb-item" aria-current="page">
-                        New interlibrary loan request
+                    <li class="breadcrumb-item active">
+                        <a href="#" aria-current="page">New interlibrary loan request</a>
                     </li>
                 [% ELSIF method == 'view' %]
-                    <li class="breadcrumb-item" aria-current="page">
-                        View interlibrary loan request
+                    <li class="breadcrumb-item active">
+                        <a href="#" aria-current="page">View interlibrary loan request</a>
                     </li>
                 [% END %]
             [% ELSE %]
-                <li class="breadcrumb-item" aria-current="page">
-                    Interlibrary loan requests
+                <li class="breadcrumb-item active">
+                    <a href="#" aria-current="page">Interlibrary loan requests</a>
                 </li>
             [% END %]
-        </ul> <!-- / .breadcrumb -->
-    </nav>
+        </ol> <!-- / .breadcrumb -->
+    </nav> <!-- /#breadcrumbs -->
 
     <div class="container-fluid">
         <div class="row">
@@ -225,12 +228,12 @@
                                         </li>
                                     </ol>
                                 </fieldset>
-                                <div class="rows">
-                                    <legend id="backend_legend">Details ([% request.backend | html %])</legend>
+                                <div id="ill-supplier-metadata" class="rows">
+                                    <legend id="backend_legend">Details from [% request.backend | html %]</legend>
                                     [% FOREACH meta IN request.metadata %]
-                                        <div class="requestattr-[% meta.key | html %]">
-                                            <span class="label" id="labelForMetaData[% meta.key %]">[% meta.key | html %]:</span>
-                                            [% IF meta.value %][% meta.value | html %][% ELSE %]<span>N/A</span>[% END %]
+                                        <div class="requestattr-[% meta.key | replace(' ', '_') | html %]">
+                                            <span class="label">[% meta.key | html %]:</span>
+                                            <span class="value">[% IF meta.value %][% meta.value | html %][% ELSE %]N/A[% END %]</span>
                                         </div>
                                     [% END %]
                                 </div>

@@ -10,24 +10,20 @@
 
 <body id="tools_problem-reports" class="tools">
 
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                OPAC problem reports
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>OPAC problem reports</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -60,14 +56,14 @@
                         <button type="submit" class="btn btn-default marknew" name="mark_selected-new" value="new" disabled="disabled"><i class="fa fa-star"></i> Mark new</button>
                     </div>
 
-                    <fieldset class="action" style="cursor:pointer;">
+                    <div class="btn-toolbar selections-toolbar">
                         <a class="SelectAll"><i class="fa fa-check"></i> Select all</a>
                         | <a class="ClearAll"><i class="fa fa-remove"></i> Clear all</a>
                         | <a class="HideViewed"><i class="fa fa-minus-square"></i> Hide viewed</a>
                         | <a class="HideClosed"><i class="fa fa-minus-square"></i> Hide closed</a>
                         | <a class="HideNew"><i class="fa fa-minus-square"></i> Hide new</a>
                         | <a class="ShowAll"><i class="fa fa-bars"></i> Show all</a>
-                    </fieldset>
+                    </div>
 
                     <table id="problemreportstable">
                         <thead>
@@ -93,8 +89,8 @@
                                     <td><a href="[% OPACBaseURL | url %][% report.problempage | url %]">[% OPACBaseURL | url %][% report.problempage | html %]</a></td>
                                     <td>
                                         [% SWITCH report.recipient %]
-                                        [% CASE 'admin' %]Koha administrator
-                                        [% CASE 'library' %]A librarian
+                                        [% CASE 'admin' %]<span>Koha administrator</span>
+                                        [% CASE 'library' %]<span>A librarian</span>
                                         [% END %]
                                     </td>
                                     <td data-order="[% report.created_on | html %]">[% report.created_on | $KohaDates with_hours => 1 %]</td>
@@ -102,10 +98,10 @@
                                     <td class="status[% report.status | html %]" name="status">
                                         <span id="status_[% report.reportid | html %]">
                                             [% SWITCH report.status %]
-                                            [% CASE 'New' %]New
-                                            [% CASE 'Closed' %]Closed
-                                            [% CASE 'Viewed' %]Viewed
-                                            [% CASE %]Unknown status ([% report.status | html %])
+                                            [% CASE 'New' %]<span>New</span>
+                                            [% CASE 'Closed' %]<span>Closed</span>
+                                            [% CASE 'Viewed' %]<span>Viewed</span>
+                                            [% CASE %]<span>Unknown status ([% report.status | html %])</span>
                                             [% END %]
                                         </span>
                                     </td>

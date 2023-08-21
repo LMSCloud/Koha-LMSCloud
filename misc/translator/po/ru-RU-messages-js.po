@@ -1,10 +1,10 @@
 # Compendium of ru.
 msgid ""
 msgstr ""
-"Project-Id-Version: Koha 21.05\n"
+"Project-Id-Version: Koha 22.11\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-04-17 19:49-0300\n"
-"PO-Revision-Date: 2021-10-29 04:53+0000\n"
+"POT-Creation-Date: 2023-06-15 16:42-0300\n"
+"PO-Revision-Date: 2023-05-23 10:09+0000\n"
 "Last-Translator: Igor A. Sychev <Igor.A.Sychev@mail.ru>\n"
 "Language-Team: Koha Translation Team\n"
 "Language: ru\n"
@@ -14,19 +14,37 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "X-Generator: Pootle 2.8\n"
-"X-Pootle-Path: /ru/21.05/ru-RU-messages-js.po\n"
+"X-Pootle-Path: /ru/22.11/ru-RU-messages-js.po\n"
 "X-Pootle-Revision: 1\n"
-"X-POOTLE-MTIME: 1635483227.237776\n"
+"X-POOTLE-MTIME: 1684836545.081613\n"
 
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:88
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:211
 msgid " (current) "
 msgstr " (текущий)"
+
+#: koha-tmpl/intranet-tmpl/prog/js/pages/tags-review.js:58
+msgid " Test"
+msgstr " Проверка"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:592
+#, javascript-format
+msgid " and %s of %s unseen renewals remaining"
+msgstr " и %s из %s нерассмотренных продлений осталось"
+
+#: koha-tmpl/intranet-tmpl/prog/js/letter.js:150
+msgid " characters"
+msgstr " символы"
 
 #: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:166
 #: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:169
 msgctxt "Bibliographic record"
 msgid " item(s) added to your cart"
 msgstr " экземпляр(ов) добавлено в корзину"
+
+#: koha-tmpl/intranet-tmpl/prog/js/resolve_claim_modal.js:8
+#, javascript-format
+msgid "%s (current status)"
+msgstr "%s (текущий статус)"
 
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:210
 #, javascript-format
@@ -98,15 +116,20 @@ msgstr ""
 "%s экземпляр(ов) присоединены к этой записи. Перед удалением этой записи вам "
 "необходимо удалить все экземпляры."
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:580
+#: koha-tmpl/intranet-tmpl/prog/js/members.js:171
+#, javascript-format
+msgid "%s month"
+msgstr "%s месяц(а)"
+
+#: koha-tmpl/intranet-tmpl/prog/js/members.js:171
+#, javascript-format
+msgid "%s months"
+msgstr "%s месяцев"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:590
 #, javascript-format
 msgid "%s of %s renewals remaining"
 msgstr "%s из %s продлений осталось"
-
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:582
-#, javascript-format
-msgid "%s of %s unseen renewals remaining"
-msgstr "%s из %s невидимых продлений осталось"
 
 #: koha-tmpl/intranet-tmpl/prog/js/catalog.js:37
 #, javascript-format
@@ -117,20 +140,35 @@ msgstr ""
 "%s заказов используют эту запись. Для удаления этой записи необходимы "
 "разрешения на управление заказами."
 
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackagesList.vue:49
+#, javascript-format
+msgid "%s packages found locally"
+msgstr "%s пакеты, найденные локально"
+
 #: koha-tmpl/intranet-tmpl/prog/js/catalog.js:48
-#, fuzzy, javascript-format
+#, javascript-format
 msgid ""
 "%s subscription(s) are attached to this record. You must delete all "
 "subscription before deleting this record."
 msgstr ""
-"%s экземпляр(ов) присоединены к этой записи. Перед удалением этой записи вам "
-"необходимо удалить все экземпляры."
+"%s подписка(и) присоединены к этой записи. Вы должны удалить всю подписку, "
+"прежде чем удалять эту запись."
+
+#: koha-tmpl/intranet-tmpl/prog/js/members.js:166
+#, javascript-format
+msgid "%s year"
+msgstr "%s год"
+
+#: koha-tmpl/intranet-tmpl/prog/js/members.js:166
+#, javascript-format
+msgid "%s years"
+msgstr "%s лет"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:18
 msgid "(filtered from _MAX_ total entries)"
 msgstr "(отфильтровано с _MAX_ записей всего)"
 
-#: koha-tmpl/intranet-tmpl/prog/js/cataloging.js:120
+#: koha-tmpl/intranet-tmpl/prog/js/cataloging.js:122
 msgid "(select to create)"
 msgstr "(выберите для создания)"
 
@@ -148,10 +186,29 @@ msgstr "Письмо по умолчанию с кодом '%s' уже суще�
 msgid "A letter with the code '%s' already exists for '%s'."
 msgstr "Письмо с кодом '%s' уже существует для '%s'."
 
+#: koha-tmpl/intranet-tmpl/prog/js/letter.js:47
+#, javascript-format
+msgid ""
+"A letter with the code '%s' already exists for '%s'. Overwrite this letter?"
+msgstr "Письмо с кодом '%s' уже существует для '%s'. Переписать это письмо?"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:266
+msgid "A license is used several times"
+msgstr "Лицензия используется несколько раз"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:470
+msgid "A package is used several times"
+msgstr "Комплект используется несколько раз"
+
 #: koha-tmpl/intranet-tmpl/prog/js/pages/tags-review.js:159
 #, javascript-format
 msgid "AJAX error (%s alert)"
 msgstr "AJAX ошибка (%s предупреждение)"
+
+#: koha-tmpl/intranet-tmpl/prog/js/xmlControlfield.js:215
+#, javascript-format
+msgid "AJAX error: receiving data from %s"
+msgstr "Ошибка AJAX: получение данных из %s"
 
 #: koha-tmpl/intranet-tmpl/prog/js/pages/tags-review.js:38
 #, javascript-format
@@ -163,11 +220,21 @@ msgstr "AJAX не удалось утвердить тег: %s"
 msgid "AJAX failed to reject tag: %s"
 msgstr "AJAX не удалось отклонить тег: %s"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1041
+#: koha-tmpl/intranet-tmpl/prog/js/patron-webcam.js:115
+msgid "Access to camera denied."
+msgstr "Доступ к камере запрещен."
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:358
+msgid "Access type"
+msgstr "Тип доступа"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/KohaTable.vue:84
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormImport.vue:104
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1014
 msgid "Actions"
 msgstr "Действия"
 
-#: koha-tmpl/intranet-tmpl/prog/js/table_filters.js:44
+#: koha-tmpl/intranet-tmpl/prog/js/table_filters.js:54
 msgid "Activate filters"
 msgstr "Включить фильтры"
 
@@ -187,11 +254,47 @@ msgstr "Добавить единицу"
 msgid "Add multiple items"
 msgstr "Добавить несколько экземпляров"
 
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackageAgreements.vue:49
+msgid "Add new agreement"
+msgstr "Добавить новое соглашение"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/Documents.vue:103
+msgid "Add new document"
+msgstr "Добавить новый документ"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementLicenses.vue:97
+msgid "Add new license"
+msgstr "Добавить новую лицензию"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementPeriods.vue:64
+msgid "Add new period"
+msgstr "Добавить новый период"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementRelationships.vue:83
+msgid "Add new related agreement"
+msgstr "Добавить новое соответствующее соглашение"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/UserRoles.vue:62
+msgid "Add new user"
+msgstr "Добавить нового пользователя"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackagesShow.vue:13
+msgid "Add package to holdings"
+msgstr "Добавить комплект в фонд"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOResourcesShow.vue:13
+msgid "Add title to holdings"
+msgstr "Добавить заглавие в фонд"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAddResources.vue:88
+msgid "Add to another package"
+msgstr "Добавить в другой пакет"
+
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:490
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:498
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:501
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:512
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:115
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:110
 #: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:421
 #: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:429
 #: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:437
@@ -199,27 +302,97 @@ msgstr "Добавить несколько экземпляров"
 msgid "Add to cart"
 msgstr "Добавить в корзину"
 
+#: koha-tmpl/intranet-tmpl/prog/js/members.js:162
+msgid "Age"
+msgstr "Возраст"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackageAgreements.vue:14
+#, javascript-format
+msgid "Agreement %s"
+msgstr "Соглашение %s"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsList.vue:196
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:410
+#, javascript-format
+msgid "Agreement %s deleted"
+msgstr "Соглашение %s удалено"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:385
+msgid "Agreement created"
+msgstr "Соглашение создано"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:377
+msgid "Agreement updated"
+msgstr "Соглашение обновлено"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:316
+#, javascript-format
+msgid "Agreement user %s is missing a user"
+msgstr "Соглашение пользователя %s is missing a user"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackageAgreements.vue:3
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/Main.vue:27
+msgid "Agreements"
+msgstr "Соглашения"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackageTitlesList.vue:27
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackagesList.vue:24
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlePackagesList.vue:27
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesList.vue:27
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:51
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:122
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:123
 msgid "All"
 msgstr "все"
 
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:280
+msgid "An agreement is used as relationship several times"
+msgstr "Соглашение несколько раз используется как отношение"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesFormAdd.vue:153
+msgid "An agreement is used several times"
+msgstr "Соглашение используется несколько раз"
+
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:214
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:220
+msgid "An error occurred on deleting this image"
+msgstr "Произошла ошибка при удалении этого изображения"
+
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:142
+msgid "An error occurred while uploading."
+msgstr "При загрузке произошла ошибка."
+
+#: koha-tmpl/intranet-tmpl/prog/js/patron-autocomplete.js:49
+msgid "An error occurred. Check the logs"
+msgstr "Произошла ошибка. Проверьте журнал"
+
+#: koha-tmpl/intranet-tmpl/prog/js/patron-webcam.js:121
+msgid "An unknown error occurred: "
+msgstr "Произошла неизвестная ошибка: "
+
 #: koha-tmpl/intranet-tmpl/prog/js/pages/tags-review.js:133
 msgid "Approve"
-msgstr "Утвердить"
+msgstr "Подтвердить"
 
 #: koha-tmpl/intranet-tmpl/prog/js/pages/tags-review.js:114
 #: koha-tmpl/intranet-tmpl/prog/js/pages/tags-review.js:117
 msgid "Approved"
 msgstr "Утверждено"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:116
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:143
 msgid "Apr"
 msgstr "Апрель"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:113
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:144
 msgid "April"
 msgstr "Апрель"
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:356
+msgid "Are you sure you want to cancel this hold?"
+msgstr "Хотите ли Вы на самом деле отменить это резервирование?"
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:320
+msgid "Are you sure you want to check out this item?"
+msgstr "Вы действительно хотите выдать этот экземпляр?"
 
 #: koha-tmpl/intranet-tmpl/prog/js/serials-toolbar.js:4
 msgid "Are you sure you want to close this subscription?"
@@ -240,25 +413,41 @@ msgstr "Вы действительно хотите удалить %s? %s чи�
 msgid "Are you sure you want to delete the %s attached items?"
 msgstr "Вы действительно хотите удалить %s выбранных экземпляров?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/audio_alerts.js:64
+#: koha-tmpl/intranet-tmpl/prog/js/audio_alerts.js:66
 msgid "Are you sure you want to delete the selected audio alerts?"
 msgstr "Вы действительно хотите удалить выбранные звуковые уведомления?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/item_search_fields.js:18
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:71
+msgid "Are you sure you want to delete this cover image?"
+msgstr "Вы действительно хотите удалить это изображение обложки?"
+
+#: koha-tmpl/intranet-tmpl/prog/js/item_search_fields.js:23
 msgid "Are you sure you want to delete this field?"
 msgstr "Вы действительно хотите удалить это поле?"
+
+#: koha-tmpl/intranet-tmpl/prog/js/members-menu.js:35
+msgid "Are you sure you want to delete this message? This cannot be undone."
+msgstr "Вы уверены, что хотите удалить это сообщение? Это нельзя отменить."
 
 #: koha-tmpl/intranet-tmpl/prog/js/catalog.js:50
 msgid "Are you sure you want to delete this record?"
 msgstr "Вы уверены, что хотите удалить эту запись?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1173
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1146
 msgid "Are you sure you want to delete this return claim?"
 msgstr "Вы действительно хотите удалить это претензию о возврате?"
+
+#: koha-tmpl/intranet-tmpl/prog/js/rotating-collections.js:8
+msgid "Are you sure you want to delete this rotating collection?"
+msgstr "Вы действительно хотите удалить перемещаемые собрания?"
 
 #: koha-tmpl/intranet-tmpl/prog/js/serials-toolbar.js:17
 msgid "Are you sure you want to delete this subscription?"
 msgstr "Действительно ли Вы хотите удалить эту подписку?"
+
+#: koha-tmpl/intranet-tmpl/prog/js/acq.js:389
+msgid "Are you sure you want to delete this vendor?"
+msgstr "Вы уверены, что хотите удалить этого поставщика?"
 
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:287
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:339
@@ -267,11 +456,55 @@ msgstr "Действительно ли Вы хотите удалить эту 
 msgid "Are you sure you want to empty your cart?"
 msgstr "Действительно ли Вы хотите очистить Вашу корзину?"
 
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:32
+msgid "Are you sure you want to expire this recall?"
+msgstr "Вы уверены, что хотите продлить срок действия этого отзыва?"
+
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:88
+msgid "Are you sure you want to mark this recall as overdue?"
+msgstr "Вы уверены, что хотите отметить этот отзыв как просроченный?"
+
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:358
 msgid "Are you sure you want to remove the selected items?"
 msgstr "Хотите ли Вы на самом деле удалить выбранные единицы?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/members-menu.js:144
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:154
+msgid "Are you sure you want to remove the selected recall(s)?"
+msgstr "Вы уверены, что хотите удалить выбранные отзыв(ы)?"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsList.vue:185
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:399
+msgid "Are you sure you want to remove this agreement?"
+msgstr "Вы уверены, что хотите удалить соглашение?"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesList.vue:105
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesShow.vue:206
+msgid "Are you sure you want to remove this license?"
+msgstr "Вы уверены, что хотите удалить лицензию?"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesList.vue:135
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesShow.vue:175
+msgid "Are you sure you want to remove this package?"
+msgstr "Вы уверены, что хотите удалить пакет?"
+
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:116
+msgid ""
+"Are you sure you want to remove this recall and return the item to it's home "
+"library?"
+msgstr ""
+"Вы уверены, что хотите удалить этот отзыв и вернуть экземпляр в домашнюю "
+"библиотеку?"
+
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:4
+msgid "Are you sure you want to remove this recall?"
+msgstr "Вы уверены, что хотите удалить этот отзыв?"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesList.vue:127
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:336
+msgid "Are you sure you want to remove this title?"
+msgstr "Вы уверены, что хотите удалить заглавие?"
+
+#: koha-tmpl/intranet-tmpl/prog/js/members-menu.js:146
 msgid "Are you sure you want to renew this patron's registration?"
 msgstr "Вы действительно хотите продолжить регистрацию этого посетителя?"
 
@@ -291,7 +524,15 @@ msgstr ""
 "рекомендуется использовать опцию экспорта, чтобы сначала сделать резервную "
 "копию."
 
-#: koha-tmpl/intranet-tmpl/prog/js/members-menu.js:129
+#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:302
+msgid "Are you sure you want to return this item?"
+msgstr "Вы действительно хотите вернуть этот экземпляр?"
+
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:60
+msgid "Are you sure you want to revert the waiting status of this recall?"
+msgstr "Вы уверены, что хотите вернуть статус ожидания этого отзыва?"
+
+#: koha-tmpl/intranet-tmpl/prog/js/members-menu.js:131
 msgid ""
 "Are you sure you want to update this child to an Adult category? This cannot "
 "be undone."
@@ -299,54 +540,96 @@ msgstr ""
 "Вы уверены, что хотите обновить категорию с ребёнка на совершеннолетнего?  "
 "Это нельзя отменить."
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:264
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:265
 msgid "Are you sure you wish to delete this template action?"
 msgstr "Вы действительно хотите удалить это действие шаблона?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:268
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:269
 msgid "Are you sure you wish to delete this template?"
 msgstr "Вы действительно хотите удалить этот шаблон?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:446
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:454
 msgid "At least two records must be selected for merging"
 msgstr "Необходимо выбрать как минимум две записи для объединения"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:117
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:143
 msgid "Aug"
 msgstr "Август"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:114
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:144
 msgid "August"
 msgstr "Август"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:529
+#: koha-tmpl/intranet-tmpl/prog/js/authorities-detail-modal.js:12
+msgid "Authority"
+msgstr "Авторитетный источник"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkout_renewals_modal.js:26
+msgid "Automatic"
+msgstr "Автоматически"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:539
 msgid "Automatic renewal failed, account expired"
 msgstr "Ошибка автоматического продления, срок действия учетной записи истек"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:522
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:532
 msgid "Automatic renewal failed, patron has unpaid fines"
 msgstr ""
 "Не удалось автоматическое продление, у патрона есть неоплаченные штрафы"
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/ratings.js:42
+#, javascript-format
+msgid "Average rating: %s (%s votes)"
+msgstr "Средний рейтинг: %s (%s голосов)"
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/global.js:260
+msgid "Back to top"
+msgstr "Вернуться к началу"
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:72
+msgid "Bibliographic record does not exist!"
+msgstr "Библиографическая запись не существует!"
 
 #: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:17
 msgid "Both subfield values should be filled or empty."
 msgstr "Оба значения подполей должны быть заполнены или пусты."
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:717
-#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:286
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:731
+#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:251
 msgid "CSV"
 msgstr "CSV"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:515
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:525
 msgid "Can no longer be auto-renewed - number of checkout days exceeded"
 msgstr ""
 "Больше нельзя продлевать автоматически - количество дней книговыдачи "
 "превышено"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1134
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:276
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:165
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesFormAdd.vue:78
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1107
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:407
 msgid "Cancel"
 msgstr "Отмена"
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:355
+msgid "Cancel hold"
+msgstr "Отменить резервирование"
+
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:24
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:136
+msgid "Cancelled"
+msgstr "Отменено"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormImport.vue:64
+msgid "Cannot import, no package selected"
+msgstr "Не удается импортировать, пакет не выбран"
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:305
+#, javascript-format
+msgid "Cannot test prediction pattern for the following reason(s): %s"
+msgstr ""
+"Невозможно протестировать шаблон прогнозирования по следующим причинам: %s"
 
 #: koha-tmpl/intranet-tmpl/prog/js/categories.js:10
 msgid ""
@@ -355,17 +638,39 @@ msgid ""
 msgstr ""
 "Код типа может содержать только следующие символы: буквы, цифры, - и _."
 
-#: koha-tmpl/intranet-tmpl/prog/js/audio_alerts.js:66
+#: koha-tmpl/intranet-tmpl/prog/js/messaging-preference-form.js:20
+msgid "Change messaging preferences to default for this category?"
+msgstr ""
+"Изменить настройки обмена сообщениями к значениям по умолчанию для этой "
+"категории?"
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:301
+msgid "Check in"
+msgstr "Возврат"
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:319
+msgid "Check out"
+msgstr "Выдача"
+
+#: koha-tmpl/intranet-tmpl/prog/js/audio_alerts.js:68
 msgid "Check the box next to the alert you want to delete."
 msgstr "Установите флажок рядом с оповещением, которое хотите удалить."
 
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:119
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:121
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:123
 msgid "Checked in"
 msgstr "Возвращено"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:612
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:614
+#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:290
+msgid "Checked out until: "
+msgstr "Выдано до: "
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:145
+msgid "Checkouts"
+msgstr "Выдачи"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:624
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:626
 msgid "Claim returned"
 msgstr "Претензия возвращена"
 
@@ -377,18 +682,22 @@ msgstr "Очистить"
 msgid "Clear all"
 msgstr "Очистить всё"
 
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:270
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:401
 msgid "Clear date to suspend indefinitely"
 msgstr "Очистить дату, чтобы приостановить на неопределенный срок"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:37
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:39
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:745
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:747
-#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:314
-#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:316
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:760
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:762
+#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:279
+#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:281
 msgid "Clear filter"
 msgstr "Очистить фильтр"
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/autofill.js:30
+msgid "Clear form"
+msgstr "Очистить форму"
 
 #: koha-tmpl/intranet-tmpl/prog/js/pages/preferences.js:149
 #: koha-tmpl/intranet-tmpl/prog/js/pages/preferences.js:159
@@ -400,19 +709,67 @@ msgstr "Щёлкните, чтобы свернуть этот раздел"
 msgid "Click to expand this section"
 msgstr "Щёлкните, чтобы раскрыть этот раздел"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:763
-#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:332
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/Dialog.vue:8
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:327
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesShow.vue:238
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:255
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesShow.vue:140
+msgid "Close"
+msgstr "Закрыть"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:74
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsList.vue:292
+msgid "Closure reason"
+msgstr "Причина закрытия"
+
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:57
+msgid "Coce image from Amazon.com"
+msgstr "Изображение Coce из Amazon.com"
+
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:59
+msgid "Coce image from Google Books"
+msgstr "Изображение Coce из Google Books"
+
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:61
+msgid "Coce image from Open Library"
+msgstr "Изображение Coce из Open Library"
+
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:778
+#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:297
 msgid "Columns"
 msgstr "Столбцы"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:762
-#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:331
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:777
+#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:296
 msgid "Columns settings"
 msgstr "Настройки столбцов"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:144
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:804
+msgid "Configure"
+msgstr "Настроить"
+
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:803
+msgid "Configure table"
+msgstr "Настроить стол"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:142
 msgid "Confirm"
 msgstr "Подтвердить"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackagesList.vue:244
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackagesShow.vue:68
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesList.vue:207
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesShow.vue:52
+msgid "Content type"
+msgstr "Тип содержания"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesFormAdd.vue:48
+msgid "Content type: "
+msgstr "Тип содержания: "
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesList.vue:173
+msgid "Contributors"
+msgstr "Другие авторы"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:28
 #, javascript-format
@@ -423,8 +780,8 @@ msgstr "Скопировано %d строк в буфер обмена"
 msgid "Copied one row to clipboard"
 msgstr "Скопирована одна строка в буфер обмена"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:725
-#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:294
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:739
+#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:259
 msgid "Copy"
 msgstr "Копировать"
 
@@ -432,65 +789,133 @@ msgstr "Копировать"
 msgid "Copy to clipboard"
 msgstr "Копировать в буфер обмена"
 
-#: koha-tmpl/intranet-tmpl/prog/js/members-menu.js:120
+#: koha-tmpl/intranet-tmpl/prog/js/patron-webcam.js:111
+msgid "Could not access camera."
+msgstr "Не удалось получить доступ к камере."
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOResourcesShow.vue:109
+msgid "Coverage dates"
+msgstr "Сроки действия"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesShow.vue:121
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:138
+msgid "Coverage depth"
+msgstr "Глубина охвата"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesList.vue:221
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesShow.vue:65
+msgid "Created on"
+msgstr "Создано"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:60
+msgid "Date of first serial issue available online"
+msgstr "Дата доступности в сети первого выпуска продолжающегося издания"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesShow.vue:75
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:123
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:92
+msgid "Date of last issue available online"
+msgstr "Дата доступности в сети последнего выпуска продолжающегося издания"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesShow.vue:153
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:254
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:170
+msgid "Date the monograph is first published in print"
+msgstr "Дата первой печатной публикации монографии"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:264
+msgid "Date the monograph is first published online"
+msgstr "Дата первой электронной публикации монографии"
+
+#: koha-tmpl/intranet-tmpl/prog/js/members-menu.js:122
 msgid "Dates of birth should be entered in the format 'DD.MM.YYYY'"
 msgstr "Даты рождения должны быть введены в формате 'ДД.ММ.ГГГГ'"
 
-#: koha-tmpl/intranet-tmpl/prog/js/members-menu.js:118
+#: koha-tmpl/intranet-tmpl/prog/js/members-menu.js:120
 msgid "Dates of birth should be entered in the format 'DD/MM/YYYY'"
 msgstr "Даты рождения должны быть введены в формате 'ДД/ММ/ГГГГ'"
 
-#: koha-tmpl/intranet-tmpl/prog/js/members-menu.js:114
+#: koha-tmpl/intranet-tmpl/prog/js/members-menu.js:116
 msgid "Dates of birth should be entered in the format 'MM/DD/YYYY'"
 msgstr "Даты рождения должны быть введены в формате 'ММ/ДД/ГГГГ'"
 
-#: koha-tmpl/intranet-tmpl/prog/js/members-menu.js:116
+#: koha-tmpl/intranet-tmpl/prog/js/members-menu.js:118
 msgid "Dates of birth should be entered in the format 'YYYY-MM-DD'"
 msgstr "Даты рождения должны быть введены в формате 'ГГГГ-ММ-ДД'"
 
-#: koha-tmpl/intranet-tmpl/prog/js/table_filters.js:26
+#: koha-tmpl/intranet-tmpl/prog/js/table_filters.js:34
 msgid "Deactivate filters"
 msgstr "Отключить фильтры"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:117
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:143
 msgid "Dec"
 msgstr "Декабрь"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:114
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:144
 msgid "December"
 msgstr "Декабрь"
 
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/KohaTable.vue:103
 #: koha-tmpl/intranet-tmpl/prog/js/additem.js:94
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1033
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1006
 #: koha-tmpl/intranet-tmpl/prog/js/elasticsearch-mappings.js:11
 msgid "Delete"
 msgstr "Удалить"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:109
-msgid "Done"
-msgstr "Выполнено"
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:115
+msgid "Denied"
+msgstr "Отказано"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1001
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsList.vue:275
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesList.vue:164
+msgid "Description"
+msgstr "Описание"
+
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:109
+msgid "Directory is not writeable"
+msgstr "Директория не доступна для записи"
+
+#: koha-tmpl/intranet-tmpl/prog/js/authtype.js:59
+msgid ""
+"Do you really want to import the authority type fields and subfields? This "
+"will overwrite the current configuration. For safety reasons please use the "
+"export option to make a backup"
+msgstr ""
+"Импортировать поля и подполя авторитетного типа? Существующая структура "
+"будет перезаписана. По соображениям безопасности рекомендуется использовать "
+"опцию экспорта, чтобы сделать резервную копию."
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/Documents.vue:3
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesShow.vue:98
+msgid "Documents"
+msgstr "Документы"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:973
 msgid "Double click to edit"
 msgstr "Дважды нажмите для редактирования"
 
-#: koha-tmpl/intranet-tmpl/prog/js/acq.js:7
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/Main.vue:20
+msgid "E-resource management"
+msgstr "Управление электронными ресурсами"
+
+#: koha-tmpl/intranet-tmpl/prog/js/acq.js:10
 msgid ""
 "ERROR: Price is not a valid number, please check the price and try again!"
 msgstr ""
 "ОШИБКА: цена не является действительным числом, проверьте цену и повторите "
 "попытку!"
 
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/KohaTable.vue:97
 #: koha-tmpl/intranet-tmpl/prog/js/additem.js:91
 msgid "Edit"
 msgstr "Редактировать"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:314
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:315
 #, javascript-format
 msgid "Edit action %s"
 msgstr "Редактировать действие %s"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1044
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1017
 msgid "Edit notes"
 msgstr "Редактировать примечания"
 
@@ -499,9 +924,38 @@ msgstr "Редактировать примечания"
 msgid "Edit provider %s"
 msgstr "Редактировать провайдера %s"
 
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:296
+msgid "Edition of the monograph"
+msgstr "Издание монографии"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:188
+msgid "Embargo information"
+msgstr "Информация об эмбарго"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementPeriods.vue:33
+msgid "End date"
+msgstr "Дата завершения"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesList.vue:201
+msgid "Ended on"
+msgstr "Закончился"
+
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:109
+msgid "Error code 0 not used"
+msgstr "Код ошибки 0 не используется"
+
+#: koha-tmpl/intranet-tmpl/prog/js/authtype.js:37
+#, javascript-format
+msgid "Error importing the authority type %s"
+msgstr "Ошибка при импорте типа авторитетного источника %s"
+
 #: koha-tmpl/intranet-tmpl/prog/js/biblio_framework.js:36
 msgid "Error importing the framework"
 msgstr "Ошибка при импорте структуры"
+
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:172
+msgid "Error:"
+msgstr "Ошибка: "
 
 #: koha-tmpl/intranet-tmpl/prog/js/pages/preferences.js:7
 msgid ""
@@ -515,73 +969,168 @@ msgstr ""
 msgid "Error; your data might not have been saved"
 msgstr "Ошибка; ваши данные могли быть не сохранены"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:120
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:121
 msgid "Every"
 msgstr "Каждый"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:709
-#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:278
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:723
+#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:243
 msgid "Excel"
 msgstr "Excel"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:778
-#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:347
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:52
+msgid "Expired"
+msgstr "Истек"
+
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:793
+#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:312
 msgid "Export"
 msgstr "Экспортировать"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:777
-#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:346
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:792
+#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:311
 msgid "Export or print"
 msgstr "Экспорт или печать"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:116
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:114
+msgid "Failed"
+msgstr "Не удалось"
+
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:143
 msgid "Feb"
 msgstr "Февраль"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:113
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:144
 msgid "February"
 msgstr "Февраль"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/Documents.vue:19
+msgid "File"
+msgstr "Файл"
+
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:109
+msgid "File already exists"
+msgstr "Файл уже существует"
+
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:179
+msgid "File name:"
+msgstr "Имя файла: "
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:308
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesFormAdd.vue:208
+#, javascript-format
+msgid "File size exceeds maximum allowed: %s MB"
+msgstr "Размер файла превышает максимально допустимый: %s MB"
+
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:181
+msgid "File size:"
+msgstr "Размер файла:"
+
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:180
+msgid "File type:"
+msgstr "Тип файла:"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsList.vue:6
+msgid "Filter by expired"
+msgstr "Отфильтровать по просроченным"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:10
 msgid "First"
 msgstr "Первое"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:121
-msgid "Fr"
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesShow.vue:109
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:126
+msgid "First author"
+msgstr "Первый автор"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesShow.vue:188
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:205
+msgid "First editor"
+msgstr "Первый редактор"
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:293
+msgid "First publication date is not defined"
+msgstr "Дата первой публикации не определена"
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:19
+msgid ""
+"Frequency and subscription length provided doesn't combine well. Please "
+"consider entering an issue count rather than a time period."
+msgstr ""
+"Предусмотренная частота и продолжительность подписки плохо сочетаются. "
+"Пожалуйста, рассмотрите возможность ввода количества подписок, а не периода "
+"времени."
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:288
+msgid "Frequency is not defined"
+msgstr "Периодичность не определена"
+
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:138
+msgid "Fri"
 msgstr "Пт"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:120
-msgid "Fri"
-msgstr "Птн"
-
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:119
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:139
 msgid "Friday"
 msgstr "Пятница"
 
-#: koha-tmpl/intranet-tmpl/prog/js/acq.js:307
+#: koha-tmpl/intranet-tmpl/prog/js/acq.js:310
 msgid "Fund amount exceeds parent allocation"
 msgstr "Сумма средств превышает отчисления из источника"
 
-#: koha-tmpl/intranet-tmpl/prog/js/acq.js:309
+#: koha-tmpl/intranet-tmpl/prog/js/acq.js:312
 msgid "Fund amount exceeds period allocation"
 msgstr "Сумма средств превышает выделенный период"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:287
-#, fuzzy
+#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:295
 msgid "Get item"
-msgstr "Удалить экземпляр"
+msgstr "Получить экземпляр"
 
 #: koha-tmpl/intranet-tmpl/prog/js/browser.js:120
 msgid "Go back to the results"
-msgstr ""
+msgstr "Вернуться к результатам"
 
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:147
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:270
 msgid "Hold is <strong>suspended</strong>"
 msgstr "Резервирование <strong>приостановлено</strong>"
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:155
+msgid "Holds"
+msgstr "Резервирование"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesList.vue:267
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesList.vue:202
+msgid "Identifier"
+msgstr "Идентификатор"
 
 #: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:26
 msgid "If the field is a control field, the subfield should be empty"
 msgstr "Если поле является контрольным полем, подполе должно быть пустым."
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:51
+msgid ""
+"If you wish to claim late or missing issues you must link this subscription "
+"to a vendor. Click OK to ignore or Cancel to return and enter a vendor"
+msgstr ""
+"Если вы хотите заявить о задержанных или отсутствующих выпусках, вы должны "
+"связать эту подписку с поставщиком. Нажмите ОК, чтобы игнорировать, или "
+"Отмена, чтобы вернуться и указать поставщика."
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormImport.vue:135
+msgid "Import"
+msgstr "Импортировать"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormImport.vue:2
+msgid "Import from a list"
+msgstr "Импорт из списка"
+
+#: koha-tmpl/intranet-tmpl/prog/js/background-job-progressbar.js:72
+msgid "Import of record(s) failed: "
+msgstr "Импорт записей не выполнен: "
+
+#: koha-tmpl/intranet-tmpl/prog/js/authtype.js:61
+#, javascript-format
+msgid "Importing to authority type: %s. Importing from file: %s"
+msgstr "Импорт в тип авторитетного источника: %s. Импорт из файла: %s"
 
 #: koha-tmpl/intranet-tmpl/prog/js/biblio_framework.js:59
 #, javascript-format
@@ -599,21 +1148,37 @@ msgstr "В Вашей корзине"
 msgid "Internal Server Error, please reload the page"
 msgstr "Внутренняя ошибка сервера, пожалуйста, перезагрузите страницу"
 
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:179
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsList.vue:306
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:67
+msgid "Is perpetual"
+msgstr "Бессрочный"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackageTitlesList.vue:170
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackagesList.vue:214
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlePackagesList.vue:153
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesList.vue:237
+msgid "Is selected"
+msgstr "Выбрано"
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:385
+msgid "Item cannot be checked out. There are no available formats"
+msgstr "Экземпляр не может быть выдан. Нет доступных форматов"
+
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:306
 #, javascript-format
 msgid "Item hasn't been transferred yet from %s"
 msgstr "Экземпляр ещё не был перемещён с %s"
 
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:177
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:304
 #, javascript-format
 msgid "Item is <strong>in transit</strong> from %s since %s"
 msgstr "Экземпляр <strong>в пути</strong> из %s с %s"
 
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:163
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:290
 msgid "Item is <strong>waiting here</strong>"
 msgstr "Экземпляр <strong>ожидает здесь</strong>"
 
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:168
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:295
 msgid "Item is <strong>waiting</strong>"
 msgstr "Экземпляр <strong>ожидает</strong>"
 
@@ -623,27 +1188,27 @@ msgstr "Экземпляр <strong>ожидает</strong>"
 msgid "Items in your cart: %s"
 msgstr "Экземпляры в вашей корзине: %s "
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:116
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:143
 msgid "Jan"
 msgstr "Январь"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:113
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:144
 msgid "January"
 msgstr "Январь"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:117
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:143
 msgid "Jul"
 msgstr "Июль"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:114
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:144
 msgid "July"
 msgstr "Июль"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:116
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:143
 msgid "Jun"
 msgstr "Июнь"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:113
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:144
 msgid "June"
 msgstr "Июнь"
 
@@ -651,8 +1216,56 @@ msgstr "Июнь"
 msgid "Last"
 msgstr "Последнее"
 
-#: koha-tmpl/intranet-tmpl/prog/js/addorderiso2709.js:90
-#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:113
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementLicenses.vue:20
+msgid "License"
+msgstr "Лицензия"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesList.vue:116
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesShow.vue:217
+#, javascript-format
+msgid "License %s deleted"
+msgstr "Лицензия %s удалена"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesFormAdd.vue:269
+msgid "License created"
+msgstr "Лицензия создана"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:128
+msgid "License info"
+msgstr "Информация о лицензии"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesFormAdd.vue:261
+msgid "License updated"
+msgstr "Лицензия обновлена"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesFormAdd.vue:216
+#, javascript-format
+msgid "License user %s is missing a user"
+msgstr "Пользователь лицензии %s is missing a user"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementLicenses.vue:3
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:149
+msgid "Licenses"
+msgstr "Лицензии"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:2
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsList.vue:2
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:2
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackagesShow.vue:2
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOResourcesShow.vue:2
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesShow.vue:2
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesFormAdd.vue:2
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesList.vue:3
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesShow.vue:2
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalResourcesShow.vue:2
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:2
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesList.vue:3
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:2
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesFormAdd.vue:2
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesList.vue:2
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesShow.vue:2
+#: koha-tmpl/intranet-tmpl/prog/js/addorderiso2709.js:97
+#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:117
 msgid "Loading"
 msgstr "Загружается"
 
@@ -660,42 +1273,73 @@ msgstr "Загружается"
 msgid "Loading more results…"
 msgstr "Загрузка дополнительных результатов…"
 
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/Dialog.vue:40
 #: koha-tmpl/intranet-tmpl/prog/js/ajax.js:35
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:20
 #: koha-tmpl/intranet-tmpl/prog/js/letter.js:4
 msgid "Loading..."
 msgstr "Идёт загрузка…"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:274
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:272
 msgid "Loading... you may continue scanning."
 msgstr "Загрузка... вы можете продолжить сканирование."
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:116
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesShow.vue:24
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:41
+msgid "Local bibliographic record"
+msgstr "Локальная библиографическая запись"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesList.vue:146
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesShow.vue:186
+#, javascript-format
+msgid "Local package %s deleted"
+msgstr "Пакет %s удален"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesList.vue:138
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:347
+#, javascript-format
+msgid "Local title %s deleted"
+msgstr "Заглавие %s удалено"
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:79
+msgid "Log in to your OverDrive account"
+msgstr "Войдите в свою учетную запись OverDrive"
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:138
+msgid "Log out of your OverDrive account"
+msgstr "Выйдите из своей учетной записи OverDrive"
+
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:143
 msgid "Mar"
 msgstr "Март"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:113
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:144
 msgid "March"
 msgstr "Март"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:113
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:116
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:108
+msgid "Marked overdue"
+msgstr "Помеченный как просроченный"
+
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:143
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:144
 msgid "May"
 msgstr "Май"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:121
-msgid "Mo"
+#: koha-tmpl/intranet-tmpl/prog/js/members.js:75
+#, javascript-format
+msgid "Minimum password length: %s"
+msgstr "Минимальная длина пароля: %s"
+
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:138
+msgid "Mon"
 msgstr "Пн"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:120
-msgid "Mon"
-msgstr "Пнд"
-
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:119
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:139
 msgid "Monday"
 msgstr "Понедельник"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:480
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:492
 msgid "Must be renewed at the library"
 msgstr "Необходимо продлить в библиотеке"
 
@@ -707,34 +1351,78 @@ msgstr ""
 "ПРИМЕЧАНИЕ: Поля, перечисленные в системной настройке 'UniqueItemsFields', "
 "не будут скопированы."
 
-#: koha-tmpl/intranet-tmpl/prog/js/acq.js:341
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsList.vue:245
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackageTitlesList.vue:155
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackagesList.vue:199
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlePackagesList.vue:105
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackageTitlesList.vue:58
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesList.vue:163
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlePackagesList.vue:44
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormImport.vue:89
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesList.vue:133
+msgid "Name"
+msgstr "Имя"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:7
+msgid "New agreement"
+msgstr "Новое соглашение"
+
+#: koha-tmpl/intranet-tmpl/prog/js/acq.js:344
 msgid "New budget-parent is beneath budget"
 msgstr "Новый источник сметы меньше бюджета"
 
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesFormAdd.vue:7
+msgid "New license"
+msgstr "Новая лицензия"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesFormAdd.vue:7
+msgid "New package"
+msgstr "Новый пакет"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:7
+msgid "New title"
+msgstr "Новое заглавие"
+
 #: koha-tmpl/intranet-tmpl/prog/js/browser.js:93
 #: koha-tmpl/intranet-tmpl/prog/js/browser.js:95
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:111
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:12
 msgid "Next"
 msgstr "Следующее"
 
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:155
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:278
 #, javascript-format
 msgid "Next available %s item"
 msgstr "Следующий доступный %s экземпляр"
 
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:282
+#, javascript-format
+msgid "Next available item group <strong>%s</strong> item"
+msgstr "Следующая доступная группа экземпляров <strong>%s</strong> экземпляр"
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:299
+msgid "Next issue publication date is not defined"
+msgstr "Дата публикации следующего выпуска не определена"
+
 # нет (memberentrygen)
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:117
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:104
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:71
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:240
 msgid "No"
 msgstr "нет"
 
+#: koha-tmpl/intranet-tmpl/prog/js/patron-webcam.js:107
+msgid "No camera detected."
+msgstr "Камера не обнаружена."
+
 #: koha-tmpl/intranet-tmpl/prog/js/localcovers.js:46
 #: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:98
+#: koha-tmpl/opac-tmpl/bootstrap/js/localcovers.js:25
+#: koha-tmpl/opac-tmpl/bootstrap/js/localcovers.js:54
 msgid "No cover image available"
 msgstr "Изображение обложки не доступно"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:15
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:550
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:956
 msgid "No data available in table"
 msgstr "Нет данных в таблице"
 
@@ -757,8 +1445,8 @@ msgstr "Экземпляр не был добавлен в вашу корзин
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:447
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:457
 #: koha-tmpl/intranet-tmpl/prog/js/cart.js:6
-#: koha-tmpl/intranet-tmpl/prog/js/cart.js:32
-#: koha-tmpl/intranet-tmpl/prog/js/cart.js:52
+#: koha-tmpl/intranet-tmpl/prog/js/cart.js:27
+#: koha-tmpl/intranet-tmpl/prog/js/cart.js:47
 msgid "No item was selected"
 msgstr "Ни одной единицы не было выбрано"
 
@@ -771,7 +1459,7 @@ msgctxt "Bibliographic record"
 msgid "No item was selected"
 msgstr "Экземпляр не выбран"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:673
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:685
 msgid "No itemtype"
 msgstr "Нет класса экземпляра"
 
@@ -779,7 +1467,7 @@ msgstr "Нет класса экземпляра"
 msgid "No matching records found"
 msgstr "Соответствующих записей не найдено"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:501
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:511
 #, javascript-format
 msgid "No renewal before %s"
 msgstr "Нет продления до %s"
@@ -788,27 +1476,62 @@ msgstr "Нет продления до %s"
 msgid "No results found"
 msgstr "Ничего не найдено"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:202
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:494
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:449
+msgid "No subscription found on Mana Knowledge Base"
+msgstr "В базе знаний Mana не найдено ни одной подписки"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsList.vue:189
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:403
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesList.vue:139
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesShow.vue:179
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesList.vue:131
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:340
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesList.vue:109
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesShow.vue:210
+msgid "No, do not delete"
+msgstr "Нет, не удалять"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:200
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:504
 msgid "Not allowed: overdue"
 msgstr "Не разрешено: просрочка"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:200
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:487
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:198
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:497
 msgid "Not allowed: patron restricted"
 msgstr "Не разрешено: читатель имеет ограничения"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:473
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:485
 msgid "Not renewable"
 msgstr "Не продлевается"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackagesList.vue:26
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlePackagesList.vue:29
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesList.vue:29
+msgid "Not selected"
+msgstr "Не выбран"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkout_renewals_modal.js:13
+#, javascript-format
+msgid "Note: %s out of %s renewals have been logged"
+msgstr "Примечание: %s из %s продлений зарегистрированы"
 
 #: koha-tmpl/intranet-tmpl/prog/js/pages/preferences.js:190
 msgid "Note: _ALL_ value will override all other values"
 msgstr "Примечание: значение _ALL_ отменит все другие значения."
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:337
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:364
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementPeriods.vue:52
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementRelationships.vue:68
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:155
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/Documents.vue:90
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesList.vue:230
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:209
+msgid "Notes"
+msgstr "Заметки"
+
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:342
 #: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:372
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:380
 msgid "Nothing is selected"
 msgstr "Ничего не выбрано"
 
@@ -817,58 +1540,162 @@ msgid "Nothing to save"
 msgstr "Нечего сохранять"
 
 # нет (memberentrygen)
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:117
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:143
 msgid "Nov"
 msgstr "Ноябрь"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:114
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:144
 msgid "November"
 msgstr "Ноябрь"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:679
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:691
 msgid "Number of checkouts by item type"
 msgstr "Количество книговыдач по классу экземпляра"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:98
+msgid "Number of first issue available online"
+msgstr "Дата доступности в сети первого выпуска"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesShow.vue:55
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:88
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:72
+msgid "Number of first volume available online"
+msgstr "Дата доступности в сети первого тома"
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:77
+msgid "Number of issues to display to staff must be a number"
+msgstr "Количество выпусков для отображения персоналу должно быть числом"
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:81
+msgid "Number of issues to display to the public must be a number"
+msgstr "Количество выпусков для общедоступного отображения должно быть числом"
 
 #: koha-tmpl/intranet-tmpl/prog/js/additem.js:185
 msgid "Number of items to add"
 msgstr "Количество экземпляров для добавления"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:117
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesShow.vue:95
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:159
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:112
+msgid "Number of last issue available online"
+msgstr "Дата доступности в сети последнего выпуска"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:132
+msgid "Number of last volume available online"
+msgstr "Дата доступности в сети последнего тома"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesShow.vue:175
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:289
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:192
+msgid "Number of volume for monograph"
+msgstr "Номер тома монографии"
+
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:143
 msgid "Oct"
 msgstr "Октябрь"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:114
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:144
 msgid "October"
 msgstr "Октябрь"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:466
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:595
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:478
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:607
+#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:313
 msgid "On hold"
 msgstr "Зарезервировано"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:368
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:759
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:366
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:771
 msgid "On-site checkout"
 msgstr "Оформление выдачи на месте"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:125
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOResourcesShow.vue:69
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesShow.vue:35
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:52
+msgid "Online-format identifier"
+msgstr "Идентификатор онлайн-формата"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:289
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:296
+msgid "Only one controlling license is allowed"
+msgstr "Допускается только одна управляющая лицензия"
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:127
+msgid "OverDrive account page"
+msgstr "Страница учетной записи OverDrive"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalResourcesShow.vue:61
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAddResources.vue:21
+msgid "Package"
+msgstr "Пакет"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOResourcesShow.vue:99
+msgid "Package content type"
+msgstr "Тип содержимого пакета"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesFormAdd.vue:195
+msgid "Package created"
+msgstr "Пакет создан"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackagesList.vue:4
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlePackagesList.vue:13
+msgid "Package name"
+msgstr "Имя пакета"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesFormAdd.vue:185
+msgid "Package updated"
+msgstr "Пакет обновлен"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAddResources.vue:3
+msgid "Packages"
+msgstr "Пакеты"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:123
 msgid "Patron note"
 msgstr "Примечание читателя"
 
-#: koha-tmpl/intranet-tmpl/prog/js/cart.js:86
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:354
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:92
+msgid "Period end"
+msgstr "Окончание периода"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:94
+msgid "Period note"
+msgstr "Примечание к периоду"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementPeriods.vue:3
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:88
+msgid "Periods"
+msgstr "Периоды"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementLicenses.vue:64
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/Documents.vue:70
+msgid "Physical location"
+msgstr "Физическое расположение"
+
+#: koha-tmpl/intranet-tmpl/prog/js/cart.js:81
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:362
+#: koha-tmpl/opac-tmpl/bootstrap/js/overdrive.js:349
 msgid "Place hold"
 msgstr "Установить резервирование"
 
 #: koha-tmpl/intranet-tmpl/prog/js/categories.js:21
-#: koha-tmpl/intranet-tmpl/prog/js/categories.js:96
-#: koha-tmpl/intranet-tmpl/prog/js/categories.js:99
+#: koha-tmpl/intranet-tmpl/prog/js/categories.js:91
+#: koha-tmpl/intranet-tmpl/prog/js/categories.js:94
 msgid "Please choose an enrollment period in months OR by date."
 msgstr "Пожалуйста, выберите период регистрации в месяцах ИЛИ по дате."
 
-#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:52
+#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:56
 msgid "Please choose at least one external target"
 msgstr "Пожалуйста, выберите хотя бы одну внешнюю цель"
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:107
+msgid "Please click on 'Test prediction pattern' before saving subscription."
+msgstr ""
+"Перед сохранением подписки нажмите 'Протестировать шаблон прогнозирования'."
+
+#: koha-tmpl/intranet-tmpl/prog/js/members.js:20
+msgid "Please confirm whether this is a duplicate patron"
+msgstr "Пожалуйста, подтвердите ли это дубликат посетителя"
 
 #: koha-tmpl/intranet-tmpl/prog/js/select2.js:11
 #, javascript-format
@@ -880,30 +1707,52 @@ msgstr "Пожалуйста, удалите %s символов"
 msgid "Please enter %s or more characters"
 msgstr "Введите %s или более символов"
 
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:354
+msgid "Please enter a name for this pattern"
+msgstr "Введите название для этого шаблона"
+
 #: koha-tmpl/intranet-tmpl/prog/js/calendar.js:3
 #, javascript-format
 msgid "Please enter a valid date (should match %s)."
 msgstr "Пожалуйста, введите правильную дату (должна соответствовать %s)."
 
-#: koha-tmpl/intranet-tmpl/prog/js/letter.js:96
+#: koha-tmpl/intranet-tmpl/prog/js/item_search_fields.js:5
+msgid "Please enter letters or numbers"
+msgstr "Введите буквы или цифры"
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:449
+msgid ""
+"Please feel free to share your pattern with all others librarians once you "
+"are done"
+msgstr ""
+"Не стесняйтесь поделиться своим шаблоном со всеми библиотекарями, как только "
+"вы закончите"
+
+#: koha-tmpl/intranet-tmpl/prog/js/letter.js:113
 msgid "Please fill at least one template."
 msgstr "Пожалуйста, заполните хотя бы один шаблон."
+
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:156
+msgid "Please make a selection."
+msgstr "Пожалуйста, сделайте выбор."
 
 #: koha-tmpl/intranet-tmpl/prog/js/catalog.js:12
 msgid "Please note that this external search could replace the current record."
 msgstr ""
 "Обратите внимание, что этот внешний поиск может заменить текущую запись."
 
+#: koha-tmpl/intranet-tmpl/prog/js/authtype.js:44
+#: koha-tmpl/intranet-tmpl/prog/js/authtype.js:76
 #: koha-tmpl/intranet-tmpl/prog/js/biblio_framework.js:43
 #: koha-tmpl/intranet-tmpl/prog/js/biblio_framework.js:73
 msgid "Please select a CSV (.csv) or ODS (.ods) spreadsheet file."
 msgstr "Выберите файл электронной таблицы CSV (.csv) или ODS (.ods)."
 
-#: koha-tmpl/intranet-tmpl/prog/js/audio_alerts.js:42
+#: koha-tmpl/intranet-tmpl/prog/js/audio_alerts.js:44
 msgid "Please select or enter a sound."
 msgstr "Пожалуйста, выберите или введите звук."
 
-#: koha-tmpl/intranet-tmpl/prog/js/letter.js:87
+#: koha-tmpl/intranet-tmpl/prog/js/letter.js:104
 #, javascript-format
 msgid "Please specify title and content for %s"
 msgstr "Укажите заглавие и содержание для %s"
@@ -917,30 +1766,64 @@ msgstr ""
 "из таблицы<br>в буфер обмена системы.<br><br> Чтобы отменить, нажмите на это "
 "сообщение или нажмите клавишу Escape."
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:110
-msgid "Prev"
-msgstr "Предыдущее"
-
 #: koha-tmpl/intranet-tmpl/prog/js/browser.js:88
 #: koha-tmpl/intranet-tmpl/prog/js/browser.js:90
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:13
 msgid "Previous"
 msgstr "Предыдущее"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:293
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:660
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:291
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:672
 msgid "Previous checkouts"
 msgstr "Предыдущие выдачи"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:733
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:747
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:32
-#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:302
+#: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:267
 msgid "Print"
 msgstr "Печать"
 
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalResourcesShow.vue:44
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:36
+msgid "Print-format identifier"
+msgstr "Идентификатор формата печати"
+
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:21
 msgid "Processing..."
-msgstr "Обработка продолжается…"
+msgstr "Загрузка…"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAddResources.vue:77
+msgid "Proxy"
+msgstr "Прокси"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesList.vue:4
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalResourcesShow.vue:18
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:23
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:34
+msgid "Publication title"
+msgstr "Заглавие публикации"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackageTitlesList.vue:177
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOResourcesShow.vue:57
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesList.vue:253
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackageTitlesList.vue:73
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:230
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesList.vue:188
+msgid "Publication type"
+msgstr "Тип публикации"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesList.vue:244
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesShow.vue:133
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalResourcesShow.vue:32
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:150
+msgid "Publisher name"
+msgstr "Издание"
+
+# название функции ILS-DI
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:471
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:605
+msgid "Recalled"
+msgstr "Запрошено"
 
 #: koha-tmpl/intranet-tmpl/prog/js/pages/tags-review.js:112
 msgid "Reject"
@@ -951,52 +1834,144 @@ msgstr "Отклонить"
 msgid "Rejected"
 msgstr "Отклонено"
 
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementRelationships.vue:22
+msgid "Related agreement"
+msgstr "Связанное соглашение"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementRelationships.vue:3
+msgid "Related agreements"
+msgstr "Связанные соглашения"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementRelationships.vue:46
+msgid "Relationship"
+msgstr "Родство"
+
 #: koha-tmpl/intranet-tmpl/prog/js/select2.js:26
 msgid "Remove all items"
 msgstr "Удалить все экземпляры"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAddResources.vue:13
+msgid "Remove from this package"
+msgstr "Удалить из этого пакета"
 
 #: koha-tmpl/intranet-tmpl/prog/js/select2.js:27
 msgid "Remove item"
 msgstr "Удалить экземпляр"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/circulation.js:90
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackagesShow.vue:22
+msgid "Remove package from holdings"
+msgstr "Удалить пакет"
+
+#: koha-tmpl/intranet-tmpl/prog/js/pages/circulation.js:71
 msgid "Remove restriction?"
 msgstr "Удалить ограничение?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:190
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/Documents.vue:14
+msgid "Remove this document"
+msgstr "Удалить этот документ"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementLicenses.vue:14
+msgid "Remove this license"
+msgstr "Удалить эту лицензию"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementPeriods.vue:14
+msgid "Remove this period"
+msgstr "Удалить этот период"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementRelationships.vue:14
+msgid "Remove this relationship"
+msgstr "Удалить эту связь"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/UserRoles.vue:13
+msgid "Remove this user"
+msgstr "Удалить этого пользователя"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOResourcesShow.vue:22
+msgid "Remove title from holdings"
+msgstr "Удалить заглавие"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:188
 msgid "Renew failed:"
 msgstr "Не удалось продлить:"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:545
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:555
 msgid "Renewal denied by syspref"
 msgstr "В продлении отказано системной настройкой"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:187
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsList.vue:315
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:74
+msgid "Renewal priority"
+msgstr "Приоритет продления"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkout_renewals_modal.js:26
+msgid "Renewal type:"
+msgstr "Тип продления:"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkout_renewals_modal.js:24
+msgid "Renewed by"
+msgstr "Продлено"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:185
 msgid "Renewed, due:"
 msgstr "Продлено, дата возврата:"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1036
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementLicenses.vue:38
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementLicenses.vue:60
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementPeriods.vue:29
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementRelationships.vue:40
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementRelationships.vue:64
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:22
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:70
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesFormAdd.vue:22
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:31
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesFormAdd.vue:22
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesFormAdd.vue:48
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesFormAdd.vue:70
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesFormAdd.vue:92
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/UserRoles.vue:30
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/UserRoles.vue:52
+msgid "Required"
+msgstr "Необходимый"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1009
 msgid "Resolve"
 msgstr "Разрешить"
 
-#: koha-tmpl/intranet-tmpl/prog/js/browser.js:97
-#, fuzzy
-msgid "Results"
-msgstr "Возобновить"
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOResourcesShow.vue:31
+msgid "Resource identifier"
+msgstr "Идентификатор ресурса"
 
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:135
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalResourcesShow.vue:9
+msgid "Resource information"
+msgstr "Информация о ресурсах"
+
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:97
+msgid "Results"
+msgstr "Результаты поиска"
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:432
+msgid "Results from Mana Knowledge Base"
+msgstr "Результаты из базы знаний Mana"
+
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:258
 msgid "Resume"
 msgstr "Возобновить"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:121
-msgid "Sa"
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:125
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesShow.vue:75
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/UserRoles.vue:34
+msgid "Role"
+msgstr "Роль"
+
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:109
+msgid "Root directory for uploads not defined"
+msgstr "Корневая директория для загрузок не определена"
+
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:138
+msgid "Sat"
 msgstr "Сб"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:120
-msgid "Sat"
-msgstr "Сбт"
-
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:119
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:139
 msgid "Saturday"
 msgstr "Суббота"
 
@@ -1009,19 +1984,35 @@ msgstr "Сохраненный параметр %s"
 msgid "Saving..."
 msgstr "Сохранение…"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:508
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:536
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:518
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:546
 msgid "Scheduled for automatic renewal"
 msgstr "Запланировано автоматическое продление"
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/global.js:260
+msgid "Scroll to the top of the page"
+msgstr "Прокрутить вверх страницы"
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/autofill.js:31
+msgid "Search Google Books"
+msgstr "Поиск в Google Книги"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:22
 msgid "Search:"
 msgstr "Искать:"
 
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:421
+msgid "Searching for subscription in Mana Knowledge Base"
+msgstr "Поиск подписки в базе знаний Mana"
+
 # было Искание
 #: koha-tmpl/intranet-tmpl/prog/js/select2.js:25
 msgid "Searching…"
 msgstr "Поиск…"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsList.vue:136
+msgid "Select"
+msgstr "Выбрать"
 
 #: koha-tmpl/intranet-tmpl/prog/js/pages/tags-review.js:71
 msgid "Select all"
@@ -1031,31 +2022,45 @@ msgstr "Выделить всё"
 msgid "Select all pending"
 msgstr "Выделить все ожидающие"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:171
-msgid "Select date"
-msgstr "Выбрать дату"
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/UserRoles.vue:28
+msgid "Select user"
+msgstr "Выбрать пользователя"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:117
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackageTitlesList.vue:44
+msgid "Selected"
+msgstr "Выбрано"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackageTitlesList.vue:38
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackagesList.vue:22
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesList.vue:25
+msgid "Selection status"
+msgstr "Состояние выбора"
+
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:143
 msgid "Sep"
 msgstr "Сентябрь"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:114
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:144
 msgid "September"
 msgstr "Сентябрь"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1107
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1080
 msgid "Show 1 claim"
 msgid_plural "Show all {count} claims"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Показать 1 заявку на возврат"
+msgstr[1] "Показать все {count} заявки на возврат"
 msgstr[2] ""
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1112
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1085
 msgid "Show 1 unresolved claim"
 msgid_plural "Show {count} unresolved claims"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Показать 1 нерассмотренную заявку на возврат"
+msgstr[1] "Показать {count} нерассмотренных заявок на возврат"
 msgstr[2] ""
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:446
+msgid "Show Mana results"
+msgstr "Показать результаты Mana"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:19
 msgid "Show _MENU_ entries"
@@ -1071,41 +2076,105 @@ msgid "Showing results for %s"
 msgstr "Показаны результаты для %s"
 
 #: koha-tmpl/intranet-tmpl/prog/js/addorderiso2709.js:70
-msgid "Some budgets are not defined in item records"
+msgid "Some funds are not defined in item records"
 msgstr "Некоторые сметы не определены в записях экземпляров"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:121
-msgid "Su"
+#: koha-tmpl/intranet-tmpl/prog/js/addorderiso2709.js:78
+msgid "Some required item subfields are not set"
+msgstr "Некоторые обязательные подполя экземпляра не заданы"
+
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:502
+msgid "Something went wrong when loading the table."
+msgstr "Что-то пошло не так при загрузке таблицы."
+
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:496
+#, javascript-format
+msgid ""
+"Something went wrong when loading the table.\n"
+"%s: %s. \n"
+"%s"
+msgstr ""
+"Что-то пошло не так при загрузке таблицы.\n"
+"%s: %s. \n"
+"%s"
+
+#: koha-tmpl/intranet-tmpl/prog/js/cataloging.js:635
+msgid "Something went wrong. Maybe the value already exists?"
+msgstr "Что-то пошло не так. Может быть, значение уже существует?"
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:400
+msgid "Something went wrong. Unable to create a new numbering pattern."
+msgstr "Что-то пошло не так. Невозможно создать новый шаблон нумерации."
+
+#: koha-tmpl/opac-tmpl/bootstrap/js/autofill.js:84
+msgid "Sorry, nothing found."
+msgstr "Извините, ничего не найдено."
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementPeriods.vue:20
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAddResources.vue:57
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesFormAdd.vue:96
+msgid "Start date"
+msgstr "Дата начала"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesList.vue:192
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesShow.vue:62
+msgid "Started on"
+msgstr "Начато"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementLicenses.vue:42
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:50
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsList.vue:281
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:49
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:153
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesFormAdd.vue:74
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesList.vue:181
+msgid "Status"
+msgstr "Статус"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ButtonSubmit.vue:11
+msgid "Submit"
+msgstr "Подтвердить"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/Dialog.vue:37
+msgid "Submitting..."
+msgstr "Сохранение…"
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:446
+msgid "Subscription found on Mana Knowledge Base:"
+msgstr "Подписка найдена в базе знаний Mana Knowledge Base:"
+
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:138
+msgid "Sun"
 msgstr "Вс"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:120
-msgid "Sun"
-msgstr "Вск"
-
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:119
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:139
 msgid "Sunday"
 msgstr "Воскресенье"
 
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:138
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:275
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:261
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:406
 msgid "Suspend"
 msgstr "Приостановить"
 
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:261
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:392
 msgid "Suspend hold on"
 msgstr "Приостановить резервирование на"
 
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:267
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:398
 msgid "Suspend until:"
 msgstr "Приостановить до:"
+
+#: koha-tmpl/intranet-tmpl/prog/js/cataloging_additem.js:148
+msgid "Template name is required."
+msgstr "Укажите имя шаблона."
+
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:109
+msgid "Temporary directory for uploads not defined"
+msgstr "Временная директория для загрузок не определена"
 
 #: koha-tmpl/intranet-tmpl/prog/js/pages/tags-review.js:148
 msgid "Testing..."
 msgstr "Тестирование..."
-
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:121
-msgid "Th"
-msgstr "Чт"
 
 #: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:51
 msgid "The conditional comparison operator should be filled."
@@ -1126,6 +2195,16 @@ msgstr "Условное значение должно быть заполнен
 #: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:21
 msgid "The destination should be filled."
 msgstr "Пункт назначения должен быть заполнен."
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/Main.vue:232
+msgid ""
+"The e-resource management module is disabled, turn on <a href=\"/cgi-bin/"
+"koha/admin/preferences.pl?tab=&op=search&searchfield=ERMModule\">ERMModule</"
+"a> to use it"
+msgstr ""
+"Модуль управления электронными ресурсами отключен, чтобы использовать его "
+"подключите <a href=\"/cgi-bin/koha/admin/preferences.pl?"
+"tab=&op=search&searchfield=ERMModule\">ERMModule</a>"
 
 #: koha-tmpl/intranet-tmpl/prog/js/merge-record.js:72
 msgctxt "Bibliographic record"
@@ -1168,6 +2247,29 @@ msgstr "Введенная страница не является числом."
 msgid "The page should be a number between 1 and %s."
 msgstr "Страница должна быть числом от 1 до %s."
 
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:22
+msgid "The recall may have already been cancelled. Please refresh the page."
+msgstr "Запрос может быть уже отменен. Обновите страницу."
+
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:50
+msgid "The recall may have already been expired. Please refresh the page."
+msgstr "Запрос истек. Обновите страницу."
+
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:106
+msgid ""
+"The recall may have already been marked as overdue. Please refresh the page."
+msgstr "Запрос отмечен как просроченный. Обновите страницу."
+
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:134
+msgid "The recall may have already been removed. Please refresh the page."
+msgstr "Запрос удален. Обновите страницу."
+
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:78
+msgid ""
+"The recall waiting status may have already been reverted. Please refresh the "
+"page."
+msgstr "Статус ожидания запроса уже отменен. Обновите страницу."
+
 #: koha-tmpl/intranet-tmpl/prog/js/select2.js:8
 msgid "The results could not be loaded"
 msgstr "Результаты не могут быть загружены"
@@ -1193,11 +2295,35 @@ msgstr ""
 msgid "The vendor does not exist"
 msgstr "Поставщик не существует"
 
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesList.vue:15
+msgid "There are no licenses defined"
+msgstr "Лицензии не обозначены"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesList.vue:20
+msgid "There are no packages defined"
+msgstr "Пакеты не определены"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesList.vue:20
+msgid "There are no titles defined"
+msgstr "Заглавия не определены"
+
 #: koha-tmpl/intranet-tmpl/prog/js/addorderiso2709.js:52
 msgid "There is no record selected"
 msgstr "Не выбрана ни одна запись"
 
-#: koha-tmpl/intranet-tmpl/prog/js/elasticsearch-mappings.js:53
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackageAgreements.vue:108
+msgid "This agreement is already linked with this package"
+msgstr "Соглашение уже связано с этим пакетом"
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:737
+msgid "This bibliographic record does not exist"
+msgstr "Библиографическая запись не существует"
+
+#: koha-tmpl/intranet-tmpl/prog/js/patron-webcam.js:118
+msgid "This feature is available only in secure contexts (HTTPS)."
+msgstr "Эта функция доступна только в защищенных протоколах (HTTPS)."
+
+#: koha-tmpl/intranet-tmpl/prog/js/elasticsearch-mappings.js:52
 msgid "This field is mandatory and must have at least one mapping"
 msgstr ""
 "Это поле является обязательным и должно иметь хотя бы одно соответствие."
@@ -1206,68 +2332,119 @@ msgstr ""
 msgid "This item has been added to your cart"
 msgstr "Эта единица была добавлена в Вашу корзину"
 
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:370
+msgid "This item has been recalled and the due date updated"
+msgstr "Экземпляр запрошен, и дата возврата обновлена"
+
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:119
 msgid "This item is already in your cart"
 msgstr "Эта единица уже есть в Вашей корзине"
 
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:80
-msgid "This record has no items."
-msgstr "У этой записи нет экземпляров."
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:369
+msgid "This pattern name already exists. Do you want to modify it?"
+msgstr "Название шаблона уже существует. Вы хотите его изменить?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:120
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:6
+msgid "This pickup location is not allowed according to circulation rules"
+msgstr "Место выдачи недоступно в соответствии с правилами книговыдачи"
+
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:172
+msgid "This tool only accepts ZIP files or GIF, JPEG, PNG, or XPM images."
+msgstr ""
+"Убедитесь, что вы загружаете файлы в форматах ZIP, GIF, JPEG, PNG, или XPM."
+
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:138
 msgid "Thu"
-msgstr "Чтв"
+msgstr "Чт"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:119
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:139
 msgid "Thursday"
 msgstr "Четверг"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:112
-msgid "Today"
-msgstr "Сегодня"
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackageTitlesList.vue:13
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesList.vue:220
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesList.vue:156
+msgid "Title"
+msgstr "Заглавие"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:291
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:658
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:511
+msgid "Title created"
+msgstr "Заглавие создано"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesShow.vue:11
+msgid "Title identifier"
+msgstr "Идентификатор заглавия"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOTitlesShow.vue:209
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:348
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:226
+msgid "Title identifier of any preceding publication title"
+msgstr "Идентификатор заголовка любого предыдущего названия публикации"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:320
+msgid "Title identifier of the parent publication"
+msgstr "Идентификатор заголовка родительской публикации"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:501
+msgid "Title updated"
+msgstr "Заглавие обновлено"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormAdd.vue:166
+msgid "Title-level URL"
+msgstr "URL-адрес уровня заголовка"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/Main.vue:99
+msgid "Titles"
+msgstr "Заглавия"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormImport.vue:10
+msgid "To the following local package"
+msgstr "К следующему локальному пакету"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:289
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:670
 msgid "Today's checkouts"
 msgstr "Выдач сегодня"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:121
-msgid "Tu"
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:138
+msgid "Tue"
 msgstr "Вт"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:120
-msgid "Tue"
-msgstr "Втр"
-
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:119
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:139
 msgid "Tuesday"
 msgstr "Вторник"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:128
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackagesList.vue:230
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesList.vue:193
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesFormAdd.vue:52
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesList.vue:170
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesShow.vue:46
+msgid "Type"
+msgstr "Тип"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementLicenses.vue:86
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:311
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesShow.vue:124
+msgid "URI"
+msgstr "URI"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:126
 msgid "Unable to check in"
 msgstr "Невозможно сделать возврат"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:928
-msgid "Unable to claim as returned"
-msgstr "Невозможно утвердить как возвращенный"
-
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:215
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:342
 msgid "Unable to resume, hold not found"
 msgstr "Невозможно возобновить, резервирование не найдено"
 
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:298
-msgid "Unable to suspend hold, hold not found"
-msgstr "Невозможно приостановить резервирование, резервирование не найдено"
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:428
+msgid "Unable to suspend, hold not found"
+msgstr "Невозможно возобновить, резервирование не найдено"
 
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:295
-msgid "Unable to suspend hold, invalid date"
-msgstr "Невозможно приостановить резервирование, недействительная дата"
-
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1133
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1106
 msgid "Update"
 msgstr "Обновить"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:317
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:318
 msgid "Update action"
 msgstr "Обновить действие"
 
@@ -1276,9 +2453,51 @@ msgstr "Обновить действие"
 msgid "Update item"
 msgstr "Обновить экземпляр"
 
+#: koha-tmpl/intranet-tmpl/prog/js/upload-images.js:113
+msgid "Upload status: "
+msgstr "Статус загрузки: "
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/UserRoles.vue:19
+msgid "User"
+msgstr "Пользователь"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:121
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesShow.vue:71
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/UserRoles.vue:3
+msgid "Users"
+msgstr "Пользователи"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:26
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsList.vue:260
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:33
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackagesList.vue:221
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsEBSCOPackagesShow.vue:36
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesFormAdd.vue:26
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesList.vue:178
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesShow.vue:34
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalResourcesShow.vue:74
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesFormAdd.vue:26
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesList.vue:148
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesShow.vue:30
+msgid "Vendor"
+msgstr "Поставщик"
+
 #: koha-tmpl/intranet-tmpl/prog/js/viewlog.js:18
 msgid "View comparison"
 msgstr "Просмотреть сравнение"
+
+#: koha-tmpl/intranet-tmpl/prog/js/recalls.js:80
+msgid "Waiting status reverted"
+msgstr "Статус ожидания восстановлен"
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:105
+msgid ""
+"Warning! Present pattern has planned irregularities. Click on 'Test "
+"prediction pattern' to check if it's still valid"
+msgstr ""
+"Предупреждение! В настоящем шаблоне есть запланированные нарушения. Нажмите "
+"'Протестировать шаблон прогнозирования', чтобы проверить, действительно ли "
+"он действующий"
 
 #: koha-tmpl/intranet-tmpl/prog/js/catalog.js:35
 #, javascript-format
@@ -1290,26 +2509,37 @@ msgstr ""
 "серьезные проблемы с модулем комплектования. Вы действительно хотите удалить "
 "эту запись?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:121
-msgid "We"
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:370
+msgid ""
+"Warning: This will modify the pattern for all subscriptions that are using "
+"it."
+msgstr ""
+"Предупреждение: Это изменит шаблон для всех подписок, которые его используют."
+
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:138
+msgid "Wed"
 msgstr "Ср"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:120
-msgid "Wed"
-msgstr "Срд"
-
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:119
+#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:139
 msgid "Wednesday"
 msgstr "Среда"
 
-#: koha-tmpl/intranet-tmpl/prog/js/calendar.js:122
-msgid "Wk"
-msgstr "Нед"
-
 # да (memberentrygen)
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:118
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsFormAdd.vue:94
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:241
 msgid "Yes"
 msgstr "да"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsList.vue:188
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsShow.vue:402
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesList.vue:138
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalPackagesShow.vue:178
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesList.vue:130
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesShow.vue:339
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesList.vue:108
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/LicensesShow.vue:209
+msgid "Yes, delete"
+msgstr "Да, удалить"
 
 #: koha-tmpl/intranet-tmpl/prog/js/select2.js:22
 #, javascript-format
@@ -1328,12 +2558,32 @@ msgstr "Вы не можете получить больше экземпляр�
 msgid "You have made changes to system preferences."
 msgstr "Вы внесли изменения в параметры системы."
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:424
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:435
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:100
+msgid ""
+"You have modified the advanced prediction pattern. Please save your work or "
+"cancel modifications."
+msgstr ""
+"Вы изменили расширенный шаблон прогноза. Пожалуйста, сохраните вашу работу "
+"или отмените изменения."
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:91
+msgid "You must choose a first publication date"
+msgstr "Вы должны выбрать дату первой публикации"
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:96
+msgid "You must choose a subscription length or an end date."
+msgstr "Вы должны выбрать продолжительность подписки или дату окончания."
+
+#: koha-tmpl/intranet-tmpl/prog/js/subscription-add.js:65
+msgid "You must choose or create a bibliographic record"
+msgstr "Вы должны выбрать или создать библиографическую запись"
+
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:432
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:443
 msgid "You must select at least one record"
 msgstr "Вы должны выбрать по крайней мере одну запись"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/circulation.js:116
+#: koha-tmpl/intranet-tmpl/prog/js/pages/circulation.js:103
 msgid "You must select checkout(s) to export"
 msgstr "Вы должны выбрать выдачу(и) для экспорта"
 
@@ -1348,9 +2598,19 @@ msgstr "Вам нужно снова войти в систему, время в
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:91
 #: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:82
 msgid "Your cart is currently empty"
-msgstr "Ваша корзина пока пуста"
+msgstr "Корзина пуста"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:359
+#: koha-tmpl/opac-tmpl/bootstrap/js/ratings.js:35
+#, javascript-format
+msgid "Your rating: %s."
+msgstr "Ваш рейтинг: %s."
+
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:345
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:431
+msgid "Your request could not be processed. Check the logs"
+msgstr "Ваш запрос не может быть обработан. Проверьте журнал на наличие ошибок"
+
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:338
 msgid "a an the"
 msgstr "   "
 
@@ -1363,60 +2623,265 @@ msgstr " уже существует в базе данных"
 msgid "already in your cart"
 msgstr "уже есть в Вашей корзине"
 
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:165
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:169
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:171
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:292
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:296
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:298
 #, javascript-format
 msgid "at %s"
 msgstr "в %s"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:347
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:738
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:42
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:345
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:750
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:156
 msgid "by _AUTHOR_"
 msgstr "   _AUTHOR_"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/stores/authorised-values.js:32
+msgid "has backfile in"
+msgstr "имеет резервную копию в"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/stores/authorised-values.js:30
+msgid "has demand-driven acquisitions in"
+msgstr "имеет приобретения в соответствии со спросом в"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/stores/authorised-values.js:33
+msgid "has frontfile in"
+msgstr "имеет главный файл в"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/stores/authorised-values.js:22
+msgid "has post-cancellation access in"
+msgstr "имеет доступ после отмены в"
 
 #: koha-tmpl/intranet-tmpl/prog/js/additem.js:274
 msgid "is duplicated"
 msgstr " — продублирован"
 
+#: koha-tmpl/intranet-tmpl/prog/js/vue/stores/authorised-values.js:15
+msgid "is superseded by"
+msgstr "заменен на"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkout_renewals_modal.js:24
+msgid "manually"
+msgstr "вручную"
+
 #: koha-tmpl/intranet-tmpl/prog/js/pages/preferences.js:57
 msgid "modified"
 msgstr "изменено"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:192
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:190
 msgid "not checked out"
 msgstr "не выдано"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:198
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/AgreementsList.vue:13
+msgid "on"
+msgstr "на"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:196
 msgid "on hold"
 msgstr "зарезервировано"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/stores/authorised-values.js:18
+msgid "provides post-cancellation access for"
+msgstr "предоставляет доступ после отмены для"
 
 #: koha-tmpl/intranet-tmpl/prog/js/addorderiso2709.js:63
 msgid "quantity values are not filled in or are not numbers"
 msgstr "значения количества не заполнены или не являются числами"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:206
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:204
 msgid "reason unknown"
 msgstr "причина неизвестна"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:196
+#: koha-tmpl/intranet-tmpl/prog/js/vue/stores/authorised-values.js:34
+msgid "related to"
+msgstr "связано с"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/components/ERM/EHoldingsLocalTitlesFormImport.vue:6
+#, javascript-format
+msgid "see job #%s"
+msgstr "посмотреть задачу #%s"
+
+#: koha-tmpl/intranet-tmpl/prog/js/vue/stores/authorised-values.js:14
+msgid "supersedes"
+msgstr "заменён"
+
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:194
 msgid "too many consecutive renewals without being seen by the library"
 msgstr "слишком много последовательных продлений, которые не видны библиотеке"
 
-#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:194
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:192
 msgid "too many renewals"
 msgstr "слишком много продлений"
 
-#: koha-tmpl/intranet-tmpl/prog/js/holds.js:149
+#: koha-tmpl/intranet-tmpl/prog/js/vue/stores/authorised-values.js:26
+msgid "tracks demand-driven acquisitions for"
+msgstr "отслеживает приобретения в соответствии со спросом для"
+
+#: koha-tmpl/intranet-tmpl/prog/js/holds.js:272
 #, javascript-format
 msgid "until %s"
 msgstr "до %s"
 
-#~ msgctxt "Bibliographic records"
-#~ msgid "Are you sure you want to remove the selected items?"
-#~ msgstr "Вы действительно хотите деле удалить выбранные экземпляры?"
+#: koha-tmpl/intranet-tmpl/prog/js/patron-autocomplete.js:105
+msgid "years"
+msgstr "лет"
 
-#~ msgid "One or more selected items cannot be placed on hold."
-#~ msgstr ""
-#~ "Один или несколько выбранных экземпляров не могут быть зарезервированы."
+#: koha-tmpl/intranet-tmpl/prog/js/cashup_modal.js:23
+msgid "{credit_type_description} against {debit_type_description}"
+msgstr "{credit_type_description} против {debit_type_description}"
+
+#~ msgid "%s search"
+#~ msgstr "%s поиск"
+
+#~ msgid "%s titles found locally"
+#~ msgstr "%s заглавия, найденные локально"
+
+#~ msgid "Agreement"
+#~ msgstr "Соглашение"
+
+#~ msgid "Agreement #%s"
+#~ msgstr "Соглашение #%s"
+
+#~ msgid "Agreement license %s"
+#~ msgstr "Соглашение лицензия %s"
+
+#~ msgid "Agreement name"
+#~ msgstr "Название соглашения"
+
+#~ msgid "Agreement period %s"
+#~ msgstr "Срок действия соглашения %s"
+
+#~ msgid "Agreement user"
+#~ msgstr "Пользователь соглашения"
+
+#~ msgid "Cancellation deadline"
+#~ msgstr "Крайний срок отмены"
+
+#~ msgid "Delete agreement"
+#~ msgstr "Удалить соглашение"
+
+#~ msgid "Delete license"
+#~ msgstr "Удалить лицензию"
+
+#~ msgid "Delete package"
+#~ msgstr "Удалить пакет"
+
+#~ msgid "Delete title"
+#~ msgstr "Удалить заглавие"
+
+#~ msgid "Document %s"
+#~ msgstr "Документ %s"
+
+#~ msgid "EBSCO"
+#~ msgstr "EBSCO"
+
+#~ msgid "Edit agreement #%s"
+#~ msgstr "Редактировать соглашение #%s"
+
+#~ msgid "Edit license %s"
+#~ msgstr "Редактировать лицензию %s"
+
+#~ msgid "Edit package #%s"
+#~ msgstr "Редактировать пакет #%s"
+
+#~ msgid "Edit title #%s"
+#~ msgstr "Редактировать заглавие #%s"
+
+#~ msgid "File description"
+#~ msgstr "Описание файла"
+
+#~ msgid "File name"
+#~ msgstr "Имя файла"
+
+#~ msgid "File type"
+#~ msgstr "Тип файла"
+
+#~ msgid "Filter"
+#~ msgstr "Фильтр"
+
+#~ msgid "Hide filters"
+#~ msgstr "Убрать фильтры"
+
+#~ msgid "Import from list"
+#~ msgstr "Импорт из списка"
+
+#~ msgid "Import in progress,"
+#~ msgstr "Выполняется импорт,"
+
+#~ msgid "License #%s"
+#~ msgstr "Лицензия #%s"
+
+#~ msgid "License name"
+#~ msgstr "Название лицензии"
+
+#~ msgid "License user"
+#~ msgstr "Пользовательская лицензия"
+
+#~ msgid "Local"
+#~ msgstr "Местный (муниципальный)"
+
+#~ msgid "Package #%s"
+#~ msgstr "Пакет #%s"
+
+#~ msgid "Package %s"
+#~ msgstr "Пакет %s"
+
+#~ msgid "Package type"
+#~ msgstr "Тип пакета"
+
+#~ msgid "Period start"
+#~ msgstr "Начало периода"
+
+#~ msgid "Please enter a search term"
+#~ msgstr "Пожалуйста, введите поисковый запрос"
+
+#~ msgid "Related agreement %s"
+#~ msgstr "Связанное соглашение %s"
+
+#~ msgid "Remove this agreement"
+#~ msgstr "Удалить это соглашение"
+
+#~ msgid "Resource #%s"
+#~ msgstr "Ресурс #%s"
+
+#~ msgid "Select a file"
+#~ msgstr "Выбрать файл"
+
+#~ msgid "Show filters"
+#~ msgstr "Показать фильтры"
+
+#~ msgid "Table settings"
+#~ msgstr "Настройки таблицы"
+
+#~ msgid "There are no agreements created yet"
+#~ msgstr "Соглашения еще не созданы"
+
+#~ msgid "There are no agreements defined"
+#~ msgstr "Соглашения не определены"
+
+#~ msgid "There are no licenses created yet"
+#~ msgstr "Лицензии еще не созданы"
+
+#~ msgid "There are no other agreements created yet"
+#~ msgstr "Соглашения еще не созданы"
+
+#~ msgid "There are no packages created yet"
+#~ msgstr "Пакеты еще не созданы"
+
+#~ msgid "Title #%s"
+#~ msgstr "Заглавие #%s"
+
+#~ msgid "Titles (%s)"
+#~ msgstr "Заглавия (%s)"
+
+#~ msgid "Unable to claim as returned"
+#~ msgstr "Невозможно утвердить как возвращенный"
+
+#~ msgid "Update file"
+#~ msgstr "Обновить файл"
+
+#~ msgid "Uploaded on"
+#~ msgstr "Загружено"
+
+#~ msgid "eHoldings"
+#~ msgstr "Электронные фонды"

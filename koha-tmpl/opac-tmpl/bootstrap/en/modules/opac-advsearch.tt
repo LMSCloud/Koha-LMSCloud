@@ -12,16 +12,16 @@
 <form id="advsearch_form" action="/cgi-bin/koha/opac-search.pl" method="get">
     <input type="hidden" name="advsearch" value="1"/>
     <div class="main">
-        <nav aria-label="breadcrumb">
-            <ul class="breadcrumb">
+        <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
+            <ol class="breadcrumb">
                 <li class="breadcrumb-item">
                     <a href="/cgi-bin/koha/opac-main.pl">Home</a>
                 </li>
-                <li class="breadcrumb-item active" aria-current="page">
-                    <a href="#">Advanced search</a>
+                <li class="breadcrumb-item active">
+                    <a href="#" aria-current="page">Advanced search</a>
                 </li>
-            </ul>
-        </nav>
+            </ol>
+        </nav> <!-- /#breadcrumbs -->
 
         <div class="container-fluid">
             <div class="row">
@@ -40,13 +40,11 @@
                                     <div class="search-term-row">
                                         <div class="search-term-input">
                                             [% IF ( expanded_options ) %]
-                                                [% IF ( !loop.first ) %]
                                                     <select name="op" class="form-control">
-                                                        <option value="and" selected="selected">and</option>
-                                                        <option value="or">or</option>
-                                                        <option value="not">not</option>
+                                                        <option value="AND" selected="selected">and</option>
+                                                        <option value="OR">or</option>
+                                                        <option value="NOT">not</option>
                                                     </select>
-                                                [% END %]
                                             [% ELSE %]
                                                 <label for="search-field_[% loop.index | html %]">
                                                     [% IF loop.index == 0 %]
@@ -114,18 +112,16 @@
                                             </select> <!-- /#search-field_[% loop.index | html %] -->
                                         </div> <!-- .search-term-input -->
                                         <div class="search-term-input">
-                                            <input class="form-control" type="text" size="" name="q" title="Enter search terms" value="" />
+                                            <input class="form-control" type="text" name="q" title="Enter search terms" value="" />
                                         </div> <!-- .search-term-input -->
                                         [% IF ( expanded_options ) %]
                                             <div class="search-term-input">
-                                                [% IF ( !loop.first ) %]
                                                     <a class="ButtonPlus" title="Add another field" href="#">
                                                         <i class="fa fa-plus-square" aria-hidden="true"></i>
                                                     </a>
                                                     <a class="ButtonLess" title="Remove field" href="#">
                                                         <i class="fa fa-minus-square" aria-hidden="true"></i>
                                                     </a>
-                                                [% END %]
                                             </div> <!-- .search-term-input -->
                                         [% END %]
                                     </div> <!-- /.search-term-row -->
@@ -142,7 +138,13 @@
                                 [% ELSE %]
                                     <input type="hidden" name="weight_search" value="1" />
                                 [% END %]
-                            </div> <!-- /.search-terms -->
+                                [% IF Koha.Preference('IncludeSeeFromInSearches') %]
+                                    <div class="hint included-see-from-headings-info">
+                                        <i class="fa fa-info-circle" aria-hidden="true"></i>
+                                        See from (non-preferred form) headings are included
+                                    </div>
+                                [% END %]
+                            </div> <!-- /.advanced-search-terms -->
                         </fieldset>
                     </div> <!-- /#booleansearch -->
                 </div> <!-- / .col -->
@@ -160,61 +162,62 @@
                 [%# Following on one line for translatability %]
                 [% IF ( ( OpacAdvSearchOptions and OpacAdvSearchOptions.grep('itemtype').size > 0 and not expanded_options ) or ( OpacAdvSearchMoreOptions and OpacAdvSearchMoreOptions.grep('itemtype').size > 0 and expanded_options ) ) %]
                     <div class="col order-first order-md-first order-lg-2">
-                        <div id="advsearches" class="toptabs">
-                            <ul>
+                        [% WRAPPER tabs id= "advsearches" %]
+                            [% WRAPPER tabs_nav %]
                                 [% FOREACH advsearchloo IN advancedsearchesloop %]
-                                    <li id="advsearch-tab-[% advsearchloo.advanced_search_type | html %]">
-                                    <a href="#advsearch-[% advsearchloo.advanced_search_type | uri %]">
-                                   [% IF ( advsearchloo.advanced_search_type == 'itemtypes' ) %]Item type
-                                   [% ELSIF ( advsearchloo.advanced_search_type == 'ccode' ) %]Collection
-                                   [% ELSIF ( advsearchloo.advanced_search_type == 'loc' ) %]Shelving location
-                                   [% ELSE %]Something else
-                                   [% END %]
-                                   </a></li>
+                                    [% WRAPPER tab_item tabname= "advsearch-tab-${advsearchloo.advanced_search_type}" bt_active= "0" %]
+                                        [% IF ( advsearchloo.advanced_search_type == 'itemtypes' ) %]<span>Item type</span>
+                                        [% ELSIF ( advsearchloo.advanced_search_type == 'ccode' ) %]<span>Collection</span>
+                                        [% ELSIF ( advsearchloo.advanced_search_type == 'loc' ) %]<span>Shelving location</span>
+                                        [% ELSE %]<span>Something else</span>
+                                        [% END %]
+                                    [% END %]
                                 [% END %]
-                            </ul>
-
-                            [% FOREACH advsearchloo IN advancedsearchesloop %]
-                                <div id="advsearch-[% advsearchloo.advanced_search_type | html %]" class="advsearch">
-                                    <fieldset>
-                                        <legend>Limit to any of the following:</legend>
-                                        [% numrows = advsearchloo.code_loop.size %]
-                                        [% optrows = (numrows % 2) + (numrows div 2) %]
-                                        <div class="row">
-                                            [% FOREACH disprow IN [0,1] %]
-                                            <div class="col-sm-6 col-lg-6">
-                                                [% startrow = disprow * optrows %][% endrow = ((disprow+1) * optrows) - 1 %]
-                                                [% FOREACH rownum IN [startrow..endrow] %]
-                                                    [% IF rownum < numrows %]
-                                                        [% itemtypeloo = advsearchloo.code_loop.$rownum %]
-                                                        [% IF (advsearchloo.advanced_search_type != 'itemtypes') OR (((!itemtypeloo.searchcategory) AND (itemtypeloo.cat == 0)) OR (itemtypeloo.cat == 1)) %]
-                                                            <input type="checkbox"
-                                                                id="[% itemtypeloo.ccl FILTER remove(',') | html %]-[% itemtypeloo.number | html %]"
-                                                                name="[% IF ( itemtypeloo.cat == 1 ) %]searchcat[% ELSE %]limit[% END %]"
-                                                                value="[% IF ( itemtypeloo.cat == 1 ) %][% itemtypeloo.code | html %][% ELSE %]mc-[% itemtypeloo.ccl | html %]:[% itemtypeloo.code | html %][% END %]"
-                                                            />&nbsp;
-                                                            <label for="[% itemtypeloo.ccl FILTER remove(',') | html %]-[% itemtypeloo.number | html %]">
-                                                                [% UNLESS ( Koha.Preference('OpacNoItemTypeImages')) %]
-                                                                    [% IF ( itemtypeloo.imageurl ) %]
-                                                                        <img src="[% itemtypeloo.imageurl | html %]" alt="[% itemtypeloo.description | html %]" />
-                                                                    [% END %]
-                                                                    &nbsp;
-                                                                [% END %]
-                                                                [% itemtypeloo.description | html %]
-                                                            </label><br />
-                                                        [% END %]
-                                                    [% END %]
-                                                [% END %]
+                            [% END # /WRAPPER tabs_nav %]
+                            [% WRAPPER tab_panels id= "advsearches" %]
+                                [% FOREACH advsearchloo IN advancedsearchesloop %]
+                                    [% WRAPPER tab_panel tabname="advsearch-tab-${advsearchloo.advanced_search_type}" %]
+                                        <fieldset>
+                                            <legend>Limit to any of the following:</legend>
+                                            [% numrows = advsearchloo.code_loop.size %]
+                                            [% optrows = (numrows % 2) + (numrows div 2) %]
+                                            <div class="row">
+                                                [% FOREACH disprow IN [0,1] %]
+                                                    <div class="col-sm-6 col-lg-6">
+                                                        [% startrow = disprow * optrows %][% endrow = ((disprow+1) * optrows) - 1 %]
+                                                        [% FOREACH rownum IN [startrow..endrow] %]
+                                                            [% IF rownum < numrows %]
+                                                                [% itemtypeloo = advsearchloo.code_loop.$rownum %]
+                                                                [% IF (advsearchloo.advanced_search_type != 'itemtypes') OR (((!itemtypeloo.searchcategory) AND (itemtypeloo.cat == 0)) OR (itemtypeloo.cat == 1)) %]
+                                                                    <input type="checkbox"
+                                                                        id="[% itemtypeloo.ccl FILTER remove(',') | html %]-[% itemtypeloo.number | html %]"
+                                                                        name="[% IF ( itemtypeloo.cat == 1 ) %]searchcat[% ELSE %]limit[% END %]"
+                                                                        value="[% IF ( itemtypeloo.cat == 1 ) %][% itemtypeloo.code | html %][% ELSE %]mc-[% itemtypeloo.ccl | html %]:[% itemtypeloo.code | html %][% END %]"
+                                                                    />&nbsp;
+                                                                    <label for="[% itemtypeloo.ccl FILTER remove(',') | html %]-[% itemtypeloo.number | html %]">
+                                                                        [% UNLESS ( Koha.Preference('OpacNoItemTypeImages')) %]
+                                                                            [% IF ( itemtypeloo.imageurl ) %]
+                                                                                <img src="[% itemtypeloo.imageurl | html %]" alt="[% itemtypeloo.description | html %]" />
+                                                                            [% END %]
+                                                                            &nbsp;
+                                                                        [% END %]
+                                                                        <span class="itypetext">[% itemtypeloo.description | html %]</span>
+                                                                    </label><br />
+                                                                [% END # IF advsearchloo.advanced_search_type %]
+                                                            [% END # rownum < numrows %]
+                                                        [% END # FOREACH rownum %]
+                                                        <!-- [% IF ( loop.last ) %]</div>[% ELSE %][% UNLESS ( loop.count % 4 ) %]</div><div class="row">[% END %][% END %] -->
+                                                    </div>
+                                                [% END # FOREACH disprow %]
                                             </div>
-                                            [% END %]
-                                        </div>
-                                    </fieldset>
-                                </div> <!-- / #advsearch-[% advsearchloo.advanced_search_type | html %] -->
-                            [% END # / FOREACH advancedsearchesloop %]
-                        </div> <!-- / #advsearches -->
+                                        </fieldset>
+                                    [% END # /tab_panel#advsearch-advsearchloo.advanced_search_type %]
+                                [% END # / FOREACH advancedsearchesloop %]
+                            [% END # /tab_panels %]
+                        [% END # /WRAPPER tabs#advsearches %]
                     </div> <!-- / .col -->
                 [% END # /IF OpacAdvSearchOptions %]
-            </div>
+            </div> <!-- /.row -->
             
            <div id="age_limits" class="row">
            
@@ -302,6 +305,7 @@
                                     <select name="limit" id="branchloop">
                                     <option value="">All libraries</option>
                                     [% FOREACH BranchesLoo IN Branches.all( selected => opac_name ) %]
+                                        [% NEXT UNLESS BranchesLoo.public %]
                                         [% IF BranchesLoo.selected %]
                                             <option value="branch:[% BranchesLoo.branchcode | html %]" selected="selected">[% BranchesLoo.branchname | html %]</option>
                                         [% ELSE %]
@@ -521,8 +525,10 @@
 
 [% BLOCK jsinclude %]
 [% Asset.js("lib/jquery/plugins/jquery.deserialize.min.js") | $raw %]
-[% Asset.js("lib/jquery/plugins/jquery.cookie.min.js") | $raw %]
 <script>
+window.addEventListener('pageshow', function( e ){
+    $('.form-control').prop('disabled' , false );
+});
 $(document).ready(function() {
     [% IF search_groups %]
         function branch_limit() {
@@ -543,12 +549,14 @@ $(document).ready(function() {
         });
     [% END %]
 
-    $('#advsearches').tabs();
-    jQuery.cookie.json = true;
-    //$('#advsearches > ul').tabs();
+    if( $("#advsearches .tab-pane.active").length < 1 ){
+        $("#advsearches li:first a").tab("show");
+    }
+
+    $('.search-term-row .search-term-input select[name="op"]').first().prop("disabled",true).hide();
 
     [% IF ( ReturnToSearch ) %]
-        if (form_serialized = jQuery.cookie("form_serialized")) {
+        if (form_serialized = JSON.parse( Cookies.get("form_serialized") ) ) {
             // Add missing term inputs if there were more than 3
             var count = (form_serialized.match(/&q=/g) || []).length;
             for(var i = 3 ; i < count ; i++) {
@@ -556,7 +564,7 @@ $(document).ready(function() {
             }
             $('#advsearch form').deserialize(form_serialized);
         }
-        if (form_serialized_limits = jQuery.cookie("form_serialized_limits")) {
+        if (form_serialized_limits = JSON.parse( Cookies.get("form_serialized_limits") ) ) {
             $('#language-limit')     .val(form_serialized_limits[0]);
             $('#branchloop')         .val(form_serialized_limits[1]);
             $('#subtype_audience')   .val(form_serialized_limits[2]);
@@ -570,9 +578,9 @@ $(document).ready(function() {
         }
     [% ELSE %]
         //Clear all form cookies
-        jQuery.removeCookie("form_serialized", { path: '/'});
-        jQuery.removeCookie("form_serialized_limits", { path: '/'});
-        jQuery.removeCookie("search_path_code", { path: '/'});
+        Cookies.remove("form_serialized", { path: '/'});
+        Cookies.remove("form_serialized_limits", { path: '/'});
+        Cookies.remove("search_path_code", { path: '/'});
     [% END %]
     $('#advsearch_form').submit(function() {
         $('[name^="limit"]').each(function(){
@@ -588,7 +596,7 @@ $(document).ready(function() {
             }
         });
         form_serialized = $(this).serialize();
-        jQuery.cookie("form_serialized", form_serialized,{ path: '/'});
+        Cookies.set("form_serialized", JSON.stringify( form_serialized ), { path: '/', sameSite: 'Lax' });
         form_serialized_limits = [
             $('#language-limit').val(),   $('#branchloop').val(),
             $('#subtype_audience').val(), $('#subtype_content').val(),
@@ -596,11 +604,11 @@ $(document).ready(function() {
             $('#locloop').val(),          $('#age-limit').val(),
             $('#fsk-limit').val(),        $('#usk-limit').val()
         ];
-        jQuery.cookie("form_serialized_limits", form_serialized_limits,{ path: '/'});
+        Cookies.set("form_serialized_limits", JSON.stringify( form_serialized_limits ),{ path: '/', sameSite: 'Lax' });
         [% IF ( expanded_options ) %]
-        jQuery.cookie("search_path_code", 'exs',{ path: '/'});
+            Cookies.set("search_path_code", 'exs', { path: '/', sameSite: 'Lax' });
         [% ELSE %]
-        jQuery.cookie("search_path_code", 'ads',{ path: '/'});
+            Cookies.set("search_path_code", 'ads', { path: '/', sameSite: 'Lax' });
         [% END %]
     });
 
@@ -612,17 +620,18 @@ $(document).ready(function() {
         $('.ButtonLess').show();
         var thisLine = $(this).parent().parent();
         var newLine = thisLine.clone();
+        $(newLine).find('.search-term-input select[name="op"]').first().prop("disabled",false).show();
         newLine.find('input').val('');
         thisLine.after(newLine);
     });
 
     $(document).on("click", '.ButtonLess', function(e) {
         e.preventDefault();
-        if($(this).parent().parent().siblings().length <= 3 ) {
+        if( $("a.ButtonLess").length <= 2 ) {
            $('.ButtonLess').hide();
         }
         $(this).parent().parent().remove();
+        $('.search-term-row .search-term-input select[name="op"]').first().prop("disabled",true).hide();
     });
-
 </script>
 [% END %]

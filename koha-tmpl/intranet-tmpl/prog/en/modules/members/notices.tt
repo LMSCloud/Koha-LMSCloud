@@ -10,119 +10,137 @@
 [% INCLUDE 'doc-head-close.inc' %]
 <style>
     .notice { display: none; }
-    .notice-title { font-weight: bold; display: block; }
 </style>
 </head>
 
 <body id="pat_notices" class="pat">
-[% INCLUDE 'header.inc' %]
-[% PROCESS 'patron-search.inc' %]
-
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
-            <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Sent notices for [% INCLUDE 'patron-title.inc' %]
-            </a>
-        </li>
-    </ol>
-</nav>
-
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
-            <main>
-
-[% INCLUDE 'members-toolbar.inc' %]
-<h1>Sent notices for [% INCLUDE 'patron-title.inc' %]</h1>
-
-[% IF ( QUEUED_MESSAGES ) %]
-    <table id="noticestable">
-        <thead>
-            <tr>
-                <th>Notice</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Updated on</th>
-                <th>Time created</th>
-                <th>Delivery note</th>
-            </tr>
-        </thead>
-	<tbody>
-	    [% FOREACH QUEUED_MESSAGE IN QUEUED_MESSAGES %]
-	    <tr>
-		<td>
-            <a class="notice-title" data-noticeid="[% QUEUED_MESSAGE.message_id | html %]" href="#">[% QUEUED_MESSAGE.subject | html %]</a>
-            <div id="notice[% QUEUED_MESSAGE.message_id | html %]" class="notice">
-                <iframe srcdoc="[% QUEUED_MESSAGE.content | html | html_line_break %]"></iframe>
-            </div>
-        </td>
-		<td>
-            [% IF ( QUEUED_MESSAGE.message_transport_type == 'email' ) %]email
-            [% ELSIF ( QUEUED_MESSAGE.message_transport_type == 'print' ) %]print
-            [% ELSIF ( QUEUED_MESSAGE.message_transport_type == 'feed' ) %]feed
-            [% ELSIF ( QUEUED_MESSAGE.message_transport_type == 'sms' ) %]sms
-            [% ELSE %][% QUEUED_MESSAGE.message_transport_type | html %][% END %]
-        </td>
-		<td>
-            [% IF ( QUEUED_MESSAGE.status == 'sent' ) %]sent
-            [% ELSIF ( QUEUED_MESSAGE.status == 'pending' ) %]pending
-            [% ELSIF ( QUEUED_MESSAGE.status == 'failed' ) %]failed
-            [% ELSIF ( QUEUED_MESSAGE.status == 'deleted' ) %]deleted
-            [% ELSE %][% QUEUED_MESSAGE.status | html %][% END %]
-            [% IF ( QUEUED_MESSAGE.status != 'pending' ) %]
-            <div id="resend_notice[% QUEUED_MESSAGE.message_id | html %]"  class="notice">
-                <form action="/cgi-bin/koha/members/notices.pl?borrowernumber=[% borrowernumber | html %]" method="POST">
-                    <input type="hidden" name="op" value="resend_notice" />
-                    <input type="hidden" name="borrowernumber" value="[% borrowernumber | html %]" />
-                    <input type="hidden" name="message_id" value="[% QUEUED_MESSAGE.message_id | html %]" />
-                    <fieldset class="action">
-                        <button class="btn btn-default btn-xs" type="submit">Resend</button>
-                    </fieldset>
-                </form>
-            </div>
-            [% END %]
-        </td>
-        <td data-order="[% QUEUED_MESSAGE.updated_on | html %]">[% QUEUED_MESSAGE.updated_on | $KohaDates  with_hours => 1 %]</td>
-        <td data-order="[% QUEUED_MESSAGE.time_queued | html %]">[% QUEUED_MESSAGE.time_queued | $KohaDates  with_hours => 1 %]</td>
-        <td>
-        [% IF ( QUEUED_MESSAGE.failure_code ) %]
-            [% IF ( QUEUED_MESSAGE.failure_code == "INVALID_BORNUMBER" ) %]Invalid borrowernumber [% borrowernumber | html %]
-            [% ELSIF ( QUEUED_MESSAGE.failure_code == 'NO_EMAIL' ) %]Unable to find an email address for this borrower
-            [% ELSIF (matches = QUEUED_MESSAGE.failure_code.match('INVALID_EMAIL:(\w+)') ) %]Invalid [% matches.0 | html %] email address found [% borrowernumber | html %]
-            [% ELSIF ( QUEUED_MESSAGE.failure_code == 'NO_FROM' ) %]Missing from email address
-            [% ELSIF ( QUEUED_MESSAGE.failure_code == 'MISSING_SMS' ) %]Missing SMS number
-            [% ELSIF ( QUEUED_MESSAGE.failure_code == 'DUPLICATE_MESSAGE' ) %]Message is duplicate
-            [% ELSIF ( QUEUED_MESSAGE.failure_code == 'NO_NOTES' ) %]No notes from SMS driver
-            [% ELSIF ( QUEUED_MESSAGE.failure_code == 'SENDMAIL' ) %]Unhandled email failure, check the logs for further details
-            [% ELSIF ( QUEUED_MESSAGE.failure_code == "UNKNOWN_ERROR" ) %]Unknown error
-            [% ELSE %]Error occurred while sending email.
-            [% END %]
-        [% END %]
-        </td>
-        </tr>
-	    [% END %]
-	</tbody>
-    </table>
-[% ELSE %]
-    <div class="dialog message">There is no record of any messages that have been sent to this patron.</div>
+    [% WRAPPER 'header.inc' %]
+    [% INCLUDE 'patron-search-header.inc' %]
 [% END %]
 
-            </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+    [% WRAPPER 'sub-header.inc' %]
+        [% WRAPPER breadcrumbs %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% borrowernumber | uri %]">
+                    [% INCLUDE 'patron-title.inc' %]
+                </a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Sent notices</span>
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
+    [% END #/ WRAPPER sub-header.inc %]
 
-        <div class="col-sm-2 col-sm-pull-10">
-            <aside>
-                [% INCLUDE 'circ-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
-     </div> <!-- /.row -->
+    <div class="main container-fluid">
+        <div class="row">
+            <div class="col-sm-10 col-sm-push-2">
+                <main>
+
+                    [% INCLUDE 'members-toolbar.inc' %]
+                    <h1>Sent notices for [% INCLUDE 'patron-title.inc' %]</h1>
+
+                    [% IF ( QUEUED_MESSAGES ) %]
+                        <div class="page-section">
+                            <table id="noticestable">
+                                <thead>
+                                    <tr>
+                                        <th>Notice</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                        <th>Updated on</th>
+                                        <th>Time created</th>
+                                        <th>Delivery note</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    [% FOREACH QUEUED_MESSAGE IN QUEUED_MESSAGES %]
+                                        <tr>
+                                            <td>
+                                                <a class="notice-title" data-noticeid="[% QUEUED_MESSAGE.message_id | html %]" href="/cgi-bin/koha/members/notices.pl?borrowernumber=[% borrowernumber | uri %]&amp;noticeid=[% QUEUED_MESSAGE.message_id | uri %]">[% QUEUED_MESSAGE.subject | html %]</a>
+                                                <iframe class="notice" id="notice[% QUEUED_MESSAGE.message_id | html %]" srcdoc="[% QUEUED_MESSAGE.content | html | html_line_break %]"></iframe>
+                                            </td>
+                                            <td>
+                                                [% IF ( QUEUED_MESSAGE.message_transport_type == 'email' ) %]<span>email</span>
+                                                [% ELSIF ( QUEUED_MESSAGE.message_transport_type == 'print' ) %]<span>print</span>
+                                                [% ELSIF ( QUEUED_MESSAGE.message_transport_type == 'feed' ) %]<span>feed</span>
+                                                [% ELSIF ( QUEUED_MESSAGE.message_transport_type == 'sms' ) %]<span>sms</span>
+                                                [% ELSE %][% QUEUED_MESSAGE.message_transport_type | html %][% END %]
+                                            </td>
+                                            <td>
+                                                [% IF ( QUEUED_MESSAGE.status == 'sent' ) %]<span>sent</span>
+                                                [% ELSIF ( QUEUED_MESSAGE.status == 'pending' ) %]<span>pending</span>
+                                                [% ELSIF ( QUEUED_MESSAGE.status == 'failed' ) %]<span>failed</span>
+                                                [% ELSIF ( QUEUED_MESSAGE.status == 'deleted' ) %]<span>deleted</span>
+                                                [% ELSE %][% QUEUED_MESSAGE.status | html %][% END %]
+                                                [% IF ( QUEUED_MESSAGE.status != 'pending' ) %]
+                                                    <div class="notice">
+                                                        <form id="resend_notice[% QUEUED_MESSAGE.message_id | html %]" action="/cgi-bin/koha/members/notices.pl?borrowernumber=[% borrowernumber | html %]" method="POST">
+                                                            <input type="hidden" name="op" value="resend_notice" />
+                                                            <input type="hidden" name="borrowernumber" value="[% borrowernumber | html %]" />
+                                                            <input type="hidden" name="message_id" value="[% QUEUED_MESSAGE.message_id | html %]" />
+                                                        </form>
+                                                    </div>
+                                                [% END %]
+                                            </td>
+                                            <td data-order="[% QUEUED_MESSAGE.updated_on | html %]">[% QUEUED_MESSAGE.updated_on | $KohaDates  with_hours => 1 %]</td>
+                                            <td data-order="[% QUEUED_MESSAGE.time_queued | html %]">[% QUEUED_MESSAGE.time_queued | $KohaDates  with_hours => 1 %]</td>
+                                            <td>
+                                                [% IF ( QUEUED_MESSAGE.failure_code ) %]
+                                                    [% IF ( QUEUED_MESSAGE.failure_code == "INVALID_BORNUMBER" ) %]<span>Invalid borrowernumber [% borrowernumber | html %]</span>
+                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'NO_EMAIL' ) %]<span>Unable to find an email address for this borrower</span>
+                                                    [% ELSIF (matches = QUEUED_MESSAGE.failure_code.match('INVALID_EMAIL:(\w+)') ) %]<span>Invalid [% matches.0 | html %] email address found [% borrowernumber | html %]</span>
+                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'NO_FROM' ) %]<span>Missing from email address</span>
+                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'MISSING_SMS' ) %]<span>Missing SMS number</span>
+                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'DUPLICATE_MESSAGE' ) %]<span>Message is duplicate</span>
+                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'NO_NOTES' ) %]<span>No notes from SMS driver</span>
+                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'SENDMAIL' ) %]<span>Unhandled email failure, check the logs for further details</span>
+                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == "UNKNOWN_ERROR" ) %]<span>Unknown error</span>
+                                                    [% ELSE %]<span>Error occurred while sending email.</span>
+                                                    [% END %]
+                                                [% END %]
+                                            </td>
+                                        </tr>
+                                    [% END %]
+                                </tbody>
+                            </table>
+                        </div> <!-- /.page-section -->
+                    [% ELSE %]
+                        <div class="dialog message">There is no record of any messages that have been sent to this patron.</div>
+                    [% END %]
+
+                </main>
+            </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+            <div class="col-sm-2 col-sm-pull-10">
+                <aside>
+                    [% INCLUDE 'circ-menu.inc' %]
+                </aside>
+            </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.row -->
+
+        <!-- Modal -->
+        <div class="modal" id="noticeModal" tabindex="-1" aria-labelledby="noticeModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h5 class="modal-title" id="noticeModalLabel">Notice</h5>
+                    </div>
+                    <div class="modal-body">
+                        ...
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" id="resend-notice" class="btn btn-default" style="display:none"><i class="fa fa-refresh" aria-hidden="true"></i> Resend</button>
+                        <button type="button" class="btn btn-default deny cancel" data-dismiss="modal"><i class="fa fa-remove"></i> Close</button>
+                    </div>
+                </div> <!-- /.modal-content -->
+            </div> <!-- /.modal-dialog -->
+        </div> <!-- /.modal -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
@@ -135,17 +153,28 @@
 
             $("#noticestable").on("click", ".notice-title", function(e){
                 e.preventDefault();
-                var rowid = $(this).data("noticeid");
-                $("#notice"+rowid).toggle();
-                $("#resend_notice"+rowid).toggle();
-                var iframe = $("#notice"+rowid).children('iframe');
-                // Adding some padding to the height and width to remove scrollbars
-                var height = iframe.get(0).contentWindow.document.body.scrollHeight + 25;
-                var width = iframe.get(0).contentWindow.document.body.scrollWidth + 25;
-                iframe.css({
-                    'width':  width + 'px',
-                    'height': height + 'px'
-                });
+                var title = $(this).text();
+                var noticeid = $(this).data("noticeid");
+                var body = $("#notice" + noticeid ).attr("srcdoc");
+                if( $("#resend_notice" + noticeid ).length ){
+                    $("#resend-notice").show();
+                }
+                $("#resend-notice").data("noticeid", noticeid );
+                $("#noticeModalLabel").text( title );
+                $("#noticeModal .modal-body").html( body );
+                $("#noticeModal").modal("show");
+            });
+
+            $("#resend-notice").on("click", function(e){
+                e.preventDefault();
+                var noticeid = $(this).data("noticeid");
+                $("#resend_notice" + noticeid ).submit();
+            });
+
+            $("#noticeModal").on("hide.bs.modal", function(){
+                $("#resend-notice").removeData("noticeid").hide();
+                $("#noticeModalLabel").text("");
+                $("#noticeModal .modal-body").html("");
             });
         });
     </script>

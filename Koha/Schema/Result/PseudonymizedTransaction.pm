@@ -251,8 +251,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-11-19 16:54:35
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:vJa1EyxKtne2EVlH84Ebuw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-11-19 14:20:11
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:GVTIlyIi8Vquhf662tDmsQ
 
 __PACKAGE__->add_columns(
     '+has_cardnumber' => { is_boolean => 1 },

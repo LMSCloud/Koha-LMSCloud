@@ -1,0 +1,22 @@
+---
+type: object
+properties:
+  external_biblionumber:
+    type: string
+    description: external order title identifier
+  biblionumber:
+    type: integer
+    description: Internal identifier for the new bibliographic record
+  copies:
+    type: integer
+    description: count of copies to order
+  supply_options:
+    type: array
+    items:
+      type: string
+      enum:
+        - stitched
+        - foiled
+  price:
+    type: number
+    description: count of copies to order

@@ -28,7 +28,7 @@ use Data::Dumper;
 use LWP::UserAgent;
 use Clone qw(clone);
 use DateTime;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use MARC::File::XML;
 use MARC::Record;
 use C4::Context;

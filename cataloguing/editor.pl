@@ -21,12 +21,10 @@
 use Modern::Perl;
 
 use CGI;
-use MARC::Record;
 
-use C4::Auth;
-use C4::Biblio;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use DBIx::Class::ResultClass::HashRefInflator;
 use Koha::Database;
 use Koha::MarcSubfieldStructures;
@@ -51,11 +49,9 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 my $schema = Koha::Database->new->schema;
 
-my @keyboard_shortcuts = Koha::KeyboardShortcuts->search();
-
 # Keyboard shortcuts
 $template->param(
-    shortcuts => \@keyboard_shortcuts,
+    shortcuts => Koha::KeyboardShortcuts->search,
 );
 
 # Available import batches
@@ -81,8 +77,8 @@ $template->{VARS}->{frameworks} = $frameworks;
 my $dbh = C4::Context->dbh;
 $template->{VARS}->{z3950_servers} = $dbh->selectall_arrayref( q{
     SELECT * FROM z3950servers
-    WHERE recordtype <> 'authority' AND servertype = 'zed'
-    ORDER BY `rank`,`servername`
+    WHERE recordtype != 'authority' AND servertype = 'zed'
+    ORDER BY `rank`,servername
 }, { Slice => {} } );
 
 output_html_with_http_headers $input, $cookie, $template->output;

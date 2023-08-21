@@ -35,7 +35,7 @@ Circulation:
                   T-prefix: Remove the first number from T-prefix style
                   libsuite8: Convert from Libsuite8 form
                   EAN13: EAN-13 or zero-padded UPC-A form
-            - scanned item barcodes.
+            - scanned item barcodes. Mind that any leading or trailing whitespace in a barcode gets removed before this filter.
         -
             - pref: itemBarcodeFallbackSearch
               choices:
@@ -106,9 +106,10 @@ Circulation:
         -
             - pref: DisplayClearScreenButton
               choices:
-                  1: Show
-                  0: "Don't show"
-            - a button to clear the current patron from the screen on the circulation screen.
+                  no: "Don't show clear screen button"
+                  issueslip: "Show print slip and clear screen buttons"
+                  issueqslip: "Show print quick slip and clear screen buttons"
+            - to clear the current patron from the screen on the circulation screen.
         -
             - pref: RecordLocalUseOnReturn
               choices:
@@ -188,17 +189,17 @@ Circulation:
                   0: Do
             - require librarians to manually confirm a checkout where the item is already checked out to another patron.
         -
+            - pref: AllowSetAutomaticRenewal
+              choices:
+                  1: Allow
+                  0: "Don't allow"
+            - staff to flag items for autorenewal on the checkout page.
+        -
             - pref: AllowTooManyOverride
               choices:
                   1: Allow
                   0: "Don't allow"
             - staff to override and check out items when the patron has reached the maximum number of allowed checkouts.
-        -
-            - pref: AutoRemoveOverduesRestrictions
-              choices:
-                  1: "Do"
-                  0: "Don't"
-            - allow OVERDUES restrictions triggered by sent notices to be cleared automatically when all overdue items are returned by a patron.
         -
             - pref: AllowNotForLoanOverride
               choices:
@@ -236,7 +237,7 @@ Circulation:
               choices:
                   1: Require
                   0: "Don't require"
-            - staff to manually override all fines, even fines less than set in the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=noissuescharge">noissuescharge</a> system preference.
+            - staff to manually override all fines, even fines less than set in the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=noissuescharge">noissuescharge</a> system preference. Enabling this system preference will block all checkouts for patrons with fines both via the web-based self checkout system and via SIP.
         -
             - pref: AllowFineOverride
               choices:
@@ -274,6 +275,14 @@ Circulation:
                   PickupLibrary: the library you are logged in at.
                   PatronLibrary: the library the patron is from.
                   ItemHomeLibrary: the library the item is from.
+        -
+            - To determine whether an item is transferred or remains in the library after checkin, use the circulation rules of
+            - pref: CircControlReturnsBranch
+              type: choice
+              choices:
+                  ItemHoldingLibrary: the library the item is currently held by.
+                  CheckInLibrary: the library the item is checked in at.
+                  ItemHomeLibrary: the library the item is owned by.
         -
             - Use the checkout and fines rules of
             - pref: HomeOrHoldingBranch
@@ -432,7 +441,14 @@ Circulation:
                   1: Enable
                   0: "Don't enable"
             - bookmobile station specific overdue rules. If activated, book mobile stations can have individual overdue and claiming fee rules. Requires to have the preference BookMobileSupportEnabled enabled.
-
+        -
+            - "Organize and send overdue notices using the"
+            - pref: OverdueNoticeFrom
+              choices:
+                  cron: "command-line option"
+                  item-issuebranch: "checkout library"
+                  item-homebranch: "item home library"
+            - .
         -
             - Include up to
             - pref: PrintNoticesMaxLines
@@ -552,12 +568,6 @@ Circulation:
                   blockitem: block renewing only for this item.
                   block: block renewing for all the patron's items.
         -
-            - If a patron is restricted,
-            - pref: RestrictionBlockRenewing
-              choices:
-                  1: block
-                  0: allow
-            - renewing of items from the staff interface.
         -
             - Select the receiver of family card member overdue notices. Send overdue notices to
             - pref: FamilyCardMemberOverdueReceiver
@@ -692,13 +702,8 @@ Circulation:
               class: code
             - This is a list of value pairs. When an item is checked in, if the not for loan value on the left matches the items not for loan value
             - "it will be updated to the right-hand value. For example, '-1: 0' will cause an item that was set to 'Ordered' to now be available for loan."
+            - "Can be used for showing only the not for loan description. E.g. '-1: ONLYMESSAGE'."
             - Each pair of values should be on a separate line.
-        -
-            - pref: CumulativeRestrictionPeriods
-              choices:
-                  1: Cumulate
-                  0: "Don't cumulate"
-            - the restriction periods.
         -
             - pref: HidePersonalPatronDetailOnCirculation
               choices:
@@ -712,6 +717,12 @@ Circulation:
                   0: "Don't block"
             - staff from continuing to checkin items when a transfer is triggered.
         -
+            - pref: AutomaticConfirmTransfer
+              choices:
+                  1: "Do"
+                  0: "Don't"
+            - automatically confirm a transfer when the modal is dismissed without clicking 'Yes'.
+        -
             - pref: StoreLastBorrower
               default: 0
               choices:
@@ -719,6 +730,12 @@ Circulation:
                   0: "Don't store"
             - 'the last patron to return an item. This setting is independent of the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=opacreadinghistory">opacreadinghistory</a> and <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=AnonymousPatron">AnonymousPatron</a> system preferences.'
     Holds policy:
+        -
+            - pref: EnableItemGroups
+              choices:
+                  1: Enable
+                  0: "Don't enable"
+            - the item groups feature to allow collecting groups of items on a record together.
         -
             - In the staff interface, split the holds queue into separate tables by
             - pref: HoldsSplitQueue
@@ -729,12 +746,24 @@ Circulation:
                   branch_itemtype: "pickup library and item type"
             - "."
         -
+            - pref: EnableItemGroupHolds
+              choices:
+                  1: Enable
+                  0: "Don't enable"
+            - the ability to place holds on item groups.
+        -
             - If the holds queue is split, show librarians
             - pref: HoldsSplitQueueNumbering
               choices:
                   actual: "the actual priority, which may be out of order"
                   virtual: "'virtual' priorities, where each group is numbered separately"
             - "."
+        -
+            - pref: RealTimeHoldsQueue
+              choices:
+                  1: Enable
+                  0: Disable
+            - updating the holds queue in real time.
         -
             - pref: AllowHoldItemTypeSelection
               choices:
@@ -772,6 +801,16 @@ Circulation:
                   0: "Don't allow"
             - patrons to place holds that don't enter the waiting list until a certain future date. (<a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=AllowHoldDateInFuture">AllowHoldDateInFuture</a> must also be enabled).
         -
+            - When placing a hold from the OPAC, make
+            - pref: OPACMandatoryHoldDates
+              choices:
+                  "": "no hold dates"
+                  "start": "hold start date"
+                  "end": "hold end date"
+                  "both": "both hold dates"
+            - mandatory.
+            - '<br><strong>NOTE:</strong> The hold start date option is only effective and shown on the hold form when <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=AllowHoldDateInFuture">AllowHoldDateInFuture</a> and <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OPACAllowHoldDateInFuture">OPACAllowHoldDateInFuture</a> are enabled.'
+        -
             - Confirm future hold requests (starting no later than
             - pref: ConfirmFutureHolds
               class: integer
@@ -793,7 +832,17 @@ Circulation:
               choices:
                   1: Allow
                   0: "Don't allow"
-            - 'holds to expire automatically if they have not been picked by within the time period specified in the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=ReservesMaxPickUpDelay">ReservesMaxPickUpDelay</a> system preference.<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/holds/cancel_expired_holds.pl</code> cronjob. Ask your system administrator to schedule it.'
+            - 'holds to expire automatically if they have not been picked by within the time period specified in the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=ReservesMaxPickUpDelay">ReservesMaxPickUpDelay</a> system preference.</br>'
+            - pref: ExpireReservesAutoFill
+              choices:
+                  1: "Do"
+                  0: "Don't"
+            - automatically fill the next hold using the item.
+            - Send email notification of the new hold filled with a canceled item to
+            - pref: ExpireReservesAutoFillEmail
+              class: email
+            - . If no address is defined here, the email will be sent to the library's reply-to address.
+            - '<br><strong>NOTE:</strong> These system preferences require the <code>misc/cronjobs/holds/cancel_expired_holds.pl</code> cronjob. Ask your system administrator to schedule it.<br>'
         -
             - If using <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=ExpireReservesMaxPickUpDelay">ExpireReservesMaxPickUpDelay</a>, charge a patron who allows their waiting hold to expire a fee of
             - pref: ExpireReservesMaxPickUpDelayCharge
@@ -827,6 +876,13 @@ Circulation:
                   1: Allow
                   0: "Don't allow"
             - a user to choose the library to pick up a hold from.
+        -
+            - 'Allow users to change the library to pick up a hold for these statuses:'
+            - pref: OPACAllowUserToChangeBranch
+              multiple:
+                pending: Pending
+                intransit: In transit
+                suspended: Suspended
         -
             - pref: ReservesNeedReturns
               choices:
@@ -885,11 +941,12 @@ Circulation:
                   0: "Don't allow"
             - holds to be suspended from the OPAC.
         -
+            - If using <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=ExpireReservesMaxPickUpDelay">ExpireReservesMaxPickUpDelay</a>,
             - pref: ExpireReservesOnHolidays
               choices:
-                  1: Allow
-                  0: "Don't allow"
-            - expired holds to be canceled on days the library is closed.
+                  1: allow
+                  0: "don't allow"
+            - expired holds to be canceled on days the library is closed per the calendar.
         -
             - pref: ExcludeHolidaysFromMaxPickUpDelay
               choices:
@@ -986,59 +1043,41 @@ Circulation:
                   months: months
                   years: years
             - from reserve date.
-    Interlibrary loans:
         -
-            - pref: ILLModule
-              default: 0
+            - When placing a hold via the staff interface default the pickup location to the
+            - pref: DefaultHoldPickupLocation
+              default: loggedinlibrary
               choices:
-                  1: Enable
-                  0: Disable
-            - the interlibrary loans module (master switch).
+                  loggedinlibrary: "logged in library"
+                  homebranch: "item's home library"
+                  holdingbranch: "item's holding library"
+            - "."
+    Patron restrictions:
         -
-            - "Adding text will enable the copyright clearance stage in request creation. The text you enter will be the text displayed."
-            - pref: ILLModuleCopyrightClearance
-              type: textarea
-              class: long
-        -
-            - "Enabled ILL backends for OPAC initiated requests:"
-            - pref: ILLOpacbackends
-              class: multi
-            - (separated with |). If left empty, all installed backends will be enabled.
-        -
-            - pref: ILLModuleUnmediated
-              default: 0
+            - pref: PatronRestrictionTypes
               choices:
-                  1: Enable
-                  0: Disable
-            - unmediated interlibrary loan requests. If enabled and the ILL backend supports it, the newly created requests are immediately requested by backend.
+                  1: Allow
+                  0: Don't allow
+            - "the type of patron restriction to be specified when applying manually."
         -
-            - pref: CirculateILL
-              default: 0
+            - pref: CumulativeRestrictionPeriods
               choices:
-                  1: Enable
-                  0: Disable
-            - the circulation of ILL requested items.
+                  1: Cumulate
+                  0: "Don't cumulate"
+            - the restriction periods.
         -
-            - pref: ILLCheckAvailability
-              default: 0
+            - pref: AutoRemoveOverduesRestrictions
               choices:
-                  1: Check
-                  0: "Don't check"
-            - external sources for availability during the request process.
+                  1: "Do"
+                  0: "Don't"
+            - allow OVERDUES restrictions triggered by sent notices to be cleared automatically when all overdue items are returned by a patron.
         -
-            - "ILL statuses that are considered finished and should not be displayed in the ILL module: "
-            - pref: ILLHiddenRequestStatuses
-              class: multi
-            - (separated with |). If left empty, all ILL requests will be displayed. The request codes can be found in the ILLSTATUS authorized value category.
-        -
-            - "Send these ILL notices to staff when appropriate:"
-            - pref: ILLSendStaffNotices
-              class: multi
-            - "(separated with |). e.g. ILL_REQUEST_CANCEL|ILL_REQUEST_MODIFIED If left empty, no staff ILL notices will be sent."
-        -
-            - "Fallback email address for staff ILL notices to be sent to in the absence of a library address:"
-            - pref: ILLDefaultStaffEmail
-              class: email
+            - If a patron is restricted,
+            - pref: RestrictionBlockRenewing
+              choices:
+                  1: block
+                  0: allow
+            - renewing of items from the staff interface and via the <code>misc/cronjobs/automatic_renewals.pl</code> cronjob.
     Fines Policy:
         -
             - pref: finesCalendar
@@ -1265,6 +1304,12 @@ Circulation:
                   0: "Don't enable"
             - patrons to place article requests.
         -
+            - pref: ArticleRequestsOpacHostRedirection
+              choices:
+                  1: Enable
+                  0: Disable
+            - " redirection from child to host based on MARC21 773$w when the child has no items when requesting articles on the Opac."
+        -
             - pref: ArticleRequestsLinkControl
               choices:
                   always: Always show
@@ -1306,6 +1351,11 @@ Circulation:
                 pages: Pages
                 chapters: Chapters
             -
+        -
+            - "The following article request formats are supported:"
+            - pref: ArticleRequestsSupportedFormats
+            - "(Valid choices are currently: PHOTOCOPY and SCAN. Separate the supported formats by a vertical bar. The first listed format is selected by default when you request via the OPAC.)"
+
     RFID-Web-Service batch checkin/checkout:
          -
             - pref: RFIDWebService
@@ -1326,6 +1376,17 @@ Circulation:
             - pref: RFIDWebServiceURL
             - "URL of the RFID-Web-Service.<br />"
             - "Example: https://localhost:10004/ ."
+
+    Item bundles:
+        -
+            - Use the <a href="/cgi-bin/koha/admin/authorised_values.pl?searchfield=LOST">LOST</a> authorized value
+            - pref: BundleLostValue
+            - to represent 'missing from bundle' at return.
+        -
+            - Use the <a href="/cgi-bin/koha/admin/authorised_values.pl?searchfield=NOT_LOAN">NOT_LOAN</a> authorized value
+            - pref: BundleNotLoanValue
+            - to represent 'added to bundle' when an item is attached to bundle.
+
     Return claims:
         -
             - When marking a checkout as "claims returned",
@@ -1337,7 +1398,7 @@ Circulation:
                   no_charge: don't charge a lost fee
             - .
         -
-            - Use the LOST authorised value
+            - Use the <a href="/cgi-bin/koha/admin/authorised_values.pl?searchfield=LOST">LOST</a> authorized value
             - pref: ClaimReturnedLostValue
             - to represent 'claims returned'.
         -
@@ -1345,4 +1406,56 @@ Circulation:
             - pref: ClaimReturnedWarningThreshold
               class: integer
             - items.
+        -
+            - Remove resolved return claims older than
+            - pref: CleanUpDatabaseReturnClaims
+              class: integer
+            - days.
+            - <span class="hint">This system preference is used by the cleanup_database.pl cronjob.</span>
 
+    Recalls:
+        -
+            - Mark a recall as problematic if it has been waiting to be picked up for
+            - pref: RecallsMaxPickUpDelay
+            - class: integer
+            - days.
+        -
+            - pref: UseRecalls
+              choices:
+                  1: Use
+                  0: "Don't use"
+            - recalls. Make sure you configure <a href="/cgi-bin/koha/admin/smart-rules.pl">circulation and fines rules</a> for recalls once enabled.
+
+    SIP2:
+        -
+            - "Use the following mappings to determine the sort_bin of a returned item.<br/>"
+            - "The mapping should be of the form 'branchcode:item field:comparator:item field value:sort bin number', with one mapping per line.<br/>"
+            - "- 'branchcode' is the location where the checkin is being performed (i.e. branch assigned to SIP user)<br/>"
+            - "- 'item field' is a database column in the items table<br/>"
+            - "- 'comparator' is the type of comparison, possible values are: eq,<,<=,>,>=,ne<br/>"
+            - "- 'item field value' is the value to compare against the value in the specified 'item field'<br/>"
+            - "- 'sort bin number' is the expected return value in the CL field of the SIP response for an item matching a rule<br/><br/>"
+            - "NOTE: Specifying 'item_field_value' with a leading '\\$' and an item field name will use the value of that field in the item for comparison:<br/>"
+            - "i.e. \\$holdingbranch<br/></br>"
+            - "Examples:<br/>"
+            - "CPL:itype:eq:BOOK:1 - Will return sort bin 1 for an item of itemtype 'BOOK' returned to CPL.<br/>"
+            - "CPL:itemcallnumber:<:339.6:3 - Will return sort bin 3 for an item with a callnumber less than 339.6 returned to CPL .<br/>"
+            - "CPL:homebranch:ne:\\$holdingbranch:X - Will return sort bin 'X' for an item returned to CPL where the holdingbranch is not equal to the homebranch (i.e. any item belonging to a different branch than CPL).<br/><br/>"
+            - pref: SIP2SortBinMapping
+              type: textarea
+              class: long
+        -
+            - Use
+            - pref: UseLocationAsAQInSIP
+              choices:
+                  1: permanent_location
+                  0: homebranch
+            - for AQ field in SIP protocol.
+
+    Curbside pickup module:
+        -
+            - pref: CurbsidePickup
+              choices:
+                  1: Enable
+                  0: Disable
+            - "the curbside pickup module."

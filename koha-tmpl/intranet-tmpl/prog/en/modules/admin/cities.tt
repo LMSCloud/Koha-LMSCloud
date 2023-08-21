@@ -2,68 +2,64 @@
 [% USE Asset %]
 [% SET footerjs = 1 %]
 [% USE TablesSettings %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
+<title>[% FILTER collapse %]
     [% IF op =='add_form' %]
         [% IF city.cityid %]
-            Modify city
+            [% t("Modify city") | html %]
         [% ELSE %]
-            New city
-        [% END %] &rsaquo; [% ELSE %]
+            [% t("New city") | html %]
+        [% END %] &rsaquo;
+    [% ELSE %]
         [% IF op == 'delete_confirm' %]
-            Confirm deletion of city &rsaquo; [% END %]
+            [% t("Confirm deletion of city") | html %] &rsaquo;
+        [% END %]
     [% END %]
-    Cities &rsaquo; Administration &rsaquo; Koha
-</title>
+    [% t("Cities") | html %] &rsaquo; [% t("Administration") | html %] &rsaquo; [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
 <body id="admin_cities" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cities-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cities-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
+        [% END %]
 
         [% IF op == 'add_form' %]
-            <li>
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/admin/cities.pl">Cities</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    [% IF city.cityid %]
-                        Modify
-                    [% ELSE %]
-                        New
-                    [% END %] City
-                </a>
-            </li>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active = 1 %]
+                [% IF city.cityid %]
+                    <span>Modify city</span>
+                [% ELSE %]
+                    <span>New city</span>
+                [% END %]
+            [% END %]
 
         [% ELSIF op == 'delete_confirm' %]
-            <li>
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/admin/cities.pl">Cities</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Confirm deletion of city
-                </a>
-            </li>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active = 1 %]
+                <span>Confirm deletion of city</span>
+            [% END %]
 
         [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Cities
-                </a>
-            </li>
-        [% END %]
-    </ol>
-</nav>
+            [% WRAPPER breadcrumb_item bc_active = 1 %]
+                <span>Cities</span>
+            [% END %]
+        [% END #/IF op = add_form %]
+
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -74,21 +70,21 @@
     <div class="dialog [% m.type | html %]">
         [% SWITCH m.code %]
         [% CASE 'error_on_update' %]
-            An error occurred when updating this city. Perhaps it already exists.
+            <span>An error occurred when updating this city. Perhaps it already exists.</span>
         [% CASE 'error_on_insert' %]
-            An error occurred when adding this city. The city id might already exist.
+            <span>An error occurred when adding this city. The city ID might already exist.</span>
         [% CASE 'error_on_delete' %]
-            An error occurred when deleting this city. Check the logs.
+            <span>An error occurred when deleting this city. Check the logs.</span>
         [% CASE 'success_on_update' %]
-            City updated successfully.
+            <span>City updated successfully.</span>
         [% CASE 'success_on_insert' %]
-            City added successfully.
+            <span>City added successfully.</span>
         [% CASE 'success_on_delete' %]
-            City deleted successfully.
+            <span>City deleted successfully.</span>
         [% CASE 'already_exists' %]
-            This city already exists.
+            <span>This city already exists.</span>
         [% CASE %]
-            [% m.code | html %]
+            <span>[% m.code | html %]</span>
         [% END %]
     </div>
 [% END %]
@@ -111,7 +107,7 @@
                 [% END %]
                 <li>
                     <label for="city_name" class="required">City: </label>
-                    <input type="text" name="city_name" id="city_name" size="80" maxlength="100" value="[% city.city_name | html %]" required="required" class="required" /> <span class="required">Required</span>
+                    <input type="text" name="city_name" id="city_name" size="80" maxlength="100" value="[% city.city_name | html %]" required="required" class="required focus" /> <span class="required">Required</span>
                 </li>
                 <li>
                     <label for="city_state">State: </label>
@@ -129,7 +125,7 @@
         </fieldset>
 
         <fieldset class="action">
-            <input type="submit" value="Submit" />
+            <input type="submit" class="btn btn-primary" value="Submit" />
             <a class="cancel" href="/cgi-bin/koha/admin/cities.pl">Cancel</a>
         </fieldset>
     </form>
@@ -137,7 +133,7 @@
 
 [% IF op == 'delete_confirm' %]
     <div class="dialog alert">
-        <h3>Delete city "[% city.city_name | html %]?"</h3>
+        <h1>Delete city "[% city.city_name | html %]?"</h1>
         <table>
             <tr><th>City id</th>
                 <td>[% city.cityid | html %]</td>
@@ -172,25 +168,27 @@
         <a class="btn btn-default" id="newcity" href="/cgi-bin/koha/admin/cities.pl?op=add_form"><i class="fa fa-plus"></i> New city</a>
     </div>
 
-    <h2>Cities</h2>
+    <h1>Cities</h1>
     [% IF city_name_filter %]
-        Searching: [% city_name_filter | html %]
+        <span>Searching: [% city_name_filter | html %]</span>
     [% END %]
 
     [% IF cities_count > 0 %]
-        <div class="table_cities_table_controls"></div>
-        <table id="table_cities">
-            <thead>
-                <tr>
-                    <th>City ID</th>
-                    <th>City</th>
-                    <th>State</th>
-                    <th>ZIP/Postal code</th>
-                    <th>Country</th>
-                    <th data-class-name="actions noExport">Actions</th>
-                </tr>
-            </thead>
-        </table>
+        <div class="page-section">
+            <div class="table_cities_table_controls"></div>
+            <table id="table_cities">
+                <thead>
+                    <tr>
+                        <th>City ID</th>
+                        <th>City</th>
+                        <th>State</th>
+                        <th>ZIP/Postal code</th>
+                        <th>Country</th>
+                        <th data-class-name="actions noExport">Actions</th>
+                    </tr>
+                </thead>
+            </table>
+        </div><!-- /.page-section -->
     [% ELSE %]
         <div class="dialog message">
             There are no cities defined. <a href="/cgi-bin/koha/admin/cities.pl?op=add_form">Create a new city</a>.
@@ -214,7 +212,7 @@
     [% INCLUDE 'columns_settings.inc' %]
     <script>
 
-        var columns_settings = [% TablesSettings.GetColumns( 'admin', 'cities', 'table_cities', 'json' ) | $raw %];
+        var table_settings = [% TablesSettings.GetTableSettings( 'admin', 'cities', 'table_cities', 'json' ) | $raw %];
         $(document).ready(function() {
             var cities_table_url = '/api/v1/cities?';
 
@@ -279,7 +277,7 @@
                         "orderable": false
                     }
                 ]
-            }, columns_settings, 1);
+            }, table_settings, 1);
 
         });
     </script>

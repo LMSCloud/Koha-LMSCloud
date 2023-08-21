@@ -28,7 +28,7 @@ use t::lib::TestBuilder;
 
 BEGIN {
     # Mock pluginsdir before loading Plugins module
-    my $path = dirname(__FILE__) . '/../../../lib';
+    my $path = dirname(__FILE__) . '/../../../lib/plugins';
     t::lib::Mocks::mock_config( 'pluginsdir', $path );
 
     use_ok('Koha::Plugins');
@@ -51,6 +51,9 @@ subtest 'after_biblio_action() and after_item_action() hooks tests' => sub {
     $plugins->InstallPlugins;
 
     my $plugin = Koha::Plugin::Test->new->enable;
+
+    my $test_plugin = Test::MockModule->new('Koha::Plugin::Test');
+    $test_plugin->mock( 'item_barcode_transform', undef );
 
     my $biblio_id;
 

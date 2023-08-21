@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 7;
+use Test::More tests => 8;
 use Test::Exception;
 
 use t::lib::Mocks;
@@ -30,6 +30,7 @@ use Try::Tiny;
 use List::Util qw( any );
 
 use C4::AuthoritiesMarc qw( AddAuthority );
+use C4::Biblio;
 
 use Koha::SearchEngine::Elasticsearch;
 use Koha::SearchEngine::Elasticsearch::Search;
@@ -39,7 +40,7 @@ $schema->storage->txn_begin;
 
 subtest '_read_configuration() tests' => sub {
 
-    plan tests => 15;
+    plan tests => 16;
 
     my $configuration;
     t::lib::Mocks::mock_config( 'elasticsearch', undef );
@@ -107,10 +108,11 @@ subtest '_read_configuration() tests' => sub {
     my $params = Koha::SearchEngine::Elasticsearch::get_elasticsearch_params;
     is_deeply( $configuration->{nodes}, \@servers , 'get_elasticsearch_params is just a wrapper for _read_configuration' );
 
-    t::lib::Mocks::mock_config( 'elasticsearch', { server => \@servers, index_name => 'index', cxn_pool => 'Sniff', trace_to => 'Stderr' } );
+    t::lib::Mocks::mock_config( 'elasticsearch', { server => \@servers, index_name => 'index', cxn_pool => 'Sniff', trace_to => 'Stderr', request_timeout => 42 } );
 
     $configuration = Koha::SearchEngine::Elasticsearch::_read_configuration;
     is( $configuration->{trace_to}, 'Stderr', 'trace_to configuration parsed correctly' );
+    is( $configuration->{request_timeout}, '42', 'additional configuration (request_timeout) parsed correctly' );
 };
 
 subtest 'get_elasticsearch_settings() tests' => sub {
@@ -127,19 +129,62 @@ subtest 'get_elasticsearch_settings() tests' => sub {
 
 subtest 'get_elasticsearch_mappings() tests' => sub {
 
-    plan tests => 1;
+    plan tests => 3;
 
     my $mappings;
 
-    # test reading mappings
-    my $es = Koha::SearchEngine::Elasticsearch->new( {index => $Koha::SearchEngine::Elasticsearch::BIBLIOS_INDEX} );
-    $mappings = $es->get_elasticsearch_mappings();
-    is( $mappings->{data}{properties}{isbn__sort}{index}, 'false', 'Field mappings parsed correctly' );
+    my @mappings = (
+        {
+            name => 'cn-sort',
+            type => 'callnumber',
+            facet => 0,
+            suggestible => 0,
+            searchable => 1,
+            sort => 1,
+            marc_type => 'marc21',
+            marc_field => '001',
+        },
+        {
+            name => 'isbn',
+            type => 'string',
+            facet => 0,
+            suggestible => 0,
+            searchable => 1,
+            sort => 1,
+            marc_type => 'marc21',
+            marc_field => '020a',
+        },
+    );
+    my $search_engine_module = Test::MockModule->new('Koha::SearchEngine::Elasticsearch');
+    $search_engine_module->mock('_foreach_mapping', sub {
+        my ($self, $sub) = @_;
+
+        foreach my $map (@mappings) {
+            $sub->(
+                $map->{name},
+                $map->{type},
+                $map->{facet},
+                $map->{suggestible},
+                $map->{sort},
+                $map->{searchable},
+                $map->{marc_type},
+                $map->{marc_field}
+            );
+        }
+    });
+
+    my $search_engine_elasticsearch = Koha::SearchEngine::Elasticsearch::Search->new({ index => $Koha::SearchEngine::Elasticsearch::BIBLIOS_INDEX });
+    $mappings = $search_engine_elasticsearch->get_elasticsearch_mappings();
+
+    is( $mappings->{properties}{"cn-sort__sort"}{index}, 'false', 'Field mappings parsed correctly for sort for callnumber type' );
+    is( $mappings->{properties}{"cn-sort__sort"}{numeric}, 'false', 'Field mappings parsed correctly for sort for callnumber type' );
+    is( $mappings->{properties}{isbn__sort}{index}, 'false', 'Field mappings parsed correctly' );
+
 };
 
 subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' => sub {
 
-    plan tests => 63;
+    plan tests => 65;
 
     t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
     t::lib::Mocks::mock_preference('ElasticsearchMARCFormat', 'ISO2709');
@@ -405,14 +450,25 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
         MARC::Field->new('999', '', '', c => '1234568'),
         MARC::Field->new('952', '', '', 0 => 1, g => 'string where should be numeric', o => $long_callno),
     );
-    my $records = [$marc_record_1, $marc_record_2, $marc_record_3];
+
+    my $marc_record_4 = MARC::Record->new();
+    $marc_record_4->leader('     cam  22      a 4500');
+    $marc_record_4->append_fields(
+        MARC::Field->new('008', '901111s19uu xxk|||| |00| ||eng c'),
+        MARC::Field->new('100', '', '', a => 'Author 2'),
+        MARC::Field->new('245', '', '4', a => 'The Title :', b => 'fourth record'),
+        MARC::Field->new('260', '', '', a => 'New York :', b => 'Ace ,', c => ' 89 '),
+        MARC::Field->new('999', '', '', c => '1234568'),
+    );
+
+    my $records = [$marc_record_1, $marc_record_2, $marc_record_3, $marc_record_4];
 
     $see->get_elasticsearch_mappings(); #sort_fields will call this and use the actual db values unless we call it first
 
     my $docs = $see->marc_records_to_documents($records);
 
     # First record:
-    is(scalar @{$docs}, 3, 'Two records converted to documents');
+    is(scalar @{$docs}, 4, 'Four records converted to documents');
 
     is_deeply($docs->[0]->{control_number}, ['123'], 'First record control number should be set correctly');
 
@@ -429,6 +485,9 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
 
     is(scalar @{$docs->[0]->{title__sort}}, 1, 'First document title__sort field should have a single');
     is_deeply($docs->[0]->{title__sort}, ['Title: first record Title: first record'], 'First document title__sort field should be set correctly');
+
+    is(scalar @{$docs->[3]->{title__sort}}, 1, 'First document title__sort field should have a single');
+    is_deeply($docs->[3]->{title__sort}, ['Title : fourth record The Title : fourth record'], 'Fourth document title__sort field should be set correctly');
 
     is($docs->[0]->{issues}, 6, 'Issues field should be sum of the issues for each item');
     is($docs->[0]->{issues__sort}, 6, 'Issues sort field should also be a sum of the issues');
@@ -926,6 +985,64 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents with Inclu
     is_deeply($docs->[0]->{subject__facet}, ['Foo'], 'subject__facet should not include "See from"');
     is_deeply($docs->[0]->{subject__suggestion}, [{ input => 'Foo' }], 'subject__suggestion should not include "See from"');
     is_deeply($docs->[0]->{subject__sort}, ['Foo'], 'subject__sort should not include "See from"');
+};
+
+subtest 'marc_records_to_documents should set the "available" field' => sub {
+    plan tests => 8;
+
+    t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
+    my $dbh = C4::Context->dbh;
+
+    my $se = Test::MockModule->new('Koha::SearchEngine::Elasticsearch');
+    $se->noop('_foreach_mapping');
+
+    my $see = Koha::SearchEngine::Elasticsearch::Search->new({ index => $Koha::SearchEngine::Elasticsearch::BIBLIOS_INDEX });
+
+    # sort_fields will call this and use the actual db values unless we call it first
+    $see->get_elasticsearch_mappings();
+
+    my $marc_record_1 = MARC::Record->new();
+    $marc_record_1->leader('     cam  22      a 4500');
+    $marc_record_1->append_fields(
+        MARC::Field->new('245', '', '', a => 'Title'),
+    );
+    my ($biblionumber) = C4::Biblio::AddBiblio($marc_record_1, '', { defer_marc_save => 1 });
+
+    my $docs = $see->marc_records_to_documents([$marc_record_1]);
+    is_deeply($docs->[0]->{available}, \0, 'a biblio without items is not available');
+
+    my $item = Koha::Item->new({
+        biblionumber => $biblionumber,
+    })->store();
+
+    $docs = $see->marc_records_to_documents([$marc_record_1]);
+    is_deeply($docs->[0]->{available}, \1, 'a biblio with one item that has no particular status is available');
+
+    $item->notforloan(1)->store();
+    $docs = $see->marc_records_to_documents([$marc_record_1]);
+    is_deeply($docs->[0]->{available}, \1, 'a biblio with one item that is "notforloan" is available');
+
+    $item->set({ notforloan => 0, onloan => '2022-03-03' })->store();
+    $docs = $see->marc_records_to_documents([$marc_record_1]);
+    is_deeply($docs->[0]->{available}, \0, 'a biblio with one item that is on loan is not available');
+
+    $item->set({ onloan => undef, withdrawn => 1 })->store();
+    $docs = $see->marc_records_to_documents([$marc_record_1]);
+    is_deeply($docs->[0]->{available}, \1, 'a biblio with one item that is withdrawn is available');
+
+    $item->set({ withdrawn => 0, itemlost => 1 })->store();
+    $docs = $see->marc_records_to_documents([$marc_record_1]);
+    is_deeply($docs->[0]->{available}, \0, 'a biblio with one item that is lost is not available');
+
+    $item->set({ itemlost => 0, damaged => 1 })->store();
+    $docs = $see->marc_records_to_documents([$marc_record_1]);
+    is_deeply($docs->[0]->{available}, \1, 'a biblio with one item that is damaged is available');
+
+    my $item2 = Koha::Item->new({
+        biblionumber => $biblionumber,
+    })->store();
+    $docs = $see->marc_records_to_documents([$marc_record_1]);
+    is_deeply($docs->[0]->{available}, \1, 'a biblio with at least one item that has no particular status is available');
 };
 
 $schema->storage->txn_rollback;

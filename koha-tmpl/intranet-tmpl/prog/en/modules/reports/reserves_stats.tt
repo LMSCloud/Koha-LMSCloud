@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
@@ -9,35 +10,29 @@
 </head>
 
 <body id="rep_reserve_stats" class="rep">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
-        </li>
-        [% IF ( do_it ) %]
-            <li>
-                <a href="/cgi-bin/koha/reports/reserves_stats.pl">Holds statistics</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Results
-                </a>
-            </li>
-        [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Holds statistics
-                </a>
-            </li>
         [% END %]
-    </ol>
-</nav>
+        [% IF ( do_it ) %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/reports/reserves_stats.pl">Holds statistics</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Results</span>
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Holds statistics</span>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -45,9 +40,9 @@
             <main>
 
 
+<h1>Holds statistics</h1>
 [% IF ( do_it ) %]
     [% IF ( mainloop ) %]
-        <h1>Holds statistics</h1>
         [% IF ( loopfilter ) %]
             <p>Filtered on:</p>
             <ul>
@@ -123,41 +118,61 @@
                 <td>Hold date</td>
                 <td><input type="radio" name="Line" value="reservedate" /></td>
                 <td><input type="radio" name="Column" value="reservedate" /></td>
-                <td><label for="filter_reservedate_begin">From</label> <input type="text"  size="10" id="filter_reservedate_begin" name="filter_reservedate_begin" />
-                    <label for="filter_reservedate_end">To</label> <input size="10" id="filter_reservedate_end" name="filter_reservedate_end" value="" type="text" />
-                    </td>
-                </tr>
+                <td>
+                    <label for="filter_reservedate_begin">From</label>
+                    <input type="text" size="10" id="filter_reservedate_begin" data-date_to="filter_reservedate_end" name="filter_reservedate_begin" class="flatpickr" />
+
+                    <label for="filter_reservedate_end">To</label>
+                    <input size="10" id="filter_reservedate_end" name="filter_reservedate_end" value="" type="text" class="flatpickr" />
+                </td>
+            </tr>
             <tr>
                 <td>Notification date</td>
                 <td><input type="radio" name="Line" value="notificationdate" /></td>
                 <td><input type="radio" name="Column" value="notificationdate" /></td>
-                <td><label for="filter_notificationdate_begin">From</label> <input type="text"  size="10" id="filter_notificationdate_begin" name="filter_notificationdate_begin" />
-                    <label for="filter_notificationdate_end">To</label> <input  size="10" id="filter_notificationdate_end" name="filter_notificationdate_end" value="" type="text" />
-                    </td>
+                <td>
+                    <label for="filter_notificationdate_begin">From</label>
+                    <input type="text" size="10" id="filter_notificationdate_begin" name="filter_notificationdate_begin" data-date_to="filter_notificationdate_end" class="flatpickr" />
+
+                    <label for="filter_notificationdate_end">To</label>
+                    <input  size="10" id="filter_notificationdate_end" name="filter_notificationdate_end" value="" type="text" class="flatpickr" />
+                </td>
              </tr>
             <tr>
                 <td>Reminder date</td>
                 <td><input type="radio" name="Line" value="reminderdate" /></td>
                 <td><input type="radio" name="Column" value="reminderdate" /></td>
-                <td><label for="filter_reminderdate_begin">From</label> <input type="text"  size="10" id="filter_reminderdate_begin" name="Filter" />
-                    <label for="filter_reminderdate_end">To</label> <input size="10" id="filter_reminderdate_end" name="filter_reminderdate_end" value="" type="text" />
-                    </td>
+                <td>
+                    <label for="filter_reminderdate_begin">From</label>
+                    <input type="text" size="10" id="filter_reminderdate_begin" name="Filter" data-date_to="filter_reminderdate_end" class="flatpickr" />
+
+                    <label for="filter_reminderdate_end">To</label>
+                    <input size="10" id="filter_reminderdate_end" name="filter_reminderdate_end" value="" type="text" class="flatpickr" />
+                </td>
              </tr>
             <tr>
                 <td>Waiting date</td>
                 <td><input type="radio" name="Line" value="waitingdate" /></td>
                 <td><input type="radio" name="Column" value="waitingdate" /></td>
-                <td><label for="filter_waitingdate_begin">From</label> <input type="text"  size="10" id="filter_waitingdate_begin" name="filter_waitingdate_begin" />
-                    <label for="filter_waitingdate_end">To</label> <input  size="10" id="filter_waitingdate_end" name="filter_waitingdate_end" value="" type="text" />
-                    </td>
+                <td>
+                    <label for="filter_waitingdate_begin">From</label>
+                    <input type="text" size="10" id="filter_waitingdate_begin" name="filter_waitingdate_begin" data-date_to="filter_waitingdate_end" class="flatpickr" />
+
+                    <label for="filter_waitingdate_end">To</label>
+                    <input  size="10" id="filter_waitingdate_end" name="filter_waitingdate_end" value="" type="text" class="flatpickr" />
+                </td>
              </tr>
 			 <tr>
                 <td>Cancellation date</td>
                 <td><input type="radio" name="Line" value="cancellationdate" /></td>
                 <td><input type="radio" name="Column" value="cancellationdate" /></td>
-                <td><label for="filter_cancellationdate_begin">From</label> <input type="text"  size="10" id="filter_cancellationdate_begin" name="filter_cancellationdate_begin" />
-                    <label for="filter_cancellationdate_end">To</label> <input  size="10" id="filter_cancellationdate_end" name="filter_cancellationdate_end" value="" type="text" />
-                    </td>
+                <td>
+                    <label for="filter_cancellationdate_begin">From</label>
+                    <input type="text" size="10" id="filter_cancellationdate_begin" name="filter_cancellationdate_begin" data-date_to="filter_cancellationdate_end" class="flatpickr" />
+
+                    <label for="filter_cancellationdate_end">To</label>
+                    <input  size="10" id="filter_cancellationdate_end" name="filter_cancellationdate_end" value="" type="text" class="flatpickr" />
+                </td>
              </tr>
         <tr>
             <td>Patron category</td>
@@ -304,7 +319,7 @@
 	</fieldset>
 
 	<fieldset class="action">
-	<input type="submit" value="Submit" />
+    <input type="submit" class="btn btn-primary" value="Submit" />
 	<input type="hidden" name="report_name" value="[% report_name | html %]" />
 	<input type="hidden" name="do_it" value="1" />
 	</fieldset>
@@ -323,74 +338,12 @@
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]
+
     <script>
-        $(document).ready(function() {
-            // http://jqueryui.com/demos/datepicker/#date-range
-            var dates = $( "#filter_reservedate_begin, #filter_reservedate_end" ).datepicker({
-                changeMonth: true,
-                numberOfMonths: 1,
-                onSelect: function( selectedDate ) {
-                    var option = this.id == "filter_reservedate_begin" ? "minDate" : "maxDate",
-                        instance = $( this ).data( "datepicker" );
-                        date = $.datepicker.parseDate(
-                            instance.settings.dateFormat ||
-                            $.datepicker._defaults.dateFormat,
-                            selectedDate, instance.settings );
-                    dates.not( this ).datepicker( "option", option, date );
-                }
-            });
-            var datesND = $( "#filter_notificationdate_begin, #filter_notificationdate_end" ).datepicker({
-                changeMonth: true,
-                numberOfMonths: 1,
-                onSelect: function( selectedDate ) {
-                    var option = this.id == "filter_notificationdate_begin" ? "minDate" : "maxDate",
-                        instance = $( this ).data( "datepicker" );
-                        date = $.datepicker.parseDate(
-                            instance.settings.dateFormat ||
-                            $.datepicker._defaults.dateFormat,
-                            selectedDate, instance.settings );
-                    datesND.not( this ).datepicker( "option", option, date );
-                }
-            });
-            var datesRD = $( "#filter_reminderdate_begin, #filter_reminderdate_end" ).datepicker({
-                changeMonth: true,
-                numberOfMonths: 1,
-                onSelect: function( selectedDate ) {
-                    var option = this.id == "filter_reminderdate_begin" ? "minDate" : "maxDate",
-                        instance = $( this ).data( "datepicker" );
-                        date = $.datepicker.parseDate(
-                            instance.settings.dateFormat ||
-                            $.datepicker._defaults.dateFormat,
-                            selectedDate, instance.settings );
-                    datesRD.not( this ).datepicker( "option", option, date );
-                }
-            });
-            var datesWD = $( "#filter_waitingdate_begin, #filter_waitingdate_end" ).datepicker({
-                changeMonth: true,
-                numberOfMonths: 1,
-                onSelect: function( selectedDate ) {
-                    var option = this.id == "filter_waitingdate_begin" ? "minDate" : "maxDate",
-                        instance = $( this ).data( "datepicker" );
-                        date = $.datepicker.parseDate(
-                            instance.settings.dateFormat ||
-                            $.datepicker._defaults.dateFormat,
-                            selectedDate, instance.settings );
-                    datesWD.not( this ).datepicker( "option", option, date );
-                }
-            });
-            var datesCD = $( "#filter_cancellationdate_begin, #filter_cancellationdate_end" ).datepicker({
-                changeMonth: true,
-                numberOfMonths: 1,
-                onSelect: function( selectedDate ) {
-                    var option = this.id == "filter_cancellationdate_begin" ? "minDate" : "maxDate",
-                        instance = $( this ).data( "datepicker" );
-                        date = $.datepicker.parseDate(
-                            instance.settings.dateFormat ||
-                            $.datepicker._defaults.dateFormat,
-                            selectedDate, instance.settings );
-                    datesCD.not( this ).datepicker( "option", option, date );
-                }
-            });
+        $(document).ready(function () {
+            // Undo the selection that Branches.all made, since there may be no item with homebranch or holdingbranch
+            $('#holdingbranch option').prop('selected', false);
+            $('#homebranch option').prop('selected', false);
         });
     </script>
 [% END %]

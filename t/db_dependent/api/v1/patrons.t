@@ -34,7 +34,7 @@ use Koha::Exceptions::Patron;
 use Koha::Exceptions::Patron::Attribute;
 use Koha::Old::Patrons;
 use Koha::Patron::Attributes;
-use Koha::Patron::Debarments qw/AddDebarment/;
+use Koha::Patron::Debarments qw( AddDebarment );
 
 use JSON qw(encode_json);
 
@@ -53,7 +53,8 @@ subtest 'list() tests' => sub {
     $schema->storage->txn_rollback;
 
     subtest 'librarian access tests' => sub {
-        plan tests => 17;
+
+        plan tests => 19;
 
         $schema->storage->txn_begin;
 
@@ -90,6 +91,11 @@ subtest 'list() tests' => sub {
           ->json_has('/0/restricted')
           ->json_is( '/0/restricted' => Mojo::JSON->true )
           ->json_hasnt('/1');
+
+        $t->get_ok( "//$userid:$password@/api/v1/patrons?"
+              . 'q={"extended_attributes.type":"CODE"}' =>
+              { 'x-koha-embed' => 'extended_attributes' } )
+          ->status_is( 200, "Works, doesn't explode" );
 
         subtest 'searching date and date-time fields' => sub {
 
@@ -305,6 +311,9 @@ subtest 'add() tests' => sub {
         my $code = 'ho';
         my $attr = "Let's go";
 
+        # Disable trigger to notify patrons of password changes for these tests
+        t::lib::Mocks::mock_preference( 'NotifyPasswordChange', 0 );
+
         # Mock early, so existing mandatory attributes don't break all the tests
         my $mocked_patron = Test::MockModule->new('Koha::Patron');
         $mocked_patron->mock(
@@ -496,7 +505,7 @@ subtest 'add() tests' => sub {
                     value => {
                         mandatory     => 0,
                         repeatable    => 1,
-                        unique        => 0,
+                        unique_id     => 0,
                         category_code => 'ST'
                     }
                 }
@@ -507,7 +516,7 @@ subtest 'add() tests' => sub {
                     value => {
                         mandatory     => 0,
                         repeatable    => 1,
-                        unique        => 0,
+                        unique_id     => 0,
                         category_code => 'ST'
                     }
                 }
@@ -697,7 +706,14 @@ subtest 'update() tests' => sub {
         my $updated_on_got = delete $got->{updated_on};
         my $updated_on_expected = delete $newpatron->{updated_on};
         is_deeply($got, $newpatron, 'Returned patron from update matches expected');
-        is( t::lib::Dates::compare( $updated_on_got, $updated_on_expected ), 0, 'updated_on values matched' );
+        is(
+            t::lib::Dates::compare(
+                dt_from_string( $updated_on_got,      'rfc3339' ),
+                dt_from_string( $updated_on_expected, 'rfc3339' )
+            ),
+            0,
+            'updated_on values matched'
+        );
 
         is(Koha::Patrons->find( $patron_2->id )->cardnumber,
            $newpatron->{ cardnumber }, 'Patron is really updated!');
@@ -805,9 +821,15 @@ subtest 'delete() tests' => sub {
         my $patron = $builder->build_object({ class => 'Koha::Patrons' });
 
         t::lib::Mocks::mock_preference('AnonymousPatron', $patron->borrowernumber);
-        $t->delete_ok("//$userid:$password@/api/v1/patrons/" . $patron->borrowernumber)
-          ->status_is(403, 'Anonymous patron cannot be deleted')
-          ->json_is( { error => 'Anonymous patron cannot be deleted' } );
+        $t->delete_ok( "//$userid:$password@/api/v1/patrons/" . $patron->borrowernumber )
+          ->status_is( 409, 'Anonymous patron cannot be deleted' )
+          ->json_is(
+            {
+                error      => 'Anonymous patron cannot be deleted',
+                error_code => 'is_anonymous_patron'
+            }
+          );
+        t::lib::Mocks::mock_preference('AnonymousPatron', 0); # back to default
 
         t::lib::Mocks::mock_preference( 'borrowerRelationship', 'parent' );
 
@@ -824,26 +846,40 @@ subtest 'delete() tests' => sub {
 
         $t->delete_ok("//$userid:$password@/api/v1/patrons/" . $patron->borrowernumber)
           ->status_is(409, 'Patron with checkouts cannot be deleted')
-          ->json_is( { error => 'Pending checkouts prevent deletion' } );
+          ->json_is(
+            {
+                error      => 'Pending checkouts prevent deletion',
+                error_code => 'has_checkouts'
+            }
+          );
 
         # Make sure it has no pending checkouts
         $checkout->delete;
 
         $t->delete_ok("//$userid:$password@/api/v1/patrons/" . $patron->borrowernumber)
           ->status_is(409, 'Patron with debt cannot be deleted')
-          ->json_is( { error => 'Pending debts prevent deletion' } );
+          ->json_is(
+            {
+                error      => 'Pending debts prevent deletion',
+                error_code => 'has_debt'
+            }
+          );
 
         # Make sure it has no debt
         $patron->account->pay({ amount => 10, debits => [ $debit ] });
 
         $t->delete_ok("//$userid:$password@/api/v1/patrons/" . $patron->borrowernumber)
           ->status_is(409, 'Patron with guarantees cannot be deleted')
-          ->json_is( { error => 'Patron is a guarantor and it prevents deletion' } );
+          ->json_is(
+            {
+                error      => 'Patron is a guarantor and it prevents deletion',
+                error_code => 'has_guarantees'
+            }
+          );
 
         # Remove guarantee
         $patron->guarantee_relationships->delete;
 
-        t::lib::Mocks::mock_preference('AnonymousPatron', 0); # back to default
         $t->delete_ok("//$userid:$password@/api/v1/patrons/" . $patron->borrowernumber)
           ->status_is(204, 'SWAGGER3.2.4')
           ->content_is('', 'SWAGGER3.3.4');

@@ -13,24 +13,20 @@ div#result { margin-top: 1em; }
 </head>
 
 <body id="auth_merge" class="cat">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'authorities-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'authorities-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/authorities/authorities-home.pl">Authorities</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Merging records
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Merging records</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -44,15 +40,15 @@ div#result { margin-top: 1em; }
     [% FOREACH error IN errors %]
         <div class="dialog alert">
             [% IF error.code == 'WRONG_COUNT' %]
-                Number of records provided for merging: [% error.value | html %]. Currently only 2 records can be merged at a time.
+                <span>Number of records provided for merging: [% error.value | html %]. Currently only 2 records can be merged at a time.</span>
             [% ELSIF error.code == 'DESTRUCTIVE_MERGE' %]
-                You cannot merge a record with itself. Please select two different authorities.
+                <span>You cannot merge a record with itself. Please select two different authorities.</span>
             [% ELSIF error.code == 'WRONG_FRAMEWORK' %]
-                The default framework cannot be used, or the framework does not exist. Please select another framework for merging.
+                <span>The default framework cannot be used, or the framework does not exist. Please select another framework for merging.</span>
             [% ELSIF error.code == 'EMPTY_MARC' %]
-                Sorry, but we did not find any MARC tags in the reference record.
+                <span>Sorry, but we did not find any MARC tags in the reference record.</span>
             [% ELSIF error.code == 'MISSING_RECORD' %]
-                Sorry, but we did not find a record for number: [% error.value | html %].
+                <span>Sorry, but we did not find a record for number: [% error.value | html %].</span>
             [% ELSE %]
                 [% error | html %]
             [% END %]
@@ -91,7 +87,9 @@ div#result { margin-top: 1em; }
 
     <input type="hidden" name="authid" value="[% recordid1 | html %]" />
     <input type="hidden" name="authid" value="[% recordid2 | html %]" />
-    <fieldset class="action"><input type="submit" value="Next" /></fieldset>
+    </fieldset>
+    <fieldset class="action">
+        <input type="submit" class="btn btn-primary" value="Next" />
     </fieldset>
 </form>
 
@@ -113,7 +111,7 @@ div#result { margin-top: 1em; }
 <input type="hidden" name="mergereference" value="[% mergereference | html %]" />
 <input type="hidden" name="frameworkcode" value="[% framework | html %]" />
 
-<fieldset class="action"><input type="submit" name="merge" value="Merge" /></fieldset>
+<fieldset class="action"><input type="submit" name="merge" class="btn btn-primary" value="Merge" /></fieldset>
 </form>
 
 [% END %]
@@ -144,9 +142,9 @@ div#result { margin-top: 1em; }
             ev.preventDefault();
             newin=window.open($(this).attr('href'),'merge_reference', 'width=1000,height=600,toolbar=false,scrollbars=yes');
         });
-
-        // Creating tabs
-        $("#tabs").tabs();
+        if( $("#tabs .tab-pane.active").length < 1 ){
+            $("#tabs a:first").tab("show");
+        }
     });
 
 

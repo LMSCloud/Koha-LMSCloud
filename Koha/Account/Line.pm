@@ -17,22 +17,21 @@ package Koha::Account::Line;
 
 use Modern::Perl;
 
-use Carp;
-use Data::Dumper;
+use Data::Dumper qw( Dumper );
 
-use C4::Log qw(logaction);
-use C4::Overdues qw(GetFine);
+use C4::Log qw( logaction );
+use C4::Overdues qw( UpdateFine );
 use C4::CashRegisterManagement;
 
 use Koha::Account::CreditType;
 use Koha::Account::DebitType;
 use Koha::Account::Offsets;
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Exceptions::Account;
 use Koha::Items;
 
-use base qw(Koha::Object);
+use base qw(Koha::Object Koha::Object::Mixin::AdditionalFields);
 
 =encoding utf8
 
@@ -55,6 +54,19 @@ Return the patron linked to this account line
 sub patron {
     my ( $self ) = @_;
     my $rs = $self->_result->borrowernumber;
+    return unless $rs;
+    return Koha::Patron->_new_from_dbic( $rs );
+}
+
+=head3 manager
+
+Return the manager linked to this account line
+
+=cut
+
+sub manager {
+    my ( $self ) = @_;
+    my $rs = $self->_result->manager;
     return unless $rs;
     return Koha::Patron->_new_from_dbic( $rs );
 }
@@ -274,7 +286,7 @@ sub void {
     # Find any applied offsets for the credit so we may reverse them
     my @account_offsets =
       Koha::Account::Offsets->search(
-        { credit_id => $self->id, amount => { '<' => 0 }  } );
+        { credit_id => $self->id, amount => { '<' => 0 }  } )->as_list;
 
     my $void;
     $self->_result->result_source->schema->txn_do(
@@ -298,10 +310,17 @@ sub void {
             Koha::Account::Offset->new(
                 {
                     debit_id => $void->id,
-                    type     => 'VOID',
+                    type     => 'CREATE',
                     amount   => $self->amount * -1
                 }
             )->store();
+
+            # Link void to payment
+            $self->set({
+                amountoutstanding => $self->amount,
+                status => 'VOID'
+            })->store();
+            $self->apply( { debits => [$void] } );
 
             # Reverse any applied payments
             foreach my $account_offset (@account_offsets) {
@@ -324,13 +343,6 @@ sub void {
                     }
                 )->store();
             }
-
-            # Link void to payment
-            $self->set({
-                amountoutstanding => $self->amount,
-                status => 'VOID'
-            })->store();
-            $self->apply({ debits => [$void]});
 
             if ( C4::Context->preference("FinesLog") ) {
                 logaction(
@@ -430,18 +442,13 @@ sub cancel {
             my $cancellation_offset = Koha::Account::Offset->new(
                 {
                     credit_id => $cancellation->accountlines_id,
-                    type      => 'CANCELLATION',
-                    amount    => $self->amount
+                    type      => 'CREATE',
+                    amount    => 0 - $self->amount
                 }
             )->store();
 
             # Link cancellation to charge
-            $cancellation->apply(
-                {
-                    debits      => [$self],
-                    offset_type => 'CANCELLATION'
-                }
-            );
+            $cancellation->apply( { debits => [$self] } );
             $cancellation->status('APPLIED')->store();
 
             # Update status of original debit
@@ -554,8 +561,8 @@ sub reduce {
             my $reduction_offset = Koha::Account::Offset->new(
                 {
                     credit_id => $reduction->accountlines_id,
-                    type      => uc( $params->{reduction_type} ),
-                    amount    => $params->{amount}
+                    type      => 'CREATE',
+                    amount    => 0 - $params->{amount}
                 }
             )->store();
 
@@ -563,12 +570,7 @@ sub reduce {
             my $debit_outstanding = $self->amountoutstanding;
             if ( $debit_outstanding >= $params->{amount} ) {
 
-                $reduction->apply(
-                    {
-                        debits      => [$self],
-                        offset_type => uc( $params->{reduction_type} )
-                    }
-                );
+                $reduction->apply( { debits => [$self] } );
                 $reduction->status('APPLIED')->store();
             }
             else {
@@ -579,7 +581,7 @@ sub reduce {
                     {
                         credit_id => $reduction->accountlines_id,
                         debit_id  => $self->accountlines_id,
-                        type      => uc( $params->{reduction_type} ),
+                        type      => 'APPLY',
                         amount    => 0
                     }
                 )->store();
@@ -597,7 +599,7 @@ sub reduce {
 =head3 apply
 
     my $debits = $account->outstanding_debits;
-    my $credit = $credit->apply( { debits => $debits, [ offset_type => $offset_type ] } );
+    my $credit = $credit->apply( { debits => $debits } );
 
 Applies the credit to a given debits array reference.
 
@@ -607,9 +609,6 @@ Applies the credit to a given debits array reference.
 
 =item debits - Koha::Account::Lines object set of debits
 
-=item offset_type (optional) - a string indicating the offset type (valid values are those from
-the 'account_offset_types' table)
-
 =back
 
 =cut
@@ -618,7 +617,6 @@ sub apply {
     my ( $self, $params ) = @_;
 
     my $debits      = $params->{debits};
-    my $offset_type = $params->{offset_type} // 'Credit Applied';
 
     unless ( $self->is_credit ) {
         Koha::Exceptions::Account::IsNotCredit->throw(
@@ -659,7 +657,7 @@ sub apply {
                 {   credit_id => $self->id,
                     debit_id  => $debit->id,
                     amount    => $amount_to_cancel * -1,
-                    type      => $offset_type,
+                    type      => 'APPLY'
                 }
             )->store();
 
@@ -761,7 +759,7 @@ sub payout {
     Koha::Exceptions::Account::RegisterRequired->throw()
       if ( C4::Context->preference("UseCashRegisters")
         && defined( $params->{payout_type} )
-        && ( $params->{payout_type} eq 'CASH' )
+        && ( $params->{payout_type} eq 'CASH' || $params->{payout_type} eq 'SIP00' )
         && !defined( $params->{cash_register} ) );
         
     my $cash_register_mngmt = undef;
@@ -798,12 +796,12 @@ sub payout {
             my $payout_offset = Koha::Account::Offset->new(
                 {
                     debit_id => $payout->accountlines_id,
-                    type     => 'PAYOUT',
+                    type     => 'CREATE',
                     amount   => $amount
                 }
             )->store();
 
-            $self->apply( { debits => [$payout], offset_type => 'PAYOUT' } );
+            $self->apply( { debits => [$payout] } );
             $self->status('PAID')->store;
             
             # If it is not SIP it is a cash payment and if cash registers are activated as too,
@@ -1055,7 +1053,8 @@ sub renew_item {
             $self->{branchcode},
             undef,
             undef,
-            1
+            undef,
+            0
         );
         return {
             itemnumber => $itemnumber,

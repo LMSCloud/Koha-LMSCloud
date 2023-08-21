@@ -22,9 +22,9 @@ use Modern::Perl;
 use JSON qw( encode_json );
 
 use CGI qw ( -utf8 );
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Koha;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 
 use Koha::Illrequest::Config;
 use Koha::Illrequests;
@@ -59,51 +59,46 @@ $template->param( backends_available => $backends_available );
 
 my $op = $params->{'method'} || 'list';
 
+my ( $illrequest_id, $request );
+if ( $illrequest_id = $params->{illrequest_id} ) {
+    $request = Koha::Illrequests->find($illrequest_id);
+    # Make sure the request belongs to the logged in user
+    if( !$request || $request->borrowernumber != $loggedinuser ) {
+        print $query->redirect("/cgi-bin/koha/errors/404.pl");
+        exit;
+    }
+}
+
 if ( $op eq 'list' ) {
 
     my $requests = Koha::Illrequests->search(
         { borrowernumber => $loggedinuser }
     );
-    my $req = Koha::Illrequest->new;
     $template->param(
         requests => $requests,
-        backends    => $backends
+        backends => $backends
     );
 
 } elsif ( $op eq 'view') {
-    my $request = Koha::Illrequests->find({
-        borrowernumber => $loggedinuser,
-        illrequest_id  => $params->{illrequest_id}
-    });
     $template->param(
         request => $request
     );
 
 } elsif ( $op eq 'update') {
-    my $request = Koha::Illrequests->find({
-        borrowernumber => $loggedinuser,
-        illrequest_id  => $params->{illrequest_id}
-    });
     $request->notesopac($params->{notesopac})->store;
     # Send a notice to staff alerting them of the update
     $request->send_staff_notice('ILL_REQUEST_MODIFIED');
     print $query->redirect(
-        '/cgi-bin/koha/opac-illrequests.pl?method=view&illrequest_id=' .
-        $params->{illrequest_id} .
-        '&message=1'
-    );
+            '/cgi-bin/koha/opac-illrequests.pl?method=view&illrequest_id='
+          . $illrequest_id
+          . '&message=1' );
     exit;
 } elsif ( $op eq 'cancreq') {
-    my $request = Koha::Illrequests->find({
-        borrowernumber => $loggedinuser,
-        illrequest_id  => $params->{illrequest_id}
-    });
     $request->status('CANCREQ')->store;
     print $query->redirect(
-        '/cgi-bin/koha/opac-illrequests.pl?method=view&illrequest_id=' .
-        $params->{illrequest_id} .
-        '&message=1'
-    );
+            '/cgi-bin/koha/opac-illrequests.pl?method=view&illrequest_id='
+          . $illrequest_id
+          . '&message=1' );
     exit;
 } elsif ( $op eq 'create' ) {
     if (!$params->{backend}) {

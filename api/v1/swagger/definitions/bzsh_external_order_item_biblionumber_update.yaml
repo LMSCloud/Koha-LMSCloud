@@ -1,0 +1,30 @@
+---
+type: object
+properties:
+  external_order_id:
+    type:
+      - string
+      - 'null'
+    description: external order id of an external system
+  biblionumber_old:
+    type: integer
+    readOnly: true
+    description: Internal identifier for the old bibliographic record
+  biblionumber:
+    type: integer
+    readOnly: true
+    description: Internal identifier for the new bibliographic record
+  library_id:
+    type: string
+    description: Internal identifier of the library
+  change_time:
+    type: string
+    format: date-time
+    description: time of the biblionumber change
+additionalProperties: false
+required:
+  - external_order_id
+  - biblionumber_old
+  - biblionumber
+  - library_id
+  - change_time

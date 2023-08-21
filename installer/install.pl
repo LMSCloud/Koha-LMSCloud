@@ -20,14 +20,14 @@
 use Modern::Perl;
 use diagnostics;
 
-use C4::InstallAuth;
+use C4::InstallAuth qw( get_template_and_user );
 use CGI qw ( -utf8 );
-use POSIX qw(strftime);
+use POSIX;
 
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use C4::Templates;
-use C4::Languages qw(getAllLanguages getTranslatedLanguages);
+use C4::Languages qw( getAllLanguages getTranslatedLanguages );
 use C4::Installer;
 use C4::Installer::PerlModules;
 
@@ -49,13 +49,12 @@ if ( defined($language) ) {
         template_name => "installer/step" . ( $step ? $step : 1 ) . ".tt",
         query         => $query,
         type          => "intranet",
-        debug           => 1,
     }
 );
 
 my $installer = C4::Installer->new();
 my %info;
-$info{'dbname'} = C4::Context->config("database");
+$info{'dbname'} = C4::Context->config("database_test") || C4::Context->config("database");
 $info{'dbms'}   = (
       C4::Context->config("db_scheme")
     ? C4::Context->config("db_scheme")
@@ -186,6 +185,12 @@ elsif ( $step && $step == 2 ) {
                     }
                 }
                 $template->param( "checkgrantaccess" => $grantaccess );
+
+                if ( my $count = $installer->has_non_dynamic_row_format ) {
+                    $template->param( warnDbRowFormat => $count );
+                    $template->param( error => "InnoDB row format" );
+                }
+
             }    # End mysql connect check...
 
             elsif ( $info{dbms} eq "Pg" ) {
@@ -328,7 +333,8 @@ elsif ( $step && $step == 3 ) {
         my $dir =
           C4::Context->config('intranetdir')
           . "/installer/data/$info{dbms}/$langchoice/marcflavour";
-        unless ( opendir( MYDIR, $dir ) ) {
+        my $dir_h;
+        unless ( opendir( $dir_h, $dir ) ) {
             if ( $langchoice eq 'en' ) {
                 warn "cannot open MARC frameworks directory $dir";
             }
@@ -337,12 +343,12 @@ elsif ( $step && $step == 3 ) {
                 # default to English
                 $dir = C4::Context->config('intranetdir')
                   . "/installer/data/$info{dbms}/en/marcflavour";
-                opendir( MYDIR, $dir )
+                opendir( $dir_h, $dir )
                   or warn "cannot open English MARC frameworks directory $dir";
             }
         }
-        my @listdir = grep { !/^\./ && -d "$dir/$_" } readdir(MYDIR);
-        closedir MYDIR;
+        my @listdir = grep { !/^\./ && -d "$dir/$_" } readdir($dir_h);
+        closedir $dir_h;
         my $marcflavour = C4::Context->preference("marcflavour");
         my @flavourlist;
         foreach my $marc (@listdir) {
@@ -397,7 +403,7 @@ elsif ( $step && $step == 3 ) {
         my $cmd = C4::Context->config("intranetdir")
           . "/installer/data/$info{dbms}/updatedatabase.pl >> $logfilepath 2>> $logfilepath_errors";
 
-        system($cmd );
+        system( $cmd );
 
         my $fh;
         open( $fh, "<:encoding(utf-8)", $logfilepath )
@@ -417,10 +423,12 @@ elsif ( $step && $step == 3 ) {
           or die "Cannot open log file $logfilepath_errors: $!";
         @report = <$fh>;
         close $fh;
+        my $update_errors;
         if (@report) {
             $template->param( update_errors =>
                   [ map { { line => $_ } } split( /\n/, join( '', @report ) ) ]
             );
+            $update_errors = 1;
             $template->param( has_update_errors => 1 );
             warn
 "The following errors were returned while attempting to run the updatedatabase.pl script:\n";
@@ -429,6 +437,23 @@ elsif ( $step && $step == 3 ) {
         else {
             eval { `rm $logfilepath_errors` };
         }
+
+        unless ( $update_errors ) {
+            my $db_entries = get_db_entries();
+            my $report = update( $db_entries );
+            my $atomic_update_files = get_atomic_updates;
+            my $atomic_update_report = run_atomic_updates( $atomic_update_files );
+
+            $template->param(
+                success        => $report->{success},
+                error          => $report->{error},
+                atomic_updates => {
+                    success => $atomic_update_report->{success},
+                    error   => $atomic_update_report->{error}
+                }
+            );
+        }
+
         $template->param( $op => 1 );
     }
     else {

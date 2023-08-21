@@ -20,24 +20,27 @@ package Koha::Hold;
 
 use Modern::Perl;
 
-use Carp;
-use Data::Dumper qw(Dumper);
-use List::MoreUtils qw(any);
+use List::MoreUtils qw( any );
 
 use C4::Context qw(preference);
-use C4::Letters;
-use C4::Log;
+use C4::Letters qw( GetPreparedLetter EnqueueLetter );
+use C4::Log qw( logaction );
+use C4::Reserves;
 
 use Koha::AuthorisedValues;
-use Koha::DateUtils qw(dt_from_string output_pref);
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Patrons;
 use Koha::Biblios;
+use Koha::Hold::CancellationRequests;
 use Koha::Items;
 use Koha::Libraries;
 use Koha::Old::Holds;
 use Koha::Calendar;
 use Koha::Plugins;
 
+use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
+
+use Koha::Exceptions;
 use Koha::Exceptions::Hold;
 
 use base qw(Koha::Object);
@@ -82,14 +85,14 @@ sub age {
 
 =head3 suspend_hold
 
-my $hold = $hold->suspend_hold( $suspend_until_dt );
+my $hold = $hold->suspend_hold( $suspend_until );
 
 =cut
 
 sub suspend_hold {
-    my ( $self, $dt ) = @_;
+    my ( $self, $date ) = @_;
 
-    my $date = $dt ? $dt->clone()->truncate( to => 'day' )->datetime : undef;
+    $date &&= dt_from_string($date)->truncate( to => 'day' )->datetime;
 
     if ( $self->is_found ) {    # We can't suspend found holds
         if ( $self->is_waiting ) {
@@ -123,8 +126,14 @@ sub suspend_hold {
         }
     );
 
-    logaction( 'HOLDS', 'SUSPEND', $self->reserve_id, Dumper( $self->unblessed ) )
+    logaction( 'HOLDS', 'SUSPEND', $self->reserve_id, $self )
         if C4::Context->preference('HoldsLog');
+
+    Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
+        {
+            biblio_ids => [ $self->biblionumber ]
+        }
+    ) if C4::Context->preference('RealTimeHoldsQueue');
 
     return $self;
 }
@@ -151,8 +160,14 @@ sub resume {
         }
     );
 
-    logaction( 'HOLDS', 'RESUME', $self->reserve_id, Dumper($self->unblessed) )
+    logaction( 'HOLDS', 'RESUME', $self->reserve_id, $self )
         if C4::Context->preference('HoldsLog');
+
+    Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
+        {
+            biblio_ids => [ $self->biblionumber ]
+        }
+    ) if C4::Context->preference('RealTimeHoldsQueue');
 
     return $self;
 }
@@ -168,7 +183,7 @@ sub delete {
 
     my $deleted = $self->SUPER::delete($self);
 
-    logaction( 'HOLDS', 'DELETE', $self->reserve_id, Dumper($self->unblessed) )
+    logaction( 'HOLDS', 'DELETE', $self->reserve_id, $self )
         if C4::Context->preference('HoldsLog');
 
     return $deleted;
@@ -184,6 +199,14 @@ sub set_transfer {
     $self->priority(0);
     $self->found('T');
     $self->store();
+
+    Koha::Plugins->call(
+        'after_hold_action',
+        {
+            action  => 'transfer',
+            payload => { hold => $self->get_from_storage }
+        }
+    );
 
     return $self;
 }
@@ -205,16 +228,10 @@ sub set_waiting {
         desk_id => $desk_id,
     };
 
-    my $requested_expiration;
-    if ($self->expirationdate) {
-        $requested_expiration = dt_from_string($self->expirationdate);
-    }
-
     my $max_pickup_delay = C4::Context->preference("ReservesMaxPickUpDelay");
     my $cancel_on_holidays = C4::Context->preference('ExpireReservesOnHolidays');
 
-    my $expirationdate = $today->clone;
-    $expirationdate->add(days => $max_pickup_delay);
+    my $new_expiration_date = dt_from_string($self->waitingdate)->clone->add( days => $max_pickup_delay );
 
     if ( C4::Context->preference("ExcludeHolidaysFromMaxPickUpDelay") ) {
         my $itemtype = $self->item ? $self->item->effective_itemtype : $self->biblio->itemtype;
@@ -227,15 +244,34 @@ sub set_waiting {
         );
         my $calendar = Koha::Calendar->new( branchcode => $self->branchcode, days_mode => $daysmode );
 
-        $expirationdate = $calendar->days_forward( dt_from_string(), $max_pickup_delay );
+        $new_expiration_date = $calendar->days_forward( dt_from_string($self->waitingdate), $max_pickup_delay );
     }
 
     # If patron's requested expiration date is prior to the
     # calculated one, we keep the patron's one.
-    my $cmp = $requested_expiration ? DateTime->compare($requested_expiration, $expirationdate) : 0;
-    $values->{expirationdate} = $cmp == -1 ? $requested_expiration->ymd : $expirationdate->ymd;
+    if ( $self->patron_expiration_date ) {
+        my $requested_expiration = dt_from_string( $self->patron_expiration_date );
+
+        my $cmp =
+          $requested_expiration
+          ? DateTime->compare( $requested_expiration, $new_expiration_date )
+          : 0;
+
+        $new_expiration_date =
+          $cmp == -1 ? $requested_expiration : $new_expiration_date;
+    }
+
+    $values->{expirationdate} = $new_expiration_date->ymd;
 
     $self->set($values)->store();
+
+    Koha::Plugins->call(
+        'after_hold_action',
+        {
+            action  => 'waiting',
+            payload => { hold => $self->get_from_storage }
+        }
+    );
 
     return $self;
 }
@@ -325,6 +361,14 @@ sub set_processing {
     $self->found('P');
     $self->store();
 
+    Koha::Plugins->call(
+        'after_hold_action',
+        {
+            action  => 'processing',
+            payload => { hold => $self->get_from_storage }
+        }
+    );
+
     return $self;
 }
 
@@ -399,6 +443,57 @@ sub is_cancelable_from_opac {
     return 0; # if ->is_in_transit or if ->is_waiting or ->is_in_processing
 }
 
+=head3 cancellation_requestable_from_opac
+
+    if ( $hold->cancellation_requestable_from_opac ) { ... }
+
+Returns a I<boolean> representing if a cancellation request can be placed on the hold
+from the OPAC. It targets holds that cannot be cancelled from the OPAC (see the
+B<is_cancelable_from_opac> method above), but for which circulation rules allow
+requesting cancellation.
+
+Throws a B<Koha::Exceptions::InvalidStatus> exception with the following I<invalid_status>
+values:
+
+=over 4
+
+=item B<'hold_not_waiting'>: the hold is expected to be waiting and it is not.
+
+=item B<'no_item_linked'>: the waiting hold doesn't have an item properly linked.
+
+=back
+
+=cut
+
+sub cancellation_requestable_from_opac {
+    my ( $self ) = @_;
+
+    Koha::Exceptions::InvalidStatus->throw( invalid_status => 'hold_not_waiting' )
+      unless $self->is_waiting;
+
+    my $item = $self->item;
+
+    Koha::Exceptions::InvalidStatus->throw( invalid_status => 'no_item_linked' )
+      unless $item;
+
+    my $patron = $self->patron;
+
+    my $controlbranch = $patron->branchcode;
+
+    if ( C4::Context->preference('ReservesControlBranch') eq 'ItemHomeLibrary' ) {
+        $controlbranch = $item->homebranch;
+    }
+
+    return Koha::CirculationRules->get_effective_rule_value(
+        {
+            categorycode => $patron->categorycode,
+            itemtype     => $item->itype,
+            branchcode   => $controlbranch,
+            rule_name    => 'waiting_hold_cancellation',
+        }
+    ) ? 1 : 0;
+}
+
 =head3 is_at_destination
 
 Returns true if hold is waiting
@@ -452,6 +547,20 @@ sub item {
     $self->{_item} ||= Koha::Items->find( $self->itemnumber() );
 
     return $self->{_item};
+}
+
+=head3 item_group
+
+Returns the related Koha::Biblio::ItemGroup object for this Hold
+
+=cut
+
+sub item_group {
+    my ($self) = @_;
+
+    my $item_group_rs = $self->_result->item_group;
+    return unless $item_group_rs;
+    return Koha::Biblio::ItemGroup->_new_from_dbic($item_group_rs);
 }
 
 =head3 branch
@@ -508,13 +617,50 @@ sub is_suspended {
     return $self->suspend();
 }
 
+=head3 add_cancellation_request
+
+    my $cancellation_request = $hold->add_cancellation_request({ [ creation_date => $creation_date ] });
+
+Adds a cancellation request to the hold. Returns the generated
+I<Koha::Hold::CancellationRequest> object.
+
+=cut
+
+sub add_cancellation_request {
+    my ( $self, $params ) = @_;
+
+    my $request = Koha::Hold::CancellationRequest->new(
+        {   hold_id      => $self->id,
+            ( $params->{creation_date} ? ( creation_date => $params->{creation_date} ) : () ),
+        }
+    )->store;
+
+    $request->discard_changes;
+
+    return $request;
+}
+
+=head3 cancellation_requests
+
+    my $cancellation_requests = $hold->cancellation_requests;
+
+Returns related a I<Koha::Hold::CancellationRequests> resultset.
+
+=cut
+
+sub cancellation_requests {
+    my ($self) = @_;
+
+    return Koha::Hold::CancellationRequests->search( { hold_id => $self->id } );
+}
 
 =head3 cancel
 
 my $cancel_hold = $hold->cancel(
     {
-        [ charge_cancel_fee => 1||0, ]
+        [ charge_cancel_fee   => 1||0, ]
         [ cancellation_reason => $cancellation_reason, ]
+        [ skip_holds_queue    => 1||0 ]
     }
 );
 
@@ -529,8 +675,13 @@ Cancel a hold:
 
 sub cancel {
     my ( $self, $params ) = @_;
+
+    my $autofill_next = $params->{autofill} && $self->itemnumber && $self->found && $self->found eq 'W';
+
     $self->_result->result_source->schema->txn_do(
         sub {
+            my $patron = $self->patron;
+
             $self->cancellationdate( dt_from_string->strftime( '%Y-%m-%d %H:%M:%S' ) );
             $self->priority(0);
             $self->cancellation_reason( $params->{cancellation_reason} );
@@ -575,8 +726,11 @@ sub cancel {
                 }
             );
 
-            $self->SUPER::delete(); # Do not add a DELETE log
+            # anonymize if required
+            $old_me->anonymize
+                if $patron->privacy == 2;
 
+            $self->SUPER::delete(); # Do not add a DELETE log
             # now fix the priority on the others....
             C4::Reserves::_FixPriority({ biblionumber => $self->biblionumber });
 
@@ -597,8 +751,98 @@ sub cancel {
                 );
             }
 
-            C4::Log::logaction( 'HOLDS', 'CANCEL', $self->reserve_id, Dumper($self->unblessed) )
+            C4::Log::logaction( 'HOLDS', 'CANCEL', $self->reserve_id, $self )
                 if C4::Context->preference('HoldsLog');
+
+            Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
+                {
+                    biblio_ids => [ $old_me->biblionumber ]
+                }
+            ) unless $params->{skip_holds_queue} or !C4::Context->preference('RealTimeHoldsQueue');
+        }
+    );
+
+    if ($autofill_next) {
+        my ( undef, $next_hold ) = C4::Reserves::CheckReserves( $self->itemnumber );
+        if ($next_hold) {
+            my $is_transfer = $self->branchcode ne $next_hold->{branchcode};
+
+            C4::Reserves::ModReserveAffect( $self->itemnumber, $self->borrowernumber, $is_transfer, $next_hold->{reserve_id}, $self->desk_id, $autofill_next );
+            C4::Items::ModItemTransfer( $self->itemnumber, $self->branchcode, $next_hold->{branchcode}, "Reserve" ) if $is_transfer;
+        }
+    }
+
+    return $self;
+}
+
+=head3 fill
+
+    $hold->fill({ [ item_id => $item->id ] });
+
+This method marks the hold as filled. It effectively moves it to old_reserves.
+The optional I<item_id> parameter is used to set the information about the
+item that filled the hold.
+
+=cut
+
+sub fill {
+    my ( $self, $params ) = @_;
+    $self->_result->result_source->schema->txn_do(
+        sub {
+            my $patron = $self->patron;
+
+            $self->set(
+                {
+                    found    => 'F',
+                    priority => 0,
+                    $params->{item_id} ? ( itemnumber => $params->{item_id} ) : (),
+                }
+            );
+
+            my $old_me = $self->_move_to_old;
+
+            Koha::Plugins->call(
+                'after_hold_action',
+                {
+                    action  => 'fill',
+                    payload => { hold => $old_me->get_from_storage }
+                }
+            );
+
+            # anonymize if required
+            $old_me->anonymize
+                if $patron->privacy == 2;
+
+            $self->SUPER::delete(); # Do not add a DELETE log
+
+            # now fix the priority on the others....
+            C4::Reserves::_FixPriority({ biblionumber => $self->biblionumber });
+
+            if ( C4::Context->preference('HoldFeeMode') eq 'any_time_is_collected' ) {
+                my $fee = $patron->category->reservefee // 0;
+                if ( $fee > 0 ) {
+                    $patron->account->add_debit(
+                        {
+                            amount       => $fee,
+                            description  => $self->biblio->title,
+                            user_id      => C4::Context->userenv ? C4::Context->userenv->{'number'} : undef,
+                            library_id   => C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef,
+                            interface    => C4::Context->interface,
+                            type         => 'RESERVE',
+                            item_id      => $self->itemnumber
+                        }
+                    );
+                }
+            }
+
+            C4::Log::logaction( 'HOLDS', 'FILL', $self->id, $self )
+                if C4::Context->preference('HoldsLog');
+
+            Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
+                {
+                    biblio_ids => [ $old_me->biblionumber ]
+                }
+            ) if C4::Context->preference('RealTimeHoldsQueue');
         }
     );
     return $self;
@@ -614,11 +858,16 @@ expirationdate for holds.
 sub store {
     my ($self) = @_;
 
+    Koha::Exceptions::Hold::MissingPickupLocation->throw() unless $self->branchcode;
+
     if ( !$self->in_storage ) {
+        if ( ! $self->expirationdate && $self->patron_expiration_date ) {
+            $self->expirationdate($self->patron_expiration_date);
+        }
+
         if (
             C4::Context->preference('DefaultHoldExpirationdate')
-            and ( not defined $self->expirationdate
-                or $self->expirationdate eq '' )
+                && !$self->expirationdate
           )
         {
             $self->_set_default_expirationdate;
@@ -632,9 +881,7 @@ sub store {
         if ( exists $updated_columns{reservedate} ) {
             if (
                 C4::Context->preference('DefaultHoldExpirationdate')
-                and ( not exists $updated_columns{expirationdate}
-                    or exists $updated_columns{expirationdate}
-                    and $updated_columns{expirationdate} eq '' )
+                && ! exists $updated_columns{expirationdate}
               )
             {
                 $self->_set_default_expirationdate;
@@ -692,12 +939,33 @@ sub to_api_mapping {
         itemnumber       => 'item_id',
         waitingdate      => 'waiting_date',
         expirationdate   => 'expiration_date',
+        patron_expiration_date => undef,
         lowestPriority   => 'lowest_priority',
         suspend          => 'suspended',
         suspend_until    => 'suspended_until',
         itemtype         => 'item_type',
         item_level_hold  => 'item_level',
     };
+}
+
+=head3 can_update_pickup_location_opac
+
+    my $can_update_pickup_location_opac = $hold->can_update_pickup_location_opac;
+
+Returns if a hold can change pickup location from opac
+
+=cut
+
+sub can_update_pickup_location_opac {
+    my ($self) = @_;
+
+    my @statuses = split /,/, C4::Context->preference("OPACAllowUserToChangeBranch");
+    foreach my $status ( @statuses ){
+        return 1 if ($status eq 'pending' && !$self->is_found && !$self->is_suspended );
+        return 1 if ($status eq 'intransit' && $self->is_in_transit);
+        return 1 if ($status eq 'suspended' && $self->is_suspended);
+    }
+    return 0;
 }
 
 =head2 Internal methods

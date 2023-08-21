@@ -22,7 +22,7 @@ use Mojo::Base 'Mojolicious::Controller';
 use Koha::ImportBatchProfiles;
 use Koha::ImportBatchProfile;
 
-use Try::Tiny;
+use Try::Tiny qw( catch try );
 
 =head1 NAME
 
@@ -66,8 +66,6 @@ sub add {
     my $c = shift->openapi->valid_input or return;
 
     my $body = $c->validation->param('body');
-
-    $body =
 
     return try {
         my $profile = Koha::ImportBatchProfile->new_from_api( $body )->store;

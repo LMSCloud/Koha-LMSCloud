@@ -19,20 +19,22 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use Test::More tests => 10;
+use Test::More tests => 12;
 use Test::MockModule;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 use t::lib::Dates;
+use XML::LibXML;
 
 use C4::Items qw( ModItemTransfer );
-use C4::Circulation;
+use C4::Circulation qw( AddIssue );
+use C4::Reserves qw (AddReserve ModReserve ModReserveAffect ModReserveStatus);
 
 use Koha::AuthUtils;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 
 BEGIN {
-    use_ok('C4::ILSDI::Services');
+    use_ok('C4::ILSDI::Services', qw( AuthenticatePatron GetPatronInfo LookupPatron HoldTitle HoldItem GetRecords RenewLoan GetAvailability ));
 }
 
 my $schema  = Koha::Database->schema;
@@ -41,7 +43,7 @@ my $builder = t::lib::TestBuilder->new;
 
 subtest 'AuthenticatePatron test' => sub {
 
-    plan tests => 16;
+    plan tests => 18;
 
     $schema->storage->txn_begin;
 
@@ -108,6 +110,13 @@ subtest 'AuthenticatePatron test' => sub {
     $query->param( 'password', $plain_password );
     $reply = C4::ILSDI::Services::AuthenticatePatron($query);
     is( $reply->{code}, 'PatronNotFound', "non-existing cardnumer/userid - PatronNotFound" );
+    is( $reply->{id}, undef, "id undef");
+
+    $query->param( 'username', $borrower->{userid} );
+    $query->param( 'password', $plain_password );
+    $seen_patron->password_expiration_date('2020-01-01')->store;
+    $reply = C4::ILSDI::Services::AuthenticatePatron($query);
+    is( $reply->{code}, 'PasswordExpired', "correct credentials, expired password not authenticated" );
     is( $reply->{id}, undef, "id undef");
 
     $schema->storage->txn_rollback;
@@ -737,6 +746,65 @@ subtest 'RenewHold' => sub {
     $schema->storage->txn_rollback;
 };
 
+subtest 'CancelHold' => sub {
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    my $cgi = CGI->new;
+
+    my $library = $builder->build_object({
+        class => 'Koha::Libraries',
+    });
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons',
+                                           value => {
+                                               branchcode => $library->branchcode,
+                                           },
+                                         } );
+
+    my $patron2 = $builder->build_object( { class => 'Koha::Patrons',
+                                           value => {
+                                               branchcode => $library->branchcode,
+                                           },
+                                         } );
+
+    my $item = $builder->build_sample_item({ library => $library->branchcode });
+
+    my $reserve = C4::Reserves::AddReserve({branchcode => $library->branchcode,
+                                            borrowernumber => $patron->borrowernumber,
+                                            biblionumber => $item->biblionumber });
+
+    # Affecting the reserve sets it to a waiting state
+    C4::Reserves::ModReserveAffect( $item->itemnumber,
+                                    $patron->borrowernumber,
+                                    undef,
+                                    $reserve,
+                                   );
+
+    $cgi->param( patron_id => $patron2->borrowernumber );
+    $cgi->param( item_id   => $reserve );
+
+
+    my $reply = C4::ILSDI::Services::CancelHold($cgi);
+    is( $reply->{code}, 'BorrowerCannotCancelHold', 'If the patron is wrong, BorrowerCannotCancelHold should be returned');
+
+    $cgi->param( patron_id => $patron->borrowernumber );
+    $reply = C4::ILSDI::Services::CancelHold($cgi);
+    is( $reply->{code}, 'BorrowerCannotCancelHold', 'If reserve in a Waiting state, patron cannot cancel');
+
+    C4::Reserves::ModReserveStatus( $item->itemnumber, 'T' );
+    $reply = C4::ILSDI::Services::CancelHold($cgi);
+    is( $reply->{code}, 'BorrowerCannotCancelHold', 'If reserve in a Transfer state, patron cannot cancel');
+
+    C4::Reserves::ModReserve( {rank => 1, reserve_id => $reserve, branchcode => $library->branchcode} );
+    $cgi->param( item_id => $reserve );
+    $reply = C4::ILSDI::Services::CancelHold($cgi);
+    is( $reply->{code}, 'Canceled', 'If the patron is fine and reserve not waiting, Canceled should be returned and reserve canceled');
+
+    $schema->storage->txn_rollback;
+};
+
 subtest 'GetPatronInfo paginated loans' => sub {
     plan tests => 7;
 
@@ -785,6 +853,76 @@ subtest 'GetPatronInfo paginated loans' => sub {
     is($reply->{total_loans}, 3, 'total_loans == 3');
     is(scalar @{ $reply->{loans}->{loan} }, 1, 'GetPatronInfo returned only 1 loan');
     is($reply->{loans}->{loan}->[0]->{itemnumber}, $item1->itemnumber);
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'GetAvailability itemcallnumber' => sub {
+
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'ILS-DI', 1 );
+
+    my $item1 = $builder->build_sample_item(
+        {
+            itemcallnumber => "callnumber",
+        }
+    );
+
+    my $item2 = $builder->build_sample_item( {} );
+
+    # Build the query
+    my $cgi = CGI->new;
+    $cgi->param( service => 'GetAvailability' );
+    $cgi->param( id      => $item1->itemnumber );
+    $cgi->param( id_type => 'item' );
+
+    # Output of GetAvailability is a string containing XML
+    my $reply = C4::ILSDI::Services::GetAvailability($cgi);
+
+    # Parse the output and get info
+    my $result_XML = XML::LibXML->load_xml( string => $reply );
+    my $reply_callnumber =
+      $result_XML->findnodes('//dlf:itemcallnumber')->to_literal();
+
+    # Test the output
+    is( $reply_callnumber, $item1->itemcallnumber,
+        "GetAvailability item has an itemcallnumber tag" );
+
+    $cgi = CGI->new;
+    $cgi->param( service => 'GetAvailability' );
+    $cgi->param( id      => $item2->itemnumber );
+    $cgi->param( id_type => 'item' );
+    $reply      = C4::ILSDI::Services::GetAvailability($cgi);
+    $result_XML = XML::LibXML->load_xml( string => $reply );
+    $reply_callnumber =
+      $result_XML->findnodes('//dlf:itemcallnumber')->to_literal();
+    is( $reply_callnumber, '',
+        "As expected, GetAvailability item has no itemcallnumber tag" );
+
+    $cgi = CGI->new;
+    $cgi->param( service => 'GetAvailability' );
+    $cgi->param( id      => $item1->biblionumber );
+    $cgi->param( id_type => 'biblio' );
+    $reply      = C4::ILSDI::Services::GetAvailability($cgi);
+    $result_XML = XML::LibXML->load_xml( string => $reply );
+    $reply_callnumber =
+      $result_XML->findnodes('//dlf:itemcallnumber')->to_literal();
+    is( $reply_callnumber, $item1->itemcallnumber,
+        "GetAvailability biblio has an itemcallnumber tag" );
+
+    $cgi = CGI->new;
+    $cgi->param( service => 'GetAvailability' );
+    $cgi->param( id      => $item2->biblionumber );
+    $cgi->param( id_type => 'biblio' );
+    $reply      = C4::ILSDI::Services::GetAvailability($cgi);
+    $result_XML = XML::LibXML->load_xml( string => $reply );
+    $reply_callnumber =
+      $result_XML->findnodes('//dlf:itemcallnumber')->to_literal();
+    is( $reply_callnumber, '',
+        "As expected, GetAvailability biblio has no itemcallnumber tag" );
 
     $schema->storage->txn_rollback;
 };

@@ -27,8 +27,8 @@ use Test::MockModule;
 use MARC::Field;
 
 use C4::Items;
-use C4::Biblio;
-use C4::Reserves;
+use C4::Biblio qw( AddBiblio ModBiblio );
+use C4::Reserves qw( AddReserve );
 
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Biblios;
@@ -234,7 +234,7 @@ $schema->storage->txn_rollback;
 
 subtest 'pickup_locations() tests' => sub {
 
-    plan tests => 1;
+    plan tests => 3;
 
     $schema->storage->txn_begin;
 
@@ -278,11 +278,20 @@ subtest 'pickup_locations() tests' => sub {
     my $item_2_1 = $builder->build_sample_item({ biblionumber => $biblio_2->biblionumber });
     my $item_2_2 = $builder->build_sample_item({ biblionumber => $biblio_2->biblionumber });
 
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+
     my $biblios = Koha::Biblios->search(
         {
             biblionumber => [ $biblio_1->biblionumber, $biblio_2->biblionumber ]
         }
     );
+
+    throws_ok
+      { $biblios->pickup_locations }
+      'Koha::Exceptions::MissingParameter',
+      'Exception thrown on missing parameter';
+
+    is( $@->parameter, 'patron', 'Exception param correctly set' );
 
     my $library_ids = [
         Koha::Libraries->search(
@@ -298,7 +307,7 @@ subtest 'pickup_locations() tests' => sub {
     ];
 
     my $pickup_locations_ids = [
-        $biblios->pickup_locations->_resultset->get_column('branchcode')->all
+        $biblios->pickup_locations({ patron => $patron })->_resultset->get_column('branchcode')->all
     ];
 
     is_deeply(

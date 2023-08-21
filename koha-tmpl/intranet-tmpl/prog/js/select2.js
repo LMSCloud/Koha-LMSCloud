@@ -36,4 +36,45 @@ $(document).ready(function(){
             $(this).off("select2:opening.cancelOpen");
         });
     });
+
+    $(document).on("select2:open", function () {
+        document.querySelector(".select2-container--open .select2-search__field").focus();
+    });
 });
+
+(function($) {
+
+    /**
+    * Create a new Select2 instance that uses the Koha RESTful API response headers to
+    * read pagination information
+    * @param  {Object}  config  Please see the Select2 documentation for further details
+    * @return {Object}          The Select2 instance
+    */
+
+    $.fn.kohaSelect = function(config) {
+        if (config.hasOwnProperty('ajax')) {
+            config.ajax.transport = function(params, success, failure) {
+                var read_headers = function(data, textStatus, jqXHR) {
+                    var more = false;
+                    var link = jqXHR.getResponseHeader('Link') || '';
+                    if (link.search(/<([^>]+)>;\s*rel\s*=\s*['"]?next['"]?\s*(,|$)/i) > -1) {
+                        more = true;
+                    }
+
+                    return {
+                        results: data,
+                        pagination: {
+                            more: more
+                        }
+                    };
+                };
+                var $request = $.ajax(params);
+                $request.then(read_headers).then(success);
+                $request.fail(failure);
+
+            };
+        }
+
+        $(this).select2(config);
+    };
+})(jQuery);

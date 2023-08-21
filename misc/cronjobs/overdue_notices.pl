@@ -20,16 +20,8 @@
 
 use Modern::Perl;
 
-BEGIN {
-
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
-
-use Getopt::Long;
-use Pod::Usage;
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 use Text::CSV_XS;
 use DateTime;
 use DateTime::Duration;
@@ -37,13 +29,12 @@ use DateTime::Duration;
 use Koha::Script -cron;
 use C4::Context;
 use C4::Letters;
-use C4::Overdues qw(GetFine GetOverdueMessageTransportTypes parse_overdues_letter);
+use C4::Overdues qw( GetOverdueMessageTransportTypes parse_overdues_letter);
 use C4::ClaimingFees;
 use C4::NoticeFees;
-use C4::Log;
-use C4::Members;
+use C4::Log qw( cronlogaction );
 use Koha::Patron::Debarments qw(AddUniqueDebarment);
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Calendar;
 use Koha::Libraries;
 use Koha::Acquisition::Currencies;
@@ -64,7 +55,7 @@ overdue_notices.pl
  Options:
    --help                          Brief help message.
    --man                           Full documentation.
-   --verbose | -v                  Verbose mode.
+   --verbose | -v                  Verbose mode. Can be repeated for increased output
    --nomail | -n                   No email will be sent.
    --max          <days>           Maximum days overdue to deal with.
    --library      <branchcode>     Only deal with overdues from this library.
@@ -81,7 +72,9 @@ overdue_notices.pl
    --date         <yyyy-mm-dd>     Emulate overdues run for this date.
    --email        <email_type>     Type of email that will be used.
                                    Can be 'email', 'emailpro' or 'B_email'. Repeatable.
-   --frombranch                    Set the from address for the notice to one of 'item-homebranch' or 'item-issuebranch'.
+   --frombranch                    Organize and send overdue notices by home library (item-homebranch) or checkout library (item-issuebranch).
+                                   This option is only used, if the OverdueNoticeFrom system preference is set to 'command-line option'.
+                                   Defaults to item-issuebranch.
 
 =head1 OPTIONS
 
@@ -98,6 +91,8 @@ Prints the manual page and exits.
 =item B<-v> | B<--verbose>
 
 Verbose. Without this flag set, only fatal errors are reported.
+A single 'v' will report info on branches, letter codes, and patrons.
+A second 'v' will report The SQL code used to search for triggered patrons.
 
 =item B<-n> | B<--nomail>
 
@@ -197,9 +192,9 @@ Allows to specify which type of email will be used. Can be email, emailpro or B_
 
 =item B<--frombranch>
 
-Use the address information from the item homebranch library instead of the issuing library.
-
-Defaults to 'item-issuebranch'
+Organize overdue notices either by checkout library (item-issuebranch) or item home library (item-homebranch).
+This option is only used, if the OverdueNoticeFrom system preference is set to use 'command-line option'.
+Defaults to checkout library (item-issuebranch).
 
 =back
 
@@ -343,10 +338,12 @@ my $checkPreviousClaimLevel = 0;
 my ( $date_input, $today );
 my %debarredPatrons = ();
 
+my $command_line_options = join(" ",@ARGV);
+
 GetOptions(
     'help|?'         => \$help,
     'man'            => \$man,
-    'v|verbose'      => \$verbose,
+    'v|verbose+'     => \$verbose,
     'n|nomail'       => \$nomail,
     'nocharge+'      => \$nocharge,
     'max=s'          => \$MAX,
@@ -366,7 +363,7 @@ GetOptions(
 ) or pod2usage(2);
 pod2usage(1) if $help;
 pod2usage( -verbose => 2 ) if $man;
-cronlogaction() unless $test_mode;
+cronlogaction({ info => $command_line_options });
 
 if ( defined $csvfilename && $csvfilename =~ /^-/ ) {
     warn qq(using "$csvfilename" as filename, that seems odd);
@@ -375,6 +372,7 @@ if ( defined $csvfilename && $csvfilename =~ /^-/ ) {
 die "--frombranch takes item-homebranch or item-issuebranch only"
     unless ( $frombranch eq 'item-issuebranch'
         || $frombranch eq 'item-homebranch' );
+$frombranch = C4::Context->preference('OverdueNoticeFrom') ne 'cron' ? C4::Context->preference('OverdueNoticeFrom') : $frombranch;
 my $owning_library = ( $frombranch eq 'item-homebranch' ) ? 1 : 0;
 
 $checkPreviousClaimLevel = 1 
@@ -443,8 +441,7 @@ binmode( STDOUT, ':encoding(UTF-8)' );
 our $csv;       # the Text::CSV_XS object
 our $csv_fh;    # the filehandle to the CSV file.
 if ( defined $csvfilename ) {
-    my $sep_char = C4::Context->preference('CSVDelimiter') || ';';
-    $sep_char = "\t" if ($sep_char eq 'tabulation');
+    my $sep_char = C4::Context->csv_delimiter;
     $csv = Text::CSV_XS->new( { binary => 1 , sep_char => $sep_char } );
     if ( $csvfilename eq '' ) {
         $csv_fh = *STDOUT;
@@ -471,18 +468,7 @@ if ( defined $htmlfilename ) {
     open $fh, ">:encoding(UTF-8)",File::Spec->catdir ($htmlfilename,"notices-".$today->ymd().".html");
   }
   
-  print $fh "<html>\n";
-  print $fh "<head>\n";
-  print $fh "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n";
-  print $fh "<style type='text/css'>\n";
-  print $fh "pre {page-break-after: always;}\n";
-  print $fh "pre {white-space: pre-wrap;}\n";
-  print $fh "pre {white-space: -moz-pre-wrap;}\n";
-  print $fh "pre {white-space: -o-pre-wrap;}\n";
-  print $fh "pre {word-wrap: break-work;}\n";
-  print $fh "</style>\n";
-  print $fh "</head>\n";
-  print $fh "<body>\n";
+  print $fh _get_html_start();
 }
 elsif ( defined $text_filename ) {
   if ( $text_filename eq '' ) {
@@ -524,11 +510,13 @@ foreach my $branchcode (@branches) {
             next;
         }
     }
+
     my $admin_email_address = $library->from_email_address;
     my $branch_email_address = C4::Context->preference('AddressForFailedOverdueNotices')
       || $library->inbound_email_address;
     my @output_chunks;    # may be sent to mail or stdout or csv file.
 
+    $verbose and print "======================================\n";
     $verbose and warn sprintf "branchcode : '%s' using %s\n", $branchcode, $branch_email_address;
 
     my $mobileselect = '';
@@ -605,9 +593,10 @@ END_SQL
             next unless defined $mindays;
 
             if ( !$overdue_rules->{"letter$i"} ) {
-                $verbose and warn "No letter$i code for branch '$branchcode'";
+                $verbose and warn sprintf "No letter code found for pass %s\n", $i;
                 next PERIOD;
             }
+            $verbose and warn sprintf "Using letter code '%s' for pass %s\n", $overdue_rules->{"letter$i"}, $i;
 
             # $letter->{'content'} is the text of the mail that is sent.
             # this text contains fields that are replaced by their value. Those fields must be written between brackets
@@ -689,7 +678,12 @@ END_SQL
 	        my $sth = $dbh->prepare($borrower_sql);
             $sth->execute(@borrower_parameters);
 
-            $verbose and warn $borrower_sql . "\n $branchcode | " . $overdue_rules->{'categorycode'} . "\n ($mindays, $maxdays, ".  $date_to_run->datetime() .")\nreturns " . $sth->rows . " rows";
+            if ( $verbose > 1 ){
+                warn sprintf "--------Borrower SQL------\n";
+                warn $borrower_sql . "\n $branchcode | " . $overdue_rules->{'categorycode'} . "\n ($mindays, $maxdays, ".  $date_to_run->datetime() .")\n";
+                warn sprintf "--------------------------\n";
+            }
+            $verbose and warn sprintf "Found %s borrowers with overdues\n", $sth->rows;
             my $borrowernumber;
             while ( my $data = $sth->fetchrow_hashref ) {
                 $verbose and warn "borrower ", $data->{'borrowernumber'}, ", issue of branch: ", $data->{branchcode}, ", current level $i: previous claim level ", $data->{claim_level}, ", issue claim date " , $data->{claim_date} , " and date to run " , $date_to_run->ymd() , "\n";
@@ -740,8 +734,7 @@ END_SQL
                     $data->{'firstname'} && $data->{'surname'} ? ', ' : '',
                     $data->{'firstname'} || '',
                     $borrowernumber );
-                $verbose
-                  and warn "borrower $borr has items triggering level $i.";
+                $verbose and warn "borrower $borr has items triggering level $i.\n";
 
                 my $patron = Koha::Patrons->find( $borrowernumber );
                 
@@ -767,8 +760,14 @@ END_SQL
                     }
                 }
 
-                my $letter = C4::Letters::getletter( 'circulation', $overdue_rules->{"letter$i"}, $usebranch, undef, $patron->lang )
-                          || C4::Letters::getletter( 'circulation', $overdue_rules->{"letter$i"}, $usebranch, undef, "default");
+                my $letter = Koha::Notice::Templates->find_effective_template(
+                    {
+                        module     => 'circulation',
+                        code       => $overdue_rules->{"letter$i"},
+                        branchcode => $usebranch,
+                        lang       => $patron->lang
+                    }
+                );
 
                 unless ($letter) {
                     $verbose and warn qq|Message '$overdue_rules->{"letter$i"}' content not found|;
@@ -784,8 +783,6 @@ END_SQL
                 if ( C4::Context->preference('BookMobileSupportEnabled') && !C4::Context->preference('BookMobileStationOverdueRulesActive')) {
                     push(@params,$branchcode);
                 }
-
-                $verbose and warn "STH2 PARAMS: borrowernumber = $borrowernumber";
 
                 $sth2->execute(@params);
                 my $itemcount = 0;
@@ -957,7 +954,8 @@ END_SQL
                 
                     my $titles = join("",@titles);
                     @items = @allitems;
-                    
+
+                    next if $mtt eq 'itiva';
                     my $effective_mtt = $mtt;
                     if ( ($mtt eq 'email' and not scalar @emails_to_use) or ($mtt eq 'sms' and not $data->{smsalertnumber}) ) {
                         # email or sms is requested but not exist, do a print.
@@ -1007,8 +1005,16 @@ END_SQL
                         }
                     }
 
-                    my $letter_exists = ( C4::Letters::getletter( 'circulation', $overdue_rules->{"letter$i"}, $usebranch, $effective_mtt, $patron->lang )
-                                       || C4::Letters::getletter( 'circulation', $overdue_rules->{"letter$i"}, $usebranch, $effective_mtt, "default") ) ? 1 : 0;
+                    my $letter_exists = Koha::Notice::Templates->find_effective_template(
+                        {
+                            module     => 'circulation',
+                            code       => $overdue_rules->{"letter$i"},
+                            message_transport_type => $effective_mtt,
+                            branchcode => $usebranch,
+                            lang       => $patron->lang
+                        }
+                    );
+
                     my $letter = parse_overdues_letter(
                         {   letter_code       => $overdue_rules->{"letter$i"},
                             borrowernumber    => $borrowernumber,
@@ -1093,7 +1099,8 @@ END_SQL
                                     message_transport_type => $effective_mtt,
                                     from_address           => $admin_email_address,
                                     to_address             => join(',', @emails_to_use),
-                                    branchcode             => $usebranch
+                                    branchcode             => $usebranch,
+                                    reply_address          => $library->inbound_email_address,
                                 }
                             ) unless $test_mode;
                             # A print notice should be sent only once per overdue level.
@@ -1124,34 +1131,38 @@ END_SQL
         # Generate the content of the csv with headers
         my $content;
         if ( defined $csvfilename ) {
-            my $delimiter = C4::Context->preference('CSVDelimiter') || ';';
+            my $delimiter = C4::Context->csv_delimiter;
             $content = join($delimiter, qw(title name surname address1 address2 zipcode city country email itemcount itemsinfo due_date issue_date)) . "\n";
+            $content .= join( "\n", @output_chunks );
+        } elsif ( defined $htmlfilename ) {
+            $content = _get_html_start();
+            $content .= join( "\n", @output_chunks );
+            $content .= _get_html_end();
+        } else {
+            $content = join( "\n", @output_chunks );
         }
-        else {
-            $content = "";
+
+        if ( C4::Context->preference('EmailOverduesNoEmail') ) {
+            my $attachment = {
+                filename => defined $csvfilename ? 'attachment.csv' : defined $htmlfilename ? 'attachment.html' : 'attachment.txt',
+                type => defined $htmlfilename ? 'text/html' : 'text/plain',
+                content => $content,
+            };
+
+            my $letter = {
+                title   => 'Overdue Notices',
+                content => 'These messages were not sent directly to the patrons.',
+            };
+
+            C4::Letters::EnqueueLetter(
+                {   letter                 => $letter,
+                    borrowernumber         => undef,
+                    message_transport_type => 'email',
+                    attachments            => [$attachment],
+                    to_address             => $branch_email_address,
+                }
+            ) unless $test_mode;
         }
-        $content .= join( "\n", @output_chunks );
-
-        my $attachment = {
-            filename => defined $csvfilename ? 'attachment.csv' : 'attachment.txt',
-            type => 'text/plain',
-            content => $content, 
-        };
-
-        my $letter = {
-            title   => 'Overdue Notices',
-            content => 'These messages were not sent directly to the patrons.',
-        };
-
-        C4::Letters::EnqueueLetter(
-            {   letter                 => $letter,
-                borrowernumber         => undef,
-                message_transport_type => 'email',
-                attachments            => [$attachment],
-                to_address             => $admin_email_address,
-                branchcode             => $usebranch
-            }
-        ) unless $test_mode;
     }
 
 }
@@ -1162,8 +1173,7 @@ if ($csvfilename) {
 }
 
 if ( defined $htmlfilename ) {
-  print $fh "</body>\n";
-  print $fh "</html>\n";
+  print $fh _get_html_end();
   close $fh;
 } elsif ( defined $text_filename ) {
   close $fh;
@@ -1223,3 +1233,42 @@ sub prepare_letter_for_printing {
     return $return;
 }
 
+=head2 _get_html_start
+
+Return the start of a HTML document, including html, head and the start body
+tags. This should be usable both in the HTML file written to disc, and in the
+attachment.html sent as email.
+
+=cut
+
+sub _get_html_start {
+
+    return "<html>
+<head>
+<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />
+<style type='text/css'>
+pre {page-break-after: always;}
+pre {white-space: pre-wrap;}
+pre {white-space: -moz-pre-wrap;}
+pre {white-space: -o-pre-wrap;}
+pre {word-wrap: break-work;}
+</style>
+</head>
+<body>";
+
+}
+
+=head2 _get_html_end
+
+Return the end of an HTML document, namely the closing body and html tags.
+
+=cut
+
+sub _get_html_end {
+
+    return "</body>
+</html>";
+
+}
+
+cronlogaction({ action => 'End', info => "COMPLETED" });

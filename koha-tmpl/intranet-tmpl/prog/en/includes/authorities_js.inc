@@ -12,7 +12,7 @@ function mergeAuth(authid, summary) {
         }
         window.location.href = "/cgi-bin/koha/authorities/merge.pl?authid=" + authid + "&authid=" + alreadySelected.authid + refstring;
     } else {
-        Cookies.set('auth_to_merge', JSON.stringify({ 'authid': authid, 'summary': summary }), { 'path' : '/' });
+        Cookies.set('auth_to_merge', JSON.stringify({ 'authid': authid, 'summary': summary }), { 'path' : '/', sameSite: 'Lax' });
         showMergingInProgress();
     }
 }
@@ -21,14 +21,14 @@ function showMergingInProgress() {
     var alreadySelected = Cookies.get('auth_to_merge');
     if (alreadySelected !== undefined) {
         alreadySelected = JSON.parse(alreadySelected);
-        $('#merge_in_progress').html(_("Merging with authority: ") + "<a href='detail.pl?authid=" + alreadySelected.authid + "'><span class='authorizedheading'>" + alreadySelected.summary + "</span> (" + alreadySelected.authid + ")</a> <a href='#' id='cancel_merge'>" + _("Cancel merge") + "</a>");
+        $('#merge_in_progress').show().html(_("Merging with authority: ") + "<a href='detail.pl?authid=" + alreadySelected.authid + "'><span class='authorizedheading'>" + alreadySelected.summary + "</span> (" + alreadySelected.authid + ")</a> <a href='#' id='cancel_merge'>" + _("Cancel merge") + "</a>");
         $('#cancel_merge').click(function(event) {
             event.preventDefault();
             Cookies.remove('auth_to_merge');
-            $('#merge_in_progress').empty();
+            $('#merge_in_progress').hide().empty();
         });
     } else {
-        $('#merge_in_progress').empty();
+        $('#merge_in_progress').hide().empty();
     }
 }
 
@@ -79,13 +79,13 @@ $(document).ready(function () {
     var searchType = '[% marclist | html %]';
     if (searchType) {
         if ('mainmainentry' == searchType) {
-            $("#header_search").tabs( "option", "active", 0 );
+            $("#header_search a[href='#mainmain_heading']").tab("show");
         } else if ('mainentry' == searchType) {
-            $("#header_search").tabs( "option", "active", 1 );
+            $("#header_search a[href='#main_heading']").tab("show");
         } else if ('match' == searchType) {
-            $("#header_search").tabs( "option", "active", 2 );
+            $("#header_search a[href='#matchheading_search']").tab("show");
         } else if ('all' == searchType) {
-            $("#header_search").tabs( "option", "active", 3 );
+            $("#header_search a[href='#entire_record']").tab("show");
         }
     }
 

@@ -2,10 +2,12 @@ package Koha::Exceptions::Library;
 
 use Modern::Perl;
 
+use Koha::Exception;
+
 use Exception::Class (
 
     'Koha::Exceptions::Library::Exception' => {
-        description => 'Something went wrong!',
+        isa => 'Koha::Exception',
     },
 
     'Koha::Exceptions::Library::NotFound' => {

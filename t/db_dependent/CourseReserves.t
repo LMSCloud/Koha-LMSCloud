@@ -17,15 +17,14 @@
 
 use Modern::Perl;
 
-use Test::More tests => 27;
+use Test::More tests => 26;
 
 use Koha::Database;
 use t::lib::TestBuilder;
 
 BEGIN {
-    use_ok('C4::Items', qw(AddItem));
-    use_ok('C4::Biblio');
-    use_ok('C4::CourseReserves', qw/:all/);
+    use_ok('C4::Biblio', qw( AddBiblio ));
+    use_ok('C4::CourseReserves', qw( GetCourse ModCourse GetCourses DelCourse GetCourseInstructors ModCourseInstructors GetCourseItem ModCourseItem GetCourseReserve ModCourseReserve GetCourseReserves DelCourseReserve SearchCourses GetItemCourseReservesInfo ));
     use_ok('C4::Context');
     use_ok('MARC::Field');
     use_ok('MARC::Record');

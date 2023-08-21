@@ -19,40 +19,43 @@ package C4::Reports::Guided;
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use Carp;
+use Carp qw( carp croak );
 use JSON qw( from_json );
 
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 use C4::Context;
 use C4::Templates qw/themelanguage/;
-use C4::Koha;
-use Koha::DateUtils;
+use C4::Koha qw( GetAuthorisedValues );
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Patrons;
 use Koha::Reports;
 use C4::Output;
-use C4::Debug;
-use C4::Log;
+use C4::Log qw( logaction );
 use Koha::Notice::Templates;
-use C4::Letters;
 
+use Koha::Database::Columns;
+use Koha::Logger;
 use Koha::AuthorisedValues;
 use Koha::Patron::Categories;
 use Koha::SharedContent;
 
+our (@ISA, @EXPORT_OK);
 BEGIN {
     require Exporter;
     @ISA    = qw(Exporter);
-    @EXPORT = qw(
+    @EXPORT_OK = qw(
       get_report_types get_report_areas get_report_groups get_columns build_query get_criteria
       save_report get_saved_reports execute_query
       get_column_type get_distinct_values save_dictionary get_from_dictionary
-      delete_definition delete_report format_results get_sql
+      delete_definition delete_report store_results format_results get_sql get_results
       nb_rows update_sql
+      strip_limit
+      convert_sql
       GetReservedAuthorisedValues
       GetParametersFromSQL
       IsAuthorisedValueValid
       ValidateSQLParameters
       nb_rows update_sql
+      EmailReport
     );
 }
 
@@ -210,7 +213,7 @@ sub _get_columns {
     my $sth         = $dbh->prepare("show columns from $tablename");
     $sth->execute();
     my @columns;
-	my $column_defs = _get_column_defs($cgi);
+    my $columns = Koha::Database::Columns->columns;
 	my %tablehash;
 	$tablehash{'table'}=$tablename;
     $tablehash{'__first__'} = $first;
@@ -218,7 +221,7 @@ sub _get_columns {
     while ( my $data = $sth->fetchrow_arrayref() ) {
         my %temphash;
         $temphash{'name'}        = "$tablename.$data->[0]";
-        $temphash{'description'} = $column_defs->{"$tablename.$data->[0]"};
+        $temphash{'description'} = $columns->{$tablename}->{$data->[0]};
         push @columns, \%temphash;
     }
     $sth->finish();
@@ -351,25 +354,26 @@ sub get_criteria {
 
 
     my $crit   = $criteria{$area};
-    my $column_defs = _get_column_defs($cgi);
+    my $columns = Koha::Database::Columns->columns;
     my @criteria_array;
     foreach my $localcrit (@$crit) {
         my ( $value, $type )   = split( /\|/, $localcrit );
         my ( $table, $column ) = split( /\./, $value );
+        my $description = $columns->{$table}->{$column};
         if ($type eq 'textrange') {
             my %temp;
             $temp{'name'}        = $value;
             $temp{'from'}        = "from_" . $value;
             $temp{'to'}          = "to_" . $value;
             $temp{'textrange'}   = 1;
-            $temp{'description'} = $column_defs->{$value};
+            $temp{'description'} = $description;
             push @criteria_array, \%temp;
         }
         elsif ($type eq 'date') {
             my %temp;
             $temp{'name'}        = $value;
             $temp{'date'}        = 1;
-            $temp{'description'} = $column_defs->{$value};
+            $temp{'description'} = $description;
             push @criteria_array, \%temp;
         }
         elsif ($type eq 'daterange') {
@@ -378,7 +382,7 @@ sub get_criteria {
             $temp{'from'}        = "from_" . $value;
             $temp{'to'}          = "to_" . $value;
             $temp{'daterange'}   = 1;
-            $temp{'description'} = $column_defs->{$value};
+            $temp{'description'} = $description;
             push @criteria_array, \%temp;
         }
         else {
@@ -405,12 +409,11 @@ sub get_criteria {
             }
             $sth->finish();
 
-            my %temp;
-            $temp{'name'}        = $value;
-            $temp{'description'} = $column_defs->{$value};
-            $temp{'values'}      = \@values;
-
-            push @criteria_array, \%temp;
+            push @criteria_array, {
+                name        => $value,
+                description => $description,
+                values      => \@values,
+            };
         }
     }
     return ( \@criteria_array );
@@ -462,9 +465,74 @@ sub nb_rows {
     return $results ? $results->[0] : 0;
 }
 
+=head2 select_2_select_count
+
+ returns $sql, $offset, $limit
+ $sql returned will be transformed to:
+  ~ remove any LIMIT clause
+  ~ replace SELECT clause w/ SELECT count(*)
+
+=cut
+
+sub select_2_select_count {
+    # Modify the query passed in to create a count query... (I think this covers all cases -crn)
+    my ($sql) = strip_limit(shift) or return;
+    $sql =~ s/\bSELECT\W+(?:\w+\W+){1,}?FROM\b|\bSELECT\W\*\WFROM\b/SELECT count(*) FROM /ig;
+    return $sql;
+}
+
+=head2 strip_limit
+This removes the LIMIT from the query so that a custom one can be specified.
+Usage:
+   ($new_sql, $offset, $limit) = strip_limit($sql);
+
+Where:
+  $sql is the query to modify
+  $new_sql is the resulting query
+  $offset is the offset value, if the LIMIT was the two-argument form,
+      0 if it wasn't otherwise given.
+  $limit is the limit value
+
+Notes:
+  * This makes an effort to not break subqueries that have their own
+    LIMIT specified. It does that by only removing a LIMIT if it comes after
+    a WHERE clause (which isn't perfect, but at least should make more cases
+    work - subqueries with a limit in the WHERE will still break.)
+  * If your query doesn't have a WHERE clause then all LIMITs will be
+    removed. This may break some subqueries, but is hopefully rare enough
+    to not be a big issue.
+
+=cut
+
+sub strip_limit {
+    my ($sql) = @_;
+
+    return unless $sql;
+    return ($sql, 0, undef) unless $sql =~ /\bLIMIT\b/i;
+
+    # Two options: if there's no WHERE clause in the SQL, we simply capture
+    # any LIMIT that's there. If there is a WHERE, we make sure that we only
+    # capture a LIMIT after the last one. This prevents stomping on subqueries.
+    if ($sql !~ /\bWHERE\b/i) {
+        (my $res = $sql) =~ s/\bLIMIT\b\s*(\d+)(\s*\,\s*(\d+))?\s*/ /ig;
+        return ($res, (defined $2 ? $1 : 0), (defined $3 ? $3 : $1));
+    } else {
+        my $res = $sql;
+        $res =~ m/.*\bWHERE\b/gsi;
+        $res =~ s/\G(.*)\bLIMIT\b\s*(\d+)(\s*\,\s*(\d+))?\s*/$1 /is;
+        return ($res, (defined $3 ? $2 : 0), (defined $4 ? $4 : $2));
+    }
+}
+
 =head2 execute_query
 
-  ($sth, $error) = execute_query($sql, $offset, $limit[, \@sql_params])
+  ($sth, $error) = execute_query({
+      sql => $sql,
+      offset => $offset,
+      limit => $limit
+      sql_params => \@sql_params],
+      report_id => $report_id
+  })
 
 
 This function returns a DBI statement handler from which the caller can
@@ -486,71 +554,22 @@ and that the number placeholders matches the number of parameters.
 
 =cut
 
-# returns $sql, $offset, $limit
-# $sql returned will be transformed to:
-#  ~ remove any LIMIT clause
-#  ~ repace SELECT clause w/ SELECT count(*)
-
-sub select_2_select_count {
-    # Modify the query passed in to create a count query... (I think this covers all cases -crn)
-    my ($sql) = strip_limit(shift) or return;
-    $sql =~ s/\bSELECT\W+(?:\w+\W+){1,}?FROM\b|\bSELECT\W\*\WFROM\b/SELECT count(*) FROM /ig;
-    return $sql;
-}
-
-# This removes the LIMIT from the query so that a custom one can be specified.
-# Usage:
-#   ($new_sql, $offset, $limit) = strip_limit($sql);
-#
-# Where:
-#   $sql is the query to modify
-#   $new_sql is the resulting query
-#   $offset is the offset value, if the LIMIT was the two-argument form,
-#       0 if it wasn't otherwise given.
-#   $limit is the limit value
-#
-# Notes:
-#   * This makes an effort to not break subqueries that have their own
-#     LIMIT specified. It does that by only removing a LIMIT if it comes after
-#     a WHERE clause (which isn't perfect, but at least should make more cases
-#     work - subqueries with a limit in the WHERE will still break.)
-#   * If your query doesn't have a WHERE clause then all LIMITs will be
-#     removed. This may break some subqueries, but is hopefully rare enough
-#     to not be a big issue.
-sub strip_limit {
-    my ($sql) = @_;
-
-    return unless $sql;
-    return ($sql, 0, undef) unless $sql =~ /\bLIMIT\b/i;
-
-    # Two options: if there's no WHERE clause in the SQL, we simply capture
-    # any LIMIT that's there. If there is a WHERE, we make sure that we only
-    # capture a LIMIT after the last one. This prevents stomping on subqueries.
-    if ($sql !~ /\bWHERE\b/i) {
-        (my $res = $sql) =~ s/\bLIMIT\b\s*(\d+)(\s*\,\s*(\d+))?\s*/ /ig;
-        return ($res, (defined $2 ? $1 : 0), (defined $3 ? $3 : $1));
-    } else {
-        my $res = $sql;
-        $res =~ m/.*\bWHERE\b/gsi;
-        $res =~ s/\G(.*)\bLIMIT\b\s*(\d+)(\s*\,\s*(\d+))?\s*/$1 /is;
-        return ($res, (defined $3 ? $2 : 0), (defined $4 ? $4 : $2));
-    }
-}
-
 sub execute_query {
 
-    my ( $sql, $offset, $limit, $sql_params, $report_id ) = @_;
-
-    $sql_params = [] unless defined $sql_params;
+    my $params     = shift;
+    my $sql        = $params->{sql};
+    my $offset     = $params->{offset} || 0;
+    my $limit      = $params->{limit}  || C4::Context->config('report_results_limit') || 999999;
+    my $sql_params = defined $params->{sql_params} ? $params->{sql_params} : [];
+    my $report_id  = $params->{report_id};
 
     # check parameters
     unless ($sql) {
         carp "execute_query() called without SQL argument";
         return;
     }
-    $offset = 0    unless $offset;
-    $limit  = 999999 unless $limit;
-    $debug and print STDERR "execute_query($sql, $offset, $limit)\n";
+
+    Koha::Logger->get->debug("Report - execute_query($sql, $offset, $limit)");
 
     my ( $is_sql_valid, $errors ) = Koha::Report->new({ savedsql => $sql })->is_sql_valid;
     return (undef, @{$errors}[0]) unless $is_sql_valid;
@@ -571,9 +590,11 @@ sub execute_query {
 
     # Grab offset/limit from user supplied LIMIT and drop the LIMIT so we can control pagination
     ($sql, $useroffset, $userlimit) = strip_limit($sql);
-    $debug and warn sprintf "User has supplied (OFFSET,) LIMIT = %s, %s",
-        $useroffset,
-        (defined($userlimit ) ? $userlimit  : 'UNDEF');
+
+    Koha::Logger->get->debug(
+        sprintf "User has supplied (OFFSET,) LIMIT = %s, %s",
+        $useroffset, ( defined($userlimit) ? $userlimit : 'UNDEF' ) );
+
     $offset += $useroffset;
     if (defined($userlimit)) {
         if ($offset + $limit > $userlimit ) {
@@ -651,7 +672,7 @@ sub update_sql {
     my $cache_expiry = $fields->{cache_expiry};
     my $public = $fields->{public};
 
-    $sql =~ s/(\s*\;\s*)$//;    # removes trailing whitespace and /;/
+    $sql =~ s/(\s*\;\s*)$// if defined $sql;    # removes trailing whitespace and /;/
     my $report = Koha::Reports->find($id);
     $report->last_modified(dt_from_string);
     $report->savedsql($sql);
@@ -732,7 +753,6 @@ sub get_saved_reports {
     my (@cond,@args);
     if ($filter) {
         if (my $date = $filter->{date}) {
-            $date = eval { output_pref( { dt => dt_from_string( $date ), dateonly => 1, dateformat => 'iso' }); };
             push @cond, "DATE(last_modified) = ? OR
                          DATE(last_run) = ?";
             push @args, $date, $date;
@@ -891,30 +911,6 @@ sub get_results {
     |, { Slice => {} }, $report_id);
 }
 
-sub _get_column_defs {
-    my ($cgi) = @_;
-    my %columns;
-    my $columns_def_file = "columns.def";
-    my $htdocs = C4::Context->config('intrahtdocs');
-    my $section = 'intranet';
-
-    # We need the theme and the lang
-    # Since columns.def is not in the modules directory, we cannot sent it for the $tmpl var
-    my ($theme, $lang, $availablethemes) = C4::Templates::themelanguage($htdocs, 'about.tt', $section, $cgi);
-
-    my $full_path_to_columns_def_file="$htdocs/$theme/$lang/$columns_def_file";
-    open (my $fh, '<:encoding(utf-8)', $full_path_to_columns_def_file);
-    while ( my $input = <$fh> ){
-        chomp $input;
-        if ( $input =~ m|<field name="(.*)">(.*)</field>| ) {
-            my ( $field, $translation ) = ( $1, $2 );
-            $columns{$field} = $translation;
-        }
-    }
-    close $fh;
-    return \%columns;
-}
-
 =head2 GetReservedAuthorisedValues
 
     my %reserved_authorised_values = GetReservedAuthorisedValues();
@@ -932,7 +928,10 @@ sub GetReservedAuthorisedValues {
                               'cn_source',
                               'categorycode',
                               'biblio_framework',
-                              'branchcategories' );
+                              'branchcategories',
+                              'cash_registers',
+                              'debit_types',
+                              'credit_types' );
 
    return \%reserved_authorised_values;
 }
@@ -1046,7 +1045,8 @@ sub EmailReport {
     my $sql = $report->savedsql;
     return ( { FATAL => "NO_REPORT" } ) unless $sql;
 
-    my ( $sth, $errors ) = execute_query( $sql ); #don't pass offset or limit, hardcoded limit of 999,999 will be used
+    #don't pass offset or limit, hardcoded limit of 999,999 will be used
+    my ( $sth, $errors ) = execute_query( { sql => $sql, report_id => $report_id } );
     return ( undef, [{ FATAL => "REPORT_FAIL" }] ) if $errors;
 
     my $counter = 1;

@@ -18,54 +18,45 @@ Cash registers &rsaquo; Administration &rsaquo; Koha
 </head>
 
 <body id="admin_cash_registers" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
+        [% END %]
+
+        [% IF op == 'add_form' || op == 'delete_confirm' %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/admin/cash_registers.pl">Cash registers</a>
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Cash registers</span>
+            [% END %]
+        [% END %]
 
         [% IF op == 'add_form'  %]
-            <li>
-                <a href="/cgi-bin/koha/admin/cash_registers.pl">Cash registers</a>
-            </li>
             [% IF cash_register %]
-                <li>
-                    <a href="#" aria-current="page">
-                        Modify cash register [% cash_register.id | html %]
-                    </a>
-                </li>
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Modify cash register [% cash_register.id | html %]</span>
+                [% END %]
             [% ELSE %]
-                <li>
-                    <a href="#" aria-current="page">
-                        New cash register
-                    </a>
-                </li>
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>New cash register</span>
+                [% END %]
             [% END %]
 
         [% ELSIF op == 'delete_confirm' %]
-            <li>
-                <a href="/cgi-bin/koha/admin/cash_registers.pl">Cash registers</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Confirm deletion of cash register '[% cash_register.id | html %]'
-                </a>
-            </li>
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Confirm deletion of cash register '[% cash_register.id | html %]'</span>
+            [% END %]
 
-        [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Cash registers</a>
-            </li>
         [% END %]
-    </ol>
-</nav>
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -76,29 +67,29 @@ Cash registers &rsaquo; Administration &rsaquo; Koha
                 <div class="dialog [% m.type | html %]">
                     [% SWITCH m.code %]
                     [% CASE 'success_on_insert' %]
-                        Cash register added successfully.
+                        <span>Cash register added successfully.</span>
                     [% CASE 'error_on_insert' %]
-                        An error occurred when adding this cash register.
+                        <span>An error occurred when adding this cash register.</span>
                     [% CASE 'success_on_update' %]
-                        Cash register updated successfully.
+                        <span>Cash register updated successfully.</span>
                     [% CASE 'error_on_update' %]
-                        An error occurred when updating this cash register.
+                        <span>An error occurred when updating this cash register.</span>
                     [% CASE 'success_on_default' %]
-                        Library default updated successfully.
+                        <span>Library default updated successfully.</span>
                     [% CASE 'error_on_update' %]
-                        An error on setting library default.
+                        <span>An error on setting library default.</span>
                     [% CASE 'success_on_archive' %]
-                        Cash register archived successfully.
+                        <span>Cash register archived successfully.</span>
                     [% CASE 'success_on_restore' %]
-                        Cash register restored successfully.
+                        <span>Cash register restored successfully.</span>
                     [% CASE %]
-                        [% m.code | html %]
+                        <span>[% m.code | html %]</span>
                     [% END %]
                 </div>
                 [% END %]
 
                 [% IF op == 'add_form' %]
-                <h3>[% IF cash_register %]Modify cash register[% ELSE %]Add new cash register[% END %]</h3>
+                <h1>[% IF cash_register %]Modify cash register[% ELSE %]Add new cash register[% END %]</h1>
                 <form action="/cgi-bin/koha/admin/cash_registers.pl" id="Aform" name="Aform" class="validated" method="post">
 
                     <fieldset class="rows">
@@ -113,7 +104,7 @@ Cash registers &rsaquo; Administration &rsaquo; Koha
 
                             <li>
                                 <label for="name" class="required">Name: </label>
-                                <input type="text" name="name" id="name" size="24" maxlength="24" value="[% cash_register.name | html %]" class="required" />
+                                <input type="text" name="name" id="name" size="24" maxlength="24" value="[% cash_register.name | html %]" class="required focus" />
                                 <span class="required">Required</span>
                             </li>
 
@@ -141,9 +132,9 @@ Cash registers &rsaquo; Administration &rsaquo; Koha
 
                    <fieldset class="action">
                        [% IF cash_register %]
-                       <input type="submit" value="Save" />
+                       <input type="submit" class="btn btn-primary" value="Save" />
                        [% ELSE %]
-                       <input type="submit" value="Add" />
+                       <input type="submit" class="btn btn-primary" value="Add" />
                        [% END %]
                        <a class="cancel" href="/cgi-bin/koha/admin/cash_registers.pl?op=list">Cancel</a>
                    </fieldset>
@@ -155,54 +146,57 @@ Cash registers &rsaquo; Administration &rsaquo; Koha
                    <a class="btn btn-default" id="newcashregister" href="/cgi-bin/koha/admin/cash_registers.pl?op=add_form"><i class="fa fa-plus"></i> New cash register</a>
                </div>
 
-               <h3>Cash registers for <select id="branch_filter" name="branch_filter">
-                       <option value=""></option>
-                       [% PROCESS options_for_libraries libraries => Branches.all( selected => branchcode, unfiltered => 1, ) %]
-                   </select>
-               </h3>
+               <h1>Cash registers</h1>
+               <div class="page-section">
+                   <h2>Cash registers for <select id="branch_filter" name="branch_filter">
+                           <option value=""></option>
+                           [% PROCESS options_for_libraries libraries => Branches.all( selected => branchcode, unfiltered => 1, ) %]
+                       </select>
+                   </h2>
 
-               [% IF cash_registers.count %]
-               <table id="table_cash_registers">
-                   <thead>
-                       <th>Name</th>
-                       <th>Description</th>
-                       <th>Library</th>
-                       <th>Library default</th>
-                       <th>Initial float</th>
-                       <th class="noExport">Actions</th>
-                   </thead>
-                   <tbody>
-                   [% FOREACH cash_register IN cash_registers %]
-                   [% IF cash_register.branch_default %]
-                   <tr class="default">
-                   [% ELSE %]
-                   <tr>
-                   [% END %]
-                       <td>[% cash_register.name | html %]</td>
-                       <td>[% cash_register.description | html %]</td>
-                       <td>[% cash_register.library.branchname | html %]</td>
-                       <td>[% IF cash_register.branch_default %]Yes[% ELSE %]No[% END %]</td>
-                       <td>[% cash_register.starting_float | $Price %]</td>
-                       [% IF cash_register.archived == '0' %]
-                       <td class="actions">
-                           <a class="btn btn-default btn-xs" href="cash_registers.pl?op=add_form&amp;id=[% cash_register.id | uri %]"><i class="fa fa-pencil"></i> Edit</a>
-                           [% IF cash_register.branch_default %]
-                           <a class="btn btn-default btn-xs" href="cash_registers.pl?op=drop_default&amp;id=[% cash_register.id | uri %]"><i class="fa fa-archive"></i> Drop default</a>
-                           [% ELSE %]
-                           <a class="btn btn-default btn-xs" href="cash_registers.pl?op=make_default&amp;id=[% cash_register.id | uri %]"><i class="fa fa-archive"></i> Make default</a>
-                           [% END %]
-                           <a class="btn btn-default btn-xs" href="cash_registers.pl?op=archive&amp;id=[% cash_register.id | uri %]"><i class="fa fa-archive"></i> Archive</a>
-                       </td>
+                   [% IF cash_registers.count %]
+                   <table id="table_cash_registers">
+                       <thead>
+                           <th>Name</th>
+                           <th>Description</th>
+                           <th>Library</th>
+                           <th>Library default</th>
+                           <th>Initial float</th>
+                           <th class="noExport">Actions</th>
+                       </thead>
+                       <tbody>
+                       [% FOREACH cash_register IN cash_registers %]
+                       [% IF cash_register.branch_default %]
+                       <tr class="default">
                        [% ELSE %]
-                       <td class="actions"><a class="btn btn-default btn-xs" href="cash_registers.pl?op=unarchive&amp;id=[% cash_register.id | uri %]"><i class="fa fa-trash-restore"></i> Restore</a></td>
+                       <tr>
                        [% END %]
-                   </tr>
-                   [% END %]
-                   </tbody>
-               </table>
-               [% ELSE %]
-               <div class="dialog message">There are no cash registers defined. <a href="/cgi-bin/koha/admin/cash_registers.pl?op=add_form">Start adding cash registers</a>.</div>
-               [% END # /cash_register.count %]
+                           <td>[% cash_register.name | html %]</td>
+                           <td>[% cash_register.description | html %]</td>
+                           <td>[% cash_register.library.branchname | html %]</td>
+                           <td>[% IF cash_register.branch_default %]Yes[% ELSE %]No[% END %]</td>
+                           <td>[% cash_register.starting_float | $Price %]</td>
+                           [% IF cash_register.archived == '0' %]
+                           <td class="actions">
+                               <a class="btn btn-default btn-xs" href="cash_registers.pl?op=add_form&amp;id=[% cash_register.id | uri %]"><i class="fa fa-pencil"></i> Edit</a>
+                               [% IF cash_register.branch_default %]
+                               <a class="btn btn-default btn-xs" href="cash_registers.pl?op=drop_default&amp;id=[% cash_register.id | uri %]"><i class="fa fa-archive"></i> Drop default</a>
+                               [% ELSE %]
+                               <a class="btn btn-default btn-xs" href="cash_registers.pl?op=make_default&amp;id=[% cash_register.id | uri %]"><i class="fa fa-archive"></i> Make default</a>
+                               [% END %]
+                               <a class="btn btn-default btn-xs" href="cash_registers.pl?op=archive&amp;id=[% cash_register.id | uri %]"><i class="fa fa-archive"></i> Archive</a>
+                           </td>
+                           [% ELSE %]
+                           <td class="actions"><a class="btn btn-default btn-xs" href="cash_registers.pl?op=unarchive&amp;id=[% cash_register.id | uri %]"><i class="fa fa-trash-restore"></i> Restore</a></td>
+                           [% END %]
+                       </tr>
+                       [% END %]
+                       </tbody>
+                   </table>
+                   [% ELSE %]
+                   <div class="dialog message">There are no cash registers defined. <a href="/cgi-bin/koha/admin/cash_registers.pl?op=add_form">Start adding cash registers</a>.</div>
+                   [% END # /cash_register.count %]
+               </div>
                [% END # /op == 'list' %]
            </main>
         </div> <!-- /.col-sm-10.col-sm-push-2 -->

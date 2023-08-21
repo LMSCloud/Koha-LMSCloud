@@ -21,9 +21,10 @@ use Test::More;
 use Test::MockModule;
 use Test::Warn;
 
-plan tests => 39;
+plan tests => 34;
 
-use_ok('C4::Biblio');
+
+use_ok('C4::Biblio', qw( AddBiblio ModBiblio BiblioAutoLink LinkBibHeadingsToAuthorities GetMarcPrice GetMarcQuantity GetMarcControlnumber GetMarcISBN GetMarcISSN GetMarcSubjects GetMarcUrls GetMarcSeries TransformMarcToKoha ModBiblioMarc RemoveAllNsb UpdateTotalIssues ));
 
 my $db = Test::MockModule->new('Koha::Database');
 $db->mock( _new_schema => sub { return Schema(); } );
@@ -93,12 +94,6 @@ warning_is { $ret = GetMarcSubjects() }
 
 ok( !defined $ret, 'GetMarcSubjects returns undef if not passed rec');
 
-warning_is { $ret = GetMarcAuthors() }
-           { carped => 'GetMarcAuthors called on undefined record'},
-           "GetMarcAuthors returns carped warning on undef record";
-
-ok( !defined $ret, 'GetMarcAuthors returns undef if not passed rec');
-
 warning_is { $ret = GetMarcUrls() }
            { carped => 'GetMarcUrls called on undefined record'},
            "GetMarcUrls returns carped warning on undef record";
@@ -135,19 +130,10 @@ warning_is { $ret = RemoveAllNsb() }
 
 ok( !defined $ret, 'RemoveAllNsb returns undef if not passed rec');
 
-warning_is { $ret = GetMarcBiblio() }
-           { carped => 'GetMarcBiblio called without parameters'},
-           "GetMarcBiblio returns carped warning on no parameters";
-
-warning_is { $ret = GetMarcBiblio({ biblionumber => undef }) }
-           { carped => 'GetMarcBiblio called with undefined biblionumber'},
-           "GetMarcBiblio returns carped warning on undef biblionumber";
-
-ok( !defined $ret, 'GetMarcBiblio returns undef if not passed a biblionumber');
 
 warnings_like { $ret = UpdateTotalIssues() }
-              [ { carped => qr/GetMarcBiblio called with undefined biblionumber/ },
-                { carped => qr/UpdateTotalIssues could not get biblio record/ } ],
+              [
+                { carped => qr/UpdateTotalIssues could not get biblio/ } ],
     "UpdateTotalIssues returns carped warnings if biblio record does not exist";
 
 ok( !defined $ret, 'UpdateTotalIssues returns carped warning if biblio record does not exist');

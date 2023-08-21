@@ -18,7 +18,9 @@ INSERT IGNORE INTO authorised_value_categories( category_name, is_system )
     ('PAYMENT_TYPE', 0),
     ('PA_CLASS', 0),
     ('HOLD_CANCELLATION', 0),
-    ('ROADTYPE', 0);
+    ('ROADTYPE', 0),
+    ('AR_CANCELLATION', 0),
+    ('VENDOR_TYPE', 1);
 
 INSERT IGNORE INTO authorised_value_categories( category_name, is_system )
     VALUES
@@ -53,6 +55,7 @@ INSERT IGNORE INTO authorised_value_categories( category_name ) VALUES
     ('ETAT'),
     ('CAND'),
     ('COUNTRY'),
+    ('TYPEDOC'),
     ('qualif');
 
 -- For Housebound
@@ -61,7 +64,7 @@ INSERT IGNORE INTO authorised_value_categories( category_name ) VALUES
 
 -- For Interlibrary loans
 INSERT IGNORE INTO authorised_value_categories( category_name ) VALUES
-    ('ILLSTATUS');
+    ('ILL_STATUS_ALIAS');
 
 -- For Claims returned
 INSERT IGNORE INTO authorised_value_categories( category_name ) VALUES
@@ -70,3 +73,18 @@ INSERT IGNORE INTO authorised_value_categories( category_name ) VALUES
 -- For file uploads
 INSERT IGNORE INTO authorised_value_categories(  category_name, is_system  ) VALUES
     ('UPLOAD', 1);
+
+-- For ERM
+INSERT IGNORE INTO authorised_value_categories (category_name, is_system)
+VALUES
+    ('ERM_AGREEMENT_STATUS', 1),
+    ('ERM_AGREEMENT_CLOSURE_REASON', 1),
+    ('ERM_AGREEMENT_RENEWAL_PRIORITY', 1),
+    ('ERM_USER_ROLES', 1),
+    ('ERM_LICENSE_TYPE', 1),
+    ('ERM_LICENSE_STATUS', 1),
+    ('ERM_AGREEMENT_LICENSE_STATUS', 1),
+    ('ERM_AGREEMENT_LICENSE_LOCATION', 1),
+    ('ERM_PACKAGE_TYPE', 1),
+    ('ERM_PACKAGE_CONTENT_TYPE', 1),
+    ('ERM_TITLE_PUBLICATION_TYPE', 1);

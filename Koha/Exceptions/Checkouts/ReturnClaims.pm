@@ -17,12 +17,11 @@ package Koha::Exceptions::Checkouts::ReturnClaims;
 
 use Modern::Perl;
 
-use Koha::Exceptions::Exception;
+use Koha::Exception;
 
 use Exception::Class (
     'Koha::Exceptions::Checkouts::ReturnClaims' => {
-        isa         => 'Koha::Exceptions::Exception',
-        description => 'Something went wrong!',
+        isa         => 'Koha::Exception',
     },
     'Koha::Exceptions::Checkouts::ReturnClaims::NoCreatedBy' => {
         isa         => 'Koha::Exceptions::Checkouts::ReturnClaims',

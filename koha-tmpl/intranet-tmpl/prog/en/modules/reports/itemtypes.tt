@@ -11,35 +11,29 @@
 </head>
 
 <body id="rep_itemtypes" class="rep">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
-        </li>
-        [% IF ( do_it ) %]
-            <li>
-                <a href="/cgi-bin/koha/reports/manager.pl?report_name=itemtypes">Catalog by item type</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Results
-                </a>
-            </li>
-        [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Catalog by item type
-                </a>
-            </li>
         [% END %]
-    </ol>
-</nav>
+        [% IF ( do_it ) %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/reports/manager.pl?report_name=itemtypes">Catalog by item type</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Results</span>
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Catalog by item type</span>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -74,7 +68,7 @@
 	</table>
 [% END %]
 [% ELSE %]
-        <h3>View a count of items held at your library grouped by item type</h3>
+        <h1>View a count of items held at your library grouped by item type</h1>
         <form method="post" action="/cgi-bin/koha/reports/manager.pl?report_name=itemtypes">
           <fieldset class="rows">
             <ol>
@@ -88,7 +82,7 @@
               </li>
             </ol>
           </fieldset>
-          <fieldset class="action"><input type="submit" value="Submit" />
+          <fieldset class="action"><input type="submit" class="btn btn-primary" value="Submit" />
             <input type="hidden" name="report_name" value="[% report_name | html %]" />
             <input type="hidden" name="do_it" value="1" />
           </fieldset>

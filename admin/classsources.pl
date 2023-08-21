@@ -1,4 +1,4 @@
-#! /usr/bin/perl
+#!/usr/bin/perl
 #
 # Copyright 2007 LibLime
 # Copyright 2018 Koha Development Team
@@ -21,12 +21,11 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
-use C4::Koha;
-use C4::ClassSortRoutine;
-use C4::ClassSplitRoutine;
+use C4::Output qw( output_html_with_http_headers );
+use C4::ClassSortRoutine qw( GetSortRoutineNames );
+use C4::ClassSplitRoutine qw( GetSplitRoutineNames );
 use Koha::ClassSources;
 use Koha::ClassSortRules;
 use Koha::ClassSplitRules;
@@ -50,7 +49,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { parameters => 'manage_classifications' },
-        debug           => 1,
     }
 );
 
@@ -62,8 +60,8 @@ if ( $op eq "add_source" ) {
       $cn_source ? Koha::ClassSources->find($cn_source) : undef;
     $template->param(
         class_source => $class_source,
-        sort_rules   => scalar Koha::ClassSortRules->search,
-        split_rules  => scalar Koha::ClassSplitRules->search,
+        sort_rules   => Koha::ClassSortRules->search,
+        split_rules  => Koha::ClassSplitRules->search,
     );
 }
 elsif ( $op eq "add_source_validate" ) {

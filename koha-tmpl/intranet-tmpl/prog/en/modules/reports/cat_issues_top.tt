@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
@@ -6,35 +7,29 @@
 </head>
 
 <body id="rep_cat_issues_top" class="rep">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
-        </li>
-        [% IF ( do_it ) %]
-            <li>
-                <a href="/cgi-bin/koha/reports/cat_issues_top.pl">Most-circulated items</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Results
-                </a>
-            </li>
-        [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Most-circulated items
-                </a>
-            </li>
         [% END %]
-    </ol>
-</nav>
+        [% IF ( do_it ) %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/reports/cat_issues_top.pl">Most-circulated items</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Results</span>
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Most-circulated items</span>
+            [% END %]
+        [% END # /IF ( do_it ) %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -71,13 +66,7 @@
 							<td>
 
 [% IF ( loopcel.reference ) %]
-[% IF ( loopcel.BiblioDefaultViewmarc ) %]
-	<a href="/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber=[% loopcel.reference |url %]">
-[% ELSIF ( loopcel.BiblioDefaultViewisbd ) %]
-	<a href="/cgi-bin/koha/catalogue/ISBDdetail.pl?biblionumber=[% loopcel.reference |url %]">
-[% ELSE %]
-	<a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% loopcel.reference |url %]">
- [% END %]
+    <a href="[% PROCESS biblio_a_href biblionumber => loopcel.reference %]">
  [% END %]                                        
 								[% IF ( loopcel.value ) %][% loopcel.value | html %][% END %]
 								[% IF ( loopcel.reference ) %]</a>[% END %]
@@ -95,12 +84,22 @@
 	<form method="post" action="/cgi-bin/koha/reports/cat_issues_top.pl">
 	<fieldset class="rows">
 	<ol>
-        <li><label for="from">Checkout date from: </label> <input type="text" size="10" id="from" name="Filter" />
-        <label for="to" class="inline">To:</label> <input size="10" id="to" name="Filter" value="" type="text" />
-                    <span class="hint">[% INCLUDE 'date-format.inc' %]</span></li>
-        <li><label for="fromRO">Check-in date from</label> <input type="text" size="10" id="fromRO" name="Filter" />
-        <label for="toRO" class="inline">To: </label> <input type="text" size="10" id="toRO" name="Filter" value="" />
-                    <span class="hint">[% INCLUDE 'date-format.inc' %]</span></li>
+        <li>
+            <label for="checkoutfrom">Checkout date from: </label>
+            <input type="text" size="10" id="checkoutfrom" name="Filter" data-date_to="checkoutto" class="flatpickr" />
+
+            <label for="checkoutto" class="inline">To:</label>
+            <input size="10" id="checkoutto" name="Filter" value="" type="text" class="flatpickr" />
+            <span class="hint">[% INCLUDE 'date-format.inc' %]</span>
+        </li>
+        <li>
+            <label for="checkinfrom">Check-in date from</label>
+            <input type="text" size="10" id="checkinfrom" name="Filter" data-date_to="checkinto" class="flatpickr" />
+
+            <label for="checkinto" class="inline">To: </label>
+            <input type="text" size="10" id="checkinto" name="Filter" value="" class="flatpickr" />
+            <span class="hint">[% INCLUDE 'date-format.inc' %]</span>
+        </li>
         <li>
             <label for="branch">Library: </label>
             <select name="Filter" id="branch"><option value="" > Any library</option>
@@ -198,7 +197,7 @@
 	</fieldset>
 
 	<fieldset class="action">
-	<input type="submit" value="Submit" />
+    <input type="submit" class="btn btn-primary" value="Submit" />
 	<input type="hidden" name="report_name" value="[% report_name | html %]" />
 	<input type="hidden" name="do_it" value="1" />
 	</fieldset>
@@ -217,39 +216,6 @@
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]
-    <script>
-        [% UNLESS ( do_it ) %]
-            $(document).ready(function() {
-                // http://jqueryui.com/demos/datepicker/#date-range
-                var dates = $( "#from, #to" ).datepicker({
-                    changeMonth: true,
-                    numberOfMonths: 1,
-                    onSelect: function( selectedDate ) {
-                        var option = this.id == "from" ? "minDate" : "maxDate",
-                            instance = $( this ).data( "datepicker" );
-                            date = $.datepicker.parseDate(
-                                instance.settings.dateFormat ||
-                                $.datepicker._defaults.dateFormat,
-                                selectedDate, instance.settings );
-                        dates.not( this ).datepicker( "option", option, date );
-                    }
-                });
-                var datesRO = $( "#fromRO, #toRO" ).datepicker({
-                    changeMonth: true,
-                    numberOfMonths: 1,
-                    onSelect: function( selectedDate ) {
-                        var option = this.id == "fromRO" ? "minDate" : "maxDate",
-                            instance = $( this ).data( "datepicker" );
-                            date = $.datepicker.parseDate(
-                                instance.settings.dateFormat ||
-                                $.datepicker._defaults.dateFormat,
-                                selectedDate, instance.settings );
-                        datesRO.not( this ).datepicker( "option", option, date );
-                    }
-                });
-            });
-        [% END %]
-    </script>
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

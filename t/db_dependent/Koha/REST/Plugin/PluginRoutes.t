@@ -25,14 +25,12 @@ use Test::MockModule;
 use File::Basename;
 use t::lib::Mocks;
 
-use JSON::Validator::OpenAPI::Mojolicious;
-
 # Dummy app for testing the plugin
 use Mojolicious::Lite;
 
 BEGIN {
     # Mock pluginsdir before loading Plugins module
-    my $path = dirname(__FILE__) . '/../../../../lib';
+    my $path = dirname(__FILE__) . '/../../../../lib/plugins';
     t::lib::Mocks::mock_config( 'pluginsdir', $path );
 }
 
@@ -72,8 +70,9 @@ subtest 'Bad plugins tests' => sub {
     my $t;
     warning_like
         { $t = Test::Mojo->new('Koha::REST::V1'); }
-        [qr{Could not load REST API spec bundle: Invalid JSON specification},
-        qr{The resulting spec is invalid. Skipping Bad API Route Plugin},],
+        [qr{Could not load REST API spec bundle: /paths/~0001contrib~0001badass},
+        qr{bother_wrong/put/parameters/0: /oneOf/1 Properties not allowed:},
+        qr{Plugin Koha::Plugin::BadAPIRoute route injection failed: The resulting spec is invalid. Skipping Bad API Route Plugin},],
         'Bad plugins raise warning';
 
     my $routes = get_defined_routes($t);
@@ -139,6 +138,10 @@ subtest 'Permissions and access to plugin routes tests' => sub {
     # enable BASIC auth
     t::lib::Mocks::mock_preference( 'RESTBasicAuth', 1 );
 
+    # Silence warnings from unrelated plugins feature
+    my $plugin_mock = Test::MockModule->new('Koha::Plugin::Test');
+    $plugin_mock->mock( 'patron_barcode_transform', undef );
+
     # remove any existing plugins that might interfere
     Koha::Plugins::Methods->search->delete;
     my $plugins = Koha::Plugins->new;
@@ -153,8 +156,9 @@ subtest 'Permissions and access to plugin routes tests' => sub {
     my $t;
     warning_like
         { $t = Test::Mojo->new('Koha::REST::V1'); }
-        [qr{Could not load REST API spec bundle: Invalid JSON specification},
-        qr{The resulting spec is invalid. Skipping Bad API Route Plugin},],
+        [qr{Could not load REST API spec bundle: /paths/~0001contrib~0001badass},
+        qr{bother_wrong/put/parameters/0: /oneOf/1 Properties not allowed:},
+        qr{Plugin Koha::Plugin::BadAPIRoute route injection failed: The resulting spec is invalid. Skipping Bad API Route Plugin},],
         'Bad plugins raise warning';
 
     my $routes = get_defined_routes($t);
@@ -262,8 +266,8 @@ sub traverse_routes {
     my $path = $route->pattern->unparsed || '/';
 
     # Methods
-    my $via = $route->via;
-    my $verb = !$via ? '*' : uc join ',', @$via;
+    my $methods = $route->methods // [];
+    my $verb = !$methods ? '*' : uc join ',', @$methods;
     $routes->{$path}->{$verb} = 1;
 
     $depth++;

@@ -186,16 +186,16 @@ __PACKAGE__->set_primary_key("import_record_id");
 
 =head1 RELATIONS
 
-=head2 import_auths
+=head2 import_auth
 
-Type: has_many
+Type: might_have
 
 Related object: L<Koha::Schema::Result::ImportAuth>
 
 =cut
 
-__PACKAGE__->has_many(
-  "import_auths",
+__PACKAGE__->might_have(
+  "import_auth",
   "Koha::Schema::Result::ImportAuth",
   { "foreign.import_record_id" => "self.import_record_id" },
   { cascade_copy => 0, cascade_delete => 0 },
@@ -216,16 +216,16 @@ __PACKAGE__->belongs_to(
   { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
 );
 
-=head2 import_biblios
+=head2 import_biblio
 
-Type: has_many
+Type: might_have
 
 Related object: L<Koha::Schema::Result::ImportBiblio>
 
 =cut
 
-__PACKAGE__->has_many(
-  "import_biblios",
+__PACKAGE__->might_have(
+  "import_biblio",
   "Koha::Schema::Result::ImportBiblio",
   { "foreign.import_record_id" => "self.import_record_id" },
   { cascade_copy => 0, cascade_delete => 0 },
@@ -262,8 +262,15 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07046 @ 2019-04-18 10:50:48
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:bqIAQzhgioWtBWU8zFdtjw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-03-31 10:47:53
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:XNZhr5GRMgyndwQMsGfGRQ
+
+sub koha_object_class {
+    'Koha::Import::Record';
+}
+sub koha_objects_class {
+    'Koha::Import::Records';
+}
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

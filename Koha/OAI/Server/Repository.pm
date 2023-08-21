@@ -21,10 +21,11 @@ package Koha::OAI::Server::Repository;
 
 use Modern::Perl;
 use HTTP::OAI;
-use HTTP::OAI::Repository qw/:validate/;
+use HTTP::OAI::Repository qw( validate_request );
 
 use base ("HTTP::OAI::Repository");
 
+use Koha::RecordProcessor;
 use Koha::OAI::Server::Identify;
 use Koha::OAI::Server::ListSets;
 use Koha::OAI::Server::ListMetadataFormats;
@@ -35,9 +36,9 @@ use XML::SAX::Writer;
 use YAML::XS;
 use CGI qw/:standard -oldstyle_urls/;
 use C4::Context;
-use C4::Biblio;
-use C4::XSLT qw( transformMARCXML4XSLT );
+use C4::Biblio qw( GetFrameworkCode );
 use Koha::XSLT::Base;
+use Koha::Biblios;
 
 =head1 NAME
 
@@ -176,15 +177,21 @@ sub get_biblio_marcxml {
         $expanded_avs = $conf->{format}->{$format}->{expanded_avs};
     }
 
-    my $record = GetMarcBiblio(
-        {
-            biblionumber => $biblionumber,
-            embed_items  => $with_items,
-            opac         => 1
-        }
-    );
-    $record = transformMARCXML4XSLT( $biblionumber, $record )
-        if $expanded_avs;
+    my $biblio = Koha::Biblios->find($biblionumber);
+    my $record = $biblio->metadata->record({ embed_items => $with_items, opac => 1 });
+    if ( $expanded_avs ) {
+        my $frameworkcode = GetFrameworkCode($biblionumber) || '';
+        my $record_processor = Koha::RecordProcessor->new(
+            {
+                filters => [ 'ExpandCodedFields' ],
+                options => {
+                    interface     => 'opac',
+                    frameworkcode => $frameworkcode
+                }
+            }
+        );
+        $record_processor->process($record);
+    }
 
     return $record ? $record->as_xml_record() : undef;
 }

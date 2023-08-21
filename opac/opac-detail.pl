@@ -24,30 +24,50 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Acquisition qw( SearchOrders );
-use C4::Auth qw(:DEFAULT get_session);
-use C4::Koha;
-use C4::Serials;    #uses getsubscriptionfrom biblionumber
-use C4::Output;
-use C4::Biblio;
-use C4::Items;
-use C4::Circulation;
-use C4::Tags qw(get_tags);
-use C4::XISBN qw(get_xisbns);
-use C4::External::Amazon;
+use C4::Auth qw( get_template_and_user get_session );
+use C4::Koha qw(
+    getitemtypeimagelocation
+    GetNormalizedEAN
+    GetNormalizedISBN
+    GetNormalizedISBN13
+    GetNormalizedOCLCNumber
+    GetNormalizedUPC
+);
+use C4::Search qw( new_record_from_zebra searchResults getRecords );
+use C4::Serials qw( CountSubscriptionFromBiblionumber SearchSubscriptions GetLatestSerials );
+use C4::Output qw( parametrized_url output_html_with_http_headers );
+use C4::Biblio qw(
+    CountItemsIssued
+    GetBiblioData
+    GetMarcControlnumber
+    GetMarcISBN
+    GetMarcISSN
+    GetMarcAuthors
+    GetMarcSeries
+    GetMarcSubjects
+    GetMarcUrls
+);
+use C4::Tags qw( get_tags );
+use C4::XISBN qw( get_xisbns );
+use C4::External::Amazon qw( get_amazon_tld );
 use C4::External::BakerTaylor qw( image_url link_url );
-use C4::External::Syndetics qw(get_syndetics_index get_syndetics_summary get_syndetics_toc get_syndetics_excerpt get_syndetics_reviews get_syndetics_anotes );
+use C4::External::Syndetics qw(
+    get_syndetics_anotes
+    get_syndetics_excerpt
+    get_syndetics_index
+    get_syndetics_reviews
+    get_syndetics_summary
+    get_syndetics_toc
+);
 use C4::Members;
-use C4::XSLT;
-use C4::ShelfBrowser;
-use C4::Reserves;
-use C4::Charset;
-use C4::Letters;
-use MARC::Record;
+use C4::XSLT qw( XSLTParse4Display );
+use C4::ShelfBrowser qw( GetNearbyItems );
+use C4::Reserves qw( GetReserveStatus );
+use C4::Charset qw( SetUTF8Flag );
 use MARC::Field;
-use List::MoreUtils qw/any none/;
-use Koha::DateUtils;
+use List::MoreUtils qw( any );
 use C4::HTML5Media;
-use C4::CourseReserves qw(GetItemCourseReservesInfo);
+use C4::CourseReserves qw( GetItemCourseReservesInfo );
 use C4::Divibib::NCIPService;
 use C4::VolumeData;
 
@@ -63,10 +83,12 @@ use Koha::Patrons;
 use Koha::Plugins;
 use Koha::Ratings;
 use Koha::Reviews;
+use Koha::Serial::Items;
 use Koha::SearchEngine::Search;
 use Koha::SearchEngine::QueryBuilder;
+use Koha::Util::MARC;
 
-use Try::Tiny;
+use JSON qw( decode_json );
 
 my $query = CGI->new();
 
@@ -85,74 +107,21 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     }
 );
 
-my @all_items = GetItemsInfo($biblionumber);
-if( $specific_item ) {
-    @all_items = grep { $_->{itemnumber} == $query->param('itemnumber') } @all_items;
-    $template->param( specific_item => 1 );
-}
-my @hiddenitems;
 my $patron = Koha::Patrons->find( $borrowernumber );
 
-my $record = GetMarcBiblio({
-    biblionumber => $biblionumber,
-    opac         => 1 });
-if ( ! $record ) {
+my $biblio = Koha::Biblios->find( $biblionumber );
+my $record = $biblio ? $biblio->metadata->record : undef;
+unless ( $biblio && $record ) {
     print $query->redirect("/cgi-bin/koha/errors/404.pl"); # escape early
     exit;
 }
 
-
-if (C4::Context->preference('DivibibEnabled') && $record->field("001") && $record->field("003") ) {
-    my $divibibId = $record->field("001")->data();
-    my $idProv    = $record->field("003")->data();
-    
-    if ( $idProv eq C4::Divibib::NCIPService::DIVIBIBAGENCYID ) {
-        my $service = C4::Divibib::NCIPService->new();
-        my $divibib_items = $service->getItemInformation($biblionumber, $divibibId);
-        
-        my $useitem = undef;
-        my $divitem = undef;
-        SELITEM: foreach my $item(@all_items) {
-            if ( $item->{'booksellerid'} eq 'Onleihe' ) {
-                foreach my $ditem ( @{$divibib_items} ) {
-                    $useitem = $item;
-                    $divitem = $ditem;
-                    last SELITEM;
-                }
-            }
-        }
-        
-        if ( defined($useitem) && defined($divitem) ) {
-            $useitem->{'itemId'} = $divibibId;
-            $useitem->{'onleihe'} = $divitem->{'onleihe'};
-            $useitem->{'date_due'} =  $divitem->{'date_due'};
-            $useitem->{'date_due_sql'}  = $divitem->{'date_due_sql'};
-            $useitem->{'datedue'} = $divitem->{'datedue'};
-            $useitem->{'overdue'} = $divitem->{'overdue'};
-            
-            $useitem->{'itemnumber'} = $divitem->{'itemnumber'};
-            $useitem->{'itemSource'} = $divitem->{'itemSource'};;
-            $useitem->{'this_branch'} = $divitem->{'this_branch'};
-            $useitem->{'available'} = $divitem->{'available'};
-            $useitem->{'reservable'} = $divitem->{'reservable'};
-            if ( !($divitem->{'available'} || $divitem->{'reservable'}) ) {
-                $useitem->{'itemnotforloan'} = 100;
-            }
-        }
-        elsif ( $divibib_items ) {
-            foreach my $ditem ( @{$divibib_items} ) {
-                $ditem->{'itemId'} = $divibibId;
-                if ( exists($ditem->{'imageurl'}) && $ditem->{'imageurl'} !~ /opac/ ) {
-                    $ditem->{'imageurl'} = '/opac-tmpl/bootstrap/itemtypeimg/' . $ditem->{'imageurl'};
-                }
-            }
-            
-            push @all_items, @{$divibib_items};
-        }
-    } 
+my $items = $biblio->items->search_ordered;
+if ($specific_item) {
+    $items = $items->search( { itemnumber => scalar $query->param('itemnumber') } );
+    $template->param( specific_item => 1 );
 }
 
-my $biblio = Koha::Biblios->find( $biblionumber );
 unless ( $patron and $patron->category->override_hidden_items ) {
     # only skip this check if there's a logged in user
     # and its category overrides OpacHiddenItems
@@ -160,9 +129,8 @@ unless ( $patron and $patron->category->override_hidden_items ) {
         print $query->redirect('/cgi-bin/koha/errors/404.pl'); # escape early
         exit;
     }
-    if ( scalar @all_items >= 1 ) {
-        push @hiddenitems,
-          GetHiddenItemnumbers( { items => \@all_items, borcat => $patron ? $patron->categorycode : undef } );
+    if ( $items->count >= 1 ) {
+        $items = $items->filter_by_visible_in_opac( { patron => $patron } );
     }
 }
 
@@ -228,66 +196,6 @@ SetUTF8Flag($record);
 my $marcflavour      = C4::Context->preference("marcflavour");
 my $ean = GetNormalizedEAN( $record, $marcflavour );
 
-# XSLT processing of some stuff
-my $xslfile = C4::Context->preference('OPACXSLTDetailsDisplay');
-my $lang   = $xslfile ? C4::Languages::getlanguage()  : undef;
-my $sysxml = $xslfile ? C4::XSLT::get_xslt_sysprefs() : undef;
-
-if ( $xslfile ) {
-
-    my $searcher = Koha::SearchEngine::Search->new(
-        { index => $Koha::SearchEngine::BIBLIOS_INDEX }
-    );
-    my $builder = Koha::SearchEngine::QueryBuilder->new(
-        { index => $Koha::SearchEngine::BIBLIOS_INDEX }
-    );
-
-    my $cleaned_title = $biblio->title;
-    $cleaned_title =~ tr|/||;
-    $cleaned_title = $builder->clean_search_term($cleaned_title);
-
-    my $query =
-      ( C4::Context->preference('UseControlNumber') and $record->field('001') )
-      ? 'rcn:'. $record->field('001')->data . ' AND (bib-level:a OR bib-level:b)'
-      : "Host-item:($cleaned_title)";
-    my ( $err, $result, $count );
-    eval {
-        ( $err, $result, $count ) =
-          $searcher->simple_search_compat( $query, 0, 0 );
-    };
-    if ($err || $@){
-        my $error = q{};
-        $error .= $err if $err;
-        $error .= $@ if $@;
-        warn "Warning from simple_search_compat: $error";
-    }
-
-    my $variables = {
-        anonymous_session   => ($borrowernumber) ? 0 : 1,
-        show_analytics_link => defined $count && $count > 0 ? 1 : 0
-    };
-
-    my @plugin_responses = Koha::Plugins->call(
-        'opac_detail_xslt_variables',
-        {
-            biblio_id => $biblionumber,
-            lang      => $lang,
-            patron_id => $borrowernumber
-
-        }
-    );
-    for my $plugin_variables ( @plugin_responses ) {
-        $variables = { %$variables, %$plugin_variables };
-    }
-
-    $template->param(
-        XSLTBloc => XSLTParse4Display(
-            $biblionumber, $record, "OPACXSLTDetailsDisplay", 1, undef,
-            $sysxml, $xslfile, $lang, $variables
-        )
-    );
-}
-
 my $OpacBrowseResults = C4::Context->preference("OpacBrowseResults");
 
 # We look for the busc param to build the simple paging from the search
@@ -295,8 +203,7 @@ if ($OpacBrowseResults) {
 my $session = get_session($query->cookie("CGISESSID"));
 my %paging = (previous => {}, next => {});
 if ($session->param('busc')) {
-    use C4::Search;
-    use URI::Escape;
+    use URI::Escape qw( uri_escape_utf8 uri_unescape );
 
     # Rebuild the string to store on session
     # param value is URI encoded and params separator is HTML encode (&amp;)
@@ -336,18 +243,21 @@ if ($session->param('busc')) {
         @servers = ("biblioserver") unless (@servers);
 
         my ($default_sort_by, @sort_by);
-        $default_sort_by = C4::Context->preference('OPACdefaultSortField')."_".C4::Context->preference('OPACdefaultSortOrder') if (C4::Context->preference('OPACdefaultSortField') && C4::Context->preference('OPACdefaultSortOrder'));
+        $default_sort_by = C4::Context->default_catalog_sort_by;
         @sort_by = @{$arrParamsBusc->{'sort_by'}} if $arrParamsBusc->{'sort_by'};
         $sort_by[0] = $default_sort_by if !$sort_by[0] && defined($default_sort_by);
         my ($error, $results_hashref, $facets);
         eval {
-            ($error, $results_hashref, $facets) = getRecords($arrParamsBusc->{'query'},$arrParamsBusc->{'simple_query'},\@sort_by,\@servers,$results_per_page,$offset,undef,$itemtypes,$arrParamsBusc->{'query_type'},$arrParamsBusc->{'scan'});
+            my $searcher = Koha::SearchEngine::Search->new(
+                { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+            my $json = JSON->new->utf8->allow_nonref(1);
+            ($error, $results_hashref, $facets) = $searcher->search_compat($json->decode($arrParamsBusc->{'query'}),$arrParamsBusc->{'simple_query'},\@sort_by,\@servers,$results_per_page,$offset,undef,$itemtypes,$arrParamsBusc->{'query_type'},$arrParamsBusc->{'scan'});
         };
         my $hits;
         my @newresults;
         my $search_context = {
-            'interface' => 'opac',
-            'category'  => ($patron) ? $patron->categorycode : q{}
+            interface => 'opac',
+            patron    => $patron,
         };
         for (my $i=0;$i<@servers;$i++) {
             my $server = $servers[$i];
@@ -575,7 +485,7 @@ if ($session->param('busc')) {
         next unless ($arrBiblios[$j]);
         $dataBiblioPaging = Koha::Biblios->find( $arrBiblios[$j] ) if ($arrBiblios[$j] != $biblionumber);
         next unless $dataBiblioPaging;
-        push @listResults, {index => $j + 1 + $offset, biblionumber => $arrBiblios[$j], title => ($arrBiblios[$j] == $biblionumber)?'':$dataBiblioPaging->title, author => ($arrBiblios[$j] != $biblionumber && $dataBiblioPaging->author)?$dataBiblioPaging->author:'', url => ($arrBiblios[$j] == $biblionumber)?'':'opac-detail.pl?biblionumber=' . $arrBiblios[$j]};
+        push @listResults, {index => $j + 1 + $offset, biblionumber => $arrBiblios[$j], title => ($arrBiblios[$j] == $biblionumber)?'':$dataBiblioPaging->title, author => ($arrBiblios[$j] != $biblionumber && $dataBiblioPaging->author)?$dataBiblioPaging->author:'', part_number => ($arrBiblios[$j] == $biblionumber)?'':$dataBiblioPaging->part_number, part_name => ($arrBiblios[$j] == $biblionumber)?'':$dataBiblioPaging->part_name, url => ($arrBiblios[$j] == $biblionumber)?'':'opac-detail.pl?biblionumber=' . $arrBiblios[$j]};
     }
     $template->param('listResults' => \@listResults) if (@listResults);
     $template->param('indexPag' => 1 + $offset, 'totalPag' => $arrParamsBusc{'total'}, 'indexPagEnd' => scalar(@arrBiblios) + $offset);
@@ -583,83 +493,17 @@ if ($session->param('busc')) {
 }
 }
 
-$template->param(
-    OPACShowCheckoutName => C4::Context->preference("OPACShowCheckoutName"),
-);
-
-if ( C4::Context->preference('EasyAnalyticalRecords') ) {
-    # adding items linked via host biblios
-    my $analyticfield = '773';
-    if ($marcflavour eq 'MARC21' || $marcflavour eq 'NORMARC'){
-        $analyticfield = '773';
-    } elsif ($marcflavour eq 'UNIMARC') {
-        $analyticfield = '461';
-    }
-    foreach my $hostfield ( $record->field($analyticfield)) {
-        my $hostbiblionumber = $hostfield->subfield("0");
-        my $linkeditemnumber = $hostfield->subfield("9");
-        my @hostitemInfos = GetItemsInfo($hostbiblionumber);
-        foreach my $hostitemInfo (@hostitemInfos){
-            if ($hostitemInfo->{itemnumber} eq $linkeditemnumber){
-                push(@all_items, $hostitemInfo);
-            }
+$items = Koha::Items->search_ordered(
+    [
+        'me.biblionumber' => $biblionumber,
+        'me.itemnumber' => {
+            -in => [
+                $biblio->host_items->get_column('itemnumber')
+            ]
         }
-    }
-}
-
-my @items;
-
-# Are there items to hide?
-my $hideitems;
-$hideitems = 1 if C4::Context->preference('hidelostitems') or scalar(@hiddenitems) > 0;
-
-# Hide items
-if ($hideitems) {
-    for my $itm (@all_items) {
-	if  ( C4::Context->preference('hidelostitems') ) {
-	    push @items, $itm unless $itm->{itemlost} or any { $itm->{'itemnumber'} eq $_ } @hiddenitems;
-	} else {
-	    push @items, $itm unless any { $itm->{'itemnumber'} eq $_ } @hiddenitems;
-    }
-}
-} else {
-    # Or not
-    @items = @all_items;
-}
-
-my $branch = '';
-if (C4::Context->userenv){
-    $branch = C4::Context->userenv->{branch};
-}
-if ( C4::Context->preference('HighlightOwnItemsOnOPAC') ) {
-    if (
-        ( ( C4::Context->preference('HighlightOwnItemsOnOPACWhich') eq 'PatronBranch' ) && $branch )
-        ||
-        C4::Context->preference('HighlightOwnItemsOnOPACWhich') eq 'OpacURLBranch'
-    ) {
-        my $branchcode;
-        if ( C4::Context->preference('HighlightOwnItemsOnOPACWhich') eq 'PatronBranch' ) {
-            $branchcode = $branch;
-        }
-        elsif (  C4::Context->preference('HighlightOwnItemsOnOPACWhich') eq 'OpacURLBranch' ) {
-            $branchcode = $ENV{'BRANCHCODE'};
-        }
-
-        my @our_items;
-        my @other_items;
-
-        foreach my $item ( @items ) {
-           if ( $item->{branchcode} eq $branchcode ) {
-               $item->{'this_branch'} = 1;
-               push( @our_items, $item );
-           } else {
-               push( @other_items, $item );
-           }
-        }
-
-        @items = ( @our_items, @other_items );
-    }
-}
+    ],
+    { prefetch => [ 'issue', 'homebranch', 'holdingbranch' ] }
+)->filter_by_visible_in_opac({ patron => $patron }) unless $specific_item;
 
 my $dat = &GetBiblioData($biblionumber);
 my $HideMARC = $record_processor->filters->[0]->should_hide_marc(
@@ -718,8 +562,7 @@ foreach my $subscription (@subscriptions) {
     push @subs, \%cell;
 }
 
-$dat->{'count'} = scalar(@items);
-
+$dat->{'count'} = $items->count;
 
 my (%item_reserves, %priority);
 my ($show_holds_count, $show_priority);
@@ -753,20 +596,66 @@ my $separatebranch = C4::Context->preference('OpacSeparateHoldingsBranch');
 my $viewallitems = $query->param('viewallitems');
 my $max_items_to_display = C4::Context->preference('OpacMaxItemsToDisplay') // 50;
 
-# Get items on order
-my ( @itemnumbers_on_order );
-if ( C4::Context->preference('OPACAcquisitionDetails' ) ) {
-    my $orders = C4::Acquisition::SearchOrders({
-        biblionumber => $biblionumber,
-        ordered => 1,
-    });
-    my $total_quantity = 0;
-    for my $order ( @$orders ) {
-        my $order = Koha::Acquisition::Orders->find( $order->{ordernumber} );
-        my $basket = $order->basket;
-        if ( $basket->effective_create_items eq 'ordering' ) {
-            push(@itemnumbers_on_order,$order->items->get_column('itemnumber'));
+# Get component parts details
+my $showcomp = C4::Context->preference('ShowComponentRecords');
+my ( $parts, $show_analytics );
+if ( $showcomp eq 'both' || $showcomp eq 'opac' ) {
+    if ( my $components = $biblio->get_marc_components(C4::Context->preference('MaxComponentRecords')) ) {
+        $show_analytics = 1 if @{$components}; # just show link when having results
+        for my $part ( @{$components} ) {
+            $part = C4::Search::new_record_from_zebra( 'biblioserver', $part );
+            my $id = Koha::SearchEngine::Search::extract_biblionumber( $part );
+
+            push @{$parts},
+              XSLTParse4Display(
+                {
+                    biblionumber => $id,
+                    record       => $part,
+                    xsl_syspref  => 'OPACXSLTResultsDisplay',
+                    fix_amps     => 1,
+                }
+              );
         }
+        $template->param( ComponentParts => $parts );
+        my ( $comp_query, $comp_query_str, $comp_sort ) = $biblio->get_components_query;
+        my $cpq = $comp_query_str . "&sort_by=" . $comp_sort;
+        $template->param( ComponentPartsQuery => $cpq );
+    }
+} else { # check if we should show analytics anyway
+    $show_analytics = 1 if @{$biblio->get_marc_components(1)}; # count matters here, results does not
+}
+
+# XSLT processing of some stuff
+my $variables = {};
+my $lang = C4::Languages::getlanguage();
+my @plugin_responses = Koha::Plugins->call(
+    'opac_detail_xslt_variables',
+    {
+        biblio_id => $biblionumber,
+        lang      => $lang,
+        patron_id => $borrowernumber,
+    },
+);
+for my $plugin_variables ( @plugin_responses ) {
+    $variables = { %$variables, %$plugin_variables };
+}
+$variables->{anonymous_session} = $borrowernumber ? 0 : 1;
+$variables->{show_analytics_link} = $show_analytics;
+$template->param(
+    XSLTBloc => XSLTParse4Display({
+        biblionumber   => $biblionumber,
+        record         => $record,
+        xsl_syspref    => 'OPACXSLTDetailsDisplay',
+        fix_amps       => 1,
+        xslt_variables => $variables,
+    }),
+);
+
+# Get items on order
+if ( C4::Context->preference('OPACAcquisitionDetails' ) ) {
+    my $orders = $biblio->orders->filter_by_active;
+    my $total_quantity = 0;
+    while ( my $order = $orders->next ) {
         $total_quantity += $order->quantity;
     }
     $template->{VARS}->{acquisition_details} = {
@@ -780,77 +669,165 @@ if ( C4::Context->preference('EnableHoldsNotForLoanStatus') ) {
 }
 my $enabledNotForLoanStatus = 0;
 
+my @divibibItems;
+if (C4::Context->preference('DivibibEnabled') && $record->field("001") && $record->field("003") ) {
+    my $divibibId = $record->field("001")->data();
+    my $idProv    = $record->field("003")->data();
+    
+    if ( $idProv eq C4::Divibib::NCIPService::DIVIBIBAGENCYID ) {
+        my $service = C4::Divibib::NCIPService->new();
+        my $divibib_items = $service->getItemInformation($biblionumber, $divibibId);
+        
+        my $useitem = undef;
+        my $divitem = undef;
+        SELITEM: while ( my $item = $items->next ) {
+            my $booksellerid = $item->booksellerid || '';
+            if ( $booksellerid eq 'Onleihe' ) {
+                foreach my $ditem ( @{$divibib_items} ) {
+                    $useitem = $item->unblessed;
+                    $divitem = $ditem;
+                    last SELITEM;
+                }
+            }
+        }
+        $items->reset();
+        
+        if ( defined($useitem) && defined($divitem) ) {
+            $useitem->{'itemId'} = $divibibId;
+            $useitem->{'onleihe'} = $divitem->{'onleihe'};
+            $useitem->{'date_due'} =  $divitem->{'date_due'};
+            $useitem->{'date_due_sql'}  = $divitem->{'date_due_sql'};
+            $useitem->{'datedue'} = $divitem->{'datedue'};
+            $useitem->{'overdue'} = $divitem->{'overdue'};
+            
+            $useitem->{'itemnumber'} = $divitem->{'itemnumber'};
+            $useitem->{'itemSource'} = $divitem->{'itemSource'};;
+            $useitem->{'this_branch'} = $divitem->{'this_branch'};
+            $useitem->{'available'} = $divitem->{'available'};
+            $useitem->{'reservable'} = $divitem->{'reservable'};
+            if ( !($divitem->{'available'} || $divitem->{'reservable'}) ) {
+                $useitem->{'itemnotforloan'} = 100;
+            }
+            push @divibibItems, $useitem;
+        }
+    } 
+}
+
 my $allow_onshelf_holds;
 my ( $itemloop_has_images, $otheritemloop_has_images );
-if ( not $viewallitems and @items > $max_items_to_display ) {
+if ( not $viewallitems and $items->count > $max_items_to_display ) {
     $template->param(
         too_many_items => 1,
-        items_count => scalar( @items ),
+        items_count    => $items->count,
     );
-} else {
-  for my $itm (@items) {
-    my $item = Koha::Items->find( $itm->{itemnumber} );
-    $itm->{holds_count} = $item_reserves{ $itm->{itemnumber} };
-    $itm->{priority} = $priority{ $itm->{itemnumber} };
-
-    if ( $item ) {
-        $allow_onshelf_holds = Koha::CirculationRules->get_onshelfholds_policy( { item => $item, patron => $patron } )
-            unless $allow_onshelf_holds;
-        my $notforloan = $itm->{'itemnotforloan'} || '';
+}
+else {
+    my $library_info;
+    while ( my $item = $items->next ) {
+        my $item_info = $item->unblessed;
+        
+        if ( C4::Context->preference('DivibibEnabled') && scalar(@divibibItems) ) {
+            for my $i(0..$#divibibItems) {
+                if ( $divibibItems[$i]->{itemnumber} eq $item_info->{itemnumber} ) {
+                    $item_info = $divibibItems[$i];
+                    delete  $divibibItems[$i];
+                    last;
+                }
+            }
+        }
+        
+        $item_info->{holds_count} = $item_reserves{ $item->itemnumber };
+        $item_info->{priority}    = $priority{ $item->itemnumber };
+        
+        my $notforloan = $item_info->{'itemnotforloan'} || '';
         $enabledNotForLoanStatus = scalar(grep { /^$notforloan$/ } @EnableHoldsNotForLoanStatus)
             if (!$enabledNotForLoanStatus);
-    }
 
-    # get collection code description, too
-    my $ccode = $itm->{'ccode'};
-    $itm->{'ccode'} = $collections->{$ccode} if defined($ccode) && $collections && exists( $collections->{$ccode} );
-    my $copynumber = $itm->{'copynumber'};
-    $itm->{'copynumber'} = $copynumbers->{$copynumber} if ( defined($copynumbers) && defined($copynumber) && exists( $copynumbers->{$copynumber} ) );
-    if ( defined $itm->{'location'} ) {
-        $itm->{'location_description'} = $shelflocations->{ $itm->{'location'} };
-    }
-    if (exists $itm->{itype} && defined($itm->{itype}) && exists $itemtypes->{ $itm->{itype} }) {
-        $itm->{'imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $itm->{itype} }->{'imageurl'} );
-        $itm->{'description'} = $itemtypes->{ $itm->{itype} }->{translated_description};
-    }
-    foreach (qw(ccode materials enumchron copynumber itemnotes location_description uri)) {
-        $itemfields{$_} = 1 if ($itm->{$_});
-    }
+        # Get opac_info from Additional contents for home and holding library
+        my ( $opac_info_home, $opac_info_holding );
+        $opac_info_holding = $library_info->{ $item->holdingbranch } // $item->holding_branch->opac_info({ lang => $lang });
+        $library_info->{ $item->holdingbranch } = $opac_info_holding;
+        $opac_info_home = $library_info->{ $item->homebranch } // $item->home_branch->opac_info({ lang => $lang });
+        $library_info->{ $item->homebranch } = $opac_info_home;
+        $item_info->{holding_library_info} = $opac_info_holding->content if $opac_info_holding;
+        $item_info->{home_library_info} = $opac_info_home->content if $opac_info_home;
 
-     my $reserve_status = C4::Reserves::GetReserveStatus($itm->{itemnumber});
-      if( $reserve_status eq "Waiting"){ $itm->{'waiting'} = 1; }
-      if( $reserve_status eq "Reserved"){ $itm->{'onhold'} = 1; }
-    
-     my ( $transfertwhen, $transfertfrom, $transfertto ) = GetTransfers($itm->{itemnumber});
-     if ( defined( $transfertwhen ) && $transfertwhen ne '' ) {
-        $itm->{transfertwhen} = $transfertwhen;
-        $itm->{transfertfrom} = $transfertfrom;
-        $itm->{transfertto}   = $transfertto;
-     }
-    
-    if ( C4::Context->preference('OPACAcquisitionDetails') ) {
-        $itm->{on_order} = 1
-          if grep { $_ eq $itm->{itemnumber} } @itemnumbers_on_order;
-    }
+        $allow_onshelf_holds = Koha::CirculationRules->get_onshelfholds_policy(
+            { item => $item, patron => $patron } )
+          unless $allow_onshelf_holds;
 
-    if ( $item && C4::Context->preference("OPACLocalCoverImages") == 1 ) {
-        $itm->{cover_images} = $item->cover_images;
-    }
+        # get collection code description, too
+        my $ccode = $item->ccode;
+        $item_info->{'ccode'} = $collections->{$ccode}
+          if defined($ccode)
+          && $collections
+          && exists( $collections->{$ccode} );
 
-    my $itembranch = $itm->{$separatebranch};
-    if ($currentbranch and C4::Context->preference('OpacSeparateHoldings')) {
-        if ($itembranch and $itembranch eq $currentbranch) {
-            push @itemloop, $itm;
-            $itemloop_has_images++ if ($item && $item->cover_images->count);
-        } else {
-            push @otheritemloop, $itm;
-            $otheritemloop_has_images++ if ($item && $item->cover_images->count);
+        my $copynumber = $item->copynumber;
+        $item_info->{copynumber} = $copynumbers->{$copynumber}
+          if ( defined($copynumbers)
+            && defined($copynumber)
+            && exists( $copynumbers->{$copynumber} ) );
+
+        if ( defined $item->location ) {
+            $item_info->{'location_description'} =
+              $shelflocations->{ $item->location };
         }
-    } else {
-        push @itemloop, $itm;
-        $itemloop_has_images++ if ($item && $item->cover_images->count);
+
+        my $itemtype = $item->itemtype;
+        $item_info->{'imageurl'} = getitemtypeimagelocation( 'opac',
+            $itemtypes->{ $itemtype->itemtype }->{'imageurl'} );
+        $item_info->{'description'} =
+          $itemtypes->{ $itemtype->itemtype }->{translated_description};
+
+        foreach my $field (
+            qw(ccode materials enumchron copynumber itemnotes location_description uri)
+          )
+        {
+            $itemfields{$field} = 1 if $item_info->{$field};
+        }
+
+        # FIXME The following must be Koha::Item->serial
+        my $serial_item = Koha::Serial::Items->find($item->itemnumber);
+        if ( $serial_item ) {
+            my $serial = Koha::Serials->find($serial_item->serialid);
+            $item_info->{serial} = $serial if $serial;
+        }
+
+        $item_info->{checkout} = $item->checkout;
+        $item_info->{object} = $item;
+
+
+        if ( C4::Context->preference("OPACLocalCoverImages") == 1 ) {
+            $item_info->{cover_images} = $item->cover_images;
+        }
+
+
+        if ( C4::Context->preference('UseCourseReserves') ) {
+            $item_info->{course_reserves} = GetItemCourseReservesInfo( itemnumber => $item->itemnumber );
+        }
+
+        $item_info->{holding_branch} = $item->holding_branch;
+        $item_info->{home_branch}    = $item->home_branch;
+
+        my $itembranch = $item->$separatebranch;
+        if ( $currentbranch
+            and C4::Context->preference('OpacSeparateHoldings') )
+        {
+            if ( $itembranch and $itembranch eq $currentbranch ) {
+                push @itemloop, $item_info;
+                $itemloop_has_images++ if $item->cover_images->count;
+            }
+            else {
+                push @otheritemloop, $item_info;
+                $otheritemloop_has_images++ if $item->cover_images->count;
+            }
+        }
+        else {
+            push @itemloop, $item_info;
+            $itemloop_has_images++ if $item->cover_images->count;
+        }
     }
-  }
 }
 
 if( $allow_onshelf_holds || $enabledNotForLoanStatus || CountItemsIssued($biblionumber) || $biblio->has_items_waiting_or_intransit ) {
@@ -887,7 +864,7 @@ if (!C4::Context->preference("OPACXSLTDetailsDisplay") || C4::Context->preferenc
     );
 }
 
-my $marcnotesarray = $biblio->get_marc_notes({ marcflavour => $marcflavour, opac => 1 });
+my $marcnotesarray = $biblio->get_marc_notes({ opac => 1, record => $record });
 
 if( C4::Context->preference('ArticleRequests') ) {
     my $patron = $borrowernumber ? Koha::Patrons->find($borrowernumber) : undef;
@@ -904,7 +881,6 @@ my $norequests = ! $biblio->items->filter_by_for_hold->count;
     $template->param(
                      MARCNOTES               => $marcnotesarray,
                      norequests              => $norequests,
-                     RequestOnOpac           => C4::Context->preference("RequestOnOpac"),
                      itemdata_ccode          => $itemfields{ccode},
                      itemdata_materials      => $itemfields{materials},
                      itemdata_enumchron      => $itemfields{enumchron},
@@ -915,7 +891,7 @@ my $norequests = ! $biblio->items->filter_by_for_hold->count;
                      OpacStarRatings         => C4::Context->preference("OpacStarRatings"),
     );
 
-if (C4::Context->preference("AlternateHoldingsField") && scalar @items == 0) {
+if (C4::Context->preference("AlternateHoldingsField") && $items->count == 0) {
     my $fieldspec = C4::Context->preference("AlternateHoldingsField");
     my $subfields = substr $fieldspec, 3;
     my $holdingsep = C4::Context->preference("AlternateHoldingsSeparator") || ' ';
@@ -1029,7 +1005,7 @@ if (C4::Context->preference("virtualshelves") ) {
     my $shelves = Koha::Virtualshelves->search(
         {
             biblionumber => $biblionumber,
-            category => 2,
+            public       => 1,
         },
         {
             join => 'virtualshelfcontents',
@@ -1303,6 +1279,7 @@ my $issn = $marcissns->[0] || '';
 if (my $search_for_title = C4::Context->preference('OPACSearchForTitleIn')){
     $dat->{title} =~ s/\/+$//; # remove trailing slash
     $dat->{title} =~ s/\s+$//; # remove trailing space
+    my $oclc_no = Koha::Util::MARC::oclc_number( $record );
     $search_for_title = parametrized_url(
         $search_for_title,
         {
@@ -1313,6 +1290,7 @@ if (my $search_for_title = C4::Context->preference('OPACSearchForTitleIn')){
             ISSN          => $issn,
             CONTROLNUMBER => $marccontrolnumber,
             BIBLIONUMBER  => $biblionumber,
+            OCLC_NO       => $oclc_no,
         }
     );
     $template->param('OPACSearchForTitleIn' => $search_for_title);
@@ -1396,6 +1374,8 @@ my $defaulttab =
         ? 'serialcollection' :
     $opac_serial_default eq 'holdings' && scalar (@itemloop) > 0
         ? 'holdings' :
+    ( $showcomp eq 'both' || $showcomp eq 'opac' ) && scalar (@itemloop) == 0 && $parts
+        ? 'components' :
     scalar (@itemloop) == 0
         ? 'media' :
     $subscriptionsnumber
@@ -1414,12 +1394,6 @@ if (C4::Context->preference('OpacHighlightedWords')) {
     $template->{VARS}->{query_desc} = $query->param('query_desc');
 }
 $template->{VARS}->{'trackclicks'} = C4::Context->preference('TrackClicks');
-
-if ( C4::Context->preference('UseCourseReserves') ) {
-    foreach my $i ( @items ) {
-        $i->{'course_reserves'} = GetItemCourseReservesInfo( itemnumber => $i->{'itemnumber'} );
-    }
-}
 
 $template->param(
     'OpacLocationBranchToDisplay' => C4::Context->preference('OpacLocationBranchToDisplay'),
@@ -1451,6 +1425,24 @@ if (C4::Context->preference('OpacDetailVolumeDisplay')) {
             );
         }
     };
+}
+
+if ( C4::Context->preference('OPACAuthorIdentifiers') ) {
+    my @author_identifiers;
+    for my $author ( @{ $biblio->get_marc_authors } ) {
+        my $authid    = $author->{authoritylink};
+        my $authority = Koha::Authorities->find($authid);
+        next unless $authority;
+        my $identifiers = $authority->get_identifiers;
+        next unless $identifiers && @$identifiers;
+        my ($name) =
+          map  { $_->{value} }
+          grep { $_->{code} eq 'a' ? $_ : () }
+          @{ $author->{MARCAUTHOR_SUBFIELDS_LOOP} };
+        push @author_identifiers,
+          { authid => $authid, name => $name, identifiers => $identifiers };
+    }
+    $template->param( author_identifiers => \@author_identifiers );
 }
 
 output_html_with_http_headers $query, $cookie, $template->output;

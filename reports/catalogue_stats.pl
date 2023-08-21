@@ -19,17 +19,16 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Output;
-use C4::Koha;
-use C4::Reports;
-use C4::Circulation;
-use C4::Biblio qw/GetMarcSubfieldStructureFromKohaField/;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Koha qw( GetAuthorisedValues );
+use C4::Reports qw( GetDelimiterChoices );
+use C4::Biblio qw( GetMarcSubfieldStructureFromKohaField );
 
 use Koha::AuthorisedValues;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::ItemTypes;
 
 =head1 NAME
@@ -51,8 +50,7 @@ my @filters     = $input->multi_param("Filter");
 my $cotedigits  = $input->param("cotedigits");
 my $output      = $input->param("output");
 my $basename    = $input->param("basename");
-our $sep        = $input->param("sep");
-$sep = "\t" if ($sep eq 'tabulation');
+our $sep        = C4::Context->csv_delimiter(scalar $input->param("sep"));
 my $item_itype;
 if(C4::Context->preference('item-level_itypes')) {
 	$item_itype = "items\.itype"
@@ -71,7 +69,6 @@ my ($template, $borrowernumber, $cookie)
 				query => $input,
 				type => "intranet",
 				flagsrequired => {reports => '*'},
-				debug => 1,
 				});
 $template->param(do_it => $do_it);
 if ($do_it) {

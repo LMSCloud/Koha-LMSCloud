@@ -36,25 +36,21 @@
 
 use Modern::Perl;
 
-use C4::Auth;
-use C4::Output;
-use C4::Templates;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_and_exit output_html_with_http_headers );
+use Koha::Database::Columns;
 use Koha::Patrons;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Token;
 use Koha::Libraries;
 use Koha::Patron::Categories;
 use Koha::Patron::Attribute::Types;
-use Koha::List::Patron;
+use Koha::List::Patron qw( AddPatronList AddPatronsToList );
 
 use Koha::Patrons::Import;
 my $Import = Koha::Patrons::Import->new();
 
 use Text::CSV;
-
-# Text::CSV::Unicode, even in binary mode, fails to parse lines with these diacriticals:
-# ė
-# č
 
 use CGI qw ( -utf8 );
 
@@ -72,16 +68,13 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { tools => 'import_patrons' },
-        debug           => 1,
     }
 );
 
 # get the patron categories and pass them to the template
-my @patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']});
+my @patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']})->as_list;
 $template->param( categories => \@patron_categories );
-my $columns = C4::Templates::GetColumnDefs( $input )->{borrowers};
-$columns = [ grep { $_->{field} ne 'borrowernumber' ? $_ : () } @$columns ];
-$template->param( borrower_fields => $columns );
+$template->param( borrower_fields => Koha::Database::Columns->columns->{borrowers} );
 
 if ( $input->param('sample') ) {
     our $csv = Text::CSV->new( { binary => 1 } );    # binary needed for non-ASCII Unicode
@@ -94,8 +87,11 @@ if ( $input->param('sample') ) {
     exit 0;
 }
 
+my @preserve_fields = $input->multi_param('preserve_existing');
+
 my $uploadborrowers = $input->param('uploadborrowers');
 my $matchpoint      = $input->param('matchpoint');
+my $welcome_new     = $input->param('welcome_new');
 if ($matchpoint) {
     $matchpoint =~ s/^patron_attribute_//;
 }
@@ -118,14 +114,19 @@ if ( $uploadborrowers && length($uploadborrowers) > 0 ) {
     my $handle   = $input->upload('uploadborrowers');
     my %defaults = $input->Vars;
     my $overwrite_passwords = defined $input->param('overwrite_passwords') ? 1 : 0;
+    my $update_dateexpiry = $input->param('update_dateexpiry');
     my $return = $Import->import_patrons(
         {
             file                         => $handle,
             defaults                     => \%defaults,
             matchpoint                   => $matchpoint,
-            overwrite_cardnumber         => scalar $input->param('overwrite_cardnumber'),
+            overwrite_cardnumber         => scalar $input->param( 'overwrite_cardnumber' ),
             overwrite_passwords          => $overwrite_passwords,
-            preserve_extended_attributes => scalar $input->param('ext_preserve') || 0,
+            preserve_extended_attributes => scalar $input->param( 'ext_preserve' ) || 0,
+            preserve_fields              => \@preserve_fields,
+            update_dateexpiry            => $update_dateexpiry ? 1 : 0,
+            update_dateexpiry_from_today => $update_dateexpiry eq "now" ? 1 : 0,
+            send_welcome                 => $welcome_new,
         }
     );
 

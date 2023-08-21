@@ -25,14 +25,14 @@
 use Modern::Perl;
 use File::Spec;
 use CGI qw ( -utf8 );
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Koha;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use Koha::Patron::Categories;
 use Time::HiRes qw(time);
 use DateTime;
 use Time::localtime;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Proc::Daemon;
 use C4::Context;
 
@@ -43,13 +43,10 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => "tools/runBatchJob.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => "run_batch_programs" },
     }
 );
 
-my %cookies   = parse CGI::Cookie($cookie);
-my $sessionID = $cookies{'CGISESSID'}->value;
 my $dbh       = C4::Context->dbh;
 
 my $cmd = $input->param('cmd') || '';

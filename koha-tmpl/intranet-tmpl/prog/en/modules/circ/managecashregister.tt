@@ -22,30 +22,28 @@
 [% END %][% END %]
 
 <body id="circ_managecashregister" class="circ">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'circ-search.inc' %]
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-        <ol>
-            <li>
-                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-            </li>
-            <li>
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+[% END %]
+    [% WRAPPER 'sub-header.inc' %]
+        [% WRAPPER breadcrumbs %]
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
-            </li>
-            <li>
+            [% END %]
+            [% WRAPPER breadcrumb_item %]
                 <a class="cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl">Cash register management</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    [% IF status == 'manage' %]
-                        Cash register: [% cashreg.cash_register_name %]
-                    [% ELSE %]
-                        Select cash register
-                    [% END %]
-                </a>
-            </li>
-        </ol>
-    </nav>
+            [% END %]
+            [% IF status == 'manage' %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Cash register: [% cashreg.cash_register_name %]</span>
+                [% END %]
+            [% ELSE %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Select cash register</span>
+                [% END %]
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
+    [% END #/ WRAPPER sub-header.inc %]
 
 
     <div class="main container-fluid">
@@ -347,8 +345,8 @@
                                     <fieldset class="rows" style="float: unset">
                                         <ol>
                                             <li>
-                                                Journal from <input type="text" size="16" autocomplete="off" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="datetimepicker" />
-                                                to <input type="text" size="16" autocomplete="off" id="journalto" name="journalto" value="[% journalto %]" class="datetimepicker" />
+                                                Journal from <input type="text" size="16" autocomplete="off" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="flatpickr" data-flatpickr-enable-time="true" />
+                                                to <input type="text" size="16" autocomplete="off" id="journalto" name="journalto" value="[% journalto %]" class="flatpickr" data-flatpickr-enable-time="true"/>
                                                 <button type="submit" name="allFromOpening" value="0" class="btn btn-default btn-xs">Select</button>
                                             </li>
                                             <li>
@@ -359,7 +357,7 @@
                                     </fieldset>
                                 </form>
                                 <h2>Cash register journal</h2>
-                                <div>
+                                <div class="page-section">
                                     <table id="cashregjournal">
                                         <thead>
                                             <tr>
@@ -465,24 +463,28 @@
                     <div class="cashregisterinfo">
                         <h5>[% cash_register.cash_register_name %]</h5>
                         <ul>
-                            <li class="cashregisterinfo">Library: [% Branches.GetName(cash_register.cash_register_branchcode) %]</li>
-                            <li class="cashregisterimportantinfo">Cash balance: [% cash_register.cash_register_balance_formatted %]</li>
-                            <li class="cashregisterinfo">Opened on: [% cash_register_info.opening_booking_time %]</li>
-                            <li class="cashregisterinfo">Opened by: [% cash_register_info.opening_manager %]</li>
-                            [% FOREACH additionalOpener IN cash_register_info.also_used_by_manager %]
-                            <li class="cashregisterinfo">Also in use by: [% additionalOpener.name %]</li>
-                            [% END %]
-                            <li class="cashregisterinfo">Opening balance: [% cash_register_info.opening_balance_formatted %]</li>
-                            <li class="cashregisterinfo">Cash receipts: [% cash_register_info.inpayments_amount_formatted %]</li>
-                            <li class="cahsregisterinfo">Cash payments: [% cash_register_info.payouts_amount_formatted %]</li>
+                            <li class="cashregisterinfoentry">Library: [% Branches.GetName(cash_register.cash_register_branchcode) %]</li>
+                            <li>&nbsp;</li>
+                            <li><span class="hint">Balance</span></li>
+                            <li class="cashregisterimportantinfoentry">Cash balance: [% cash_register.cash_register_balance_formatted %]</li>
+                            <li class="cashregisterinfoentry">Opening balance: [% cash_register_info.opening_balance_formatted %]</li>
+                            <li class="cashregisterinfoentry">Cash receipts: [% cash_register_info.inpayments_amount_formatted %]</li>
+                            <li class="cahsregisterinfoentry">Cash payments: [% cash_register_info.payouts_amount_formatted %]</li>
                         [% IF ( lastTransaction ) %]
                             <li>&nbsp;</li>
                             <li><span class="hint">Last transaction</span></li>
                             [% cashaction = lastTransaction.action %]
-                            <li class="cashregisterinfo">Action: [% INCLUDE cashActionName %]</li>
-                            <li class="cashregisterinfo">Amount: [% lastTransaction.booking_amount_formatted %]</li>
-                            <li class="cashregisterinfo">Time: [% lastTransaction.booking_time %]</li>
+                            <li class="cashregisterinfoentry">Action: [% INCLUDE cashActionName %]</li>
+                            <li class="cashregisterinfoentry">Amount: [% lastTransaction.booking_amount_formatted %]</li>
+                            <li class="cashregisterinfoentry">Time: [% lastTransaction.booking_time %]</li>
                         [% END %]
+                            <li>&nbsp;</li>
+                            <li><span class="hint">Manager</span></li>
+                            <li class="cashregisterinfoentry">Opened on: [% cash_register_info.opening_booking_time %]</li>
+                            <li class="cashregisterinfoentry">Opened by: [% cash_register_info.opening_manager %]</li>
+                            [% FOREACH additionalOpener IN cash_register_info.also_used_by_manager %]
+                            <li class="cashregisterinfoentry">Also in use by: [% additionalOpener.name %]</li>
+                            [% END %]
                         </ul>
                     </div>
                     [% END %]
@@ -496,7 +498,6 @@
     [% INCLUDE 'calendar.inc' %]
     [% Asset.js("lib/jquery/plugins/jquery-ui-timepicker-addon.min.js") %]
     [% Asset.js("lib/jquery/plugins/jquery.insertatcaret.js") %]
-    [% INCLUDE 'timepicker.inc' %]
 
     <script type="text/javascript">
         $(document).ready( function() {
@@ -529,9 +530,6 @@
                 if ( journalfrom ) this.href += '&journalfrom=' + journalfrom;
                 if ( journalto ) this.href += '&journalto=' + journalto;
             });
-            
-            $("#journalfrom:visible").datetimepicker({});
-            $("#journalto:visible").datetimepicker({});
             
             $('#cash_payment').on("keyup change", function() {
                 var amount = parseFloat($('#cash_payment').val()).toFixed(2);

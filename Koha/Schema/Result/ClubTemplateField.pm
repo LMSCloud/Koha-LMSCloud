@@ -111,8 +111,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-02-16 16:57:22
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:E4PE9AO7bjUUA8nNz0FMWw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-01-19 06:49:06
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:yh8KZ8fjZclGd0GicxTaBA
 
 sub koha_object_class {
     'Koha::Club::Template::Field';

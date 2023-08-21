@@ -1,0 +1,46 @@
+/public/generated_cover:
+  get:
+    x-mojo-to: GeneratedCover#get
+    operationId: getGeneratedCover
+    description: Generate a cover based on the author and title value
+    summary: Generate a cover based on the author and title value
+    tags:
+      - generated_cover
+    summary: Get a generated png for specified input
+    parameters:
+      - name: author
+        in: query
+        description: Supplied title for generation of a cover
+        required: false
+        type: string
+      - name: title
+        in: query
+        description: Supplied author for generation of a cover
+        required: false
+        type: string
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      '200':
+        description: A base 64 encoded string containing image data
+        schema:
+          type:
+            - string
+            - 'null'
+      '403':
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '500':
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '503':
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"

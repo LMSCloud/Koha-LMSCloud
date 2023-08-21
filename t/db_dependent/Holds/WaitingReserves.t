@@ -2,15 +2,15 @@
 
 use Modern::Perl;
 
-use C4::Reserves;
-use Koha::DateUtils;
+use C4::Reserves qw( ModReserve ModReserveAffect );
+use Koha::DateUtils qw( dt_from_string );
 
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
 use Test::More tests => 11;
 
-use_ok('C4::Reserves');
+use_ok('C4::Reserves', qw( ModReserve ModReserveAffect ));
 
 my $schema  = Koha::Database->new->schema;
 $schema->storage->txn_begin;
@@ -82,7 +82,7 @@ my $reserve1 = $builder->build({
     value => {
         borrowernumber => $patron1->{borrowernumber},
         reservedate => $reserve1_reservedate->ymd,
-        expirationdate => undef,
+        patron_expiration_date => undef,
         biblionumber => $biblio->biblionumber,
         branchcode => 'LIB1',
         priority => 1,
@@ -107,7 +107,7 @@ my $reserve2 = $builder->build({
     value => {
         borrowernumber => $patron2->{borrowernumber},
         reservedate => $reserve1_reservedate->ymd,
-        expirationdate => undef,
+        patron_expiration_date => undef,
         biblionumber => $biblio2->biblionumber,
         branchcode => 'LIB1',
         priority => 1,
@@ -127,7 +127,7 @@ my $reserve3 = $builder->build({
     value => {
         borrowernumber => $patron2->{borrowernumber},
         reservedate => $reserve1_reservedate->ymd,
-        expirationdate => undef,
+        patron_expiration_date => undef,
         biblionumber => $biblio3->biblionumber,
         branchcode => 'LIB1',
         priority => 1,
@@ -185,7 +185,7 @@ my $reserve4 = $builder->build({
     value => {
         borrowernumber => $patron2->{borrowernumber},
         reservedate => $reserve4_reservedate->ymd,
-        expirationdate => $requested_expiredate->ymd,
+        patron_expiration_date => $requested_expiredate->ymd,
         biblionumber => $biblio4->biblionumber,
         branchcode => 'LIB1',
         priority => 1,

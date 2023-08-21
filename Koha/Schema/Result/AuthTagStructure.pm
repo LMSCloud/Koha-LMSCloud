@@ -127,8 +127,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-02-16 16:57:22
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:FqxLmKX4tpdya3dhYUYg6Q
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-01-19 06:49:06
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Nfz88qZS9IgnDbZWcPwlvw
 
 sub koha_object_class {
     'Koha::Authority::Tag';

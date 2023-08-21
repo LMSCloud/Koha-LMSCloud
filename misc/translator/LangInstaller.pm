@@ -26,7 +26,6 @@ use C4::Context;
 use YAML::XS;
 use Locale::PO;
 use FindBin qw( $Bin );
-use File::Basename;
 use File::Path qw( make_path );
 use File::Copy;
 
@@ -94,7 +93,7 @@ sub new {
     }
 
     # MARC flavours (hardcoded list)
-    for ( "MARC21", "UNIMARC", "NORMARC" ) {
+    for ( "MARC21", "UNIMARC" ) {
         # search for strings on staff & opac marc files
         my $dirs = C4::Context->config('intrahtdocs') . '/prog';
         opendir $fh, C4::Context->config('opachtdocs');
@@ -127,7 +126,8 @@ sub new {
     # EN UNIMARC YAML installer files
     push @{$self->{installer}}, {
         name   => "UNIMARC YAML installer files",
-        dirs   => [ 'installer/data/mysql/en/marcflavour/unimarc/mandatory', ],
+        dirs   => [ 'installer/data/mysql/en/marcflavour/unimarc/mandatory',
+                    'installer/data/mysql/en/marcflavour/unimarc/optional'],
         suffix => "-installer-UNIMARC.po",
     };
 
@@ -147,7 +147,7 @@ sub get_trans_text {
     my ($self, $msgid, $default) = @_;
 
     my $po = $self->{po}->{Locale::PO->quote($msgid)};
-    if ($po) {
+    if ( $po and not defined( $po->fuzzy() ) ) {
         my $msgstr = Locale::PO->dequote($po->msgstr);
         if ($msgstr and length($msgstr) > 0) {
             return $msgstr;
@@ -173,6 +173,18 @@ sub get_translated_tab_content {
             $self->get_trans_text($msgid, $section) => $self->get_translated_prefs($file, $sysprefs);
         } keys %$tab_content
     };
+
+    if ( keys %$translated_tab_content != keys %$tab_content ) {
+        my %duplicates;
+        for my $section (keys %$tab_content) {
+            push @{$duplicates{$self->get_trans_text("$file $section", $section)}}, $section;
+        }
+        for my $translation (keys %duplicates) {
+            if (@{$duplicates{$translation}} > 1) {
+                warn qq(In file "$file", "$translation" is a translation for sections ") . join('", "', @{$duplicates{$translation}}) . '"';
+            }
+        }
+    }
 
     return $translated_tab_content;
 }
@@ -251,6 +263,17 @@ sub install_prefs {
             } keys %$pref
         };
 
+        if ( keys %$translated_pref != keys %$pref ) {
+            my %duplicates;
+            for my $tab (keys %$pref) {
+                push @{$duplicates{$self->get_trans_text($file, $tab)}}, $tab;
+            }
+            for my $translation (keys %duplicates) {
+                if (@{$duplicates{$translation}} > 1) {
+                    warn qq(In file "$file", "$translation" is a translation for tabs ") . join('", "', @{$duplicates{$translation}}) . '"';
+                }
+            }
+        }
 
         my $file_trans = $self->{po_path_lang} . "/$file";
         print "Write $file\n" if $self->{verbose};
@@ -281,7 +304,7 @@ sub install_tmpl {
             # if installing MARC po file, only touch corresponding files
             my $marc     = ( $trans->{name} =~ /MARC/ )?"-m \"$trans->{name}\"":"";            # for MARC translations
             # if not installing MARC po file, ignore all MARC files
-            @nomarc      = ( 'marc21', 'unimarc', 'normarc' ) if ( $trans->{name} !~ /MARC/ ); # hardcoded MARC variants
+            @nomarc      = ( 'marc21', 'unimarc' ) if ( $trans->{name} !~ /MARC/ ); # hardcoded MARC variants
 
             system
                 "$self->{process} install " .
@@ -318,7 +341,6 @@ sub translate_yaml {
             for my $field ( @translatable ) {                                           # each translatable field
                 if ( @multiline and grep { $_ eq $field } @multiline ) {                # multiline fields, only notices ATM
                     foreach my $line ( @{$row->{$field}} ) {
-                        next if ( $line =~ /^(\s*<.*?>\s*$|^\s*\[.*?\]\s*|\s*)$/ );     # discard pure html, TT, empty
                         my @ttvar;
                         while ( $line =~ s/(<<.*?>>|\[\%.*?\%\]|<.*?>)/\%s/ ) {         # put placeholders, save matches
                             my $var = $1;
@@ -377,10 +399,6 @@ sub install_installer {
     my $intradir  = C4::Context->config('intranetdir');
     my $db_scheme = C4::Context->config('db_scheme');
     my $langdir  = "$intradir/installer/data/$db_scheme/$self->{lang}";
-    if ( -d $langdir ) {
-        say "$self->{lang} installer dir $langdir already exists.\nDelete it if you want to recreate it." if $self->{verbose};
-        return;
-    }
 
     say "Install installer files\n" if $self->{verbose};
 

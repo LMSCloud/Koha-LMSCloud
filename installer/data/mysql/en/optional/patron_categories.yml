@@ -59,6 +59,7 @@ tables:
           issuelimit: ~
           reservefee: '0.000000'
           category_type: 'A'
+          can_be_guarantee: 0
 
         - categorycode: 'ST'
           description: 'Student'
@@ -72,6 +73,7 @@ tables:
           issuelimit: ~
           reservefee: '0.000000'
           category_type: 'A'
+          can_be_guarantee: 0
 
         - categorycode: 'HB'
           description: 'Home Bound'
@@ -85,6 +87,7 @@ tables:
           issuelimit: ~
           reservefee: '0.000000'
           category_type: 'A'
+          can_be_guarantee: 0
 
         #  Children
         - categorycode: 'K'
@@ -99,6 +102,7 @@ tables:
           issuelimit: ~
           reservefee: '0.000000'
           category_type: 'C'
+          can_be_guarantee: 1
 
         - categorycode: 'J'
           description: 'Juvenile'
@@ -112,6 +116,7 @@ tables:
           issuelimit: ~
           reservefee: '0.000000'
           category_type: 'C'
+          can_be_guarantee: 1
 
         - categorycode: 'YA'
           description: 'Young Adult'
@@ -125,6 +130,7 @@ tables:
           issuelimit: ~
           reservefee: '0.000000'
           category_type: 'C'
+          can_be_guarantee: 1
 
         #  Professionals
         - categorycode: 'T'
@@ -139,6 +145,7 @@ tables:
           issuelimit: ~
           reservefee: '0.000000'
           category_type: 'P'
+          can_be_guarantee: 1
 
         - categorycode: 'B'
           description: 'Board'
@@ -152,6 +159,7 @@ tables:
           issuelimit: ~
           reservefee: '0.000000'
           category_type: 'P'
+          can_be_guarantee: 1
 
         #  Institutional
         - categorycode: 'IL'
@@ -166,6 +174,7 @@ tables:
           issuelimit: ~
           reservefee: '0.000000'
           category_type: 'I'
+          can_be_guarantee: 0
 
         - categorycode: 'SC'
           description: 'School'
@@ -179,6 +188,7 @@ tables:
           issuelimit: ~
           reservefee: '0.000000'
           category_type: 'I'
+          can_be_guarantee: 0
 
         - categorycode: 'L'
           description: 'Library'
@@ -192,6 +202,7 @@ tables:
           issuelimit: ~
           reservefee: '0.000000'
           category_type: 'I'
+          can_be_guarantee: 0
 
         #  Staff
         - categorycode: 'S'
@@ -206,3 +217,4 @@ tables:
           issuelimit: ~
           reservefee: '0.000000'
           category_type: 'S'
+          can_be_guarantee: 0

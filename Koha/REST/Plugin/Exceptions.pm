@@ -18,7 +18,6 @@ package Koha::REST::Plugin::Exceptions;
 use Modern::Perl;
 
 use Scalar::Util qw( blessed );
-use Koha::Logger;
 
 use Mojo::Base 'Mojolicious::Plugin';
 
@@ -69,18 +68,17 @@ sub register {
 
             my $message = "$method $path: unhandled exception $type\<\<$exception_string\>\>";
 
-            my $logger = Koha::Logger->get({ interface => 'api' });
-            $logger->error("$message");
+            $c->app->log->error( "$message" );
 
             $c->render(
                 status  => 500,
                 openapi => {
                     error =>
-                      "Something went wrong, check Koha logs for details."
+                      "Something went wrong, check Koha logs for details.",
+                    error_code => 'internal_server_error',
                 }
             );
-          }
-
+        }
     );
 }
 

@@ -10,8 +10,8 @@
         <fieldset class="rows" style="float: unset">
             <ol>
                 <li>
-                    Cash register overview <input type="text" size="16" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="datetimepicker" />
-                    to <input type="text" size="16" id="journalto" name="journalto" value="[% journalto %]" class="datetimepicker" />
+                    Cash register overview <input type="text" size="16" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="flatpickr" data-flatpickr-enable-time="true" />
+                    to <input type="text" size="16" id="journalto" name="journalto" value="[% journalto %]" class="flatpickr" data-flatpickr-enable-time="true" />
                     <input type="hidden" name="finestype" value="inoutpaymentoverview" />
                     <input type="hidden" name="printview" value="" />
                     <button id="noprintview" type="submit" name="allFromOpening" value="0">Select</button>
@@ -86,8 +86,8 @@
             <fieldset class="rows" style="float: unset">
                 <ol>
                     <li>
-                        Fines overview <input type="text" size="16" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="datetimepicker" />
-                        to <input type="text" size="16" id="journalto" name="journalto" value="[% journalto %]" class="dateptimeicker" />
+                        Fines overview <input type="text" size="16" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="flatpickr" data-flatpickr-enable-time="true" />
+                        to <input type="text" size="16" id="journalto" name="journalto" value="[% journalto %]" class="flatpickr" data-flatpickr-enable-time="true" />
                         [% seltypes = [ 'paidfinesbytype', 'paidfinesbymanager', 'paidfinesbyday', 'finesoverview', 'finesbytype', 'finesbymanager', 'finesbyday', 'paymentsbytype', 'paymentsbymanager', 'paymentsbyday'] %]
                         <select name="finestype">
                             [% FOREACH seltype IN seltypes %]
@@ -650,9 +650,6 @@
         }
 
         $(document).ready( function() {
-
-            $("#journalfrom:visible").datetimepicker({});
-            $("#journalto:visible").datetimepicker({});
 
             [% IF (finesstats.type == 'finesoverview') %]
             $("#finesoverview").dataTable({

@@ -19,8 +19,8 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use JSON;
-use C4::Auth;
+use JSON qw( to_json );
+use C4::Auth qw( checkauth );
 use C4::Output;
 use C4::Context;
 use C4::Koha;
@@ -66,7 +66,7 @@ my $issues_query = q{SELECT
     items.itemcallnumber AS callnumber,
     issues.date_due AS date_due,
     issues.issuedate AS issuedate,
-    issues.renewals AS renewals,
+    issues.renewals_count AS renewals,
     issues.unseen_renewals AS unseen_renewals,
     borrowers.cardnumber AS cardnumber,
     CONCAT(borrowers.surname, ', ', borrowers.firstname) AS borrower_name

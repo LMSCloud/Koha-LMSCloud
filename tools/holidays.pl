@@ -20,13 +20,14 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 
 use C4::Calendar;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 
 use Koha::Library;
+use Koha::Library::Groups;
 
 my $input = CGI->new;
 
@@ -37,11 +38,11 @@ my ($template, $loggedinuser, $cookie)
                              type => "intranet",
                              query => $input,
                              flagsrequired => {tools => 'edit_calendar'},
-                             debug => 1,
                            });
 
 # calendardate - date passed in url for human readability (syspref)
 # if the url has an invalid date default to 'now.'
+# FIXME There is something to improve in the date handling here
 my $calendarinput_dt = eval { dt_from_string( scalar $input->param('calendardate') ); } || dt_from_string;
 my $calendardate = output_pref( { dt => $calendarinput_dt, dateonly => 1 } );
 
@@ -122,7 +123,7 @@ foreach my $yearMonthDay (keys %$single_holidays) {
 ########################################
 #  Read library groups
 ########################################
-my @search_groups = Koha::Library::Groups->get_search_groups( { interface => 'staff' }, );
+my @search_groups = Koha::Library::Groups->get_search_groups( { interface => 'staff' } )->as_list;
 @search_groups = sort { $a->title cmp $b->title } @search_groups;
 
 $template->param(

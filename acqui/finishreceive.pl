@@ -22,19 +22,20 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Auth;
+use C4::Auth qw( checkauth );
+use JSON qw( encode_json );
 use C4::Output;
 use C4::Context;
-use C4::Acquisition;
-use C4::Biblio;
-use C4::Items;
+use C4::Acquisition qw( GetInvoice GetOrder ModReceiveOrder );
+use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField TransformHtmlToXml );
+use C4::Items qw( GetMarcItem ModItemFromMarc AddItemFromMarc );
+use C4::Log qw(logaction);
 use C4::Search;
 
 use Koha::Number::Price;
 use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Orders;
 
-use List::MoreUtils qw/any/;
 
 my $input=CGI->new;
 my $flagsrequired = {acquisition => 'order_receive'};
@@ -97,29 +98,23 @@ if ($quantityrec > $origquantityrec ) {
         }
     }
 
-    $order->{order_internalnote} = $input->param("order_internalnote");
-    $order->{tax_rate_on_receiving} = $input->param("tax_rate");
-    $order->{replacementprice} = $replacementprice;
-    $order->{unitprice} = $unitprice;
+    $order_obj->order_internalnote(scalar $input->param("order_internalnote"));
+    $order_obj->tax_rate_on_receiving(scalar $input->param("tax_rate"));
+    $order_obj->replacementprice($replacementprice);
+    $order_obj->unitprice($unitprice);
 
-    $order = C4::Acquisition::populate_order_with_prices(
-        {
-            order => $order,
-            booksellerid => $booksellerid,
-            receiving => 1
-        }
-    );
+    $order_obj->populate_with_prices_for_receiving();
 
     # save the quantity received.
     if ( $quantityrec > 0 ) {
         if ( $order_obj->subscriptionid ) {
             # Quantity can only be modified if linked to a subscription
-            $order->{quantity} = $quantity; # quantityrec will be deduced from this value in ModReceiveOrder
+            $order_obj->quantity($quantity); # quantityrec will be deduced from this value in ModReceiveOrder
         }
         ( $datereceived, $new_ordernumber ) = ModReceiveOrder(
             {
                 biblionumber     => $biblionumber,
-                order            => $order,
+                order            => $order_obj->unblessed,
                 quantityreceived => $quantityrec,
                 user             => $user,
                 invoice          => $invoice,
@@ -138,8 +133,6 @@ if ($quantityrec > $origquantityrec ) {
         my @field_values = $input->multi_param('field_value');
         my @serials      = $input->multi_param('serial');
         my @itemid       = $input->multi_param('itemid');
-        my @ind_tag      = $input->multi_param('ind_tag');
-        my @indicator    = $input->multi_param('indicator');
         #Rebuilding ALL the data for items into a hash
         # parting them on $itemid.
         my %itemhash;
@@ -152,16 +145,14 @@ if ($quantityrec > $origquantityrec ) {
             push @{$itemhash{$itemid[$i]}->{'tags'}},$tags[$i];
             push @{$itemhash{$itemid[$i]}->{'subfields'}},$subfields[$i];
             push @{$itemhash{$itemid[$i]}->{'field_values'}},$field_values[$i];
-            push @{$itemhash{$itemid[$i]}->{'ind_tag'}},$ind_tag[$i];
-            push @{$itemhash{$itemid[$i]}->{'indicator'}},$indicator[$i];
         }
         my $new_order = Koha::Acquisition::Orders->find( $new_ordernumber );
         foreach my $item (keys %itemhash){
             my $xml = TransformHtmlToXml( $itemhash{$item}->{'tags'},
                                           $itemhash{$item}->{'subfields'},
                                           $itemhash{$item}->{'field_values'},
-                                          $itemhash{$item}->{'indicator'},
-                                          $itemhash{$item}->{'ind_tag'},
+                                          undef,
+                                          undef,
                                           'ITEM' );
             my $record=MARC::Record::new_from_xml($xml, 'UTF-8');
             my (undef,$bibitemnum,$itemnumber) = AddItemFromMarc($record,$biblionumber);
@@ -173,13 +164,14 @@ if ($quantityrec > $origquantityrec ) {
 my $new_order_object = Koha::Acquisition::Orders->find( $new_ordernumber ); # FIXME we should not need to refetch it
 my $items = $new_order_object->items;
 while ( my $item = $items->next )  {
-    $item->booksellerid($booksellerid); # TODO This should be done using ->set, but bug 21761 is not resolved
-    $item->dateaccessioned($datereceived);
-    $item->datelastseen($datereceived);
-    $item->price($unitprice);
-    $item->replacementprice($replacementprice);
-    $item->replacementpricedate($datereceived);
-    $item->store;
+    $item->update({
+        booksellerid => $booksellerid,
+        dateaccessioned => $datereceived,
+        datelastseen => $datereceived,
+        price => $unitprice,
+        replacementprice => $replacementprice,
+        replacementpricedate => $datereceived,
+    });
 }
 
 if ($suggestion_id) {
@@ -188,6 +180,24 @@ if ($suggestion_id) {
     $reason = $other_reason if $reason eq 'other';
     my $suggestion = Koha::Suggestions->find($suggestion_id);
     $suggestion->update( { reason => $reason } ) if $suggestion;
+}
+
+# Log the receipt
+if (C4::Context->preference("AcquisitionLog")) {
+    my $infos = {
+        quantityrec      => $quantityrec,
+        bookfund         => $bookfund || 'unchanged',
+        tax_rate         => $input->param("tax_rate"),
+        replacementprice => $replacementprice,
+        unitprice        => $unitprice
+    };
+
+    logaction(
+        'ACQUISITIONS',
+        'RECEIVE_ORDER',
+        $ordernumber,
+        encode_json($infos)
+    );
 }
 
 print $input->redirect("/cgi-bin/koha/acqui/parcel.pl?invoiceid=$invoiceid");

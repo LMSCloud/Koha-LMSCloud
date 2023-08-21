@@ -32,20 +32,18 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use C4::Auth qw(get_template_and_user checkpw in_iprange);
-use C4::Koha;
-use C4::Circulation;
+use C4::Auth qw( in_iprange get_template_and_user checkpw );
+use C4::Circulation qw( barcodedecode AddReturn CanBookBeIssued AddIssue CanBookBeRenewed AddRenewal );
 use C4::Reserves;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use C4::Members;
-use C4::Biblio;
-use C4::Items;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Acquisition::Currencies;
 use Koha::Items;
 use Koha::Patrons;
 use Koha::Patron::Images;
 use Koha::Patron::Messages;
+use Koha::Plugins;
 use Koha::Token;
 
 my $query = CGI->new;
@@ -78,7 +76,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         flagsrequired   => { self_check => "self_checkout_module" },
         query           => $query,
         type            => "opac",
-        debug           => 1,
     }
 );
 
@@ -112,6 +109,8 @@ if ($op eq "logout") {
     undef $jwt;
 }
 
+$barcode = barcodedecode( $barcode ) if $barcode;
+
 my @newissueslist = split /,/, $newissues;
 my $issuenoconfirm = 1; #don't need to confirm on issue.
 my $issuer   = Koha::Patrons->find( $issuerid )->unblessed;
@@ -119,8 +118,7 @@ my $issuer   = Koha::Patrons->find( $issuerid )->unblessed;
 my $patronid = $jwt ? Koha::Token->new->decode_jwt({ token => $jwt }) : undef;
 unless ( $patronid ) {
     if ( C4::Context->preference('SelfCheckoutByLogin') ) {
-        my $dbh = C4::Context->dbh;
-        ( undef, $patronid ) = checkpw( $dbh, $patronlogin, $patronpw );
+        ( undef, $patronid ) = checkpw( $patronlogin, $patronpw );
     }
     else {    # People should not do that unless they know what they are doing!
               # SelfCheckAllowByIPRanges MUST be configured
@@ -131,8 +129,11 @@ unless ( $patronid ) {
 
 my $patron;
 if ( $patronid ) {
+    Koha::Plugins->call( 'patron_barcode_transform', \$patronid );
     $patron = Koha::Patrons->find( { cardnumber => $patronid } );
 }
+
+undef $jwt unless $patron;
 
 my $branch = $issuer->{branchcode};
 my $confirm_required = 0;
@@ -374,6 +375,7 @@ $cookie = $query->cookie(
     -expires => $jwt ? '+1d' : '',
     -HttpOnly => 1,
     -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
+    -sameSite => 'Lax'
 );
 
 $template->param(patronid => $patronid);

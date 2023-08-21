@@ -15,7 +15,7 @@ $(document).ready(function(){
 
     $("fieldset.rows input, fieldset.rows select").addClass("noEnterSubmit");
     /* Inline edit/delete links */
-    var biblionumber = $("input[name='biblionumber']").attr("value");
+    var biblionumber = $("input[name='biblionumber']").val();
     $("tr.editable").each(function(){
         $(this).find("td:not(:first)").on('click', function(){
             var rowid = $(this).parent().attr("id");
@@ -42,22 +42,26 @@ $(document).ready(function(){
     });
 
     // Skip the first column
-    columns_settings.unshift( { cannot_be_toggled: "1" } );
+    table_settings['columns'].unshift( { cannot_be_toggled: "1" } );
 
     var itemst = KohaTable("itemst", {
         'bPaginate': false,
         'bInfo': false,
         "bAutoWidth": false,
         "bKohaColumnsUseNames": true
-    }, columns_settings);
+    }, table_settings);
 
     var multiCopyControl = $("#add_multiple_copies_span");
     var addMultipleBlock = $("#addmultiple");
     var addSingleBlock = $("#addsingle");
+    var saveAsTemplateControl = $("#save_as_template_span");
+    var saveTemplateBlock = $("#savetemplate");
+
     multiCopyControl.hide();
     $("#add_multiple_copies").on("click",function(e){
         e.preventDefault;
         addMultipleBlock.toggle();
+        saveTemplateBlock.toggle();
         addSingleBlock.toggle();
         multiCopyControl.toggle();
         $('body,html').animate({ scrollTop: $('body').height() }, 100);
@@ -65,11 +69,88 @@ $(document).ready(function(){
     $("#cancel_add_multiple").on("click",function(e){
         e.preventDefault();
         addMultipleBlock.toggle();
+        saveTemplateBlock.toggle();
         addSingleBlock.toggle();
         multiCopyControl.toggle();
     });
 
+    saveAsTemplateControl.hide();
+    $("#save_as_template").on("click",function(e){
+        e.preventDefault;
+        saveTemplateBlock.toggle();
+        saveAsTemplateControl.toggle();
+        $('#template_name').focus();
+    });
+    $("#cancel_save_as_template").on("click",function(e){
+        e.preventDefault();
+        saveTemplateBlock.toggle();
+        saveAsTemplateControl.toggle();
+    });
+
+    $("#template_id").on("change", function() {
+        let option = $(this).find(":selected");
+
+        if ( option.data("editor") ) {
+            $("#delete_template_submit").removeAttr("disabled");
+        } else {
+            $("#delete_template_submit").attr("disabled", "disabled");
+        }
+
+        if ( option.val() != 0 ) {
+            $("#load_template_submit").removeAttr("disabled");
+        } else {
+            $("#load_template_submit").attr("disabled", "disabled");
+        }
+    });
+    $("#template_id").change(); // Trigger to enable delete button if patron's template is in use
+    $("#replace_template_id").on("change", function() {
+        let selected = $(this).find(":selected");
+        if ( selected.val() > 0 ) {
+            $("#template_name_block").hide();
+            $("#template_is_shared").prop("checked", selected.data("shared"));
+        } else {
+            $("#template_name_block").show();
+            $("#template_is_shared").prop("checked", false);
+        }
+    });
+
+    // Add new item to an item group
+    if ( has_item_groups ) {
+        $('#item-group-add-or-create-form-description-block').hide();
+        $('#item-group-add-or-create-form-no-add').attr('selected', 'selected' );
+
+        $('#item-group-add-or-create-form-select').on('change', function(){
+            if ( $(this).val() == 'create' ) {
+                $('#item-group-add-or-create-form-description')
+                    .addClass('required')
+                    .attr( 'required', 'required' );
+                $('#item-group-add-or-create-form-description-block').show();
+            } else {
+                $('#item-group-add-or-create-form-description')
+                    .removeClass('required')
+                    .removeAttr('required');
+                $('#item-group-add-or-create-form-description-block').hide();
+            }
+        });
+    }
+
+    $('#item-group-add-or-create-form-select').on('change', function() {
+        if ( ! $('input.items-enumchron').val() ) {
+            let item_group_selector = '#item-group-' + $(this).val();
+            let enumchron = $(item_group_selector).val();
+            $('input.items-enumchron').val( enumchron );
+        }
+    });
 });
+
+function CheckTemplateForm(f) {
+    if ( $('#replace_template_id').val() == "0" &&  $('#template_name').val() == "" ) {
+        alert(__("Template name is required."));
+        return false;
+    } else {
+        return true;
+    }
+}
 
 function Check(f) {
     var total_mandatory = CheckMandatorySubfields(f);
@@ -82,7 +163,7 @@ function Check(f) {
         // So we use disabled instead. But disabled prevent values from being passed through the form at submit.
         // So we "un-disable" the elements just before submitting.
         // That's a bit clumsy, and if someone comes up with a better solution, feel free to improve that.
-        $("select[name=field_value]").prop('disabled', false);
+        $("select.input_marceditor").prop('disabled', false);
     } else {
         alertString2 = MSG_FORM_NOT_SUBMITTED;
         alertString2 += "\n------------------------------------------------------------------------------------\n";

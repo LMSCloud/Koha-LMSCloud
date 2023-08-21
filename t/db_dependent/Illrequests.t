@@ -19,7 +19,7 @@ use Modern::Perl;
 
 use File::Basename qw/basename/;
 
-use C4::Circulation qw(AddIssue AddReturn);
+use C4::Circulation qw( AddIssue AddReturn );
 
 use Koha::Database;
 use Koha::Illrequestattributes;
@@ -41,7 +41,7 @@ use Test::Exception;
 use Test::Deep qw/ cmp_deeply ignore /;
 use Test::Warn;
 
-use Test::More tests => 13;
+use Test::More tests => 15;
 
 my $schema = Koha::Database->new->schema;
 my $builder = t::lib::TestBuilder->new;
@@ -125,65 +125,119 @@ subtest 'Basic object tests' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'Working with related objects' => sub {
-
-    plan tests => 7;
+subtest 'store borrowernumber change also updates holds' => sub {
+    plan tests => 5;
 
     $schema->storage->txn_begin;
 
     Koha::Illrequests->search->delete;
 
-    my $patron = $builder->build({ source => 'Borrower' });
-    my $illrq = $builder->build({
-        source => 'Illrequest',
-        value => { borrowernumber => $patron->{borrowernumber} }
-    });
-    my $illrq_obj = Koha::Illrequests->find($illrq->{illrequest_id});
-
-    isa_ok($illrq_obj->patron, 'Koha::Patron',
-           "OK accessing related patron.");
-
-    $builder->build({
-        source => 'Illrequestattribute',
-        value  => { illrequest_id => $illrq_obj->illrequest_id, type => 'X' }
-    });
-    $builder->build({
-        source => 'Illrequestattribute',
-        value  => { illrequest_id => $illrq_obj->illrequest_id, type => 'Y' }
-    });
-    $builder->build({
-        source => 'Illrequestattribute',
-        value  => { illrequest_id => $illrq_obj->illrequest_id, type => 'Z' }
-    });
-
-    is($illrq_obj->illrequestattributes->count, Koha::Illrequestattributes->search->count,
-       "Fetching expected number of Illrequestattributes for our request.");
-
-    my $illrq1 = $builder->build({ source => 'Illrequest' });
-    $builder->build({
-        source => 'Illrequestattribute',
-        value  => { illrequest_id => $illrq1->{illrequest_id}, type => 'X' }
-    });
-
-    is($illrq_obj->illrequestattributes->count + 1, Koha::Illrequestattributes->search->count,
-       "Fetching expected number of Illrequestattributes for our request.");
-
-    is($illrq_obj->biblio, undef, "->biblio returns undef if no biblio");
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+    my $other_patron = $builder->build_object({ class => 'Koha::Patrons' });
     my $biblio = $builder->build_object({ class => 'Koha::Biblios' });
-    my $req_bib = $builder->build_object({
+
+    my $request = $builder->build_object({
         class => 'Koha::Illrequests',
         value => {
-            biblio_id      => $biblio->biblionumber
+            borrowernumber => $patron->borrowernumber,
+            biblio_id => $biblio->biblionumber,
         }
     });
-    isa_ok($req_bib->biblio, 'Koha::Biblio', "OK accessing related biblio");
+    $builder->build({
+        source => 'Reserve',
+        value => {
+            borrowernumber => $patron->borrowernumber,
+            biblionumber => $request->biblio_id
+        }
+    });
 
-    $illrq_obj->delete;
-    is(Koha::Illrequestattributes->search->count, 1,
-       "Correct number of illrequestattributes after delete.");
+    my $hold = Koha::Holds->find({
+        biblionumber => $request->biblio_id,
+        borrowernumber => $request->borrowernumber,
+    });
 
-    isa_ok(Koha::Patrons->find($patron->{borrowernumber}), 'Koha::Patron',
-           "Borrower was not deleted after illrq delete.");
+    is( $hold->borrowernumber, $request->borrowernumber,
+       'before change, original borrowernumber found' );
+
+    $request->borrowernumber( $other_patron->borrowernumber )->store;
+
+    # reload changes
+    $hold->discard_changes;
+
+    is( $hold->borrowernumber, $other_patron->borrowernumber,
+       'after change, changed borrowernumber found in holds' );
+
+    is( $request->borrowernumber, $other_patron->borrowernumber,
+       'after change, changed borrowernumber found in illrequests' );
+
+    my $new_request = Koha::Illrequest->new({
+        biblio_id => $biblio->biblionumber,
+        branchcode => $patron->branchcode,
+    })->borrowernumber( $patron->borrowernumber )->store;
+
+    is( $new_request->borrowernumber, $patron->borrowernumber,
+       'Koha::Illrequest->new()->store() works as expected');
+
+    my $new_holds_found = Koha::Holds->search({
+        biblionumber => $new_request->biblio_id,
+        borrowernumber => $new_request->borrowernumber,
+    })->count;
+
+    is( $new_holds_found, 0, 'no holds found with new()->store()' );
+
+    $schema->storage->txn_rollback;
+
+};
+
+subtest 'Working with related objects' => sub {
+
+    plan tests => 6;
+
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $illrq  = $builder->build_object(
+        {   class => 'Koha::Illrequests',
+            value => { borrowernumber => $patron->id, biblio_id => undef }
+        }
+    );
+
+    isa_ok( $illrq->patron, 'Koha::Patron', "OK accessing related patron." );
+
+    $builder->build(
+        {   source => 'Illrequestattribute',
+            value  => { illrequest_id => $illrq->illrequest_id, type => 'X' }
+        }
+    );
+    $builder->build(
+        {   source => 'Illrequestattribute',
+            value  => { illrequest_id => $illrq->illrequest_id, type => 'Y' }
+        }
+    );
+    $builder->build(
+        {   source => 'Illrequestattribute',
+            value  => { illrequest_id => $illrq->illrequest_id, type => 'Z' }
+        }
+    );
+
+    my $rs = Koha::Illrequestattributes->search( { illrequest_id => $illrq->id } );
+
+    is( $illrq->extended_attributes->count,
+        $rs->count, "Fetching expected number of Illrequestattributes for our request." );
+
+    is( $illrq->biblio, undef, "->biblio returns undef if no biblio" );
+    my $biblio  = $builder->build_object( { class => 'Koha::Biblios' } );
+    my $req_bib = $builder->build_object(
+        {   class => 'Koha::Illrequests',
+            value => { biblio_id => $biblio->biblionumber }
+        }
+    );
+    isa_ok( $req_bib->biblio, 'Koha::Biblio', "OK accessing related biblio" );
+
+    $illrq->delete;
+    is( $rs->count, 0, "Correct number of illrequestattributes after delete." );
+
+    isa_ok( Koha::Patrons->find( $patron->id ), 'Koha::Patron', "Borrower was not deleted after illrq delete." );
 
     $schema->storage->txn_rollback;
 };
@@ -636,7 +690,7 @@ subtest 'Backend testing (mocks)' => sub {
 
 subtest 'Backend core methods' => sub {
 
-    plan tests => 17;
+    plan tests => 20;
 
     $schema->storage->txn_begin;
 
@@ -774,6 +828,11 @@ subtest 'Backend core methods' => sub {
               },
               "Backend cancel: arbitrary stage.");
 
+    # backend_illview
+    $backend->set_series('illview', { stage => '', method => 'illview' });
+    is_deeply($illrq->backend_illview({test => 1}), 0,
+              "Backend illview optional method.");
+
     # backend_update_status
     $backend->set_series('update_status', { stage => 'bar', method => 'update_status' });
     is_deeply($illrq->backend_update_status({test => 1}),
@@ -793,6 +852,18 @@ subtest 'Backend core methods' => sub {
                   opac_template => "/tmp/Mock/opac-includes/confirm.inc",
               },
               "Backend confirm: arbitrary stage.");
+
+    # backend_get_update
+    $backend->mock(
+        'get_supplier_update',
+        sub {
+            my ( $self, $options ) = @_;
+            return $options;
+        }
+    );
+    $backend->mock('capabilities', sub { return sub { return 1; } });
+    is_deeply($illrq->backend_get_update({}), 1,
+              "Backend get_update method.");
 
     $config->set_always('partner_code', "ILLTSTLIB");
     $backend->set_always('metadata', { Test => "Foobar" });
@@ -833,7 +904,7 @@ subtest 'Backend core methods' => sub {
 
 subtest 'Helpers' => sub {
 
-    plan tests => 20;
+    plan tests => 25;
 
     $schema->storage->txn_begin;
 
@@ -876,6 +947,30 @@ subtest 'Helpers' => sub {
     my $illrq_obj = Koha::Illrequests->find($illrq->{illrequest_id});
     $illrq_obj->_config($config);
     $illrq_obj->_backend($backend);
+
+    #attach_processors
+    my $type = 'test_type_1';
+    my $name = 'test_name_1';
+    my $update = Test::MockObject->new;
+    $update->set_isa('Koha::Illrequest::SupplierUpdate');
+    $update->{source_type} = $type;
+    $update->{source_name} = $name;
+    $update->{processors} = [];
+    $update->mock('attach_processor', sub {
+        my ( $self, $to_attach ) = @_;
+        push @{$self->{processors}}, $to_attach;
+    });
+    my $processor = Test::MockObject->new;
+    $processor->{target_source_type} = $type;
+    $processor->{target_source_name} = $name;
+    $illrq_obj->init_processors();
+    $illrq_obj->push_processor($processor);
+    $illrq_obj->attach_processors($update);
+    is_deeply(
+        scalar @{$update->{processors}},
+        1,
+        'attaching processors as appropriate works'
+    );
 
     # getPrefix
     $config->set_series('getPrefixes',
@@ -927,6 +1022,27 @@ subtest 'Helpers' => sub {
         "Correct return when notice created"
     );
     is($notice, 'ILL_PICKUP_READY' ,"Notice is correctly created");
+
+    # ill update notice, passes additional text parameter
+    my $attr_update = Koha::MessageAttributes->find({ message_name => 'Ill_update' });
+    C4::Members::Messaging::SetMessagingPreference({
+        borrowernumber => $patron->{borrowernumber},
+        message_attribute_id => $attr_update->message_attribute_id,
+        message_transport_types => ['email']
+    });
+    my $return_patron_update = $illrq_obj->send_patron_notice('ILL_REQUEST_UPDATE', 'Some additional text');
+    my $notice_update = $schema->resultset('MessageQueue')->search({
+            letter_code => 'ILL_REQUEST_UPDATE',
+            message_transport_type => 'email',
+            borrowernumber => $illrq_obj->borrowernumber
+        })->next()->letter_code;
+    is_deeply(
+        $return_patron_update,
+        { result => { success => ['email'], fail => [] } },
+        "Correct return when notice created"
+    );
+    is($notice_update, 'ILL_REQUEST_UPDATE' ,"Notice is correctly created");
+
 
     my $return_patron_fail = $illrq_obj->send_patron_notice();
     is_deeply(
@@ -1001,6 +1117,19 @@ subtest 'Helpers' => sub {
         $not->{title} eq 'Interlibrary loan request cancelled',
         'Correct title return from get_notice'
     );
+    $not->{content} =~ s/\s//g;
+
+    is(
+        $not->{content},"Thepatronforinterlibraryloansrequest" . $illrq_obj->id . ",withthefollowingdetails,hasrequestedcancellationofthisILLrequest:-author:myauthor-title:mytitle",
+        'Correct content returned from get_notice with metadata correctly ordered'
+    );
+
+    $illrq_obj->append_to_note('Some text');
+    like(
+        $illrq_obj->notesstaff,
+        qr/Some text$/,
+        'appending to a note works'
+    );
 
     $schema->storage->txn_rollback;
 };
@@ -1054,10 +1183,7 @@ subtest 'Checking out' => sub {
     });
     my $library = $builder->build_object({ class => 'Koha::Libraries' });
     my $biblio = $builder->build_sample_biblio();
-    my $patron = $builder->build_object({
-        class => 'Koha::Patrons',
-        value => { category_type => 'x' }
-    });
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
     my $request = $builder->build_object({
         class => 'Koha::Illrequests',
         value => {
@@ -1168,6 +1294,40 @@ subtest 'Checking out' => sub {
     isa_ok($patron->checkouts, 'Koha::Checkouts');
     is($patron->checkouts->count, 1);
     is($request->status, 'CHK');
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Checking out with custom due date' => sub {
+    plan tests => 1;
+    $schema->storage->txn_begin;
+
+    my $library = $builder->build_object({ class => 'Koha::Libraries' });
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+    my $biblio = $builder->build_sample_biblio();
+    my $itemtype_loanable = $builder->build_object({
+        class => 'Koha::ItemTypes',
+        value => {
+            notforloan => 0
+        }
+    });
+    my $request = $builder->build_object({
+        class => 'Koha::Illrequests',
+        value => {
+            borrowernumber => $patron->borrowernumber,
+            biblio_id      => $biblio->biblionumber
+        }
+    });
+
+    t::lib::Mocks::mock_userenv({ branchcode => $library->branchcode });
+    my $duedate = '2099-05-21 00:00:00';
+    my $form_stage_loanable = $request->check_out({
+        stage      => 'form',
+        item_type  => $itemtype_loanable->itemtype,
+        branchcode => $library->branchcode,
+        duedate    => $duedate
+    });
+    is($patron->checkouts->next->date_due, $duedate, "Custom due date was used");
 
     $schema->storage->txn_rollback;
 };
@@ -1347,7 +1507,7 @@ subtest 'Custom statuses' => sub {
 
     my $cat = Koha::AuthorisedValueCategories->search(
         {
-            category_name => 'ILLSTATUS'
+            category_name => 'ILL_STATUS_ALIAS'
         }
     );
 
@@ -1356,7 +1516,7 @@ subtest 'Custom statuses' => sub {
             {
                 class => 'Koha::AuthorisedValueCategory',
                 value => {
-                    category_name => 'ILLSTATUS'
+                    category_name => 'ILL_STATUS_ALIAS'
                 }
             }
         );
@@ -1366,12 +1526,12 @@ subtest 'Custom statuses' => sub {
         {
             class => 'Koha::AuthorisedValues',
             value => {
-                category => 'ILLSTATUS'
+                category => 'ILL_STATUS_ALIAS'
             }
         }
     );
 
-    is($av->category, 'ILLSTATUS',
+    is($av->category, 'ILL_STATUS_ALIAS',
        "Successfully created authorised value for custom status");
 
     my $ill_req = $builder->build_object(

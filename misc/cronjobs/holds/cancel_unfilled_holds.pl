@@ -18,22 +18,14 @@
 
 use Modern::Perl;
 
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
-
-use Getopt::Long;
-use Pod::Usage;
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 
 use Koha::Script -cron;
 use C4::Reserves;
-use C4::Log;
+use C4::Log qw( cronlogaction );
 use Koha::Holds;
 use Koha::Calendar;
-use Koha::DateUtils;
 use Koha::Libraries;
 
 cronlogaction();
@@ -88,6 +80,8 @@ my $use_calendar = 0;
 my $verbose      = 0;
 my $confirm      = 0;
 
+my $command_line_options = join(" ",@ARGV);
+
 GetOptions(
     'h|help|?'   => \$help,
     'days=s'     => \$days,
@@ -107,6 +101,9 @@ qq{\nError: You must specify a value for days waiting to cancel holds.\n},
         }
     );
 }
+
+cronlogaction({ info => $command_line_options });
+
 warn "Running in test mode, no actions will be taken" unless ($confirm);
 
 $verbose and warn "Looking for unfilled holds placed $days or more days ago\n";
@@ -144,3 +141,5 @@ foreach my $branch (@branchcodes) {
     }
 
 }
+
+cronlogaction({ action => 'End', info => "COMPLETED" });

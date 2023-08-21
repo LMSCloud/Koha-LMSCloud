@@ -20,16 +20,15 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use Encode qw(encode);
+use Encode qw( encode );
 
-use C4::Auth;
-use C4::Biblio;
-use C4::Items;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Record;
-use C4::Ris;
+use C4::Ris qw( marc2ris );
 
 use Koha::CsvProfiles;
+use Koha::Biblios;
 
 use utf8;
 my $query = CGI->new;
@@ -62,11 +61,10 @@ if ($bib_list && $format) {
     # Other formats
     } else {
 
-        foreach my $biblio (@bibs) {
+        foreach my $biblionumber (@bibs) {
 
-            my $record = GetMarcBiblio({
-                biblionumber => $biblio,
-                embed_items  => 1 });
+            my $biblio = Koha::Biblios->find($biblionumber);
+            my $record = $biblio->metadata->record({ embed_items => 1 });
             next unless $record;
 
             if ($format eq 'iso2709') {
@@ -78,7 +76,7 @@ if ($bib_list && $format) {
                 $output .= marc2ris($record);
             }
             elsif ($format eq 'bibtex') {
-                $output .= marc2bibtex($record, $biblio);
+                $output .= marc2bibtex($record, $biblionumber);
             }
         }
     }
@@ -93,7 +91,7 @@ if ($bib_list && $format) {
     print $output;
 
 } else { 
-    $template->param(csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc', used_for => 'export_records' }) ]);
+    $template->param(csv_profiles => Koha::CsvProfiles->search({ type => 'marc', used_for => 'export_records' }));
     $template->param(bib_list => $bib_list); 
     output_html_with_http_headers $query, $cookie, $template->output;
 }

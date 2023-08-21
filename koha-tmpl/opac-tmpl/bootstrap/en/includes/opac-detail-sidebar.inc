@@ -3,12 +3,17 @@
 <ul id="action">
     [% UNLESS ( norequests ) %]
         [% IF Koha.Preference( 'opacuserlogin' ) == 1 %]
-            [% IF Koha.Preference( 'RequestOnOpac' ) == 1 %]
+            [% IF Koha.Preference( 'OPACHoldRequests' ) == 1 %]
                 [% IF ( ReservableItems ) %]
                     <li><a class="reserve btn btn-link btn-lg" href="/cgi-bin/koha/opac-reserve.pl?biblionumber=[% biblio.biblionumber | html %]"><i class="fa fa-fw fa-bookmark" aria-hidden="true"></i> Place hold</a></li>
                 [% END %]
             [% END %]
         [% END %]
+    [% END %]
+
+    [% IF Koha.Preference('UseRecalls') %]
+        <li><a class="recall btn btn-link btn-lg" href="/cgi-bin/koha/opac-recall.pl?biblionumber=[% biblio.biblionumber | html %]"><i class="fa fa-fw fa-bookmark-o" aria-hidden="true"></i>
+        Place recall</a></li>
     [% END %]
 
     <li><a class="print-large btn btn-link btn-lg" href="#"><i class="fa fa-fw fa-print" aria-hidden="true"></i> Print</a></li>
@@ -33,7 +38,7 @@
         [% END %]
     [% END %]
 
-    [% IF Koha.Preference('suggestion') %]
+    [% IF ( suggestion ) %]
         <li><a class="suggest_for_purchase btn btn-link btn-lg" href="/cgi-bin/koha/opac-suggestions.pl?op=add&biblionumber=[% biblio.biblionumber | url %]"><i class="fa fa-fw fa-gift" aria-hidden="true"></i> Suggest for purchase</a></li>
     [% END %]
 
@@ -136,15 +141,15 @@
                             [% ELSE %]
                                 <a class="dropdown-item" href="/cgi-bin/koha/opac-export.pl?op=export&amp;bib=[% biblio.biblionumber | html %]&amp;format=[% option | html %]">
                                     [% SWITCH option %]
-                                        [% CASE 'bibtex' %]BIBTEX
-                                        [% CASE 'endnote' %]EndNote
-                                        [% CASE 'marcxml' %]MARCXML
-                                        [% CASE 'marc8' %]MARC (non-Unicode/MARC-8)
-                                        [% CASE 'utf8' %]MARC (Unicode/UTF-8)
-                                        [% CASE 'marcstd' %]MARC (Unicode/UTF-8, Standard)
-                                        [% CASE 'mods' %]MODS (XML)
-                                        [% CASE 'ris' %]RIS
-                                        [% CASE 'isbd' %]ISBD
+                                        [% CASE 'bibtex' %]<span>BIBTEX</span>
+                                        [% CASE 'endnote' %]<span>EndNote</span>
+                                        [% CASE 'marcxml' %]<span>MARCXML</span>
+                                        [% CASE 'marc8' %]<span>MARC (non-Unicode/MARC-8)</span>
+                                        [% CASE 'utf8' %]<span>MARC (Unicode/UTF-8)</span>
+                                        [% CASE 'marcstd' %]<span>MARC (Unicode/UTF-8, Standard)</span>
+                                        [% CASE 'mods' %]<span>MODS (XML)</span>
+                                        [% CASE 'ris' %]<span>RIS</span>
+                                        [% CASE 'isbd' %]<span>ISBD</span>
                                     [% END %]
                                 </a>
                             [% END %]

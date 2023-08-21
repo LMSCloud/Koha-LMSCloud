@@ -1,6 +1,6 @@
 [%- USE raw -%]
 [%- USE Koha -%]
-[%- SET delimiter = Koha.Preference('CSVDelimiter') || ',' -%]
+[%- SET delimiter = Koha.CSVDelimiter() -%]
 [%- BLOCK -%]
 "Title"
 [%- delimiter | $raw -%]
@@ -11,6 +11,8 @@
 "Collection"
 [%- delimiter | $raw -%]
 "Barcode"
+[%- delimiter | $raw -%]
+"Serial enumeration"
 [%- delimiter | $raw -%]
 "Call number"
 [%- delimiter | $raw -%]
@@ -31,4 +33,6 @@
 "Withdrawn status"
 [%- delimiter | $raw -%]
 "Checkouts"
+[%- delimiter | $raw -%]
+"Due date"
 [%- END -%]

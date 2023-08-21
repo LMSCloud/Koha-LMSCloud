@@ -3,7 +3,7 @@
 # This file is part of Koha.
 #
 # Copyright (C) 2016 ByWater Solutions
-# Copyright (C) 2017 Koha Development Team
+# Copyright (C) 2022 Koha Development Team
 #
 # Koha is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 28;
+use Test::More tests => 31;
 use Test::MockModule;
 use Test::Warn;
 
@@ -28,22 +28,23 @@ use MARC::Record;
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
-use C4::Circulation;
-use C4::Letters;
-use C4::Members;
+use C4::Circulation qw( AddIssue AddReturn );
+use C4::Letters qw( GetPreparedLetter );
+use C4::Members qw( IssueSlip );
 use C4::Biblio;
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::ArticleRequests;
 use Koha::Biblio;
 use Koha::Biblioitem;
 use Koha::Item;
 use Koha::Hold;
-use Koha::NewsItem;
+use Koha::AdditionalContents;
 use Koha::Serial;
 use Koha::Subscription;
 use Koha::Suggestion;
 use Koha::Checkout;
+use Koha::Patrons;
 use Koha::Notice::Messages;
 use Koha::Notice::Templates;
 use Koha::Patron::Modification;
@@ -78,7 +79,7 @@ my $hold = $builder->build_object(
 
 my $news = $builder->build_object(
     {
-        class => 'Koha::News',
+        class => 'Koha::AdditionalContents',
         value => { title => 'a news title', content => 'a news content' }
     }
 );
@@ -139,6 +140,17 @@ $prepared_letter = GetPreparedLetter(
 is( $prepared_letter->{content}, $patron->{borrowernumber}, 'Patron object used correctly with arrayref for content' );
 is( $prepared_letter->{title}, $patron->{firstname}, 'Patron object used correctly with arrayref for title' );
 
+$prepared_letter = GetPreparedLetter(
+    (
+        module      => 'test',
+        letter_code => 'TEST_PATRON',
+        objects      => {
+            borrower => scalar Koha::Patrons->find( $patron->{borrowernumber} ),
+        },
+    )
+);
+is( $prepared_letter->{content}, $patron->{borrowernumber}, 'Patron object used correctly as object' );
+
 $sth->execute( "TEST_BIBLIO", "[% biblio.title %]", "[% biblio.id %]" );
 $prepared_letter = GetPreparedLetter(
     (
@@ -178,13 +190,13 @@ $prepared_letter = GetPreparedLetter(
 is( $prepared_letter->{content}, $item->id(), 'Item object used correctly for content' );
 is( $prepared_letter->{title}, $item->barcode, 'Item object used correctly for title' );
 
-$sth->execute( "TEST_NEWS", "[% news.id %]", "[% news.id %]" );
+$sth->execute( "TEST_NEWS", "[% additional_content.id %]", "[% additional_content.id %]" );
 $prepared_letter = GetPreparedLetter(
     (
         module      => 'test',
         letter_code => 'TEST_NEWS',
         tables      => {
-            opac_news => $news->id()
+            additional_contents => $news->id()
         },
     )
 );
@@ -379,8 +391,13 @@ Chapters: <<article_requests.chapters>>
 Notes: <<article_requests.patron_notes>>
         |;
         reset_template( { template => $template, code => $code, module => 'circulation' } );
-        my $article_request = $builder->build({ source => 'ArticleRequest' });
-        Koha::ArticleRequests->find( $article_request->{id} )->cancel;
+        my $article_request = $builder->build_object(
+            {
+                class => 'Koha::ArticleRequests',
+                value => { debit_id => undef }
+            }
+        );
+        $article_request->cancel;
         my $letter = Koha::Notice::Messages->search( {}, { order_by => { -desc => 'message_id' } } )->next;
 
         my $tt_template = q|
@@ -401,7 +418,7 @@ Chapters: [% article_request.chapters %]
 Notes: [% article_request.patron_notes %]
         |;
         reset_template( { template => $tt_template, code => $code, module => 'circulation' } );
-        Koha::ArticleRequests->find( $article_request->{id} )->cancel;
+        $article_request->cancel;
         my $tt_letter = Koha::Notice::Messages->search( {}, { order_by => { -desc => 'message_id' } } )->next;
         is( $tt_letter->content, $letter->content, 'Compare AR_* notices' );
         isnt( $tt_letter->message_id, $letter->message_id, 'Comparing AR_* notices should compare 2 different messages' );
@@ -621,8 +638,8 @@ EOF
         is( $tt_letter_for_item2->{content}, $letter_for_item2->{content}, );
     };
 
-    subtest 'ISSUESLIP|checkedout|repeat' => sub {
-        plan tests => 2;
+    subtest 'ISSUESLIP|checkedout|repeat|news' => sub {
+        plan tests => 3;
 
         my $code = 'ISSUESLIP';
         my $now = dt_from_string;
@@ -630,8 +647,22 @@ EOF
 
         my $branchcode = $library->{branchcode};
 
-        Koha::News->delete;
-        my $news_item = Koha::NewsItem->new({ branchcode => $branchcode, title => "A wonderful news", content => "This is the wonderful news." })->store;
+        Koha::AdditionalContents->delete;
+        my $news_item = $builder->build_object(
+            {
+                class => 'Koha::AdditionalContents',
+                value => {
+                    category        => 'news',
+                    location        => "slip",
+                    branchcode      => $branchcode,
+                    lang            => 'default',
+                    title           => "A wonderful news",
+                    content         => "This is the wonderful news.",
+                    expirationdate  => undef,
+                    published_on    => $one_minute_ago
+                }
+            }
+        );
 
         # historic syntax
         my $template = <<EOF;
@@ -664,9 +695,9 @@ Date due: <<issues.date_due | dateonly>><br />
 <h4 style="text-align: center; font-style:italic;">News</h4>
 <news>
 <div class="newsitem">
-<h5 style="margin-bottom: 1px; margin-top: 1px"><b><<opac_news.title>></b></h5>
-<p style="margin-bottom: 1px; margin-top: 1px"><<opac_news.content>></p>
-<p class="newsfooter" style="font-size: 8pt; font-style:italic; margin-bottom: 1px; margin-top: 1px">Posted on <<opac_news.published_on>></p>
+<h5 style="margin-bottom: 1px; margin-top: 1px"><b><<additional_contents.title>></b></h5>
+<p style="margin-bottom: 1px; margin-top: 1px"><<additional_contents.content>></p>
+<p class="newsfooter" style="font-size: 8pt; font-style:italic; margin-bottom: 1px; margin-top: 1px">Posted on <<additional_contents.published_on>></p>
 <hr />
 </div>
 </news>
@@ -722,11 +753,11 @@ Date due: [% overdue.date_due | \$KohaDates %]<br />
 <hr>
 
 <h4 style="text-align: center; font-style:italic;">News</h4>
-[% FOREACH n IN news %]
+[% FOREACH n IN additional_contents %]
 <div class="newsitem">
 <h5 style="margin-bottom: 1px; margin-top: 1px"><b>[% n.title %]</b></h5>
 <p style="margin-bottom: 1px; margin-top: 1px">[% n.content %]</p>
-<p class="newsfooter" style="font-size: 8pt; font-style:italic; margin-bottom: 1px; margin-top: 1px">Posted on [% n.timestamp | \$KohaDates %]</p>
+<p class="newsfooter" style="font-size: 8pt; font-style:italic; margin-bottom: 1px; margin-top: 1px">Posted on [% n.published_on | \$KohaDates %]</p>
 <hr />
 </div>
 [% END %]
@@ -746,6 +777,8 @@ EOF
         # There is too many line breaks generated by the historic syntax
         $second_slip->{content} =~ s|</p>\n\n\n<p>|</p>\n\n<p>|s;
 
+        my $news_item_title = $news_item->title;
+        like( $first_slip->{content}, qr{$news_item_title} );
         is( $first_tt_slip->{content}, $first_slip->{content}, );
         is( $second_tt_slip->{content}, $second_slip->{content}, );
 
@@ -1101,7 +1134,7 @@ EOF
             credits => $account->accountlines_id
         }
     );
-    is($letter->{content},'    <span>Payment<span> (Cancelled)</span>    </span>', "Include used in notice");
+    is($letter->{content},'<span>Payment</span><span> (Cancelled)</span>', "Include used in notice");
 };
 
 subtest 'Dates formatting' => sub {
@@ -1153,6 +1186,42 @@ EOF
         '2018-12-13',
     );
     is( $letter->{content}, $expected_content );
+};
+
+subtest 'Execute TT process in a DB transaction' => sub {
+    plan tests => 2;
+    my $code = 'TEST_TXN';
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $template = <<EOF;
+=[% branch.branchcode %]=
+[%~ branch.delete ~%]
+EOF
+    reset_template({ template => $template, code => $code, module => 'test' });
+    my $letter = GetPreparedLetter(
+        module      => 'test',
+        letter_code => $code,
+        tables      => {
+            branches => $library->branchcode,
+        }
+    );
+    my $branchcode = $library->branchcode;
+    like($letter->{content}, qr{=$branchcode=}, 'content generated with the library');
+    is( ref($library->get_from_storage), 'Koha::Library', 'calling ->delete on the object has not been comitted');
+
+};
+
+subtest '_process_letter croaks on parsing error' => sub {
+
+    plan tests => 1;
+
+    my $params = {
+        code => 'TEST_CROAK',
+        substitute => { count => 42 },
+    };
+
+    my $tt_template = q|[% IF %]|;
+    eval { process_letter( { template => $tt_template, %$params } ) };
+    like($@, qr{^ERROR PROCESSING TEMPLATE: });
 };
 
 sub reset_template {

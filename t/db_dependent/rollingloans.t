@@ -2,10 +2,10 @@
 
 use Modern::Perl;
 use C4::Context;
-use C4::Circulation;
+use C4::Circulation qw( CanBookBeIssued AddIssue AddReturn );
 use C4::Members;
 use C4::Items;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Libraries;
 use Koha::Patrons;
 use t::lib::TestBuilder;

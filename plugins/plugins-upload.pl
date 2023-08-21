@@ -21,14 +21,13 @@ use Modern::Perl;
 use Archive::Extract;
 use CGI qw ( -utf8 );
 use Mojo::UserAgent;
-use File::Copy;
 use File::Temp;
 
 use C4::Context;
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Members;
-use C4::Debug;
+use Koha::Logger;
 use Koha::Plugins;
 
 my $plugins_enabled = C4::Context->config("enable_plugins");
@@ -40,7 +39,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query         => $input,
         type          => "intranet",
         flagsrequired   => { plugins => 'manage' },
-        debug           => 1,
     }
 );
 
@@ -59,13 +57,10 @@ if ($plugins_enabled) {
         $plugins_dir = ref($plugins_dir) eq 'ARRAY' ? $plugins_dir->[0] : $plugins_dir;
 
         my $dirname = File::Temp::tempdir( CLEANUP => 1 );
-        $debug and warn "dirname = $dirname";
 
         my $filesuffix;
         $filesuffix = $1 if $uploadfilename =~ m/(\..+)$/i;
         ( $tfh, $tempfile ) = File::Temp::tempfile( SUFFIX => $filesuffix, UNLINK => 1 );
-
-        $debug and warn "tempfile = $tempfile";
 
         $errors{'NOTKPZ'} = 1 if ( $uploadfilename !~ /\.kpz$/i );
         $errors{'NOWRITETEMP'}    = 1 unless ( -w $dirname );

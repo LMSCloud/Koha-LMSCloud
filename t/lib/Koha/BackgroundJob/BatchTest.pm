@@ -16,7 +16,6 @@ package t::lib::Koha::BackgroundJob::BatchTest;
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use JSON qw( encode_json decode_json );
 
 use Koha::BackgroundJobs;
 use Koha::DateUtils qw( dt_from_string );
@@ -30,43 +29,41 @@ sub job_type {
 sub process {
     my ( $self, $args ) = @_;
 
-    my $job = Koha::BackgroundJobs->find( $args->{job_id} );
-
-    if ( !exists $args->{job_id} || !$job || $job->status eq 'cancelled' ) {
-        return;
-    }
+    # FIXME: This should happen when $self->SUPER::process is called instead
+    return
+      unless $self->status ne 'cancelled';
 
     my $job_progress = 0;
-    $job->started_on(dt_from_string)
+    $self->started_on(dt_from_string)
         ->progress($job_progress)
         ->status('started')
         ->store;
 
     my $report = {
-        total_records => $job->size,
+        total_records => $self->size,
         total_success => 0,
     };
     my @messages;
-    for my $i ( 0 .. $job->size - 1 ) {
+    for my $i ( 0 .. $self->size - 1 ) {
 
-        last if $job->get_from_storage->status eq 'cancelled';
+        last if $self->get_from_storage->status eq 'cancelled';
 
         push @messages, {
             type => 'success',
             i => $i,
         };
         $report->{total_success}++;
-        $job->progress( ++$job_progress )->store;
+        $self->progress( ++$job_progress )->store;
     }
 
-    my $job_data = decode_json $job->data;
+    my $job_data = $self->json->decode($self->data);
     $job_data->{messages} = \@messages;
     $job_data->{report} = $report;
 
-    $job->ended_on(dt_from_string)
-        ->data(encode_json $job_data);
-    $job->status('finished') if $job->status ne 'cancelled';
-    $job->store;
+    $self->ended_on(dt_from_string)
+        ->data( $self->json->encode($job_data) );
+    $self->status('finished') if $self->status ne 'cancelled';
+    $self->store;
 }
 
 sub enqueue {

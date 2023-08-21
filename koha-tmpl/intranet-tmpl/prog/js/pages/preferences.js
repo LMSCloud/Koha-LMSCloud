@@ -13,7 +13,7 @@ KOHA.Preferences = {
         // If a multiple select has all its entries unselected
         var unserialized = new Array();
         $(modified_prefs).each(function(){
-            if ( $(this).attr('multiple') && $(this).val() == null ) {
+            if ( $(this).attr('multiple') && $(this).val().length == 0 ) {
                 unserialized.push($(this));
             }
         });
@@ -226,35 +226,41 @@ $( document ).ready( function () {
     $(".modalselect").on("click", function(){
         var datasource = $(this).data("source");
         var exclusions = $(this).data("exclusions").split('|');
+        var required = $(this).data("required").split('|');
         var pref_name = this.id.replace(/pref_/, '');
         var pref_value = this.value;
         var prefs = pref_value.split("|");
 
-        $.getJSON( themelang + "/modules/admin/preferences/" + datasource + ".json", function( data ){
-            var items = [];
-            var checked = "";
-            var style = "";
-            $.each( data, function( key, val ){
-                if( prefs.indexOf( val ) >= 0 ){
-                    checked = ' checked="checked" ';
-                } else {
-                    checked = "";
-                }
-                if( exclusions.indexOf( val ) >= 0 ){
-                    style = "disabled";
-                    disabled = ' disabled="disabled" ';
-                    checked  = "";
-                } else {
-                    style = "";
-                    disabled = "";
-                }
-                items.push('<label class="' + style +'"><input class="dbcolumn_selection" type="checkbox" id="' + key + '"' + checked + disabled + ' name="pref" value="' + val + '" /> ' + key + '</label>');
-            });
-            $("<div/>", {
-                "class": "columns-2",
-                html: items.join("")
-            }).appendTo("#prefModalForm");
+        let data = db_columns[datasource];
+        var items = [];
+        var checked = "";
+        var readonly = "";
+        var disabled = "";
+        var style = "";
+        $.each( Object.keys(data).sort(), function( i, key ){
+            if( prefs.indexOf( key ) >= 0 ){
+                checked = ' checked="checked" ';
+            } else {
+                checked = "";
+            }
+            if( required.indexOf( key ) >= 0 ){
+                style = "required";
+                checked  = ' checked="checked" ';
+            } else if( exclusions.indexOf( key ) >= 0 ){
+                style = "disabled";
+                disabled = ' disabled="disabled" ';
+                checked  = "";
+            } else {
+                style = "";
+                disabled = "";
+            }
+            items.push('<label class="' + style +'"><input class="dbcolumn_selection" type="checkbox" id="' + key + '"' + checked + disabled + ' name="pref" value="' + key + '" /> ' + data[key]+ ' (' + key + ')</label>');
         });
+        $("<div/>", {
+            "class": "columns-2",
+            html: items.join("")
+        }).appendTo("#prefModalForm");
+
         $("#saveModalPrefs").data("target", this.id );
         $("#prefModalLabel").text( pref_name );
         $("#prefModal").modal("show");
@@ -283,11 +289,15 @@ $( document ).ready( function () {
 
     $("#select_all").on("click",function(e){
         e.preventDefault();
-        $(".dbcolumn_selection:not(:disabled)").prop("checked", true);
+        $("label:not(.required) .dbcolumn_selection:not(:disabled)").prop("checked", true);
     });
     $("#clear_all").on("click",function(e){
         e.preventDefault();
-        $(".dbcolumn_selection").prop("checked", false);
+        $("label:not(.required) .dbcolumn_selection").prop("checked", false);
+    });
+
+    $("body").on("click", "label.required input.dbcolumn_selection", function(e){
+        e.preventDefault();
     });
 
 } );

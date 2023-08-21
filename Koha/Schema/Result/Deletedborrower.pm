@@ -53,6 +53,13 @@ patron/borrower's last name (surname)
 
 patron/borrower's first name
 
+=head2 middle_name
+
+  data_type: 'longtext'
+  is_nullable: 1
+
+patron/borrower's middle name
+
 =head2 title
 
   data_type: 'longtext'
@@ -73,6 +80,13 @@ any other names associated with the patron/borrower
   is_nullable: 1
 
 initials for your patron/borrower
+
+=head2 pronouns
+
+  data_type: 'longtext'
+  is_nullable: 1
+
+patron/borrower pronouns
 
 =head2 streetnumber
 
@@ -294,6 +308,14 @@ date the patron was added to Koha (YYYY-MM-DD)
 
 date the patron/borrower's card is set to expire (YYYY-MM-DD)
 
+=head2 password_expiration_date
+
+  data_type: 'date'
+  datetime_undef_if_invalid: 1
+  is_nullable: 1
+
+date the patron/borrower's password is set to expire (YYYY-MM-DD)
+
 =head2 date_renewed
 
   data_type: 'date'
@@ -384,9 +406,25 @@ patron/borrower's gender
 
 patron/borrower's encrypted password
 
+=head2 secret
+
+  data_type: 'mediumtext'
+  is_nullable: 1
+
+Secret for 2FA
+
+=head2 auth_method
+
+  data_type: 'enum'
+  default_value: 'password'
+  extra: {list => ["password","two-factor"]}
+  is_nullable: 0
+
+Authentication method
+
 =head2 flags
 
-  data_type: 'integer'
+  data_type: 'bigint'
   is_nullable: 1
 
 will include a number associated with the staff member's permissions
@@ -604,6 +642,14 @@ flag for data anonymization
 
 flag for allowing auto-renewal
 
+=head2 primary_contact_method
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 45
+
+useful for reporting purposes
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -615,12 +661,16 @@ __PACKAGE__->add_columns(
   { data_type => "longtext", is_nullable => 1 },
   "firstname",
   { data_type => "mediumtext", is_nullable => 1 },
+  "middle_name",
+  { data_type => "longtext", is_nullable => 1 },
   "title",
   { data_type => "longtext", is_nullable => 1 },
   "othernames",
   { data_type => "longtext", is_nullable => 1 },
   "initials",
   { data_type => "mediumtext", is_nullable => 1 },
+  "pronouns",
+  { data_type => "longtext", is_nullable => 1 },
   "streetnumber",
   { data_type => "tinytext", is_nullable => 1 },
   "streettype",
@@ -679,6 +729,8 @@ __PACKAGE__->add_columns(
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "dateexpiry",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
+  "password_expiration_date",
+  { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "date_renewed",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "gonenoaddress",
@@ -703,8 +755,17 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 1 },
   "password",
   { data_type => "varchar", is_nullable => 1, size => 60 },
+  "secret",
+  { data_type => "mediumtext", is_nullable => 1 },
+  "auth_method",
+  {
+    data_type => "enum",
+    default_value => "password",
+    extra => { list => ["password", "two-factor"] },
+    is_nullable => 0,
+  },
   "flags",
-  { data_type => "integer", is_nullable => 1 },
+  { data_type => "bigint", is_nullable => 1 },
   "userid",
   { data_type => "varchar", is_nullable => 1, size => 75 },
   "opacnote",
@@ -780,11 +841,13 @@ __PACKAGE__->add_columns(
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "autorenew_checkouts",
   { data_type => "tinyint", default_value => 1, is_nullable => 0 },
+  "primary_contact_method",
+  { data_type => "varchar", is_nullable => 1, size => 45 },
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-06-07 05:28:04
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:/9VjUuilKGDwV/pLlf/4ew
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-04-06 15:46:58
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:dqGu9iDgO+u09l9X1G0NuA
 
 __PACKAGE__->add_columns(
     '+anonymized'    => { is_boolean => 1 },

@@ -1,3 +1,4 @@
+/* global __ */
 /* exported openAuth ExpandField CloneField CloneSubfield UnCloneField CloneItemSubfield CheckMandatorySubfields */
 
 /*
@@ -44,7 +45,8 @@ function openAuth(tagsubfieldid,authtype,source) {
     var mainmainstring=element.value;
     var mainstring = new Array();
 
-    var inputs = element.closest('ul').getElementsByTagName('input');
+    var ul = element.closest('ul');
+    var inputs = ul ? ul.getElementsByTagName('input') : element.parentNode.getElementsByTagName('input');
     for (var myindex =0; myindex<inputs.length;myindex++){
         if (inputs[myindex].name && inputs[myindex].name.match(tagsubfield)){
             var subfieldcode=getSubfieldCode(inputs[myindex].name);
@@ -542,6 +544,14 @@ function CloneItemSubfield(original){
     var new_id = original.getAttribute('id')+new_key;
     clone.setAttribute('id',new_id);
 
+    // Don't clone "RegEx". We don't handle it for repeatable subfields
+    var links = clone.getElementsByTagName('a');
+    for( i = 0 ,len = links.length ; i < len ; i++){
+        if( $(links[i]).hasClass('field_regex') ) {
+            $(links[i]).remove();
+        }
+    }
+
     // insert this line on the page
     original.parentNode.insertBefore(clone,original.nextSibling);
     Select2Utils.initSelect2($(original).find('select'));
@@ -556,7 +566,10 @@ function CloneItemSubfield(original){
 function CheckMandatorySubfields(p){
     var total = 0;
     $(p).find(".subfield_line input[name='mandatory'][value='1']").each(function(){
-        var editor = $(this).siblings("[name='field_value']");
+        var editor = $(this).siblings(".input_marceditor");
+        if ( !editor.length ) { // Deal with date inputs
+            editor = $(this).siblings(".flatpickr_wrapper").find(".input_marceditor");
+        }
         if (!editor.val()) {
             editor.addClass("missing");
             total++;
@@ -568,7 +581,10 @@ function CheckMandatorySubfields(p){
 function CheckImportantSubfields(p){
     var total = 0;
     $(p).find(".subfield_line input[name='important'][value='1']").each(function(i){
-        var editor = $(this).siblings("[name='field_value']");
+        var editor = $(this).siblings(".input_marceditor");
+        if ( !editor.length ) { // Deal with date inputs
+            editor = $(this).siblings(".flatpickr_wrapper").find(".input_marceditor");
+        }
         if (!editor.val()) {
             editor.addClass("missing");
             total++;
@@ -588,30 +604,39 @@ $(document).ready(function() {
         Select2Utils.initSelect2($('.subfield_line select[data-category!=""]'));
     }
 
-    $("#add_new_av").on("submit", function(){
-        var category         = $(this).find('input[name="category"]').val();
-        var value            = $(this).find('input[name="value"]').val();
-        var description      = $(this).find('input[name="description"]').val();
-        var opac_description = $(this).find('input[name="opac_description"]').val();
-
-        var data = "category="+encodeURIComponent(category)
-            +"&value="+encodeURIComponent(value)
-            +"&description="+encodeURIComponent(description)
-            +"&opac_description="+encodeURIComponent(opac_description);
-
-        $.ajax({
-            type: "POST",
-            url: "/cgi-bin/koha/svc/authorised_values",
-            data: data,
-            success: function(response) {
-                $('#avCreate').modal('hide');
-
-                $(current_select2).append('<option selected value="'+response.value+'">'+response.description+'</option>');
-            },
-            error: function(err) {
-                $("#avCreate .error").html(_("Something went wrong, maybe the value already exists?"))
-            }
-        });
-        return false;
+    $("#avCreate").on("hidden.bs.modal", function(){
+        add_new_av.resetForm(); /* resets form state for jQuery Validate plugin */
+        $("#add_new_av")[0].reset();
+        $(".avCreate_error").hide();
     });
+
+    var add_new_av = $("#add_new_av").validate({
+        submitHandler: function(form) {
+            var category         = form.category.value;
+            var value            = form.value.value;
+            var description      = form.description.value;
+            var opac_description = form.opac_description.value;
+
+            var data = "category="+encodeURIComponent(category)
+                +"&value="+encodeURIComponent(value)
+                +"&description="+encodeURIComponent(description)
+                +"&opac_description="+encodeURIComponent(opac_description);
+            $.ajax({
+                type: "POST",
+                url: "/cgi-bin/koha/svc/authorised_values",
+                data: data,
+                success: function(response) {
+                    $('#avCreate').modal('hide');
+
+                    $(current_select2).append('<option selected value="'+response.value+'">'+response.description+'</option>');
+                    $("#avCreate").modal("hide");
+                },
+                error: function() {
+                    $(".avCreate_error").html(__("Something went wrong. Maybe the value already exists?")).show();
+                }
+            });
+            return false;
+        }
+    });
+
 });

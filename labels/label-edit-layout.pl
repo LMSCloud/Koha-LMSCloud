@@ -23,9 +23,14 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 use POSIX;
 
-use C4::Auth qw(get_template_and_user);
-use C4::Output qw(output_html_with_http_headers);
-use C4::Creators;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Creators qw(
+    get_barcode_types
+    get_font_types
+    get_label_types
+    get_text_justification_types
+);
 use C4::Labels;
 
 my $cgi = CGI->new;
@@ -35,7 +40,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $cgi,
         type            => "intranet",
         flagsrequired   => { catalogue => 1 },
-        debug           => 1,
     }
 );
 

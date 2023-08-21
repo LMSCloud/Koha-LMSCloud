@@ -21,11 +21,10 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Auth qw/:DEFAULT get_session/;
-use C4::Output;
-use C4::Circulation;
-use C4::Koha;
-use Koha::DateUtils;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Circulation qw( barcodedecode CanBookBeRenewed GetLatestAutoRenewDate AddRenewal );
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Database;
 use Koha::BiblioFrameworks;
 
@@ -44,8 +43,7 @@ my $schema = Koha::Database->new()->schema();
 
 my $barcode        = $cgi->param('barcode') // '';
 my $unseen         = $cgi->param('unseen') || 0;
-$barcode =~ s/^\s*|\s*$//g; # remove leading/trailing whitespae
-$barcode = barcodedecode($barcode) if( $barcode && C4::Context->preference('itemBarcodeInputFilter'));
+$barcode = barcodedecode($barcode) if $barcode;
 my $override_limit = $cgi->param('override_limit');
 my $override_holds = $cgi->param('override_holds');
 my $hard_due_date  = $cgi->param('hard_due_date');
@@ -55,7 +53,7 @@ my $error = q{};
 my ( $soonest_renew_date, $latest_auto_renew_date );
 
 if ($barcode) {
-    $barcode =~ s/^\s*|\s*$//g; # remove leading/trailing whitespace
+    $barcode = barcodedecode($barcode) if $barcode;
     $item = $schema->resultset("Item")->single( { barcode => $barcode } );
 
     if ($item) {
@@ -64,11 +62,12 @@ if ($barcode) {
 
         if ($issue) {
 
-            $borrower = $issue->borrower();
+            $borrower = $issue->patron();
             
             if ( ( $borrower->debarred() || q{} ) lt dt_from_string()->ymd() ) {
                 my $can_renew;
-                ( $can_renew, $error ) =
+                my $info;
+                ( $can_renew, $error, $info ) =
                   CanBookBeRenewed( $borrower->borrowernumber(),
                     $item->itemnumber(), $override_limit );
 
@@ -83,10 +82,7 @@ if ($barcode) {
                 }
 
                 if ( $error && ($error eq 'too_soon' or $error eq 'auto_too_soon') ) {
-                    $soonest_renew_date = C4::Circulation::GetSoonestRenewDate(
-                        $borrower->borrowernumber(),
-                        $item->itemnumber(),
-                    );
+                    $soonest_renew_date = $info->{soonest_renew_date};
                 }
                 if ( $error && ( $error eq 'auto_too_late' ) ) {
                     $latest_auto_renew_date = C4::Circulation::GetLatestAutoRenewDate(
@@ -96,13 +92,12 @@ if ($barcode) {
                 }
                 if ($can_renew) {
                     my $branchcode = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
-                    my $date_due;
-                    if ( $cgi->param('renewonholdduedate') ) {
-                        $date_due = dt_from_string( scalar $cgi->param('renewonholdduedate'));
-                    }
-                    if ( C4::Context->preference('SpecifyDueDate') && $hard_due_date ) {
-                        $date_due = dt_from_string( $hard_due_date );
-                    }
+                    my $date_due =
+                      ( C4::Context->preference('SpecifyDueDate')
+                          && $hard_due_date )
+                      ? $hard_due_date
+                      : $cgi->param('renewonholdduedate');
+
                     $date_due = AddRenewal(
                         undef,
                         $item->itemnumber(),
@@ -137,7 +132,7 @@ if ($barcode) {
     );
 }
 
-$template->param( hard_due_date => ($hard_due_date ? output_pref({ str => $hard_due_date, dateformat => 'iso' }) : undef) );
+$template->param( hard_due_date => $hard_due_date );
 # Checking if there is a Fast Cataloging Framework
 $template->param( fast_cataloging => 1 ) if Koha::BiblioFrameworks->find( 'FA' );
 

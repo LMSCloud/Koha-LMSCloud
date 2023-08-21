@@ -17,19 +17,19 @@ package Koha::SearchEngine::Elasticsearch::Indexer;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use Carp;
+use Carp qw( carp croak );
 use Modern::Perl;
-use Try::Tiny;
-use List::Util qw(any);
+use Try::Tiny qw( catch try );
+use List::Util qw( any );
 use base qw(Koha::SearchEngine::Elasticsearch);
-use Data::Dumper;
 
 use Koha::Exceptions;
 use Koha::Exceptions::Elasticsearch;
 use Koha::SearchEngine::Zebra::Indexer;
+use Koha::BackgroundJob::UpdateElasticIndex;
 use C4::AuthoritiesMarc qw//;
-use C4::Biblio;
 use C4::Context;
+use Koha::Biblios;
 
 =head1 NAME
 
@@ -98,12 +98,28 @@ Arrayref of C<MARC::Record>s.
 =cut
 
 sub update_index {
-    my ($self, $biblionums, $records) = @_;
+    my ($self, $record_ids, $records) = @_;
+
+    my $index_record_ids = [];
+    unless ( $records && @$records ) {
+        for my $record_id ( sort { $a <=> $b } @$record_ids ) {
+
+            next unless $record_id;
+
+            my $record = $self->_get_record( $record_id );
+            if( $record ){
+                push @$records, $record;
+                push @$index_record_ids, $record_id;
+            }
+        }
+    } else {
+        $index_record_ids = $record_ids;
+    }
 
     my $documents = $self->marc_records_to_documents($records);
     my @body;
-    for (my $i = 0; $i < scalar @$biblionums; $i++) {
-        my $id = $biblionums->[$i];
+    for (my $i = 0; $i < scalar @$index_record_ids; $i++) {
+        my $id = $index_record_ids->[$i];
         my $document = $documents->[$i];
         push @body, {
             index => {
@@ -226,7 +242,7 @@ sub index_status {
                 INDEX_STATUS_RECREATE_REQUIRED,
             )
         ) {
-            Koha::Exceptions::Exception->throw("Invalid index status: $status");
+            Koha::Exception->throw("Invalid index status: $status");
         }
         C4::Context->set_preference($key, $status);
         return $status;
@@ -250,25 +266,27 @@ sub update_mappings {
     my $elasticsearch = $self->get_elasticsearch();
     my $mappings = $self->get_elasticsearch_mappings();
 
-    foreach my $type (keys %{$mappings}) {
-        try {
-            my $response = $elasticsearch->indices->put_mapping(
-                index => $self->index_name,
-                body => $mappings->{$type}
-            );
-        } catch {
-            $self->set_index_status_recreate_required();
-            my $reason = $_[0]->{vars}->{body}->{error}->{reason};
-            my $index_name = $self->index_name;
-            Koha::Exceptions::Exception->throw(
-                error => "Unable to update mappings for index \"$index_name\". Reason was: \"$reason\". Index needs to be recreated and reindexed",
-            );
-        };
-    }
+    try {
+        my $response = $elasticsearch->indices->put_mapping(
+            index => $self->index_name,
+            type => 'data',
+            include_type_name => JSON::true(),
+            body => {
+                data => $mappings
+            }
+        );
+    } catch {
+        $self->set_index_status_recreate_required();
+        my $reason = $_[0]->{vars}->{body}->{error}->{reason};
+        my $index_name = $self->index_name;
+        Koha::Exception->throw(
+            error => "Unable to update mappings for index \"$index_name\". Reason was: \"$reason\". Index needs to be recreated and reindexed",
+        );
+    };
     $self->set_index_status_ok();
 }
 
-=head2 update_index_background($biblionums, $records)
+=head2 update_index_background($record_numbers, $server)
 
 This has exactly the same API as C<update_index> however it'll
 return immediately. It'll start a background process that does the adding.
@@ -278,12 +296,10 @@ it to be updated by a regular index cron job in the future.
 
 =cut
 
-# TODO implement in the future - I don't know the best way of doing this yet.
-# If fork: make sure process group is changed so apache doesn't wait for us.
-
 sub update_index_background {
-    my $self = shift;
-    $self->update_index(@_);
+    my ( $self, $record_numbers, $server ) = @_;
+
+    Koha::BackgroundJob::UpdateElasticIndex->new->enqueue({ record_ids => $record_numbers, record_server => $server });
 }
 
 =head2 index_records
@@ -304,19 +320,11 @@ sub index_records {
     $record_numbers = [$record_numbers] if ref $record_numbers ne 'ARRAY' && defined $record_numbers;
     $records = [$records] if ref $records ne 'ARRAY' && defined $records;
     if ( $op eq 'specialUpdate' ) {
-        my $index_record_numbers;
         if ($records){
-            $index_record_numbers = $record_numbers;
+            $self->update_index( $record_numbers, $records );
         } else {
-            foreach my $record_number ( @$record_numbers ){
-                my $record = _get_record( $record_number, $server );
-                if( $record ){
-                    push @$records, $record;
-                    push @$index_record_numbers, $record_number;
-                }
-            }
+            $self->update_index_background( $record_numbers, $server );
         }
-        $self->update_index_background( $index_record_numbers, $records ) if $index_record_numbers && $records;
     }
     elsif ( $op eq 'recordDelete' ) {
         $self->delete_index_background( $record_numbers );
@@ -326,10 +334,19 @@ sub index_records {
 }
 
 sub _get_record {
-    my ( $id, $server ) = @_;
-    return $server eq 'biblioserver'
-        ? C4::Biblio::GetMarcBiblio({ biblionumber => $id, embed_items  => 1 })
-        : C4::AuthoritiesMarc::GetAuthority($id);
+    my ( $self, $record_id ) = @_;
+
+    my $record;
+
+    if ( $self->index eq $Koha::SearchEngine::BIBLIOS_INDEX ) {
+        my $biblio = Koha::Biblios->find($record_id);
+        $record = $biblio->metadata->record( { embed_items => 1 } )
+          if $biblio;
+    } else {
+        $record = C4::AuthoritiesMarc::GetAuthority($record_id);
+    }
+
+    return $record;
 }
 
 =head2 delete_index($biblionums)

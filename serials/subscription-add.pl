@@ -18,28 +18,24 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use Date::Calc qw(Today Day_of_Year Week_of_Year Add_Delta_Days Add_Delta_YM);
-use C4::Koha;
-use C4::Biblio;
-use C4::Auth;
-use C4::Acquisition;
-use C4::Output;
+use Date::Calc qw( Add_Delta_Days Add_Delta_YM );
+use C4::Koha qw( GetAuthorisedValues );
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_and_exit output_html_with_http_headers );
 use C4::Context;
-use C4::Serials;
+use C4::Serials qw( GetSubscription GetNextExpected GetSerials GetSubscriptionLength NewSubscription ModNextExpected ModSubscription );
 use C4::Serials::Frequency;
 use C4::Serials::Numberpattern;
-use C4::Letters;
+use C4::Letters qw( GetLetters );
 use Koha::AdditionalFields;
 use Koha::Biblios;
-use Koha::DateUtils;
+use Koha::DateUtils qw( output_pref );
 use Koha::ItemTypes;
-use Carp;
+use Carp qw( carp );
 
 use Koha::Subscription::Numberpattern;
 use Koha::Subscription::Frequency;
 use Koha::SharedContent;
-
-#use Smart::Comments;
 
 our $query = CGI->new;
 my $op = $query->param('op') || '';
@@ -57,7 +53,6 @@ our ($template, $loggedinuser, $cookie)
 				query => $query,
 				type => "intranet",
 				flagsrequired => {serials => $permission},
-				debug => 1,
 				});
 
 
@@ -128,13 +123,15 @@ if ($op eq 'modify' || $op eq 'dup' || $op eq 'modsubscription') {
 }
 
 my $locations_loop = GetAuthorisedValues("LOC");
+my $ccodes_loop     = GetAuthorisedValues("CCODE");
 
 $template->param(
     branchcode => $subs->{branchcode},
     locations_loop=>$locations_loop,
+    ccodes_loop=>$ccodes_loop
 );
 
-my @additional_fields = Koha::AdditionalFields->search({ tablename => 'subscription' });
+my @additional_fields = Koha::AdditionalFields->search({ tablename => 'subscription' })->as_list;
 my %additional_field_values;
 if ($subscriptionid) {
     my $subscription = Koha::Subscriptions->find($subscriptionid);
@@ -332,6 +329,7 @@ sub redirect_add_subscription {
     my $itemtype          = $query->param('itemtype');
     my $previousitemtype  = $query->param('previousitemtype');
     my $skip_serialseq    = $query->param('skip_serialseq');
+    my $ccode             = $query->param('ccode');
 
     my $mana_id;
     if ( $query->param('mana_id') ne "" ) {
@@ -358,7 +356,7 @@ sub redirect_add_subscription {
         join(";",@irregularity), $numberpattern, $locale, $callnumber,
         $manualhistory, $internalnotes, $serialsadditems,
         $staffdisplaycount, $opacdisplaycount, $graceperiod, $location, $enddate,
-        $skip_serialseq, $itemtype, $previousitemtype, $mana_id
+        $skip_serialseq, $itemtype, $previousitemtype, $mana_id, $ccode
     );
     if ( (C4::Context->preference('Mana') == 1) and ( grep { $_ eq "subscription" } split(/,/, C4::Context->preference('AutoShareWithMana'))) ){
         my $result = Koha::SharedContent::send_entity( $query->param('mana_language') || '', $loggedinuser, $subscriptionid, 'subscription');
@@ -366,7 +364,8 @@ sub redirect_add_subscription {
     }
 
     my @additional_fields;
-    my $record = GetMarcBiblio({ biblionumber => $biblionumber, embed_items => 1 });
+    my $biblio = Koha::Biblios->find($biblionumber);
+    my $record = $biblio->metadata->record({ embed_items => 1 });
     my $subscription_fields = Koha::AdditionalFields->search({ tablename => 'subscription' });
     while ( my $field = $subscription_fields->next ) {
         my $value = $query->param('additional_field_' . $field->id);
@@ -445,6 +444,7 @@ sub redirect_mod_subscription {
     my $itemtype          = $query->param('itemtype');
     my $previousitemtype  = $query->param('previousitemtype');
     my $skip_serialseq    = $query->param('skip_serialseq');
+    my $ccode             = $query->param('ccode');
 
     my $mana_id;
     if ( $query->param('mana_id') ne "" ) {
@@ -480,11 +480,12 @@ sub redirect_mod_subscription {
         $status, $biblionumber, $callnumber, $notes, $letter,
         $manualhistory, $internalnotes, $serialsadditems, $staffdisplaycount,
         $opacdisplaycount, $graceperiod, $location, $enddate, $subscriptionid,
-        $skip_serialseq, $itemtype, $previousitemtype, $mana_id
+        $skip_serialseq, $itemtype, $previousitemtype, $mana_id, $ccode
     );
 
     my @additional_fields;
-    my $record = GetMarcBiblio({ biblionumber => $biblionumber, embed_items => 1 });
+    my $biblio = Koha::Biblios->find($biblionumber);
+    my $record = $biblio->metadata->record({ embed_items => 1 });
     my $subscription_fields = Koha::AdditionalFields->search({ tablename => 'subscription' });
     while ( my $field = $subscription_fields->next ) {
         my $value = $query->param('additional_field_' . $field->id);

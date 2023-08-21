@@ -19,8 +19,8 @@ use Modern::Perl;
 
 use Test::More tests => 53;
 use C4::Context;
-use C4::RotatingCollections;
-use C4::Biblio;
+use C4::RotatingCollections qw( AddItemToCollection CreateCollection DeleteCollection GetCollection GetCollectionItemBranches GetCollections GetItemsInCollection RemoveItemFromCollection TransferCollection UpdateCollection isItemInAnyCollection isItemInThisCollection );
+use C4::Biblio qw( AddBiblio );
 use Koha::Database;
 use Koha::Library;
 
@@ -191,7 +191,6 @@ my $samplebranch = {
     branchurl      => 'sample url',
     branchip       => 'sample ip',
     branchnotes    => 'sample note',
-    opac_info      => 'sample opac',
 };
 Koha::Library->new($samplebranch)->store;
 my ( $transferred, $messages ) = TransferCollection( $collection_id1, $samplebranch->{branchcode} );

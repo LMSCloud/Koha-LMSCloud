@@ -1,12 +1,12 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
-use Test::More tests => 6;
+use Test::More tests => 7;
 use DateTime::Duration;
 
 use C4::Context;
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Virtualshelves;
 use Koha::Virtualshelfshares;
 use Koha::Virtualshelfcontents;
@@ -22,7 +22,7 @@ my $dbh = C4::Context->dbh;
 teardown();
 
 subtest 'CRUD' => sub {
-    plan tests => 13;
+    plan tests => 14;
     my $patron = $builder->build({
         source => 'Borrower',
     });
@@ -34,7 +34,7 @@ subtest 'CRUD' => sub {
     my $shelf = Koha::Virtualshelf->new({
             shelfname => "my first shelf",
             owner => $patron->{borrowernumber},
-            category => 1,
+            public => 0,
         }
     )->store;
 
@@ -44,6 +44,7 @@ subtest 'CRUD' => sub {
     is( $number_of_shelves, 1, '1 shelf should have been inserted' );
     is( $shelf->allow_change_from_owner, 1, 'The default value for allow_change_from_owner should be 1' );
     is( $shelf->allow_change_from_others, 0, 'The default value for allow_change_from_others should be 0' );
+    is ( $shelf->allow_change_from_staff, 0, 'The default value for allow_change_from_staff should be 0');
     is( t::lib::Dates::compare( $shelf->created_on, dt_from_string), 0, 'The creation time should have been set to today' );
 
     # Test if creation date will not be overwritten by store
@@ -61,11 +62,11 @@ subtest 'CRUD' => sub {
         $shelf = Koha::Virtualshelf->new({
                 shelfname => "my first shelf",
                 owner => $patron->{borrowernumber},
-                category => 1,
+                public => 0,
             }
         )->store;
     };
-    is( ref($@), 'Koha::Exceptions::Virtualshelves::DuplicateObject',
+    is( ref($@), 'Koha::Exceptions::Virtualshelf::DuplicateObject',
         'Exception on duplicate name' );
     $number_of_shelves = Koha::Virtualshelves->search->count;
     is( $number_of_shelves, 1, 'To be sure the number of shelves is still 1' );
@@ -77,7 +78,7 @@ subtest 'CRUD' => sub {
     $shelf = Koha::Virtualshelf->new({
             shelfname => "my first shelf",
             owner => $another_patron->{borrowernumber},
-            category => 1,
+            public => 0,
         }
     )->store;
     $number_of_shelves = Koha::Virtualshelves->search->count;
@@ -109,19 +110,19 @@ subtest 'Sharing' => sub {
     my $shelf_to_share = Koha::Virtualshelf->new({
             shelfname => "my first shelf",
             owner => $patron_wants_to_share->{borrowernumber},
-            category => 1,
+            public => 0,
         }
     )->store;
 
     my $shelf_not_to_share = Koha::Virtualshelf->new({
             shelfname => "my second shelf",
             owner => $patron_wants_to_share->{borrowernumber},
-            category => 1,
+            public => 0,
         }
     )->store;
 
     my $shared_shelf = eval { $shelf_to_share->share };
-    is ( ref( $@ ), 'Koha::Exceptions::Virtualshelves::InvalidKeyOnSharing', 'Do not share if no key given' );
+    is ( ref( $@ ), 'Koha::Exceptions::Virtualshelf::InvalidKeyOnSharing', 'Do not share if no key given' );
     $shared_shelf = eval { $shelf_to_share->share('valid key') };
     is( ref( $shared_shelf ), 'Koha::Virtualshelfshare', 'On sharing, the method should return a valid Koha::Virtualshelfshare object' );
 
@@ -134,7 +135,7 @@ subtest 'Sharing' => sub {
         $shared_shelf->accept( 'invalid k', $share_with_me->{borrowernumber} );
     };
     is( $is_accepted, undef, 'The share should have not been accepted if the key is invalid' );
-    is( ref( $@ ), 'Koha::Exceptions::Virtualshelves::InvalidInviteKey', 'accept with an invalid key should raise an exception' );
+    is( ref( $@ ), 'Koha::Exceptions::Virtualshelf::InvalidInviteKey', 'accept with an invalid key should raise an exception' );
 
     $is_accepted = $shared_shelf->accept( 'valid key', $share_with_me->{borrowernumber} );
     ok( defined($is_accepted), 'The share should have been accepted if the key valid' );
@@ -171,9 +172,10 @@ subtest 'Sharing' => sub {
 
 subtest 'Shelf content' => sub {
 
-    plan tests => 18;
+    plan tests => 21;
     my $patron1 = $builder->build( { source => 'Borrower', } );
     my $patron2 = $builder->build( { source => 'Borrower', } );
+    my $patron3 = $builder->build( { source => 'Borrower', value => {flags => 1} });
     my $biblio1 = $builder->build_sample_biblio;
     my $biblio2 = $builder->build_sample_biblio;
     my $biblio3 = $builder->build_sample_biblio;
@@ -186,7 +188,7 @@ subtest 'Shelf content' => sub {
     my $shelf = Koha::Virtualshelf->new(
         {   shelfname    => "my first shelf",
             owner        => $patron1->{borrowernumber},
-            category     => 1,
+            public       => 0,
             lastmodified => $dt_yesterday,
         }
     )->store;
@@ -247,112 +249,197 @@ subtest 'Shelf content' => sub {
     $number_of_contents = Koha::Virtualshelfcontents->search->count;
     is( $number_of_contents, 3, 'Back to three entries' );
 
+    # allow_change_from_staff == 1 and allow_change_from_others == 0
+    $shelf->allow_change_from_staff( 1 );
+    $shelf->allow_change_from_others( 0 );
+    $content4 = $shelf->add_biblio( $biblio3->biblionumber, $patron3->{borrowernumber} );
+    $number_of_contents = Koha::Virtualshelfcontents->search->count;
+    is( $number_of_contents, 4, 'The biblio should have been added to the shelf by patron 2');
+    $number_of_deleted_biblios = $shelf->remove_biblios( { biblionumbers => [ $biblio3->biblionumber ], borrowernumber => $patron3->{borrowernumber} } );
+    is( $number_of_deleted_biblios, 1, 'Biblio 3 deleted by patron 2' );
+    $number_of_contents = Koha::Virtualshelfcontents->search->count;
+    is( $number_of_contents, 3, 'Back to three entries' );
+
     teardown();
 };
 
 subtest 'Shelf permissions' => sub {
 
-    plan tests => 40;
+    plan tests => 100;
     my $patron1 = $builder->build( { source => 'Borrower', value => { flags => '2096766' } } ); # 2096766 is everything checked but not superlibrarian
     my $patron2 = $builder->build( { source => 'Borrower', value => { flags => '1048190' } } ); # 1048190 is everything checked but not superlibrarian and delete_public_lists
+    my $patron3 = $builder->build( { source => 'Borrower', value => { flags => '0' } } ); # this is a patron with no special permissions
+    my $patron4 = $builder->build( { source => 'Borrower', value => { flags => '0' } } );
+    my $sth = $dbh->prepare("INSERT INTO user_permissions (borrowernumber, module_bit, code) VALUES (?,?,?)");
+    $sth->execute($patron4->{borrowernumber}, 20, 'edit_public_lists'); # $patron4 only has the edit_public_lists sub-permission checked
+
     my $biblio1 = $builder->build_sample_biblio;
     my $biblio2 = $builder->build_sample_biblio;
     my $biblio3 = $builder->build_sample_biblio;
     my $biblio4 = $builder->build_sample_biblio;
+    my $biblio5 = $builder->build_sample_biblio;
 
     my $public_shelf = Koha::Virtualshelf->new(
         {   shelfname    => "my first shelf",
             owner        => $patron1->{borrowernumber},
-            category     => 2,
+            public       => 1,
             allow_change_from_owner => 0,
             allow_change_from_others => 0,
+            allow_change_from_staff => 0,
         }
     )->store;
 
-    is( $public_shelf->can_be_viewed( $patron1->{borrowernumber} ), 1, 'The owner should be able to view his public list' );
-    is( $public_shelf->can_be_viewed( $patron2->{borrowernumber} ), 1, 'Public list should be viewed by someone else' );
+    is( $public_shelf->can_be_viewed( $patron1->{borrowernumber} ), 1, 'The owner should be able to view their public list' );
+    is( $public_shelf->can_be_viewed( $patron2->{borrowernumber} ), 1, 'Public list should be viewed by another staff member');
+    is( $public_shelf->can_be_viewed( $patron3->{borrowernumber} ), 1, 'Public list should be viewed by someone with no special permissions' );
+    is( $public_shelf->can_be_viewed( $patron4->{borrowernumber} ), 1, 'Public list should be viewed by someone with the edit_public_lists sub-permission checked' );
 
-    is( $public_shelf->can_be_deleted( $patron1->{borrowernumber} ), 1, 'The owner should be able to delete his list' );
-    is( $public_shelf->can_be_deleted( $patron2->{borrowernumber} ), 0, 'Public list should not be deleted by someone else' );
+    is( $public_shelf->can_be_deleted( $patron1->{borrowernumber} ), 1, 'The owner should be able to delete their list' );
+    is( $public_shelf->can_be_deleted( $patron2->{borrowernumber} ), 0, 'Public list should not be deleted by another staff member' );
+    is( $public_shelf->can_be_deleted( $patron3->{borrowernumber} ), 0, 'Public list should not be deleted by someone with no special permissions' );
+    is( $public_shelf->can_be_deleted( $patron4->{borrowernumber} ), 0, 'Public list should not be deleted by someone with the edit_public_lists sub-permission checked' );
 
-    is( $public_shelf->can_be_managed( $patron1->{borrowernumber} ), 1, 'The owner should be able to manage his list' );
-    is( $public_shelf->can_be_managed( $patron2->{borrowernumber} ), 0, 'Public list should not be managed by someone else' );
+    is( $public_shelf->can_be_managed( $patron1->{borrowernumber} ), 1, 'The owner should be able to manage their list' );
+    is( $public_shelf->can_be_managed( $patron2->{borrowernumber} ), 0, 'Public list should not be managed by another staff member' );
+    is( $public_shelf->can_be_managed( $patron3->{borrowernumber} ), 0, 'Public list should not be managed by someone with no special permissions' );
+    is( $public_shelf->can_be_managed( $patron4->{borrowernumber} ), 1, 'Public list should be managed by someone with the edit_public_lists sub-permission checked' );
 
     is( $public_shelf->can_biblios_be_added( $patron1->{borrowernumber} ), 0, 'The owner should not be able to add biblios to their list' );
-    is( $public_shelf->can_biblios_be_added( $patron2->{borrowernumber} ), 0, 'Public list should not be modified (add) by someone else' );
+    is( $public_shelf->can_biblios_be_added( $patron2->{borrowernumber} ), 0, 'Public list should not be modified (add) by another staff member' );
+    is( $public_shelf->can_biblios_be_added( $patron3->{borrowernumber} ), 0, 'Public list should not be modified (add) by someone with no special permissions' );
+    is( $public_shelf->can_biblios_be_added( $patron4->{borrowernumber} ), 0, 'Public list should not be modified (add) by someone with the edit_public_lists sub-permission checked' );
 
     is( $public_shelf->can_biblios_be_removed( $patron1->{borrowernumber} ), 0, 'The owner should not be able to remove biblios to their list' );
-    is( $public_shelf->can_biblios_be_removed( $patron2->{borrowernumber} ), 0, 'Public list should not be modified (remove) by someone else' );
-
+    is( $public_shelf->can_biblios_be_removed( $patron2->{borrowernumber} ), 0, 'Public list should not be modified (remove) by another staff member' );
+    is ( $public_shelf->can_biblios_be_removed( $patron3->{borrowernumber} ), 0, 'Public list should not be modified (removed) by someone with no special permissions' );
+    is( $public_shelf->can_biblios_be_removed( $patron4->{borrowernumber} ), 0, 'Public list should not be modified (removed) by someone with the edit_public_lists sub-permission checked' );
 
     $public_shelf->allow_change_from_owner(1);
     $public_shelf->store;
 
-    is( $public_shelf->can_be_viewed( $patron1->{borrowernumber} ), 1, 'The owner should be able to view his public list' );
-    is( $public_shelf->can_be_viewed( $patron2->{borrowernumber} ), 1, 'Public list should be viewed by someone else' );
+    is( $public_shelf->can_be_viewed( $patron1->{borrowernumber} ), 1, 'The owner should be able to view their public list' );
+    is( $public_shelf->can_be_viewed( $patron2->{borrowernumber} ), 1, 'Public list should be viewed by staff member' );
+    is( $public_shelf->can_be_viewed( $patron3->{borrowernumber} ), 1, 'Public list should be viewed by someone with no special permissions' );
+    is( $public_shelf->can_be_viewed( $patron4->{borrowernumber} ), 1, 'Public list should be viewable by someone with the edit_public_lists sub-permission checked' );
 
-    is( $public_shelf->can_be_deleted( $patron1->{borrowernumber} ), 1, 'The owner should be able to delete his list' );
-    is( $public_shelf->can_be_deleted( $patron2->{borrowernumber} ), 0, 'Public list should not be deleted by someone else' );
+    is( $public_shelf->can_be_deleted( $patron1->{borrowernumber} ), 1, 'The owner should be able to delete their list' );
+    is( $public_shelf->can_be_deleted( $patron2->{borrowernumber} ), 0, 'Public list should not be deleted by another staff member' );
+    is( $public_shelf->can_be_deleted( $patron3->{borrowernumber} ), 0, 'Public list should not be deleted by someone with no special permissions' );
+    is( $public_shelf->can_be_deleted( $patron4->{borrowernumber} ), 0, 'Public list should not be deleted by someone with the edit_public_lists sub-permission checked' );
 
-    is( $public_shelf->can_be_managed( $patron1->{borrowernumber} ), 1, 'The owner should be able to manage his list' );
-    is( $public_shelf->can_be_managed( $patron2->{borrowernumber} ), 0, 'Public list should not be managed by someone else' );
+    is( $public_shelf->can_be_managed( $patron1->{borrowernumber} ), 1, 'The owner should be able to manage their list' );
+    is( $public_shelf->can_be_managed( $patron2->{borrowernumber} ), 0, 'Public list should not be managed by another staff member' );
+    is( $public_shelf->can_be_managed( $patron3->{borrowernumber} ), 0, 'Public list should not be managed by someone with no special permissions' );
+    is( $public_shelf->can_be_managed( $patron4->{borrowernumber} ), 1, 'Public list should be managed by someone with the edit_public_lists sub-permission checked' );
 
-    is( $public_shelf->can_biblios_be_added( $patron1->{borrowernumber} ), 1, 'The owner should be able to add biblios to his list' );
-    is( $public_shelf->can_biblios_be_added( $patron2->{borrowernumber} ), 0, 'Public list should not be modified (add) by someone else' );
+    is( $public_shelf->can_biblios_be_added( $patron1->{borrowernumber} ), 1, 'The owner should be able to add biblios to their list' );
+    is( $public_shelf->can_biblios_be_added( $patron2->{borrowernumber} ), 0, 'Public list should not be modified (add) by another staff member' );
+    is( $public_shelf->can_biblios_be_added( $patron3->{borrowernumber} ), 0, 'Public list should not be modified (add) by someone with no special permissions' );
+    is( $public_shelf->can_biblios_be_added( $patron4->{borrowernumber} ), 0, 'Public list should not be modified (add) by someone with the edit_public_lists sub-permission checked' );
 
-    is( $public_shelf->can_biblios_be_removed( $patron1->{borrowernumber} ), 1, 'The owner should be able to remove biblios to his list' );
-    is( $public_shelf->can_biblios_be_removed( $patron2->{borrowernumber} ), 0, 'Public list should not be modified (remove) by someone else' );
-
+    is( $public_shelf->can_biblios_be_removed( $patron1->{borrowernumber} ), 1, 'The owner should be able to remove biblios to their list' );
+    is( $public_shelf->can_biblios_be_removed( $patron2->{borrowernumber} ), 0, 'Public list should not be modified (remove) by another staff member' );
+    is( $public_shelf->can_biblios_be_removed( $patron3->{borrowernumber} ), 0, 'Public list should not be modified (remove) by someone with no special permissions' );
+    is( $public_shelf->can_biblios_be_removed( $patron4->{borrowernumber} ), 0, 'Public list should not be modified (remove) by someone with the edit_public_list sub-permission checked' );
 
     my $private_shelf = Koha::Virtualshelf->new(
         {   shelfname    => "my first shelf",
             owner        => $patron1->{borrowernumber},
-            category     => 1,
+            public       => 0,
             allow_change_from_owner => 0,
             allow_change_from_others => 0,
+            allow_change_from_staff => 0,
         }
     )->store;
 
-    is( $private_shelf->can_be_viewed( $patron1->{borrowernumber} ), 1, 'The owner should be able to view his list' );
-    is( $private_shelf->can_be_viewed( $patron2->{borrowernumber} ), 0, 'Private list should not be viewed by someone else' );
+    is( $private_shelf->can_be_viewed( $patron1->{borrowernumber} ), 1, 'The owner should be able to view their list' );
+    is( $private_shelf->can_be_viewed( $patron2->{borrowernumber} ), 0, 'Private list should not be viewed by another staff member' );
+    is( $private_shelf->can_be_viewed( $patron3->{borrowernumber} ), 0, 'Private list should not be viewed by someone with no special permissions' );
+    is( $private_shelf->can_be_viewed( $patron4->{borrowernumber} ), 0, 'Private list should not be viewed by someone with the edit_public_lists sub-permission checked' );
 
-    is( $private_shelf->can_be_deleted( $patron1->{borrowernumber} ), 1, 'The owner should be able to delete his list' );
-    is( $private_shelf->can_be_deleted( $patron2->{borrowernumber} ), 0, 'Private list should not be deleted by someone else' );
+    is( $private_shelf->can_be_deleted( $patron1->{borrowernumber} ), 1, 'The owner should be able to delete their list' );
+    is( $private_shelf->can_be_deleted( $patron2->{borrowernumber} ), 0, 'Private list should not be deleted by another staff member' );
+    is( $private_shelf->can_be_deleted( $patron3->{borrowernumber} ), 0, 'Private list should not be deleted by someone with no special permissions' );
+    is( $private_shelf->can_be_deleted( $patron4->{borrowernumber} ), 0, 'Private list should not be deleted by someone with the edit_public_lists sub-permission checked' );
 
-    is( $private_shelf->can_be_managed( $patron1->{borrowernumber} ), 1, 'The owner should be able to manage his list' );
-    is( $private_shelf->can_be_managed( $patron2->{borrowernumber} ), 0, 'Private list should not be managed by someone else' );
+    is( $private_shelf->can_be_managed( $patron1->{borrowernumber} ), 1, 'The owner should be able to manage their list' );
+    is( $private_shelf->can_be_managed( $patron2->{borrowernumber} ), 0, 'Private list should not be managed by another staff member' );
+    is( $private_shelf->can_be_managed( $patron3->{borrowernumber} ), 0, 'Private list should not be managed by someone with no special permissions' );
+    is( $private_shelf->can_be_managed( $patron4->{borrowernumber} ), 0, 'Private list should not be managed by someone with the edit_public_lists sub-permission checked' );
 
     is( $private_shelf->can_biblios_be_added( $patron1->{borrowernumber} ), 0, 'The owner should not be able to add biblios to their list' );
-    is( $private_shelf->can_biblios_be_added( $patron2->{borrowernumber} ), 0, 'Private list should not be modified (add) by someone else' );
+    is( $private_shelf->can_biblios_be_added( $patron2->{borrowernumber} ), 0, 'Private list should not be modified (add) by another staff member' );
+    is( $private_shelf->can_biblios_be_added( $patron3->{borrowernumber} ), 0, 'Private list should not be modified (add) by someone with no special permissions' );
+    is( $private_shelf->can_biblios_be_added( $patron4->{borrowernumber} ), 0, 'Private list should not be modified (add) by someone with the edit_public_lists sub-permission checked' );
 
     is( $private_shelf->can_biblios_be_removed( $patron1->{borrowernumber} ), 0, 'The owner should not be able to remove biblios to their list' );
-    is( $private_shelf->can_biblios_be_removed( $patron2->{borrowernumber} ), 0, 'Private list should not be modified (remove) by someone else' );
+    is( $private_shelf->can_biblios_be_removed( $patron2->{borrowernumber} ), 0, 'Private list should not be modified (remove) by another staff member' );
+    is( $private_shelf->can_biblios_be_removed( $patron3->{borrowernumber} ), 0, 'Private list should not be modified (remove) by someone with no special permissions' );
+    is( $private_shelf->can_biblios_be_removed( $patron4->{borrowernumber} ), 0, 'Private list should not be modified (remove) by someone with the edit_public_lists sub-permissions' );
 
+    $private_shelf->allow_change_from_owner(1);
+    $private_shelf->allow_change_from_staff(1);
+    $private_shelf->allow_change_from_others(0);
+    $private_shelf->store;
+    is( $private_shelf->can_be_viewed( $patron1->{borrowernumber} ), 1, 'The owner should be able to view their list' );
+    is( $private_shelf->can_be_viewed( $patron2->{borrowernumber} ), 0, 'Private list should not be viewed by another staff member' );
+    is( $private_shelf->can_be_viewed( $patron3->{borrowernumber} ), 0, 'Private list should not be viewed by someone with no special permissions' );
+    is( $private_shelf->can_be_viewed( $patron4->{borrowernumber} ), 0, 'Private list should not be viewed by someone with the edit_public_lists sub-permission checked' );
+
+    is( $private_shelf->can_be_deleted( $patron1->{borrowernumber} ), 1, 'The owner should be able to delete their list' );
+    is( $private_shelf->can_be_deleted( $patron2->{borrowernumber} ), 0, 'Private list should not be deleted by another staff member' );
+    is( $private_shelf->can_be_deleted( $patron3->{borrowernumber} ), 0, 'Private list should not be deleted by someone with no special permissions' );
+    is( $private_shelf->can_be_deleted( $patron4->{borrowernumber} ), 0, 'Private list should not be deleted by someone with the edit_public_lists sub-permission checked' );
+
+    is( $private_shelf->can_be_managed( $patron1->{borrowernumber} ), 1, 'The owner should be able to manage their list' );
+    is( $private_shelf->can_be_managed( $patron2->{borrowernumber} ), 0, 'Private list should not be managed by another staff member' );
+    is( $private_shelf->can_be_managed( $patron3->{borrowernumber} ), 0, 'Private list should not be managed by someone with no special permissions' );
+    is( $private_shelf->can_be_managed( $patron4->{borrowernumber} ), 0, 'Private list should not be managed by someone with the edit_public_lists sub-permission checked' );
+
+    is( $private_shelf->can_biblios_be_added( $patron1->{borrowernumber} ), 1, 'The owner should be able to add biblios to their list' );
+    is( $private_shelf->can_biblios_be_added( $patron2->{borrowernumber} ), 1, 'Private list should not modified (add) by another staff member # individual check done later' );
+    is( $private_shelf->can_biblios_be_added( $patron3->{borrowernumber} ), 0, 'Private list should not be modified (add) by someone with no special permissions' );
+    is ( $private_shelf->can_biblios_be_added( $patron4->{borrowernumber} ), 0, 'Private list should not be modified (add) by someone with the edit_public_lists sub-permission checked' );
+
+    is( $private_shelf->can_biblios_be_removed( $patron1->{borrowernumber} ), 1, 'The owner should be able to remove biblios to their list' );
+    is( $private_shelf->can_biblios_be_removed( $patron2->{borrowernumber} ), 1, 'Private list should be modified (remove) by another staff member # individual check done later' );
+    is( $private_shelf->can_biblios_be_removed( $patron3->{borrowernumber} ), 0, 'Private list should not be modified (remove) by someone with no special permissions' );
+    is( $private_shelf->can_biblios_be_removed( $patron4->{borrowernumber} ), 0, 'Private list should not be modified (remove) by someone with the edit_public_lists sub-permission checked' );
 
     $private_shelf->allow_change_from_owner(1);
     $private_shelf->allow_change_from_others(1);
     $private_shelf->store;
 
-    is( $private_shelf->can_be_viewed( $patron1->{borrowernumber} ), 1, 'The owner should be able to view his list' );
-    is( $private_shelf->can_be_viewed( $patron2->{borrowernumber} ), 0, 'Private list should not be viewed by someone else' );
+    is( $private_shelf->can_be_viewed( $patron1->{borrowernumber} ), 1, 'The owner should be able to view their list' );
+    is( $private_shelf->can_be_viewed( $patron2->{borrowernumber} ), 0, 'Private list should not be viewed by another staff member' );
+    is( $private_shelf->can_be_viewed( $patron3->{borrowernumber} ), 0, 'Private list should not be viewed by someone with no special permissions' );
+    is( $private_shelf->can_be_viewed( $patron4->{borrowernumber} ), 0, 'Private list should not be viewed by someone with the edit_public_lists sub-permission checked' );
 
-    is( $private_shelf->can_be_deleted( $patron1->{borrowernumber} ), 1, 'The owner should be able to delete his list' );
-    is( $private_shelf->can_be_deleted( $patron2->{borrowernumber} ), 0, 'Private list should not be deleted by someone else' );
+    is( $private_shelf->can_be_deleted( $patron1->{borrowernumber} ), 1, 'The owner should be able to delete their list' );
+    is( $private_shelf->can_be_deleted( $patron2->{borrowernumber} ), 0, 'Private list should not be deleted by another staff member' );
+    is( $private_shelf->can_be_deleted( $patron3->{borrowernumber} ), 0, 'Private list should not be deleted by someone with no special permissions' );
+    is( $private_shelf->can_be_deleted( $patron4->{borrowernumber} ), 0, 'Private list should not be deleted by someone with the edit_public_lists sub-permission checked' );
 
-    is( $private_shelf->can_be_managed( $patron1->{borrowernumber} ), 1, 'The owner should be able to manage his list' );
-    is( $private_shelf->can_be_managed( $patron2->{borrowernumber} ), 0, 'Private list should not be managed by someone else' );
+    is( $private_shelf->can_be_managed( $patron1->{borrowernumber} ), 1, 'The owner should be able to manage their list' );
+    is( $private_shelf->can_be_managed( $patron2->{borrowernumber} ), 0, 'Private list should not be managed by another staff member' );
+    is( $private_shelf->can_be_managed( $patron3->{borrowernumber} ), 0, 'Private list should not be managed by someone with no special permissions' );
+    is( $private_shelf->can_be_managed( $patron4->{borrowernumber} ), 0, 'Private list should not be managed by someone with the edit_public_lists sub-permission checked' );
 
-    is( $private_shelf->can_biblios_be_added( $patron1->{borrowernumber} ), 1, 'The owner should be able to add biblios to his list' );
-    is( $private_shelf->can_biblios_be_added( $patron2->{borrowernumber} ), 1, 'Private list could be modified (add) by someone else # individual check done later' );
+    is( $private_shelf->can_biblios_be_added( $patron1->{borrowernumber} ), 1, 'The owner should be able to add biblios to their list' );
+    is( $private_shelf->can_biblios_be_added( $patron2->{borrowernumber} ), 1, 'Private list could be modified (add) by another staff member # individual check done later' );
+    is( $private_shelf->can_biblios_be_added( $patron3->{borrowernumber} ), 1, 'Private list could be modified (add) by someone with no special permissions' );
+    is( $private_shelf->can_biblios_be_added( $patron4->{borrowernumber} ), 1, 'Private list could be modified (add) by someone with the edit_public_lists sub-permission checked' );
 
-    is( $private_shelf->can_biblios_be_removed( $patron1->{borrowernumber} ), 1, 'The owner should be able to remove biblios to his list' );
-    is( $private_shelf->can_biblios_be_removed( $patron2->{borrowernumber} ), 1, 'Private list could be modified (remove) by someone else # individual check done later' );
+    is( $private_shelf->can_biblios_be_removed( $patron1->{borrowernumber} ), 1, 'The owner should be able to remove biblios to their list' );
+    is( $private_shelf->can_biblios_be_removed( $patron2->{borrowernumber} ), 1, 'Private list could be modified (remove) by another staff member # individual check done later' );
+    is( $private_shelf->can_biblios_be_removed( $patron3->{borrowernumber} ), 1, 'Private list could be modified (remove) by someone with no special permissions' );
+    is( $private_shelf->can_biblios_be_removed( $patron4->{borrowernumber} ), 1, 'Private list could be modified (remove) by someone with the edit_public_lists sub-permission checked' );
 
     teardown();
 };
 
 subtest 'Get shelves' => sub {
-    plan tests => 4;
+    plan tests => 5;
     my $patron1 = $builder->build({
         source => 'Borrower',
     });
@@ -363,45 +450,55 @@ subtest 'Get shelves' => sub {
     my $private_shelf1_1 = Koha::Virtualshelf->new({
             shelfname => "private shelf 1 for patron 1",
             owner => $patron1->{borrowernumber},
-            category => 1,
+            public => 0,
         }
     )->store;
     my $private_shelf1_2 = Koha::Virtualshelf->new({
             shelfname => "private shelf 2 for patron 1",
             owner => $patron1->{borrowernumber},
-            category => 1,
+            public => 0,
         }
     )->store;
     my $private_shelf2_1 = Koha::Virtualshelf->new({
             shelfname => "private shelf 1 for patron 2",
             owner => $patron2->{borrowernumber},
-            category => 1,
+            public => 0,
         }
     )->store;
     my $public_shelf1_1 = Koha::Virtualshelf->new({
             shelfname => "public shelf 1 for patron 1",
             owner => $patron1->{borrowernumber},
-            category => 2,
+            public => 1,
         }
     )->store;
     my $public_shelf1_2 = Koha::Virtualshelf->new({
             shelfname => "public shelf 2 for patron 1",
             owner => $patron1->{borrowernumber},
-            category => 2,
+            public => 1,
+        }
+    )->store;
+    my $shelf_to_share = Koha::Virtualshelf->new({
+            shelfname => "shared shelf",
+            owner => $patron1->{borrowernumber},
+            public => 0,
         }
     )->store;
 
     my $private_shelves = Koha::Virtualshelves->get_private_shelves;
     is( $private_shelves->count, 0, 'Without borrowernumber given, get_private_shelves should not return any shelf' );
     $private_shelves = Koha::Virtualshelves->get_private_shelves({ borrowernumber => $patron1->{borrowernumber} });
-    is( $private_shelves->count, 2, 'get_private_shelves should return all shelves for a given patron' );
+    is( $private_shelves->count, 3, 'get_private_shelves should return all shelves for a given patron' );
 
     $private_shelf2_1->share('a key')->accept('a key', $patron1->{borrowernumber});
     $private_shelves = Koha::Virtualshelves->get_private_shelves({ borrowernumber => $patron1->{borrowernumber} });
-    is( $private_shelves->count, 3, 'get_private_shelves should return all shelves for a given patron, even the shared ones' );
+    is( $private_shelves->count, 4, 'get_private_shelves should return all shelves for a given patron, even the shared ones' );
 
     my $public_shelves = Koha::Virtualshelves->get_public_shelves;
     is( $public_shelves->count, 2, 'get_public_shelves should return all public shelves, no matter who is the owner' );
+
+    my $shared_shelf = eval { $shelf_to_share->share("valid key") };
+    my $shared_shelves = Koha::Virtualshelfshares->search({ borrowernumber => $patron1->{borrowernumber} });
+    is( $shared_shelves->count, 1, 'Found the share for patron1' );
 
     teardown();
 };
@@ -419,19 +516,19 @@ subtest 'Get shelves containing biblios' => sub {
     my $shelf1 = Koha::Virtualshelf->new(
         {   shelfname    => "my first shelf",
             owner        => $patron1->{borrowernumber},
-            category     => 1,
+            public       => 0,
         }
     )->store;
     my $shelf2 = Koha::Virtualshelf->new(
         {   shelfname    => "my x second shelf", # 'x' to make it sorted after 'third'
             owner        => $patron2->{borrowernumber},
-            category     => 1,
+            public       => 0,
         }
     )->store;
     my $shelf3 = Koha::Virtualshelf->new(
         {   shelfname    => "my third shelf",
             owner        => $patron1->{borrowernumber},
-            category     => 2,
+            public       => 1,
         }
     )->store;
 
@@ -493,6 +590,49 @@ subtest 'Get shelves containing biblios' => sub {
 
     teardown();
 };
+
+subtest 'cannot_be_transferred' => sub {
+    plan tests => 12;
+
+    # Three patrons and a deleted one
+    my $staff = $builder->build_object({ class => 'Koha::Patrons', value => { flags => undef } });
+    my $listowner = $builder->build_object({ class => 'Koha::Patrons' });
+    my $receiver = $builder->build_object({ class => 'Koha::Patrons' });
+    my $removed_patron = $builder->build_object({ class => 'Koha::Patrons' });
+    $removed_patron->delete;
+
+    # Create three lists
+    my $private_list = Koha::Virtualshelf->new({ shelfname => "A", owner => $listowner->id })->store;
+    my $public_list = Koha::Virtualshelf->new({ shelfname => "B", public => 1, owner => $listowner->id })->store;
+    my $shared_list = Koha::Virtualshelf->new({ shelfname => "C", owner => $listowner->id })->store;
+    $shared_list->share("key")->accept( "key", $receiver->id );
+
+    # Test on private list
+    is( $private_list->cannot_be_transferred, 'unauthorized_transfer', 'Private list can never be transferred' );
+
+    # Test on public list
+    is( $public_list->cannot_be_transferred, 'missing_by_parameter', 'Public list, no parameters' );
+    is( $public_list->cannot_be_transferred({ by => $staff->id, to => $receiver->id }), 'unauthorized_transfer', 'Lacks permission' );
+    my $perms = $builder->build({ source => 'UserPermission', value  => {
+        borrowernumber => $staff->id, module_bit => 20, code => 'edit_public_lists',
+    }});
+    is( $public_list->cannot_be_transferred({ by => $staff->id, to => $receiver->id }), 0, 'Minimum permission passes' );
+    $staff->flags(1)->store;
+    is( $public_list->cannot_be_transferred({ by => $staff->id, to => $receiver->id }), 0, 'Superlibrarian permission passes' );
+    is( $public_list->cannot_be_transferred({ by => $staff->id, to => $receiver->id, interface => 'opac' }), 'unauthorized_transfer',
+        'Not supported on OPAC' );
+    is( $public_list->cannot_be_transferred({ by => $staff->id, to => $removed_patron->id }), 'new_owner_not_found', 'Removed patron cannot own' );
+
+    # Test on shared list
+    is( $shared_list->cannot_be_transferred({ by => $staff->id }), 'unauthorized_transfer', 'Shared list, transfer limited to owner' );
+    is( $shared_list->cannot_be_transferred({ by => $receiver->id }), 'unauthorized_transfer', 'Shared list, transfer still limited to owner' );
+    is( $shared_list->cannot_be_transferred({ by => $listowner->id, to => $receiver->id }), 0, 'sharee could become owner' );
+    is( $shared_list->cannot_be_transferred({ by => $listowner->id, to => $receiver->id, interface => 'intranet' }), 'unauthorized_transfer',
+        'Intranet not supported' );
+    is( $shared_list->cannot_be_transferred({ by => $listowner->id, to => $staff->id }), 'new_owner_has_no_share', 'staff has no share' );
+};
+
+$schema->storage->txn_rollback;
 
 sub teardown {
     $dbh->do(q|DELETE FROM virtualshelfshares|);

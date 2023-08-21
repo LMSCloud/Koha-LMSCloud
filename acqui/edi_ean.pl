@@ -23,9 +23,8 @@
 #
 use Modern::Perl;
 
-use C4::Auth;
-use C4::Koha;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use Koha::Database;
 use CGI;
 my $schema = Koha::Database->new()->schema();
@@ -52,7 +51,6 @@ else {
             query           => $query,
             type            => 'intranet',
             flagsrequired   => { acquisition => 'order_manage' },
-            debug           => 1,
         }
     );
     $template->param( eans     => \@eans );

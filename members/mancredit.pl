@@ -23,19 +23,19 @@
 
 use Modern::Perl;
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_and_exit_if_error output_and_exit output_html_with_http_headers );
 use CGI qw ( -utf8 );
 
 use C4::Members;
 use C4::Accounts;
-use C4::Items;
 use C4::CashRegisterManagement qw(passCashRegisterCheck);
 
 use Koha::Items;
 use Koha::Patrons;
 use Koha::Patron::Categories;
 use Koha::Account::CreditTypes;
+use Koha::AdditionalFields;
 
 use Koha::Token;
 
@@ -47,7 +47,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         type            => "intranet",
         flagsrequired   => {
             borrowers     => 'edit_borrowers',
-            updatecharges => 'remaining_permissions'
+            updatecharges => 'manual_credit'
         }
     }
 );
@@ -87,23 +87,42 @@ if ($add) {
         my $item = Koha::Items->find( { barcode => $barcode } );
         $item_id = $item->itemnumber if $item;
     }
-    my $description = $input->param('desc');
-    my $note        = $input->param('note');
-    my $amount      = $input->param('amount') || 0;
-    my $type        = $input->param('type');
+    my $description      = $input->param('desc');
+    my $note             = $input->param('note');
+    my $amount           = $input->param('amount') || 0;
+    my $type             = $input->param('type');
+    my $credit_type      = $input->param('credit_type');
+    my $cash_register_id = $input->param('cash_register');
 
-    $patron->account->add_credit(
+    my $line = $patron->account->add_credit(
         {
-            amount      => $amount,
-            description => $description,
-            item_id     => $item_id,
-            library_id  => $library_id,
-            note        => $note,
-            type        => $type,
-            user_id     => $logged_in_user->id,
-            interface   => C4::Context->interface
+            amount        => $amount,
+            description   => $description,
+            item_id       => $item_id,
+            library_id    => $library_id,
+            note          => $note,
+            type          => $type,
+            user_id       => $logged_in_user->id,
+            interface     => C4::Context->interface,
+            payment_type  => $credit_type,
+            cash_register => $cash_register_id
         }
     );
+
+    my @additional_fields;
+    my $accountline_fields = Koha::AdditionalFields->search({ tablename => 'accountlines:credit' });
+    while ( my $field = $accountline_fields->next ) {
+        my $value = $input->param('additional_field_' . $field->id);
+        if (defined $value) {
+            push @additional_fields, {
+                id => $field->id,
+                value => $value,
+            };
+        }
+    }
+    if (@additional_fields) {
+        $line->set_additional_fields(\@additional_fields);
+    }
 
     if ( C4::Context->preference('AccountAutoReconcile') ) {
         $patron->account->reconcile_balance;
@@ -117,7 +136,7 @@ else {
 
     my @credit_types = Koha::Account::CreditTypes->search_with_library_limits(
         { can_be_added_manually => 1, archived => 0 },
-        {}, $library_id );
+        {}, $library_id )->as_list;
 
     my $branch = C4::Context->userenv->{'branch'};
     my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
@@ -130,6 +149,7 @@ else {
         csrf_token   => Koha::Token->new->generate_csrf(
             { session_id => scalar $input->cookie('CGISESSID') }
         ),
+        available_additional_fields => [ Koha::AdditionalFields->search({ tablename => 'accountlines:credit' })->as_list ],
     );
     output_html_with_http_headers $input, $cookie, $template->output;
 }

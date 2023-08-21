@@ -21,11 +21,18 @@ use DateTime;
 use C4::Context;
 use Koha::Exceptions;
 
-use base 'Exporter';
+use vars qw(@ISA @EXPORT_OK);
+BEGIN {
+    require Exporter;
+    @ISA = qw(Exporter);
 
-our @EXPORT = (
-    qw( dt_from_string output_pref format_sqldatetime )
-);
+    @EXPORT_OK = qw(
+        dt_from_string
+        output_pref
+        format_sqldatetime
+        flatpickr_date_format
+    );
+}
 
 =head1 DateUtils
 
@@ -53,14 +60,16 @@ sub dt_from_string {
 
     return if $date_string and $date_string =~ m|^0000-0|;
 
-    $tz = C4::Context->tz unless $tz;;
+    my $do_fallback = defined($date_format) ? 0 : 1;
+    my $server_tz = C4::Context->tz;
+    $tz = C4::Context->tz unless $tz;
 
     return DateTime->now( time_zone => $tz ) unless $date_string;
 
     $date_format = C4::Context->preference('dateformat') unless $date_format;
 
-    if ( ref($date_string) eq 'DateTime' ) {    # already a dt return it
-        return $date_string;
+    if ( ref($date_string) eq 'DateTime' ) {    # already a dt return a clone
+        return $date_string->clone();
     }
 
     my $regex;
@@ -117,8 +126,14 @@ sub dt_from_string {
             (?<minute>\d{2})
             :
             (?<second>\d{2})
-            (\.\d{1,3})?(([Zz])|([\+|\-]([01][0-9]|2[0-3]):[0-5][0-9]))
+            (\.\d{1,3})?(([Zz]$)|((?<offset>[\+|\-])(?<hours>[01][0-9]|2[0-3]):(?<minutes>[0-5][0-9])))
         /xms;
+
+        # Default to UTC (when 'Z' is passed) for inbound timezone.
+        # The regex above succeeds for both 'z', 'Z' and '+/-' offset.
+        # We set tz as though Z was passed by default and then correct it later if an offset is detected
+        # by the presence fo the <offset> variable.
+        $tz = DateTime::TimeZone->new( name => 'UTC' );
     }
     elsif ( $date_format eq 'iso' or $date_format eq 'sql' ) {
         # iso or sql format are yyyy-dd-mm[ hh:mm:ss]"
@@ -128,9 +143,10 @@ sub dt_from_string {
         die "Invalid dateformat parameter ($date_format)";
     }
 
-    # Add the faculative time part [hh:mm[:ss]]
-    my $time_re .= qr|
+    # Add the facultative time part including time zone offset; ISO8601 allows +02 or +0200 too
+    my $time_re = qr{
             (
+                [Tt]?
                 \s*
                 (?<hour>\d{2})
                 :
@@ -143,10 +159,17 @@ sub dt_from_string {
                     \s
                     (?<ampm>\w{2})
                 )?
+                (
+                    (?<utc>[Zz]$)|((?<offset>[\+|\-])(?<hours>[01][0-9]|2[0-3]):?(?<minutes>[0-5][0-9])?)
+                )?
             )?
-    |xms;
-    $regex .= $time_re;
+    }xms;
+    $regex .= $time_re unless ( $date_format eq 'rfc3339' );
     $fallback_re .= $time_re;
+
+    # Ensure we only accept date strings and not other characters.
+    $regex = '^' . $regex . '$';
+    $fallback_re = '^' . $fallback_re . '$';
 
     my %dt_params;
     my $ampm;
@@ -160,7 +183,14 @@ sub dt_from_string {
             second => $+{second},
         );
         $ampm = $+{ampm};
-    } elsif ( $date_string =~ $fallback_re ) {
+        if ( $+{utc} ) {
+            $tz = DateTime::TimeZone->new( name => 'UTC' );
+        }
+        if ( $+{offset} ) {
+            # If offset given, set inbound timezone using it.
+            $tz = DateTime::TimeZone->new( name => $+{offset} . $+{hours} . ( $+{minutes} || '00' ) );
+        }
+    } elsif ( $do_fallback && $date_string =~ $fallback_re ) {
         %dt_params = (
             year   => $+{year},
             month  => $+{month},
@@ -179,6 +209,9 @@ sub dt_from_string {
     $dt_params{day} = '01' if $dt_params{day} eq '00';
 
     # Set default hh:mm:ss to 00:00:00
+    my $date_only = ( !defined( $dt_params{hour} )
+        && !defined( $dt_params{minute} )
+        && !defined( $dt_params{second} ) );
     $dt_params{hour}   = 00 unless defined $dt_params{hour};
     $dt_params{minute} = 00 unless defined $dt_params{minute};
     $dt_params{second} = 00 unless defined $dt_params{second};
@@ -192,21 +225,27 @@ sub dt_from_string {
         }
     }
 
+    my $floating = 0;
     my $dt = eval {
         DateTime->new(
             %dt_params,
             # No TZ for dates 'infinite' => see bug 13242
-            ( $dt_params{year} < 9999 ? ( time_zone => $tz->name ) : () ),
+            ( $dt_params{year} < 9999 ? ( time_zone => $tz ) : () ),
         );
     };
     if ($@) {
         $tz = DateTime::TimeZone->new( name => 'floating' );
+        $floating = 1;
         $dt = DateTime->new(
             %dt_params,
             # No TZ for dates 'infinite' => see bug 13242
-            ( $dt_params{year} < 9999 ? ( time_zone => $tz->name ) : () ),
+            ( $dt_params{year} < 9999 ? ( time_zone => $tz ) : () ),
         );
     }
+
+    # Convert to configured timezone (unless we started with a dateonly string or had to drop to floating time)
+    $dt->set_time_zone($server_tz) unless ( $date_only || $floating );
+
     return $dt;
 }
 
@@ -255,7 +294,7 @@ sub output_pref {
     # FIXME: see bug 13242 => no TZ for dates 'infinite'
     if ( $dt->ymd !~ /^9999/ ) {
         my $tz = $dateonly ? DateTime::TimeZone->new(name => 'floating') : C4::Context->tz;
-        $dt->set_time_zone( $tz );
+        eval { $dt->set_time_zone( $tz ); }
     }
 
     my $pref =
@@ -336,6 +375,28 @@ sub format_sqldatetime {
         });
     }
     return q{};
+}
+
+=head2 flatpickr_date_format
+
+$date_format = flatpickr_date_format( $koha_date_format );
+
+Converts Koha's date format to Flatpickr's. E.g. 'us' returns 'm/d/Y'.
+
+If no argument is given, the dateformat preference is assumed.
+
+Returns undef if format is unknown.
+
+=cut
+
+sub flatpickr_date_format {
+    my $arg = shift // C4::Context->preference('dateformat');
+    return {
+        us     => 'm/d/Y',
+        metric => 'd/m/Y',
+        dmydot => 'd.m.Y',
+        iso    => 'Y-m-d',
+    }->{$arg};
 }
 
 1;

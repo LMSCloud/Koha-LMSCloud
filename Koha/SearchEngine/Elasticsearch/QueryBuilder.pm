@@ -40,11 +40,10 @@ provides something that can be given to elasticsearch to get answers.
 =cut
 
 use base qw(Koha::SearchEngine::Elasticsearch);
-use Carp;
 use JSON;
-use List::MoreUtils qw/ each_array /;
+use List::MoreUtils qw( each_array );
 use Modern::Perl;
-use URI::Escape;
+use URI::Escape qw( uri_escape_utf8 );
 
 use C4::Context;
 use Koha::Exceptions;
@@ -82,6 +81,7 @@ our %index_field_convert = (
     'nt' => 'note',
     'notes' => 'note',
     'rcn' => 'record-control-number',
+    'cni' => 'control-number-identifier',
     'su' => 'subject',
     'su-to' => 'subject',
     'su-ut' => 'subject',
@@ -576,8 +576,27 @@ our $koha_to_index_name = {
     'match-heading' => 'match-heading',
     'see-from'      => 'match-heading-see-from',
     thesaurus       => 'subject-heading-thesaurus',
+    'thesaurus-conventions' => 'subject-heading-thesaurus-conventions',
     any             => '',
     all             => ''
+};
+
+# Note that sears and aat map to 008/11 values here
+# but don't appear in C4/Headin/MARC21 thesaurus
+# because they don't have values in controlled field indicators
+# https://www.loc.gov/marc/authority/ad008.html
+our $thesaurus_to_value = {
+   lcsh  => 'a',
+   lcac  => 'b',
+   mesh  => 'c',
+   nal   => 'd',
+   notapplicable => 'n',
+   cash  => 'k',
+   rvm   => 'v',
+   aat   => 'r',
+   sears => 's',
+   notdefined => 'z',
+   notspecified => '|'
 };
 
 sub build_authorities_query_compat {
@@ -600,10 +619,12 @@ sub build_authorities_query_compat {
 
         $m = exists $koha_to_index_name->{$m} ? $koha_to_index_name->{$m} : $m;
         push @indexes, $m;
-        warn "Unknown search field $m in marclist" unless (defined $mappings->{data}->{properties}->{$m} || $m eq '' || $m eq 'match-heading');
+        warn "Unknown search field $m in marclist" unless (defined $mappings->{properties}->{$m} || $m eq '' || $m eq 'match-heading');
     }
     for ( my $i = 0 ; $i < @$value ; $i++ ) {
         next unless $value->[$i]; #clean empty form values, ES doesn't like undefined searches
+        $value->[$i] = $thesaurus_to_value->{ $value->[$i] }
+            if( defined $thesaurus_to_value->{ $value->[$i] } && $indexes[$i] eq 'subject-heading-thesaurus' );
         push @searches,
           {
             where    => $indexes[$i],
@@ -717,6 +738,7 @@ sub _convert_sort_fields {
         relevance   => undef,       # default
         title       => 'title',
         pubdate     => 'publyear',
+        biblionumber => 'local-number',
     );
     my %sort_order_convert =
       ( qw( desc desc ), qw( dsc desc ), qw( asc asc ), qw( az asc ), qw( za desc ) );
@@ -736,6 +758,8 @@ sub _convert_index_fields {
 
     my %index_type_convert =
       ( __default => undef, phr => 'phrase', rtrn => 'right-truncate', 'st-year' => 'st-year' );
+
+    @indexes = grep { $_ ne q{} } @indexes; # Remove any blank indexes, i.e. keyword
 
     # Convert according to our table, drop anything that doesn't convert.
     # If a field starts with mc- we save it as it's used (and removed) later
@@ -805,7 +829,7 @@ will have to wait for a real query parser.
 
 sub _convert_index_strings_freeform {
     my ( $self, $search ) = @_;
-    # @TODO: Currenty will alter also fields contained within quotes:
+    # @TODO: Currently will alter also fields contained within quotes:
     # `searching for "stuff cn:123"` for example will become
     # `searching for "stuff local-number:123"
     #
@@ -819,7 +843,7 @@ sub _convert_index_strings_freeform {
     # Lower case field names
     $search =~ s/($field_name_pattern)(?:,[\w-]*)?($multi_field_pattern):/\L$1\E$2:/og;
     # Resolve possible field aliases
-    $search =~ s/($field_name_pattern)($multi_field_pattern):/(exists $index_field_convert{$1} ? $index_field_convert{$1} : $1)."$2:"/oge;
+    $search =~ s/($field_name_pattern)($multi_field_pattern):/(exists $index_field_convert{$1} ? $index_field_convert{$1} : $1).($1 eq 'kw' ? "$2" : "$2:")/oge;
     return $search;
 }
 
@@ -1047,9 +1071,9 @@ sub _query_regex_escape_process {
             # Will escape unescaped slashes (/) while preserving
             # unescaped slashes within quotes
             # @TODO: assumes quotes are always balanced and will
-            # not handle escaped qoutes properly, should perhaps be
+            # not handle escaped quotes properly, should perhaps be
             # replaced with a more general parser solution
-            # so that this function is ever only provided with unqouted
+            # so that this function is ever only provided with unquoted
             # query parts
             $query =~ s@(?:(?<!\\)((?:[\\]{2})*)(?=/))(?![^"]*"(?:[^"]*"[^"]*")*[^"]*$)@\\$1@g;
         }
@@ -1081,14 +1105,28 @@ sub _fix_limit_special_cases {
     foreach my $l (@$limits) {
 
         # This is set up by opac-search.pl
-        if ( $l =~ /^yr,st-numeric,ge=/ ) {
+        if ( $l =~ /^yr,st-numeric,ge[=:]/ ) {
             my ( $start, $end ) =
-              ( $l =~ /^yr,st-numeric,ge=(.*) and yr,st-numeric,le=(.*)$/ );
+              ( $l =~ /^yr,st-numeric,ge[=:](.*) and yr,st-numeric,le[=:](.*)$/ );
             next unless defined($start) && defined($end);
             push @new_lim, "date-of-publication:[$start TO $end]";
         }
-        elsif ( $l =~ /^yr,st-numeric=/ ) {
-            my ($date) = ( $l =~ /^yr,st-numeric=(.*)$/ );
+        elsif( $l =~ /^search_filter:/ ){
+            # Here we are going to get the query as a string, clean it, and take care of the part of the limit
+            # Calling build_query_compat here is avoided because we generate more complex query structures
+            my ($filter_id) = ( $l =~ /^search_filter:(.*)$/ );
+            my $search_filter = Koha::SearchFilters->find( $filter_id );
+            next unless $search_filter;
+            my ($expanded_lim,$query_lim) = $search_filter->expand_filter;
+            # In the case of nested filters we need to expand them all
+            foreach my $el ( @{$self->_fix_limit_special_cases($expanded_lim)} ){
+                push @new_lim, $el;
+            }
+            # We need to clean the query part as we have built a string from the original search
+            push @new_lim, $self->clean_search_term( $query_lim );
+        }
+        elsif ( $l =~ /^yr,st-numeric[=:]/ ) {
+            my ($date) = ( $l =~ /^yr,st-numeric[=:](.*)$/ );
             next unless defined($date);
             $date = $self->_modify_string_by_type(type => 'st-year', operand => $date);
             push @new_lim, "date-of-publication:$date";
@@ -1118,16 +1156,17 @@ sub _fix_limit_special_cases {
             }
 
             if (@branchcodes) {
+                # We quote the branchcodes here to prevent issues when codes are reserved words in ES, e.g. OR, AND, NOT, etc.
                 if ( $branchfield eq "homebranch" ) {
-                    push @new_lim, sprintf "(%s)", join " OR ", map { 'homebranch: ' . $_ } @branchcodes;
+                    push @new_lim, sprintf "(%s)", join " OR ", map { 'homebranch: "' . $_ . '"' } @branchcodes;
                 }
                 elsif ( $branchfield eq "holdingbranch" ) {
-                    push @new_lim, sprintf "(%s)", join " OR ", map { 'holdingbranch: ' . $_ } @branchcodes;
+                    push @new_lim, sprintf "(%s)", join " OR ", map { 'holdingbranch: "' . $_ . '"' } @branchcodes;
                 }
                 else {
                     push @new_lim, sprintf "(%s OR %s)",
-                      join( " OR ", map { 'homebranch: ' . $_ } @branchcodes ),
-                      join( " OR ", map { 'holdingbranch: ' . $_ } @branchcodes );
+                      join( " OR ", map { 'homebranch: "' . $_ . '"' } @branchcodes ),
+                      join( " OR ", map { 'holdingbranch: "' . $_ . '"' } @branchcodes );
                 }
             }
         }
@@ -1136,6 +1175,15 @@ sub _fix_limit_special_cases {
             my $addterm = C4::Context->preference('ElasticsearchAdditionalAvailabilitySearch');
             if ( $addterm && $addterm !~ /^\s*$/ ) {
                 push @new_lim, $addterm;
+			}
+        }
+        elsif ( $l =~ /^\s*(kw\b[\w,-]*?):(.*)/) {
+            my ( $field, $term ) = ($1, $2);
+            if ( defined($field) && defined($term) && $field =~ /,phr$/) {
+                push @new_lim, "(\"$term\")";
+            }
+            else {
+                push @new_lim, $term;
             }
         }
         else {
@@ -1167,7 +1215,7 @@ sub _sort_field {
     my ($self, $f) = @_;
 
     my $mappings = $self->get_elasticsearch_mappings();
-    my $textField = defined $mappings->{data}{properties}{$f}{type} && $mappings->{data}{properties}{$f}{type} eq 'text';
+    my $textField = defined $mappings->{properties}{$f}{type} && $mappings->{properties}{$f}{type} eq 'text';
     if (!defined $self->sort_fields()->{$f} || $self->sort_fields()->{$f}) {
         $f .= '__sort';
     } else {
@@ -1213,10 +1261,10 @@ any field prefixes and quoted strings.
 
 =cut
 
-my $tokenize_split_re = qr/((?:${field_name_pattern}${multi_field_pattern}:)?"[^"]+"|\s+)/;
-
 sub _split_query {
     my ( $self, $query ) = @_;
+    
+    my $tokenize_split_re = qr/((?:${field_name_pattern}${multi_field_pattern}:)?"[^"]+"|\s+)/;
 
     # '"donald duck" title:"the mouse" and peter" get split into
     # ['', '"donald duck"', '', ' ', '', 'title:"the mouse"', '', ' ', 'and', ' ', 'pete']

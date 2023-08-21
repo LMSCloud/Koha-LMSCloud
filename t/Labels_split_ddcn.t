@@ -37,12 +37,12 @@ BEGIN {
     }
     my $test_num = 1;
     foreach (keys(%$ddcns)) {
-        my $split_num += scalar(@{$ddcns->{$_}});
+        my $split_num = scalar(@{$ddcns->{$_}});
         $test_num += 2 * $split_num;
         $test_num += 4;
     }
     plan tests => $test_num;
-    use_ok('C4::ClassSplitRoutine::Dewey');
+    use_ok('C4::ClassSplitRoutine::Dewey', qw( split_callnumber ));
     use vars qw($ddcns);
 }
 

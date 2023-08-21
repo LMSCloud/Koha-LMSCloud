@@ -13,24 +13,20 @@
 </head>
 
 <body id="admin_transport_cost_matrix" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Transport cost matrix
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Transport cost matrix</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -96,7 +92,7 @@
                 </table>
             </fieldset>
             <fieldset class="action">
-                <input type="submit" value="Save" class="submit" /> <a href="/cgi-bin/koha/admin/transport-cost-matrix.pl" class="cancel">Cancel</a>
+                <input type="submit" class="btn btn-primary" value="Save" /> <a href="/cgi-bin/koha/admin/transport-cost-matrix.pl" class="cancel">Cancel</a>
             </fieldset>
         </form>
 

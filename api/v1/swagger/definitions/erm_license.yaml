@@ -1,0 +1,60 @@
+---
+type: object
+properties:
+  license_id:
+    type: integer
+    description: internally assigned license identifier
+    readOnly: true
+  vendor_id:
+    description: foreign key to aqbooksellers
+    type:
+      - integer
+      - "null"
+  name:
+    description: name of the license
+    type: string
+  description:
+    description: description of the license
+    type:
+      - string
+      - "null"
+  type:
+    description: description of the license
+    type: string
+  status:
+    description: status of the license
+    type: string
+  started_on:
+    type:
+      - string
+      - "null"
+    format: date
+    description: Start of the license
+  ended_on:
+    type:
+      - string
+      - "null"
+    format: date
+    description: End of the license
+  user_roles:
+    type: array
+    description: role for users
+    items:
+      $ref: erm_user_role.yaml
+  documents:
+    type: array
+    description: documents
+    items:
+      $ref: erm_document.yaml
+  vendor:
+    description: Information about the vendor
+    type:
+      - object
+      - "null"
+
+additionalProperties: false
+required:
+  - license_id
+  - name
+  - status
+  - type

@@ -20,12 +20,11 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Output;
-use C4::Auth;
-use C4::Koha;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
 use C4::Letters;
 use C4::Members;
-use C4::Overdues;
+use C4::Overdues qw( GetOverdueMessageTransportTypes );
 use Koha::ClaimingRule;
 use Koha::ClaimingRules;
 use Koha::Libraries;
@@ -35,7 +34,7 @@ use Koha::Patron::Categories;
 our $input = CGI->new;
 my $dbh = C4::Context->dbh;
 
-my @patron_categories = Koha::Patron::Categories->search( { overduenoticerequired => { '>' => 0 } } );
+my @patron_categories = Koha::Patron::Categories->search( { overduenoticerequired => { '>' => 0 } } )->as_list;
 my @category_codes  = map { $_->categorycode } @patron_categories;
 
 our @rule_params     = qw(delay letter debarred);
@@ -66,7 +65,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { tools => 'edit_notice_status_triggers' },
-        debug           => 1,
     }
 );
 
@@ -438,7 +436,7 @@ my @tabs = (
 ########################################
 #  Read item types
 ########################################
-my @itemtypes = Koha::ItemTypes->search_with_localization;
+my @itemtypes = Koha::ItemTypes->search_with_localization->as_list;
 
 ########################################
 #  Read claiming fee rules 

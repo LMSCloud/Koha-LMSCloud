@@ -19,7 +19,7 @@ use Modern::Perl;
 
 use C4::Context;
 
-use Test::More tests => 1;
+use Test::More;
 use Test::MockModule;
 
 use C4::Context;
@@ -29,7 +29,11 @@ use t::lib::Selenium;
 use t::lib::TestBuilder;
 
 eval { require Selenium::Remote::Driver; };
-skip "Selenium::Remote::Driver is needed for selenium tests.", 1 if $@;
+if ( $@ ) {
+    plan skip_all => "Selenium::Remote::Driver is needed for selenium tests.";
+} else {
+    plan tests => 1;
+}
 
 my $s             = t::lib::Selenium->new;
 my $driver        = $s->driver;
@@ -118,6 +122,7 @@ subtest 'Update child to patron' => sub {
         my $handles = $driver->get_window_handles;
         $driver->switch_to_window($handles->[1]);
         $driver->find_element('//input[@id="catcode'.$patron_category_A->categorycode.'"]')->click;
+        $driver->set_window_size(1024, 768);
         $s->submit_form;
 
         is( $child->get_from_storage->categorycode, $patron_category_A->categorycode, 'The child should now be an adult!' );

@@ -18,41 +18,36 @@ Acquisitions &rsaquo; Koha
 
 <body id="acq_duplicate_orders" class="acq">
 
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'acquisitions-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'acquisitions-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a>
-    [% UNLESS blocking_error %]
-        </li>
-        <li>
-            <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% vendor.id | uri %]">[% vendor.name | html %]</a>
-        </li>
-        <li>
-            <a href="/cgi-bin/koha/acqui/basket.pl?basketno=[% basket.basketno | uri %]">Basket [% basket.basketno | html %]</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Duplicate existing orders
-            </a>
-        </li>
-    [% END %]
-    </ol>
-</nav>
+        [% END %]
+        [% UNLESS blocking_error %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% vendor.id | uri %]">[% vendor.name | html %]</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/acqui/basket.pl?basketno=[% basket.basketno | uri %]">Basket [% basket.basketno | html %]</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Duplicate existing orders</span>
+            [% END %]
+        [% END # /UNLESS blocking_error %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
         <div class="col-sm-10 col-sm-push-2">
             <main>
 
+<h1>Duplicate existing orders</h1>
 [% INCLUDE 'blocking_errors.inc' %]
-
-<h2>Duplicate existing orders</h2>
 
 [% IF op == 'search' || op == 'select' %]
 <form action="/cgi-bin/koha/acqui/duplicate_orders.pl" method="post">
@@ -72,9 +67,9 @@ Acquisitions &rsaquo; Koha
             <input type="hidden" name="basketno" value="[% basket.basketno | html %]" />
 
             <input type="hidden" name="ordernumbers" value="[% ordernumbers.join(',') | html %]" />
-            <fieldset class="action"><input type="submit" value="Search" /></fieldset>
         </div>
     </fieldset>
+    <fieldset class="action"><input type="submit" class="btn btn-primary" value="Search" /></fieldset>
 </form>
 [% END %]
 
@@ -97,11 +92,11 @@ Acquisitions &rsaquo; Koha
         </td>
         <td>
             [% SWITCH order.orderstatus %]
-                [% CASE 'new' %]New
-                [% CASE 'ordered' %]Ordered
-                [% CASE 'partial' %]Partially received
-                [% CASE 'complete' %]Received
-                [% CASE 'cancelled' %]Cancelled
+                [% CASE 'new' %]<span>New</span>
+                [% CASE 'ordered' %]<span>Ordered</span>
+                [% CASE 'partial' %]<span>Partially received</span>
+                [% CASE 'complete' %]<span>Received</span>
+                [% CASE 'cancelled' %]<span>Cancelled</span>
             [% END %]
         </td>
         <td>[% order.basketname | html %] (<a href="basket.pl?basketno=[% order.basketno | uri %]">[% order.basketno | html %]</a>)</td>
@@ -137,8 +132,8 @@ Acquisitions &rsaquo; Koha
 
 
 [% IF op == 'select' && ( result_order_loop || selected_order_loop ) %]
-    <div id="xxx">
-        <form method="post" action="/cgi-bin/koha/acqui/duplicate_orders.pl">
+<form method="post" action="/cgi-bin/koha/acqui/duplicate_orders.pl">
+    <div id="orders_to_copy" class="page-section">
         <table id="table_orders">
             <caption>
                 <span class="actions"><a href="#" id="select_all"><i class="fa fa-check"></i> Select all</a>
@@ -174,13 +169,13 @@ Acquisitions &rsaquo; Koha
             [% END %]
             </tbody>
         </table>
-        <fieldset class="action">
-            <input type="hidden" name="op" value="batch_edit" />
-            <input type="hidden" name="basketno" value="[% basket.basketno | html %]" />
-            <button type="submit" class="btn btn-default go_to_batch_edit">Next <i class="fa fa-fw fa-arrow-right"></i></button>
-        </fieldset>
-        </form>
     </div>
+    <fieldset class="action">
+        <input type="hidden" name="op" value="batch_edit" />
+        <input type="hidden" name="basketno" value="[% basket.basketno | html %]" />
+        <button type="submit" class="btn btn-primary go_to_batch_edit">Next <i class="fa fa-fw fa-arrow-right"></i></button>
+    </fieldset>
+</form>
 
 [% ELSIF op == "batch_edit" %]
 
@@ -258,7 +253,7 @@ Acquisitions &rsaquo; Koha
         <input type="hidden" name="basketno" value="[% basket.basketno | html %]" />
         <!-- origquantityrec only here for javascript compatibility (additem.js needs it, useless here, useful when receiveing an order -->
         <input id="origquantityrec" readonly="readonly" type="hidden" name="origquantityrec" value="1" />
-        <button type="submit" class="btn btn-default">Duplicate orders</button>
+        <button type="submit" class="btn btn-primary">Duplicate orders</button>
         <a class="cancel" href="/cgi-bin/koha/acqui/duplicate_orders.pl?basketno=[% basket.basketno | html %]">Cancel</a>
     </fieldset>
 </form>
@@ -311,7 +306,6 @@ Acquisitions &rsaquo; Koha
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'columns_settings.inc' %]
-    [% Asset.js("js/autocomplete/patrons.js") | $raw %]
     [% Asset.js("js/acq.js") | $raw %]
     [% Asset.js("js/funds_sorts.js") | $raw %]
     <script>
@@ -328,18 +322,39 @@ Acquisitions &rsaquo; Koha
         var MSG_NO_FUND_SELECTED = _("No fund selected.");
         $(document).ready(function() {
             $('span.hint').hide();
-            var columns_settings;// = [% TablesSettings.GetColumns( 'acqui', 'histsearch', 'histsearcht', 'json' ) | $raw %];
             KohaTable("table_orders", {
                 "bPaginate": false
-            }, columns_settings );
+            });
 
             [% IF op == 'search' OR op == 'select' %]
-                patron_autocomplete({
-                    patron_container: $("#basket_creators"),
-                    input_autocomplete: $("#find_patron"),
-                    patron_input_name: 'created_by',
-                    field_to_retrieve: 'borrowernumber'
+                function AddPatron( patron_name, value, container, input_name ) {
+                    div = "<div id='borrower_" + value + "'>" + patron_name + " ( <a href='#' class='removePatron'><i class='fa fa-trash' aria-hidden='true'></i> " + MSG_REMOVE_PATRON + " </a> ) <input type='hidden' name='" + input_name + "' value='" + value + "' /></div>";
+                    $(container).append( div );
+
+                    $(container).parent().show( 800 );
+                }
+                function RemovePatron( cardnumber, container ) {
+                    $( '#borrower_' + cardnumber ).remove();
+
+                    if ( ! $(container).html() ) {
+                        $(container).parent("fieldset").hide( 800 );
+                    }
+                }
+                patron_autocomplete($("#find_patron"), {
+                    'on-select-callback': function( event, ui ) {
+                        var field = ui.item.borrowernumber;
+                        AddPatron( ui.item.firstname + " " + ( ui.item.middle_name || "" ) + " " + ui.item.surname, field, $("#basket_creators"), 'created_by' );
+                        $("#find_patron").val('').focus();
+                        return false;
+                    }
                 });
+                $("body").on("click",".removePatron",function(e){
+                    e.preventDefault();
+                    var divid = $(this).parent().attr("id");
+                    var cardnumber = divid.replace("borrower_","");
+                    RemovePatron(cardnumber, $("#basket_creators"));
+                });
+
             [% END %]
 
             $("#show_orders_filters, #hide_orders_filters").on('click', function(e) {
@@ -399,7 +414,7 @@ Acquisitions &rsaquo; Koha
             $("#batch_edit_form").on("submit", function(e){
                 var budget_value_will_be_reused = $("input[name='copy_existing_value'][value='budget_id']").is(':checked');
                 if ( ! budget_value_will_be_reused ) {
-                    if ($("#all_budget_id").find("option:selected").attr("value") == "" ) {
+                    if ($("#all_budget_id").find("option:selected").val() == "" ) {
                         alert(MSG_NO_FUND_SELECTED);
                         e.preventDefault();
                     }

@@ -23,41 +23,33 @@ use Modern::Perl;
 
 # external modules
 use CGI qw ( -utf8 );
-use List::MoreUtils qw/uniq/;
-use Digest::MD5 qw(md5_base64);
 
 # internal modules
-use C4::Auth;
+use C4::Auth qw( get_template_and_user haspermission );
 use C4::Context;
-use C4::Output;
-use C4::Members;
-use C4::Koha;
-use C4::Log;
-use C4::Letters;
+use C4::Output qw( output_and_exit output_and_exit_if_error output_html_with_http_headers );
+use C4::Members qw( checkcardnumber get_cardnumber_length );
+use C4::Koha qw( GetAuthorisedValues );
+use C4::Letters qw( GetPreparedLetter EnqueueLetter SendQueuedMessages );
 use C4::Form::MessagingPreferences;
 use Koha::AuthUtils;
 use Koha::AuthorisedValues;
 use Koha::Email;
-use Koha::Patron::Debarments;
+use Koha::Patron::Debarments qw( AddDebarment DelDebarment );
+use Koha::Patron::Restriction::Types;
 use Koha::Cities;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Libraries;
 use Koha::Patrons;
 use Koha::Patron::Attribute::Types;
 use Koha::Patron::Categories;
 use Koha::Patron::HouseboundRole;
 use Koha::Patron::HouseboundRoles;
+use Koha::Plugins;
 use Koha::Token;
 use Koha::SMS::Providers;
 
-use vars qw($debug);
-
-BEGIN {
-	$debug = $ENV{DEBUG} || 0;
-}
-	
 my $input = CGI->new;
-($debug) or $debug = $input->param('debug') || 0;
 my %data;
 
 my $dbh = C4::Context->dbh;
@@ -67,7 +59,6 @@ my ($template, $loggedinuser, $cookie)
            query => $input,
            type => "intranet",
            flagsrequired => {borrowers => 'edit_borrowers'},
-           debug => ($debug) ? 1 : 0,
        });
 
 my $borrowernumber = $input->param('borrowernumber');
@@ -78,7 +69,7 @@ if ( $borrowernumber and not $patron ) {
 }
 
 if ( C4::Context->preference('SMSSendDriver') eq 'Email' ) {
-    my @providers = Koha::SMS::Providers->search();
+    my @providers = Koha::SMS::Providers->search( {}, { order_by => 'name' } )->as_list;
     $template->param( sms_providers => \@providers );
 }
 
@@ -102,11 +93,12 @@ my @errors;
 my $borrower_data;
 my $NoUpdateLogin;
 my $NoUpdateEmail;
+my $CanUpdatePasswordExpiration;
 my $userenv = C4::Context->userenv;
 my @messages;
 
 ## Deal with guarantor stuff
-$template->param( relationships => scalar $patron->guarantor_relationships ) if $patron;
+$template->param( relationships => $patron->guarantor_relationships ) if $patron;
 
 my @relations = split /\|/, C4::Context->preference('borrowerRelationship'), -1;
 @relations = ('') unless @relations;
@@ -126,7 +118,8 @@ foreach my $id ( @delete_guarantor ) {
 
 ## Deal with debarments
 $template->param(
-    debarments => scalar GetDebarments( { borrowernumber => $borrowernumber } ) );
+    restriction_types => scalar Koha::Patron::Restriction::Types->search()
+);
 my @debarments_to_remove = $input->multi_param('remove_debarment');
 foreach my $d ( @debarments_to_remove ) {
     DelDebarment( $d );
@@ -142,7 +135,7 @@ if ( $input->param('add_debarment') ) {
     AddDebarment(
         {
             borrowernumber => $borrowernumber,
-            type           => 'MANUAL',
+            type           => scalar $input->param('debarred_type') // 'MANUAL',
             comment        => scalar $input->param('debarred_comment'),
             expiration     => $expiration,
         }
@@ -176,20 +169,16 @@ if ( $op eq 'modify' or $op eq 'save' or $op eq 'duplicate' ) {
     if ( $patron->is_superlibrarian && !$logged_in_user->is_superlibrarian ) {
         $NoUpdateEmail = 1;
     }
+    if ($logged_in_user->is_superlibrarian) {
+        $CanUpdatePasswordExpiration = 1;
+    }
 
     $borrower_data = $patron->unblessed;
-    $borrower_data->{category_type} = $patron->category->category_type;
 }
 
 my $categorycode  = $input->param('categorycode') || $borrower_data->{'categorycode'};
-my $category_type = $input->param('category_type') || '';
-unless ($category_type or !($categorycode)){
-    my $borrowercategory = Koha::Patron::Categories->find($categorycode);
-    $category_type    = $borrowercategory->category_type;
-    my $category_name = $borrowercategory->description;
-    $template->param("categoryname"=>$category_name);
-}
-$category_type="A" unless $category_type; # FIXME we should display a error message instead of a 500 error !
+my $category = Koha::Patron::Categories->find($categorycode);
+$template->param( patron_category => $category );
 
 # if a add or modify is requested => check validity of data.
 %data = %$borrower_data if ($borrower_data);
@@ -204,21 +193,8 @@ if ( $op eq 'insert' || $op eq 'modify' || $op eq 'save' || $op eq 'duplicate' )
         }
     }
 
-    foreach (qw(dateenrolled dateexpiry dateofbirth)) {
-        next unless exists $newdata{$_};
-        my $userdate = $newdata{$_} or next;
-
-        my $formatteddate = eval { output_pref({ dt => dt_from_string( $userdate ), dateformat => 'iso', dateonly => 1 } ); };
-        if ( $formatteddate ) {
-            $newdata{$_} = $formatteddate;
-        } else {
-            $template->param( "ERROR_$_" => 1 );
-            push(@errors,"ERROR_$_");
-        }
-    }
-
     # check permission to modify login info.
-    if (ref($borrower_data) && ($borrower_data->{'category_type'} eq 'S') && ! (C4::Auth::haspermission($userenv->{'id'},{'staffaccess'=>1})) )  {
+    if (ref($borrower_data) && ($category->category_type eq 'S') && ! (C4::Auth::haspermission($userenv->{'id'},{'staffaccess'=>1})) )  {
         $NoUpdateLogin = 1;
     }
 }
@@ -228,7 +204,6 @@ if ( $op eq 'insert' || $op eq 'modify' || $op eq 'save' || $op eq 'duplicate' )
     my @keys_to_delete = (
         qr/^(borrowernumber|date_renewed|debarred|debarredcomment|flags|privacy|updated_on|lastseen|login_attempts|overdrive_auth_token|anonymized)$/, # Bug 28935
         qr/^BorrowerMandatoryField$/,
-        qr/^category_type$/,
         qr/^check_member$/,
         qr/^destination$/,
         qr/^nodouble$/,
@@ -245,7 +220,7 @@ if ( $op eq 'insert' || $op eq 'modify' || $op eq 'save' || $op eq 'duplicate' )
         qr/^\d+-DAYS/,
         qr/^patron_attr_/,
         qr/^csrf_token$/,
-        qr/^add_debarment$/, qr/^debarred_comment$/,qr/^debarred_expiration$/, qr/^remove_debarment$/, # We already dealt with debarments previously
+        qr/^add_debarment$/, qr/^debarred_comment$/,qr/^debarred_expiration$/, qr/^debarred_type$/, qr/^remove_debarment$/, # We already dealt with debarments previously
         qr/^housebound_chooser$/, qr/^housebound_deliverer$/,
         qr/^select_city$/,
         qr/^new_guarantor_/,
@@ -254,6 +229,7 @@ if ( $op eq 'insert' || $op eq 'modify' || $op eq 'save' || $op eq 'duplicate' )
         qr/^delete_guarantor$/,
     );
     push @keys_to_delete, map { qr/^$_$/ } split( /\s*\|\s*/, C4::Context->preference('BorrowerUnwantedField') || q{} );
+    push @keys_to_delete, qr/^password_expiration_date$/ unless $CanUpdatePasswordExpiration;
     for my $regexp (@keys_to_delete) {
         for (keys %newdata) {
             delete($newdata{$_}) if /$regexp/;
@@ -289,14 +265,14 @@ $newdata{'lang'}    = $input->param('lang')    if defined($input->param('lang'))
 if ( ( defined $newdata{'userid'} && $newdata{'userid'} eq '' ) || $check_BorrowerUnwantedField =~ /userid/ && !defined $data{'userid'} ) {
     my $fake_patron = Koha::Patron->new;
     $fake_patron->userid($patron->userid) if $patron; # editing
-    if ( ( defined $newdata{'firstname'} || $category_type eq 'I' ) && ( defined $newdata{'surname'} ) ) {
+    if ( ( defined $newdata{'firstname'} || $category->category_type eq 'I' ) && ( defined $newdata{'surname'} ) ) {
         # Full page edit, firstname and surname input zones are present
         $fake_patron->firstname($newdata{firstname});
         $fake_patron->surname($newdata{surname});
         $fake_patron->generate_userid;
         $newdata{'userid'} = $fake_patron->userid;
     }
-    elsif ( ( defined $data{'firstname'} || $category_type eq 'I' ) && ( defined $data{'surname'} ) ) {
+    elsif ( ( defined $data{'firstname'} || $category->category_type eq 'I' ) && ( defined $data{'surname'} ) ) {
         # Partial page edit (access through "Details"/"Library details" tab), firstname and surname input zones are not used
         # Still, if the userid field is erased, we can create a new userid with available firstname and surname
         # FIXME clean thiscode newdata vs data is very confusing
@@ -309,8 +285,7 @@ if ( ( defined $newdata{'userid'} && $newdata{'userid'} eq '' ) || $check_Borrow
         $newdata{'userid'} = $data{'userid'};
     }
 }
-  
-$debug and warn join "\t", map {"$_: $newdata{$_}"} qw(dateofbirth dateenrolled dateexpiry);
+
 my $extended_patron_attributes;
 if ($op eq 'save' || $op eq 'insert'){
 
@@ -322,6 +297,11 @@ if ($op eq 'save' || $op eq 'insert'){
 
     # If the cardnumber is blank, treat it as null.
     $newdata{'cardnumber'} = undef if $newdata{'cardnumber'} =~ /^\s*$/;
+
+    my $new_barcode = $newdata{'cardnumber'};
+    Koha::Plugins->call( 'patron_barcode_transform', \$new_barcode );
+
+    $newdata{'cardnumber'} = $new_barcode;
 
     if (my $error_code = checkcardnumber( $newdata{cardnumber}, $borrowernumber )){
         push @errors, $error_code == 1
@@ -342,8 +322,7 @@ if ($op eq 'save' || $op eq 'insert'){
     if ( $dateofbirth ) {
         my $patron = Koha::Patron->new({ dateofbirth => $dateofbirth });
         my $age = $patron->get_age;
-        my $borrowercategory = Koha::Patron::Categories->find($categorycode);
-        my ($low,$high) = ($borrowercategory->dateofbirthrequired, $borrowercategory->upperagelimit);
+        my ($low,$high) = ($category->dateofbirthrequired, $category->upperagelimit);
         if (($high && ($age > $high)) or ($age < $low)) {
             push @errors, 'ERROR_age_limitations';
             $template->param( age_low => $low);
@@ -353,7 +332,6 @@ if ($op eq 'save' || $op eq 'insert'){
   
   if (C4::Context->preference("IndependentBranches")) {
     unless ( C4::Context->IsSuperLibrarian() ){
-      $debug and print STDERR "  $newdata{'branchcode'} : ".$userenv->{flags}.":".$userenv->{branch};
       unless (!$newdata{'branchcode'} || $userenv->{branch} eq $newdata{'branchcode'}){
         push @errors, "ERROR_branch";
       }
@@ -374,7 +352,7 @@ if ($op eq 'save' || $op eq 'insert'){
   push @errors, "ERROR_password_mismatch" if ( $password ne $password2 );
 
   if ( $password and $password ne '****' ) {
-      my ( $is_valid, $error ) = Koha::AuthUtils::is_password_valid( $password, Koha::Patron::Categories->find($categorycode) );
+      my ( $is_valid, $error ) = Koha::AuthUtils::is_password_valid( $password, $category );
       unless ( $is_valid ) {
           push @errors, 'ERROR_password_too_short' if $error eq 'too_short';
           push @errors, 'ERROR_password_too_weak' if $error eq 'too_weak';
@@ -420,8 +398,7 @@ elsif ( $borrowernumber ) {
 
 if ( ($op eq 'modify' || $op eq 'insert' || $op eq 'save'|| $op eq 'duplicate') and ($step == 0 or $step == 3 )){
     unless ($newdata{'dateexpiry'}){
-        my $patron_category = Koha::Patron::Categories->find( $newdata{categorycode} );
-        $newdata{'dateexpiry'} = $patron_category->get_expiry_date( $newdata{dateenrolled} ) if $patron_category;
+        $newdata{'dateexpiry'} = $category->get_expiry_date( $newdata{dateenrolled} ) if $category;
     }
 }
 
@@ -434,7 +411,6 @@ if ( defined $sms ) {
 ###  Error checks should happen before this line.
 $nok = $nok || scalar(@errors);
 if ((!$nok) and $nodouble and ($op eq 'insert' or $op eq 'save')){
-	$debug and warn "$op dates: " . join "\t", map {"$_: $newdata{$_}"} qw(dateofbirth dateenrolled dateexpiry);
     my $success;
 	if ($op eq 'insert'){
 		# we know it's not a duplicate borrowernumber or there would already be an error
@@ -451,38 +427,41 @@ if ((!$nok) and $nodouble and ($op eq 'insert' or $op eq 'save')){
             add_guarantors( $patron, $input );
             $borrowernumber = $patron->borrowernumber;
             $newdata{'borrowernumber'} = $borrowernumber;
+            delete $newdata{password};
         }
 
-        # If 'AutoEmailOpacUser' syspref is on, email user their account details from the 'notice' that matches the user's branchcode.
-        if ( C4::Context->preference("AutoEmailOpacUser") == 1 && $newdata{'userid'}  && $newdata{'password'}) {
+        # If 'AutoEmailNewUser' syspref is on, email user their account details from the 'notice' that matches the user's branchcode.
+        if ( C4::Context->preference("AutoEmailNewUser") ) {
             #look for defined primary email address, if blank - attempt to use borr.email and borr.emailpro instead
-            my $emailaddr;
-            if  (C4::Context->preference("AutoEmailPrimaryAddress") ne 'OFF'  && 
-                $newdata{C4::Context->preference("AutoEmailPrimaryAddress")} =~  /\w\@\w/ ) {
-                $emailaddr =   $newdata{C4::Context->preference("AutoEmailPrimaryAddress")} 
-            } 
-            elsif ($newdata{email} =~ /\w\@\w/) {
-                $emailaddr = $newdata{email} 
-            }
-            elsif ($newdata{emailpro} =~ /\w\@\w/) {
-                $emailaddr = $newdata{emailpro} 
-            }
-            elsif ($newdata{B_email} =~ /\w\@\w/) {
-                $emailaddr = $newdata{B_email} 
-            }
+            my $emailaddr = $patron->notice_email_address;
             # if we manage to find a valid email address, send notice 
             if ($emailaddr) {
-                $newdata{emailaddr} = $emailaddr;
-                my $err;
                 eval {
-                    $err = SendAlerts ( 'members', \%newdata, "ACCTDETAILS" );
+                    my $letter = GetPreparedLetter(
+                        module      => 'members',
+                        letter_code => 'WELCOME',
+                        branchcode  => $patron->branchcode,
+                        lang        => $patron->lang || 'default',
+                        tables      => {
+                            'branches'  => $patron->branchcode,
+                            'borrowers' => $patron->borrowernumber,
+                        },
+                        want_librarian => 1,
+                    ) or return;
+
+                    my $message_id = EnqueueLetter(
+                        {
+                            letter                 => $letter,
+                            borrowernumber         => $patron->id,
+                            to_address             => $emailaddr,
+                            message_transport_type => 'email',
+                            branchcode             => $patron->branchcode,
+                        }
+                    );
+                    SendQueuedMessages({ message_id => $message_id });
                 };
-                if ( $@ ) {
-                    $template->param(error_alert => $@);
-                } elsif ( ref($err) eq "HASH" && defined $err->{error} and $err->{error} eq "no_email" ) {
-                    $template->{VARS}->{'error_alert'} = "no_email";
-                } else {
-                    $template->{VARS}->{'info_alert'} = 1;
+                if ($@) {
+                    $template->param( error_alert => $@ );
                 }
             }
         }
@@ -672,41 +651,27 @@ if(!defined($data{'sex'})){
 
 ##Now all the data to modify a member.
 
-my @typeloop;
-my $categorycodeHasBeenSelected = 0;
-my $no_categories = 1;
-my $no_add;
-foreach my $category_type (qw(C A S P I X)) {
-    my $patron_categories = Koha::Patron::Categories->search_with_library_limits({ category_type => $category_type }, {order_by => ['categorycode']});
-    $no_categories = 0 if $patron_categories->count > 0;
-
-    my @categoryloop;
-    while ( my $patron_category = $patron_categories->next ) {
-        my $categorycodeSelected = ( defined($categorycode) && $patron_category->categorycode eq $categorycode );
-        if ( $categorycodeSelected ) {
-            $categorycodeHasBeenSelected = 1;
-        }
-        push @categoryloop,
-          { 'categorycode' => $patron_category->categorycode,
-            'categoryname' => $patron_category->description,
-            'effective_min_password_length' => $patron_category->effective_min_password_length,
-            'effective_require_strong_password' => $patron_category->effective_require_strong_password,
-            'categorycodeselected' =>
-              ( defined($categorycode) && $patron_category->categorycode eq $categorycode ),
-          };
-    }
-    my %typehash;
-    $typehash{'typename'} = $category_type;
-    my $typedescription = "typename_" . $typehash{'typename'};
-    $typehash{'categoryloop'} = \@categoryloop;
-    push @typeloop,
-      { 'typename'       => $category_type,
-        $typedescription => 1,
-        'categoryloop'   => \@categoryloop
-      };
+my $patron_categories = Koha::Patron::Categories->search_with_library_limits(
+    {
+        category_type => [qw(C A S P I X)],
+        ( $guarantor_id ? ( can_be_guarantee => 1 ) : () )
+    },
+    { order_by => ['categorycode'] }
+);
+my $no_categories = ! $patron_categories->count;
+my $categories = {};
+my @patron_categories = $patron_categories->as_list;
+# When adding a guarantor we don't have a category yet, and only want to choose from the eligible categories
+unless ( !$category || $patron_categories->find( $category->id ) ){
+    $template->param( limited_category => 1 );
+    push @patron_categories, $category;
 }
+foreach my $patron_category ( @patron_categories ) {
+    push @{ $categories->{ $patron_category->category_type } }, $patron_category;
+}
+
 $template->param(
-    typeloop      => \@typeloop,
+    patron_categories => $categories,
     no_categories => $no_categories,
 );
 
@@ -731,29 +696,6 @@ while (@relationships) {
   push(@relshipdata, \%row);
 }
 
-my %flags = (
-    'gonenoaddress' => ['gonenoaddress'],
-    'lost'          => ['lost']
-);
-
-my @flagdata;
-foreach ( keys(%flags) ) {
-    my $key = $_;
-    my %row = (
-        'key'  => $key,
-        'name' => $flags{$key}[0]
-    );
-    if ( $data{$key} ) {
-        $row{'yes'} = ' checked';
-        $row{'no'}  = '';
-    }
-    else {
-        $row{'yes'} = '';
-        $row{'no'}  = ' checked';
-    }
-    push @flagdata, \%row;
-}
-
 # get Branch Loop
 # in modify mod: userbranch value comes from borrowers table
 # in add    mod: userbranch value comes from branches table (ip correspondence)
@@ -763,11 +705,12 @@ if (C4::Context->userenv && C4::Context->userenv->{'branch'}) {
     $userbranch = C4::Context->userenv->{'branch'};
 }
 
-if (defined ($data{'branchcode'}) and ( $op eq 'modify' || $op eq 'duplicate' || ( $op eq 'add' && $category_type eq 'C' ) )) {
+if (defined ($data{'branchcode'}) and ( $op eq 'modify' || $op eq 'duplicate' || ( $op eq 'add' && $category->category_type eq 'C' ) )) {
     $userbranch = $data{'branchcode'};
 }
 $template->param( userbranch => $userbranch );
 
+my $no_add;
 if ( Koha::Libraries->search->count < 1 ){
     $no_add = 1;
     $template->param(no_branches => 1);
@@ -793,23 +736,15 @@ if ($nok) {
   #Formatting data for display    
   
 if (!defined($data{'dateenrolled'}) or $data{'dateenrolled'} eq ''){
-  $data{'dateenrolled'} = output_pref({ dt => dt_from_string, dateformat => 'iso', dateonly => 1 });
+  $data{'dateenrolled'} = dt_from_string;
 }
 if ( $op eq 'duplicate' ) {
-    $data{'dateenrolled'} = output_pref({ dt => dt_from_string, dateformat => 'iso', dateonly => 1 });
-    my $patron_category = Koha::Patron::Categories->find( $data{categorycode} );
-    $data{dateexpiry} = $patron_category->get_expiry_date( $data{dateenrolled} );
+    $data{'dateenrolled'} = dt_from_string;
+    $data{dateexpiry} = $category->get_expiry_date( $data{dateenrolled} );
 }
 if (C4::Context->preference('uppercasesurnames')) {
     $data{'surname'} &&= uc( $data{'surname'} );
     $data{'contactname'} &&= uc( $data{'contactname'} );
-}
-
-foreach (qw(dateenrolled dateexpiry dateofbirth)) {
-    if ( $data{$_} ) {
-       $data{$_} = eval { output_pref({ dt => dt_from_string( $data{$_} ), dateonly => 1 } ); };  # back to syspref for display
-    }
-    $template->param( $_ => $data{$_});
 }
 
 if ( C4::Context->preference('ExtendedPatronAttributes') ) {
@@ -827,18 +762,14 @@ if (C4::Context->preference('EnhancedMessagingPreferences')) {
     $template->param(TalkingTechItivaPhone => C4::Context->preference("TalkingTechItivaPhoneNotification"));
 }
 
-my $familyCards = Koha::Patron::Categories->search({ family_card => 1 },{})->count();
-$template->param( "show_guarantor" => ( $category_type =~ /I|S|X/ && !($patron && scalar $patron->guarantor_relationships) && !($category_type eq 'A' && $familyCards) ) ? 0 : 1 ); # associate with step to know where you are
-$debug and warn "memberentry step: $step";
-$template->param(%data);
+$template->param( borrower_data => \%data );
+$template->param( "show_guarantor" => $category ? $category->can_be_guarantee : 1); # associate with step to know where you are
 $template->param( "step_$step"  => 1) if $step;	# associate with step to know where u are
 $template->param(  step  => $step   ) if $step;	# associate with step to know where u are
 
 $template->param(
   BorrowerMandatoryField => C4::Context->preference("BorrowerMandatoryField"),#field to test with javascript
-  category_type => $category_type,#to know the category type of the borrower
-  "$category_type"  => 1,# associate with step to know where u are
-  destination   => $destination,#to know wher u come from and wher u must go in redirect
+  destination   => $destination,#to know where u come from and where u must go in redirect
   check_member    => $check_member,#to know if the borrower already exist(=>1) or not (=>0) 
   "op$op"   => 1);
   
@@ -864,12 +795,11 @@ $template->param(
   borrowernumber  => $borrowernumber, #register number
   relshiploop => \@relshipdata,
   btitle=> $default_borrowertitle,
-  flagloop  => \@flagdata,
-  category_type =>$category_type,
   modify          => $modify,
   nok     => $nok,#flag to know if an error
   NoUpdateLogin =>  $NoUpdateLogin,
   NoUpdateEmail =>  $NoUpdateEmail,
+  CanUpdatePasswordExpiration => $CanUpdatePasswordExpiration,
   );
 
 # Generate CSRF token
@@ -1013,7 +943,3 @@ sub add_guarantors {
         );
     }
 }
-
-# Local Variables:
-# tab-width: 8
-# End:

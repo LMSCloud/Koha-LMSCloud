@@ -22,9 +22,9 @@ use Test::More tests => 1;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
-use C4::Reserves;
+use C4::Reserves qw( AutoUnsuspendReserves );
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Holds;
 
 my $schema = Koha::Database->new->schema;

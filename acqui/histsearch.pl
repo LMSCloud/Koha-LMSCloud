@@ -51,13 +51,11 @@ to filter on ended date.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Auth;    # get_template_and_user
-use C4::Output;
-use C4::Acquisition;
-use C4::Debug;
-use C4::Koha;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Acquisition qw( GetHistory );
 use Koha::AdditionalFields;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 
 my $input = CGI->new;
 my $do_search               = $input->param('do_search') || 0;
@@ -69,7 +67,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { acquisition => '*' },
-        debug           => 1,
     }
 );
 
@@ -78,7 +75,10 @@ my $filters = {
     title                   => scalar $input->param('title'),
     author                  => scalar $input->param('author'),
     isbn                    => scalar $input->param('isbn'),
+    issn                    => scalar $input->param('issn'),
     name                    => scalar $input->param('name'),
+    internalnote            => scalar $input->param('internalnote'),
+    vendornote              => scalar $input->param('vendornote'),
     ean                     => scalar $input->param('ean'),
     basketgroupname         => scalar $input->param('basketgroupname'),
     budget                  => scalar $input->param('budget'),
@@ -98,12 +98,12 @@ unless ( $input->param('from') ) {
     # Fill the form with year-1
     $from_placed_on->set_time_zone('floating')->subtract( years => 1 );
 }
-$filters->{from_placed_on} = output_pref( { dt => $from_placed_on, dateformat => 'iso', dateonly => 1 } );
-$filters->{to_placed_on} = output_pref( { dt => $to_placed_on, dateformat => 'iso', dateonly => 1 } );
-my @additional_fields = Koha::AdditionalFields->search( { tablename => 'aqbasket', searchable => 1 } );
-$template->param( available_additional_fields => \@additional_fields );
+$filters->{from_placed_on} = $from_placed_on;
+$filters->{to_placed_on}   = $to_placed_on;
+my $additional_fields = Koha::AdditionalFields->search( { tablename => 'aqbasket', searchable => 1 } );
+$template->param( available_additional_fields => $additional_fields );
 my @additional_field_filters;
-foreach my $additional_field (@additional_fields) {
+while ( my $additional_field = $additional_fields->next ) {
     my $value = $input->param('additional_field_' . $additional_field->id);
     if (defined $value and $value ne '') {
         push @additional_field_filters, {
@@ -124,7 +124,7 @@ if ($do_search) {
 my $budgetperiods = C4::Budgets::GetBudgetPeriods;
 my $bp_loop = $budgetperiods;
 for my $bp ( @{$budgetperiods} ) {
-    my $hierarchy = C4::Budgets::GetBudgetHierarchy( $$bp{budget_period_id} );
+    my $hierarchy = C4::Budgets::GetBudgetHierarchy( $$bp{budget_period_id}, undef, undef, 1 );
     for my $budget ( @{$hierarchy} ) {
         $$budget{budget_display_name} = sprintf("%s", ">" x $$budget{depth} . $$budget{budget_name});
     }

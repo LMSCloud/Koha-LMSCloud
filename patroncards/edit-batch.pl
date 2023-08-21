@@ -20,14 +20,13 @@
 
 
 use Modern::Perl;
-use vars qw($debug);
 
 use CGI qw ( -utf8 );
 use autouse 'Data::Dumper' => qw(Dumper);
 
-use C4::Auth qw(get_template_and_user);
-use C4::Output qw(output_html_with_http_headers);
-use C4::Creators;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Creators qw( get_card_summary html_table );
 use C4::Patroncards;
 use Koha::Patrons;
 
@@ -38,7 +37,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $cgi,
         type            => "intranet",
         flagsrequired   => { tools => 'label_creator' },
-        debug           => 1,
     }
 );
 
@@ -62,6 +60,13 @@ my ( @label_ids, @item_numbers, @borrower_numbers );
 my $errstr = $cgi->param('error') || '';
 my $bor_num_list = $cgi->param('bor_num_list') || undef;
 my $branch_code = C4::Context->userenv->{'branch'};
+
+my @errors = ( 'pdferr', 'errnocards', 'errba', 'errpl', 'errpt', 'errlo', 'errtpl', );
+foreach my $param (@errors) {
+    my $error = $cgi->param($param) ? 1 : 0;
+    $template->param( 'error_' . $param => $error )
+      if $error;
+}
 
 if ($op eq 'remove') {
     $batch = C4::Patroncards::Batch->retrieve(batch_id => $batch_id);

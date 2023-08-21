@@ -6,7 +6,7 @@ package C4::SIP::ILS;
 
 use warnings;
 use strict;
-use C4::SIP::Sip qw(siplog);
+use C4::SIP::Sip qw( siplog );
 use Data::Dumper;
 
 use C4::SIP::ILS::Item;
@@ -19,8 +19,6 @@ use C4::SIP::ILS::Transaction::Hold;
 use C4::SIP::ILS::Transaction::Renew;
 use C4::SIP::ILS::Transaction::RenewAll;
 use C4::SIP::ILS::Transaction::FeeDebit;
-
-my $debug = 0;
 
 my %supports = (
     'magnetic media'        => 1,
@@ -47,7 +45,6 @@ sub new {
     my ($class, $institution) = @_;
     my $type = ref($class) || $class;
     my $self = {};
-	$debug and warn "new ILS: INSTITUTION: " . Dumper($institution);
     siplog("LOG_DEBUG", "new ILS '%s'", $institution->{id});
     $self->{institution} = $institution;
     return bless $self, $type;
@@ -55,13 +52,11 @@ sub new {
 
 sub find_patron {
     my $self = shift;
- 	$debug and warn "ILS: finding patron";
     return C4::SIP::ILS::Patron->new(@_);
 }
 
 sub find_item {
     my $self = shift;
-	$debug and warn "ILS: finding item";
     return C4::SIP::ILS::Item->new(@_);
 }
 
@@ -127,11 +122,9 @@ sub offline_ok {
 # the response.
 #
 sub checkout {
-    my ( $self, $patron_id, $item_id, $sc_renew, $fee_ack, $account ) = @_;
+    my ( $self, $patron_id, $item_id, $sc_renew, $fee_ack, $account, $no_block_due_date ) = @_;
     my ( $patron, $item, $circ );
-
     $circ = C4::SIP::ILS::Transaction::Checkout->new();
-
     # BEGIN TRANSACTION
     $patron = C4::SIP::ILS::Patron->new($patron_id);
     $circ->patron( $patron ) if ($patron);
@@ -141,12 +134,19 @@ sub checkout {
     if ($fee_ack) {
         $circ->fee_ack($fee_ack);
     }
-
     if ( !$patron ) {
         $circ->screen_msg("Invalid Patron");
     }
     elsif ( !$patron->charge_ok ) {
-        $circ->screen_msg("Patron Blocked");
+        if ($patron->debarred) {
+            $circ->screen_msg("Patron debarred");
+        } elsif ($patron->expired) {
+            $circ->screen_msg("Patron expired");
+        } elsif ($patron->fine_blocked) {
+            $circ->screen_msg("Patron has fines");
+        } else {
+            $circ->screen_msg("Patron blocked");
+        }
     }
     elsif ( !$item ) {
         $circ->screen_msg("Invalid Item");
@@ -157,9 +157,8 @@ sub checkout {
         $circ->screen_msg("Item checked out to another patron");
     }
     else {
-        $circ->do_checkout($account);
+        $circ->do_checkout($account, $no_block_due_date);
         if ( $circ->ok ) {
-            $debug and warn "circ is ok";
 
             # If the item is already associated with this patron, then
             # we're renewing it.
@@ -346,7 +345,8 @@ sub pay_fee {
 
     return {
         status       => $trans,
-        pay_response => $trans_result->{pay_response}
+        pay_response => $trans_result->{pay_response},
+        error        => $trans_result->{error},
     };
 }
 

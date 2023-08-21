@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Tests for C4::Biblio::TransformMarcToKoha, TransformMarcToKohaOneField
+# Tests for C4::Biblio::TransformMarcToKoha
 
 # Copyright 2017 Rijksmuseum
 #
@@ -28,7 +28,7 @@ use t::lib::TestBuilder;
 use Koha::Database;
 use Koha::Caches;
 use Koha::MarcSubfieldStructures;
-use C4::Biblio;
+use C4::Biblio qw( TransformMarcToKoha );
 
 my $schema  = Koha::Database->new->schema;
 $schema->storage->txn_begin;
@@ -42,7 +42,7 @@ Koha::MarcSubfieldStructure->new({ frameworkcode => '', tagfield => '500', tagsu
 Koha::Caches->get_instance->clear_from_cache( "MarcSubfieldStructure-" );
 
 subtest 'Test a few mappings' => sub {
-    plan tests => 7;
+    plan tests => 6;
 
     my $marc = MARC::Record->new;
     $marc->append_fields(
@@ -50,24 +50,18 @@ subtest 'Test a few mappings' => sub {
         MARC::Field->new( '300', '', '', a => 'a2', b => 'b2' ),
         MARC::Field->new( '500', '', '', a => 'note1', a => 'note2' ),
     );
-    my $result = C4::Biblio::TransformMarcToKoha( $marc );
+    my $result = C4::Biblio::TransformMarcToKoha({ record => $marc });
         # Note: TransformMarcToKoha stripped the table prefix biblio.
     is( keys %{$result}, 3, 'Found all three mappings' );
     is( $result->{field1}, 'a1 | a2', 'Check field1 results' );
     is( $result->{field2}, 'b1 | b2', 'Check field2 results' );
     is( $result->{field3}, 'note1 | note2', 'Check field3 results' );
 
-    is( C4::Biblio::TransformMarcToKohaOneField( 'biblio.field1', $marc ),
-        $result->{field1}, 'TransformMarcToKohaOneField returns biblio.field1');
-    is( C4::Biblio::TransformMarcToKohaOneField( 'field4', $marc ),
-        undef, 'TransformMarcToKohaOneField returns undef' );
+    is_deeply( C4::Biblio::TransformMarcToKoha({ record => $marc, kohafields => ['biblio.field1'] }),
+        {field1 => 'a1 | a2'}, 'TransformMarcToKoha returns biblio.field1 if kohafields specified');
+    is_deeply( C4::Biblio::TransformMarcToKoha({ record => $marc, kohafields => ['field4'] }),
+            {} , 'TransformMarcToKoha returns empty hashref on unknown kohafields' );
 
-    # Bug 19096 Default is authoritative now
-    # Test passing another framework
-    # CAUTION: This parameter of TransformMarcToKoha will be removed later
-    my $new_fw = t::lib::TestBuilder->new->build({source => 'BiblioFramework'});
-    $result = C4::Biblio::TransformMarcToKoha($marc, $new_fw->{frameworkcode});
-    is( keys %{$result}, 3, 'Still found all three mappings' );
 };
 
 subtest 'Multiple mappings for one kohafield' => sub {
@@ -80,21 +74,21 @@ subtest 'Multiple mappings for one kohafield' => sub {
 
     my $marc = MARC::Record->new;
     $marc->append_fields( MARC::Field->new( '300', '', '', a => '3a' ) );
-    my $result = C4::Biblio::TransformMarcToKoha( $marc );
+    my $result = C4::Biblio::TransformMarcToKoha({ record => $marc });
     is_deeply( $result, { field1 => '3a' }, 'Simple start' );
     $marc->append_fields( MARC::Field->new( '510', '', '', a => '' ) );
-    $result = C4::Biblio::TransformMarcToKoha( $marc );
+    $result = C4::Biblio::TransformMarcToKoha({ record => $marc });
     is_deeply( $result, { field1 => '3a' }, 'An empty 510a makes no difference' );
     $marc->append_fields( MARC::Field->new( '510', '', '', a => '51' ) );
-    $result = C4::Biblio::TransformMarcToKoha( $marc );
+    $result = C4::Biblio::TransformMarcToKoha({ record =>  $marc });
     is_deeply( $result, { field1 => '3a | 51' }, 'Got 300a and 510a' );
 
-    is( C4::Biblio::TransformMarcToKohaOneField( 'biblio.field1', $marc ),
-        '3a | 51', 'TransformMarcToKohaOneField returns biblio.field1' );
+    is_deeply( C4::Biblio::TransformMarcToKoha({ kohafields => ['biblio.field1'], record => $marc }),
+        { 'field1' => '3a | 51'}, 'TransformMarcToKoha returns biblio.field1 when kohafields specified' );
 };
 
 subtest 'Testing _adjust_pubyear' => sub {
-    plan tests => 12;
+    plan tests => 18;
 
     is( C4::Biblio::_adjust_pubyear('2004 c2000 2007'), 2000, 'First cYEAR' );
     is( C4::Biblio::_adjust_pubyear('2004 2000 2007'), 2004, 'First year' );
@@ -103,11 +97,17 @@ subtest 'Testing _adjust_pubyear' => sub {
     is( C4::Biblio::_adjust_pubyear('197X'), 1970, '197X on its own' );
     is( C4::Biblio::_adjust_pubyear('1...'), 1000, '1... on its own' );
     is( C4::Biblio::_adjust_pubyear('12?? 13xx'), 1200, '12?? first' );
-    is( C4::Biblio::_adjust_pubyear('12? 1x'), undef, 'Too short return nothing as data must be int' );
-    is( C4::Biblio::_adjust_pubyear('198-'), undef, 'Missing question mark, nothing is returned as data must be int' );
-    is( C4::Biblio::_adjust_pubyear('198-?'), '1980', '198-?' );
-    is( C4::Biblio::_adjust_pubyear('1981-'), '1981', 'Date range returns first date' );
-    is( C4::Biblio::_adjust_pubyear('broken'), undef, 'Non-matchign data returns nothing as the field must be int' );
+    is( C4::Biblio::_adjust_pubyear('12? 1x'), 1200, '12? first' );
+    is( C4::Biblio::_adjust_pubyear('198-'),  1980, '198-' );
+    is( C4::Biblio::_adjust_pubyear('19--'),  1900, '19--' );
+    is( C4::Biblio::_adjust_pubyear('19-'),   1900, '19-' );
+    is( C4::Biblio::_adjust_pubyear('1-'),    1000, '1-' );
+    is( C4::Biblio::_adjust_pubyear('2xxx'),  2000, '2xxx' );
+    is( C4::Biblio::_adjust_pubyear('2xx'),   2000, '2xx' );
+    is( C4::Biblio::_adjust_pubyear('2x'),    2000, '2x' );
+    is( C4::Biblio::_adjust_pubyear('198-?'), 1980, '198-?' );
+    is( C4::Biblio::_adjust_pubyear('1981-'), 1981, 'Date range returns first date' );
+    is( C4::Biblio::_adjust_pubyear('broken'), undef, 'Non-matching data' );
 };
 
 subtest 'Test repeatable subfields' => sub {
@@ -122,7 +122,7 @@ subtest 'Test repeatable subfields' => sub {
 
     my $marc = MARC::Record->new;
     $marc->append_fields( MARC::Field->new( '510', '', '', x => '1', x => '2', y => '3 | 4', y => '5' ) ); # actually, we should only have one $y (BZ 24652)
-    my $result = C4::Biblio::TransformMarcToKoha( $marc );
+    my $result = C4::Biblio::TransformMarcToKoha({ record => $marc });
     is( $result->{test}, '1 | 2', 'Check 510x for two values' );
     is( $result->{norepeat}, '3 | 4 | 5', 'Check 510y too' );
 
@@ -130,7 +130,7 @@ subtest 'Test repeatable subfields' => sub {
     Koha::Caches->get_instance->clear_from_cache( "MarcSubfieldStructure-" );
     $marc->append_fields( MARC::Field->new( '510', '', '', a => '1' ) ); # actually, we should only have one $y (BZ 24652)
 
-    $result = C4::Biblio::TransformMarcToKoha( $marc, '', 'no_items' );
+    $result = C4::Biblio::TransformMarcToKoha({ record => $marc, limit_table => 'no_items' });
     is( $result->{test}, undef, 'Item field not returned when "no_items" passed' );
     is( $result->{norepeat}, undef, 'Item field not returned when "no_items" passed' );
     is( $result->{field1}, 1, 'Biblio field returned when "no_items" passed' );

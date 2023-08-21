@@ -18,6 +18,8 @@
 use Modern::Perl;
 
 use Koha::Acquisition::Orders;
+use Koha::AuthorisedValueCategories;
+use Koha::AuthorisedValues;
 use Koha::Cities;
 use Koha::Biblios;
 use Koha::Patrons;
@@ -36,13 +38,24 @@ plugin 'Koha::REST::Plugin::Pagination';
 get '/cities' => sub {
     my $c = shift;
     $c->validation->output($c->req->params->to_hash);
+    $c->stash_embed( { spec => { parameters => [ { name => 'x-koha-embed', items => { enum => ['+strings'] } } ] } } );
     my $cities = $c->objects->search(Koha::Cities->new);
     $c->render( status => 200, json => $cities );
+};
+
+get '/cities/rs' => sub {
+    my $c = shift;
+    $c->validation->output( $c->req->params->to_hash );
+    $c->stash_embed;
+    my $cities = $c->objects->search_rs( Koha::Cities->new );
+
+    $c->render( status => 200, json => { count => $cities->count } );
 };
 
 get '/cities/:city_id' => sub {
     my $c = shift;
     my $id = $c->stash("city_id");
+    $c->stash_embed( { spec => { parameters => [ { name => 'x-koha-embed', items => { enum => ['+strings'] } } ] } } );
     my $city = $c->objects->find(Koha::Cities->new, $id);
     $c->render( status => 200, json => $city );
 };
@@ -116,8 +129,18 @@ get '/my_patrons' => sub {
     );
 };
 
+get '/cities/:city_id/rs' => sub {
+    my $c = shift;
+    $c->validation->output( $c->req->params->to_hash );
+    $c->stash_embed;
+    my $city_id = $c->param('city_id');
+    my $city    = $c->objects->find_rs( Koha::Cities->new, $city_id );
+
+    $c->render( status => 200, json => { name => $city->city_name } );
+};
+
 # The tests
-use Test::More tests => 14;
+use Test::More tests => 18;
 use Test::Mojo;
 
 use t::lib::Mocks;
@@ -385,7 +408,7 @@ subtest 'objects.search helper, embed' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'object.search helper with query parameter' => sub {
+subtest 'objects.search helper with query parameter' => sub {
     plan tests => 4;
 
     $schema->storage->txn_begin;
@@ -409,7 +432,7 @@ subtest 'object.search helper with query parameter' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'object.search helper with q parameter' => sub {
+subtest 'objects.search helper with q parameter' => sub {
     plan tests => 4;
 
     $schema->storage->txn_begin;
@@ -433,7 +456,7 @@ subtest 'object.search helper with q parameter' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'object.search helper with x-koha-query header' => sub {
+subtest 'objects.search helper with x-koha-query header' => sub {
     plan tests => 4;
 
     $schema->storage->txn_begin;
@@ -457,7 +480,7 @@ subtest 'object.search helper with x-koha-query header' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'object.search helper with all query methods' => sub {
+subtest 'objects.search helper with all query methods' => sub {
     plan tests => 6;
 
     $schema->storage->txn_begin;
@@ -484,8 +507,7 @@ subtest 'object.search helper with all query methods' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'object.search helper order by embedded columns' => sub {
-
+subtest 'objects.search helper order by embedded columns' => sub {
     plan tests => 3;
 
     $schema->storage->txn_begin;
@@ -501,6 +523,47 @@ subtest 'object.search helper order by embedded columns' => sub {
     $t->get_ok('/biblios?_order_by=-suggestions.suggester.firstname' => json => [{"me.biblio_id" => $biblio1->biblionumber}, {"me.biblio_id" => $biblio2->biblionumber}])
       ->json_is('/biblios/0/biblio_id' => $biblio2->biblionumber, 'Biblio 2 should be first')
       ->json_is('/biblios/1/biblio_id' => $biblio1->biblionumber, 'Biblio 1 should be second');
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'objects.search_rs helper' => sub {
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+
+    # Remove existing cities to have more control on the search results
+    Koha::Cities->delete;
+
+ # Create three sample cities that match the query. This makes sure we
+ # always have a "next" link regardless of Mojolicious::Plugin::OpenAPI version.
+    $builder->build_object(
+        {
+            class => 'Koha::Cities',
+            value => {
+                city_name => 'city1'
+            }
+        }
+    );
+    $builder->build_object(
+        {
+            class => 'Koha::Cities',
+            value => {
+                city_name => 'city2'
+            }
+        }
+    );
+    $builder->build_object(
+        {
+            class => 'Koha::Cities',
+            value => {
+                city_name => 'city3'
+            }
+        }
+    );
+
+    my $t = Test::Mojo->new;
+    $t->get_ok('/cities/rs')->status_is(200)->json_is( '/count' => 3 );
 
     $schema->storage->txn_rollback;
 };
@@ -615,6 +678,284 @@ subtest 'objects.search helper, search_limited() tests' => sub {
       ->tx->res->json;
 
     is( scalar @{$res}, 1, 'Only one patron returned' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'objects.find helper with expanded authorised values' => sub {
+
+    plan tests => 18;
+
+    $schema->storage->txn_begin;
+
+    my $t = Test::Mojo->new;
+
+    Koha::AuthorisedValues->search( { category => 'Countries' } )->delete;
+    Koha::AuthorisedValueCategories->search( { category_name => 'Countries' } )
+      ->delete;
+
+    my $cat = $builder->build_object(
+        {
+            class => 'Koha::AuthorisedValueCategories',
+            value => { category_name => 'Countries' }
+        }
+    );
+    my $fr = $builder->build_object(
+        {
+            class => 'Koha::AuthorisedValues',
+            value => {
+                authorised_value => 'FR',
+                lib              => 'France',
+                category         => $cat->category_name
+            }
+        }
+    );
+    my $us = $builder->build_object(
+        {
+            class => 'Koha::AuthorisedValues',
+            value => {
+                authorised_value => 'US',
+                lib              => 'United States of America',
+                category         => $cat->category_name
+            }
+        }
+    );
+    my $ar = $builder->build_object(
+        {
+            class => 'Koha::AuthorisedValues',
+            value => {
+                authorised_value => 'AR',
+                lib              => 'Argentina',
+                category         => $cat->category_name
+            }
+        }
+    );
+
+    my $city_class = Test::MockModule->new('Koha::City');
+    $city_class->mock(
+        'strings_map',
+        sub {
+            my ($self, $params) = @_;
+            use Koha::AuthorisedValues;
+
+            my $av = Koha::AuthorisedValues->find(
+                {
+                    authorised_value => $self->city_country,
+                    category         => 'Countries'
+                }
+            );
+
+            return {
+                city_country => {
+                    category => $av->category,
+                    str      => ( $params->{public} ) ? $av->lib_opac : $av->lib,
+                    type     => 'av',
+                }
+            };
+        }
+    );
+
+    my $manuel = $builder->build_object(
+        {
+            class => 'Koha::Cities',
+            value => {
+                city_name    => 'Manuel',
+                city_country => 'AR'
+            }
+        }
+    );
+    my $manuela = $builder->build_object(
+        {
+            class => 'Koha::Cities',
+            value => {
+                city_name    => 'Manuela',
+                city_country => 'US'
+            }
+        }
+    );
+
+    $t->get_ok( '/cities/' . $manuel->id => { 'x-koha-embed' => '+strings' } )
+      ->status_is(200)->json_is( '/name' => 'Manuel' )
+      ->json_has('/_strings')
+      ->json_is( '/_strings/country/type'     => 'av' )
+      ->json_is( '/_strings/country/category' => $cat->category_name )
+      ->json_is( '/_strings/country/str'      => $ar->lib );
+
+    $t->get_ok( '/cities/' . $manuel->id => { 'x-koha-embed' => '' } )
+      ->status_is(200)->json_is( '/name' => 'Manuel' )
+      ->json_hasnt('/_strings');
+
+    $t->get_ok( '/cities/' . $manuela->id => { 'x-koha-embed' => '+strings' } )
+      ->status_is(200)->json_is( '/name' => 'Manuela' )
+      ->json_has('/_strings')
+      ->json_is( '/_strings/country/type'     => 'av' )
+      ->json_is( '/_strings/country/category' => $cat->category_name )
+      ->json_is( '/_strings/country/str'      => $us->lib );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'objects.search helper with expanded authorised values' => sub {
+
+    plan tests => 24;
+
+    my $t = Test::Mojo->new;
+
+    $schema->storage->txn_begin;
+
+    Koha::AuthorisedValues->search( { category => 'Countries' } )->delete;
+    Koha::AuthorisedValueCategories->search( { category_name => 'Countries' } )
+      ->delete;
+
+    my $cat = $builder->build_object(
+        {
+            class => 'Koha::AuthorisedValueCategories',
+            value => { category_name => 'Countries' }
+        }
+    );
+    my $fr = $builder->build_object(
+        {
+            class => 'Koha::AuthorisedValues',
+            value => {
+                authorised_value => 'FR',
+                lib              => 'France',
+                category         => $cat->category_name
+            }
+        }
+    );
+    my $us = $builder->build_object(
+        {
+            class => 'Koha::AuthorisedValues',
+            value => {
+                authorised_value => 'US',
+                lib              => 'United States of America',
+                category         => $cat->category_name
+            }
+        }
+    );
+    my $ar = $builder->build_object(
+        {
+            class => 'Koha::AuthorisedValues',
+            value => {
+                authorised_value => 'AR',
+                lib              => 'Argentina',
+                category         => $cat->category_name
+            }
+        }
+    );
+
+    my $city_class = Test::MockModule->new('Koha::City');
+    $city_class->mock(
+        'strings_map',
+        sub {
+            my ($self, $params) = @_;
+            use Koha::AuthorisedValues;
+
+            my $av = Koha::AuthorisedValues->find(
+                {
+                    authorised_value => $self->city_country,
+                    category         => 'Countries'
+                }
+            );
+
+            return {
+                city_country => {
+                    category => $av->category,
+                    str      => ( $params->{public} ) ? $av->lib_opac : $av->lib,
+                    type     => 'av',
+                }
+            };
+        }
+    );
+
+
+    $builder->build_object(
+        {
+            class => 'Koha::Cities',
+            value => {
+                city_name    => 'Manuel',
+                city_country => 'AR'
+            }
+        }
+    );
+    $builder->build_object(
+        {
+            class => 'Koha::Cities',
+            value => {
+                city_name    => 'Manuela',
+                city_country => 'US'
+            }
+        }
+    );
+
+    $t->get_ok( '/cities?name=manuel&_per_page=4&_page=1&_match=starts_with' =>
+          { 'x-koha-embed' => '+strings' } )->status_is(200)
+      ->json_has('/0')->json_has('/1')->json_hasnt('/2')
+      ->json_is( '/0/name' => 'Manuel' )
+      ->json_has('/0/_strings')
+      ->json_is( '/0/_strings/country/str'      => $ar->lib )
+      ->json_is( '/0/_strings/country/type'     => 'av' )
+      ->json_is( '/0/_strings/country/category' => $cat->category_name )
+      ->json_is( '/1/name' => 'Manuela' )
+      ->json_has('/1/_strings')
+      ->json_is( '/1/_strings/country/str' => $us->lib )
+      ->json_is( '/1/_strings/country/type'     => 'av' )
+      ->json_is( '/1/_strings/country/category' => $cat->category_name );
+
+    $t->get_ok( '/cities?name=manuel&_per_page=4&_page=1&_match=starts_with' )->status_is(200)
+      ->json_has('/0')->json_has('/1')->json_hasnt('/2')
+      ->json_is( '/0/name' => 'Manuel' )->json_hasnt('/0/_strings')
+      ->json_is( '/1/name' => 'Manuela' )->json_hasnt('/1/_strings');
+
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'objects.find_rs helper' => sub {
+    plan tests => 9;
+
+    $schema->storage->txn_begin;
+
+    # Remove existing cities to have more control on the search results
+    Koha::Cities->delete;
+
+ # Create three sample cities that match the query. This makes sure we
+ # always have a "next" link regardless of Mojolicious::Plugin::OpenAPI version.
+    my $city1 = $builder->build_object(
+        {
+            class => 'Koha::Cities',
+            value => {
+                city_name => 'city1'
+            }
+        }
+    );
+    my $city2 = $builder->build_object(
+        {
+            class => 'Koha::Cities',
+            value => {
+                city_name => 'city2'
+            }
+        }
+    );
+    my $city3 = $builder->build_object(
+        {
+            class => 'Koha::Cities',
+            value => {
+                city_name => 'city3'
+            }
+        }
+    );
+
+    my $t = Test::Mojo->new;
+
+    $t->get_ok( '/cities/' . $city1->id . '/rs' )->status_is(200)
+      ->json_is( '/name' => 'city1' );
+
+    $t->get_ok( '/cities/' . $city2->id . '/rs' )->status_is(200)
+      ->json_is( '/name' => 'city2' );
+
+    $t->get_ok( '/cities/' . $city3->id . '/rs' )->status_is(200)
+      ->json_is( '/name' => 'city3' );
 
     $schema->storage->txn_rollback;
 };

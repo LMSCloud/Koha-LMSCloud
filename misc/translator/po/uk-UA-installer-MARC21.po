@@ -1,20 +1,20 @@
 # Compendium of uk.
 msgid ""
 msgstr ""
-"Project-Id-Version: Koha 21.05\n"
-"PO-Revision-Date: 2022-02-19 09:47+0000\n"
+"Project-Id-Version: Koha 22.11\n"
+"PO-Revision-Date: 2023-01-21 12:31+0000\n"
 "Last-Translator: Serhij Dubyk <dubyk@ukr.net>\n"
 "Language-Team: Koha Translation Team\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1645264044.889527\n"
-"X-Pootle-Path: /uk/21.05/uk-UA-installer-MARC21.po\n"
+"X-Pootle-Path: /uk/22.11/uk-UA-installer-MARC21.po\n"
 "X-Pootle-Revision: 1\n"
+"X-POOTLE-MTIME: 1674304314.838492\n"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1080
 msgid " Linkage"
@@ -110,7 +110,7 @@ msgstr "ДОДАТИ АБО РОЗДІЛИТИ ПОДІБНІ ІНСТРУКЦІ
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:3:row:1
 msgid "ADDED ENTRY ELEMENTS (KOHA)"
-msgstr "ДОДАНІ ВХІДНІ ЕЛЕМЕНТИ (КОХА)"
+msgstr "Додаткові дані (Коха)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:236
 msgid "ADDED ENTRY--CORPORATE NAME"
@@ -130,11 +130,11 @@ msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ЗУСТРІЧІ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:234
 msgid "ADDED ENTRY--PERSONAL NAME"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ДОДАТКОВИЙ ОПИС — ІМ’Я ОСОБИ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:235
 msgid "ADDED ENTRY--PERSONAL NAME (PERFORMER) (MU) [OBSOLETE]"
-msgstr "ДОДАТКОВИЙ ОПИС — ОСОБИСТЕ ІМʼЯ (ВИКОНАВЕЦЬ) (MU) [ЗАСТАРІЛЕ]"
+msgstr "ДОДАТКОВИЙ ОПИС — ІМ’Я ОСОБИ (ВИКОНАВЕЦЬ) (MU) [ЗАСТАРІЛЕ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:246
 msgid "ADDED ENTRY--PHYSICAL CHARACTERISTICS [OBSOLETE]"
@@ -267,12 +267,12 @@ msgstr "Накопичення"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:biblio_framework:9:row:1
 msgid "Acquisition framework"
-msgstr "Структура для надходжень"
+msgstr "структура для надходжень/комплектування"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4117
 #, fuzzy
 msgid "Acquisition mode"
-msgstr "Дата надходження"
+msgstr "Замовлення для находження"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:502
 msgid "Acronym or shortened title"
@@ -423,7 +423,7 @@ msgstr "Асоційована група"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:682
 #, fuzzy
 msgid "Attention name"
-msgstr "Увага: "
+msgstr "Увага"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:683
 #, fuzzy
@@ -597,7 +597,7 @@ msgstr "Основа для злиття"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:843
 #, fuzzy
 msgid "Bearing resolution"
-msgstr "Методика сортування"
+msgstr "Роздільна здатність відстані"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:844
 msgid "Bearing units"
@@ -639,15 +639,17 @@ msgstr "Бібліографічні одиниці на наступний ви
 msgid "Bibliography, etc. note"
 msgstr "Бібліографія та ін. примітка"
 
+# 110^a - Покажчик
+# Наприклад, покажчик до серіального видання, який сам видається як серіальне видання. Для відображення наявності покажчика у самому серіальному видання див. символьну позицію 9.
 #: installer/data/mysql/en/marcflavour/marc21/optional/marc21_simple_bib_frameworks.yml:biblio_framework:1:row:4
 #, fuzzy
 msgid "Binders"
-msgstr "циліндр"
+msgstr "Палітурник"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1509
 #, fuzzy
 msgid "Binding note"
-msgstr "Дата початку"
+msgstr "Оформлювач палітурки"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1339
 msgid "Biographical or historical data"
@@ -799,25 +801,28 @@ msgid "COMPLEX SEE ALSO REFERENCE [CLASSIFICATION FORMAT]"
 msgstr "ДОВІДКОВЕ КОМПЛЕКСНЕ ДИВ. ТАКОЖ [ФОРМАТ КЛАСИФІКАЦІЇ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:128
+#, fuzzy
 msgid "COMPLEX SEE ALSO REFERENCE--NAME"
-msgstr ""
+msgstr "ДОВІДКОВЕ КОМПЛЕКСНЕ ДИВ. ТАКОЖ [ФОРМАТ КЛАСИФІКАЦІЇ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:72
+#, fuzzy
 msgid "COMPLEX SEE ALSO REFERENCE--SUBJECT"
-msgstr ""
+msgstr "ДОВІДКОВЕ КОМПЛЕКСНЕ ДИВ. ТАКОЖ [ФОРМАТ КЛАСИФІКАЦІЇ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:67
 #, fuzzy
 msgid "COMPLEX SEE REFERENCE [CLASSIFICATION FORMAT]"
-msgstr "ДОДАТИ АБО РОЗДІЛИТИ ПОДІБНІ ІНСТРУКЦІЇ [ФОРМАТ КЛАСИФІКАЦІЇ]"
+msgstr "ДОВІДКОВЕ КОМПЛЕКСНЕ ДИВ. ТАКОЖ [ФОРМАТ КЛАСИФІКАЦІЇ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:129
 msgid "COMPLEX SEE REFERENCE--NAME"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:68
+#, fuzzy
 msgid "COMPLEX SEE REFERENCE--SUBJECT"
-msgstr ""
+msgstr "ДОВІДКОВЕ КОМПЛЕКСНЕ ДИВ. ТАКОЖ [ФОРМАТ КЛАСИФІКАЦІЇ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:263
 msgid "COMPONENT ITEM ENTRY (RLIN)"
@@ -933,7 +938,7 @@ msgstr "Скасований/недійсний CODEN"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:321
 msgid "Canceled/invalid GPO item number"
-msgstr "Анульований/недійсний номер екземпляра GPO"
+msgstr "Анульований/недійсний номер примірника Урядової друкарні США (GPO)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:21
 msgid "Canceled/invalid ISBN"
@@ -1125,7 +1130,8 @@ msgstr "Елемент класифікаційного номера - кінц�
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1346
 msgid "Classification number--Ending number of span [CLASSIFICATION FORMAT]"
-msgstr "Класифікаційний номер -- кінцевий номер інтервалу [ФОРМАТ КЛАСИФІКАЦІЇ]"
+msgstr ""
+"Класифікаційний номер -- кінцевий номер інтервалу [ФОРМАТ КЛАСИФІКАЦІЇ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:489
 msgid "Classification number--Single number or beginning number of span"
@@ -1178,8 +1184,8 @@ msgid "Codeset name and source"
 msgstr "Назва та джерело набору кодів"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:9
-msgid "Collection code"
-msgstr "Шифр зібрання"
+msgid "Collection"
+msgstr "Зібрання"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:439
 msgid "Collective title"
@@ -1193,7 +1199,7 @@ msgstr "Характеристики кольору"
 msgid "Color content"
 msgstr "Кольоровий вміст"
 
-# був „Обліковий відсоток“..?
+# був \"Обліковий відсоток\"..?
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:912
 msgid "Column count"
 msgstr "Кількість стовпців"
@@ -1216,7 +1222,7 @@ msgstr "Звіт про повноту"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1752
 msgid "Compression information"
-msgstr "Інформація про стиснення"
+msgstr "Відомості про стиснення"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:624
 msgid "Computer file characteristics"
@@ -1375,7 +1381,7 @@ msgstr "Примітка про копію"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:29
 msgid "Copy number"
-msgstr "Порядковый номер комплекта/экземпляра"
+msgstr "Порядковий номер комплекту/примірника"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4095
 msgid "Copy number [LOCAL, KOHA]"
@@ -1459,7 +1465,7 @@ msgstr "Вартість"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:17
 msgid "Cost, normal purchase price"
-msgstr "Вартість, середня закупівельна ціна"
+msgstr "Ціна"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:31
 msgid "Cost, replacement price"
@@ -1628,7 +1634,7 @@ msgstr "Дата 2, дата н. е."
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:14
 msgid "Date acquired"
-msgstr "Дата придбання"
+msgstr "Дата надходження"
 
 # --Дата повернення (конфлікт з Return date)
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:26
@@ -1637,7 +1643,7 @@ msgstr "Очікується на дату"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:28
 msgid "Date last checked out"
-msgstr "Дата останньої видані"
+msgstr "Дата останнього випожичання чи повернення"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:27
 msgid "Date last seen"
@@ -1862,6 +1868,7 @@ msgstr ""
 msgid "Digits added from internal subarrangement or add table"
 msgstr "Цифри додані із внутрішньої підгрупи або доданої таблиці"
 
+# Було \"Описи\", перейменував на \"Примітки\" оскільки \"MARCNOTES || notes\" і в ЕК Примітки
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:699
 msgid "Dimensions"
 msgstr "Розміри"
@@ -1953,8 +1960,8 @@ msgstr "НУМЕРАЦІЯ І ХРОНОЛОГІЯ - ДОДАТКОВИЙ МАТ
 msgid ""
 "EQUIVALENCE OR CROSS-REFERENCE--COLLECTIVE TITLE [OBSOLETE] [CAN/MARC only]"
 msgstr ""
-"ЕКВІВАЛЕНТНІСТЬ АБО ПЕРЕХРЕСНЕ ПОСИЛАННЯ - КОЛЕКТИВНА НАЗВА [ЗАСТАРІЛО] ["
-"лише CAN/MARC]"
+"ЕКВІВАЛЕНТНІСТЬ АБО ПЕРЕХРЕСНЕ ПОСИЛАННЯ - КОЛЕКТИВНА НАЗВА [ЗАСТАРІЛО] "
+"[лише CAN/MARC]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:332
 msgid ""
@@ -1968,27 +1975,26 @@ msgstr ""
 msgid ""
 "EQUIVALENCE OR CROSS-REFERENCE--ROMANIZED TITLE [OBSOLETE] [CAN/MARC only]"
 msgstr ""
-"ЕКВІВАЛЕНТНІСТЬ АБО ПЕРЕХРЕСНЕ ПОСИЛАННЯ - РОМАНІЗОВАНА НАЗВА [ЗАСТАРІЛО] ["
-"лише CAN/MARC]"
+"ЕКВІВАЛЕНТНІСТЬ АБО ПЕРЕХРЕСНЕ ПОСИЛАННЯ - РОМАНІЗОВАНА НАЗВА [ЗАСТАРІЛО] "
+"[лише CAN/MARC]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:323
 msgid ""
 "EQUIVALENCE OR CROSS-REFERENCE--UNIFORM TITLE [OBSOLETE] [CAN/MARC only]"
 msgstr ""
-"ЕКВІВАЛЕНТНІСТЬ АБО ПЕРЕХРЕСНЕ ПОСИЛАННЯ - ЄДИНА НАЗВА [ЗАСТАРІЛО] [лише "
-"CAN/MARC]"
+"ЕКВІВАЛЕНТНІСТЬ АБО ПЕРЕХРЕСНЕ ПОСИЛАННЯ - ЄДИНА НАЗВА [ЗАСТАРІЛО] [лише CAN/"
+"MARC]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:320
 msgid ""
 "EQUIVALENCE OR CROSS-REFERENCE-CONFERENCE OR MEETING NAME [LOCAL, CANADA]"
 msgstr ""
-"ЕКВІВАЛЕНТНІСТЬ АБО ПЕРЕХРЕСНЕ ПОСИЛАННЯ-НАЗВА КОНФЕРЕНЦІЇ АБО ЗУСТРІЧІ ["
-"LOCAL, КАНАДА]"
+"ЕКВІВАЛЕНТНІСТЬ АБО ПЕРЕХРЕСНЕ ПОСИЛАННЯ-НАЗВА КОНФЕРЕНЦІЇ АБО ЗУСТРІЧІ "
+"[LOCAL, КАНАДА]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:310
 msgid "EQUIVALENCE OR CROSS-REFERENCE-PERSONAL NAME [LOCAL, CANADA]"
-msgstr ""
-"ЕКВІВАЛЕНТНІСТЬ АБО ПЕРЕХРЕСНЕ ПОСИЛАННЯ-ПЕРСОНАЛЬНЕ ІМ'Я [LOCAL, КАНАДА]"
+msgstr "ЕКВІВАЛЕНТНІСТЬ АБО ПЕРЕХРЕСНЕ ПОСИЛАННЯ-ІМ’Я ОСОБИ [ЛОКАЛЬНЕ, КАНАДА]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:339
 msgid ""
@@ -2011,8 +2017,8 @@ msgid ""
 "EQUIVALENCE OR CROSS-REFERENCE-SERIES STATEMENT--PERSONAL NAME/TITLE [LOCAL, "
 "CANADA]"
 msgstr ""
-"ЕКВІВАЛЕНТНІСТЬ АБО ПЕРЕХРЕСНЕ ПОСИЛАННЯ - ЗАЯВА ПО СЕРІЇ - ПЕРСОНАЛЬНІ ІМʼЯ/"
-"НАЗВА [LOCAL, КАНАДА]"
+"ЕКВІВАЛЕНТНІСТЬ АБО ПЕРЕХРЕСНЕ ПОСИЛАННЯ - ЗАЯВА ПО СЕРІЇ — ІМ’Я ОСОБИ/НАЗВА "
+"[ЛОКАЛЬНЕ, КАНАДА]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:340
 msgid ""
@@ -2025,8 +2031,8 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:321
 msgid "EQUIVALENCE OR CROSS-REFERENCE-UNIFORM TITLE HEADING [LOCAL, CANADA]"
 msgstr ""
-"ЕКВІВАЛЕНТНІСТЬ АБО ПЕРЕХРЕСНЕ ПОСИЛАННЯ - ЗАГОЛОВОК УНІФІКОВАНОЇ НАЗВИ ["
-"LOCAL, КАНАДА]"
+"ЕКВІВАЛЕНТНІСТЬ АБО ПЕРЕХРЕСНЕ ПОСИЛАННЯ - ЗАГОЛОВОК УНІФІКОВАНОЇ НАЗВИ "
+"[LOCAL, КАНАДА]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:343
 msgid "EQUIVALENCES OR CROSS-REFERENCES [LOCAL, CANADA]"
@@ -2054,7 +2060,7 @@ msgstr "ВСТАНОВЛЕНИЙ ЗАГОЛОВОК ЗВ'ЯЗКУ -- НАЗВА 
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:151
 msgid "ESTABLISHED HEADING LINKING ENTRY--PERSONAL NAME"
-msgstr "ВСТАНОВЛЕНИЙ ЗАГОЛОВОК ЗВ'ЯЗКУ -- ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ВСТАНОВЛЕНИЙ ЗАГОЛОВОК ЗВ'ЯЗКУ — ІМ’Я ОСОБИ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:157
 msgid "ESTABLISHED HEADING LINKING ENTRY--TOPICAL TERM"
@@ -2128,7 +2134,7 @@ msgstr "Назва еліпсоїда"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:888
 msgid "Encoded bitrate"
-msgstr "Закодований бітрейт"
+msgstr "Бітрейт кодування"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:884
 msgid "Encoding format"
@@ -2228,7 +2234,7 @@ msgstr "Очікувана дата наступної доступності"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4112
 msgid "Expiration of loan date"
-msgstr "Дата закінчення терміну видачі"
+msgstr "Дата завершення терміну видачі"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:254
 msgid "Explanatory information"
@@ -2325,7 +2331,7 @@ msgstr "ПЕРІОДИЧНІСТЬ (CF MP) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:82
 msgid "FULLER FORM OF PERSONAL NAME"
-msgstr "ПОВНА ФОРМА ОСОБИСТОГО ІМЕНІ"
+msgstr "ПОВНА ФОРМА ІМЕНІ ОСОБИ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:181
 msgid "FUNDING INFORMATION NOTE"
@@ -2349,7 +2355,7 @@ msgstr "Хибне північне положення"
 
 #: installer/data/mysql/en/marcflavour/marc21/optional/marc21_sample_fastadd_framework.yml:biblio_framework:1:row:1
 msgid "Fast Add Framework"
-msgstr "Структура швидкого додавання"
+msgstr "швидка каталогізація"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:687
 msgid "Fax number"
@@ -2473,7 +2479,7 @@ msgstr "Форма коду музичного твору"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:688
 msgid "Form of work"
-msgstr "Форма роботи"
+msgstr "Форма твору"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:355
 msgid "Form subdivision"
@@ -2518,7 +2524,7 @@ msgstr "Колишня частота публікації"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2876
 msgid "Former shelving location"
-msgstr "Колишнє поличне місцезнаходження"
+msgstr "Колишнє поличне розташування"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1451
 msgid "Former title complexity note"
@@ -2554,7 +2560,7 @@ msgstr "Повна форма найменування"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:680
 msgid "Fuller form of personal name"
-msgstr "Повна форма особового імені"
+msgstr "Повна форма імені особи"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1818
 msgid "Function"
@@ -2565,8 +2571,9 @@ msgid "G-ring latitude"
 msgstr "Широта G-кільця"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:76
+#, fuzzy
 msgid "G-ring longitude"
-msgstr ""
+msgstr "Широта G-кільця"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:79
 msgid "GENDER"
@@ -2575,7 +2582,7 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:60
 #, fuzzy
 msgid "GENERAL EXPLANATORY INDEX TERM [CLASSIFICATION FORMAT]"
-msgstr "ДОДАТИ АБО РОЗДІЛИТИ ПОДІБНІ ІНСТРУКЦІЇ [ФОРМАТ КЛАСИФІКАЦІЇ]"
+msgstr "ДОПОМІЖНА ІНСТРУКЦІЯ [ФОРМАТ КЛАСИФІКАЦІЇ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:131
 msgid "GENERAL EXPLANATORY REFERENCE--NAME"
@@ -2607,16 +2614,19 @@ msgid "GNR (RLIN)"
 msgstr "% (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:38
+#, fuzzy
 msgid "GOVERNMENT DOCUMENT CALL NUMBER"
-msgstr ""
+msgstr "ДЕСЯТИЧНИЙ РОЗСТАНОВОЧНИЙ ШИФР ДЬЮЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:39
+#, fuzzy
 msgid "GOVERNMENT DOCUMENT CLASSIFICATION NUMBER"
-msgstr ""
+msgstr "ДЕСЯТКОВИЙ КЛАСИФІКАЦІЙНИЙ НОМЕР ДЬЮЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:55
+#, fuzzy
 msgid "GPO ITEM NUMBER"
-msgstr ""
+msgstr "КОНТРОЛЬНИЙ НОМЕР"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:320
 #, fuzzy
@@ -2628,8 +2638,9 @@ msgid "Gender"
 msgstr "Стать"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:497
+#, fuzzy
 msgid "General explanatory index term"
-msgstr ""
+msgstr "Пояснювальний термін"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:498
 msgid "General explanatory index term--Succeeding level"
@@ -2641,9 +2652,8 @@ msgstr ""
 
 # Специфічне позначення образотворчого матеріалу
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:428
-#, fuzzy
 msgid "General material designation"
-msgstr "Визначник специфіки двовимірного зображувального об’єкту"
+msgstr "Загальне визначення матеріалу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:52
 #, fuzzy
@@ -2653,7 +2663,7 @@ msgstr "Внутрішня примітка"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:356
 #, fuzzy
 msgid "General subdivision"
-msgstr "g — запис, що містить посилання/підзаголовок"
+msgstr "Підрозділ форми"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:436
 #, fuzzy
@@ -2667,7 +2677,7 @@ msgstr "Статус каталогізованого екземпляру; по
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1816
 #, fuzzy
 msgid "Generation agency"
-msgstr "Статус каталогізованого екземпляру; покоління фільму"
+msgstr "Конверсійне агентство"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1815
 #, fuzzy
@@ -2677,7 +2687,7 @@ msgstr "Статус каталогізованого екземпляру; по
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1813
 #, fuzzy
 msgid "Generation process"
-msgstr "Статус каталогізованого екземпляру; покоління фільму"
+msgstr "Процес створення"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4118
 msgid "Genre"
@@ -2714,7 +2724,7 @@ msgstr "Географічна назва як предметна рубрика
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:98
 #, fuzzy
 msgid "Geographic area code"
-msgstr "Бібліографічний запис"
+msgstr "Код демографічної групи"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:134
 #, fuzzy
@@ -2756,29 +2766,31 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:358
 #, fuzzy
 msgid "Geographic subdivision"
-msgstr "06 — прямий/непрямий географічний підзаголовок"
+msgstr "Пʼятий бібліографічний підрозділ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1363
 #, fuzzy
 msgid "Grant number"
-msgstr "Номер будинку"
+msgstr "Номер договору"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:856
 #, fuzzy
 msgid "Groove characteristic"
-msgstr "символи"
+msgstr "Характеристики кольору"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:65
 msgid "HEADING--CHRONOLOGICAL SUBDIVISION"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:56
+#, fuzzy
 msgid "HEADING--CHRONOLOGICAL TERM"
-msgstr ""
+msgstr "ВСТАНОВЛЕНИЙ ЗАПИС ЗВ'ЯЗКУ НА ЗАГОЛОВОК - ХРОНОЛОГІЧНИЙ ТЕРМІН"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:50
+#, fuzzy
 msgid "HEADING--CORPORATE NAME"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ОРГАНІЗАЦІЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:66
 msgid "HEADING--FORM SUBDIVISION"
@@ -2789,12 +2801,14 @@ msgid "HEADING--GENERAL SUBDIVISION"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:61
+#, fuzzy
 msgid "HEADING--GENRE/FORM TERM"
-msgstr ""
+msgstr "ВСТАНОВЛЕНИЙ ЗАПИС ЗВ'ЯЗКУ НА ЗАГОЛОВОК -- ТЕРМІН ЖАНР/ФОРМА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:58
+#, fuzzy
 msgid "HEADING--GEOGRAPHIC NAME"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--ГЕОГРАФІЧНА НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:64
 msgid "HEADING--GEOGRAPHIC SUBDIVISION"
@@ -2812,19 +2826,22 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:49
 #, fuzzy
 msgid "HEADING--PERSONAL NAME"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ДОДАТКОВИЙ ОПИС--ІМ’Я ОСОБИ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:57
+#, fuzzy
 msgid "HEADING--TOPICAL TERM"
-msgstr ""
+msgstr "ВСТАНОВЛЕНИЙ ЗАГОЛОВОК ЗВ'ЯЗКУ - ТЕМАТИЧНИЙ ТЕРМІН"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:52
+#, fuzzy
 msgid "HEADING--UNIFORM TITLE"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--ЄДИНА НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:62
+#, fuzzy
 msgid "HEADING-MEDIUM OF PERFORMANCE TERM"
-msgstr ""
+msgstr "ВСТАНОВЛЕНИЙ ЗАГОЛОВОК ЗВ'ЯЗКУ - ТЕРМІН СЕРЕДОВИЩА ВИКОНАННЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:130
 msgid "HISTORY REFERENCE"
@@ -2832,15 +2849,16 @@ msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:278
 msgid "HOLDING INSTITUTION"
-msgstr ""
+msgstr "Організація — утримувач"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:273
 msgid "HOLDINGS CODED DATA VALUES"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:254
+#, fuzzy
 msgid "HOST ITEM ENTRY"
-msgstr ""
+msgstr "ЗАПИС ОСНОВНОГО ДОКУМЕНТА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:107
 msgid "HOURS, ETC."
@@ -2852,8 +2870,9 @@ msgid "Handling instructions"
 msgstr "матеріали для вивчення мови"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1345
+#, fuzzy
 msgid "Heading or subdivision term"
-msgstr ""
+msgstr "Підрозділ форми"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:545
 #, fuzzy
@@ -2867,7 +2886,7 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:666
 #, fuzzy
 msgid "Hereditary title"
-msgstr "Впорядкувати за заголовком"
+msgstr "Впорядкувати за назвою"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:905
 #, fuzzy
@@ -2882,18 +2901,20 @@ msgstr "Історія"
 msgid "History reference"
 msgstr ""
 
+# Загальнодоступна нотатка:
+# (задовге)
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2856
-#, fuzzy
 msgid "Holding institution"
-msgstr "матеріали для вивчення мови"
+msgstr "Організація — утримувач"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:250
 msgid "Holding library"
 msgstr "Бібліотека тимч. зберігання/видачі"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4073
+#, fuzzy
 msgid "Holding library identification number"
-msgstr ""
+msgstr "Класифікаційний індекс"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2857
 msgid "Holdings (NR) (MU VM SE) [OBSOLETE]"
@@ -2904,17 +2925,19 @@ msgid "Home library"
 msgstr "Джерельна бібліотека"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1241
+#, fuzzy
 msgid "Horizontal position accuracy explanation"
-msgstr ""
+msgstr "Пояснення точності атрибуту"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1239
+#, fuzzy
 msgid "Horizontal position accuracy report"
-msgstr ""
+msgstr "Звіт про точність атрибуту"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1240
 #, fuzzy
 msgid "Horizontal position accuracy value"
-msgstr "Горизонтальний відступ"
+msgstr "Значення точності атрибута"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2347
 #, fuzzy
@@ -2927,18 +2950,16 @@ msgid "Host Itemnumber"
 msgstr "Номер (itemnumber) примірника"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1750
-#, fuzzy
 msgid "Host name"
-msgstr "Сервер: "
+msgstr "Ім’я сервера"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:692
 msgid "Hours"
 msgstr "години"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1769
-#, fuzzy
 msgid "Hours access method available"
-msgstr "Зображення обкладинки не доступне"
+msgstr "Термін доступу за даним методом"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:185
 msgid "IMMEDIATE SOURCE OF ACQUISITION NOTE"
@@ -2961,7 +2982,7 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:160
 #, fuzzy
 msgid "INDEX TERM--FACETED TOPICAL TERMS [CLASSIFICATION FORMAT]"
-msgstr "ДОДАТИ АБО РОЗДІЛИТИ ПОДІБНІ ІНСТРУКЦІЇ [ФОРМАТ КЛАСИФІКАЦІЇ]"
+msgstr "ДОВІДКОВЕ КОМПЛЕКСНЕ ДИВ. ТАКОЖ [ФОРМАТ КЛАСИФІКАЦІЇ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:224
 msgid "INDEX TERM--FUNCTION"
@@ -2976,21 +2997,24 @@ msgid "INDEX TERM--OCCUPATION"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:220
+#, fuzzy
 msgid "INDEX TERM--UNCONTROLLED"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--НЕКОНТРОЛЬОВАНЕ ІМʼЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:159
 #, fuzzy
 msgid "INDEX TERM--UNCONTROLLED [CLASSIFICATION FORMAT]"
-msgstr "ДОДАТИ АБО РОЗДІЛИТИ ПОДІБНІ ІНСТРУКЦІЇ [ФОРМАТ КЛАСИФІКАЦІЇ]"
+msgstr "ДОПОМІЖНА ІНСТРУКЦІЯ [ФОРМАТ КЛАСИФІКАЦІЇ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:158
+#, fuzzy
 msgid "INFORMAL NOTES (RLIN)"
-msgstr ""
+msgstr "ДОДАТКОВІ КОДИ ESTC (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:195
+#, fuzzy
 msgid "INFORMATION ABOUT DOCUMENTATION NOTE"
-msgstr ""
+msgstr "ІНФОРМАЦІЯ ПРО ОБʼЄКТ ТА АТРИБУТ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:186
 msgid "INFORMATION RELATING TO COPYRIGHT STATUS"
@@ -2999,7 +3023,8 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:164
 #, fuzzy
 msgid "INTERNAL SUBARRANGEMENT OR ADD TABLE ENTRY [CLASSIFICATION FORMAT]"
-msgstr "ДОДАТИ АБО РОЗДІЛИТИ ПОДІБНІ ІНСТРУКЦІЇ [ФОРМАТ КЛАСИФІКАЦІЇ]"
+msgstr ""
+"ЦИТУВАННЯ ТА ІНСТРУКЦІЇ ДЛЯ ПЕРЕВАЖНОГО ЗАМОВЛЕННЯ [ФОРМАТ КЛАСИФІКАЦІЇ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:9
 msgid "INTERNATIONAL STANDARD BOOK NUMBER"
@@ -3012,14 +3037,14 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:99
 #, fuzzy
 msgid "INVALID NUMBER TRACING [CLASSIFICATION FORMAT]"
-msgstr "ДОДАТИ АБО РОЗДІЛИТИ ПОДІБНІ ІНСТРУКЦІЇ [ФОРМАТ КЛАСИФІКАЦІЇ]"
+msgstr "КЛАСИФІКАЦІЙНИЙ ІНДЕКС [ФОРМАТ КЛАСИФІКАЦІЇ]"
 
-# Покажчик
-# Окремо виданий абетковий перелік термінів (імен або предметів), який надає можливість пошуку інформації щодо них в інших місцях.
+# 110^a - Покажчик
+# Наприклад, покажчик до серіального видання, який сам видається як серіальне видання. Для відображення наявності покажчика у самому серіальному видання див. символьну позицію 9.
 #: installer/data/mysql/en/marcflavour/marc21/optional/marc21_simple_bib_frameworks.yml:description:9
 #, fuzzy
 msgid "IR  Binders"
-msgstr "c — покажчик"
+msgstr "Палітурник"
 
 #: installer/data/mysql/en/marcflavour/marc21/optional/marc21_default_matching_rules.yml:description:3
 msgid "ISBN"
@@ -3032,7 +3057,7 @@ msgstr "Код ISO"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:222
 #, fuzzy
 msgid "ISO country code"
-msgstr "Код ISO"
+msgstr "Код країни"
 
 #: installer/data/mysql/en/marcflavour/marc21/optional/marc21_default_matching_rules.yml:description:4
 msgid "ISSN"
@@ -3043,24 +3068,28 @@ msgid "ISSN-L"
 msgstr "ISSN-L"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:258
+#, fuzzy
 msgid "ISSUED WITH ENTRY"
-msgstr ""
+msgstr "ЗАПИС ОСНОВНОГО ДОКУМЕНТА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:192
 msgid "ISSUING BODY NOTE"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:296
+#, fuzzy
 msgid "ITEM INFORMATION--BASIC BIBLIOGRAPHIC UNIT"
-msgstr ""
+msgstr "ПІДПИСИ І МАЛЮНОК - ОСНОВНА БІБЛІОГРАФІЧНА ОДИНИЦЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:298
+#, fuzzy
 msgid "ITEM INFORMATION--INDEXES"
-msgstr ""
+msgstr "ІНФОРМАЦІЯ ПРО ФІНАНСУВАННЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:297
+#, fuzzy
 msgid "ITEM INFORMATION--SUPPLEMENTARY MATERIAL"
-msgstr ""
+msgstr "ПІДПИСИ І МАЛЮНОК - ДОДАТКОВИЙ МАТЕРІАЛ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:985
 #, fuzzy
@@ -3068,13 +3097,14 @@ msgid "Identification of agency"
 msgstr "IM_notification.ogg"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:972
+#, fuzzy
 msgid "Identification of pricing entity"
-msgstr ""
+msgstr "Країна-виробник"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:645
 #, fuzzy
 msgid "Identification/manufacturer number [OBSOLETE, CAN/MARC]"
-msgstr "Супровідний матеріал [ЗАСТАРІЛО, CAN/MARC]"
+msgstr "Анульований/недійсний номер звіту [ЗАСТАРІЛО, CAN/MARC]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:705
 msgid ""
@@ -3091,9 +3121,8 @@ msgid "Identifying markings"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:566
-#, fuzzy
 msgid "Inclusive dates"
-msgstr "дати зібрання колекції"
+msgstr "Крайні дати"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2858
 msgid "Inclusive dates (NR) (MU VM SE) [OBSOLETE]"
@@ -3125,7 +3154,7 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:915
 #, fuzzy
 msgid "Indirect reference description"
-msgstr "Опис бюджетного періоду"
+msgstr "Метод прямого посилання"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1214
 #, fuzzy
@@ -3139,7 +3168,7 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1447
 #, fuzzy
 msgid "Information code or alphabet"
-msgstr "форматований кодований брайль"
+msgstr "Інформація недоступна"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1307
 #, fuzzy
@@ -3152,8 +3181,9 @@ msgid "Information recording technique"
 msgstr "Техніка запису:"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:4:row:4
+#, fuzzy
 msgid "Institution code [OBSOLETE]"
-msgstr ""
+msgstr "Позначення секції (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:123
 msgid "Institution to which field applies"
@@ -3188,7 +3218,7 @@ msgstr "Негайне вилучення"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1841
 msgid "Intermediate political jurisdiction"
-msgstr ""
+msgstr "Край/область/район/округ/графство/департамент і т.п."
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3165
 #, fuzzy
@@ -3200,27 +3230,27 @@ msgid "Internal item number (Koha itemnumber, autogenerated) [LOCAL, KOHA]"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:18
-#, fuzzy
 msgid "International Standard Book Number"
-msgstr "a — міжнародний стандарт"
+msgstr "Міжнародний стандартний книжковий номер (ISBN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:24
-#, fuzzy
 msgid "International Standard Serial Number"
-msgstr "a — міжнародний стандарт"
+msgstr "Міжнародний стандартний номер серіального видання (ISSN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1166
+#, fuzzy
 msgid "International Standard Serial Number (SE) [OBSOLETE]"
-msgstr ""
+msgstr "Позначення розділу/частини/серії (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1347
 #, fuzzy
 msgid "Introductory phrase"
-msgstr "Викладачі"
+msgstr "Викладач(і)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3166
+#, fuzzy
 msgid "Invalid or canceled internal item number"
-msgstr ""
+msgstr "Анульований/недійсний номер екземпляра GPO"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3174
 msgid "Invalid or canceled piece designation"
@@ -3250,10 +3280,11 @@ msgid "Item number"
 msgstr "Номер примірника"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:261
+#, fuzzy
 msgid ""
 "Item number ; Local cutter number (OCLC) ; Book number/undivided call "
 "number, CALL (RLIN)"
-msgstr ""
+msgstr "Шифр зберігання документа/єдиний шифр розстановки, CCAL (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:4:row:8
 #, fuzzy
@@ -3271,9 +3302,8 @@ msgid "Item type [OBSOLETE]"
 msgstr "Тип одиниці: "
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1199
-#, fuzzy
 msgid "Jurisdiction"
-msgstr "Надходження"
+msgstr "Повноваження"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1424
 msgid "Jurisdiction of copyright assessment"
@@ -3284,8 +3314,9 @@ msgid "KEY"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:78
+#, fuzzy
 msgid "KEY TITLE"
-msgstr ""
+msgstr "КОЛИШНЯ НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:179
 msgid "KOHA INTERNAL USE"
@@ -3306,14 +3337,12 @@ msgid "Key for music"
 msgstr "народна музика"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:53
-#, fuzzy
 msgid "Key or mode"
-msgstr "Модуль Коха: "
+msgstr "Тональність або лад"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:49
-#, fuzzy
 msgid "Key signature"
-msgstr "мініатюра"
+msgstr "Ключовий знак альтерації"
 
 # "Translation makes search highlighting not work"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:509
@@ -3324,7 +3353,7 @@ msgstr "title"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1342
 #, fuzzy
 msgid "Key title of original"
-msgstr "твір мистецтва (оригінал)"
+msgstr "Твердження про видання оригіналу"
 
 #: installer/data/mysql/en/marcflavour/marc21/optional/marc21_simple_bib_frameworks.yml:biblio_framework:1:row:5
 msgid "Kits"
@@ -3340,36 +3369,33 @@ msgid "Koha auth type"
 msgstr "Тип примірника в Koha"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:2:row:4
-#, fuzzy
 msgid "Koha biblioitemnumber"
-msgstr "Номер запис (biblioitems.biblioitemnumber)"
+msgstr "Внутрішній № біб-прим-запису (biblioitems.biblioitemnumber)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:2:row:3
-#, fuzzy
 msgid "Koha biblionumber"
-msgstr "До бібліографічного запису №: "
+msgstr "Внутрішній № біб-запису (biblio.biblionumber)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4097
+#, fuzzy
 msgid "Koha collection [LOCAL, KOHA]"
-msgstr ""
+msgstr "Кваліфікатор кодованого розташування [локально, Коха]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:4:row:1
 msgid "Koha issues (borrowed), all copies"
-msgstr ""
+msgstr "Кількість видач (випожичань) для усіх примірників"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:4:row:5
-#, fuzzy
 msgid "Koha item type"
-msgstr "Тип примірника в Koha"
+msgstr "Тип одиниці"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:10
-#, fuzzy
 msgid "Koha itemnumber (autogenerated)"
-msgstr "Довжина запису (генерується автоматично)"
+msgstr "Внутрішній № примірника (items.itemnumber)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:4:row:3
 msgid "Koha normalized classification for sorting"
-msgstr "Нормалізована класифікація для сортування в Коха"
+msgstr "Нормалізована класифікація Коха для сортування"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4093
 msgid "Koha normalized classification for sorting [LOCAL, KOHA]"
@@ -3384,20 +3410,26 @@ msgid "LANGUAGE NOTE"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:22
+#, fuzzy
 msgid "LC CLASSIFICATION NUMBER"
-msgstr ""
+msgstr "ДЕСЯТКОВИЙ КЛАСИФІКАЦІЙНИЙ НОМЕР ДЬЮЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:24
+#, fuzzy
 msgid "LC CLASSIFICATION NUMBER ASSIGNED IN CANADA [OBSOLETE, CAN/MARC]"
-msgstr ""
+msgstr "КЛАСИФІКАЦІЙНІ ІНДЕКСИ, ПРИСВОЄНІ В КАНАДІ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:157
+#, fuzzy
 msgid "LC classification number--End number of a range"
-msgstr ""
+msgstr "Елемент класифікаційного номера - кінцевий номер інтервалу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:156
+#, fuzzy
 msgid "LC classification number--Single number or beginning number of a range"
 msgstr ""
+"Елемент класифікаційного номера - одиночне число або початковий номер "
+"інтервалу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:7
 #, fuzzy
@@ -3444,16 +3476,18 @@ msgid "LIBRARY OF CONGRESS COPY, ISSUE, OFFPRINT STATEMENT"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:104
+#, fuzzy
 msgid "LINEAR FOOTAGE (AM) [OBSOLETE, USMARC]"
-msgstr ""
+msgstr "ПРИМІТКА РЕДАКТОРА (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:7
 msgid "LINK TO BIBLIOGRAPHIC RECORD FOR SERIAL OR MULTIPART ITEM"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:202
+#, fuzzy
 msgid "LINKING ENTRY COMPLEXITY NOTE"
-msgstr ""
+msgstr "ПРИМІТКА ПРО СКЛАДНІСТЬ КОЛИШНЬОЇ НАЗВИ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:10
 msgid "LINKING LIBRARY OF CONGRESS CONTROL NUMBER [OBSOLETE]"
@@ -3462,7 +3496,7 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:265
 #, fuzzy
 msgid "LOCAL ADDED ENTRY--CORPORATE NAME (RLIN)"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ОРГАНІЗАЦІЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:266
 #, fuzzy
@@ -3472,11 +3506,12 @@ msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ЗУСТРІЧІ"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:264
 #, fuzzy
 msgid "LOCAL ADDED ENTRY--PERSONAL NAME (RLIN)"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ДОДАТКОВИЙ ОПИС--ІМ’Я ОСОБИ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:267
+#, fuzzy
 msgid "LOCAL ADDED ENTRY--UNIFORM TITLE (RLIN)"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--ЄДИНА НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:41
 msgid ""
@@ -3485,8 +3520,9 @@ msgid ""
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:285
+#, fuzzy
 msgid "LOCAL CONTROL INFORMATION (RLIN)"
-msgstr ""
+msgstr "ІНФОРМАЦІЯ ПРО РІВЕНЬ ЕКЗЕМПЛЯРУ (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:311
 msgid "LOCAL DATA ELEMENT A, LDA (RLIN)"
@@ -3521,8 +3557,9 @@ msgid "LOCAL ELECTRONIC LOCATION AND ACCESS (OCLC)"
 msgstr "ЛОКАЛЬНЕ ЕЛЕКТРОННЕ РОЗМІЩЕННЯ ТА ДОСТУП (OCLC)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:48
+#, fuzzy
 msgid "LOCAL FREE-TEXT CALL NUMBER (OCLC)"
-msgstr ""
+msgstr "ЛОКАЛЬНО ПРИЗНАЧЕНИЙ ШИФР ЗБЕРІГАННЯ ДЬЮЇ (OCLC)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:44
 msgid "LOCAL HOLDINGS (OCLC)"
@@ -3533,8 +3570,9 @@ msgid "LOCAL HOLDINGS (RLIN)"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:210
+#, fuzzy
 msgid "LOCAL NOTE (RLIN)"
-msgstr ""
+msgstr "CC (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:326
 msgid "LOCAL PROCESSING INFORMATION (OCLC)"
@@ -3549,8 +3587,9 @@ msgid "LOCAL ROMANIZATION/CONVERSION HISTORY (OCLC)"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:307
+#, fuzzy
 msgid "LOCAL SERIES ADDED ENTRY--CORPORATE NAME (RLIN)"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ОРГАНІЗАЦІЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:308
 #, fuzzy
@@ -3560,19 +3599,22 @@ msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ЗУСТРІЧІ"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:306
 #, fuzzy
 msgid "LOCAL SERIES ADDED ENTRY--PERSONAL NAME (RLIN)"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ДОДАТКОВИЙ ОПИС--ІМ’Я ОСОБИ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:309
+#, fuzzy
 msgid "LOCAL SERIES ADDED ENTRY--UNIFORM TITLE (RLIN)"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--ЄДИНА НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:231
+#, fuzzy
 msgid "LOCAL SUBJECT ADDED ENTRY--CORPORATE NAME (RLIN)"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ОРГАНІЗАЦІЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:229
+#, fuzzy
 msgid "LOCAL SUBJECT ADDED ENTRY--GEOGRAPHIC NAME (RLIN)"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--ГЕОГРАФІЧНА НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:232
 #, fuzzy
@@ -3582,15 +3624,16 @@ msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ЗУСТРІЧІ"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:230
 #, fuzzy
 msgid "LOCAL SUBJECT ADDED ENTRY--PERSONAL NAME (RLIN)"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ДОДАТКОВИЙ ОПИС--ІМ’Я ОСОБИ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:228
 msgid "LOCAL SUBJECT ADDED ENTRY--TOPICAL TERM (OCLC, RLIN)"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:233
+#, fuzzy
 msgid "LOCAL SUBJECT ADDED ENTRY--UNIFORM TITLE (RLIN)"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--ЄДИНА НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:43
 msgid "LOCALLY ASSIGNED DEWEY CALL NUMBER (OCLC)"
@@ -3601,30 +3644,35 @@ msgid "LOCALLY ASSIGNED DEWEY CLASSIFICATION NUMBER (OCLC)"
 msgstr "ЛОКАЛЬНО ПРИЗНАЧЕНИЙ КЛАСИФІКАЦІЙНИЙ НОМЕР ДЬЮЇ (OCLC)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:64
+#, fuzzy
 msgid "LOCALLY ASSIGNED LC-TYPE CALL NUMBER (OCLC); LOCAL CALL NUMBER (RLIN)"
-msgstr ""
+msgstr "ЛОКАЛЬНО ПРИЗНАЧЕНИЙ ШИФР ЗБЕРІГАННЯ ДЬЮЇ (OCLC)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:42
+#, fuzzy
 msgid ""
 "LOCALLY ASSIGNED LC-TYPE CLASSIFICATION NUMBER (OCLC); LOCAL CLASSIFICATION "
 "NUMBER (RLIN)"
-msgstr ""
+msgstr "ЛОКАЛЬНО ПРИЗНАЧЕНИЙ КЛАСИФІКАЦІЙНИЙ НОМЕР ДЬЮЇ (OCLC)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:45
+#, fuzzy
 msgid "LOCALLY ASSIGNED NLM-TYPE CALL NUMBER (OCLC)"
-msgstr ""
+msgstr "ЛОКАЛЬНО ПРИЗНАЧЕНИЙ ШИФР ЗБЕРІГАННЯ ДЬЮЇ (OCLC)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:46
+#, fuzzy
 msgid "LOCALLY ASSIGNED NLM-TYPE CLASSIFICATION NUMBER (OCLC)"
-msgstr ""
+msgstr "ЛОКАЛЬНО ПРИЗНАЧЕНИЙ КЛАСИФІКАЦІЙНИЙ НОМЕР ДЬЮЇ (OCLC)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:280
 msgid "LOCATION"
 msgstr "РОЗТАШУВАННЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:5:row:1
+#, fuzzy
 msgid "LOCATION AND ITEM INFORMATION (KOHA)"
-msgstr ""
+msgstr "ІНФОРМАЦІЯ ПРО ОБʼЄКТ ТА АТРИБУТ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:180
 msgid "LOCATION OF ORIGINALS/DUPLICATES NOTE"
@@ -3645,7 +3693,7 @@ msgstr "Мітка"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:827
 #, fuzzy
 msgid "Landsat number and path number"
-msgstr "Керування схемами нумерації "
+msgstr "Схеми нумерації "
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:430
 msgid "Language"
@@ -3741,7 +3789,7 @@ msgstr "Мова: "
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:346
 #, fuzzy
 msgid "Language of a work"
-msgstr "Мова оригіналу: "
+msgstr "Дата роботи"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:87
 #, fuzzy
@@ -3766,7 +3814,7 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:815
 #, fuzzy
 msgid "Latitude resolution"
-msgstr "Пакетне вилучення примірників"
+msgstr "Роздільна здатність відстані"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:797
 msgid "Layout"
@@ -3781,8 +3829,9 @@ msgid "Lending or holding organisation (holding branch) code"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:179
+#, fuzzy
 msgid "Level of effort used to assign classification"
-msgstr ""
+msgstr "Класифікація Бібліотеки Конгресу (КБК)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:177
 msgid "Level of effort used to assign nonsubject heading access points"
@@ -3825,27 +3874,25 @@ msgid "Link information for field corresponding to 9XX field"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:57
-#, fuzzy
 msgid "Link text"
-msgstr "Великий текст"
+msgstr "Текст посилання"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:9
-#, fuzzy
 msgid "Linkage"
-msgstr " Елемент зв’язку"
+msgstr "Елемент зв’язку"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1580
-#, fuzzy
 msgid "Linkage (RLIN)"
-msgstr " Елемент зв’язку"
+msgstr "Елемент зв’язку (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:671
 msgid "Linkage [OBSOLETE]"
-msgstr ""
+msgstr "Елемент зв’язку (ЗАСТАРІЛО)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1531
+#, fuzzy
 msgid "Linking entry complexity note"
-msgstr ""
+msgstr "Примітка про складність колишньої назви"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:99
 #, fuzzy
@@ -3853,9 +3900,10 @@ msgid "Local GAC code"
 msgstr "Локальне використання записано"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:384
+#, fuzzy
 msgid ""
 "Local cutter number (OCLC) ; Book number/undivided call number, CALL (RLIN)"
-msgstr ""
+msgstr "Шифр зберігання документа/єдиний шифр розстановки, CCAL (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1582
 #, fuzzy
@@ -3894,43 +3942,49 @@ msgid "Location of meeting"
 msgstr "Місце зустрічі"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:455
+#, fuzzy
 msgid "Location of named event"
-msgstr ""
+msgstr "Місце події"
 
+# 557 (Organiser of meeting) Особа або організація, відповідальні за підготовку конференції, про яку йде мова в документі.
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1343
 #, fuzzy
 msgid "Location of original"
-msgstr "Мова оригіналу: "
+msgstr "Місце зустрічі"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2866
 #, fuzzy
 msgid "Location of units"
-msgstr "Розташування"
+msgstr "Місце події"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:794
 #, fuzzy
 msgid "Location within medium"
-msgstr "a — звукова доріжка на тому ж носії"
+msgstr "Розташування в джерелі"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1220
 msgid "Location within source"
 msgstr "Розташування в джерелі"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3930
+#, fuzzy
 msgid "Location-level additional note, LANT (RLIN)"
-msgstr ""
+msgstr "Додаткові локальні примітки, ANT (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3928
+#, fuzzy
 msgid "Location-level extra card request, LEXT (RLIN)"
-msgstr ""
+msgstr "Відомість з контролю додаткової картки, EXT (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3932
+#, fuzzy
 msgid "Location-level field suppression, LFSP (RLIN)"
-msgstr ""
+msgstr "Придушення поля на рівні розташування, LFSP (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3926
+#, fuzzy
 msgid "Location-level footnote, LFNT (RLIN)"
-msgstr ""
+msgstr "Додаткові локальні примітки, ANT (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3927
 msgid "Location-level output transaction history, LHST (RLIN)"
@@ -3956,15 +4010,15 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:816
 #, fuzzy
 msgid "Longitude resolution"
-msgstr "Рішення"
+msgstr "Роздільна здатність відстані"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:2
 msgid "Lost status"
-msgstr "Статус втрати/відсутності"
+msgstr "Стан втрати/відсутності"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4090
 msgid "Lost status [LOCAL, KOHA]"
-msgstr "Статус втрати/відсутності [локальне, Коха]"
+msgstr "Стан втрати/відсутності [локальне, Коха]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:176
 msgid "MACHINE-GENERATED METADATA PROVENANCE"
@@ -3973,7 +4027,7 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:71
 #, fuzzy
 msgid "MAIN ENTRY--CORPORATE NAME"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ОРГАНІЗАЦІЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:72
 #, fuzzy
@@ -3983,20 +4037,22 @@ msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ЗУСТРІЧІ"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:70
 #, fuzzy
 msgid "MAIN ENTRY--PERSONAL NAME"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ДОДАТКОВИЙ ОПИС--ІМ’Я ОСОБИ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:73
+#, fuzzy
 msgid "MAIN ENTRY--UNIFORM TITLE"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--ЄДИНА НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:248
+#, fuzzy
 msgid "MAIN SERIES ENTRY"
-msgstr ""
+msgstr "ВВЕДЕННЯ ДЖЕРЕЛА ДАНИХ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:220
 #, fuzzy
 msgid "MARC country code"
-msgstr "MARC-код організації"
+msgstr "Код країни"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:description:1
 #, fuzzy
@@ -4004,8 +4060,9 @@ msgid "MARC21 Default and Acquisitions bibliographic frameworks."
 msgstr "Бібліографічна МАРК-структура"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:178
+#, fuzzy
 msgid "MATCHING INFORMATION"
-msgstr ""
+msgstr "ОБОВ'ЯЗКОВА ІНФОРМАЦІЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:113
 msgid "MEDIA TYPE"
@@ -4024,20 +4081,24 @@ msgid "METHODOLOGY NOTE"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:65
+#, fuzzy
 msgid "MICROFILM SHELF LOCATION (AM) [OBSOLETE]"
-msgstr ""
+msgstr "РОЗТАШУВАННЯ [ЗАСТАРІЛЕ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:12
+#, fuzzy
 msgid "MUSICAL INCIPITS INFORMATION"
-msgstr ""
+msgstr "Музичний інципіт"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:88
+#, fuzzy
 msgid "MUSICAL PRESENTATION STATEMENT"
-msgstr ""
+msgstr "ЗАЯВА ПРО ВИДАННЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1827
+#, fuzzy
 msgid "Main curriculum objective"
-msgstr ""
+msgstr "Код навчальної програми"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2215
 #, fuzzy
@@ -4098,7 +4159,7 @@ msgstr "Зазначення матеріалів"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:4
 msgid "Materials specified (bound volume or other part)"
-msgstr ""
+msgstr "Зазначення матеріалів (нумерація, частина …)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1390
 #, fuzzy
@@ -4118,7 +4179,7 @@ msgstr "номер матриці / майстер-запису (звукоза�
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:646
 #, fuzzy
 msgid "Matrix and/or take number [OBSOLETE, CAN/MARC]"
-msgstr "Супровідний матеріал [ЗАСТАРІЛО, CAN/MARC]"
+msgstr "Анульований/недійсний номер звіту [ЗАСТАРІЛО, CAN/MARC]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:706
 msgid ""
@@ -4143,16 +4204,19 @@ msgid "Medium"
 msgstr "Носій"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:702
+#, fuzzy
 msgid "Medium of performance"
-msgstr ""
+msgstr "Альтернативне середовище виконання"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:347
+#, fuzzy
 msgid "Medium of performance for music"
-msgstr ""
+msgstr "Альтернативне середовище виконання"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:509
+#, fuzzy
 msgid "Medium of performance term"
-msgstr ""
+msgstr "Альтернативне середовище виконання"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1630
 msgid "Medium of performance term as entry element"
@@ -4163,13 +4227,14 @@ msgid "Meeting Name"
 msgstr "Назва зустрічі"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:384
+#, fuzzy
 msgid "Meeting name or jurisdiction name as entry element"
-msgstr ""
+msgstr "Назва компанії чи юрисдикції як елемент запису"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1397
 #, fuzzy
 msgid "Method of acquisition"
-msgstr "Джерело надходження"
+msgstr "Дата надходження"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1552
 #, fuzzy
@@ -4191,9 +4256,8 @@ msgid "Microgroove or standard"
 msgstr "широка/стандартна"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:342
-#, fuzzy
 msgid "Miscellaneous information"
-msgstr "Відомості про взаємозв’язок"
+msgstr "Інші відомості"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:254
 #, fuzzy
@@ -4212,9 +4276,8 @@ msgid "Modifying agency"
 msgstr "Редагуємо населений пункт"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:51
-#, fuzzy
 msgid "Musical notation"
-msgstr "Фізична форма документа"
+msgstr "Музична нотація"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:612
 #, fuzzy
@@ -4239,7 +4302,7 @@ msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:12
 msgid "NATIONAL BIBLIOGRAPHY NUMBER"
-msgstr ""
+msgstr "Номер документа в національній бібліографії"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:25
 msgid "NATIONAL LIBRARY OF MEDICINE CALL NUMBER"
@@ -4250,36 +4313,45 @@ msgid "NATIONAL LIBRARY OF MEDICINE COPY STATEMENT"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:26
+#, fuzzy
 msgid "NLM CLASSIFICATION NUMBER ASSIGNED BY NLM [OBSOLETE, CAN/MARC]"
-msgstr ""
+msgstr "КЛАСИФІКАЦІЙНІ ІНДЕКСИ, ПРИСВОЄНІ В КАНАДІ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:29
+#, fuzzy
 msgid "NLM CLASSIFICATION NUMBER ASSIGNED IN CANADA [OBSOLETE, CAN/MARC]"
-msgstr ""
+msgstr "КЛАСИФІКАЦІЙНІ ІНДЕКСИ, ПРИСВОЄНІ В КАНАДІ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:168
+#, fuzzy
 msgid "NLM classification number--End number of a range"
-msgstr ""
+msgstr "Елемент класифікаційного номера - кінцевий номер інтервалу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:167
+#, fuzzy
 msgid "NLM classification number--Single number or beginning number of a range"
 msgstr ""
+"Елемент класифікаційного номера - одиночне число або початковий номер "
+"інтервалу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:305
+#, fuzzy
 msgid "NON-MARC INFORMATION FIELD"
-msgstr ""
+msgstr "ПОЛЕ ІНОЗЕМНОЇ ІНФОРМАЦІЇ МАРК"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:132
 msgid "NONPUBLIC GENERAL NOTE"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:131
+#, fuzzy
 msgid "NORMALIZED DATE AND SEQUENTIAL DESIGNATION"
-msgstr ""
+msgstr "ДАТИ ПУБЛІКАЦІЇ І/АБО ПОСЛІДОВНЕ ПОЗНАЧЕННЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:139
+#, fuzzy
 msgid "NOTE--CATALOGUING RULES (NAMES/TITLES) [OBSOLETE, CAN/MARC ONLY]"
-msgstr ""
+msgstr "ЗАГАЛЬНА НАЗВА [ЗАСТАРІЛО, CAN/MARC]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:147
 msgid "NOTE--SOURCE DATA FOUND (SUBJECTS) [OBSOLETE, CAN/MARC ONLY]"
@@ -4290,17 +4362,19 @@ msgid "NOTE--SOURCE DATA NOT FOUND (SUBJECTS) [OBSOLETE, CAN/MARC ONLY]"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:149
+#, fuzzy
 msgid "NOTE--USAGE (SUBJECTS) [OBSOLETE, CAN/MARC ONLY]"
-msgstr ""
+msgstr "НОМЕР РОЗМІЩЕННЯ ДОКУМЕНТА НА ПОЛИЦІ (CODOC) [ЗАСТАРІЛО, CAN/MARC]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:135
+#, fuzzy
 msgid "NOTE--WORK CATALOGUED [OBSOLETE, CAN/MARC ONLY]"
-msgstr ""
+msgstr "ЗАГАЛЬНА НАЗВА [ЗАСТАРІЛО, CAN/MARC]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4130
 #, fuzzy
 msgid "NUC (RLIN)"
-msgstr "% (RLIN)"
+msgstr "CC (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:11
 #, fuzzy
@@ -4320,9 +4394,8 @@ msgid "NUMERIC DESIGNATION OF MUSICAL WORK"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:813
-#, fuzzy
 msgid "Name"
-msgstr "Найменування "
+msgstr "Найменування"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2862
 msgid "Name (custodian or owner)"
@@ -4332,34 +4405,39 @@ msgstr ""
 msgid "Name following place as an entry element {OBSOLETE]"
 msgstr ""
 
+# 124^d - наземна [Позиція платформи фотографування або дистанційного датчика]
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:79
 #, fuzzy
 msgid "Name of extraterrestrial body"
-msgstr "Код типу матеріалу"
+msgstr "Позаземна область"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1176
 msgid "Name of granting institution"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1761
+#, fuzzy
 msgid "Name of location of host"
-msgstr ""
+msgstr "Дата позики або депозиту"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3973
 msgid "Name of location of host in subfield"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:397
+#, fuzzy
 msgid "Name of meeting following jurisdiction name entry element"
-msgstr ""
+msgstr "Назва компанії чи юрисдикції як елемент запису"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:538
+#, fuzzy
 msgid "Name of part/section (BK AM MP MU VM SE) [OBSOLETE]"
-msgstr ""
+msgstr "Позначення секції (BK AM MP MU VM SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:591
+#, fuzzy
 msgid "Name of part/section (SE) [OBSOLETE]"
-msgstr ""
+msgstr "Позначення секції (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:350
 #, fuzzy
@@ -4367,26 +4445,31 @@ msgid "Name of part/section of a work"
 msgstr "версії роботи"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:565
+#, fuzzy
 msgid "Name of part/section/series (SE) [OBSOLETE]"
-msgstr ""
+msgstr "Позначення розділу/частини/серії (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:669
+#, fuzzy
 msgid "Name of producer, publisher, distributor, manufacturer"
 msgstr ""
+"Дата виробництва, публікації, розповсюдження, виготовлення або повідомлення "
+"про авторські права"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:665
 #, fuzzy
 msgid "Name of prominent member"
-msgstr "Наймення чи номер квитка: "
+msgstr "ПІБ чи номер квитка: "
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:639
+#, fuzzy
 msgid "Name of publisher, distributor, etc."
-msgstr ""
+msgstr "Дата видання, розповсюдження тощо"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1218
 #, fuzzy
 msgid "Name of source"
-msgstr "Назва пори року"
+msgstr "Примітка про покажчики, реферати, посилання"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2846
 #, fuzzy
@@ -4396,7 +4479,7 @@ msgstr "Назва місяця"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1515
 #, fuzzy
 msgid "Name of variable"
-msgstr "Назва дня"
+msgstr "Недоступно"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1854
 #, fuzzy
@@ -4406,33 +4489,35 @@ msgstr "багатожанровий або інший"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:454
 #, fuzzy
 msgid "Named event"
-msgstr "з назвою: "
+msgstr "Дата названої події"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:25
-#, fuzzy
 msgid "National bibliography number"
-msgstr "національна бібліографічна агенція"
+msgstr "Номер документа в національній бібліографії"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1619
 #, fuzzy
 msgid "Negative example class number"
-msgstr "Введення переліку номерів читацьких квитків"
+msgstr "Номер прикладу класу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2879
 msgid "Non-coded location qualifier"
-msgstr "Кваліфікатор незакодованого розташування"
+msgstr "Визначник місцезнаходження (не в кодований формі)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1591
+#, fuzzy
 msgid "Non-focus term"
-msgstr ""
+msgstr "Нецільовий термін"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3957
+#, fuzzy
 msgid "Non-printing notes, HNT (RLIN)"
-msgstr ""
+msgstr "Додаткові локальні примітки, ANT (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3933
+#, fuzzy
 msgid "Non-printing notes, LANT (RLIN)"
-msgstr ""
+msgstr "Додаткові локальні примітки, ANT (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:33
 msgid "Non-public note"
@@ -4480,16 +4565,19 @@ msgid "Number"
 msgstr "Номер"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1657
+#, fuzzy
 msgid "Number  (BK CF MP MU SE VM MX)  [OBSOLETE]"
-msgstr ""
+msgstr "Позначення секції (BK AM MP MU VM SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2081
+#, fuzzy
 msgid "Number (BK CF MP MU SE VM MX) [OBSOLETE]"
-msgstr ""
+msgstr "Позначення секції (BK AM MP MU VM SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:385
+#, fuzzy
 msgid "Number [OBSOLETE]"
-msgstr ""
+msgstr "РОЗТАШУВАННЯ [ЗАСТАРІЛЕ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1665
 #, fuzzy
@@ -4497,9 +4585,10 @@ msgid "Number being analyzed"
 msgstr "Схема нумерації"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1666
+#, fuzzy
 msgid ""
 "Number in internal subarrangement or add table where instructions are found"
-msgstr ""
+msgstr "Цифри додані із внутрішньої підгрупи або доданої таблиці"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1514
 #, fuzzy
@@ -4527,18 +4616,18 @@ msgid "Number of fixed field character positions coded"
 msgstr "30 — невизначена позиція символу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:43
-#, fuzzy
 msgid "Number of movement"
-msgstr "Кількість місяців: "
+msgstr "Номер частини"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:432
+#, fuzzy
 msgid "Number of part or section/serial, thematic, or opus number"
-msgstr ""
+msgstr "Номер частини/розділу/зустрічі"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:348
 #, fuzzy
 msgid "Number of part/section of a work"
-msgstr "версії роботи"
+msgstr "Номер частини/розділу/зустрічі"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:372
 msgid "Number of part/section/meeting"
@@ -4574,9 +4663,8 @@ msgid "Number of volume or part"
 msgstr "Кількість поновленних записів"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:42
-#, fuzzy
 msgid "Number of work"
-msgstr "Кількість тижнів: "
+msgstr "Номер твору"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:147
 #, fuzzy
@@ -4588,29 +4676,40 @@ msgid "Number where instructions are found"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1660
+#, fuzzy
 msgid "Number where instructions are found--Ending number of span"
-msgstr ""
+msgstr "Елемент класифікаційного номера - кінцевий номер інтервалу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1658
+#, fuzzy
 msgid ""
 "Number where instructions are found--Single number or beginning number of "
 "span"
 msgstr ""
+"Елемент класифікаційного номера - одиночне число або початковий номер "
+"інтервалу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1612
+#, fuzzy
 msgid ""
 "Number where instructions are found--Single number or beginnning number of "
 "span"
 msgstr ""
+"Елемент класифікаційного номера - одиночне число або початковий номер "
+"інтервалу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:358
+#, fuzzy
 msgid ""
 "Number where instructions are found-single number or beginning number of span"
 msgstr ""
+"Елемент класифікаційного номера - одиночне число або початковий номер "
+"інтервалу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:816
+#, fuzzy
 msgid "Number {OBSOLETE]"
-msgstr ""
+msgstr "РОЗТАШУВАННЯ [ЗАСТАРІЛЕ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4110
 msgid "Numbering (volume or other part)"
@@ -4642,8 +4741,9 @@ msgid "OAI set name"
 msgstr "Назва списку"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:78
+#, fuzzy
 msgid "OCCUPATION"
-msgstr ""
+msgstr "РОЗТАШУВАННЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3709
 msgid ""
@@ -4663,8 +4763,9 @@ msgid ""
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:125
+#, fuzzy
 msgid "ORGANIZATION AND ARRANGEMENT OF MATERIALS"
-msgstr ""
+msgstr "ПІДПИСИ І МАЛЮНОК - ДОДАТКОВИЙ МАТЕРІАЛ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:250
 msgid "ORIGINAL LANGUAGE ENTRY"
@@ -4687,20 +4788,23 @@ msgid "OTHER ATTRIBUTES OF PERSON OR CORPORATE BODY"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:27
+#, fuzzy
 msgid "OTHER CLASSIFICATION NUMBER"
-msgstr ""
+msgstr "ДЕСЯТКОВИЙ КЛАСИФІКАЦІЙНИЙ НОМЕР ДЬЮЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:47
+#, fuzzy
 msgid "OTHER CLASSIFICATION SCHEMES (OCLC)"
-msgstr ""
+msgstr "ЛОКАЛЬНО ПРИЗНАЧЕНИЙ КЛАСИФІКАЦІЙНИЙ НОМЕР ДЬЮЇ (OCLC)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:84
 msgid "OTHER DISTINGUISHING CHARACTERISTICS OF WORK OR EXPRESSION"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:256
+#, fuzzy
 msgid "OTHER EDITION ENTRY"
-msgstr ""
+msgstr "ЗАЯВА ПРО ВИДАННЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:262
 msgid "OTHER RELATIONSHIP ENTRY"
@@ -4708,7 +4812,7 @@ msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:11
 msgid "OTHER STANDARD IDENTIFIER"
-msgstr ""
+msgstr "Інший стандартний ідентифікатор"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:24
 msgid "OTHER SYSTEM CONTROL NUMBER (OCLC)"
@@ -4737,18 +4841,17 @@ msgid "Oblique line longitude"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:646
-#, fuzzy
 msgid "Occupation"
-msgstr "Параметри"
+msgstr "Професія / рід занять"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1762
-#, fuzzy
 msgid "Operating system"
-msgstr "відтворення майстеркопії"
+msgstr "Операційна система"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2998
+#, fuzzy
 msgid "Operator's initials, OID (RLIN)"
-msgstr ""
+msgstr "Ініціали каталогізатора, CIN (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:716
 #, fuzzy
@@ -4762,7 +4865,7 @@ msgstr "Номер замовлення"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:841
 #, fuzzy
 msgid "Ordinate resolution"
-msgstr "Негайне вилучення"
+msgstr "Роздільна здатність відстані"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:903
 msgid "Organization"
@@ -4777,8 +4880,9 @@ msgid "Origin of item (home branch) (free text)"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1585
+#, fuzzy
 msgid "Origin of safety copy (VM) [OBSOLETE]"
-msgstr ""
+msgstr "Позначення секції (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:86
 #, fuzzy
@@ -4793,16 +4897,17 @@ msgstr "Оригінальні твори мистецтва"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:931
 #, fuzzy
 msgid "Originating agency"
-msgstr "Мова оригіналу: "
+msgstr "Призначення агенції"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:930
 #, fuzzy
 msgid "Originator control term"
-msgstr "Оригінальні твори мистецтва"
+msgstr "Термін творця/учасника"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:600
+#, fuzzy
 msgid "Other associated place"
-msgstr ""
+msgstr "Асоційоване ім’я, пов’язане ім’я"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1621
 #, fuzzy
@@ -4812,7 +4917,7 @@ msgstr "Інша класифікація: "
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:583
 #, fuzzy
 msgid "Other designation"
-msgstr "Інша дія"
+msgstr "Інші видання"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:694
 #, fuzzy
@@ -4839,9 +4944,8 @@ msgid "Other physical details"
 msgstr "Фіз. характеристика: "
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1346
-#, fuzzy
 msgid "Other resource identifier"
-msgstr "URI (неповторний ідентифікатор ресурсів)"
+msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:933
 #, fuzzy
@@ -4849,8 +4953,9 @@ msgid "Other restrictions"
 msgstr "Використовувати обмеження"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:620
+#, fuzzy
 msgid "Outer G-ring coordinate pairs"
-msgstr ""
+msgstr "Виключення пар координат G-кільця"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:265
 msgid "Output transaction history, HST (RLIN)"
@@ -4870,16 +4975,18 @@ msgid "Owner"
 msgstr "Власник "
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:102
+#, fuzzy
 msgid "PAGE OR ITEM COUNT (BK AM) [OBSOLETE]"
-msgstr ""
+msgstr "ПРИМІТКА ЩОДО ЦЕНЗУРИ (VM) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:160
 msgid "PARTICIPANT OR PERFORMER NOTE"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:11
+#, fuzzy
 msgid "PATENT CONTROL INFORMATION"
-msgstr ""
+msgstr "ОПИС ІНФОРМАЦІЇ ПРО ПЕРЕТВОРЕННЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:92
 msgid "PHILATELIC ISSUE DATA"
@@ -4890,17 +4997,20 @@ msgid "PHYSICAL DESCRIPTION"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:6
+#, fuzzy
 msgid "PHYSICAL DESCRIPTION FIXED FIELD--GENERAL INFORMATION"
-msgstr ""
+msgstr "ОПИС ІНФОРМАЦІЇ ПРО ПЕРЕТВОРЕННЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:8
+#, fuzzy
 msgid ""
 "PHYSICAL DESCRIPTION FIXED-FIELD FOR ARCHIVAL COLLECTION (VM) [OBSOLETE]"
-msgstr ""
+msgstr "ПРИМІТКА ЩОДО КАТЕГОРІЇ ФІЛЬМІВ (АРХІВ) (VM) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:108
+#, fuzzy
 msgid "PHYSICAL DESCRIPTION FOR FILMS (ARCHIVAL) (VM) [OBSOLETE]"
-msgstr ""
+msgstr "ПРИМІТКА ЩОДО КАТЕГОРІЇ ФІЛЬМІВ (АРХІВ) (VM) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:101
 msgid "PHYSICAL DESCRIPTION FOR FILMS (PRE-AACR 2) (VM) [OBSOLETE, USMARC]"
@@ -4911,8 +5021,9 @@ msgid "PHYSICAL DESCRIPTION FOR SOUND RECORDINGS (Pre-AACR 2) (MU) [OBSOLETE]"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:335
+#, fuzzy
 msgid "PHYSICAL LOCATION (RLIN)"
-msgstr ""
+msgstr "ІНФОРМАЦІЯ ПРО РІВЕНЬ ЕКЗЕМПЛЯРУ (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:115
 msgid "PHYSICAL MEDIUM"
@@ -4949,13 +5060,14 @@ msgid "PRI (RLIN)"
 msgstr "% (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:124
+#, fuzzy
 msgid "PRICE (NR) (BK AM CF MU VM SE) [OBSOLETE]"
-msgstr ""
+msgstr "Позначення секції (BK AM MP MU VM SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4131
 #, fuzzy
 msgid "PROC (RLIN)"
-msgstr "% (RLIN)"
+msgstr "CC (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:97
 msgid ""
@@ -4963,8 +5075,9 @@ msgid ""
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:96
+#, fuzzy
 msgid "PROJECTED PUBLICATION DATE"
-msgstr ""
+msgstr "ПОТОЧНА ПЕРІОДИЧНІСТЬ ПУБЛІКАЦІЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:120
 msgid "PROJECTION CHARACTERISTICS OF MOVING IMAGE"
@@ -5013,7 +5126,7 @@ msgstr "[Паралельна назва]"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:434
 #, fuzzy
 msgid "Part or section"
-msgstr "Вибір відвідувача"
+msgstr "Вибір користувача"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1225
 msgid "Participant or performer note"
@@ -5044,7 +5157,7 @@ msgstr "Примітка користувача"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:248
 #, fuzzy
 msgid "Performer or ensemble"
-msgstr "біографія виконавця чи історія ансамблю"
+msgstr "Загальна кількість ансамблів"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1231
 #, fuzzy
@@ -5072,28 +5185,25 @@ msgid "Permanent shelving location, LOC (RLIN)"
 msgstr "Постійне розташування полиці"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_types:1:row:7
-#, fuzzy
 msgid "Personal Name"
-msgstr "Ім’я особи як предметна рубрика"
+msgstr "Ім’я особи"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_types:1:row:7
-#, fuzzy
 msgid "Personal Names"
-msgstr "Ім’я особи як предметна рубрика"
+msgstr "Імена осіб"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1407
 #, fuzzy
 msgid "Personal creator"
-msgstr "Утворювач квитків відвідувачів"
+msgstr "Утворювач квитків користувачів"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1408
 msgid "Personal creator death date"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:336
-#, fuzzy
 msgid "Personal name"
-msgstr "Ім’я відвідувача"
+msgstr "Ім’я особи"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1200
 #, fuzzy
@@ -5101,9 +5211,8 @@ msgid "Physical access provisions"
 msgstr "Фізичний носій"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2220
-#, fuzzy
 msgid "Physical description"
-msgstr "Фізичний носій"
+msgstr "Фізичний опис"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4074
 #, fuzzy
@@ -5118,7 +5227,7 @@ msgstr "Фізична форма видання"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1340
 #, fuzzy
 msgid "Physical description, etc. of original"
-msgstr "Фізичний носій"
+msgstr "Твердження про видання оригіналу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3987
 msgid "Physical location, PLOC (RLIN)"
@@ -5127,7 +5236,7 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2887
 #, fuzzy
 msgid "Piece designation"
-msgstr "Визначник функціонального призначення"
+msgstr "Позначення грані"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2888
 #, fuzzy
@@ -5147,42 +5256,42 @@ msgstr "Дата народження"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:597
 #, fuzzy
 msgid "Place of death"
-msgstr "Встановити резервування"
+msgstr "Замовити"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:129
 #, fuzzy
 msgid "Place of event"
-msgstr "Розміщено"
+msgstr "Дата події"
 
-# 110^a - Публікація конференції
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:642
 #, fuzzy
 msgid "Place of manufacture"
-msgstr "Місце публікації"
+msgstr "Дата виготовлення"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:601
 msgid "Place of origin of work or expression"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:668
+#, fuzzy
 msgid "Place of production, publication, distribution, manufacture"
 msgstr ""
+"Дата виробництва, публікації, розповсюдження, виготовлення або повідомлення "
+"про авторські права"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:654
 #, fuzzy
 msgid "Place of production, release, etc."
-msgstr "Елементи виробництва"
+msgstr "Дата виробництва, випуску тощо"
 
-# 110^a - Публікація конференції
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:638
 #, fuzzy
 msgid "Place of publication, distribution, etc."
-msgstr "Місце публікації"
+msgstr "Дата видання, розповсюдження тощо"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1327
-#, fuzzy
 msgid "Place of reproduction"
-msgstr "Тип репродукції"
+msgstr "Місце створення копії, її поширення і т.д."
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:599
 msgid "Place of residence/headquarters"
@@ -5193,19 +5302,19 @@ msgstr ""
 msgid "Place subject subdivision"
 msgstr "17 — тип предметного підзаголовку"
 
-# 110^a - Публікація конференції
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2218
 #, fuzzy
 msgid "Place, publisher, and date of publication"
-msgstr "Місце публікації"
+msgstr "Детальна дата публікації"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:838
 msgid "Planar coordinate encoding method"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:839
+#, fuzzy
 msgid "Planar distance units"
-msgstr ""
+msgstr "Одиниці координат чи одиниці відстані"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:641
 msgid ""
@@ -5236,9 +5345,8 @@ msgid "Populated place name"
 msgstr "Найменування шаблону"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1763
-#, fuzzy
 msgid "Port"
-msgstr "Порт: "
+msgstr "Порт"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1355
 #, fuzzy
@@ -5286,32 +5394,32 @@ msgstr "Ціна дійсна з"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:965
 #, fuzzy
 msgid "Price note"
-msgstr "Загальнодост. нотатка"
+msgstr "Примітка"
 
+# http://ellib.gpntb.ru/subscribe/ntb/2011/7/ntb_7_4_2011.htm
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:961
 #, fuzzy
 msgid "Price type code"
-msgstr "Код типу примірника: "
+msgstr "Код типу носія"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:179
 #, fuzzy
 msgid "Primary G0 character set"
-msgstr "Додаткові набори символів"
+msgstr "Альтернативний набір символів G0 або G1"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:180
 #, fuzzy
 msgid "Primary G1 character set"
-msgstr "Додаткові набори символів"
+msgstr "Альтернативний набір символів G0 або G1"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:263
 #, fuzzy
 msgid "Primary bibliographic subdivision"
-msgstr "06 — прямий/непрямий географічний підзаголовок"
+msgstr "Пʼятий бібліографічний підрозділ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1755
-#, fuzzy
 msgid "Processor of request"
-msgstr "Розмістити запит"
+msgstr "Виконавець запиту"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:649
 #, fuzzy
@@ -5326,7 +5434,7 @@ msgstr "Масштаб зменшення"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1365
 #, fuzzy
 msgid "Program element number"
-msgstr "Номер будинку"
+msgstr "Номер будинку, квартири"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1300
 #, fuzzy
@@ -5356,7 +5464,7 @@ msgstr "проекцію не визначено"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1436
 #, fuzzy
 msgid "Provenance"
-msgstr "Примітки щодо походження:"
+msgstr "Примітки щодо походження: "
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1583
 msgid "Provenance (VM) [OBSOLETE]"
@@ -5378,8 +5486,9 @@ msgid "Publication status"
 msgstr "Дата публікації"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1339
+#, fuzzy
 msgid "Publication, distribution, etc. of original"
-msgstr ""
+msgstr "Дата видання, розповсюдження тощо"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1536
 #, fuzzy
@@ -5393,7 +5502,7 @@ msgstr "Видавець"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:719
 #, fuzzy
 msgid "Publisher associated with opus number"
-msgstr "Розташування видавця"
+msgstr "Дата, повʼязана з найменуванням"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:85
 #, fuzzy
@@ -5420,8 +5529,9 @@ msgid "Publishers's discount category"
 msgstr "Код знаку видавця: "
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1401
+#, fuzzy
 msgid "Purchase price"
-msgstr ""
+msgstr "Вартість, середня закупівельна ціна"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3674
 #, fuzzy
@@ -5438,8 +5548,9 @@ msgid "RECOMMENDATION 995 [LOCAL, UNIMARC FRANCE]"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:33
+#, fuzzy
 msgid "RECORD CONTENT LICENSOR"
-msgstr ""
+msgstr "ПРИМІТКА ФОРМАТОВАНОГО ЗМІСТУ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3003
 #, fuzzy
@@ -5447,24 +5558,29 @@ msgid "REG (RLIN)"
 msgstr "% (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:204
+#, fuzzy
 msgid "RELATED COMPUTER FILES NOTE (CF) [OBSOLETE]"
-msgstr ""
+msgstr "ПРИМІТКА РЕДАКТОРА (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:129
+#, fuzzy
 msgid "RENTAL PRICE (VM) [OBSOLETE]"
-msgstr ""
+msgstr "ПРИМІТКА ЩОДО ЦЕНЗУРИ (VM) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:300
+#, fuzzy
 msgid "REPLACEMENT RECORD INFORMATION"
-msgstr ""
+msgstr "ІНФОРМАЦІЯ ПРО ВИЛУЧЕНИЙ ЗАГОЛОВОК"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:63
+#, fuzzy
 msgid "REPORT NUMBER"
-msgstr ""
+msgstr "КОНТРОЛЬНИЙ НОМЕР"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:62
+#, fuzzy
 msgid "REPORT NUMBER [OBSOLETE, CAN/MARC]"
-msgstr ""
+msgstr "ЗАГАЛЬНА НАЗВА [ЗАСТАРІЛО, CAN/MARC]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:178
 #, fuzzy
@@ -5472,12 +5588,14 @@ msgid "REPRODUCTION NOTE"
 msgstr "ПРИМІТКА ДІЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:247
+#, fuzzy
 msgid "RESOURCE IDENTIFIER"
-msgstr ""
+msgstr "ІДЕНТИФІКАТОР КОНТРОЛЬНОГО НОМЕРА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:155
+#, fuzzy
 msgid "RESTRICTIONS ON ACCESS NOTE"
-msgstr ""
+msgstr "ЕЛЕКТРОННЕ РОЗМІЩЕННЯ І ДОСТУП"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4128
 #, fuzzy
@@ -5485,8 +5603,9 @@ msgid "RINS (RLIN)"
 msgstr "% (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:80
+#, fuzzy
 msgid "ROMANIZED TITLE (BK AM CF MP MU VM) [OBSOLETE]"
-msgstr ""
+msgstr "БІБЛІОГРАФІЧНА ІСТОРИЧНА ДОВІДКА (BK CF MU) [ЗАСТАРІЛЕ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4133
 #, fuzzy
@@ -5496,7 +5615,7 @@ msgstr "% (RLIN)"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:165
 #, fuzzy
 msgid "RULE IDENTIFICATION [CLASSIFICATION FORMAT]"
-msgstr "ДОДАТИ АБО РОЗДІЛИТИ ПОДІБНІ ІНСТРУКЦІЇ [ФОРМАТ КЛАСИФІКАЦІЇ]"
+msgstr "КЛАСИФІКАЦІЙНИЙ ІНДЕКС [ФОРМАТ КЛАСИФІКАЦІЇ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1465
 msgid "Range domain minimum and maximum"
@@ -5532,12 +5651,11 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:175
 #, fuzzy
 msgid "Record content licensor"
-msgstr "Заголовок запису"
+msgstr "Назва запису"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:14
-#, fuzzy
 msgid "Record control number"
-msgstr "Введіть новий контрольний номер"
+msgstr "Контрольний номер запису"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:854
 #, fuzzy
@@ -5545,8 +5663,9 @@ msgid "Recording medium"
 msgstr "Техніка запису:"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:810
+#, fuzzy
 msgid "Reference method used"
-msgstr ""
+msgstr "Метод прямого посилання"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4079
 #, fuzzy
@@ -5554,9 +5673,8 @@ msgid "Referral note"
 msgstr "Внутрішня примітка"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:887
-#, fuzzy
 msgid "Regional encoding"
-msgstr "цифровий запис"
+msgstr "Регіональне кодування"
 
 # 110^a - Регулярність виходу друком
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2917
@@ -5599,7 +5717,7 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:602
 #, fuzzy
 msgid "Remainder of edition statement"
-msgstr "Відомості про видання:"
+msgstr "Відомості про видання"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1210
 #, fuzzy
@@ -5619,7 +5737,7 @@ msgstr "Роздрібна ціна: "
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1355
 #, fuzzy
 msgid "Replacement authority record control number"
-msgstr "Контрольний номер бібліографічного запису"
+msgstr "Контрольний номер авторитетного запису"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3248
 #, fuzzy
@@ -5644,7 +5762,7 @@ msgstr "Номер звіту: "
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:377
 #, fuzzy
 msgid "Report number [OBSOLETE, CAN/MARC]"
-msgstr "Супровідний матеріал [ЗАСТАРІЛО, CAN/MARC]"
+msgstr "Анульований/недійсний номер звіту [ЗАСТАРІЛО, CAN/MARC]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1358
 #, fuzzy
@@ -5663,54 +5781,61 @@ msgstr "Науково-дослідницька"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:886
 msgid "Resolution"
-msgstr "Рішення"
+msgstr "Роздільна здатність"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4080
 #, fuzzy
 msgid "Retention note"
-msgstr "Примітка про дії: "
+msgstr "Примітка про дисертацію"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2859
+#, fuzzy
 msgid "Retention statement (NR) (CF MU VM SE) [OBSOLETE]"
-msgstr ""
+msgstr "Позначення секції (BK AM MP MU VM SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3937
+#, fuzzy
 msgid "Retention, LVOL (RLIN)"
-msgstr ""
+msgstr "Дата, LVOL (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:395
+#, fuzzy
 msgid "Retention, VOL (RLIN)"
-msgstr ""
+msgstr "Дата, VOL (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:71
+#, fuzzy
 msgid "Right ascension - eastern limit"
-msgstr ""
+msgstr "Схиляння - південна межа"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:72
+#, fuzzy
 msgid "Right ascension - western limit"
-msgstr ""
+msgstr "Схиляння - південна межа"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:146
+#, fuzzy
 msgid "Right ascension--eastern limit"
-msgstr ""
+msgstr "Схиляння - південна межа"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:147
+#, fuzzy
 msgid "Right ascension--western limit"
-msgstr ""
+msgstr "Схиляння - південна межа"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:46
 msgid "Role"
-msgstr ""
+msgstr "Роль"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4081
 #, fuzzy
 msgid "Romanization/conversion identifier"
-msgstr "номер відеозапису"
+msgstr "Ідентифікатор видання"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:530
 #, fuzzy
 msgid "Romanized title"
-msgstr "Уніфікований заголовок"
+msgstr "Уніфікована назва"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1620
 #, fuzzy
@@ -5731,8 +5856,9 @@ msgid "Rule number(s) and additional information"
 msgstr "Номер(и) правил(а) та додаткова інформація"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:156
+#, fuzzy
 msgid "SCALE NOTE FOR GRAPHIC MATERIAL"
-msgstr ""
+msgstr "КАРТОГРАФІЧНІ МАТЕМАТИЧНІ ДАНІ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:167
 #, fuzzy
@@ -5740,20 +5866,23 @@ msgid "SECONDARY TABLE INFORMATION [CLASSIFICATION FORMAT]"
 msgstr "ДОДАТИ АБО РОЗДІЛИТИ ПОДІБНІ ІНСТРУКЦІЇ [ФОРМАТ КЛАСИФІКАЦІЇ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:127
+#, fuzzy
 msgid "SECURITY CLASSIFICATION CONTROL"
-msgstr ""
+msgstr "ДЕСЯТКОВИЙ КЛАСИФІКАЦІЙНИЙ НОМЕР ДЬЮЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:119
 msgid "SEE ALSO FROM TRACING--CHRONOLOGICAL SUBDIVISION"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:111
+#, fuzzy
 msgid "SEE ALSO FROM TRACING--CHRONOLOGICAL TERM"
-msgstr ""
+msgstr "ВСТАНОВЛЕНИЙ ЗАПИС ЗВ'ЯЗКУ НА ЗАГОЛОВОК - ХРОНОЛОГІЧНИЙ ТЕРМІН"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:107
+#, fuzzy
 msgid "SEE ALSO FROM TRACING--CORPORATE NAME"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ОРГАНІЗАЦІЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:120
 msgid "SEE ALSO FROM TRACING--FORM SUBDIVISION"
@@ -5768,8 +5897,9 @@ msgid "SEE ALSO FROM TRACING--GENRE/FORM TERM"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:113
+#, fuzzy
 msgid "SEE ALSO FROM TRACING--GEOGRAPHIC NAME"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--ГЕОГРАФІЧНА НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:118
 msgid "SEE ALSO FROM TRACING--GEOGRAPHIC SUBDIVISION"
@@ -5783,19 +5913,21 @@ msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ЗУСТРІЧІ"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:106
 #, fuzzy
 msgid "SEE ALSO FROM TRACING--PERSONAL NAME"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ДОДАТКОВИЙ ОПИС--ІМ’Я ОСОБИ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:112
 msgid "SEE ALSO FROM TRACING--TOPICAL TERM"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:109
+#, fuzzy
 msgid "SEE ALSO FROM TRACING--UNIFORM TITLE"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--ЄДИНА НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:116
+#, fuzzy
 msgid "SEE ALSO FROM TRACING-MEDIUM OF PERFORMANCE TERM"
-msgstr ""
+msgstr "ВСТАНОВЛЕНИЙ ЗАГОЛОВОК ЗВ'ЯЗКУ - ТЕРМІН СЕРЕДОВИЩА ВИКОНАННЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:110
 msgid "SEE ALSO FROM TRACING-NAMED EVENT"
@@ -5806,12 +5938,14 @@ msgid "SEE FROM TRACING--CHRONOLOGICAL SUBDIVISION"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:96
+#, fuzzy
 msgid "SEE FROM TRACING--CHRONOLOGICAL TERM"
-msgstr ""
+msgstr "ВСТАНОВЛЕНИЙ ЗАПИС ЗВ'ЯЗКУ НА ЗАГОЛОВОК - ХРОНОЛОГІЧНИЙ ТЕРМІН"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:92
+#, fuzzy
 msgid "SEE FROM TRACING--CORPORATE NAME"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ОРГАНІЗАЦІЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:105
 msgid "SEE FROM TRACING--FORM SUBDIVISION"
@@ -5826,8 +5960,9 @@ msgid "SEE FROM TRACING--GENRE/FORM TERM"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:98
+#, fuzzy
 msgid "SEE FROM TRACING--GEOGRAPHIC NAME"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--ГЕОГРАФІЧНА НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:103
 msgid "SEE FROM TRACING--GEOGRAPHIC SUBDIVISION"
@@ -5841,19 +5976,21 @@ msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ЗУСТРІЧІ"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:91
 #, fuzzy
 msgid "SEE FROM TRACING--PERSONAL NAME"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ДОДАТКОВИЙ ОПИС--ІМ’Я ОСОБИ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:97
 msgid "SEE FROM TRACING--TOPICAL TERM"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:94
+#, fuzzy
 msgid "SEE FROM TRACING--UNIFORM TITLE"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--ЄДИНА НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:101
+#, fuzzy
 msgid "SEE FROM TRACING-MEDIUM OF PERFORMANCE TERM"
-msgstr ""
+msgstr "ВСТАНОВЛЕНИЙ ЗАГОЛОВОК ЗВ'ЯЗКУ - ТЕРМІН СЕРЕДОВИЩА ВИКОНАННЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:95
 msgid "SEE FROM TRACING-NAMED EVENT"
@@ -5867,7 +6004,7 @@ msgstr "Серіальні видання"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:269
 #, fuzzy
 msgid "SERIES ADDED ENTRY--CORPORATE NAME"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ОРГАНІЗАЦІЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:270
 #, fuzzy
@@ -5877,16 +6014,17 @@ msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ЗУСТРІЧІ"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:268
 #, fuzzy
 msgid "SERIES ADDED ENTRY--PERSONAL NAME"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ДОДАТКОВИЙ ОПИС--ІМ’Я ОСОБИ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:272
 #, fuzzy
 msgid "SERIES ADDED ENTRY--TITLE [OBSOLETE]"
-msgstr "АКРОНІМ АБО СКОРОЧЕНА НАЗВА [ЗАСТАРІЛЕ]"
+msgstr "ДОПОВНЕНА НАЗВА [ЗАСТАРІЛЕ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:271
+#, fuzzy
 msgid "SERIES ADDED ENTRY--UNIFORM TITLE"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--ЄДИНА НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:125
 msgid "SERIES ANALYSIS PRACTICE"
@@ -5897,8 +6035,9 @@ msgid "SERIES CLASSIFICATION PRACTICE"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:121
+#, fuzzy
 msgid "SERIES DATES OF PUBLICATION AND/OR SEQUENTIAL DESIGNATION"
-msgstr ""
+msgstr "ДАТИ ПУБЛІКАЦІЇ І/АБО ПОСЛІДОВНЕ ПОЗНАЧЕННЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:123
 msgid "SERIES NUMBERING EXAMPLE"
@@ -5913,8 +6052,9 @@ msgid "SERIES PLACE AND PUBLISHER/ISSUING BODY"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:148
+#, fuzzy
 msgid "SERIES STATEMENT"
-msgstr ""
+msgstr "ЗАЯВА ПРО ВИДАННЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:145
 msgid ""
@@ -5928,10 +6068,13 @@ msgid ""
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:144
+#, fuzzy
 msgid ""
 "SERIES STATEMENT/ADDED ENTRY--PERSONAL NAME [OBSOLETE, CAN/MARC], [LOCAL, "
 "USA]"
 msgstr ""
+"SERIES STATEMENT/ADDED ENTRY--ІМ’Я ОСОБИ [ЗАСТАРІЛЕ, CAN/MARC], [ЛОКАЛЬНЕ, "
+"США]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:147
 msgid "SERIES STATEMENT/ADDED ENTRY--TITLE"
@@ -5942,12 +6085,14 @@ msgid "SERIES TRACING PRACTICE"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:187
+#, fuzzy
 msgid "SOLICITATION INFORMATION NOTE (AM) [OBSOLETE]"
-msgstr ""
+msgstr "ПРИМІТКА ЩОДО ЦЕНЗУРИ (VM) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:119
+#, fuzzy
 msgid "SOUND CHARACTERISTICS"
-msgstr ""
+msgstr "ХАРАКТЕРИСТИКИ АУДИТОРІЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:134
 msgid "SOURCE DATA FOUND"
@@ -5966,8 +6111,9 @@ msgid "SOURCE OF ACQUISITION"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:182
+#, fuzzy
 msgid "SOURCE OF DATA NOTE (CF) [OBSOLETE]"
-msgstr ""
+msgstr "ПРИМІТКА РЕДАКТОРА (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:209
 msgid "SOURCE OF DESCRIPTION NOTE"
@@ -5991,24 +6137,28 @@ msgid "STANDARD TECHNICAL REPORT NUMBER"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:174
+#, fuzzy
 msgid "STUDY PROGRAM INFORMATION NOTE"
-msgstr ""
+msgstr "ІНФОРМАЦІЯ ПРО ФІНАНСУВАННЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:171
+#, fuzzy
 msgid "SUBDIVISION LINKING ENTRY--CHRONOLOGICAL SUBDIVISION"
-msgstr ""
+msgstr "ВСТАНОВЛЕНИЙ ЗАПИС ЗВ'ЯЗКУ НА ЗАГОЛОВОК - ХРОНОЛОГІЧНИЙ ТЕРМІН"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:172
+#, fuzzy
 msgid "SUBDIVISION LINKING ENTRY--FORM SUBDIVISION"
-msgstr ""
+msgstr "ВСТАНОВЛЕНИЙ ЗАГОЛОВОК ЗВ'ЯЗКУ - УНІФІКОВАНА НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:169
 msgid "SUBDIVISION LINKING ENTRY--GENERAL SUBDIVISION"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:170
+#, fuzzy
 msgid "SUBDIVISION LINKING ENTRY--GEOGRAPHIC SUBDIVISION"
-msgstr ""
+msgstr "ВСТАНОВЛЕНИЙ ЗАГОЛОВОК ЗВ'ЯЗКУ - ГЕОГРАФІЧНА НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:32
 msgid "SUBDIVISION USAGE"
@@ -6017,12 +6167,12 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:216
 #, fuzzy
 msgid "SUBJECT ADDED ENTRY--CHRONOLOGICAL TERM"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ВСТАНОВЛЕНИЙ ЗАПИС ЗВ'ЯЗКУ НА ЗАГОЛОВОК - ХРОНОЛОГІЧНИЙ ТЕРМІН"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:212
 #, fuzzy
 msgid "SUBJECT ADDED ENTRY--CORPORATE NAME"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ОРГАНІЗАЦІЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:221
 msgid "SUBJECT ADDED ENTRY--FACETED TOPICAL TERMS"
@@ -6031,12 +6181,12 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:218
 #, fuzzy
 msgid "SUBJECT ADDED ENTRY--GEOGRAPHIC NAME"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ДОДАТКОВИЙ ОПИС--ГЕОГРАФІЧНА НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:226
 #, fuzzy
 msgid "SUBJECT ADDED ENTRY--HIERARCHICAL PLACE NAME"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ДОДАТКОВИЙ ОПИС — НАЗВА ІЄРАРХІЧНОГО МІСЦЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:213
 #, fuzzy
@@ -6044,46 +6194,52 @@ msgid "SUBJECT ADDED ENTRY--MEETING NAME"
 msgstr "ДОДАТКОВИЙ ОПИС--НАЗВА ЗУСТРІЧІ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:215
+#, fuzzy
 msgid "SUBJECT ADDED ENTRY--NAMED EVENT"
-msgstr ""
+msgstr "ВСТАНОВЛЕНИЙ ЗАГОЛОВОК ЗВ'ЯЗКУ - НАЗВАНА ПОДІЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:211
 #, fuzzy
 msgid "SUBJECT ADDED ENTRY--PERSONAL NAME"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ДОДАТКОВИЙ ОПИС--ІМ’Я ОСОБИ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:219
+#, fuzzy
 msgid "SUBJECT ADDED ENTRY--REVERSE GEOGRAPHIC (BK MP SE) [OBSOLETE]"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС — ОСОБИСТЕ ІМʼЯ (ВИКОНАВЕЦЬ) (MU) [ЗАСТАРІЛЕ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:217
 #, fuzzy
 msgid "SUBJECT ADDED ENTRY--TOPICAL TERM"
-msgstr "ДОДАТКОВИЙ ОПИС--ПЕРСОНАЛЬНЕ ІМʼЯ"
+msgstr "ВСТАНОВЛЕНИЙ ЗАГОЛОВОК ЗВ'ЯЗКУ - ТЕМАТИЧНИЙ ТЕРМІН"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:227
 msgid "SUBJECT ADDED ENTRY--TYPE OF ENTITY UNSPECIFIED"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:214
+#, fuzzy
 msgid "SUBJECT ADDED ENTRY--UNIFORM TITLE"
-msgstr ""
+msgstr "ДОДАТКОВИЙ ОПИС--ЄДИНА НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:31
+#, fuzzy
 msgid "SUBJECT CATEGORY CODE"
-msgstr ""
+msgstr "КОД АУТЕНТИФІКАЦІЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:143
 msgid "SUBJECT EXAMPLE TRACING NOTE"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:249
+#, fuzzy
 msgid "SUBSERIES ENTRY"
-msgstr ""
+msgstr "ВВЕДЕННЯ ДЖЕРЕЛА ДАНИХ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:260
+#, fuzzy
 msgid "SUCCEEDING ENTRY"
-msgstr ""
+msgstr "ВВЕДЕННЯ ДЖЕРЕЛА ДАНИХ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:168
 msgid "SUMMARY, ETC."
@@ -6094,37 +6250,41 @@ msgid "SUPPLEMENT NOTE"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:253
+#, fuzzy
 msgid "SUPPLEMENT PARENT ENTRY"
-msgstr ""
+msgstr "ЗАПИС ОСНОВНОГО ДОКУМЕНТА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:252
 msgid "SUPPLEMENT/SPECIAL ISSUE ENTRY"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:60
+#, fuzzy
 msgid "SYNTHESIZED CLASSIFICATION NUMBER COMPONENTS"
-msgstr ""
+msgstr "ДЕСЯТКОВИЙ КЛАСИФІКАЦІЙНИЙ НОМЕР ДЬЮЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:166
 #, fuzzy
 msgid "SYNTHESIZED NUMBER COMPONENTS [CLASSIFICATION FORMAT]"
-msgstr "ДОДАТИ АБО РОЗДІЛИТИ ПОДІБНІ ІНСТРУКЦІЇ [ФОРМАТ КЛАСИФІКАЦІЇ]"
+msgstr "КЛАСИФІКАЦІЙНИЙ ІНДЕКС [ФОРМАТ КЛАСИФІКАЦІЇ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:14
+#, fuzzy
 msgid "SYSTEM CONTROL NUMBER"
-msgstr ""
+msgstr "КОНТРОЛЬНИЙ НОМЕР"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:1:row:1
 msgid "SYSTEM CONTROL NUMBERS (KOHA)"
-msgstr ""
+msgstr "ВНУТРІШНІ КОНТРОЛЬНІ НОМЕРИ (КОХА)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:244
 msgid "SYSTEM DETAILS ACCESS TO COMPUTER FILES"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:183
+#, fuzzy
 msgid "SYSTEM DETAILS NOTE"
-msgstr ""
+msgstr "ПРИМІТКА ПРО ДИСЕРТАЦІЮ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:823
 #, fuzzy
@@ -6137,18 +6297,19 @@ msgid "Schedule identification"
 msgstr "Надіслати повідомлення"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:950
+#, fuzzy
 msgid "Second level of chronology"
-msgstr ""
+msgstr "Четвертий рівень хронології"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:942
 #, fuzzy
 msgid "Second level of enumeration"
-msgstr "Нум-ція серіаль.вид.: "
+msgstr "Четвертий рівень нумерації"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:257
 #, fuzzy
 msgid "Secondary bibliographic subdivision"
-msgstr "06 — прямий/непрямий географічний підзаголовок"
+msgstr "Четвертий бібліографічний підрозділ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1672
 msgid "Secondary table of applicability"
@@ -6188,7 +6349,7 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2872
 #, fuzzy
 msgid "Sequence number"
-msgstr "Номер будинку"
+msgstr "Номер будинку, квартири"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4114
 msgid "Serial"
@@ -6196,13 +6357,13 @@ msgstr "Серіальне видання"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:18
 #, fuzzy
-msgid "Serial Enumeration / chronology"
-msgstr "Нумерація/хронологія серіальних видань"
+msgid "Serial enumeration / chronology"
+msgstr "Нумерування/хронологія серіальних видань"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:660
 #, fuzzy
 msgid "Serial identification"
-msgstr "Надіслати повідомлення"
+msgstr "Ідентифікація дії"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:715
 #, fuzzy
@@ -6210,69 +6371,70 @@ msgid "Serial number"
 msgstr "Шифр зберігання"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:4:row:12
-#, fuzzy
 msgid "Serial record flag"
-msgstr "Зберегти запис "
+msgstr "Позначка про запис серіального видання"
 
 #: installer/data/mysql/en/marcflavour/marc21/optional/marc21_simple_bib_frameworks.yml:biblio_framework:1:row:6
 msgid "Serials"
 msgstr "Серіальні видання"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1270
+#, fuzzy
 msgid "Series analysis practice"
-msgstr ""
+msgstr "Винятки з аналітичної практики"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1281
 #, fuzzy
 msgid "Series classification practice"
-msgstr "Нове джерело класифікації"
+msgstr "Дата розсекречення"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2262
 #, fuzzy
 msgid "Series data for related item"
-msgstr "Відобразити підробиці щодо цього примірника"
+msgstr "Дата закінчення для всього контенту"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1260
 #, fuzzy
 msgid "Series numbering example"
-msgstr "Нова схема нумерації"
+msgstr "Безперервна нумерація лише за номерами"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3860
+#, fuzzy
 msgid "Series part designator, SPT (RLIN)"
-msgstr ""
+msgstr "Придушення поля на рівні розташування, LFSP (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1155
-#, fuzzy
 msgid "Series statement"
-msgstr "Серійний заголовок"
+msgstr "Відомості про серію"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1341
+#, fuzzy
 msgid "Series statement of original"
-msgstr ""
+msgstr "Твердження про видання оригіналу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1331
 #, fuzzy
 msgid "Series statement of reproduction"
-msgstr "Форма репродукування"
+msgstr "Дата репродукції"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1276
 #, fuzzy
 msgid "Series tracing practice"
-msgstr "Серійний заголовок"
+msgstr "Назва серії"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1765
-#, fuzzy
 msgid "Settings"
-msgstr "Налаштування "
+msgstr "Установки"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:262
 #, fuzzy
 msgid "Seventh bibliographic subdivision"
-msgstr "06 — прямий/непрямий географічний підзаголовок"
+msgstr "Пʼятий бібліографічний підрозділ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3956
+#, fuzzy
 msgid "Shelflist note, HNT (RLIN)"
-msgstr ""
+msgstr "Перша дата FD (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:20
 msgid "Shelving control number"
@@ -6297,23 +6459,24 @@ msgid ""
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:113
+#, fuzzy
 msgid "Single or starting date for aggregated content"
-msgstr ""
+msgstr "Дата закінчення для всього контенту"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1553
 #, fuzzy
 msgid "Site of action"
-msgstr "кадри з природнім рухом; зображення реальності"
+msgstr "Дата надходження"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:261
 #, fuzzy
 msgid "Sixth bibliographic subdivision"
-msgstr "06 — прямий/непрямий географічний підзаголовок"
+msgstr "Пʼятий бібліографічний підрозділ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:946
 #, fuzzy
 msgid "Sixth level of enumeration"
-msgstr "Нум-ція серіаль.вид.: "
+msgstr "Пʼятий рівень нумерації"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:703
 msgid "Size of unit"
@@ -6330,7 +6493,7 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:708
 #, fuzzy
 msgid "Sound characteristics"
-msgstr "Особливі характеристики формату"
+msgstr "Характеристики кольору"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:12
 msgid "Source"
@@ -6339,7 +6502,7 @@ msgstr "Джерело"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2540
 #, fuzzy
 msgid "Source Contribution"
-msgstr "contributor"
+msgstr "Автор твору, що увійшов в компіляцію"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:119
 msgid "Source agency assigning number"
@@ -6358,7 +6521,7 @@ msgstr "Показати фільтри кодованих даних"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:236
 #, fuzzy
 msgid "Source edition identifier"
-msgstr "номер відеозапису"
+msgstr "Ідентифікатор видання"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:672
 msgid "Source for acquisition/subscription address [OBSOLETE]"
@@ -6371,7 +6534,7 @@ msgstr "Джерело надходження"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:973
 #, fuzzy
 msgid "Source of availability status code"
-msgstr "Код наявності покажчика"
+msgstr "Код стану доступності"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:288
 #, fuzzy
@@ -6379,9 +6542,8 @@ msgid "Source of call/class number"
 msgstr "Від шифру зберігання: "
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:4:row:2
-#, fuzzy
 msgid "Source of classification or shelving scheme"
-msgstr "Джерело класифікації чи схема поличного розташування"
+msgstr "Код системи класифікації для розстановки фонду"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:673
 #, fuzzy
@@ -6449,16 +6611,19 @@ msgid "Source of note information"
 msgstr "Інформацією щодо пропозиції…"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1317
+#, fuzzy
 msgid "Source of note information (AM CF VM SE) [OBSOLETE]"
-msgstr ""
+msgstr "Позначення секції (BK AM MP MU VM SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1167
+#, fuzzy
 msgid "Source of note information (AM SE) [OBSOLETE]"
-msgstr ""
+msgstr "Позначення секції (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1251
+#, fuzzy
 msgid "Source of note information (SE) [OBSOLETE]"
-msgstr ""
+msgstr "Позначення секції (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1276
 msgid "Source of note information [OBSOLETE]"
@@ -6469,10 +6634,11 @@ msgstr ""
 msgid "Source of number or code"
 msgstr "Джерельний код"
 
+# http://ellib.gpntb.ru/subscribe/ntb/2011/7/ntb_7_4_2011.htm
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:958
 #, fuzzy
 msgid "Source of price type code"
-msgstr "Код виду атрибута відвідувача"
+msgstr "Код типу носія"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1288
 #, fuzzy
@@ -6487,7 +6653,7 @@ msgstr "Джерело надходження"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2185
 #, fuzzy
 msgid "Source of taxonomic identification"
-msgstr "Джерело надходження"
+msgstr "Ідентифікація дії"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:557
 #, fuzzy
@@ -6551,9 +6717,8 @@ msgid "Standardized terminology for access restriction"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:117
-#, fuzzy
 msgid "Start period"
-msgstr "Термін випозичання"
+msgstr "Початковий період"
 
 # Автономна республіка/ провінція/ штат тощо
 # Адміністративна одиниця на рівень нижче найвищого, що має власне самоврядування та законодавчий контроль, проте не несе відповідальність за зовнішню політику держави (приміром, Автономна Республіка Крим, провінції Канади, землі Федеративної Республіки Німеччини тощо).
@@ -6563,18 +6728,16 @@ msgid "State or province"
 msgstr "b — автономна республіка/провінція/штат тощо"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:617
-#, fuzzy
 msgid "Statement of coordinates"
-msgstr "зміст"
+msgstr "Відомості про координати"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:619
 msgid "Statement of equinox"
-msgstr ""
+msgstr "Відомості про рівнодення"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:616
-#, fuzzy
 msgid "Statement of projection"
-msgstr "тип проекції невідомий"
+msgstr "Відомості про проекції"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1190
 msgid "Statement of responsibility"
@@ -6585,14 +6748,13 @@ msgid "Statement of responsibility, etc."
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:615
-#, fuzzy
 msgid "Statement of scale"
-msgstr "Тип масштабу: "
+msgstr "Відомості про масштаб"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:618
 #, fuzzy
 msgid "Statement of zone"
-msgstr "Назва місяця"
+msgstr "Твердження про видання оригіналу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:20
 msgid "Status"
@@ -6627,18 +6789,17 @@ msgid "Subdivision usage"
 msgstr "d — запис з підзаголовком"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:284
+#, fuzzy
 msgid "Subject (MP) [OBSOLETE]"
-msgstr ""
+msgstr "ПЕРІОДИЧНІСТЬ (CF MP) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:196
-#, fuzzy
 msgid "Subject category code"
-msgstr "Предметна категорія вищого рівня (тимчасове)"
+msgstr "Код предметної категорії"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:197
-#, fuzzy
 msgid "Subject category code subdivision"
-msgstr "Предметна категорія вищого рівня (тимчасове)"
+msgstr "Код нижчестоящого рівня предметної категорії"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1351
 #, fuzzy
@@ -6666,7 +6827,7 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3935
 #, fuzzy
 msgid "Subscription status code, LANT (RLIN)"
-msgstr "Дата початку підписки"
+msgstr "Дата початку передплати"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:493
 #, fuzzy
@@ -6686,15 +6847,16 @@ msgstr "Пошук серед зведень"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1295
 #, fuzzy
 msgid "Supplement note"
-msgstr "Додатки: "
+msgstr "Додаток: "
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:272
 msgid "Supplementary class number (MU) [OBSOLETE]"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1205
+#, fuzzy
 msgid "Supplying agency"
-msgstr ""
+msgstr "Призначення агенції"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:791
 #, fuzzy
@@ -6707,25 +6869,24 @@ msgid "Suppress in OPAC"
 msgstr "Приховано в електронному каталозі"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:39
-#, fuzzy
 msgid "System code"
-msgstr "Код втрати"
+msgstr "Код системи"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4091
+#, fuzzy
 msgid ""
 "System code (specific classification or other scheme and edition) [LOCAL, "
 "KOHA]"
-msgstr ""
+msgstr "Нормалізована класифікація для сортування в Коха [локальне, Коха]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:82
-#, fuzzy
 msgid "System control number"
-msgstr "Шифр зберігання"
+msgstr "Ідентифікатор запису"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1375
 #, fuzzy
 msgid "System details note"
-msgstr "Відомості про примірники"
+msgstr "Відомості про примірники "
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:169
 msgid "TARGET AUDIENCE NOTE"
@@ -6734,7 +6895,7 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3000
 #, fuzzy
 msgid "TDC (RLIN)"
-msgstr "% (RLIN)"
+msgstr "CC (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:689
 #, fuzzy
@@ -6746,28 +6907,32 @@ msgid "TERMS GOVERNING USE AND REPRODUCTION NOTE"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:289
+#, fuzzy
 msgid "TEXTUAL HOLDINGS--BASIC BIBLIOGRAPHIC UNIT"
-msgstr ""
+msgstr "НУМЕРАЦІЯ І ХРОНОЛОГІЯ - ОСНОВНА БІБЛІОГРАФІЧНА ОДИНИЦЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:291
 msgid "TEXTUAL HOLDINGS--INDEXES"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:290
+#, fuzzy
 msgid "TEXTUAL HOLDINGS--SUPPLEMENTARY MATERIAL"
-msgstr ""
+msgstr "НУМЕРАЦІЯ І ХРОНОЛОГІЯ - ДОДАТКОВИЙ МАТЕРІАЛ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:274
+#, fuzzy
 msgid "TEXTUAL PHYSICAL FORM DESIGNATOR"
-msgstr ""
+msgstr "ДОДАТКОВА ФІЗИЧНА ФОРМА ЗАПИСУ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:40
 msgid "TIME PERIOD OF CONTENT"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:171
+#, fuzzy
 msgid "TIME PERIOD OF CONTENT NOTE (CF) [OBSOLETE]"
-msgstr ""
+msgstr "ПРИМІТКА РЕДАКТОРА (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:90
 msgid "TIME PERIOD OF CREATION"
@@ -6786,12 +6951,14 @@ msgid "TITLE RELATED TO THE ENTITY"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:83
+#, fuzzy
 msgid "TITLE STATEMENT"
-msgstr ""
+msgstr "ЗАЯВА ПРО ВИДАННЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:133
+#, fuzzy
 msgid "TRADE AVAILABILITY INFORMATION"
-msgstr ""
+msgstr "ІНФОРМАЦІЯ ПРО СІМʼЮ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:132
 msgid "TRADE PRICE"
@@ -6820,31 +6987,36 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:494
 #, fuzzy
 msgid "Table identification"
-msgstr "Надіслати повідомлення"
+msgstr "Ідентифікація копії"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1667
+#, fuzzy
 msgid "Table identification--Internal subarrangement or add table"
-msgstr ""
+msgstr "Цифри додані із внутрішньої підгрупи або доданої таблиці"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:539
 msgid "Table identification--Schedule [OBSOLETE]"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1684
+#, fuzzy
 msgid "Table identification--Table number"
-msgstr ""
+msgstr "Класифікаційний індекс"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:281
+#, fuzzy
 msgid "Table identification--table number"
-msgstr ""
+msgstr "Класифікаційний індекс"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:367
+#, fuzzy
 msgid "Table identification-Internal subarrangement or add table"
-msgstr ""
+msgstr "Цифри додані із внутрішньої підгрупи або доданої таблиці"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:230
+#, fuzzy
 msgid "Table identification-table number"
-msgstr ""
+msgstr "Класифікаційний індекс"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1633
 #, fuzzy
@@ -6852,16 +7024,19 @@ msgid "Table number"
 msgstr "Номер етикетки"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:229
+#, fuzzy
 msgid "Table sequence number for internal subarrangement or add table"
-msgstr ""
+msgstr "Цифри додані із внутрішньої підгрупи або доданої таблиці"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:809
+#, fuzzy
 msgid "Tactile assistive features"
-msgstr ""
+msgstr "Слухові допоміжні функції"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3105
+#, fuzzy
 msgid "Tag and sequence number"
-msgstr ""
+msgstr "Посилання на поле та порядковий номер"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:858
 msgid "Tape configuration"
@@ -6880,22 +7055,22 @@ msgstr "Базовий номер"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:968
 #, fuzzy
 msgid "Tax rate 1"
-msgstr "Податкова ставка: "
+msgstr "Ставка ПДВ: "
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:969
 #, fuzzy
 msgid "Tax rate 2"
-msgstr "Податкова ставка: "
+msgstr "Ставка ПДВ: "
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2189
 #, fuzzy
 msgid "Taxonomic category"
-msgstr "Категорія відвідувача"
+msgstr "Категорія користувача"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2188
 #, fuzzy
 msgid "Taxonomic name"
-msgstr "Ім’я відвідувача"
+msgstr "Ім’я користувача"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:795
 #, fuzzy
@@ -6905,7 +7080,7 @@ msgstr "технічна інформація про музику"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1357
 #, fuzzy
 msgid "Telecommunications address"
-msgstr "адреса електронної пошти"
+msgstr "Адреса електронної пошти"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:686
 #, fuzzy
@@ -6918,9 +7093,8 @@ msgid "Temporary location"
 msgstr "Місце виводу: "
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1767
-#, fuzzy
 msgid "Terminal emulation"
-msgstr "Нум-ція серіаль.вид.: "
+msgstr "Емуляція терміналу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:116
 #, fuzzy
@@ -6949,26 +7123,34 @@ msgstr "Перевірити схему прогнозування"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:55
 msgid "Text incipit"
-msgstr ""
+msgstr "Літературний інципіт"
 
+# 115^b -  інший
+# 115^b/9 - інша ...
+# 100^a - інша, інші, інше
+# 124^b - інші
+# 125^a - інші
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1361
 #, fuzzy
 msgid "Text of note"
-msgstr "Примітка працівника бібліотеки"
+msgstr "Текст, інше"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:806
+#, fuzzy
 msgid "Textual assistive features"
-msgstr ""
+msgstr "Слухові допоміжні функції"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2831
 #, fuzzy
 msgid "Textual physical form designator"
 msgstr "Позначення фізичної форми"
 
+# 106 - Звичайний друк
+# Код «r» відображає, що документ є звичайним текстом, призначеним для «читання очима».
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3083
 #, fuzzy
 msgid "Textual string"
-msgstr "Загальні налаштування"
+msgstr "Текст, звичайний друк"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:718
 #, fuzzy
@@ -6981,51 +7163,52 @@ msgid "Thematic index number"
 msgstr "тематичний покажчик"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:74
+#, fuzzy
 msgid "Third and fourth groups of characters"
-msgstr ""
+msgstr "Перша та друга групи символів"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:258
 #, fuzzy
 msgid "Third bibliographic subdivision"
-msgstr "06 — прямий/непрямий географічний підзаголовок"
+msgstr "Пʼятий бібліографічний підрозділ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:951
+#, fuzzy
 msgid "Third level of chronology"
-msgstr ""
+msgstr "Перший рівень хронології"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:943
 #, fuzzy
 msgid "Third level of enumeration"
-msgstr "05 Рівень ущільнення"
+msgstr "Перший рівень нумерації"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1494
+#, fuzzy
 msgid "Time of collation [OBSOLETE]"
-msgstr ""
+msgstr "Позначення секції (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:103
 #, fuzzy
 msgid "Time period code"
 msgstr "Код модифікації запису"
 
-# Код характеру вмісту
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1287
 #, fuzzy
 msgid "Time period of content note"
-msgstr "Код типу змісту"
+msgstr "Примітка форматованого змісту"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:751
 msgid "Time period of creation term"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:50
-#, fuzzy
 msgid "Time signature"
-msgstr "мініатюра"
+msgstr "Музичний розмір"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1547
 #, fuzzy
 msgid "Time/date of action"
-msgstr "дати зібрання колекції"
+msgstr "Оновити дію"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1316
 msgid "Title"
@@ -7034,24 +7217,23 @@ msgstr "Назва"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:354
 #, fuzzy
 msgid "Title of a work"
-msgstr "версії роботи"
+msgstr "Дата роботи"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:691
 #, fuzzy
 msgid "Title of contact person"
-msgstr "Рівень ущільнення"
+msgstr "Контактна особа"
 
-# Під цією закладкою виводяться усі поля блоку 3 Unimarc чи блоку 5 Marc21 а також деякі запозичені описи. В ISBD це „Область приміток“. Оскільки це набори приміток з різних полів, краще лишити „Примітки“.
+# Під цією закладкою виводяться усі поля блоку 3 Unimarc чи блоку 5 Marc21 а також деякі запозичені описи. В ISBD це \"Область приміток\". Оскільки це набори приміток з різних полів, краще лишити \"Примітки\".
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:584
 #, fuzzy
 msgid "Title of person"
 msgstr "Примітки"
 
-# Під цією закладкою виводяться усі поля блоку 3 Unimarc чи блоку 5 Marc21 а також деякі запозичені описи. В ISBD це „Область приміток“. Оскільки це набори приміток з різних полів, краще лишити „Примітки“.
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1303
 #, fuzzy
 msgid "Title point value"
-msgstr "Примітки"
+msgstr "Перелік значень"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:576
 #, fuzzy
@@ -7066,15 +7248,17 @@ msgstr "Рекомендована форма: "
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1348
 #, fuzzy
 msgid "Title statement of original"
-msgstr "файл, створений з оригіналу"
+msgstr "Твердження про видання оригіналу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:338
+#, fuzzy
 msgid "Titles and other words associated with a name"
-msgstr ""
+msgstr "Дата, повʼязана з найменуванням"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:421
+#, fuzzy
 msgid "Titles and words associated with a name"
-msgstr ""
+msgstr "Дата, повʼязана з найменуванням"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:924
 #, fuzzy
@@ -7088,48 +7272,54 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_types:1:row:8
 #, fuzzy
 msgid "Topical Term"
-msgstr "a — тематичний"
+msgstr "Хронологічний термін"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1864
+#, fuzzy
 msgid "Topical term following geographic name as entry element"
-msgstr ""
+msgstr "Назва компанії чи юрисдикції як елемент запису"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:472
 msgid "Topical term following geographic name entry element"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1863
+#, fuzzy
 msgid "Topical term or geographic name as entry element"
-msgstr ""
+msgstr "Назва компанії чи юрисдикції як елемент запису"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:471
+#, fuzzy
 msgid "Topical term or geographic name entry element"
-msgstr ""
+msgstr "Назва компанії чи юрисдикції як елемент запису"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:21
-msgid "Total Checkouts"
+#, fuzzy
+msgid "Total checkouts"
 msgstr "Видач загалом"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:23
 #, fuzzy
-msgid "Total Holds"
-msgstr "Загалом резервувань"
-
-#: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:22
-msgid "Total Renewals"
-msgstr "Загалом продовжень"
+msgid "Total holds"
+msgstr "Загальна кількість замовлень"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:710
 msgid "Total number of ensembles"
 msgstr "Загальна кількість ансамблів"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:708
+#, fuzzy
 msgid "Total number of individuals performing alongside ensembles"
-msgstr ""
+msgstr "Загальна кількість ансамблів"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:709
 msgid "Total number of performers"
 msgstr "Загальна кількість виконавців"
+
+#: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:22
+#, fuzzy
+msgid "Total renewals"
+msgstr "Загалом продовжень"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:857
 #, fuzzy
@@ -7139,7 +7329,7 @@ msgstr "Конфігурація стрічки"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:88
 #, fuzzy
 msgid "Transcribing agency"
-msgstr "Бібліотека/підрозділ операції"
+msgstr "Призначення агенції"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:684
 #, fuzzy
@@ -7177,9 +7367,8 @@ msgid "Type of entity term"
 msgstr "Тип контролю"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:664
-#, fuzzy
 msgid "Type of family"
-msgstr "Тип матеріалу"
+msgstr "Тип роду"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4116
 #, fuzzy
@@ -7220,20 +7409,24 @@ msgid "Type of unit"
 msgstr "Тип контролю"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:79
+#, fuzzy
 msgid "UNIFORM TITLE"
-msgstr ""
+msgstr "КОЛИШНЯ НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:53
+#, fuzzy
 msgid "UNIFORM TITLE [OBSOLETE, CAN/MARC]"
-msgstr ""
+msgstr "ЗАГАЛЬНА НАЗВА [ЗАСТАРІЛО, CAN/MARC]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:103
+#, fuzzy
 msgid "UNIT COUNT (AM) [OBSOLETE, USMARC]"
-msgstr ""
+msgstr "ПРИМІТКА РЕДАКТОРА (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:34
+#, fuzzy
 msgid "UNIVERSAL DECIMAL CLASSIFICATION NUMBER"
-msgstr ""
+msgstr "ДЕСЯТКОВИЙ КЛАСИФІКАЦІЙНИЙ НОМЕР ДЬЮЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:319
 msgid "USER-OPTION DATA (OCLC)"
@@ -7246,7 +7439,7 @@ msgstr ""
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1766
 #, fuzzy
 msgid "Uncontrolled term"
-msgstr "не ущільнено"
+msgstr "Контрольований термін"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1364
 #, fuzzy
@@ -7255,16 +7448,20 @@ msgstr "b — ім’я особи недиференційоване"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:56
 msgid "Uniform Resource Identifier"
-msgstr "URI (неповторний ідентифікатор ресурсів)"
+msgstr "Універсальний ідентифікатор ресурсу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4096
-#, fuzzy
 msgid "Uniform Resource Identifier [LOCAL, KOHA]"
-msgstr "URI (неповторний ідентифікатор ресурсів)"
+msgstr "Універсальний ідентифікатор ресурсу [локально, Коха]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_types:1:row:9
 msgid "Uniform Title"
 msgstr "Уніфікована форма назви"
+
+#: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:30
+#, fuzzy
+msgid "Uniform resource identifier"
+msgstr "Універсальний ідентифікатор ресурсу"
 
 # 130   Основне введення – уніфікована назва
 # 240   Уніфікована назва
@@ -7289,13 +7486,14 @@ msgid "Unit of pricing"
 msgstr "Вид нарізки"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:212
+#, fuzzy
 msgid "Universal Decimal Classification number"
-msgstr ""
+msgstr "Універсальна десяткова класифікація (УДК)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1517
 #, fuzzy
 msgid "Universe of data"
-msgstr "числові дані"
+msgstr "Дата перетворення"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:77
 #, fuzzy
@@ -7315,7 +7513,7 @@ msgstr "репродукція твору мистецтва "
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1584
 #, fuzzy
 msgid "Use reference term"
-msgstr "Шукати параметр системи:"
+msgstr "Параметри системи "
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1585
 msgid "Use reference term--Succeeding level"
@@ -7323,48 +7521,52 @@ msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:6
 msgid "Use restrictions"
-msgstr "Використовувати обмеження"
+msgstr "Стан обмеження доступу"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4092
 #, fuzzy
 msgid "Use restrictions [LOCAL, KOHA]"
-msgstr "Використовувати обмеження"
+msgstr "Статус втрати/відсутності [локальне, Коха]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3675
 #, fuzzy
 msgid "User-option data"
-msgstr "подробиця підписки"
+msgstr "подробиці передплати"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:114
 #, fuzzy
 msgid "VALID NUMBER TRACING [CLASSIFICATION FORMAT]"
-msgstr "ДОДАТИ АБО РОЗДІЛИТИ ПОДІБНІ ІНСТРУКЦІЇ [ФОРМАТ КЛАСИФІКАЦІЇ]"
+msgstr "КЛАСИФІКАЦІЙНИЙ ІНДЕКС [ФОРМАТ КЛАСИФІКАЦІЇ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:76
 #, fuzzy
 msgid "VARIANT ACCESS TITLE [OBSOLETE]"
-msgstr "АКРОНІМ АБО СКОРОЧЕНА НАЗВА [ЗАСТАРІЛЕ]"
+msgstr "ДОПОВНЕНА НАЗВА [ЗАСТАРІЛЕ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:294
+#, fuzzy
 msgid "VARIANT CONFERENCE OR MEETING NAME (SE) [OBSOLETE]"
-msgstr ""
+msgstr "ПРИМІТКА РЕДАКТОРА (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:293
 #, fuzzy
 msgid "VARIANT CORPORATE NAME (SE)[OBSOLETE]"
-msgstr "АКРОНІМ АБО СКОРОЧЕНА НАЗВА [ЗАСТАРІЛЕ]"
+msgstr "ПРИМІТКА РЕДАКТОРА (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:292
+#, fuzzy
 msgid "VARIANT PERSONAL NAME (SE) [OBSOLETE]"
-msgstr ""
+msgstr "ПРИМІТКА ІМ’Я ОСОБИ (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:295
+#, fuzzy
 msgid "VARIANT UNIFORM TITLE HEADING (SE) [OBSOLETE]"
-msgstr ""
+msgstr "ПРИМІТКА РЕДАКТОРА (SE) [ЗАСТАРІЛО]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:84
+#, fuzzy
 msgid "VARYING FORM OF TITLE"
-msgstr ""
+msgstr "КОЛИШНЯ НАЗВА"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3004
 #, fuzzy
@@ -7372,20 +7574,23 @@ msgid "VER (RLIN)"
 msgstr "% (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:87
+#, fuzzy
 msgid "VERSION INFORMATION"
-msgstr ""
+msgstr "ОБОВ'ЯЗКОВА ІНФОРМАЦІЯ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:121
+#, fuzzy
 msgid "VIDEO CHARACTERISTICS"
-msgstr ""
+msgstr "ХАРАКТЕРИСТИКИ АУДИТОРІЇ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:914
 msgid "VPF topology level"
 msgstr ""
 
 #: installer/data/mysql/en/marcflavour/marc21/optional/marc21_simple_bib_frameworks.yml:description:6
+#, fuzzy
 msgid "VR  DVDs, VHS"
-msgstr ""
+msgstr "DVD, VHS"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1819
 #, fuzzy
@@ -7395,7 +7600,7 @@ msgstr "Дата доступності"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:504
 #, fuzzy
 msgid "Variant access title"
-msgstr "Серійний заголовок"
+msgstr "Назва серії"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:239
 msgid "Variations"
@@ -7408,11 +7613,12 @@ msgstr "Версія"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1502
 #, fuzzy
 msgid "Version identification"
-msgstr "Надіслати повідомлення"
+msgstr "Ідентифікація дії"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4085
+#, fuzzy
 msgid "Version of conversion program used"
-msgstr ""
+msgstr "Дата перетворення або огляду"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:913
 #, fuzzy
@@ -7425,21 +7631,24 @@ msgid "Vertical encoding method"
 msgstr "вертикальна партитура"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1244
+#, fuzzy
 msgid "Vertical positional accuracy explanation"
-msgstr ""
+msgstr "Пояснення точності атрибуту"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1242
+#, fuzzy
 msgid "Vertical positional accuracy report"
-msgstr ""
+msgstr "Звіт про точність атрибуту"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1243
+#, fuzzy
 msgid "Vertical positional accuracy value"
-msgstr ""
+msgstr "Значення точності атрибута"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:832
 #, fuzzy
 msgid "Vertical resolution"
-msgstr "вертикальна партитура"
+msgstr "Роздільна здатність по абсцисах"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:875
 #, fuzzy
@@ -7447,17 +7656,20 @@ msgid "Video format"
 msgstr "Формати файлів"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:807
+#, fuzzy
 msgid "Visual assistive features"
-msgstr ""
+msgstr "Слухові допоміжні функції"
 
+# Загальнодоступна нотатка:
+# (задовге)
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:48
 msgid "Voice/instrument"
-msgstr ""
+msgstr "Голос/інструмент"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1101
 #, fuzzy
 msgid "Volume number/sequential designation"
-msgstr "Визначник функціонального призначення"
+msgstr "Дата або послідовне позначення"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4076
 #, fuzzy
@@ -7467,19 +7679,22 @@ msgstr "Номер тому"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1149
 #, fuzzy
 msgid "Volume/sequential designation"
-msgstr "Визначник функціонального призначення"
+msgstr "Дата або послідовне позначення"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3934
+#, fuzzy
 msgid "Volumes, LVOL (RLIN)"
-msgstr ""
+msgstr "Дата, LVOL (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:271
+#, fuzzy
 msgid "Volumes, VOL (RLIN)"
-msgstr ""
+msgstr "Дата, VOL (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1272
+#, fuzzy
 msgid "Volumes/dates to which analysis practice applies"
-msgstr ""
+msgstr "Винятки з аналітичної практики"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:128
 msgid "Volumes/dates to which call number applies"
@@ -7530,7 +7745,7 @@ msgstr "Стан списання [локальне, Коха]"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1368
 #, fuzzy
 msgid "Work unit number"
-msgstr "Номер рахунку: "
+msgstr "Номер кредиту"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1177
 #, fuzzy
@@ -7540,7 +7755,7 @@ msgstr ", організація, яка затвердила вчений ст�
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:828
 #, fuzzy
 msgid "Zone identifier"
-msgstr "Унікальний ідентифікатор: "
+msgstr "Ідентифікатор видання"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3861
 #, fuzzy
@@ -7553,9 +7768,8 @@ msgid "c (OCLC)"
 msgstr "0 (OCLC)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:2
-#, fuzzy
 msgid "control field"
-msgstr "у поле "
+msgstr "Контрольне поле"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3863
 #, fuzzy
@@ -7573,9 +7787,8 @@ msgid "f (OCLC)"
 msgstr "0 (OCLC)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1
-#, fuzzy
 msgid "fixed length control field"
-msgstr "Вилучити поточне поле"
+msgstr "Маркер (контрольне поле довжиною 24 байти)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3866
 #, fuzzy
@@ -7618,8 +7831,9 @@ msgid "n (OCLC)"
 msgstr "0 (OCLC)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1165
+#, fuzzy
 msgid "n (RLIN) [OBSOLETE]"
-msgstr ""
+msgstr "РОЗТАШУВАННЯ [ЗАСТАРІЛЕ]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3874
 #, fuzzy

@@ -4,7 +4,7 @@ use Modern::Perl;
 use C4::Context;
 use DateTime;
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::CirculationRules;
 use Koha::Library;
 
@@ -13,7 +13,7 @@ use t::lib::TestBuilder;
 use Test::More tests => 9;
 
 BEGIN {
-    use_ok('C4::Circulation');
+    use_ok('C4::Circulation', qw( GetHardDueDate GetLoanLength ));
 }
 can_ok(
     'C4::Circulation',
@@ -53,7 +53,6 @@ my $samplebranch1 = {
     branchemail    => 'sample email',
     branchurl      => 'sample url',
     branchip       => 'sample ip',
-    opac_info      => 'sample opac',
 };
 my $samplebranch2 = {
     branchcode     => 'SAB2',
@@ -70,7 +69,6 @@ my $samplebranch2 = {
     branchemail    => 'sample email2',
     branchurl      => 'sample url2',
     branchip       => 'sample ip2',
-    opac_info      => 'sample opac2',
 };
 Koha::Library->new($samplebranch1)->store;
 Koha::Library->new($samplebranch2)->store;

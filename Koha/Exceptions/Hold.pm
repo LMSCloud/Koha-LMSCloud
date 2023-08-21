@@ -17,11 +17,11 @@ package Koha::Exceptions::Hold;
 
 use Modern::Perl;
 
-use Koha::Exceptions::Exception;
+use Koha::Exception;
 
 use Exception::Class (
     'Koha::Exceptions::Hold' => {
-        isa => 'Koha::Exceptions::Exception',
+        isa => 'Koha::Exception',
     },
     'Koha::Exceptions::Hold::CannotSuspendFound' => {
         isa         => 'Koha::Exceptions::Hold',
@@ -31,6 +31,10 @@ use Exception::Class (
     'Koha::Exceptions::Hold::InvalidPickupLocation' => {
         isa         => 'Koha::Exceptions::Hold',
         description => 'The supplied pickup location is not valid'
+    },
+    'Koha::Exceptions::Hold::MissingPickupLocation' => {
+        isa         => 'Koha::Exceptions::Hold',
+        description => 'You must supply a pickup location when placing a hold'
     }
 );
 

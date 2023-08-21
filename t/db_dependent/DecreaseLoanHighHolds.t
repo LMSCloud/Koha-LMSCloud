@@ -18,9 +18,9 @@
 use Modern::Perl;
 use DateTime;
 
-use C4::Circulation;
+use C4::Circulation qw( CalcDateDue checkHighHolds CanBookBeIssued );
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Patrons;
 use Koha::Biblio;
 use Koha::Item;
@@ -30,7 +30,7 @@ use Koha::CirculationRules;
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
-use Test::More tests => 21;
+use Test::More tests => 26;
 
 my $dbh    = C4::Context->dbh;
 my $schema = Koha::Database->new()->schema();
@@ -127,14 +127,19 @@ t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsValue',          1 );
 t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsControl',        'static' );
 t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsIgnoreStatuses', 'damaged,itemlost,notforloan,withdrawn' );
 
-my $item_hr = { itemnumber => $item->id, biblionumber => $biblio->id, homebranch => $library->{branchcode}, holdingbranch => $library->{branchcode}, barcode => $item->barcode };
-my $patron_hr = { borrowernumber => $patron->id, branchcode => $library->{branchcode} };
-
-my $data = C4::Circulation::checkHighHolds( $item_hr, $patron_hr );
+my $data = C4::Circulation::checkHighHolds( $item, $patron );
 is( $data->{exceeded},        1,          "Static mode should exceed threshold" );
-is( $data->{outstanding},     6,          "Should have 6 outstanding holds" );
+is( $data->{outstanding},     5,          "Should have 5 outstanding holds" );
 is( $data->{duration},        0,          "Should have duration of 0 because of specific circulation rules" );
 is( ref( $data->{due_date} ), 'DateTime', "due_date should be a DateTime object" );
+
+t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsValue',          5 );
+$data = C4::Circulation::checkHighHolds( $item, $patron );
+is( $data->{exceeded},        0,          "Static mode should not exceed threshold when it equals outstanding holds" );
+is( $data->{outstanding},     5,          "Should have 5 outstanding holds" );
+is( $data->{duration},        0,          "Should have duration of 0 because decrease not calculated" );
+is( $data->{due_date},     undef,         "duedate undefined as not decreasing loan period" );
+t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsValue',          1 );
 
 Koha::CirculationRules->set_rules(
     {
@@ -151,7 +156,7 @@ Koha::CirculationRules->set_rules(
     }
 );
 
-$data = C4::Circulation::checkHighHolds( $item_hr, $patron_hr );
+$data = C4::Circulation::checkHighHolds( $item, $patron );
 is( $data->{duration}, 1, "Should have a duration of 1 because no specific circulation rules so defaults to system preference" );
 
 my $duedate = $data->{due_date};
@@ -160,12 +165,12 @@ is($duedate->min, $orig_due->min, 'New due minute is equal to original due minut
 is($duedate->sec, 0, 'New due date second is zero.');
 
 t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsControl', 'dynamic' );
-$data = C4::Circulation::checkHighHolds( $item_hr, $patron_hr );
+$data = C4::Circulation::checkHighHolds( $item, $patron );
 is( $data->{exceeded}, 0, "Should not exceed threshold" );
 
 
-# Place 6 more holds - patrons 5,6,7,8,9,10
-for my $i ( 5 .. 10 ) {
+# Place 7 more holds - patrons 5,6,7,8,9,10,11
+for my $i ( 5 .. 11 ) {
     my $patron = $patrons[$i];
     my $hold   = Koha::Hold->new(
         {
@@ -176,14 +181,16 @@ for my $i ( 5 .. 10 ) {
     )->store();
 }
 
+# Note in counts below, patron's own hold is not counted
+
 # 12 holds, threshold is 1 over 10 holdable items = 11
-$data = C4::Circulation::checkHighHolds( $item_hr, $patron_hr );
+$data = C4::Circulation::checkHighHolds( $item, $patron );
 is( $data->{exceeded}, 1, "Should exceed threshold of 1" );
 is( $data->{outstanding}, 12, "Should exceed threshold of 1" );
 
 # 12 holds, threshold is 2 over 10 holdable items = 12 (equal is okay)
 t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsValue', 2 );
-$data = C4::Circulation::checkHighHolds( $item_hr, $patron_hr );
+$data = C4::Circulation::checkHighHolds( $item, $patron );
 is( $data->{exceeded}, 0, "Should not exceed threshold of 2" );
 
 my $unholdable = pop(@items);
@@ -191,7 +198,7 @@ $unholdable->damaged(-1);
 $unholdable->store();
 
 # 12 holds, threshold is 2 over 9 holdable items = 11
-$data = C4::Circulation::checkHighHolds( $item_hr, $patron_hr );
+$data = C4::Circulation::checkHighHolds( $item, $patron );
 is( $data->{exceeded}, 1, "Should exceed threshold with one damaged item" );
 
 $unholdable->damaged(0);
@@ -199,7 +206,7 @@ $unholdable->itemlost(-1);
 $unholdable->store();
 
 # 12 holds, threshold is 2 over 9 holdable items = 11
-$data = C4::Circulation::checkHighHolds( $item_hr, $patron_hr );
+$data = C4::Circulation::checkHighHolds( $item, $patron );
 is( $data->{exceeded}, 1, "Should exceed threshold with one lost item" );
 
 $unholdable->itemlost(0);
@@ -207,7 +214,7 @@ $unholdable->notforloan(-1);
 $unholdable->store();
 
 # 12 holds, threshold is 2 over 9 holdable items = 11
-$data = C4::Circulation::checkHighHolds( $item_hr, $patron_hr );
+$data = C4::Circulation::checkHighHolds( $item, $patron );
 is( $data->{exceeded}, 1, "Should exceed threshold with one notforloan item" );
 
 $unholdable->notforloan(0);
@@ -215,22 +222,21 @@ $unholdable->withdrawn(-1);
 $unholdable->store();
 
 # 12 holds, threshold is 2 over 9 holdable items = 11
-$data = C4::Circulation::checkHighHolds( $item_hr, $patron_hr );
+$data = C4::Circulation::checkHighHolds( $item, $patron );
 is( $data->{exceeded}, 1, "Should exceed threshold with one withdrawn item" );
 
 $patron_hold->found('F')->store;
 # 11 holds, threshold is 2 over 9 holdable items = 11
-$data = C4::Circulation::checkHighHolds( $item_hr, $patron_hr );
+$data = C4::Circulation::checkHighHolds( $item, $patron );
 is( $data->{exceeded}, 1, "Should exceed threshold with one withdrawn item" );
 $patron_hold->found(undef)->store;
 
 t::lib::Mocks::mock_preference('CircControl', 'PatronLibrary');
 
-my $patron_object = Koha::Patrons->find( $patron_hr->{borrowernumber} );
-my ( undef, $needsconfirmation ) = CanBookBeIssued( $patron_object, $item->barcode );
+my ( undef, $needsconfirmation ) = CanBookBeIssued( $patron, $item->barcode );
 ok( $needsconfirmation->{HIGHHOLDS}, "High holds checkout needs confirmation" );
 
-( undef, $needsconfirmation ) = CanBookBeIssued( $patron_object, $item->barcode, undef, undef, undef, { override_high_holds => 1 } );
+( undef, $needsconfirmation ) = CanBookBeIssued( $patron, $item->barcode, undef, undef, undef, { override_high_holds => 1 } );
 ok( !$needsconfirmation->{HIGHHOLDS}, "High holds checkout does not need confirmation" );
 
 Koha::CirculationRules->set_rule(
@@ -243,7 +249,61 @@ Koha::CirculationRules->set_rule(
     }
 );
 
-$data = C4::Circulation::checkHighHolds( $item_hr, $patron_hr );
+$data = C4::Circulation::checkHighHolds( $item, $patron );
 is( $data->{duration}, 2, "Circulation rules override system preferences" );
+
+
+subtest "Test patron's own holds do not count towards HighHolds count" => sub {
+
+    plan tests => 2;
+
+    my $item = $builder->build_sample_item();
+    my $item2 = $builder->build_sample_item({ biblionumber => $item->biblionumber });
+    my $item3 = $builder->build_sample_item({ biblionumber => $item->biblionumber });
+
+    my $patron = $builder->build_object({
+        class => 'Koha::Patrons',
+        value => {
+            branchcode => $item->homebranch
+        }
+    });
+    my $hold = $builder->build_object({
+        class => 'Koha::Holds',
+        value => {
+            biblionumber => $item->biblionumber,
+            borrowernumber => $patron->id,
+            suspend => 0,
+            found => undef
+        }
+    });
+
+    Koha::CirculationRules->set_rules(
+        {
+            branchcode   => $item->homebranch,
+            categorycode => undef,
+            itemtype     => $item->itype,
+            rules        => {
+                issuelength     => '14',
+                lengthunit      => 'days',
+                reservesallowed => '99',
+                holds_per_record => '1',
+            }
+        }
+    );
+
+    t::lib::Mocks::mock_preference( 'decreaseLoanHighHolds',               1 );
+    t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsDuration',       1 );
+    t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsValue',          1 );
+    t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsControl',        'static' );
+    t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsIgnoreStatuses', 'damaged,itemlost,notforloan,withdrawn' );
+
+    my $data = C4::Circulation::checkHighHolds( $item , $patron );
+    ok( !$data->{exceeded}, "Patron's hold on the record does not limit their own circulation if static decrease");
+    t::lib::Mocks::mock_preference( 'decreaseLoanHighHoldsControl',        'dynamic' );
+    # 3 items on record, patron has 1 hold
+    $data = C4::Circulation::checkHighHolds( $item, $patron );
+    ok( !$data->{exceeded}, "Patron's hold on the record does not limit their own circulation if dynamic decrease");
+
+};
 
 $schema->storage->txn_rollback();

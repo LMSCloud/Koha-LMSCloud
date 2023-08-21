@@ -1,0 +1,51 @@
+---
+type: object
+properties:
+  identity_provider_id:
+    type: integer
+    description: Internally assigned identity provider identifier
+    readOnly: true
+  code:
+    description: Identity provider code
+    type: string
+  description:
+    description: User-oriented description for the provider
+    type: string
+  protocol:
+    description: Authentication protocol
+    type: string
+    enum:
+      - OAuth
+      - OIDC
+      - CAS (not implemented)
+      - LDAP (not implemented)
+  mapping:
+    description: Attribute mapping
+    type:
+      - object
+      - "null"
+  matchpoint:
+    description: Patron attribute that will be used to match
+    type: string
+    enum:
+      - email
+      - userid
+      - cardnumber
+  config:
+    description: Configuration
+    type: object
+  icon_url:
+    description: Icon url
+    type:
+     - string
+     - "null"
+  domains:
+    description: Configured domains for the identity provider
+    type:
+      - array
+      - "null"
+additionalProperties: false
+required:
+  - config
+  - code
+  - protocol

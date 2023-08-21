@@ -9,8 +9,8 @@ use Test::More tests => 6;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( checkauth );
+use C4::Output qw( output_html_with_http_headers );
 use Koha::Database;
 use Koha::FrameworkPlugin;
 use Koha::Util::FrameworkPlugin qw( biblio_008 );
@@ -222,7 +222,7 @@ sub old01 {
 # includes a typical empty Clic function and plugin subroutine
     return mytempfile( <<'HERE'
 sub plugin_javascript {
-    my ($dbh,$record,$tagslib,$field_number,$tabloop) = @_;
+    my ($dbh,$record,$tagslib,$field_number) = @_;
     my $function_name = $field_number;
     my $res = "
 <script type=\"text/javascript\">

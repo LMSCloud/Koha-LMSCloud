@@ -20,11 +20,10 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use CGI;
 
-use C4::Auth;
-use C4::ClassSource;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::ClassSource qw( GetClassSort );
+use C4::Output qw( output_html_with_http_headers );
 
 use Koha::ClassSources;
 
@@ -34,8 +33,9 @@ my $builder = sub {
     my $res = "
 <script>
 
-function Click$function_name(i) {
-    q = document.getElementById('$params->{id}');
+function Click$function_name(ev) {
+    ev.preventDefault();
+    q = document.getElementById(ev.data.id);
     window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=cn_browser.pl&popup&q=\"+encodeURIComponent(q.value),\"cnbrowser\",\"width=500,height=400,toolbar=false,scrollbars=yes\");
 }
 
@@ -84,7 +84,7 @@ my $launcher = sub {
     }
 
     my $cn_source = $cgi->param('cn_source') || C4::Context->preference("DefaultClassificationSource");
-    my @class_sources = Koha::ClassSources->search({ used => 1});
+    my @class_sources = Koha::ClassSources->search({ used => 1})->as_list;
 
     #Don't show half the results of show lt or gt
     $real_limit = $results_per_page if $search ne $q;
@@ -95,7 +95,7 @@ my $launcher = sub {
         my $green = 0;
 
         #Results before the cn_sort
-        $query = "SELECT b.title, b.subtitle, itemcallnumber, biblionumber, barcode, cn_sort, branchname, author
+        $query = "SELECT b.title, b.subtitle, itemcallnumber, biblionumber, barcode, cn_sort, branchname, author, ccode
         FROM items AS i
         JOIN biblio AS b USING (biblionumber)
         LEFT OUTER JOIN branches ON (branches.branchcode = homebranch)
@@ -125,7 +125,7 @@ my $launcher = sub {
         my $green = 0;
 
         #Results after the cn_sort
-        $query = "SELECT b.title, b.subtitle, itemcallnumber, biblionumber, barcode, cn_sort, branchname, author
+        $query = "SELECT b.title, b.subtitle, itemcallnumber, biblionumber, barcode, cn_sort, branchname, author, ccode
         FROM items AS i
         JOIN biblio AS b USING (biblionumber)
         LEFT OUTER JOIN branches ON (branches.branchcode = homebranch)

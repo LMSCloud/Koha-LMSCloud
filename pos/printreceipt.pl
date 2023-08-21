@@ -19,20 +19,19 @@
 
 use Modern::Perl;
 
-use C4::Auth qw/:DEFAULT get_session/;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_and_exit_if_error output_and_exit output_html_with_http_headers );
 use CGI qw ( -utf8 );
-use C4::Letters;
 use Koha::Account::Lines;
-use Koha::DateUtils;
+use Koha::Notice::Templates;
 
 my $input = CGI->new;
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
-        template_name   => "pos/printreceipt.tt",
-        query           => $input,
-        type            => "intranet",
+        template_name => "pos/printreceipt.tt",
+        query         => $input,
+        type          => "intranet",
     }
 );
 
@@ -52,15 +51,25 @@ output_and_exit_if_error(
 ) if $patron;    # Payment could have been anonymous
 
 my $lang = $patron ? $patron->lang : $template->lang;
-my $letter = C4::Letters::getletter( 'pos', 'RECEIPT',
-    C4::Context::mybranch, 'print', $lang );
+my $letter = C4::Letters::GetPreparedLetter(
+    module                 => 'pos',
+    letter_code            => 'RECEIPT',
+    branchcode             => C4::Context::mybranch,
+    message_transport_type => 'print',
+    lang                   => $lang,
+    tables                 => {
+        credits   => $payment_id,
+        borrowers => $patron ? $patron->borrowernumber : undef
+    },
+    substitute => {
+        collected => scalar $input->param('collected'),
+        change    => scalar $input->param('change')
+    }
+);
 
 $template->param(
-    letter  => $letter,
-    payment => $payment,
-
-    tendered => scalar $input->param('tendered'),
-    change   => scalar $input->param('change')
+    slip  => $letter->{content},
+    plain => !$letter->{is_html}
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

@@ -20,25 +20,28 @@ package Koha::Patron;
 
 use Modern::Perl;
 
-use Carp;
-use Date::Calc qw( Today Add_Delta_Days Date_to_Days );
+use Date::Calc qw( Today Date_to_Days );
 use List::MoreUtils qw( any uniq );
 use JSON qw( to_json );
-use Unicode::Normalize;
+use Unicode::Normalize qw( NFKD );
+use Try::Tiny;
 
 use C4::Context;
-use C4::Log;
+use C4::Auth qw( checkpw_hash );
+use C4::Log qw( logaction );
 use Koha::Account;
 use Koha::ArticleRequests;
-use C4::Letters qw( GetPreparedLetter EnqueueLetter );
-use C4::Members;
+use C4::Letters qw( GetPreparedLetter EnqueueLetter SendQueuedMessages );
 use Koha::AuthUtils;
 use Koha::Checkouts;
+use Koha::CirculationRules;
 use Koha::Club::Enrollments;
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
+use Koha::Encryption;
 use Koha::Exceptions::Password;
 use Koha::Holds;
+use Koha::CurbsidePickups;
 use Koha::Old::Checkouts;
 use Koha::Patron::Attributes;
 use Koha::Patron::Categories;
@@ -46,10 +49,14 @@ use Koha::Patron::Debarments;
 use Koha::Patron::HouseboundProfile;
 use Koha::Patron::HouseboundRole;
 use Koha::Patron::Images;
+use Koha::Patron::Messages;
 use Koha::Patron::Modifications;
 use Koha::Patron::Relationships;
+use Koha::Patron::Restrictions;
 use Koha::Patrons;
 use Koha::Plugins;
+use Koha::Recalls;
+use Koha::Result::Boolean;
 use Koha::Subscription::Routinglists;
 use Koha::Token;
 use Koha::Virtualshelves;
@@ -113,7 +120,11 @@ Autogenerate next cardnumber from highest value found in database
 
 sub fixup_cardnumber {
     my ( $self ) = @_;
-    my $max = Koha::Patrons->search({
+
+    my $max = $self->cardnumber;
+    Koha::Plugins->call( 'patron_barcode_transform', \$max );
+
+    $max ||= Koha::Patrons->search({
         cardnumber => {-regexp => '^-?[0-9]+$'}
     }, {
         select => \'CAST(cardnumber AS SIGNED)',
@@ -200,6 +211,10 @@ sub store {
 
             $self->trim_whitespaces;
 
+            my $new_cardnumber = $self->cardnumber;
+            Koha::Plugins->call( 'patron_barcode_transform', \$new_cardnumber );
+            $self->cardnumber( $new_cardnumber );
+
             # Set surname to uppercase if uppercasesurname is true
             $self->surname( uc($self->surname) )
                 if C4::Context->preference("uppercasesurnames");
@@ -257,6 +272,9 @@ sub store {
                 # Make a copy of the plain text password for later use
                 $self->plain_text_password( $self->password );
 
+                $self->password_expiration_date( $self->password
+                    ? $self->category->get_password_expiry_date || undef
+                    : undef );
                 # Create a disabled account if no password provided
                 $self->password( $self->password
                     ? Koha::AuthUtils::hash_password( $self->password )
@@ -281,6 +299,19 @@ sub store {
                     $self->userid($stored_userid);
                 }
 
+                # If a borrower has set their privacy to never we should immediately anonymize
+                # their checkouts
+                if( $self->privacy() == 2 && $self_from_storage->privacy() != 2 ){
+                    try{
+                        $self->old_checkouts->anonymize;
+                    }
+                    catch {
+                        Koha::Exceptions::Patron::FailedAnonymizing->throw(
+                            error => @_
+                        );
+                    };
+                }
+
                 # Password must be updated using $self->set_password
                 $self->password($self_from_storage->password);
 
@@ -293,8 +324,8 @@ sub store {
 
                     # Clean up guarantors on category change if required
                     $self->guarantor_relationships->delete
-                      if ( $self->category->category_type ne 'C'
-                        && $self->category->category_type ne 'P'
+                      if ( !$self->category->can_be_guarantee
+                        && $self->category->category_type ne 'C' && $self->category->category_type ne 'P'
                         && !($self->category->category_type eq 'A' && $self->guarantor_relationships->hasFamilyCardRelationship) );
 
                 }
@@ -356,8 +387,8 @@ $patron->delete
 
 Delete patron's holds, lists and finally the patron.
 
-Lists owned by the borrower are deleted, but entries from the borrower to
-other lists are kept.
+Lists owned by the borrower are deleted or ownership is transferred depending on the
+ListOwnershipUponPatronDeletion pref, but entries from the borrower to other lists are kept.
 
 =cut
 
@@ -375,25 +406,12 @@ sub delete {
                 $hold->cancel;
             }
 
-            # Delete all lists and all shares of this borrower
-            # Consistent with the approach Koha uses on deleting individual lists
-            # Note that entries in virtualshelfcontents added by this borrower to
-            # lists of others will be handled by a table constraint: the borrower
-            # is set to NULL in those entries.
-            # NOTE:
-            # We could handle the above deletes via a constraint too.
-            # But a new BZ report 11889 has been opened to discuss another approach.
-            # Instead of deleting we could also disown lists (based on a pref).
-            # In that way we could save shared and public lists.
-            # The current table constraints support that idea now.
-            # This pref should then govern the results of other routines/methods such as
-            # Koha::Virtualshelf->new->delete too.
-            # FIXME Could be $patron->get_lists
-            $_->delete for Koha::Virtualshelves->search( { owner => $self->borrowernumber } );
+            # Handle lists (virtualshelves)
+            $self->virtualshelves->disown_or_delete;
 
             # We cannot have a FK on borrower_modifications.borrowernumber, the table is also used
             # for patron selfreg
-            $_->delete for Koha::Patron::Modifications->search( { borrowernumber => $self->borrowernumber } );
+            $_->delete for Koha::Patron::Modifications->search( { borrowernumber => $self->borrowernumber } )->as_list;
 
             $self->SUPER::delete;
 
@@ -402,7 +420,6 @@ sub delete {
     );
     return $self;
 }
-
 
 =head3 category
 
@@ -456,11 +473,14 @@ Looks for the guarantors Koha::Patron::Category whether it is a family card or n
 sub get_family_card_id {
     my ( $self ) = @_;
     
-    my @guarantors = $self->guarantors;
+    my $guarantors = $self->guarantors;
     
-    foreach my $guarantor(@guarantors) {
-        if ( $guarantor->is_family_card ) {
-            return ( $guarantor->borrowernumber );
+    if ( $guarantors ) {
+        my @guarantors = $guarantors->as_list;
+        foreach my $guarantor(@guarantors) {
+            if ( $guarantor->is_family_card ) {
+                return ( $guarantor->borrowernumber );
+            }
         }
     }
     return undef;
@@ -502,9 +522,9 @@ Returns Koha::Patron::Relationships object for this patron's guarantors
 
 Returns the set of relationships for the patrons that are guarantors for this patron.
 
-This is returned instead of a Koha::Patron object because the guarantor
-may not exist as a patron in Koha. If this is true, the guarantors name
-exists in the Koha::Patron::Relationship object and will have no guarantor_id.
+Note that a guarantor should exist as a patron in Koha; it was not possible
+to add them without a guarantor_id in the interface for some time. Bug 30472
+restricts it on db level.
 
 =cut
 
@@ -557,10 +577,10 @@ sub relationships_debt {
         Koha::Exceptions::BadParameter->throw( { parameter => 'only_this_guarantor' } ) unless @guarantors;
     } elsif ( $self->guarantor_relationships->count ) {
         # I am a guarantee, just get all my guarantors
-        @guarantors = $self->guarantor_relationships->guarantors;
+        @guarantors = $self->guarantor_relationships->guarantors->as_list;
     } else {
         # I am a guarantor, I need to get all the guarantors of all my guarantees
-        @guarantors = map { $_->guarantor_relationships->guarantors } $self->guarantee_relationships->guarantees;
+        @guarantors = map { $_->guarantor_relationships->guarantors->as_list } $self->guarantee_relationships->guarantees->as_list;
     }
 
     my $non_issues_charges = 0;
@@ -569,7 +589,7 @@ sub relationships_debt {
         $non_issues_charges += $guarantor->account->non_issues_charges if $include_guarantors && !$seen->{ $guarantor->id };
 
         # We've added what the guarantor owes, not added in that guarantor's guarantees as well
-        my @guarantees = map { $_->guarantee } $guarantor->guarantee_relationships();
+        my @guarantees = map { $_->guarantee } $guarantor->guarantee_relationships->as_list;
         my $guarantees_non_issues_charges = 0;
         foreach my $guarantee (@guarantees) {
             next if $seen->{ $guarantee->id };
@@ -622,12 +642,12 @@ Returns the siblings of this patron.
 sub siblings {
     my ($self) = @_;
 
-    my @guarantors = $self->guarantor_relationships()->guarantors();
+    my @guarantors = $self->guarantor_relationships()->guarantors()->as_list;
 
     return unless @guarantors;
 
     my @siblings =
-      map { $_->guarantee_relationships()->guarantees() } @guarantors;
+      map { $_->guarantee_relationships()->guarantees()->as_list } @guarantors;
 
     return unless @siblings;
 
@@ -635,7 +655,7 @@ sub siblings {
     @siblings =
       grep { !$seen{ $_->id }++ && ( $_->id != $self->id ) } @siblings;
 
-    return wantarray ? @siblings : Koha::Patrons->search( { borrowernumber => { -in => [ map { $_->id } @siblings ] } } );
+    return Koha::Patrons->search( { borrowernumber => { -in => [ map { $_->id } @siblings ] } } );
 }
 
 =head3 merge_with
@@ -683,7 +703,14 @@ sub merge_with {
             ];
             $attributes->delete; # We need to delete before trying to merge them to prevent exception on unique and repeatable
             for my $attribute ( @$new_attributes ) {
-                $self->add_extended_attribute($attribute);
+                try {
+                    $self->add_extended_attribute($attribute);
+                } catch {
+                    # Don't block the merge if there is a non-repeatable attribute that cannot be added to the current patron.
+                    unless ( $_->isa('Koha::Exceptions::Patron::Attribute::NonRepeatable') ) {
+                        $_->rethrow;
+                    }
+                };
             }
 
             while (my ($r, $field) = each(%$RESULTSET_PATRON_ID_MAPPING)) {
@@ -816,6 +843,21 @@ sub is_expired {
     return 0;
 }
 
+=head3 password_expired
+
+my $password_expired = $patron->password_expired;
+
+Returns 1 if the patron's password is expired or 0;
+
+=cut
+
+sub password_expired {
+    my ($self) = @_;
+    return 0 unless $self->password_expiration_date;
+    return 1 if dt_from_string( $self->password_expiration_date ) <= dt_from_string->truncate( to => 'day' );
+    return 0;
+}
+
 =head3 is_going_to_expire
 
 my $is_going_to_expire = $patron->is_going_to_expire;
@@ -913,7 +955,43 @@ sub set_password {
         }
     }
 
+    if ( C4::Context->preference('NotifyPasswordChange') ) {
+        my $self_from_storage = $self->get_from_storage;
+        if ( !C4::Auth::checkpw_hash( $password, $self_from_storage->password ) ) {
+            my $emailaddr = $self_from_storage->notice_email_address;
+
+            # if we manage to find a valid email address, send notice
+            if ($emailaddr) {
+                my $letter = C4::Letters::GetPreparedLetter(
+                    module      => 'members',
+                    letter_code => 'PASSWORD_CHANGE',
+                    branchcode  => $self_from_storage->branchcode,
+                    ,
+                    lang   => $self_from_storage->lang || 'default',
+                    tables => {
+                        'branches'  => $self_from_storage->branchcode,
+                        'borrowers' => $self_from_storage->borrowernumber,
+                    },
+                    want_librarian => 1,
+                ) or return;
+
+                my $message_id = C4::Letters::EnqueueLetter(
+                    {
+                        letter                 => $letter,
+                        borrowernumber         => $self_from_storage->id,
+                        to_address             => $emailaddr,
+                        message_transport_type => 'email',
+                        branchcode             => $self_from_storage->branchcode
+                    }
+                );
+                C4::Letters::SendQueuedMessages( { message_id => $message_id } );
+            }
+        }
+    }
+
     my $digest = Koha::AuthUtils::hash_password($password);
+
+    $self->password_expiration_date( $self->category->get_password_expiry_date || undef );
 
     # We do not want to call $self->store and retrieve password from DB
     $self->password($digest);
@@ -1094,71 +1172,138 @@ sub move_to_deleted {
     return Koha::Database->new->schema->resultset('Deletedborrower')->create($patron_infos);
 }
 
+=head3 can_request_article
+
+    if ( $patron->can_request_article( $library->id ) ) { ... }
+
+Returns true if the patron can request articles. As limits apply for the patron
+on the same day, those completed the same day are considered as current.
+
+A I<library_id> can be passed as parameter, falling back to userenv if absent.
+
+=cut
+
+sub can_request_article {
+    my ($self, $library_id) = @_;
+
+    $library_id //= C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
+
+    my $rule = Koha::CirculationRules->get_effective_rule(
+        {
+            branchcode   => $library_id,
+            categorycode => $self->categorycode,
+            rule_name    => 'open_article_requests_limit'
+        }
+    );
+
+    my $limit = ($rule) ? $rule->rule_value : undef;
+
+    return 1 unless defined $limit;
+
+    my $count = Koha::ArticleRequests->search(
+        [   { borrowernumber => $self->borrowernumber, status => [ 'REQUESTED', 'PENDING', 'PROCESSING' ] },
+            { borrowernumber => $self->borrowernumber, status => 'COMPLETED', updated_on => { '>=' => \'CAST(NOW() AS DATE)' } },
+        ]
+    )->count;
+    return $count < $limit ? 1 : 0;
+}
+
+=head3 article_request_fee
+
+    my $fee = $patron->article_request_fee(
+        {
+          [ library_id => $library->id, ]
+        }
+    );
+
+Returns the fee to be charged to the patron when it places an article request.
+
+A I<library_id> can be passed as parameter, falling back to userenv if absent.
+
+=cut
+
+sub article_request_fee {
+    my ($self, $params) = @_;
+
+    my $library_id = $params->{library_id};
+
+    $library_id //= C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
+
+    my $rule = Koha::CirculationRules->get_effective_rule(
+        {
+            branchcode   => $library_id,
+            categorycode => $self->categorycode,
+            rule_name    => 'article_request_fee'
+        }
+    );
+
+    my $fee = ($rule) ? $rule->rule_value + 0 : 0;
+
+    return $fee;
+}
+
+=head3 add_article_request_fee_if_needed
+
+    my $fee = $patron->add_article_request_fee_if_needed(
+        {
+          [ item_id    => $item->id,
+            library_id => $library->id, ]
+        }
+    );
+
+If an article request fee needs to be charged, it adds a debit to the patron's
+account.
+
+Returns the fee line.
+
+A I<library_id> can be passed as parameter, falling back to userenv if absent.
+
+=cut
+
+sub add_article_request_fee_if_needed {
+    my ($self, $params) = @_;
+
+    my $library_id = $params->{library_id};
+    my $item_id    = $params->{item_id};
+
+    $library_id //= C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
+
+    my $amount = $self->article_request_fee(
+        {
+            library_id => $library_id,
+        }
+    );
+
+    my $debit_line;
+
+    if ( $amount > 0 ) {
+        $debit_line = $self->account->add_debit(
+            {
+                amount     => $amount,
+                user_id    => C4::Context->userenv ? C4::Context->userenv->{'number'} : undef,
+                interface  => C4::Context->interface,
+                library_id => $library_id,
+                type       => 'ARTICLE_REQUEST',
+                item_id    => $item_id,
+            }
+        );
+    }
+
+    return $debit_line;
+}
+
 =head3 article_requests
 
-my @requests = $borrower->article_requests();
-my $requests = $borrower->article_requests();
+    my $article_requests = $patron->article_requests;
 
-Returns either a list of ArticleRequests objects,
-or an ArtitleRequests object, depending on the
-calling context.
+Returns the patron article requests.
 
 =cut
 
 sub article_requests {
-    my ( $self ) = @_;
+    my ($self) = @_;
 
-    $self->{_article_requests} ||= Koha::ArticleRequests->search({ borrowernumber => $self->borrowernumber() });
-
-    return $self->{_article_requests};
-}
-
-=head3 article_requests_current
-
-my @requests = $patron->article_requests_current
-
-Returns the article requests associated with this patron that are incomplete
-
-=cut
-
-sub article_requests_current {
-    my ( $self ) = @_;
-
-    $self->{_article_requests_current} ||= Koha::ArticleRequests->search(
-        {
-            borrowernumber => $self->id(),
-            -or          => [
-                { status => Koha::ArticleRequest::Status::Pending },
-                { status => Koha::ArticleRequest::Status::Processing }
-            ]
-        }
-    );
-
-    return $self->{_article_requests_current};
-}
-
-=head3 article_requests_finished
-
-my @requests = $biblio->article_requests_finished
-
-Returns the article requests associated with this patron that are completed
-
-=cut
-
-sub article_requests_finished {
-    my ( $self, $borrower ) = @_;
-
-    $self->{_article_requests_finished} ||= Koha::ArticleRequests->search(
-        {
-            borrowernumber => $self->id(),
-            -or          => [
-                { status => Koha::ArticleRequest::Status::Completed },
-                { status => Koha::ArticleRequest::Status::Canceled }
-            ]
-        }
-    );
-
-    return $self->{_article_requests_finished};
+    return Koha::ArticleRequests->_new_from_dbic( scalar $self->_result->article_requests );
 }
 
 =head3 add_enrolment_fee_if_needed
@@ -1292,15 +1437,15 @@ sub old_checkouts {
     return Koha::Old::Checkouts->_new_from_dbic( $old_checkouts );
 }
 
-=head3 get_overdues
+=head3 overdues
 
-my $overdue_items = $patron->get_overdues
+my $overdue_items = $patron->overdues
 
 Return the overdue items
 
 =cut
 
-sub get_overdues {
+sub overdues {
     my ($self) = @_;
     my $dtf = Koha::Database->new->schema->storage->datetime_parser;
     return $self->checkouts->search(
@@ -1313,9 +1458,24 @@ sub get_overdues {
     );
 }
 
+
+=head3 restrictions
+
+  my $restrictions = $patron->restrictions;
+
+Returns the patron restrictions.
+
+=cut
+
+sub restrictions {
+    my ($self) = @_;
+    my $restrictions_rs = $self->_result->restrictions;
+    return Koha::Patron::Restrictions->_new_from_dbic($restrictions_rs);
+}
+
 =head3 get_routing_lists
 
-my @routinglists = $patron->get_routing_lists
+my $routinglists = $patron->get_routing_lists
 
 Returns the routing lists a patron is subscribed to.
 
@@ -1329,7 +1489,7 @@ sub get_routing_lists {
 
 =head3 get_age
 
-my $age = $patron->get_age
+    my $age = $patron->get_age
 
 Return the age of the patron
 
@@ -1337,19 +1497,14 @@ Return the age of the patron
 
 sub get_age {
     my ($self)    = @_;
-    my $today_str = dt_from_string->strftime("%Y-%m-%d");
+
     return unless $self->dateofbirth;
-    my $dob_str   = dt_from_string( $self->dateofbirth )->strftime("%Y-%m-%d");
 
-    my ( $dob_y,   $dob_m,   $dob_d )   = split /-/, $dob_str;
-    my ( $today_y, $today_m, $today_d ) = split /-/, $today_str;
+    #Set timezone to floating to avoid any datetime math issues caused by DST
+    my $date_of_birth = dt_from_string( $self->dateofbirth, undef, 'floating' );
+    my $today         = dt_from_string(undef, undef, 'floating')->truncate( to => 'day' );
 
-    my $age = $today_y - $dob_y;
-    if ( $dob_m . $dob_d > $today_m . $today_d ) {
-        $age--;
-    }
-
-    return $age;
+    return $today->subtract_datetime( $date_of_birth )->years;
 }
 
 =head3 is_valid_age
@@ -1455,6 +1610,20 @@ sub old_holds {
     return Koha::Old::Holds->_new_from_dbic($old_holds_rs);
 }
 
+=head3 curbside_pickups
+
+my $curbside_pickups = $patron->curbside_pickups;
+
+Return all the curbside pickups for this patron
+
+=cut
+
+sub curbside_pickups {
+    my ($self) = @_;
+    my $curbside_pickups_rs = $self->_result->curbside_pickups_borrowernumbers->search;
+    return Koha::CurbsidePickups->_new_from_dbic($curbside_pickups_rs);
+}
+
 =head3 return_claims
 
 my $return_claims = $patron->return_claims
@@ -1509,13 +1678,9 @@ sub first_valid_email_address {
 =cut
 
 sub get_club_enrollments {
-    my ( $self, $return_scalar ) = @_;
+    my ( $self ) = @_;
 
-    my $e = Koha::Club::Enrollments->search( { borrowernumber => $self->borrowernumber(), date_canceled => undef } );
-
-    return $e if $return_scalar;
-
-    return wantarray ? $e->as_list : $e;
+    return Koha::Club::Enrollments->search( { borrowernumber => $self->borrowernumber(), date_canceled => undef } );
 }
 
 =head3 get_enrollable_clubs
@@ -1523,7 +1688,7 @@ sub get_club_enrollments {
 =cut
 
 sub get_enrollable_clubs {
-    my ( $self, $is_enrollable_from_opac, $return_scalar ) = @_;
+    my ( $self, $is_enrollable_from_opac ) = @_;
 
     my $params;
     $params->{is_enrollable_from_opac} = $is_enrollable_from_opac
@@ -1532,11 +1697,7 @@ sub get_enrollable_clubs {
 
     $params->{borrower} = $self;
 
-    my $e = Koha::Clubs->get_enrollable($params);
-
-    return $e if $return_scalar;
-
-    return wantarray ? $e->as_list : $e;
+    return Koha::Clubs->get_enrollable($params);
 }
 
 =head3 account_locked
@@ -1845,8 +2006,9 @@ sub extended_attributes {
                     Koha::Patron::Attribute::Types->search(
                         {
                             mandatory => 1,
+                            category_code => [ undef, $self->categorycode ],
                             'borrower_attribute_types_branches.b_branchcode' =>
-                              undef
+                              undef,
                         },
                         { join => 'borrower_attribute_types_branches' }
                     )->get_column('code');
@@ -1862,6 +2024,20 @@ sub extended_attributes {
     my $rs = $self->_result->borrower_attributes;
     # We call search to use the filters in Koha::Patron::Attributes->search
     return Koha::Patron::Attributes->_new_from_dbic($rs)->search;
+}
+
+=head3 messages
+
+    my $messages = $patron->messages;
+
+Return the message attached to the patron.
+
+=cut
+
+sub messages {
+    my ( $self ) = @_;
+    my $messages_rs = $self->_result->messages_borrowernumbers->search;
+    return Koha::Patron::Messages->_new_from_dbic($messages_rs);
 }
 
 =head3 lock
@@ -1911,7 +2087,7 @@ sub anonymize {
         split /\s*\|\s*/, C4::Context->preference('BorrowerMandatoryField') };
     $mandatory->{userid} = 1; # needed since sub store does not clear field
     my @columns = $self->_result->result_source->columns;
-    @columns = grep { !/borrowernumber|branchcode|categorycode|^date|password|flags|updated_on|lastseen|lang|login_attempts|anonymized/ } @columns;
+    @columns = grep { !/borrowernumber|branchcode|categorycode|^date|password|flags|updated_on|lastseen|lang|login_attempts|anonymized|auth_method/ } @columns;
     push @columns, 'dateofbirth'; # add this date back in
     foreach my $col (@columns) {
         $self->_anonymize_column($col, $mandatory->{lc $col} );
@@ -1941,7 +2117,7 @@ sub _anonymize_column {
 
 =head3 add_guarantor
 
-    my @relationships = $patron->add_guarantor(
+    my $relationship = $patron->add_guarantor(
         {
             borrowernumber => $borrowernumber,
             relationships  => $relationship,
@@ -2009,6 +2185,8 @@ sub to_api {
                                     ? Mojo::JSON->true
                                     : Mojo::JSON->false;
 
+    $json_patron->{restriction_comment} = $self->debarredcomment;
+
     return $json_patron;
 }
 
@@ -2072,7 +2250,11 @@ sub to_api_mapping {
         altcontactphone     => 'altcontact_phone',
         altcontactsurname   => 'altcontact_surname',
         altcontactstate     => 'altcontact_state',
-        altcontactzipcode   => 'altcontact_postal_code'
+        altcontactzipcode   => 'altcontact_postal_code',
+        password_expiration_date => undef,
+        primary_contact_method => undef,
+        secret              => undef,
+        auth_method         => undef,
     };
 }
 
@@ -2147,6 +2329,225 @@ sub queue_notice {
         $print_sent = 1 if $mtt eq 'print';
     }
     return \%return;
+}
+
+=head3 safe_to_delete
+
+    my $result = $patron->safe_to_delete;
+    if ( $result eq 'has_guarantees' ) { ... }
+    elsif ( $result ) { ... }
+    else { # cannot delete }
+
+This method tells if the Koha:Patron object can be deleted. Possible return values
+
+=over 4
+
+=item 'ok'
+
+=item 'has_checkouts'
+
+=item 'has_debt'
+
+=item 'has_guarantees'
+
+=item 'is_anonymous_patron'
+
+=back
+
+=cut
+
+sub safe_to_delete {
+    my ($self) = @_;
+
+    my $anonymous_patron = C4::Context->preference('AnonymousPatron');
+
+    my $error;
+
+    if ( $anonymous_patron && $self->id eq $anonymous_patron ) {
+        $error = 'is_anonymous_patron';
+    }
+    elsif ( $self->checkouts->count ) {
+        $error = 'has_checkouts';
+    }
+    elsif ( $self->account->outstanding_debits->total_outstanding > 0 ) {
+        $error = 'has_debt';
+    }
+    elsif ( $self->guarantee_relationships->count ) {
+        $error = 'has_guarantees';
+    }
+
+    if ( $error ) {
+        return Koha::Result::Boolean->new(0)->add_message({ message => $error });
+    }
+
+    return Koha::Result::Boolean->new(1);
+}
+
+=head3 recalls
+
+    my $recalls = $patron->recalls;
+
+Return the patron's recalls.
+
+=cut
+
+sub recalls {
+    my ( $self ) = @_;
+
+    return Koha::Recalls->search({ patron_id => $self->borrowernumber });
+}
+
+=head3 account_balance
+
+    my $balance = $patron->account_balance
+
+Return the patron's account balance
+
+=cut
+
+sub account_balance {
+    my ($self) = @_;
+    return $self->account->balance;
+}
+
+=head3 notify_library_of_registration
+
+$patron->notify_library_of_registration( $email_patron_registrations );
+
+Send patron registration email to library if EmailPatronRegistrations system preference is enabled.
+
+=cut
+
+sub notify_library_of_registration {
+    my ( $self, $email_patron_registrations ) = @_;
+
+    if (
+        my $letter = C4::Letters::GetPreparedLetter(
+            module      => 'members',
+            letter_code => 'OPAC_REG',
+            branchcode  => $self->branchcode,
+            lang        => $self->lang || 'default',
+            tables      => {
+                'borrowers' => $self->borrowernumber
+            },
+        )
+    ) {
+        my $to_address;
+        if ( $email_patron_registrations eq "BranchEmailAddress" ) {
+            my $library = Koha::Libraries->find( $self->branchcode );
+            $to_address = $library->inbound_email_address;
+        }
+        elsif ( $email_patron_registrations eq "KohaAdminEmailAddress" ) {
+            $to_address = C4::Context->preference('ReplytoDefault')
+            || C4::Context->preference('KohaAdminEmailAddress');
+        }
+        else {
+            $to_address =
+                C4::Context->preference('EmailAddressForPatronRegistrations')
+                || C4::Context->preference('ReplytoDefault')
+                || C4::Context->preference('KohaAdminEmailAddress');
+        }
+
+        my $message_id = C4::Letters::EnqueueLetter(
+            {
+                letter                 => $letter,
+                borrowernumber         => $self->borrowernumber,
+                to_address             => $to_address,
+                message_transport_type => 'email',
+                branchcode             => $self->branchcode
+            }
+        ) or warn "can't enqueue letter $letter";
+        if ( $message_id ) {
+            return 1;
+        }
+    }
+}
+
+=head3 has_messaging_preference
+
+my $bool = $patron->has_messaging_preference({
+    message_name => $message_name, # A value from message_attributes.message_name
+    message_transport_type => $message_transport_type, # email, sms, phone, itiva, etc...
+    wants_digest => $wants_digest, # 1 if you are looking for the digest version, don't pass if you just want either
+});
+
+=cut
+
+sub has_messaging_preference {
+    my ( $self, $params ) = @_;
+
+    my $message_name           = $params->{message_name};
+    my $message_transport_type = $params->{message_transport_type};
+    my $wants_digest           = $params->{wants_digest};
+
+    return $self->_result->search_related_rs(
+        'borrower_message_preferences',
+        $params,
+        {
+            prefetch =>
+              [ 'borrower_message_transport_preferences', 'message_attribute' ]
+        }
+    )->count;
+}
+
+=head3 can_patron_change_staff_only_lists
+
+$patron->can_patron_change_staff_only_lists;
+
+Return 1 if a patron has 'Superlibrarian' or 'Catalogue' permission.
+Otherwise, return 0.
+
+=cut
+
+sub can_patron_change_staff_only_lists {
+    my ( $self, $params ) = @_;
+    return 1 if C4::Auth::haspermission( $self->userid, { 'catalogue' => 1 });
+    return 0;
+}
+
+=head3 encode_secret
+
+  $patron->encode_secret($secret32);
+
+Secret (TwoFactorAuth expects it in base32 format) is encrypted.
+You still need to call ->store.
+
+=cut
+
+sub encode_secret {
+    my ( $self, $secret ) = @_;
+    if( $secret ) {
+        return $self->secret( Koha::Encryption->new->encrypt_hex($secret) );
+    }
+    return $self->secret($secret);
+}
+
+=head3 decoded_secret
+
+  my $secret32 = $patron->decoded_secret;
+
+Decode the patron secret. We expect to get back a base32 string, but this
+is not checked here. Caller of encode_secret is responsible for that.
+
+=cut
+
+sub decoded_secret {
+    my ( $self ) = @_;
+    if( $self->secret ) {
+        return Koha::Encryption->new->decrypt_hex( $self->secret );
+    }
+    return $self->secret;
+}
+
+=head3 virtualshelves
+
+    my $shelves = $patron->virtualshelves;
+
+=cut
+
+sub virtualshelves {
+    my $self = shift;
+    return Koha::Virtualshelves->_new_from_dbic( scalar $self->_result->virtualshelves );
 }
 
 =head2 Internal methods

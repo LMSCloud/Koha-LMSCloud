@@ -52,7 +52,6 @@ scalars and hashes, with arrays a potential future addition.
 
 use strict;
 use warnings;
-use Carp;
 
 use base qw(Class::Accessor);
 
@@ -80,10 +79,6 @@ sub TIESCALAR {
 
 sub FETCH {
     my ( $self, $index ) = @_;
-
-    $ENV{DEBUG}
-      && $index
-      && carp "Retrieving cached hash member $index of $self->{'key'}";
 
     my $now = time;
 

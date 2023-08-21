@@ -4,8 +4,10 @@
 [% USE Branches %]
 [% USE AuthorisedValues %]
 [% USE KohaDates %]
-[% USE KohaNews %]
-[% SET opacsuggestion = KohaNews.get( location => "OpacSuggestioninstructions", lang => lang, library => Branches.GetLoggedInBranchcode ) %]
+[% USE AdditionalContents %]
+[% SET opacsuggestion = AdditionalContents.get( location => "OpacSuggestioninstructions", lang => lang, library => logged_in_user.branchcode || default_branch ) %]
+[% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>[% IF ( op_add ) %]Enter a new purchase suggestion[% END %]
 [% IF ( op_else ) %]Purchase suggestions[% END %] &rsaquo;
@@ -17,19 +19,21 @@
 [% INCLUDE 'masthead.inc' %]
 
     <div class="main">
-        <nav aria-label="breadcrumb">
-            <ul class="breadcrumb">
+        <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
+            <ol class="breadcrumb">
                 <li class="breadcrumb-item">
                     <a href="/cgi-bin/koha/opac-main.pl">Home</a>
                 </li>
-                <li class="breadcrumb-item">
-                    <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
+                [% IF ( logged_in_user ) %]
+                    <li class="breadcrumb-item">
+                        <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
+                    </li>
+                [% END %]
+                <li class="breadcrumb-item active">
+                    <a href="#" aria-current="page">Purchase suggestions</a>
                 </li>
-                <li class="breadcrumb-item" aria-current="page">
-                    <a href="#">Your purchase suggestions</a>
-                </li>
-            </ul>
-        </nav>
+            </ol>
+        </nav> <!-- /#breadcrumbs -->
 
         <div class="container-fluid">
             <div class="row">
@@ -63,9 +67,9 @@
                                 <div class="alert alert-[% m.type | html %]">
                                     [% SWITCH m.code %]
                                     [% CASE 'biblio_exists' %]
-                                        A similar document already exists: <a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% m.id | uri %]">[% m.title | html %]</a>. Click on "Confirm your suggestion" to ignore this message.
+                                        <span>A similar document already exists: <a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% m.id | uri %]">[% m.title | html %]</a>. Click on "Confirm your suggestion" to ignore this message.</span>
                                     [% CASE %]
-                                        [% m.code | html %]
+                                        <span>[% m.code | html %]</span>
                                     [% END %]
                                 </div>
                             [% END %]
@@ -73,14 +77,20 @@
                             <form action="/cgi-bin/koha/opac-suggestions.pl" method="post" id="add_suggestion_form">
                                 <fieldset class="rows">
                                     <ol>
+                                        [% IF Koha.Preference( 'OPACSuggestionAutoFill' ) %]
+                                            <li>
+                                                <label for="isbn">Standard number (ISBN, ISSN or other):</label>
+                                                <input type="text" id="isbn" name="isbn" maxlength="80" style="margin-right:10px;margin-top:10px;" size="15"/>
+                                            </li>
+                                        [% END %]
                                         <li>
                                             [% IF biblionumber %]
                                                 <label>Title:</label>
-                                                <a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblionumber | html %]">[% title | html %]</a>
+                                                <a id="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblionumber | uri %]">[% title | html %]</a>
                                             [% ELSIF ( title_required ) %]
                                                 <label for="title" class="required">Title:</label>
                                                 <input type="text" id="title" name="title" class="span6" maxlength="255" value="[% title | html %]" required="required" />
-                                                <div class="required">Required</div>
+                                                <div class="required_label required">Required</div>
                                             [% ELSE %]
                                                 <label for="title">Title:</label>
                                                 <input type="text" id="title" name="title" class="span6" maxlength="255" value="[% title | html %]" />
@@ -90,11 +100,11 @@
                                             <li>
                                                     [% IF biblionumber %]
                                                         <label>Author:</label>
-                                                        <span>[% author | html %]</span>
+                                                        <span id="author">[% author | html %]</span>
                                                     [% ELSIF ( author_required ) %]
                                                         <label for="author" class="required">Author:</label>
                                                         <input type="text" id="author" name="author" class="span6" maxlength="80" value="[% author | html %]" required="required" />
-                                                        <div class="required">Required</div>
+                                                        <div class="required_label required">Required</div>
                                                     [% ELSE %]
                                                         <label for="author">Author:</label>
                                                         <input type="text" id="author" name="author" class="span6" maxlength="80" value="[% author | html %]" />
@@ -103,32 +113,32 @@
                                         [% END %]
                                         [% UNLESS ( copyrightdate_hidden )%]
                                             <li>
-                                                <div title="Copyright or publication year, for example: 2016">
+                                                <div title="Copyright or publication year, for example: 2022">
                                                     [% IF biblionumber %]
                                                         <label>Publication year:</label>
-                                                        <span>[% copyrightdate | html %]</span>
+                                                        <span id="copyrightdate">[% copyrightdate | html %]</span>
                                                     [% ELSIF ( copyrightdate_required ) %]
-                                                        <label for="copyrightdate" class="required">Copyright date:</label>
-                                                        <input type="text" id="copyrightdate" name="copyrightdate" pattern="[12]\d{3}" size="4" maxlength="4" value="[% copyrightdate | html %]" required="required" />
-                                                        <div class="required">Required</div>
+                                                        <label for="copyrightdate" class="required">Publication year:</label>
+                                                        <input type="text" id="copyrightdate" name="copyrightdate" pattern="[12]\d{3}" size="10" maxlength="4" value="[% copyrightdate | html %]" required="required" />
+                                                        <div class="required_label required">Required</div>
                                                         <span class="hint">Copyright or publication year, for example: 2022</span>
                                                     [% ELSE %]
-                                                        <label for="copyrightdate">Copyright date:</label>
-                                                        <input type="text" id="copyrightdate" name="copyrightdate" pattern="[12]\d{3}" size="4" maxlength="4" value="[% copyrightdate | html %]" />
+                                                        <label for="copyrightdate">Publication year:</label>
+                                                        <input type="text" id="copyrightdate" name="copyrightdate" pattern="[12]\d{3}" size="10" maxlength="4" value="[% copyrightdate | html %]" />
                                                         <span class="hint">Copyright or publication year, for example: 2022</span>
                                                     [% END %]
                                                 </div>
                                             </li>
                                         [% END %]
-                                        [% UNLESS ( isbn_hidden )%]
+                                        [% UNLESS ( isbn_hidden or Koha.Preference('OPACSuggestionAutoFill') ) %]
                                             <li>
                                                 [% IF biblionumber %]
                                                     <label>Standard number (ISBN, ISSN or other):</label>
-                                                    <span>[% isbn | html %]</span>
+                                                    <span id="isbn">[% isbn | html %]</span>
                                                 [% ELSIF ( isbn_required ) %]
                                                     <label for="isbn" class="required">Standard number (ISBN, ISSN or other):</label>
                                                     <input type="text" id="isbn" name="isbn"  maxlength="80" value="[% isbn | html %]" required="required" />
-                                                    <div class="required">Required</div>
+                                                    <div class="required_label required">Required</div>
                                                 [% ELSE %]
                                                     <label for="isbn">Standard number (ISBN, ISSN or other):</label>
                                                     <input type="text" id="isbn" name="isbn"  maxlength="80" value="[% isbn | html %]" />
@@ -139,11 +149,11 @@
                                             <li>
                                                 [% IF biblionumber %]
                                                     <label>Publisher:</label>
-                                                    <span>[% publishercode | html %]</span>
+                                                    <span id="publishercode">[% publishercode | html %]</span>
                                                 [% ELSIF ( publishercode_required ) %]
                                                     <label for="publishercode" class="required">Publisher:</label>
                                                     <input type="text" id="publishercode" name="publishercode" class="span6" maxlength="80" value="[% publishercode | html %]" required="required" />
-                                                    <div class="required">Required</div>
+                                                    <div class="required_label required">Required</div>
                                                 [% ELSE %]
                                                     <label for="publishercode">Publisher:</label>
                                                     <input type="text" id="publishercode" name="publishercode" class="span6" maxlength="80" value="[% publishercode | html %]" />
@@ -154,11 +164,11 @@
                                             <li>
                                                 [% IF biblionumber %]
                                                     <label for="collectiontitle" class="required">Collection title:</label>
-                                                    <span>[% collectiontitle | html %]</span>
+                                                    <span id="collectiontitle">[% collectiontitle | html %]</span>
                                                 [% ELSIF ( collectiontitle_required ) %]
                                                     <label for="collectiontitle" class="required">Collection title:</label>
                                                     <input type="text" id="collectiontitle" name="collectiontitle" class="span6" maxlength="80" value="[% collectiontitle | html %]" required="required" />
-                                                    <div class="required">Required</div>
+                                                    <div class="required_label required">Required</div>
                                                 [% ELSE %]
                                                     <label for="collectiontitle">Collection title:</label>
                                                     <input type="text" id="collectiontitle" name="collectiontitle" class="span6" maxlength="80" value="[% collectiontitle | html %]" />
@@ -169,11 +179,11 @@
                                             <li>
                                                 [% IF biblionumber %]
                                                     <label for="place" class="required">Publication place:</label>
-                                                    <span>[% place | html %]</span>
+                                                    <span id="place">[% place | html %]</span>
                                                 [% ELSIF ( place_required ) %]
                                                     <label for="place" class="required">Publication place:</label>
                                                     <input type="text" id="place" name="place" required="required" maxlength="80" value="[% place | html %]" />
-                                                    <div class="required">Required</div>
+                                                    <div class="required_label required">Required</div>
                                                 [% ELSE %]
                                                     <label for="place">Publication place:</label>
                                                     <input type="text" id="place" name="place"  maxlength="80" value="[% place | html %]" />
@@ -185,7 +195,7 @@
                                                 [% IF ( quantity_required ) %]
                                                     <label for="quantity" class="required">Quantity:</label>
                                                     <input type="text" id="quantity" name="quantity" required="required" maxlength="4" size="4" value="[% quantity | html %]" />
-                                                    <div class="required">Required</div>
+                                                    <div class="required_label required">Required</div>
                                                 [% ELSE %]
                                                     <label for="quantity">Quantity:</label>
                                                     <input type="text" id="quantity" name="quantity"  maxlength="4" size="4" value="[% quantity | html %]" />
@@ -197,25 +207,26 @@
                                             [% IF ( itemtype_required ) %]
                                                 <label for="itemtype" class="required">Item type:</label>
                                                 [% PROCESS 'av-build-dropbox.inc' name="itemtype", category="SUGGEST_FORMAT", size = 20, required = 1, blank = 1, default=itemtype %]
-                                                <div class="required">Required</div>
+                                                <div class="required_label required">Required</div>
                                             [% ELSE %]
                                                 <label for="itemtype">Item type:</label>
                                                 [% PROCESS 'av-build-dropbox.inc' name="itemtype", category="SUGGEST_FORMAT", size = 20, blank = 1, default=itemtype %]
                                             [% END %]
                                             </li>
                                         [% END %]
-                                        [% UNLESS ( branch_hidden )%]
+                                        [% UNLESS ( branchcode_hidden )%]
                                             <li>
                                                 [% IF ( branchcode_required ) %]
                                                     <label for="branch" class="required">Library:</label>
                                                     <select name="branchcode" id="branch" required="required">
-                                                        [% PROCESS options_for_libraries libraries => Branches.all( selected => logged_in_user.branchcode, restrict => 'NoMobileStations' ) %]
+                                                        <option value=""></option>
+                                                        [% PROCESS options_for_libraries libraries => Branches.all( selected => logged_in_user.branchcode, restrict => 'NoMobileStations'  ) %]
                                                     </select>
-                                                    <div class="required">Required</div>
+                                                    <div class="required_label required">Required</div>
                                                 [% ELSE %]
                                                     <label for="branch">Library:</label>
                                                     <select name="branchcode" id="branch">
-                                                        [% PROCESS options_for_libraries libraries => Branches.all( selected => logged_in_user.branchcode, restrict => 'NoMobileStations' ) %]
+                                                        [% PROCESS options_for_libraries libraries => Branches.all( selected => logged_in_user.branchcode, restrict => 'NoMobileStations'  ) %]
                                                     </select>
                                                 [% END %]
                                             </li>
@@ -235,7 +246,7 @@
                                                             [% END %]
                                                         [% END %]
                                                     </select>
-                                                    <div class="required">Required</div>
+                                                    <div class="required_label required">Required</div>
                                                 [% ELSE %]
                                                     <label for="patronreason">Reason for suggestion: </label>
                                                     <select name="patronreason" id="patronreason">
@@ -257,7 +268,7 @@
                                                 [% IF ( note_required ) %]
                                                     <label for="note" class="required">Notes:</label>
                                                     <textarea name="note" id="note" rows="5" cols="40" required="required">[% note | html %]</textarea>
-                                                    <div class="required">Required</div>
+                                                    <div class="required_label required">Required</div>
                                                 [% ELSE %]
                                                     <label for="note">Notes:</label>
                                                     <textarea name="note" id="note" rows="5" cols="40">[% note | html %]</textarea>
@@ -294,12 +305,12 @@
                         [% IF ( op_else ) %]
                             <h1>
                                 [% IF Koha.Preference( 'OPACViewOthersSuggestions' ) == 1 %]
-                                    Purchase suggestions
+                                    <span>Purchase suggestions</span>
                                 [% ELSE %]
                                     [% IF ( loggedinusername ) %]
-                                        Your purchase suggestions
+                                        <span>Your purchase suggestions</span>
                                     [% ELSE %]
-                                        Purchase suggestions
+                                        <span>Purchase suggestions</span>
                                     [% END %]
                                 [% END %]
                             </h1>
@@ -307,27 +318,32 @@
                                 <div class="alert alert-[% m.type | html %]">
                                     [% SWITCH m.code %]
                                     [% CASE 'total_suggestions' %]
-                                        The suggestion has not been added. You have reached your limit for suggestions you can place at this time ([% Koha.Preference('MaxTotalSuggestions') | html %] in [% Koha.Preference('NumberOfSuggestionDays') | html %] days).
+                                        <span>The suggestion has not been added. You have reached your limit for suggestions you can place at this time ([% Koha.Preference('MaxTotalSuggestions') | html %] in [% Koha.Preference('NumberOfSuggestionDays') | html %] days).</span>
                                     [% CASE 'too_many' %]
-                                        The suggestion has not been added. You have reached your limit for suggestions you can place at this time ([% Koha.Preference('MaxOpenSuggestions') | html %]). Once the library has processed those suggestions you will be able to place more.
+                                        <span>The suggestion has not been added. You have reached your limit for suggestions you can place at this time ([% Koha.Preference('MaxOpenSuggestions') | html %]). Once the library has processed those suggestions you will be able to place more.</span>
                                     [% CASE 'already_exists' %]
-                                        The suggestion has not been added. A suggestion with this title already exists.
+                                        <span>The suggestion has not been added. A suggestion with this title already exists.</span>
                                     [% CASE 'success_on_inserted' %]
-                                        Your suggestion has been submitted.
+                                        <span>Your suggestion has been submitted.</span>
                                     [% CASE %]
-                                        [% m.code | html %]
+                                        <span>[% m.code | html %]</span>
                                     [% END %]
                                 </div>
                             [% END %]
 
                             [% IF ( deleted ) %]<div class="alert alert-info">The selected suggestions have been deleted.</div>[% END %]
 
-                            [% IF suggestions_loop OR title_filter %]
+                            [% IF (Koha.Preference( 'OPACViewOthersSuggestions' ) || loggedinusername) && (suggestions.size > 0 OR title_filter) %]
+                                [% SET can_delete_suggestion = 0 %]
                                 <form action="/cgi-bin/koha/opac-suggestions.pl" class="form-inline" id="search_suggestions_form" method="get">
                                     <div class="form-row">
-                                        <label for="title_filter">Search for:</label>
-                                        <input type="text" name="title_filter" id="title_filter" value="[% title_filter | html %]" />
-                                        [% IF Koha.Preference( 'OPACViewOthersSuggestions' ) == 1 %]
+                                        <div class="col-auto my-1">
+                                            <label for="title_filter">Search for:</label>
+                                        </div>
+                                        <div class="col-auto my-1">
+                                            <input type="text" name="title_filter" id="title_filter" value="[% title_filter | html %]" size="30" class="form-control form-control-sm" />
+                                        </div>
+                                        [% IF Koha.Preference( 'OPACViewOthersSuggestions' ) %]
                                             [% IF loggedinusername %]
                                                 <div class="col-auto my-1">
                                                     <label class="sr-only" for="suggested_by_anyone">Suggested by:</label>
@@ -349,7 +365,7 @@
                                     </div>
                                 </form>
                             [% END %]
-                            [% IF suggestions_loop %]
+                            [% IF suggestions.size > 0 %]
                                 [% SET can_delete_suggestion = 0 %]
                                 <form action="/cgi-bin/koha/opac-suggestions.pl" method="post" id="delete_suggestions">
                                     <input type="hidden" name="op" value="delete_confirm" />
@@ -379,7 +395,8 @@
                                         </div>
                                     [% END %]
 
-                                    <table id="suggestt" class="table table-bordered table-striped">
+                                    [% IF Koha.Preference( 'OPACViewOthersSuggestions' ) == 1 || loggedinusername %]
+                                    <table id="suggestt" class="table table-bordered tabled">
                                         <caption class="sr-only">Your purchase suggestions<caption>
                                         <thead>
                                             <tr>
@@ -393,76 +410,76 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            [% FOREACH suggestions_loo IN suggestions_loop %]
+                                            [% FOREACH suggestion IN suggestions %]
                                                 <tr>
-                                                    [% IF ( loggedinusername ) %]
+                                                    [% IF logged_in_user %]
                                                         <td class="selectcol">
-                                                            [% IF ( suggestions_loo.showcheckbox ) %]
+                                                            [% IF logged_in_user.borrowernumber == suggestion.suggester.borrowernumber %]
                                                                 [% SET can_delete_suggestion = 1 %]
-                                                                <input type="checkbox" class="cb" id="id[% suggestions_loo.suggestionid | html %]" name="delete_field" data-title="[% suggestions_loo.title | html %]" value="[% suggestions_loo.suggestionid | html %]" />
+                                                                <input type="checkbox" class="cb" id="id[% suggestion.suggestionid | html %]" name="delete_field" data-title="[% suggestion.title | html %]" value="[% suggestion.suggestionid | html %]" />
                                                             [% END %]
                                                         </td>
                                                     [% END %]
                                                     <td>
                                                         <p>
                                                             <label for="id[% suggestions_loo.suggestionid | html %]">
-                                                                [% IF suggestions_loo.biblionumber %]
-                                                                    <strong><a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% suggestions_loo.biblionumber | uri %]">[% suggestions_loo.title | html %]</a></strong>
+                                                                [% IF suggestion.biblionumber %]
+                                                                    <strong><a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% suggestion.biblionumber | uri %]">[% suggestion.title | html %]</a></strong>
                                                                 [% ELSE %]
-                                                                    <strong>[% suggestions_loo.title | html %]</strong>
+                                                                    <strong>[% suggestion.title | html %]</strong>
                                                                 [% END %]
                                                             </label>
                                                         </p>
-                                                            <p>[% IF ( suggestions_loo.author ) %][% suggestions_loo.author | html %],[% END %]
-                                                                [% IF ( suggestions_loo.copyrightdate ) %] - [% suggestions_loo.copyrightdate | html %],[% END %]
-                                                                [% IF ( suggestions_loo.publishercode ) %] - [% suggestions_loo.publishercode | html %][% END %]
-                                                                [% IF ( suggestions_loo.place ) %]([% suggestions_loo.place | html %])[% END %]
-                                                                [% IF ( suggestions_loo.collectiontitle ) %] , [% suggestions_loo.collectiontitle | html %][% END %]
-                                                                [% IF ( suggestions_loo.itemtype ) %] - [% AuthorisedValues.GetByCode( 'SUGGEST_FORMAT', suggestions_loo.itemtype, 1 ) | html %][% END %]
+                                                            <p>[% IF ( suggestion.author ) %][% suggestion.author | html %],[% END %]
+                                                                [% IF ( suggestion.copyrightdate ) %] - [% suggestion.copyrightdate | html %],[% END %]
+                                                                [% IF ( suggestion.publishercode ) %] - [% suggestion.publishercode | html %][% END %]
+                                                                [% IF ( suggestion.place ) %]([% suggestion.place | html %])[% END %]
+                                                                [% IF ( suggestion.collectiontitle ) %] , [% suggestion.collectiontitle | html %][% END %]
+                                                                [% IF ( suggestion.itemtype ) %] - [% AuthorisedValues.GetByCode( 'SUGGEST_FORMAT', suggestion.itemtype, 1 ) | html %][% END %]
                                                         </p>
                                                     </td>
-                                                    <td>
-                                                        [% IF ( suggestions_loo.suggesteddate ) %]<span style="display:none;">[% suggestions_loo.suggesteddate %]</span>[% suggestions_loo.suggesteddate |$KohaDates %][% END %]
+                                                    <td data-order="[% suggestion.suggesteddate | html %]">
+                                                        [% IF ( suggestion.suggesteddate ) %][% suggestion.suggesteddate |$KohaDates %][% END %]
                                                     </td>
                                                     <td>
-                                                        [% IF ( suggestions_loo.note ) %]
+                                                        [% IF ( suggestion.note ) %]
                                                             <span class="tdlabel">Note: </span>
-                                                            [% suggestions_loo.note | html %]
+                                                            [% suggestion.note | html %]
                                                         [% END %]
                                                     </td>
                                                     [% IF Koha.Preference( 'OPACViewOthersSuggestions' ) == 1 %]
                                                         <td>
-                                                            [% IF ( suggestions_loo.branchcodesuggestedfor ) %]
+                                                            [% IF suggestion.suggestedby %]
                                                                 <span class="tdlabel">Suggested for:</span>
-                                                                [% suggestions_loo.branchcodesuggestedby | html %]
+                                                                [% Branches.GetName(suggestion.suggester.branchcode) | html %]
                                                             [% END %]
                                                         </td>
                                                     [% END %]
                                                     [% IF Koha.Preference( 'OpacSuggestionManagedBy' ) %]
                                                     <td>
-                                                        [% IF ( suggestions_loo.surnamemanagedby ) %]
+                                                        [% IF suggestion.managedby %]
                                                             <span class="tdlabel">Managed by:</span>
-                                                            [% suggestions_loo.surnamemanagedby | html %]
-                                                            [% IF ( suggestions_loo.firstnamemanagedby ) %]    , [% suggestions_loo.firstnamemanagedby | html %]
-                                                            [% END %]
+                                                            [% INCLUDE 'patron-title.inc' patron = suggestion.manager %]
+                                                            [% IF ( suggestion.manageddate ) %] - [% suggestion.manageddate | $KohaDates %][% END %]
                                                         [% END %]
                                                     </td>
                                                     [% END %]
                                                     <td>
                                                         <span class="tdlabel">Status:</span>
-                                                        [% IF ( suggestions_loo.ASKED ) %]Requested
-                                                        [% ELSIF ( suggestions_loo.CHECKED ) %]Checked by the library
-                                                        [% ELSIF ( suggestions_loo.ACCEPTED ) %]Accepted by the library
-                                                        [% ELSIF ( suggestions_loo.ORDERED ) %]Ordered by the library
-                                                        [% ELSIF ( suggestions_loo.REJECTED ) %]Suggestion declined
-                                                        [% ELSIF ( suggestions_loo.AVAILABLE ) %]Available in the library
-                                                        [% ELSE %] [% AuthorisedValues.GetByCode( 'SUGGEST_STATUS', suggestions_loo.STATUS, 1 ) | html %] [% END %]
-                                                        [% IF ( suggestions_loo.reason ) %]([% suggestions_loo.reason | html %])[% END %]
+                                                        [% IF ( suggestion.STATUS == 'ASKED' ) %]<span>Requested</span>
+                                                        [% ELSIF ( suggestion.STATUS == 'CHECKED' ) %]<span>Checked by the library</span>
+                                                        [% ELSIF ( suggestion.STATUS == 'ACCEPTED' ) %]<span>Accepted by the library</span>
+                                                        [% ELSIF ( suggestion.STATUS == 'ORDERED' ) %]<span>Ordered by the library</span>
+                                                        [% ELSIF ( suggestion.STATUS == 'REJECTED' ) %]<span>Suggestion declined</span>
+                                                        [% ELSIF ( suggestion.STATUS == 'AVAILABLE' ) %]<span>Available in the library</span>
+                                                        [% ELSE %] [% AuthorisedValues.GetByCode( 'SUGGEST_STATUS', suggestion.STATUS, 1 ) | html %] [% END %]
+                                                        [% IF ( suggestion.reason ) %]([% suggestion.reason | html %])[% END %]
                                                     </td>
                                                 </tr>
-                                            [% END # / FOREACH suggestions_loo %]
+                                            [% END # / FOREACH suggestions %]
                                         </tbody>
                                     </table>
+                                    [% END %]
 
                                     [% IF ( loggedinusername && can_delete_suggestion ) %]
                                         <fieldset class="action">
@@ -473,21 +490,21 @@
                             [% ELSE %]
                                 [% IF Koha.Preference( 'OPACViewOthersSuggestions' ) %]
                                     [% IF title_filter %]
-                                        <p>There are no pending purchase suggestions matching your search.</p>
+                                        <div class="alert alert-info" role="alert">There are no pending purchase suggestions matching your search.</div>
                                     [% ELSIF loggedinusername AND NOT suggested_by_anyone %]
-                                        <p>You have no pending purchase suggestions. <a href="/cgi-bin/koha/opac-suggestions.pl?suggested_by_anyone=1">View all suggestions</a></p>
+                                        <div class="alert alert-info" role="alert">You have no pending purchase suggestions. <a href="/cgi-bin/koha/opac-suggestions.pl?suggested_by_anyone=1">View all suggestions</a></div>
                                     [% ELSE %]
-                                        <p>There are no pending purchase suggestions.</p>
+                                        <div class="alert alert-info" role="alert">There are no pending purchase suggestions.</div>
                                     [% END %]
                                 [% ELSE %]
                                     [% IF ( loggedinusername ) %]
                                         [% IF title_filter %]
-                                            <p>There are no pending purchase suggestions matching your search.</p>
+                                            <div class="alert alert-info" role="alert">There are no pending purchase suggestions matching your search.</div>
                                         [% ELSE %]
-                                            <p>You have no pending purchase suggestions.</p>
+                                            <div class="alert alert-info" role="alert">You have no pending purchase suggestions.</div>
                                         [% END %]
                                     [% ELSE %]
-                                        <p>You are not authorized to see pending purchase suggestions.</p>
+                                        <div class="alert alert-warning" role="alert">You are not authorized to see pending purchase suggestions.</div>
                                     [% END %]
                                 [% END %]
                                 [% IF ( loggedinusername || ( Koha.Preference( 'AnonSuggestions' ) == 1 ) ) %]
@@ -499,7 +516,7 @@
                                         <p><a class="btn btn-link new" href="/cgi-bin/koha/opac-suggestions.pl?op=add"><i class="fa fa-plus" aria-hidden="true"></i> New purchase suggestion</a></p>
                                     [% END %]
                                 [% END %]
-                            [% END # / IF suggestions_loop %]
+                            [% END # / IF suggestions.size %]
 
                         [% END # IF op_else %]
                     </div> <!-- / #usersuggestions -->
@@ -510,6 +527,9 @@
 
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
+[% IF Koha.Preference("OPACSuggestionAutoFill") %]
+    [% Asset.js("js/autofill.js") | $raw %]
+[% END %]
 [% INCLUDE 'datatables.inc' %]
 <script>
     [% IF ( loggedinusername ) %]
@@ -524,6 +544,20 @@
               $(".selections-toolbar .links a").addClass("disabled");
             }
         }
+    [% END %]
+
+    [% IF Koha.Preference( 'OPACSuggestionAutoFill' ) %]
+    $(function() {
+        $('#isbn').autofill({
+            'volumeInfo.title': {target: 'title', effect: 'flash'},
+            'volumeInfo.authors': {target: 'author', effect: 'flash'},
+            'volumeInfo.publisher': {target: 'publishercode', effect: 'flash'},
+            'volumeInfo.publishedDate': {target: 'copyrightdate', effect: 'flash'},
+            /* google books api seem to only have books, so if we got a result
+             * item, type will be a book, so set to BK (book). */
+            'kind': {target: 'itemtype', handle: function(t,v) { t.val('BK'); },},
+        });
+    });
     [% END %]
 
     $(function() {

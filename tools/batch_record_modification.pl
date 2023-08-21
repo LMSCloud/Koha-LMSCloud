@@ -22,14 +22,15 @@ use Modern::Perl;
 
 use CGI;
 use List::MoreUtils qw( uniq );
-use JSON qw( encode_json );
-use Try::Tiny;
+use Try::Tiny qw( catch try );
 
 use C4::Auth qw( get_template_and_user );
 use C4::Output qw( output_html_with_http_headers );
-use C4::AuthoritiesMarc qw( BuildSummary ModAuthority );
-use C4::Biblio qw( GetMarcBiblio ModBiblio );
-use C4::MarcModificationTemplates qw( GetModificationTemplateActions GetModificationTemplates );
+use C4::Auth qw( get_template_and_user );
+use C4::MarcModificationTemplates qw(
+    GetModificationTemplateActions
+    GetModificationTemplates
+);
 
 use Koha::Biblios;
 use Koha::BackgroundJob::BatchUpdateBiblio;
@@ -81,10 +82,10 @@ if ( $op eq 'form' ) {
     # Display the form
     $template->param(
         view => 'form',
-        lists => scalar Koha::Virtualshelves->search(
+        lists => Koha::Virtualshelves->search(
             [
-                { category => 1, owner => $loggedinuser },
-                { category => 2 }
+                { public => 0, owner => $loggedinuser },
+                { public => 1 }
             ]
         )
     );
@@ -156,9 +157,15 @@ if ( $op eq 'form' ) {
     my @record_ids = $input->multi_param('record_id');
 
     try {
+        my $patron = Koha::Patrons->find( $loggedinuser );
         my $params = {
-            mmtid       => $mmtid,
-            record_ids  => \@record_ids,
+            mmtid           => $mmtid,
+            record_ids      => \@record_ids,
+            overlay_context => {
+                source       => 'batchmod',
+                categorycode => $patron->categorycode,
+                userid       => $patron->userid
+            }
         };
 
         my $job_id =

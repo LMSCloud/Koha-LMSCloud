@@ -8,7 +8,7 @@
             <option value="n">n - New</option>
             <option value="p">p - Increase in encoding level from prepublication</option>
         </select>
-        <select name="f6" title="Type of record">
+        <select name="f6" title="Type of record. Controls default type of 008 field.">
             <option value="a">a - Language material</option>
             <option value="c">c - Notated music</option>
             <option value="d">d - Manuscript notated music</option>
@@ -49,6 +49,12 @@
             <option value="5">5 - Partial (preliminary) level</option>
             <option value="7">7 - Minimal level</option>
             <option value="8">8 - Prepublication level</option>
+            [% IF Koha.Preference('UseOCLCEncodingLevels') %]
+                <option value="I">I- Full-level input by OCLC participants</option>
+                <option value="J">J- Deleted record</option>
+                <option value="K">K- Less-than-full input by OCLC participants</option>
+                <option value="M">M- Added from a batch process</option>
+            [% END %]
             <option value="u">u - Unknown</option>
             <option value="z">z - Not applicable</option>
         </select>
@@ -207,6 +213,26 @@ require( [ 'koha-backend', 'widget', 'text-marc' ], function( KohaBackend, Widge
             var $result = $( '<span class="subfield-widget fixed-widget">' + _("Fixed data:") + '<span class="hint widget-loading">' + _("Loading...") + '</span></span>' );
 
             return $result[0];
+        },
+        materialTypeMapping: {
+            a: 'BKS',
+            c: 'MU',
+            d: 'MU',
+            e: 'MPS',
+            f: 'MPS',
+            g: 'VM',
+            i: 'MU',
+            j: 'MU',
+            k: 'VM',
+            m: 'CF',
+            o: 'VM',
+            p: 'MX',
+            r: 'VM',
+            s: 'CR',
+            t: 'BKS',
+        },
+        getMaterial: function () {
+            return this.materialTypeMapping[this.text.substring(0, 1)];
         },
         postCreate: function( node, mark ) {
             this.createFromXML( 'marc21/xml/006' );

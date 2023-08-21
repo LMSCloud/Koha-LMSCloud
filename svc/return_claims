@@ -22,22 +22,21 @@ use Modern::Perl;
 use CGI;
 use JSON qw(to_json);
 
-use C4::Auth qw(check_cookie_auth haspermission get_session);
+use C4::Auth qw(check_cookie_auth haspermission);
 use C4::Context;
 
 use Koha::AuthorisedValues;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Patrons;
 
 my $input = CGI->new;
 
-my ( $auth_status, $sessionID ) = check_cookie_auth( $input->cookie('CGISESSID') );
+my ( $auth_status, $session ) = check_cookie_auth( $input->cookie('CGISESSID') );
 if( $auth_status ne 'ok' ) {
     print CGI::header( '-status' => '401' );
     exit 0;
 }
 
-my $session = get_session($sessionID);
 my $userid  = $session->param('id');
 
 unless (

@@ -1,0 +1,9 @@
+---
+type: object
+properties:
+  bzshId:
+    type: string
+    description: BZSH catalog ID of the library network catalog (ZKSH)
+additionalProperties: false
+required:
+  - bzshId

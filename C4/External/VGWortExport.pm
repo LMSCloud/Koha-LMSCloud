@@ -25,8 +25,10 @@ use Carp;
 
 use C4::Context;
 use C4::Biblio;
+use C4::Charset;
 
-use Koha::DateUtils;
+use Koha::DateUtils qw( output_pref );
+use Koha::Biblios;
 
 use Data::Dumper;
 use XML::Simple;
@@ -372,7 +374,8 @@ sub createXMLTitleEntry {
     my $titleEntry = shift;
     
     my $biblionumber = $titleEntry->{biblionumber};
-    my $record = GetMarcBiblio({ biblionumber => $biblionumber });
+    my $biblio = Koha::Biblios->find( $biblionumber );
+    my $record = $biblio ? $biblio->metadata->record : undef;
     
     $record = GetDeletedMarcBiblio({ biblionumber => $biblionumber }) if (! $record );
     
@@ -544,7 +547,7 @@ sub GetDeletedMarcBiblio {
     my $row     = $sth->fetchrow_hashref;
     my $biblioitemnumber = $row->{'biblioitemnumber'};
     my $marcxml = GetDeletedXmlBiblio( $biblionumber );
-    $marcxml = C4::Biblio::StripNonXmlChars( $marcxml );
+    $marcxml = C4::Charset::StripNonXmlChars( $marcxml );
     my $frameworkcode = GetDeletedFrameworkCode($biblionumber);
     MARC::File::XML->default_record_format( C4::Context->preference('marcflavour') );
     my $record = MARC::Record->new();

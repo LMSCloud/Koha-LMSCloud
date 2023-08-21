@@ -43,14 +43,14 @@ my ($builder, $searcher);
 $builder  = Koha::SearchEngine::QueryBuilder->new({index => 'biblios'});
 $searcher = Koha::SearchEngine::Search->new({index => 'biblios'});
 
-use C4::Output;
-use C4::Auth qw(:DEFAULT get_session);
-use C4::Languages qw(getLanguages);
-use C4::Search;
+use C4::Output qw( output_html_with_http_headers pagination_bar output_with_http_headers );
+use C4::Auth qw( get_template_and_user get_session );
+use C4::Languages qw( getlanguage getLanguages );
+use C4::Search qw( searchResults );
 use C4::Search::History;
-use C4::Biblio; # Unused here?
-use C4::Koha;
-use C4::Tags qw(get_tags);
+use C4::Biblio qw( GetXmlBiblio CountItemsIssued );
+use C4::Koha qw( GetItemTypesCategorized getitemtypeimagelocation GetAuthorisedValues );
+use C4::Tags qw( get_tags );
 use C4::SocialData;
 use C4::External::OverDrive;
 use C4::Divibib::NCIPService qw(DIVIBIBAGENCYID);
@@ -107,7 +107,7 @@ my $format = $cgi->param("format") || '';
 if ($format =~ /(rss|atom|opensearchdescription)/) {
     $template_name = 'opac-opensearch.tt';
 }
-elsif ((@params>=1) || ($cgi->param("q")) || ($cgi->param('multibranchlimit')) || ($cgi->param('limit-yr')) || ($cgi->param('limit-copydate')) || @searchCategories ) {
+elsif ((@params>=1) || (defined $cgi->param("q") && $cgi->param("q") ne "") || ($cgi->param('multibranchlimit')) || ($cgi->param('limit-yr')) || ($cgi->param('limit-copydate')) || @searchCategories ) {
     $template_name = 'opac-results.tt';
 }
 else {
@@ -143,10 +143,19 @@ if($cgi->cookie("bib_list")){
 
 if ($format eq 'rss' or $format eq 'opensearchdescription' or $format eq 'atom') {
     $template->param($format => 1);
+    #NOTE: opensearchdescription doesn't actually use timestamp...
     $template->param(timestamp => strftime("%Y-%m-%dT%H:%M:%S-00:00", gmtime)) if ($format eq 'atom'); 
     # FIXME - the timestamp is a hack - the biblio update timestamp should be used for each
     # entry, but not sure if that's worth an extra database query for each bib
 }
+
+#NOTE: Return now for 'opensearchdescription' BZ 32639
+if ( $format && $format eq 'opensearchdescription' ){
+    my $content_type = $format;
+    output_with_http_headers $cgi, $cookie, $template->output, $content_type;
+    exit;
+}
+
 if (C4::Context->preference("marcflavour") eq "UNIMARC" ) {
     $template->param('UNIMARC' => 1);
 }
@@ -206,10 +215,10 @@ if ($cgi->param("returntosearch")) {
 }
 if ($cgi->cookie("search_path_code")) {
     my $pathcode = $cgi->cookie("search_path_code");
-    if ($pathcode eq '"ads"') {
+    if ($pathcode eq 'ads') {
         $template->param('ReturnPath' => '/cgi-bin/koha/opac-search.pl?returntosearch=1');
     }
-    elsif ($pathcode eq '"exs"') {
+    elsif ($pathcode eq 'exs') {
          $template->param('ReturnPath' => '/cgi-bin/koha/opac-search.pl?expanded_options=1&returntosearch=1');
     }
     else {
@@ -217,7 +226,7 @@ if ($cgi->cookie("search_path_code")) {
     }
 }
 
-my @search_groups = Koha::Library::Groups->get_search_groups();
+my @search_groups = Koha::Library::Groups->get_search_groups( { interface => 'opac' } )->as_list;
 $template->param( search_groups => \@search_groups );
 
 # load the language limits (for search)
@@ -240,7 +249,7 @@ foreach my $itemtype ( keys %{$itemtypes} ) {
 my $itype_or_itemtype = (C4::Context->preference("item-level_itypes"))?'itype':'itemtype';
 my @advancedsearchesloop;
 my $cnt;
-my $advanced_search_types = C4::Context->preference("AdvancedSearchTypes") || "itemtypes";
+my $advanced_search_types = C4::Context->preference("OpacAdvancedSearchTypes") || "itemtypes";
 my @advanced_search_types = split(/\|/, $advanced_search_types);
 
 my $hidingrules = C4::Context->yaml_preference('OpacHiddenItems') // {};
@@ -298,6 +307,8 @@ foreach my $advanced_srch_type (@advanced_search_types) {
 }
 $template->param(advancedsearchesloop => \@advancedsearchesloop);
 
+my $default_sort_by = C4::Context->default_catalog_sort_by;
+
 # The following should only be loaded if we're bringing up the advanced search template
 if ( $template_type && $template_type eq 'advsearch' ) {
     # load the servers (used for searching -- to do federated searching, etc.)
@@ -308,11 +319,7 @@ if ( $template_type && $template_type eq 'advsearch' ) {
     $template->param(outer_sup_servers_loop => $secondary_servers_loop,);
 
     # set the default sorting
-    if (   C4::Context->preference('OPACdefaultSortField')
-        && C4::Context->preference('OPACdefaultSortOrder') ) {
-        my $default_sort_by =
-            C4::Context->preference('OPACdefaultSortField') . '_'
-          . C4::Context->preference('OPACdefaultSortOrder');
+    if ($default_sort_by) {
         $template->param( sort_by => $default_sort_by );
     }
 
@@ -372,14 +379,6 @@ for (keys %$params) {
 # sort by is used to sort the query
 # in theory can have more than one but generally there's just one
 my @sort_by;
-my $default_sort_by;
-if (   C4::Context->preference('OPACdefaultSortField')
-    && C4::Context->preference('OPACdefaultSortOrder') ) {
-    $default_sort_by =
-        C4::Context->preference('OPACdefaultSortField') . '_'
-      . C4::Context->preference('OPACdefaultSortOrder');
-}
-
 my @allowed_sortby = qw /acqdate_asc acqdate_dsc author_az author_za call_number_asc call_number_dsc popularity_asc popularity_dsc pubdate_asc pubdate_dsc relevance title_az title_za/; 
 @sort_by = $cgi->multi_param('sort_by');
 $sort_by[0] = $default_sort_by if !$sort_by[0] && defined($default_sort_by);
@@ -422,10 +421,12 @@ my @operands = $cgi->multi_param('q');
 $template->{VARS}->{querystring} = join(' ', @operands);
 
 # if a simple search, display the value in the search box
+my $basic_search = 0;
 if ($operands[0] && !$operands[1]) {
     my $ms_query = $operands[0];
     $ms_query =~ s/ #\S+//;
     $template->param(ms_value => $ms_query);
+    $basic_search=1;
 }
 
 # limits are use to limit to results to a pre-defined category such as branch or language
@@ -439,8 +440,7 @@ my %is_nolimit = map { $_ => 1 } @nolimits;
 if (@searchCategories > 0) {
     my @tabcat;
     foreach my $typecategory (@searchCategories) {
-        my @itemtypes = Koha::ItemTypes->search({ searchcategory => $typecategory });
-        push @tabcat, $_->itemtype for @itemtypes;
+        push @tabcat, Koha::ItemTypes->search({ searchcategory => $typecategory })->get_column('itemtype');
     }
 
     foreach my $itemtypeInCategory (@tabcat) {
@@ -569,14 +569,14 @@ if ($tag) {
     my $taglist = get_tags({term=>$tag, approved=>1});
     $results_hashref->{biblioserver}->{hits} = scalar (@$taglist);
     my @marclist = map { C4::Biblio::GetXmlBiblio( $_->{biblionumber} ) } @$taglist;
-    $DEBUG and printf STDERR "taglist (%s biblionumber)\nmarclist (%s records)\n", scalar(@$taglist), scalar(@marclist);
     $results_hashref->{biblioserver}->{RECORDS} = \@marclist;
     # FIXME: tag search and standard search should work together, not exclusively
     # FIXME: Because search and standard search don't work together OpacHiddenItems
     #        displays search results which should be hidden.
     # FIXME: No facets for tags search.
 } else {
-    $pasarParams .= '&amp;query=' . uri_escape_utf8($query);
+    my $json = JSON->new->utf8->allow_nonref(1);
+    $pasarParams .= '&amp;query=' . uri_escape_utf8($json->encode($query));
     $pasarParams .= '&amp;count=' . uri_escape_utf8($results_per_page);
     $pasarParams .= '&amp;simple_query=' . uri_escape_utf8($simple_query);
     $pasarParams .= '&amp;query_type=' . uri_escape_utf8($query_type) if ($query_type);
@@ -602,7 +602,7 @@ my @sup_results_array;
 my $search_context = {};
 $search_context->{'interface'} = 'opac';
 if (C4::Context->preference('OpacHiddenItemsExceptions')){
-    $search_context->{'category'} = $patron ? $patron->categorycode : q{};
+    $search_context->{patron} = $patron;
 }
 
 my $variables = { anonymous_session => ($borrowernumber) ? 0 : 1 };
@@ -622,19 +622,46 @@ for (my $i=0;$i<@servers;$i++) {
     my $server = $servers[$i];
     if ($server && $server =~/biblioserver/) { # this is the local bibliographic server
         $hits = $results_hashref->{$server}->{"hits"};
+        if ( $hits == 0 && $basic_search ){
+            $operands[0] = '"'.$operands[0].'"'; #quote it
+            ## I. BUILD THE QUERY
+            ( $error,$query,$simple_query,$query_cgi,$query_desc,$limit,$limit_cgi,$limit_desc,$query_type)
+              = $builder->build_query_compat(
+                \@operators,
+                \@operands,
+                \@indexes,
+                \@limits,
+                \@sort_by,
+                0,
+                $lang,
+                {
+                    suppress => $suppress,
+                    is_opac => 1,
+                    weighted_fields => $weight_search
+                }
+            );
+            my $quoted_results_hashref;
+            my $itemtypes_nocategory = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
+            eval {
+                ($error, $quoted_results_hashref, $facets) = $searcher->search_compat($query,$simple_query,\@sort_by,\@servers,$results_per_page,$offset,undef,$itemtypes_nocategory,$query_type,$scan,1);
+            };
+            my $quoted_hits = $quoted_results_hashref->{$server}->{"hits"} // 0;
+            if ( $quoted_hits ){
+                $results_hashref->{'biblioserver'} = $quoted_results_hashref->{'biblioserver'};
+                $hits = $quoted_hits;
+            }
+        }
         my $page = $cgi->param('page') || 0;
         my @newresults = searchResults( $search_context, $query_desc, $hits, $results_per_page, $offset, $scan,
                                         $results_hashref->{$server}->{"RECORDS"}, $variables);
         $hits = 0 unless @newresults;
-        
-        # initialize the lists of divibib IDs in order to retrieve the onleihe status
-        # used in Germany for divibib customers
-        my @divibibIDs = ();
 
         my $art_req_itypes;
         if( C4::Context->preference('ArticleRequests') ) {
             $art_req_itypes = Koha::CirculationRules->guess_article_requestable_itemtypes({ $patron ? ( categorycode => $patron->categorycode ) : () });
         }
+        
+        my @divibibIDs = ();
 
         foreach my $res (@newresults) {
 
@@ -646,12 +673,10 @@ for (my $i=0;$i<@servers;$i++) {
                 $res->{'incart'} = 1;
             }
 
-            if (C4::Context->preference('COinSinOPACResults') ) {
-                my $biblio = Koha::Biblios->find( $res->{'biblionumber'} );
-                # Catch the exception as Koha::Biblio::Metadata->record can explode if the MARCXML is invalid
-                $res->{coins} = $biblio ? eval {$biblio->get_coins} : q{}; # FIXME This should be moved at the beginning of the @newresults loop
-            }
+            # initialize the lists of divibib IDs in order to retrieve the onleihe status
+            # used in Germany for divibib customers
             if ( C4::Context->preference('DivibibEnabled') ) {
+                
                 my $biblio = Koha::Biblios->find( $res->{'biblionumber'} );
                 if ( $biblio ) {
                     my $record = $biblio->metadata->record;
@@ -665,6 +690,7 @@ for (my $i=0;$i<@servers;$i++) {
                     }
                 }
             }
+
             if ( C4::Context->preference( "Babeltheque" ) and $res->{normalized_isbn} ) {
                 if( my $isbn = Business::ISBN->new( $res->{normalized_isbn} ) ) {
                     $isbn = $isbn->as_isbn13->as_string;
@@ -710,6 +736,8 @@ for (my $i=0;$i<@servers;$i++) {
             # BZ17530: 'Intelligent' guess if result can be article requested
             $res->{artreqpossible} = ( $art_req_itypes->{ $res->{itemtype} // q{} } || $art_req_itypes->{ '*' } ) ? 1 : q{};
         }
+        
+        $template->param(divibibIDs => \@divibibIDs);
 
         if ($results_hashref->{$server}->{"hits"}){
             $total = $total + $hits;
@@ -791,49 +819,10 @@ for (my $i=0;$i<@servers;$i++) {
                 $template->param(searchdesc => 1);
             }
             $template->param(results_per_page =>  $results_per_page);
-            my $hide = ($hidingrules) ? 1 : 0;
-            my $branch = '';
-            if (C4::Context->userenv){
-                $branch = C4::Context->userenv->{branch};
-            }
-            if ( C4::Context->preference('DivibibEnabled') ) {
-                $template->param(divibibIDs => \@divibibIDs);
-            }
-            if ( C4::Context->preference('HighlightOwnItemsOnOPAC') ) {
-                if (
-                    ( ( C4::Context->preference('HighlightOwnItemsOnOPACWhich') eq 'PatronBranch' ) && $branch )
-                    ||
-                    C4::Context->preference('HighlightOwnItemsOnOPACWhich') eq 'OpacURLBranch'
-                ) {
-                    my $branchcode;
-                    if ( C4::Context->preference('HighlightOwnItemsOnOPACWhich') eq 'PatronBranch' ) {
-                        $branchcode = $branch;
-                    }
-                    elsif (  C4::Context->preference('HighlightOwnItemsOnOPACWhich') eq 'OpacURLBranch' ) {
-                        $branchcode = $ENV{'BRANCHCODE'};
-                    }
-
-                    foreach my $res ( @newresults ) {
-                        my @new_loop;
-                        my @top_loop;
-                        my @old_loop = @{$res->{'available_items_loop'}};
-                        foreach my $item ( @old_loop ) {
-                            if ( $item->{'branchcode'} && $branchcode && $item->{'branchcode'} eq $branchcode ) {
-                                $item->{'this_branch'} = 1;
-                                push( @top_loop, $item );
-                            } else {
-                                push( @new_loop, $item );
-                            }
-                        }
-                        my @complete_loop = ( @top_loop, @new_loop );
-                        $res->{'available_items_loop'} = \@complete_loop;
-                    }
-                }
-            }
+            my $hide = keys %$hidingrules ? 1 : 0;
 
             $template->param(
                 SEARCH_RESULTS => \@newresults,
-                OPACItemsResultsDisplay => (C4::Context->preference("OPACItemsResultsDisplay")),
                 suppress_result_number => $hide,
                             );
             if (C4::Context->preference("OPACLocalCoverImages")){
@@ -904,6 +893,16 @@ for my $facet ( @$facets ) {
     }
 }
 
+my @search_filters = Koha::SearchFilters->search({ opac => 1 }, { order_by => "name" })->as_list;
+my %active_filters;
+foreach my $sf (@search_filters){
+    $active_filters{$sf->id} = 1 if grep { "search_filter:".$sf->id eq $_->{input_value} } @limit_inputs;
+}
+$template->param(
+    search_filters => \@search_filters,
+    active_filters => \%active_filters,
+) if C4::Context->preference('SavedSearchFilters');
+
 
 $template->param(
             #classlist => $classlist,
@@ -924,14 +923,14 @@ my $some_private_shelves = Koha::Virtualshelves->get_some_shelves(
     {
         borrowernumber => $borrowernumber,
         add_allowed    => 1,
-        category       => 1,
+        public         => 0,
     }
 );
 my $some_public_shelves = Koha::Virtualshelves->get_some_shelves(
     {
         borrowernumber => $borrowernumber,
         add_allowed    => 1,
-        category       => 2,
+        public         => 1,
     }
 );
 

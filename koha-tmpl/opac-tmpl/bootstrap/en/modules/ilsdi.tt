@@ -1,4 +1,6 @@
 [% USE Koha %]
+[% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>
     [% IF ( GetAvailability ) %]
@@ -37,48 +39,50 @@
 [% INCLUDE 'masthead.inc' %]
 
     <div class="main">
-        <ul class="breadcrumb">
-            <li><a href="/cgi-bin/koha/opac-main.pl">Home</a></li>
-            [% IF ( GetAvailability ) %]
-                <li><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                <li><a href="#">GetAvailability</a></li>
-            [% ELSIF ( GetRecords ) %]
-                <li><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                <li><a href="#">GetRecords</a></li>
-            [% ELSIF ( GetAuthorityRecords ) %]
-                <li><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                <li><a href="#">GetAuthorityRecords</a></li>
-            [% ELSIF ( LookupPatron ) %]
-                <li><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                <li><a href="#">LookupPatron</a></li>
-            [% ELSIF ( AuthenticatePatron ) %]
-                <li><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                <li><a href="#">AuthenticatePatron</a></li>
-            [% ELSIF ( GetPatronInfo ) %]
-                <li><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                <li><a href="#">GetPatronInfo</a></li>
-            [% ELSIF ( GetPatronStatus ) %]
-                <li><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                <li><a href="#">GetPatronStatus</a></li>
-            [% ELSIF ( GetServices ) %]
-                <li><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                <li><a href="#">GetServices</a></li>
-            [% ELSIF ( RenewLoan ) %]
-                <li><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                <li><a href="#">RenewLoan</a></li>
-            [% ELSIF ( HoldTitle ) %]
-                <li><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                <li><a href="#">HoldTitle</a></li>
-            [% ELSIF ( HoldItem ) %]
-                <li><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                <li><a href="#">HoldItem</a></li>
-            [% ELSIF ( CancelHold ) %]
-                <li><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                <li><a href="#">CancelHold</a></li>
-            [% ELSE %]
-                <li><a href="#">ILS-DI</a></li>
-            [% END %]
-        </ul>
+        <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/cgi-bin/koha/opac-main.pl">Home</a></li>
+                [% IF ( GetAvailability ) %]
+                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
+                    <li class="breadcrumb-item active"><a href="#" aria-current="page">GetAvailability</a></li>
+                [% ELSIF ( GetRecords ) %]
+                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
+                    <li class="breadcrumb-item active"><a href="#" aria-current="page">GetRecords</a></li>
+                [% ELSIF ( GetAuthorityRecords ) %]
+                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
+                    <li class="breadcrumb-item active"><a href="#" aria-current="page">GetAuthorityRecords</a></li>
+                [% ELSIF ( LookupPatron ) %]
+                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
+                    <li class="breadcrumb-item active"><a href="#" aria-current="page">LookupPatron</a></li>
+                [% ELSIF ( AuthenticatePatron ) %]
+                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
+                    <li class="breadcrumb-item active"><a href="#" aria-current="page">AuthenticatePatron</a></li>
+                [% ELSIF ( GetPatronInfo ) %]
+                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
+                    <li class="breadcrumb-item active"><a href="#" aria-current="page">GetPatronInfo</a></li>
+                [% ELSIF ( GetPatronStatus ) %]
+                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
+                    <li class="breadcrumb-item active"><a href="#" aria-current="page">GetPatronStatus</a></li>
+                [% ELSIF ( GetServices ) %]
+                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
+                    <li class="breadcrumb-item active"><a href="#" aria-current="page">GetServices</a></li>
+                [% ELSIF ( RenewLoan ) %]
+                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
+                    <li class="breadcrumb-item active"><a href="#" aria-current="page">RenewLoan</a></li>
+                [% ELSIF ( HoldTitle ) %]
+                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
+                    <li class="breadcrumb-item active"><a href="#" aria-current="page">HoldTitle</a></li>
+                [% ELSIF ( HoldItem ) %]
+                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
+                    <li class="breadcrumb-item active"><a href="#" aria-current="page">HoldItem</a></li>
+                [% ELSIF ( CancelHold ) %]
+                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
+                    <li class="breadcrumb-item active"><a href="#" aria-current="page">CancelHold</a></li>
+                [% ELSE %]
+                    <li class="breadcrumb-item active"><a href="#" aria-current="page">ILS-DI</a></li>
+                [% END %]
+            </ol>
+        </nav> <!-- /#breadcrumbs -->
 
         <div class="container-fluid">
             <div class="row">
@@ -98,7 +102,7 @@
 
                             <h2>GetAvailability</h2>
                             <p>Given a set of bibliographic or item identifiers, returns a
-                            list with availability of the items associated with the identifiers.</p>
+                            list with availability and call number of the items associated with the identifiers.</p>
 
                             <h3>Parameters</h3>
                             <dl>
@@ -120,6 +124,8 @@
                                 </dd>
                                 <dt><strong>return_fmt</strong> (Optional)</dt>
                                 <dd>requests a particular format or set of formats in reporting availability</dd>
+                                <dt><strong>language (Optional)</strong></dt>
+                                <dd>requests a particular language for the output, default is the opac cookie language if set, the first language in opac language list or english</dd>
                             </dl>
 
                             <h3>Example call</h3>
@@ -142,6 +148,7 @@
           &lt;dlf:identifier&gt;1&lt;/dlf:identifier&gt;
           &lt;dlf:availabilitystatus&gt;available&lt;/dlf:availabilitystatus&gt;
           &lt;dlf:location&gt;Bibliothèque Jean Prunier&lt;/dlf:location&gt;
+          &lt;dlf:itemcallnumber&gt;iPR 8923 W6 L36 1990 c.1&lt;/dlf:itemcallnumber&gt;
         &lt;/dlf:simpleavailability&gt;
       &lt;/dlf:item&gt;
     &lt;/dlf:items&gt;
@@ -154,6 +161,7 @@
           &lt;dlf:identifier&gt;2&lt;/dlf:identifier&gt;
           &lt;dlf:availabilitystatus&gt;available&lt;/dlf:availabilitystatus&gt;
           &lt;dlf:location&gt;Bibliothèque Jean Prunier&lt;/dlf:location&gt;
+          &lt;dlf:itemcallnumber&gt;iPR 8923 W6 L36 1990 c.2&lt;/dlf:itemcallnumber&gt;
         &lt;/dlf:simpleavailability&gt;
       &lt;/dlf:item&gt;
     &lt;/dlf:items&gt;

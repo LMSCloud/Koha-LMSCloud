@@ -8,10 +8,8 @@ $(document).ready(function() {
         return false;
     });
 
-    $('#patronlists').tabs({
-        activate: function( event, ui ) {
-            $('#'+ui.newTab.context.id).click();
-        }
+    $("#patronlists a[data-toggle='tab']").on("shown.bs.tab", function(e){
+        $(this).click();
     });
 
     $("#borrower_messages .cancel").on("click",function(){
@@ -28,27 +26,10 @@ $(document).ready(function() {
         radioCheckBox($(this));
     });
 
-    $("#newduedate, #newonholdduedate input").datetimepicker({
-        onClose: function(dateText, inst) {
-            validate_date(dateText, inst);
-        },
-        minDate: 1, // require that renewal date is after today
-        hour: 23,
-        minute: 59
-    }).on("change", function(e) {
-        if ( ! is_valid_date( $(this).val() ) ) {$(this).val("");}
+    $(".clear_date").on("click", function(){
+        $("#stickyduedate").prop( "checked", false );
     });
-    $("#duedatespec").datetimepicker({
-        onClose: function(dateText, inst) {
-            if ( validate_date(dateText, inst) ) {
-                $("#barcode").focus();
-            }
-        },
-        hour: 23,
-        minute: 59
-    }).on("change", function(e, value) {
-        if ( ! is_valid_date( $(this).val() ) ) {$(this).val("");}
-    });
+
     $("#export_submit").on("click",function(){
         export_checkouts($("#issues-table-output-format").val());
         return false;
@@ -108,6 +89,12 @@ $(document).ready(function() {
         $("#" + fieldID).val("");
     });
 
+    /* Preselect Bootstrap tab based on location hash */
+    var hash = window.location.hash.substring(1);
+    if( hash ){
+        var activeTab = $('a[href="#' + hash + '"]');
+        activeTab && activeTab.tab('show');
+    }
 
 });
 
@@ -135,13 +122,4 @@ function export_checkouts(format) {
 
     document.getElementById("output_format").value = format;
     document.issues.submit();
-}
-
-function validate1(date) {
-    var today = new Date();
-    if ( date < today ) {
-        return true;
-     } else {
-        return false;
-     }
 }

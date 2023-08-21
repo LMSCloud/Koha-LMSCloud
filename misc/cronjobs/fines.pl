@@ -32,22 +32,24 @@ use 5.010;
 
 use Koha::Script -cron;
 use C4::Context;
-use C4::Overdues;
-use Getopt::Long;
-use Carp;
+use C4::Overdues qw( Getoverdues CalcFine UpdateFine );
+use Getopt::Long qw( GetOptions );
+use Carp qw( carp croak );
 use File::Spec;
-use Try::Tiny;
+use Try::Tiny qw( catch try );
 
 use Koha::Calendar;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Patrons;
-use C4::Log;
+use C4::Log qw( cronlogaction );
 
 my $help;
 my $verbose;
 my $output_dir;
 my $log;
 my $maxdays;
+
+my $command_line_options = join(" ",@ARGV);
 
 GetOptions(
     'h|help'    => \$help,
@@ -86,11 +88,11 @@ catch {
     my $message = "Skipping execution of $0 ($_)";
     print STDERR "$message\n"
         if $verbose;
-    cronlogaction( $message );
+    cronlogaction({ info => $message });
     exit;
 };
 
-cronlogaction();
+cronlogaction({ info => $command_line_options });
 
 my @borrower_fields =
   qw(cardnumber categorycode surname firstname email phone address citystate);
@@ -98,6 +100,7 @@ my @item_fields  = qw(itemnumber barcode date_due);
 my @other_fields = qw(days_overdue fine);
 my $libname      = C4::Context->preference('LibraryName');
 my $control      = C4::Context->preference('CircControl');
+my $branch_type  = C4::Context->preference('HomeOrHoldingBranch') || 'homebranch';
 my $mode         = C4::Context->preference('finesMode');
 my $delim = "\t";    # ?  C4::Context->preference('CSVDelimiter') || "\t";
 
@@ -129,7 +132,7 @@ for my $overdue ( @{$overdues} ) {
     }
     my $patron = Koha::Patrons->find( $overdue->{borrowernumber} );
     my $branchcode =
-        ( $control eq 'ItemHomeLibrary' ) ? $overdue->{homebranch}
+        ( $control eq 'ItemHomeLibrary' ) ? $overdue->{$branch_type}
       : ( $control eq 'PatronLibrary' )   ? $patron->branchcode
       :                                     $overdue->{branchcode};
 
@@ -208,6 +211,8 @@ Number of Overdue Items:
 
 EOM
 }
+
+cronlogaction({ action => 'End', info => "COMPLETED" });
 
 sub set_holiday {
     my ( $branch, $dt ) = @_;

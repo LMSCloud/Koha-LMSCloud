@@ -3,37 +3,38 @@
 
 use Modern::Perl;
 #use diagnostics;
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
 
 # Koha modules used
 use MARC::File::USMARC;
 use MARC::File::XML;
-use MARC::Record;
 use MARC::Batch;
-use MARC::Charset;
 use Encode;
 
 use Koha::Script;
 use C4::Context;
-use C4::Biblio;
+use C4::Biblio qw(
+    AddBiblio
+    GetMarcFromKohaField
+    ModBiblio
+    ModBiblioMarc
+);
 use C4::Koha;
-use C4::Debug;
-use C4::Charset;
-use C4::Items;
-use C4::MarcModificationTemplates;
+use C4::Charset qw( MarcToUTF8Record SetUTF8Flag );
+use C4::Items qw( AddItemBatchFromMarc );
+use C4::MarcModificationTemplates qw(
+    GetModificationTemplates
+    ModifyRecordWithTemplate
+);
+use C4::AuthoritiesMarc qw( GuessAuthTypeCode GuessAuthId GetAuthority ModAuthority AddAuthority );
 
 use YAML::XS;
-use Unicode::Normalize;
-use Time::HiRes qw(gettimeofday);
-use Getopt::Long;
+use Time::HiRes qw( gettimeofday );
+use Getopt::Long qw( GetOptions );
 use IO::File;
-use Pod::Usage;
+use Pod::Usage qw( pod2usage );
+use FindBin ();
 
+use Koha::Logger;
 use Koha::Biblios;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
@@ -259,6 +260,7 @@ if ($logfile){
    print $loghandle "id;operation;status\n";
 }
 
+my $logger = Koha::Logger->get;
 my $schema = Koha::Database->schema;
 $schema->txn_begin;
 RECORD: while (  ) {
@@ -317,7 +319,6 @@ RECORD: while (  ) {
         require C4::Search;
         my $query = build_query( $match, $record );
         my $server = ( $authorities ? 'authorityserver' : 'biblioserver' );
-        $debug && warn $query;
         my ( $error, $results, $totalhits ) = $searcher->simple_search_compat( $query, 0, 3, [$server] );
         # changed to warn so able to continue with one broken record
         if ( defined $error ) {
@@ -325,7 +326,6 @@ RECORD: while (  ) {
             printlog( { id => $id || $originalid || $match, op => "match", status => "ERROR" } ) if ($logfile);
             next RECORD;
         }
-        $debug && warn "$query $server : $totalhits";
         if ( $results && scalar(@$results) == 1 ) {
             my $marcrecord = C4::Search::new_record_from_zebra( $server, $results->[0] );
             SetUTF8Flag($marcrecord);
@@ -350,9 +350,9 @@ RECORD: while (  ) {
                 }
             }
         } elsif ( $results && scalar(@$results) > 1 ) {
-            $debug && warn "more than one match for $query";
+            $logger->debug("more than one match for $query");
         } else {
-            $debug && warn "nomatch for $query";
+            $logger->debug("nomatch for $query");
         }
     }
     if ($keepids && $originalid) {
@@ -369,7 +369,7 @@ RECORD: while (  ) {
         if ( length($stringfilter) == 3 ) {
             foreach my $field ( $record->field($stringfilter) ) {
                 $record->delete_field($field);
-                $debug && warn "removed : ", $field->as_string;
+                $logger->debug("removed : ", $field->as_string);
             }
         } elsif ($stringfilter =~ /([0-9]{3})([a-z0-9])(.*)/) {
             my $removetag = $1;
@@ -378,14 +378,13 @@ RECORD: while (  ) {
             if ( ( $removetag > "010" ) && $removesubfield ) {
                 foreach my $field ( $record->field($removetag) ) {
                     $field->delete_subfield( code => "$removesubfield", match => $removematch );
-                    $debug && warn "Potentially removed : ", $field->subfield($removesubfield);
+                    $logger->debug("Potentially removed : ", $field->subfield($removesubfield));
                 }
             }
         }
     }
     unless ($test_parameter) {
         if ($authorities){
-            use C4::AuthoritiesMarc;
             my $authtypecode=GuessAuthTypeCode($record, $heading_fields);
             my $authid= ($id?$id:GuessAuthId($record));
             if ($authid && GetAuthority($authid) && $update ){
@@ -446,7 +445,7 @@ RECORD: while (  ) {
                     $biblioitemnumber = Koha::Biblios->find( $biblionumber )->biblioitem->biblioitemnumber;
                 };
                 if ($update) {
-                    eval { ModBiblio( $record, $biblionumber, $framework ) };
+                    eval { ModBiblio( $record, $biblionumber, $framework, { overlay_context => { source => 'bulkmarcimport' } } ) };
                     if ($@) {
                         warn "ERROR: Edit biblio $biblionumber failed: $@\n";
                         printlog( { id => $id || $originalid || $biblionumber, op => "update", status => "ERROR" } ) if ($logfile);
@@ -593,7 +592,7 @@ sub build_query {
 	  my $string = build_simplequery($matchingpoint,$record);
 	  push @searchstrings,$string if (length($string)>0);
         }
-    my $op = 'and';
+    my $op = 'AND';
     return join(" $op ",@searchstrings);
 }
 sub build_simplequery {
@@ -609,7 +608,7 @@ sub build_simplequery {
 		  }
         }
     }
-    my $op = 'and';
+    my $op = 'AND';
     return join(" $op ",@searchstrings);
 }
 sub report_item_errors {
@@ -634,7 +633,7 @@ sub get_heading_fields{
     if ($authtypes){
         $headingfields = YAML::XS::LoadFile($authtypes);
         $headingfields={C4::Context->preference('marcflavour')=>$headingfields};
-        $debug && warn Encode::decode_utf8(YAML::XS::Dump($headingfields));
+        $logger->debug(Encode::decode_utf8(YAML::XS::Dump($headingfields)));
     }
     unless ($headingfields){
         $headingfields=$dbh->selectall_hashref("SELECT auth_tag_to_report, authtypecode from auth_types",'auth_tag_to_report',{Slice=>{}});

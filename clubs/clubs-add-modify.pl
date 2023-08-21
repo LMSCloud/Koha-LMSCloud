@@ -21,10 +21,10 @@ use Modern::Perl;
 
 use CGI;
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use Koha::Database;
-use Koha::DateUtils qw(dt_from_string);
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Clubs;
 use Koha::Club::Fields;
 
@@ -55,10 +55,8 @@ my $club_template_id = $cgi->param('club_template_id');
 my $club_template = $club->club_template() || Koha::Club::Templates->find($club_template_id);
 $club_template_id ||= $club_template->id();
 
-my $date_start = $cgi->param('date_start');
-$date_start = $date_start ? dt_from_string($date_start) : undef;
-my $date_end = $cgi->param('date_end');
-$date_end = $date_end ? dt_from_string($date_end) : undef;
+my $date_start = $cgi->param('date_start') || undef;
+my $date_end = $cgi->param('date_end') || undef;
 
 if ( $cgi->param('name') ) {    # Update or create club
     $club->set(

@@ -1,4 +1,4 @@
-/* global dataTablesDefaults __ */
+/* global dataTablesDefaults __ template_path */
 
 $(document).ready(function() {
     $("#Aform").preventDoubleFormSubmit();
@@ -18,17 +18,17 @@ $(document).ready(function() {
         checkOrderBudgets();
     });
 
-    $("#records_to_import fieldset.rows div").hide();
+    $(".order_details").hide();
     $('input:checkbox[name="import_record_id"]').change(function(){
-        var container = $(this).parents("fieldset");
+        var container = $(this).parents("tr");
         if ( $(this).is(':checked') ) {
             $(container).addClass("selected");
             $(container).removeClass("unselected");
-            $(container).find("div").toggle(true);
+            $(container).find(".order_details").toggle(true);
         } else {
             $(container).addClass("unselected");
             $(container).removeClass("selected");
-            $(container).find("div").toggle(false);
+            $(container).find(".order_details").toggle(false);
         }
     } );
 
@@ -67,7 +67,15 @@ $(document).ready(function() {
 
         error = checkOrderBudgets();
         if ( error > 0 ) {
-            alert( __("Some budgets are not defined in item records") );
+            alert( __("Some funds are not defined in item records") );
+            return false;
+        }
+
+        if (0 < CheckMandatorySubfields(this.form)) {
+            // Open the item tab
+            $('.nav-tabs .items_info').tab('show');
+
+            alert(__('Some required item subfields are not set'));
             return false;
         }
 
@@ -76,7 +84,6 @@ $(document).ready(function() {
         $(this.form).submit();
     });
 
-    $('#tabs').tabs();
     $(".previewData").on("click", function(e){
         e.preventDefault();
         var ltitle = $(this).text();
@@ -87,7 +94,7 @@ $(document).ready(function() {
     });
     $("#dataPreview").on("hidden.bs.modal", function(){
         $("#dataPreviewLabel").html("");
-        $("#dataPreview .modal-body").html("<div id=\"loading\"><img src=\"[% interface | html %]/[% theme | html %]/img/spinner-small.gif\" alt=\"\" /> " + __("Loading") + "</div>");
+        $("#dataPreview .modal-body").html("<div id=\"loading\"><img src=\"" + template_path + "/img/spinner-small.gif\" alt=\"\" /> " + __("Loading") + "</div>");
     });
 });
 

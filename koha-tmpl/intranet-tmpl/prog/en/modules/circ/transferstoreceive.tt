@@ -10,24 +10,20 @@
 </head>
 
 <body id="circ_transferstoreceive" class="circ">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'circ-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Transfers to receive
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Transfers to receive</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -48,6 +44,7 @@
         <div id="resultlist">
         [% FOREACH branchesloo IN branchesloop %]
             [% IF ( branchesloo.branchcode ) %]
+                <div class="page-section">
             <table style="width: 100%" id="transferst[% branchesloo.branchcode | html %]">
             <caption>Coming from [% branchesloo.branchname | html %]</caption>
             <thead><tr>
@@ -82,6 +79,8 @@
                                     [% reser.patron.first_valid_email_address | html %]
                                 </a>
                             [% END %]
+                        [% ELSIF ( reser.recall ) %]
+                            Recall requested by <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% reser.recall.patron_id | uri %]">[% reser.recall.patron.surname | html %][% IF reser.recall.patron.firstname %], [% reser.recall.patron.firstname | html %][% END %] ([% reser.recall.patron.cardnumber | html %])</a>
                         [% ELSE %]
                         <p>None</p>
                     [% END %]
@@ -92,6 +91,7 @@
                 </tr>
             [% END %]</tbody>
             </table>
+            </div> <!-- /.page-section -->
             [% END %]
         [% END %]
         </div>

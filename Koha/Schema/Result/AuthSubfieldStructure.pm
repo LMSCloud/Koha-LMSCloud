@@ -217,8 +217,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-02-16 16:57:22
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:rZCuihl1vlF7boQHi/iUXQ
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-01-19 06:49:06
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:c6rPINoF/ZP4YzXU1VR+UQ
 
 sub koha_object_class {
     'Koha::Authority::Subfield';

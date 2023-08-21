@@ -22,11 +22,11 @@ use Modern::Perl;
 use DateTime;
 use DateTime::Duration;
 use Koha::Database;
-use Koha::DateUtils qw/dt_from_string/;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Item::Transfer;
 use Koha::Item;
 use Koha::StockRotationStage;
-use Try::Tiny;
+use Try::Tiny qw( catch try );
 
 use base qw(Koha::Object);
 
@@ -116,27 +116,29 @@ Return 1 if this item is ready to be moved on to the next stage in its rota.
 =cut
 
 sub needs_advancing {
-    my ( $self ) = @_;
-    return 0 if $self->item->get_transfer; # intransfer: don't advance.
-    return 1 if $self->fresh;                    # Just on rota: advance.
+    my ($self) = @_;
+    return 0 if $self->item->get_transfer;    # intransfer: don't advance.
+    return 1 if $self->fresh;                 # Just on rota: advance.
     my $completed = $self->item->_result->branchtransfers->search(
         { 'reason' => "StockrotationAdvance" },
         { order_by => { -desc => 'datearrived' } }
     );
+
     # Do maths on whether we need to be moved on.
     if ( $completed->count ) {
-        my $arrival = dt_from_string(
-            $completed->next->datearrived, 'iso'
-        );
-        my $duration = DateTime::Duration
-            ->new( days => $self->stage->duration );
-        if ( $arrival + $duration le dt_from_string() ) {
+        my $arrival  = dt_from_string( $completed->next->datearrived );
+        my $duration = $arrival->delta_days( dt_from_string() );
+        if ( $duration->in_units('days') >= $self->stage->duration ) {
             return 1;
-        } else {
+        }
+        else {
             return 0;
         }
-    } else {
-        warn "We have no historical branch transfer for item " . $self->item->itemnumber . "; This should not have happened!";
+    }
+    else {
+        warn "We have no historical branch transfer for item "
+          . $self->item->itemnumber
+          . "; This should not have happened!";
     }
 }
 

@@ -19,11 +19,12 @@ package Koha::AuthorisedValue;
 
 use Modern::Perl;
 
-use Carp;
-
+use Koha::Caches;
 use Koha::Database;
 
 use base qw(Koha::Object Koha::Object::Limit::Library);
+
+my $cache = Koha::Caches->get_instance();
 
 =head1 NAME
 
@@ -35,6 +36,53 @@ Koha::AuthorisedValue - Koha Authorised value Object class
 
 =cut
 
+=head3 store
+
+AuthorisedValue specific store to ensure relevant caches are flushed on change
+
+=cut
+
+sub store {
+    my ($self) = @_;
+
+    my $flush = 0;
+
+    if ( !$self->in_storage ) {
+        $flush = 1;
+    }
+    else {
+        my %updated_columns = $self->_result->get_dirty_columns;
+
+        if (   exists $updated_columns{lib}
+            or exists $updated_columns{lib_opac} )
+        {
+            $flush = 1;
+        }
+    }
+
+    $self = $self->SUPER::store;
+
+    if ($flush) {
+        my $key = "AV_descriptions:".$self->category;
+        $cache->clear_from_cache($key);
+    }
+
+    return $self;
+}
+
+=head2 delete
+
+AuthorisedValue specific C<delete> to clear relevant caches on delete.
+
+=cut
+
+sub delete {
+    my $self = shift @_;
+    my $key = "AV_descriptions:".$self->category;
+    $cache->clear_from_cache($key);
+    $self->SUPER::delete(@_);
+}
+
 =head3 opac_description
 
 my $description = $av->opac_description();
@@ -45,6 +93,24 @@ sub opac_description {
     my ( $self, $value ) = @_;
 
     return $self->lib_opac() || $self->lib();
+}
+
+=head3 to_api_mapping
+
+This method returns the mapping for representing a Koha::AuthorisedValue object
+on the API.
+
+=cut
+
+sub to_api_mapping {
+    return {
+        id               => 'authorised_value_id',
+        category         => 'category_name',
+        authorised_value => 'value',
+        lib              => 'description',
+        lib_opac         => 'opac_description',
+        imageurl         => 'image_url',
+    };
 }
 
 =head2 Internal methods

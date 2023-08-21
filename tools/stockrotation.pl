@@ -27,16 +27,16 @@
 use Modern::Perl;
 use CGI;
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 
 use Koha::Libraries;
 use Koha::StockRotationRotas;
 use Koha::StockRotationItems;
 use Koha::StockRotationStages;
 use Koha::Item;
-use Koha::Util::StockRotation qw(:ALL);
+use Koha::Util::StockRotation qw( get_branches get_stages move_to_next_stage toggle_indemand remove_from_stage add_items_to_rota get_barcodes_status );
 
 my $input = CGI->new;
 
@@ -192,6 +192,42 @@ if (!defined $op) {
         stage_id => $params{stage_id},
         item_id  => $params{item_id}
     );
+
+} elsif ($op eq 'confirm_delete_rota') {
+
+    # Get the rota we're deleting
+    my $rota = Koha::StockRotationRotas->find($params{rota_id});
+
+    # Get all items on this rota, for each prefetch their
+    # stage and biblio objects
+    my $sritems = Koha::StockRotationItems->search(
+        { 'stage.rota_id' => $params{rota_id} },
+        {
+            prefetch => {
+                stage => {
+                    'stockrotationitems' => {
+                        'itemnumber' => 'biblionumber'
+                    }
+                }
+            }
+        }
+    );
+
+    $template->param(
+        rota_id  => $params{rota_id},
+        sritemstotal  => $sritems->count,
+        op       => $op
+    );
+
+} elsif ($op eq 'delete_rota') {
+
+    # Get the rota we're deleting
+    my $rota = Koha::StockRotationRotas->find($params{rota_id});
+
+    $rota->delete;
+
+    # Return to the rotas list
+    print $input->redirect("/cgi-bin/koha/tools/stockrotation.pl");
 
 } elsif ($op eq 'confirm_delete_stage') {
 

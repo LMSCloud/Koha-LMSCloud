@@ -1,30 +1,30 @@
+[% USE raw %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Course reserves &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <body id="courses_invalid_course" class="course">
 
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Course reserves
-            </a>
-        </li>
-    </ol>
-</nav>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/course_reserves/course-reserves.pl">Course reserves</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Invalid course</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
         <div class="col-md-8 col-md-offset-2">
 
             <div class="dialog alert">
-                <p>Invalid course!</p>
+                <h1>Invalid course!</h1>
             </div>
 
         </div>

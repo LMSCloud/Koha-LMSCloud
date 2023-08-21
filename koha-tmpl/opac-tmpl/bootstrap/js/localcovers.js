@@ -22,7 +22,7 @@ KOHA.LocalCover = {
             var mydiv = this;
             var message = document.createElement("span");
             $(message).attr("class","no-image");
-            $(message).html(NO_LOCAL_JACKET);
+            $(message).html( __("No cover image available") );
             $(mydiv).parent().find('.no-image').remove();
             $(mydiv).append(message);
             var img = $("<img />").attr('src',
@@ -38,13 +38,7 @@ KOHA.LocalCover = {
                         catch(err){
                         };
                     } else if (this.width > 1) { // don't show the silly 1px "no image" img
-                        if (uselink) {
-                            var a = $("<a />").attr('href', '/cgi-bin/koha/opac-imageviewer.pl?biblionumber=' + $(mydiv).attr("class"));
-                            $(a).append(img);
-                            $(mydiv).empty().append(a);
-                        } else {
-                            $(mydiv).empty().append(img);
-                        }
+                        $(mydiv).empty().append(img);
                         $(mydiv).children('.no-image').remove();
                     }
                 })
@@ -57,7 +51,7 @@ KOHA.LocalCover = {
             var imagenumber  = $(mydiv).data("imagenumber");
             var biblionumber = $(mydiv).data("biblionumber");
             $(message).attr("class","no-image");
-            $(message).html(NO_LOCAL_JACKET);
+            $(message).html( __("No cover image available") );
             $(mydiv).parent().find('.no-image').remove();
             $(mydiv).append(message);
             var img = $("<img />").attr('src',

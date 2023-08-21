@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Price %]
@@ -13,25 +14,23 @@
 </head>
 
 <body id="rep_aggregated_statistics" class="rep">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
-        </li>
-        <li>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=[% statisticstype %]">Aggregated statistics</a>
-        </li>
-        <li>
-            VG WORT Export
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>VG WORT Export</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -39,18 +38,21 @@
             <main>
 
                 <h1>[% statisticstypedesignation %] [% name %]</h1>
-
-                <h4>Report period: [% startdate | $KohaDates %] - [% enddate | $KohaDates %]</h4>
-                <h4>Library group:[% IF ( selectedgroup == "*" ) %] All library groups[% ELSE %] [% selectedgroupname %][% END %]</h4>
-                <h4>Library:[% IF ( selectedbranch == "*" ) %] All libraries[% ELSE %] [% selectedbranchname %][% END %]</h4>
+                
+                <div class="page-section">
+                    <h4>Report period: [% startdate | $KohaDates %] - [% enddate | $KohaDates %]</h4>
+                    <h4>Library group:[% IF ( selectedgroup == "*" ) %] All library groups[% ELSE %] [% selectedgroupname %][% END %]</h4>
+                    <h4>Library:[% IF ( selectedbranch == "*" ) %] All libraries[% ELSE %] [% selectedbranchname %][% END %]</h4>
+                </div>
                 
                 <br>
-                <div id="toolbar" class="btn-toolbar">
-                    <div class="btn-group">
-                        <a href="/cgi-bin/koha/svc/vgwort_export?aggregatedStatisticsId=[% id %]" class="btn btn-default btn-xs" download><i class="fa fa-download"></i> Download</a>
-                    </div>
-                </div>
-                <div class="dialog message" style="width: 100%">
+                <form method="post" action="/cgi-bin/koha/svc/vgwort_export">
+                    <input type="hidden" name="aggregatedStatisticsId" value="[% id %]" />
+                    <button type="submit" name="save_anyway" value="Save anyway" class="btn btn-default btn-primary"><i class="fa fa-download"></i> Download</button>
+                    <!-- <a href="/cgi-bin/koha/svc/vgwort_export?aggregatedStatisticsId=[% id %]" class="btn btn-default btn-xs btn-primary" download><i class="fa fa-download"></i> Download</a>-->
+                </form>
+                
+                <div class="dialog message" style="width: 100%; margin-top:2em; margin-bottom:1em; margin-left: 0em; margin-right: 0em;">
                      <div class="row">
                         <div class="col-sm-1">
                             <i class="fa fa-exclamation-triangle" aria-hidden="true" style="font-size: x-large; color: darkblue"></i>
@@ -66,38 +68,43 @@
                 
                 <h2>Overview</h2>
                 
-                <div>The following figures show the amount of data to be contained in export file.</div>
-                <br>
-                    
-                [% FOREACH yearstat IN exportData %]
-                    <table>
-                        <thead>
-                            <tr>
-                                <th colspan="4">Year [% yearstat.year %]</th>
-                            </tr>
-                            <tr>
-                                <th>VG WORT media type</th>
-                                <th>Count titles</th>
-                                <th>Count issues (issues + renewals)</th>
-                                <th>Koha media types</th>
-                            </tr>
-                        </thead>
-                        [% FOREACH stat IN yearstat.stats %]
-                            <tbody>
-                                <tr>
-                                    <td>[% stat.mediaType %]</td>
-                                    <td>[% stat.count %]</td>
-                                    <td>[% stat.isscount %]</td>
-                                    <td>
-                                        [% FOR itype IN stat.itypes %]
-                                            [% ItemTypes.GetDescription(itype) %] ([% stat.itypeCount.$itype %] titles)<br>
-                                        [% END %]
-                                    </td>
-                                </tr>
-                            </tbody>
+                <div class="page-section">
+                    [% IF (exportData.size == 0) %]
+                        The export file will not contain data.
+                    [% ELSE %]
+                        <div>The following figures show the amount of data to be contained in export file.</div>
+                        <br>
+                        [% FOREACH yearstat IN exportData %]
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th colspan="4">Year [% yearstat.year %]</th>
+                                    </tr>
+                                    <tr>
+                                        <th>VG WORT media type</th>
+                                        <th>Count titles</th>
+                                        <th>Count issues (issues + renewals)</th>
+                                        <th>Koha media types</th>
+                                    </tr>
+                                </thead>
+                                [% FOREACH stat IN yearstat.stats %]
+                                    <tbody>
+                                        <tr>
+                                            <td>[% stat.mediaType %]</td>
+                                            <td>[% stat.count %]</td>
+                                            <td>[% stat.isscount %]</td>
+                                            <td>
+                                                [% FOR itype IN stat.itypes %]
+                                                    [% ItemTypes.GetDescription(itype) %] ([% stat.itypeCount.$itype %] titles)<br>
+                                                [% END %]
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                [% END %]
+                            </table>
                         [% END %]
-                    </table>
-                [% END %]
+                    [% END %]
+                </div>
             </main>
         </div> <!-- /.col-sm-10.col-sm-push-2 -->
 

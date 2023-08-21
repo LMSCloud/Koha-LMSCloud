@@ -8,11 +8,11 @@
     <div class="dialog [% m.type | html %]">
         [% SWITCH m.code %]
         [% CASE 'unauthorized' %]
-            You do not have permission to view this list.
+            <span>You do not have permission to view this list.</span>
         [% CASE 'does_not_exist' %]
-            This list does not exist.
+            <span>This list does not exist.</span>
         [% CASE %]
-            [% m.code | html %]
+            <span>[% m.code | html %]</span>
         [% END %]
     </div>
 [% END %]
@@ -25,7 +25,7 @@
 <div id="export" class="detailtagcell">    <form method="post" action="/cgi-bin/koha/virtualshelves/downloadshelf.pl">
 <form method="post" action="/cgi-bin/koha/virtualshelves/downloadshelf.pl">
 	<fieldset class="rows">
-    <legend>Download list</legend>
+        <legend><h1>Download list</h1></legend>
 	<ol><li>
     <label for="format">Format: </label>
         <select name="format" id="format">
@@ -40,8 +40,8 @@
 	</li></ol>
 	</fieldset>
 	<fieldset class="action"><input type="hidden" name="shelfid" value="[% shelfid | html %]" />
-	<input type="submit" name="save" value="Save" />  <a class="cancel close" href="#">Cancel</a>
-	</fieldset>
+    <input type="submit" name="save" class="btn btn-primary" value="Save" />  <a class="cancel close" href="#">Cancel</a>
+    </fieldset>
     </form>
 
 [% END %]

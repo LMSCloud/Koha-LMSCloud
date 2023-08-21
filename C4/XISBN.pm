@@ -1,4 +1,5 @@
 package C4::XISBN;
+
 # Copyright (C) 2007 LibLime
 # Joshua Ferraro <jmf@liblime.com>
 #
@@ -19,26 +20,24 @@ package C4::XISBN;
 
 use Modern::Perl;
 use XML::Simple;
-#use LWP::Simple;
-use C4::Biblio;
-use C4::Koha;
-use C4::Search;
-use C4::External::Syndetics qw(get_syndetics_editions);
+
+use C4::Biblio qw(TransformMarcToKoha);
+use C4::Koha qw( GetNormalizedISBN );
+use C4::Search qw( new_record_from_zebra );
+use C4::External::Syndetics qw( get_syndetics_editions );
 use LWP::UserAgent;
-use HTTP::Request::Common;
 
 use Koha::Biblios;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
 
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-
+our (@ISA, @EXPORT_OK);
 BEGIN {
-	require Exporter;
-	@ISA = qw(Exporter);
-	@EXPORT_OK = qw(
-		&get_xisbns
-	);
+    require Exporter;
+    @ISA       = qw(Exporter);
+    @EXPORT_OK = qw(
+      get_xisbns
+    );
 }
 
 =head1 NAME
@@ -60,7 +59,10 @@ sub _get_biblio_from_xisbn {
     return unless ( !$errors && scalar @$results );
 
     my $record = C4::Search::new_record_from_zebra( 'biblioserver', $results->[0] );
-    my $biblionumber = C4::Biblio::TransformMarcToKohaOneField( 'biblio.biblionumber', $record );
+    my $biblionumber = C4::Biblio::TransformMarcToKoha({
+        kohafields => ['biblio.biblionumber'],
+        record => $record
+    })->{biblionumber};
     return unless $biblionumber;
 
     my $biblio = Koha::Biblios->find( $biblionumber );

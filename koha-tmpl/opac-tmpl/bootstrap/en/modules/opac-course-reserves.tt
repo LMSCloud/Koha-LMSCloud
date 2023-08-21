@@ -3,6 +3,7 @@
 [% USE Koha %]
 [% USE AuthorisedValues %]
 [% USE TablesSettings %]
+[% PROCESS 'i18n.inc' %]
 
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Courses &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
@@ -16,16 +17,16 @@
 [% INCLUDE 'masthead.inc' %]
 
 <div class="main">
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
+    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
+        <ol class="breadcrumb">
             <li class="breadcrumb-item">
                 <a href="/cgi-bin/koha/opac-main.pl">Home</a>
             </li>
-            <li class="breadcrumb-item" aria-current="page">
-                <a href="#">Course reserves</a>
+            <li class="breadcrumb-item active">
+                <a href="#" aria-current="page">Course reserves</a>
             </li>
-        </ul>
-    </nav>
+        </ol>
+    </nav> <!-- /#breadcrumbs -->
 
     <div class="container-fluid">
         <div class="row">
@@ -41,7 +42,7 @@
                                 <th>Dept.</th>
                                 <th>Course #</th>
                                 <th>Section</th>
-                                <th>Term</th>
+                                <th>[% tp('Semester', 'Term') | html %]</th>
                                 <th>Instructors</th>
                                 <th>Notes</th>
                             </tr>

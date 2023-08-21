@@ -20,12 +20,11 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
-use C4::Members;
-use C4::Suggestions;
+use C4::Output qw( output_and_exit_if_error output_and_exit output_html_with_http_headers );
 use Koha::Patrons;
+use Koha::Suggestions;
 
 my $input = CGI->new;
 
@@ -34,7 +33,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { suggestions => 'suggestions_manage' },
-        debug           => 1,
     }
 );
 
@@ -50,7 +48,10 @@ $template->param(
     suggestionsview  => 1,
 );
 
-my $suggestions = SearchSuggestion( { suggestedby => $borrowernumber } );
+my $suggestions = [
+    Koha::Suggestions->search_limited( { suggestedby => $borrowernumber },
+        { prefetch => 'managedby' } )->as_list
+];
 
 $template->param( suggestions => $suggestions );
 

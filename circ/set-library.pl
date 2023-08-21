@@ -85,7 +85,7 @@ if ( $branch and my $library = Koha::Libraries->find($branch) ) {
             old_desk => $old_desk_name,
         };
     }
-    if ( defined($userenv_register_id)
+    if ( defined($register_id)
         && ( $userenv_register_id ne $register_id ) )
     {
         my $old_register_name = C4::Context->userenv->{'register_name'} || '';
@@ -120,7 +120,7 @@ if ( C4::Context->preference('BookMobileSupportEnabled') and
 ########################################
 if ( C4::Context->preference('BookMobileSupportEnabled') ) {
 
-    my @search_groups = Koha::Library::Groups->get_search_groups( { interface => 'staff' } );
+    my @search_groups = Koha::Library::Groups->get_search_groups( { interface => 'staff' } )->as_list;
     @search_groups = sort { $a->title cmp $b->title } @search_groups;
 
     $branchcategory = $userenv_branchcategory || '*' if ( !defined($branchcategory) || $branchcategory eq '' );
@@ -149,7 +149,7 @@ foreach ($query->param()) {
       };
 }
 
-my $referer =  $query->param('oldreferer') || $ENV{HTTP_REFERER};
+my $referer =  $query->param('oldreferer') || $ENV{HTTP_REFERER} || '';
 $referer =~ /set-library\.pl/ and undef $referer;   # avoid sending them back to this same page.
 
 if (scalar @updated and not scalar @recycle_loop) {

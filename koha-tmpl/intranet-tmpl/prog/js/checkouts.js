@@ -1,8 +1,6 @@
 /* global __ */
 
 $(document).ready(function() {
-    $.ajaxSetup ({ cache: false });
-
     var barcodefield = $("#barcode");
 
     var onHoldDueDateSet = false;
@@ -233,7 +231,7 @@ $(document).ready(function() {
         return false;
     });
 
-    var ymd = $.datepicker.formatDate('yy-mm-dd', new Date());
+    var ymd = flatpickr.formatDate(new Date(), "Y-m-d");
 
     $('#issues-table').hide();
     $('#issues-table-actions').hide();
@@ -258,7 +256,7 @@ $(document).ready(function() {
         $('#issues-table-load-immediately').prop('checked', true);
     }
     $('#issues-table-load-immediately').on( "change", function(){
-        Cookies.set("issues-table-load-immediately-" + script, $(this).is(':checked'), { expires: 365 });
+        Cookies.set("issues-table-load-immediately-" + script, $(this).is(':checked'), { expires: 365, sameSite: 'Lax'  });
     });
 
     function RefreshIssuesTable() {
@@ -278,7 +276,7 @@ $(document).ready(function() {
                 "sProcessing": msg_loading,
             },
             "bAutoWidth": false,
-            "dom": 'B<"clearfix">rt',
+            "dom": '<"table_controls"B>rt',
             "aoColumns": [
                 {
                     "mDataProp": function( oObj ) {
@@ -337,7 +335,7 @@ $(document).ready(function() {
                         title += " " + oObj.part_number + " " + oObj.part_name;
 
                         if ( oObj.enumchron ) {
-                            title += " (" + oObj.enumchron.escapeHtml() + ")";
+                            title += " <span class='item_enumeration'>(" + oObj.enumchron.escapeHtml() + ")</span>";
                         }
 
                         title += "</a></span>";
@@ -348,7 +346,7 @@ $(document).ready(function() {
 
                         if ( oObj.itemnotes ) {
                             var span_class = "text-muted";
-                            if ( $.datepicker.formatDate('yy-mm-dd', new Date(oObj.issuedate) ) == ymd ) {
+                            if ( flatpickr.formatDate( new Date(oObj.issuedate), "Y-m-d" ) == ymd ){
                                 span_class = "circ-hlt";
                             }
                             title += " - <span class='" + span_class + " item-note-public'>" + oObj.itemnotes.escapeHtml() + "</span>";
@@ -356,7 +354,7 @@ $(document).ready(function() {
 
                         if ( oObj.itemnotes_nonpublic ) {
                             var span_class = "text-danger";
-                            if ( $.datepicker.formatDate('yy-mm-dd', new Date(oObj.issuedate) ) == ymd ) {
+                            if ( flatpickr.formatDate( new Date(oObj.issuedate), "Y-m-d" ) == ymd ){
                                 span_class = "circ-hlt";
                             }
                             title += " - <span class='" + span_class + " item-note-nonpublic'>" + oObj.itemnotes_nonpublic.escapeHtml() + "</span>";
@@ -365,6 +363,10 @@ $(document).ready(function() {
                         var onsite_checkout = '';
                         if ( oObj.onsite_checkout == 1 ) {
                             onsite_checkout += " <span class='onsite_checkout'>(" + __("On-site checkout") + ")</span>";
+                        }
+
+                        if ( oObj.recalled == 1 ) {
+                             title += " - <span class='circ-hlt item-recalled'>" +  __("This item has been recalled and the due date updated") + ".</span>";
                         }
 
                         title += " "
@@ -434,20 +436,23 @@ $(document).ready(function() {
                 {
                     "mDataProp": function ( oObj ) {
                         if ( ! oObj.charge ) oObj.charge = 0;
-                        return '<span style="text-align: right; display: block;">' + parseFloat(oObj.charge).toFixed(2) + '<span>';
-                    }
+                        return '<span style="text-align: right; display: block;">' + parseFloat(oObj.charge).format_price() + '<span>';
+                    },
+                    "sClass": "nowrap"
                 },
                 {
                     "mDataProp": function ( oObj ) {
                         if ( ! oObj.fine ) oObj.fine = 0;
-                        return '<span style="text-align: right; display: block;">' + parseFloat(oObj.fine).toFixed(2)  + '<span>';
-                    }
+                        return '<span style="text-align: right; display: block;">' + parseFloat(oObj.fine).format_price()   + '<span>';
+                    },
+                    "sClass": "nowrap"
                 },
                 {
                     "mDataProp": function ( oObj ) {
                         if ( ! oObj.price ) oObj.price = 0;
-                        return '<span style="text-align: right; display: block;">' + parseFloat(oObj.price).toFixed(2) + '<span>';
-                    }
+                        return '<span style="text-align: right; display: block;">' + parseFloat(oObj.price).format_price()  + '<span>';
+                    },
+                    "sClass": "nowrap"
                 },
                 {
                     "bSortable": false,
@@ -460,6 +465,13 @@ $(document).ready(function() {
 
                         if ( oObj.can_renew ) {
                             // Do nothing
+                        } else if ( oObj.can_renew_error == "recalled" ) {
+                            msg += "<span>"
+                                    + "<a href='/cgi-bin/koha/recalls/request.pl?biblionumber=" + oObj.biblionumber + "'>" + __("Recalled") + "</a>"
+                                    + "</span>";
+
+                            span_style = "display: none";
+                            span_class = "renewals-allowed-recalled";
                         } else if ( oObj.can_renew_error == "on_reserve" ) {
                             msg += "<span>"
                                     +"<a href='/cgi-bin/koha/reserve/request.pl?biblionumber=" + oObj.biblionumber + "'>" + __("On hold") + "</a>"
@@ -475,11 +487,9 @@ $(document).ready(function() {
                             span_style = "display: none";
                             span_class = "renewals-allowed";
                         } else if ( oObj.can_renew_error == "too_unseen" ) {
-                            msg += "<span class='renewals-disabled'>"
+                            msg += "<span>"
                                     + __("Must be renewed at the library")
                                     + "</span>";
-
-                            span_style = "display: none";
                             span_class = "renewals-allowed";
                         } else if ( oObj.can_renew_error == "restriction" ) {
                             msg += "<span class='renewals-disabled'>"
@@ -558,7 +568,7 @@ $(document).ready(function() {
                         var can_force_renew = ( oObj.onsite_checkout == 0 ) &&
                             ( oObj.can_renew_error != "on_reserve" || (oObj.can_renew_error == "on_reserve" && AllowRenewalOnHoldOverride))
                             ? true : false;
-                        var can_renew = ( oObj.renewals_remaining > 0  && !oObj.can_renew_error );
+                        var can_renew = ( oObj.renewals_remaining > 0 && ( !oObj.can_renew_error || oObj.can_renew_error == "too_unseen" ));
                         content += "<span>";
                         if ( can_renew || can_force_renew ) {
                             content += "<span style='padding: 0 1em;'>" + oObj.renewals_count + "</span>";
@@ -575,10 +585,10 @@ $(document).ready(function() {
                         }
                         content += msg;
                         if ( can_renew || can_force_renew ) {
-                            content += "<span class='renewals'>(";
+                            content += "<span class='renewals-info'>(";
                             content += __("%s of %s renewals remaining").format(oObj.renewals_remaining, oObj.renewals_allowed);
                             if (UnseenRenewals && oObj.unseen_allowed) {
-                                content += __("%s of %s unseen renewals remaining").format(oObj.unseen_remaining, oObj.unseen_allowed);
+                                content += __(" and %s of %s unseen renewals remaining").format(oObj.unseen_remaining, oObj.unseen_allowed);
                             }
                             content += ")</span>";
                         }
@@ -590,7 +600,9 @@ $(document).ready(function() {
                     "bSortable": false,
                     "bVisible": AllowCirculate ? true : false,
                     "mDataProp": function ( oObj ) {
-                        if ( oObj.can_renew_error == "on_reserve" ) {
+                        if ( oObj.can_renew_error == "recalled" ) {
+                            return "<a href='/cgi-bin/koha/recalls/request.pl?biblionumber=" + oObj.biblionumber + "'>" + __("Recalled") + "</a>";
+                        } else if ( oObj.can_renew_error == "on_reserve" ) {
                             return "<a href='/cgi-bin/koha/reserve/request.pl?biblionumber=" + oObj.biblionumber + "'>" + __("On hold") + "</a>";
                         } else if ( oObj.materials ) {
                             return "<input type='checkbox' class='confirm' id='confirm_" + oObj.itemnumber + "' name='confirm' value='" + oObj.itemnumber + "' data-materials='" + oObj.materials.escapeHtml() + "'></input>";
@@ -635,9 +647,9 @@ $(document).ready(function() {
                     total_fine += aaData[i]['fine'] * 1;
                     total_price  += aaData[i]['price'] * 1;
                 }
-                $("#totaldue").html(total_charge.toFixed(2));
-                $("#totalfine").html(total_fine.toFixed(2));
-                $("#totalprice").html(total_price.toFixed(2));
+                $("#totaldue").html(total_charge.format_price() );
+                $("#totalfine").html(total_fine.format_price() );
+                $("#totalprice").html(total_price.format_price() );
             },
             "bPaginate": false,
             "bProcessing": true,
@@ -679,7 +691,7 @@ $(document).ready(function() {
                     .append(ul)
                     .insertBefore(oSettings.nTableWrapper)
             },
-        }, columns_settings_issues_table);
+        }, table_settings_issues_table);
 
         if ( $("#issues-table").length ) {
             $("#issues-table_processing").position({
@@ -796,9 +808,9 @@ $(document).ready(function() {
     var relativesIssuesTable;
     $("#relatives-issues-tab").click( function() {
         if ( ! relativesIssuesTable ) {
-            relativesIssuesTable = $("#relatives-issues-table").dataTable($.extend(true, {}, dataTablesDefaults, {
+            relativesIssuesTable = KohaTable("relatives-issues-table", {
                 "bAutoWidth": false,
-                "sDom": "rt",
+                "dom": '<"table_controls"B>rt',
                 "aaSorting": [],
                 "aoColumns": [
                     {
@@ -842,7 +854,7 @@ $(document).ready(function() {
 
                             if ( oObj.itemnotes ) {
                                 var span_class = "";
-                                if ( $.datepicker.formatDate('yy-mm-dd', new Date(oObj.issuedate) ) == ymd ) {
+                                if ( flatpickr.formatDate( new Date(oObj.issuedate), "Y-m-d" ) == ymd ){
                                     span_class = "circ-hlt";
                                 }
                                 title += " - <span class='" + span_class + "'>" + oObj.itemnotes.escapeHtml() + "</span>"
@@ -850,7 +862,7 @@ $(document).ready(function() {
 
                             if ( oObj.itemnotes_nonpublic ) {
                                 var span_class = "";
-                                if ( $.datepicker.formatDate('yy-mm-dd', new Date(oObj.issuedate) ) == ymd ) {
+                                if ( flatpickr.formatDate( new Date(oObj.issuedate), "Y-m-d" ) == ymd ){
                                     span_class = "circ-hlt";
                                 }
                                 title += " - <span class='" + span_class + "'>" + oObj.itemnotes_nonpublic.escapeHtml() + "</span>"
@@ -961,7 +973,7 @@ $(document).ready(function() {
                         fnCallback(json);
                     } );
                 },
-            }));
+            }, table_settings_relatives_issues_table);
         }
     });
 
@@ -990,55 +1002,11 @@ $(document).ready(function() {
         } ).prop('checked', false);
     }
 
-    // Handle return claims
-    $(document).on("click", '.claim-returned-btn', function(e){
-        e.preventDefault();
-        itemnumber = $(this).data('itemnumber');
-
-        $('#claims-returned-itemnumber').val(itemnumber);
-        $('#claims-returned-notes').val("");
-        $('#claims-returned-charge-lost-fee').attr('checked', false)
-        $('#claims-returned-modal').modal()
+    // Refresh after return claim
+    $('body').on('refreshClaimModal', function () {
+        refreshReturnClaimsTable();
+        issuesTable.api().ajax.reload();
     });
-    $(document).on("click", '#claims-returned-modal-btn-submit', function(e){
-        let itemnumber = $('#claims-returned-itemnumber').val();
-        let notes = $('#claims-returned-notes').val();
-        let fee = $('#claims-returned-charge-lost-fee').attr('checked') ? true : false;
-
-        $('#claims-returned-modal').modal('hide')
-
-        $('.claim-returned-btn[data-itemnumber="' + itemnumber + '"]').replaceWith('<img id="return_claim_spinner_' + itemnumber + ' src=' + interface + '/' + theme + '/img/spinner-small.gif />');
-
-        params = {
-            item_id: itemnumber,
-            notes: notes,
-            charge_lost_fee: fee,
-            created_by: logged_in_user_borrowernumber,
-        };
-
-        $.post( '/api/v1/return_claims', JSON.stringify(params), function( data ) {
-
-            id = "#return_claim_spinner_" + data.item_id;
-
-            let created_on = new Date(data.created_on);
-
-            let content = "";
-            if ( data.claim_id ) {
-                content = '<span class="badge">' + created_on.toLocaleDateString() + '</span>';
-                $(id).parent().parent().addClass('ok');
-            } else {
-                content = __("Unable to claim as returned");
-                $(id).parent().parent().addClass('warn');
-            }
-
-            $(id).replaceWith( content );
-
-            refreshReturnClaimsTable();
-            issuesTable.api().ajax.reload();
-        }, "json")
-
-    });
-
 
     // Don't load return claims table unless it is clicked on
     var returnClaimsTable;
@@ -1099,8 +1067,13 @@ $(document).ready(function() {
                     {
                         "sClass": "return-claim-notes-td",
                         "mDataProp": function ( oObj ) {
-                            return '<span id="return-claim-notes-static-' + oObj.id + '" class="return-claim-notes" data-return-claim-id="' + oObj.id + '">' + oObj.notes + '</span>'
-                                + '<i style="float:right" class="fa fa-pencil-square-o" title="' + __("Double click to edit") + '"></i>';
+                            let notes =  '<span id="return-claim-notes-static-' + oObj.id + '" class="return-claim-notes" data-return-claim-id="' + oObj.id + '">';
+                            if ( oObj.notes ) {
+                                notes += oObj.notes;
+                            }
+                            notes += '</span>';
+                            notes += '<i style="float:right" class="fa fa-pencil-square-o" title="' + __("Double click to edit") + '"></i>';
+                            return notes;
                         }
                     },
                     {
@@ -1287,46 +1260,18 @@ $(document).ready(function() {
         }
     });
 
-    // Handle return claim resolution
-    $('body').on('click', '.return-claim-tools-resolve', function() {
-        let id = $(this).data('return-claim-id');
-        let current_lost_status = $(this).data('current-lost-status');
-
-        $('#claims-returned-resolved-modal-id').val(id);
-        $("#new_lost_status").val(current_lost_status);
-        let selected_option = $("#new_lost_status option:selected");
-        $(selected_option).text(_("%s (current status)").format($(selected_option).text()));
-        $('#claims-returned-resolved-modal').modal()
+    $("#show_all_claims").on("click", function(e){
+        e.preventDefault();
+        $(".ctrl_link").removeClass("disabled");
+        $(this).addClass("disabled");
+        $("#return-claims-table").DataTable().search("").draw();
     });
 
-    $(document).on('click', '#claims-returned-resolved-modal-btn-submit', function(e) {
-        let resolution = $('#claims-returned-resolved-modal-resolved-code').val();
-        let new_lost_status = $('#new_lost_status').val();
-        let id = $('#claims-returned-resolved-modal-id').val();
-
-        $('#claims-returned-resolved-modal-btn-submit-spinner').show();
-        $('#claims-returned-resolved-modal-btn-submit-icon').hide();
-
-        params = {
-            resolution: resolution,
-            resolved_by: logged_in_user_borrowernumber,
-            new_lost_status: new_lost_status
-        };
-
-        $.ajax({
-            url: '/api/v1/return_claims/' + id + '/resolve',
-            type: 'PUT',
-            data: JSON.stringify(params),
-            success: function( data ) {
-                $('#claims-returned-resolved-modal-btn-submit-spinner').hide();
-                $('#claims-returned-resolved-modal-btn-submit-icon').show();
-                $('#claims-returned-resolved-modal').modal('hide')
-
-                refreshReturnClaimsTable();
-            },
-            contentType: "json"
-        });
-
+    $("#show_unresolved_claims").on("click", function (e) {
+        e.preventDefault();
+        $(".ctrl_link").removeClass("disabled");
+        $(this).addClass("disabled");
+        $("#return-claims-table").DataTable().search("is_unresolved").draw();
     });
 
     $("#show_all_claims").on("click", function(e){

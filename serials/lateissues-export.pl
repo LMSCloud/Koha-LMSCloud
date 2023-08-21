@@ -18,8 +18,7 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Auth;
-use C4::Serials;
-use C4::Acquisition;
+use C4::Serials qw( GetLateOrMissingIssues updateClaim );
 use C4::Output;
 use C4::Context;
 
@@ -36,10 +35,13 @@ my $csv_profile_id = $query->param('csv_profile');
 my $csv_profile = Koha::CsvProfiles->find( $csv_profile_id );
 die "There is no valid csv profile given" unless $csv_profile;
 
+my $delimiter = $csv_profile->csv_separator;
+$delimiter = "\t" if $delimiter eq "\\t";
+
 my $csv = Text::CSV_XS->new({
     'quote_char'  => '"',
     'escape_char' => '"',
-    'sep_char'    => $csv_profile->csv_separator,
+    'sep_char'    => $delimiter,
     'binary'      => 1
 });
 
@@ -81,7 +83,7 @@ print $query->header(
     -attachment => "serials-claims.csv",
 );
 
-print join( $csv_profile->csv_separator, @headers ) . "\n";
+print join( $delimiter, @headers ) . "\n";
 
 for my $row ( @rows ) {
     $csv->combine(@$row);

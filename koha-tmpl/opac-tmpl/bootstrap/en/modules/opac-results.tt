@@ -3,12 +3,9 @@
 [% USE Koha %]
 [% SET TagsShowEnabled = ( ( Koha.Preference( 'TagsEnabled' ) == 1 ) && TagsShowOnList ) %]
 [% SET TagsInputEnabled = ( ( Koha.Preference( 'opacuserlogin' ) == 1 ) && ( Koha.Preference( 'TagsEnabled' ) == 1 ) && TagsInputOnList ) %]
-[% SET AdlibrisEnabled = Koha.Preference('AdlibrisCoversEnabled') %]
-[% SET AdlibrisURL = Koha.Preference('AdlibrisCoversURL') %]
 
 [% IF firstPage %]
      [% SET OverDriveEnabled = Koha.Preference('OverDriveLibraryID') && Koha.Preference('OverDriveClientKey') && Koha.Preference('OverDriveClientSecret') %]
-     [% SET RecordedBooksEnabled = Koha.Preference('RecordedBooksLibraryID') && Koha.Preference('RecordedBooksClientSecret') %]
 [% END %]
 
 [% INCLUDE 'doc-head-open.inc' %]
@@ -34,8 +31,8 @@
 [% INCLUDE 'masthead.inc' %]
 
     <div class="main">
-        <nav aria-label="breadcrumb">
-            <ul class="breadcrumb">
+        <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
+            <ol class="breadcrumb">
                 <li class="breadcrumb-item">
                     <a href="/cgi-bin/koha/opac-main.pl">Home</a>
                 </li>
@@ -45,20 +42,20 @@
                             <a href="[% ReturnPath | url %]">Advanced search</a>
                         </li>
                     [% END %]
-                    <li class="breadcrumb-item active" aria-current="page">
+                    <li class="breadcrumb-item active">
                         [% IF ( ms_value ) %]
-                            <a href="#" title="You searched [% IF ( query_desc ) %] for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %] with limit(s): '[% limit_desc | html %]'[% END %]">Results of search for '[% ms_value | html %]'</a>
+                            <a href="#" aria-current="page" title="You searched [% IF ( query_desc ) %] for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %] with limit(s): '[% limit_desc | html %]'[% END %]">Results of search for '[% ms_value | html %]'</a>
                         [% ELSE %]
-                            <a href="#" title="You searched [% IF ( query_desc ) %] for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %] with limit(s): '[% limit_desc | html %]'[% END %]">Search results</a>
+                            <a href="#" aria-current="page" title="You searched [% IF ( query_desc ) %] for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %] with limit(s): '[% limit_desc | html %]'[% END %]">Search results</a>
                         [% END %]
                     </li>
                 [% ELSE %]
-                    <li class="breadcrumb-item active" aria-current="page">
-                        <a href="#">You did not specify any search criteria</a>
+                    <li class="breadcrumb-item active">
+                        <a href="#" aria-current="page">You did not specify any search criteria</a>
                     </li>
                 [% END %]
-            </ul>
-        </nav>
+            </ol>
+        </nav> <!-- /#breadcrumbs -->
 
         [% UNLESS ( total ) %]
             <div class="container-fluid">
@@ -119,9 +116,9 @@
                    [% END %]
                 [% ELSE %]
                     [% IF ( opacfacets ) %]
-                        <div class="col-lg-9 order-lg-2">
+                        <div class="col-lg-9 order-lg-2 maincontent">
                     [% ELSE %]
-                        <div class="col order-lg-2">
+                        <div class="col order-lg-2 maincontent">
                     [% END %]
                 [% END %]
 
@@ -215,9 +212,9 @@
                                                     <select id="results_per_page" name="count">
                                                         [% IF Koha.Preference('OPACnumSearchResults') %]
                                                             [% IF results_per_page == Koha.Preference('OPACnumSearchResults') %]
-                                                                <option value="[% Koha.Preference('OPACnumSearchResults') | html %]" selected="selected">Library default: [% Koha.Preference('OPACnumSearchResults') | html %]</option>
+                                                                <option value="[% Koha.Preference('OPACnumSearchResults') | html %]" selected="selected">[% Koha.Preference('OPACnumSearchResults') | html %] (default)</option>
                                                             [% ELSE %]
-                                                                <option value="[% Koha.Preference('OPACnumSearchResults') | html %]">Library default: [% Koha.Preference('OPACnumSearchResults') | html %]</option>
+                                                                <option value="[% Koha.Preference('OPACnumSearchResults') | html %]">[% Koha.Preference('OPACnumSearchResults') | html %] (default)</option>
                                                             [% END %]
                                                         [% END %]
                                                         [% IF results_per_page == '20' %]<option value="20" selected="selected">20</option>[% ELSE %]<option value="20">20</option>[% END %]
@@ -307,7 +304,8 @@
                                                     <input type="submit" class="btn btn-sm btn-primary" value="Save" />
                                                 </span>
                                             [% END # /IF opacbookbag || virtualshelves %]
-                                            [% IF ( ( Koha.Preference( 'RequestOnOpac' ) == 1 ) && ( Koha.Preference( 'opacuserlogin' ) == 1 ) && DisplayMultiPlaceHold ) %]
+
+                                            [% IF ( ( Koha.Preference( 'OPACHoldRequests' ) == 1 ) && ( Koha.Preference( 'opacuserlogin' ) == 1 ) && DisplayMultiPlaceHold ) %]
                                                 <button class="btn btn-link btn-sm hold disabled" type="button">
                                                     <i class="fa fa-fw fa-bookmark" aria-hidden="true"></i> Place hold
                                                 </button>
@@ -355,12 +353,12 @@
                                                     [% IF Koha.Preference( 'virtualshelves' ) == 1 %]
                                                         <input type="checkbox" class="cb" id="bib[% SEARCH_RESULT.biblionumber | html %]" name="biblionumber" value="[% SEARCH_RESULT.biblionumber | html %]" aria-label="Select search result: [% check_title | html %]"/> <label for="bib[% SEARCH_RESULT.biblionumber | html %]"></label>
                                                     [% ELSE %]
-                                                        [% IF Koha.Preference( 'RequestOnOpac' ) == 1 %]
+                                                        [% IF Koha.Preference( 'OPACHoldRequests' ) == 1 %]
                                                             [% UNLESS ( SEARCH_RESULT.norequests ) %]
                                                                 [% IF Koha.Preference( 'opacuserlogin' ) == 1 %]<input type="checkbox" class="cb" id="bib[% SEARCH_RESULT.biblionumber | html %]" name="biblionumber" value="[% SEARCH_RESULT.biblionumber | html %]" aria-label="Select search result: [% check_title | html %]"/> <label for="bib[% SEARCH_RESULT.biblionumber | html %]"></label>
                                                                 [% END %]
                                                             [% END %]
-                                                        [% END # IF RequestOnOpac %]
+                                                        [% END # IF OPACHoldRequests %]
                                                     [% END # IF virtualshelves %]
                                                 [% END # IF opacbookbag%]
                                             </td>
@@ -398,13 +396,6 @@
                                                             <span title="[% img_title | html %]" class="[% SEARCH_RESULT.biblionumber | html %]" id="local-thumbnail[% loop.count | html %]"></span>
                                                         [% END %]
 
-                                                        [% IF ( AdlibrisEnabled && SEARCH_RESULT.normalized_isbn ) %]
-                                                            <span title="[% img_title | html %]" id="adlibris-thumbnail[% loop.count | html %]">
-                                                                <img src="[% AdlibrisURL | html %]?isbn=[% SEARCH_RESULT.normalized_isbn | html %]"
-                                                                     alt="Adlibris thumbnail for ISBN: [% SEARCH_RESULT.normalized_isbn | html %]" class="adlibris-cover" />
-                                                            </span>
-                                                        [% END %]
-
                                                         [% IF ( SEARCH_RESULT.titlecoverurls && (Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled')) ) %]
                                                             [% FOREACH myurl IN SEARCH_RESULT.titlecoverurls %] 
                                                                 <img src="[% myurl %]" class="ekzcover" title="[% SEARCH_RESULT.biblionumber |url %]"></img>[% LAST %]
@@ -421,7 +412,7 @@
 
                                                         [% IF ( SyndeticsEnabled && SyndeticsCoverImages ) %]
                                                             [% IF ( SEARCH_RESULT.normalized_isbn || SEARCH_RESULT.normalized_upc || SEARCH_RESULT.normalized_oclc ) %]
-                                                                    <span title="[% img_title | html %]" id="syndetics-thumbnail[% loop.count | html %]"><img src="https://secure.syndetics.com/index.aspx?isbn=[% SEARCH_RESULT.normalized_isbn | html %]/SC.GIF&amp;client=[% SyndeticsClientCode | html %]&amp;type=xw10&amp;upc=[% SEARCH_RESULT.normalized_upc | html %]&amp;oclc=[% SEARCH_RESULT.normalized_oclc | html %]" alt="" class="item-thumbnail" /></span>
+                                                                    <span title="[% img_title | html %]" id="syndetics-thumbnail[% loop.count | html %]"><img src="https://secure.syndetics.com/index.aspx?isbn=[% SEARCH_RESULT.normalized_isbn | html %]/[% SyndeticsCoverImageSize | uri %].GIF&amp;client=[% SyndeticsClientCode | html %]&amp;type=xw10&amp;upc=[% SEARCH_RESULT.normalized_upc | html %]&amp;oclc=[% SEARCH_RESULT.normalized_oclc | html %]" alt="" class="item-thumbnail" /></span>
                                                             [% ELSE %]
                                                                 <span class="no-image">No cover image available</span>
                                                             [% END %]
@@ -492,103 +483,8 @@
                                             </td>
                                             <td class="bibliocol">
                                                 <div id="title_summary_[% SEARCH_RESULT.biblionumber | html %]" class="title_summary">
-                                                [% IF ( OPACXSLTResultsDisplay ) %]
-                                                    [% SEARCH_RESULT.XSLTResultsRecord | $raw %]
-                                                [% ELSE %]
-                                                    [% IF ( BiblioDefaultViewmarc ) %]
-                                                        <a class="title" href="/cgi-bin/koha/opac-MARCdetail.pl?biblionumber=[% SEARCH_RESULT.biblionumber | url %]" title="View details for this title">
-                                                    [% ELSE %]
-                                                        [% IF ( BiblioDefaultViewisbd ) %]
-                                                            <a class="title" href="/cgi-bin/koha/opac-ISBDdetail.pl?biblionumber=[% SEARCH_RESULT.biblionumber | url %]" title="View details for this title">
-                                                        [% ELSE %]
-                                                            <a class="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% SEARCH_RESULT.biblionumber | url %]" title="View details for this title">
-                                                        [% END %]
-                                                    [% END %]
 
-                                                    [% INCLUDE 'biblio-title.inc' biblio=SEARCH_RESULT %]
-
-                                                    [% IF ( SEARCH_RESULT.author ) %]
-                                                        by <a href="/cgi-bin/koha/opac-search.pl?q=au:[% SEARCH_RESULT.author | url %]" title="Search for works by this author" class="author">[% SEARCH_RESULT.author | html %]</a>
-                                                    [% ELSE %]
-                                                        &nbsp;
-                                                    [% END %]
-
-                                                    <span class="results_summary publisher">
-                                                        <span class="label">Publication:</span>
-                                                            [% IF ( SEARCH_RESULT.place ) %][% SEARCH_RESULT.place | html %] [% END %]
-                                                            [% IF ( SEARCH_RESULT.publishercode ) %][% SEARCH_RESULT.publishercode | html %][% END %]
-                                                            [% IF ( SEARCH_RESULT.publicationyear ) %]
-                                                                [% SEARCH_RESULT.publicationyear | html %]
-                                                            [% ELSE %]
-                                                                [% IF ( SEARCH_RESULT.copyrightdate ) %]
-                                                                    [% SEARCH_RESULT.copyrightdate | html %]
-                                                                [% END %]
-                                                            [% END %]
-                                                            [% IF ( SEARCH_RESULT.pages ) %]. [% SEARCH_RESULT.pages | html %][% END %]
-                                                            [% IF ( SEARCH_RESULT.notes ) %], [% SEARCH_RESULT.notes | html %][% END %]
-                                                            [% IF ( SEARCH_RESULT.size ) %] [% SEARCH_RESULT.size | html %][% END %]
-                                                            [% IF ( SEARCH_RESULT.timestamp ) %] <em>(modified on [% SEARCH_RESULT.timestamp | html %])</em>[% END %]
-                                                    </span>
-
-                                                    [% IF ( SEARCH_RESULT.summary ) %]
-                                                        <span class="result_summary">
-                                                            [% SEARCH_RESULT.summary | html %]
-                                                        </span>
-                                                    [% END %]
-
-                                                    [% IF ( SEARCH_RESULT.copyrightdate ) %]
-                                                        <span class="results_summary date">
-                                                            <span class="label">Date:</span>
-                                                            [% SEARCH_RESULT.copyrightdate | html %]
-                                                        </span>
-                                                    [% END %]
-
-                                                    <span class="results_summary">
-                                                        <span class="label">Availability:</span>
-                                                            [% IF ( SEARCH_RESULT.available_items_loop.size() ) %]
-                                                                <span class="available"><strong>Items available:</strong>
-                                                                    [% FOREACH available_items_loo IN SEARCH_RESULT.available_items_loop %]
-                                                                        [% IF available_items_loo.this_branch %]
-                                                                            <span class="highlight-row-results">
-                                                                        [% ELSE %]
-                                                                            <span>
-                                                                        [% END %]
-
-                                                                        [% IF ( singleBranchMode ) %]
-                                                                            <span class="shelvingloc">[% available_items_loo.location | html %]</span>
-                                                                        [% ELSE %]
-                                                                            [% available_items_loo.branchname | html %]
-                                                                        [% END %]
-
-                                                                        [% IF ( OPACItemsResultsDisplay ) %]
-                                                                            [% UNLESS ( singleBranchMode ) %]<span class="shelvingloc">[% available_items_loo.location | html %]</span>[% END %]
-                                                                            [% IF ( available_items_loo.itemcallnumber ) %][<a href="/cgi-bin/koha/opac-search.pl?q=callnum:%22[% available_items_loo.itemcallnumber | url %]%22">[% available_items_loo.itemcallnumber | html %]</a>][% END %]
-                                                                        [% END %]
-                                                                        ([% available_items_loo.count | html %]),
-                                                                        </span>
-                                                                    [% END # / FOREACH available_items_loo %]
-                                                                </span>
-                                                            [% ELSE %]
-                                                                [% IF ( SEARCH_RESULT.ALTERNATEHOLDINGS ) %]
-                                                                    [% FOREACH ALTERNATEHOLDING IN SEARCH_RESULT.ALTERNATEHOLDINGS %]
-                                                                        &nbsp;<span id="alternateholdings">[% ALTERNATEHOLDING.holding | html %]</span>,
-                                                                    [% END %]
-                                                                [% ELSE %]
-                                                                    <span class="unavailable">No items available:</span>
-                                                                [% END %]
-                                                            [% END # / IF SEARCH_RESULT.available_items_loop.size %]
-
-                                                            <span class="unavailable">
-                                                                [% IF ( SEARCH_RESULT.onloancount ) %] Checked out ([% SEARCH_RESULT.onloancount | html %]), [% END %]
-                                                                [% IF ( SEARCH_RESULT.withdrawncount ) %] Withdrawn ([% SEARCH_RESULT.withdrawncount | html %]), [% END %]
-                                                                [% UNLESS ( SEARCH_RESULT.hidelostitems ) %][% IF ( SEARCH_RESULT.itemlostcount ) %] Lost ([% SEARCH_RESULT.itemlostcount | html %]),[% END %][% END %]
-                                                                [% IF ( SEARCH_RESULT.damagedcount ) %] Damaged ([% SEARCH_RESULT.damagedcount | html %]),[% END %]
-                                                                [% IF ( SEARCH_RESULT.orderedcount ) %] On order ([% SEARCH_RESULT.orderedcount | html %]),[% END %]
-                                                                [% IF ( SEARCH_RESULT.onholdcount ) %] On hold ([% SEARCH_RESULT.onholdcount | html %]),[% END %]
-                                                                [% IF ( SEARCH_RESULT.intransitcount ) %] In transit ([% SEARCH_RESULT.intransitcount | html %]),[% END %]
-                                                            </span>
-                                                    </span> <!-- / .results_summary -->
-                                                [% END # / IF OPACXSLTResultsDisplay %]
+                                                [% SEARCH_RESULT.XSLTResultsRecord | $raw %]
 
                                                 [% IF ( SEARCH_RESULT.score_avg ) %]
                                                     <div class="results_summary">
@@ -626,7 +522,7 @@
                                                         <ul>
                                                             [% FOREACH TagLoo IN SEARCH_RESULT.TagLoop %]
                                                                 <li>
-                                                                    <a href="/cgi-bin/koha/opac-search.pl?tag=[% TagLoo.term | url %]&amp;q=[% TagLoo.term |url %]">[% TagLoo.term | html %]</a>
+                                                                    <a href="/cgi-bin/koha/opac-search.pl?tag=[% TagLoo.term | uri %]&amp;q=[% TagLoo.term | uri %]">[% TagLoo.term | html %]</a>
                                                                     <span class="weight">([% TagLoo.weight_total | html %])</span>
                                                                 </li>
                                                             [% END %]
@@ -705,11 +601,11 @@
                     [% END # / IF total %]
 
                     [%# Display "Not finding what you're looking for" for suggestion or ILL %]
-                    [% IF Koha.Preference( 'suggestion' ) == 1 && ( Koha.Preference( 'AnonSuggestions' ) == 1 || loggedinusername ) || ( Koha.Preference( 'ILLModule' ) == 1 && loggedinusername ) %]
+                    [% IF suggestion || ( Koha.Preference( 'ILLModule' ) == 1 && loggedinusername ) %]
                         <div class="suggestion">
                             Not finding what you're looking for?
                             <ul>
-                                [% IF Koha.Preference( 'suggestion' ) == 1 %]
+                                [% IF suggestion %]
                                     [% IF Koha.Preference( 'AnonSuggestions' ) == 1 %]
                                         <li>Make a <a href="/cgi-bin/koha/opac-suggestions.pl?op=add">purchase suggestion</a></li>
                                     [% ELSIF loggedinusername %]
@@ -738,7 +634,6 @@
     [% IF ( Koha.Preference( 'BrockhausSearchActive' ) ) %][% Asset.js("js/brockhaus.js") %][% END %]
     [% IF ( Koha.Preference( 'FilmfriendSearchActive' ) ) %][% Asset.js("js/filmfriend.js") %][% END %]
     [% IF ( Koha.Preference('DivibibEnabled') ) %][% INCLUDE 'divibib-js.inc' %][% END %]
-    [% IF ( RecordedBooksEnabled ) %][% Asset.js("js/recordedbooks.js") | $raw %][% END %]
     [% Asset.js("js/authtoresults.js") | $raw %]
     [% Asset.js("lib/hc-sticky.js") | $raw %]
     [% IF ( OpacHighlightedWords ) %]
@@ -762,7 +657,7 @@
             checkDivibibAvalability(divibibIDs);
             [% END %]
         [% END %]
-        [% IF ( Koha.Preference( 'opacuserlogin' ) == 1 ) && ( Koha.Preference( 'RequestOnOpac' ) == 1 ) %]
+        [% IF ( Koha.Preference( 'opacuserlogin' ) == 1 ) && ( Koha.Preference( 'OPACHoldRequests' ) == 1 ) %]
             function holdMultiple() {
                 var checkedBiblioNums = ""; // Separated by "/"
                 var checkedCount = 0;
@@ -787,7 +682,7 @@
                 $("#hold_form_biblios").attr("value", numList);
                 $("#hold_form").submit();
             }
-        [% END # /IF opacuserlogin && RequestOnOpac %]
+        [% END # /IF opacuserlogin && OPACHoldRequests %]
 
         [% IF ( TagsInputEnabled && loggedinusername ) %]
             function tagSelected() {
@@ -1003,9 +898,8 @@
                     });
                 [% END # /IF OpacHighlightedWords %]
                 [% IF ( OverDriveEnabled ) %]
-                    var $overdrive_results = $( '<div id="overdrive-results">' + MSG_SEARCHING.format('OverDrive') + ' <img class="throbber" src="[% interface | html %]/lib/jquery/plugins/themes/classic/throbber.gif" /></div>' );
-                    $( '#numresults' ) .append( ' ' )
-                        .append( $overdrive_results );
+                    var $overdrive_results = $( '<div id="overdrive-results">' + MSG_SEARCHING.format('OverDrive') + ' <img class="throbber" src="[% interface | html %]/[% theme | html %]/images/spinner-small.gif" /></div>' );
+                    $( '#numresults' ) .after( $overdrive_results );
                     //Clean querystring, first we remove CCL entities, then decode HTML entities, then swap double quotes for single quotes
                     //as the overdrive API treats double quotes as a search term and returns extra results
                     od_querystring = querystring.replace(/(?:^|\W)([\w-]+)(,[\w-]+)*([:=])/g,' ');
@@ -1024,28 +918,9 @@
                         }
                     } );
                 [% END # /IF OverDriveEnabled %]
-                [% IF ( RecordedBooksEnabled ) %]
-                    var $recordedbooks_results = $( '<div id="recordedbooks-results">' + MSG_SEARCHING.format('RecordedBooks') + ' <img class="throbber" src="[% interface | html %]/lib/jquery/plugins/themes/classic/throbber.gif" /></div>' );
-                    $( '#numresults' ) .append( ' ' )
-                        .append( $recordedbooks_results );
-                    KOHA.RecordedBooks.search( querystring, [% OPACnumSearchResults || "null" | html %], null, function( data ) {
-                        if ( data.error ) {
-                            $recordedbooks_results.html( MSG_ERROR_SEARCHING_COLLECTION.format('RecordedBooks')  + ': ' + data.error);
-                            return;
-                        }
-
-                        // data.total can be either 42 or "60+"
-                        if ( typeof(data.total) === 'string' && data.total.charAt(0) > 0 || typeof(data.total) === 'number' && data.total > 0 ) {
-                            $recordedbooks_results.html( '<a href="/cgi-bin/koha/opac-recordedbooks-search.pl?q=' + encodeURIComponent( querystring ) + '">' + MSG_RESULTS_FOUND_IN_COLLECTION.format(data.total, 'RecordedBooks') + '</a>' );
-                        } else {
-                            $recordedbooks_results.remove();
-                        }
-                    } );
-                [% END # /IF RecordedBooksEnabled %]
                 [% IF ( OpenLibrarySearch ) %]
-                    var $openlibrary_results = $( '<div id="openlibrary-results">' + MSG_SEARCHING.format('OpenLibrary' ) + ' <img class="throbber" src="[% interface | html %]/lib/jquery/plugins/themes/classic/throbber.gif" /></div>' );
-                    $( '#numresults' ) .append( ' ' )
-                        .append( $openlibrary_results );
+                    var $openlibrary_results = $( '<div id="openlibrary-results">' + MSG_SEARCHING.format('OpenLibrary' ) + ' <img class="throbber" src="[% interface | html %]/[% theme | html %]/images/spinner-small.gif" /></div>' );
+                    $( '#numresults' ) .after( $openlibrary_results );
                     KOHA.OpenLibrary.search( querystring, null, function( data ) {
                         if ( data.error ) {
                             $openlibrary_results.html( MSG_ERROR_SEARCHING_COLLECTION.format('OpenLibrary') );

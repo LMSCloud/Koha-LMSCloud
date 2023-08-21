@@ -94,43 +94,35 @@
 </head>
 
 <body id="acq_supplier" class="acq">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'acquisitions-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'acquisitions-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a>
-        </li>
+        [% END %]
         [% IF ( enter ) %]
             [% IF ( booksellerid ) %]
-                <li>
+                [% WRAPPER breadcrumb_item %]
                     <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% name | html %]</a>
-                </li>
-                <li>
-                    <a href="#" aria-current="page">
-                        Update: [% name | html %]
-                    </a>
-                </li>
+                [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Modify [% name | html %]</span>
+                [% END %]
             [% ELSE %]
-                <li>
-                    <a href="#" aria-current="page">
-                        Add vendor
-                    </a>
-                </li>
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Add vendor</span>
+                [% END %]
             [% END %]
         [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    [% name | html %]
-                </a>
-            </li>
-        [% END %]
-    </ol>
-</nav>
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% name | html %]
+            [% END %]
+        [% END # /IF (enter) %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -148,7 +140,7 @@
 [% IF ( enter ) %]
     <form action="updatesupplier.pl" name="updatesupplier" style="display:block" class="validated" method="post">
         <div id="toolbar" class="btn-toolbar">
-            <button class="btn btn-default" type="submit"><i class="fa fa-save"></i> Save</button>
+            <button class="btn btn-primary" type="submit"><i class="fa fa-save"></i> Save</button>
             [% IF ( booksellerid ) %]
                 <a class="btn btn-default cancel" href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | html %]">
             [% ELSE %]
@@ -172,7 +164,12 @@
             <li><label for="website">Website: </label>
                 <input type="text" size="40" id="website" name="website" value="[% url | html %]" class="url" /></li>
             <li><label for="accountnumber">Account number: </label>
-                <input type="text" size="40" id="accountnumber" name="accountnumber" value="[% accountnumber | html %]" /></li></ol>
+                <input type="text" size="40" id="accountnumber" name="accountnumber" value="[% accountnumber | html %]" /></li>
+                <li>
+                    <label for="vendor_type">Vendor type: </label>
+                    [% PROCESS 'av-build-dropbox.inc' name="vendor_type", category="VENDOR_TYPE", default=type, empty=1, size = 20 %]
+                </li>
+            </ol>
         </fieldset>
         <fieldset class="rows">
             <legend>Contacts</legend>
@@ -193,19 +190,15 @@
             <legend>Ordering information</legend>
             <ol><li><label for="activestatus">Vendor is:</label>
                     [% IF ( active ) %]
-                        <label class="radio" for="activestatus">
-                            Active <input type="radio" id="activestatus" name="status" value="1" checked="checked" />
-                        </label>
-                        <label class="radio" for="inactivestatus">
-                            Inactive <input type="radio" id="inactivestatus" name="status" value="0" />
-                        </label>
+                        <input type="radio" id="activestatus" name="status" value="1" checked="checked" />
+                        <label class="radio" for="activestatus">Active</label>
+                        <input type="radio" id="inactivestatus" name="status" value="0" />
+                        <label class="radio" for="inactivestatus">Inactive</label>
                     [% ELSE %]
-                        <label class="radio" for="activestatus">
-                            Active <input type="radio" id="activestatus" name="status" value="1" />
-                        </label>
-                        <label class="radio" for="inactivestatus">
-                            Inactive <input type="radio" id="inactivestatus" name="status" value="0" checked="checked" />
-                        </label>
+                        <input type="radio" id="activestatus" name="status" value="1" />
+                        <label class="radio" for="activestatus">Active</label>
+                        <input type="radio" id="inactivestatus" name="status" value="0" checked="checked" />
+                        <label class="radio" for="inactivestatus">Inactive</label>
                     [% END %]</li>
             <li><label for="list_currency">List prices are: </label>
                 <select name="list_currency" id="list_currency">
@@ -231,53 +224,41 @@
             </li>
             <li><label for="gstyes">Tax number registered:</label>
                 [% IF ( gstreg ) %]
-                    <label class="radio" for="gstyes">
-                        Yes <input type="radio" name="gst" id="gstyes" value="1" checked="checked" />
-                    </label>
-                    <label class="radio" for="gstno">
-                        No <input type="radio" name="gst" id="gstno" value="0" />
-                    </label>
+                    <label class="radio" for="gstyes">Yes</label>
+                    <input type="radio" name="gst" id="gstyes" value="1" checked="checked" />
+                    <label class="radio" for="gstno">No</label>
+                    <input type="radio" name="gst" id="gstno" value="0" />
                 [% ELSE %]
-                    <label class="radio" for="gstyes">
-                        Yes <input type="radio" name="gst" id="gstyes" value="1" />
-                    </label>
-                    <label class="radio" for="gstno">
-                        No <input type="radio" name="gst" id="gstno" value="0" checked="checked" />
-                    </label>
+                    <label class="radio" for="gstyes">Yes</label>
+                    <input type="radio" name="gst" id="gstyes" value="1" />
+                    <label class="radio" for="gstno">No</label>
+                    <input type="radio" name="gst" id="gstno" value="0" checked="checked" />
                 [% END %]</li>
 
             <li><label for="list_gstyes">List prices:</label>
                 [% IF ( listincgst ) %]
-                    <label class="radio" for="list_gstyes">
-                        Include tax <input type="radio" id="list_gstyes" name="list_gst" value="1" checked="checked" />
-                    </label>
-                    <label class="radio" for="list_gstno">
-                        Don't include tax <input type="radio" id="list_gstno" name="list_gst" value="0" />
-                    </label>
+                    <label class="radio" for="list_gstyes">Include tax</label>
+                    <input type="radio" id="list_gstyes" name="list_gst" value="1" checked="checked" />
+                    <label class="radio" for="list_gstno">Don't include tax</label>
+                    <input type="radio" id="list_gstno" name="list_gst" value="0" />
                 [% ELSE %]
-                    <label class="radio" for="list_gstyes">
-                        Include tax <input type="radio" id="list_gstyes" name="list_gst" value="1" />
-                    </label>
-                    <label class="radio" for="list_gstno">
-                        Don't include tax <input type="radio" id="list_gstno" name="list_gst" value="0" checked="checked" />
-                    </label>
+                    <label class="radio" for="list_gstyes">Include tax</label>
+                    <input type="radio" id="list_gstyes" name="list_gst" value="1" />
+                    <label class="radio" for="list_gstno">Don't include tax</label>
+                    <input type="radio" id="list_gstno" name="list_gst" value="0" checked="checked" />
                 [% END %]</li>
 
             <li><label for="invoice_gstyes">Invoice prices:</label>
                 [% IF ( invoiceincgst ) %]
-                    <label class="radio" for="invoice_gstyes">
-                        Include tax <input type="radio" id="invoice_gstyes" name="invoice_gst" value="1" checked="checked" />
-                    </label>
-                    <label class="radio" for="invoice_gstno">
-                        Don't include tax <input type="radio" id="invoice_gstno" name="invoice_gst" value="0" />
-                    </label>
+                    <label class="radio" for="invoice_gstyes">Include tax</label>
+                    <input type="radio" id="invoice_gstyes" name="invoice_gst" value="1" checked="checked" />
+                    <label class="radio" for="invoice_gstno">Don't include tax</label>
+                    <input type="radio" id="invoice_gstno" name="invoice_gst" value="0" />
                     [% ELSE %]
-                    <label class="radio" for="invoice_gstyes">
-                        Include tax <input type="radio" id="invoice_gstyes" name="invoice_gst" value="1" />
-                    </label>
-                    <label class="radio" for="invoice_gstno">
-                        Don't include tax <input type="radio" id="invoice_gstno" name="invoice_gst" value="0" checked="checked" />
-                    </label>
+                    <label class="radio" for="invoice_gstyes">Include tax</label>
+                    <input type="radio" id="invoice_gstyes" name="invoice_gst" value="1" />
+                    <label class="radio" for="invoice_gstno">Don't include tax</label>
+                    <input type="radio" id="invoice_gstno" name="invoice_gst" value="0" checked="checked" />
                 [% END %]</li>
 
             [% IF gst_values %]
@@ -297,7 +278,7 @@
                 <input type="hidden" name="tax_rate" value="0" />
             [% END %]
             <li><label for="discount">Discount: </label>
-                <input type="text" size="6" id="discount" name="discount" value="[% discount | format ("%.1f") %]" />%</li>
+                <input type="text" size="6" id="discount" name="discount" value="[% discount | format ('%.1f') %]" />%</li>
             <li>
                 <label for="deliverytime">Delivery time: </label>
                 <input type="text" size="2" id="deliverytime" name="deliverytime" value="[% deliverytime | html %]" /> days
@@ -306,66 +287,58 @@
                 <textarea cols="40" rows="4" id="notes" name="notes" >[% notes | html %]</textarea></li>
             </ol>
         </fieldset>
-        <fieldset class="action"><input type="submit" value="Save" /> [% IF ( booksellerid ) %]
-        <a class="cancel" href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | html %]">[% ELSE %]<a class="cancel" href="/cgi-bin/koha/acqui/acqui-home.pl">
-        [% END %]Cancel</a></fieldset>
 
     </form>
 [% ELSE %]
     <h1>[% name | html %]</h1>
         <div class="row">
-            <div id="supplier-company-details" class="col-sm-6">
-                <h2>Vendor details</h2>
-                <p><span class="label">Company name: </span>[% name | html %]</p>
-                <p><span class="label">Postal address: </span>[% postal | html %]</p>
-                <p><span class="label">Physical address: </span>[% address1 | html %][% address2 | html %][% address3 | html %][% address4 | html %]</p>
-                <p><span class="label">Phone: </span>[% phone | html %]</p>
-                <p><span class="label">Fax: </span>[% fax | html %]</p>
-                [% IF ( url ) %]
-                    <p><span class="label">Website: </span><a href="[% url | url %]">[% url | html %]</a></p>
-                [% END %]
-                [% IF ( accountnumber ) %]
-                    <p><span class="label">Account number: </span>[% accountnumber | html %]</p>
-                [% END %]
+            <div class="col-sm-6">
+                <div id="supplier-company-details" class="page-section">
+                    <h2>Vendor details</h2>
+                    <p><span class="label">Type: </span>[% type | html %]</p>
+                    <p><span class="label">Company name: </span>[% name | html %]</p>
+                    <p><span class="label">Postal address: </span>[% postal | html %]</p>
+                    <p><span class="label">Physical address: </span>[% address1 | html %][% address2 | html %][% address3 | html %][% address4 | html %]</p>
+                    <p><span class="label">Phone: </span>[% phone | html %]</p>
+                    <p><span class="label">Fax: </span>[% fax | html %]</p>
+                    [% IF ( url ) %]
+                        <p><span class="label">Website: </span><a href="[% url | url %]">[% url | html %]</a></p>
+                    [% END %]
+                    [% IF ( accountnumber ) %]
+                        <p><span class="label">Account number: </span>[% accountnumber | html %]</p>
+                    [% END %]
+                </div> <!-- /#supplier-company-details -->
 
-            <div id="supplier-ordering-information">
-            <h2>Ordering information</h2>
-                <p><strong>Vendor is: </strong>
-                        [% IF ( active ) %]
-                            Active
-                        [% ELSE %]
-                            Inactive
-                        [% END %]</p>
-                <p><strong>List prices are: </strong>[% listprice | html %]</p>
-                <p><strong>Invoice prices are: </strong>[% invoiceprice | html %]</p>
-                [% IF ( tax_rate ) %]<p><strong>Tax number registered: </strong>
-                        [% IF ( gstreg ) %]Yes[% ELSE %]No[% END %]</p>
-                <p><strong>List item price includes tax: </strong>
-                        [% IF ( listincgst ) %]Yes[% ELSE %]No[% END %]</p>
-                <p><strong>Invoice item price includes tax: </strong>
-                        [% IF ( invoiceincgst ) %]Yes[% ELSE %]No[% END %]</p>[% END %]
-                <p><strong>Discount: </strong>
-                    [% discount | format("%.1f") %] %</p>
-                <p><strong>Tax rate: </strong>
-                    [% ( tax_rate || 0 ) * 100 | html %] %</p>
-                [% IF deliverytime.defined %]
-                    <p><strong>Delivery time: </strong>
-                        [% deliverytime | html %] days</p>
-                [% END %]
-                [% IF ( notes ) %]<p><strong>Notes: </strong>
-                    [% notes | html %]</p>[% END %]
-            </div> <!-- .supplier-ordering-information -->
+                <div id="supplier-ordering-information" class="page-section">
+                    <h2>Ordering information</h2>
+                    <p><strong>Vendor is: </strong>[% IF ( active ) %]Active[% ELSE %]Inactive[% END %]</p>
+                    <p><strong>List prices are: </strong>[% listprice | html %]</p>
+                    <p><strong>Invoice prices are: </strong>[% invoiceprice | html %]</p>
+                    [% IF ( tax_rate ) %]
+                        <p><strong>Tax number registered: </strong>[% IF ( gstreg ) %]Yes[% ELSE %]No[% END %]</p>
+                        <p><strong>List item price includes tax: </strong>[% IF ( listincgst ) %]Yes[% ELSE %]No[% END %]</p>
+                        <p><strong>Invoice item price includes tax: </strong>[% IF ( invoiceincgst ) %]Yes[% ELSE %]No[% END %]</p>
+                    [% END %]
+                    <p><strong>Discount: </strong>[% discount | format("%.1f") %] %</p>
+                    <p><strong>Tax rate: </strong>[% ( tax_rate || 0 ) * 100 | html %] %</p>
+                    [% IF deliverytime.defined %]
+                        <p><strong>Delivery time: </strong>[% deliverytime | html %] days</p>
+                    [% END %]
+                    [% IF ( notes ) %]
+                        <p><strong>Notes: </strong>[% notes | html %]</p>
+                    [% END %]
+                </div> <!-- #supplier-ordering-information -->
             </div> <!-- /.col-sm-6 -->
 
             <div class="col-sm-6">
-                <div class="supplier-contact-details">
+                <div id="supplier-contact-details" class="page-section">
                     <h2>Contact</h2>
                     [% FOREACH contact IN contacts %]
                         [% INCLUDE show_contact %]
                     [% END %]
-                </div>
+                </div> <!-- /#supplier-contact-details -->
 
-                <div class="subscription-details">
+                <div id="subscription-details" class="page-section">
                     <h2>Subscription details</h2>
                     <p><strong>Number of subscriptions: </strong>
                         [% IF (  CAN_user_serials ) %]
@@ -374,14 +347,13 @@
                             [% subscriptioncount | html %]
                         [% END %]
                     </p>
-                </div>
-
-            </div>
+                </div> <!-- /#subscription-details -->
+            </div> <!-- /.col-sm-6 -->
 
         </div>
 
         [% IF ( contracts ) %]
-            <div id="supplier-contracts">
+            <div id="supplier-contracts" class="page-section">
                 <h2>Contract(s)</h2>
                 <table id="contractst">
                   <thead>
@@ -414,7 +386,7 @@
                     [% END %]
                   </tbody>
                 </table>
-            </div>
+            </div> <!-- /#supplier-contracts -->
         [% END %]
 
 [% END %]
@@ -431,6 +403,7 @@
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/acquisitions-menu.js") | $raw %]
     [% Asset.js("lib/hc-sticky.js") | $raw %]
+    [% Asset.js("js/acq.js") | $raw %]
     [% INCLUDE 'datatables.inc' %]
     <script>
         function confirm_deletion() {

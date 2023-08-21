@@ -8,32 +8,28 @@
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="pat_discharges" class="pat">
-[% INCLUDE 'header.inc' %]
-[% PROCESS 'patron-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'patron-search-header.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Pending discharge requests
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Pending discharge requests</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
     <div class="main container-fluid">
         <div class="row">
             <div class="col-md-8 col-md-offset-2">
 
     [% IF pending_discharges %]
-      <h2>Pending discharge requests</h2>
-      <div id="pending_updates">
+      <h1>Pending discharge requests</h1>
+      <div id="pending_updates" class="page-section">
         <table>
           <thead>
             <tr>
@@ -57,7 +53,7 @@
       </div>
     [% ELSE %]
       <div class="dialog message">
-        <p>There are no pending discharge requests.</p>
+        <h1>There are no pending discharge requests.</h1>
       </div>
     [% END %]
 

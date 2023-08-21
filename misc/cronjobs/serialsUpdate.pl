@@ -20,25 +20,16 @@
 use strict;
 use warnings;
 
-BEGIN {
-
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
-
 use Koha::Script -cron;
 use C4::Context;
-use C4::Debug;
-use C4::Serials;
-use C4::Log;
-use Koha::DateUtils;
+use C4::Serials qw( GetSubscription GetNextDate ModSerialStatus );
 use C4::Serials::Frequency;
+use C4::Log qw( cronlogaction );
+use Koha::DateUtils qw( dt_from_string );
 
-use Date::Calc qw/Date_to_Days check_date/;
-use Getopt::Long;
-use Pod::Usage;
+use Date::Calc qw( check_date Date_to_Days );
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 
 =head1 NAME
 
@@ -68,6 +59,8 @@ my $verbose = 0;
 my $note    = '';
 my $nonote  = 0;
 
+my $command_line_options = join(" ",@ARGV);
+
 GetOptions(
     'help|h|?'  => \$help,
     'man'       => \$man,
@@ -80,7 +73,7 @@ GetOptions(
 pod2usage(1) if $help;
 pod2usage( -verbose => 2 ) if $man;
 
-cronlogaction();
+cronlogaction({ info => $command_line_options });
 
 $verbose and !$confirm and print "### Database will not be modified ###\n";
 
@@ -102,7 +95,7 @@ my $sth = $dbh->prepare(
        serial.publisheddate,
        subscription.subscriptionid
      FROM serial 
-     LEFT JOIN subscription 
+     JOIN subscription
        ON (subscription.subscriptionid=serial.subscriptionid) 
      LEFT JOIN subscription_frequencies
        ON (subscription.periodicity = subscription_frequencies.id)
@@ -110,43 +103,20 @@ my $sth = $dbh->prepare(
        AND subscription_frequencies.unit IS NOT NULL
        AND DATE_ADD(planneddate, INTERVAL CAST(graceperiod AS SIGNED) DAY) < NOW()
        AND subscription.closed = 0
+       AND publisheddate IS NOT NULL
     }
 );
 $sth->execute();
 
 while ( my $issue = $sth->fetchrow_hashref ) {
-
-    my $subscription = &GetSubscription( $issue->{subscriptionid} );
-    my $publisheddate  = $issue->{publisheddate};
-
-    if ( $subscription && $publisheddate ) {
-        my $freqdata = GetSubscriptionFrequency($subscription->{'periodicity'});
-        my $nextpublisheddate = GetNextDate( $subscription, $publisheddate, $freqdata );
-        my $today = output_pref({ dt => dt_from_string, dateformat => 'iso', dateonly => 1 });
-
-        if ( $nextpublisheddate && $today ) {
-            my ( $year,  $month,  $day )  = split( /-/, $nextpublisheddate );
-            my ( $tyear, $tmonth, $tday ) = split( /-/, $today );
-            if (   check_date( $year, $month, $day )
-                && check_date( $tyear, $tmonth, $tday )
-                && Date_to_Days( $year, $month, $day ) <
-                Date_to_Days( $tyear, $tmonth, $tday ) )
-            {
-                $confirm
-                  and ModSerialStatus( $issue->{serialid}, $issue->{serialseq},
-                    $issue->{planneddate}, $issue->{publisheddate}, $issue->{publisheddatetext},
-                    3, $note );
-                $verbose
-                  and print "Serial issue with id=" . $issue->{serialid} . " updated\n";
-            }
-        }
-        else {
-            $verbose
-              and print "Error with serial("
-              . $issue->{serialid}
-              . ") has no existent subscription("
-              . $issue->{subscriptionid}
-              . ") attached or planneddate is wrong\n";
-        }
+    if ( $confirm ){
+        ModSerialStatus( $issue->{serialid}, $issue->{serialseq},
+            $issue->{planneddate}, $issue->{publisheddate}, $issue->{publisheddatetext},
+            3, $note );
+        $verbose and print "Serial issue with id=" . $issue->{serialid} . " marked late\n";
+    } else {
+        print "Serial issue with id=" . $issue->{serialid} . " would have been marked late\n";
     }
 }
+
+cronlogaction({ action => 'End', info => "COMPLETED" });

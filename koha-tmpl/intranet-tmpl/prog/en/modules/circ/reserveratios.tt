@@ -12,29 +12,25 @@
 <style>
     .sql { display: none; }
     .ulined { text-decoration: underline; }
-    #holdst ul li {  list-style: outside url("[% interface | html %]/[% theme | html %]/img/item-bullet.gif") disc; }
+    #holdst ul li {  list-style: outside url("[% interface | html %]/[% theme | html %]/img/item-bullet.svg") disc; }
 </style>
 </head>
 
 <body id="circ_reserveratios" class="circ">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'circ-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Hold ratios
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Hold ratios</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -117,7 +113,7 @@
                         [% END %]
                         [% IF ( reserveloo.pendingorders ) %]<br><strong>[% reserveloo.pendingorders | html %] pending</strong>[% END %]
                     [% ELSE %]
-                        0 to order
+                        <span>0 to order</span>
                     [% END %]
                 </p>
             </td>
@@ -164,12 +160,12 @@
 
     <li>
         <label for="from">Start date:</label>
-        <input type="text" size="10" id="from" name="from" value="[% from | $KohaDates %]" class="datepickerfrom" />
+        <input type="text" size="10" id="from" name="from" value="[% from | html %]" class="flatpickr" data-date_to="to" />
     </li>
 
     <li>
         <label for="to">End date:</label>
-        <input size="10" id="to" name="to" value="[% to | $KohaDates %]" type="text" class="datepickerto" />
+        <input size="10" id="to" name="to" value="[% to | html %]" type="text" class="flatpickr" />
     </li>
 </ol>
 (inclusive)
@@ -191,7 +187,7 @@
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'columns_settings.inc' %]
     <script>
-        var columns_settings = [% TablesSettings.GetColumns( 'circ', 'holdsratios', 'holds-ratios', 'json' ) | $raw %];
+        var table_settings = [% TablesSettings.GetTableSettings( 'circ', 'holdsratios', 'holds-ratios', 'json' ) | $raw %];
         $(document).ready(function() {
             KohaTable("holdst", {
                 "aaSorting": [ [2,'desc'], [3,'asc'] ],
@@ -201,7 +197,7 @@
                     ],
                 "sPaginationType": "full",
                 "autoWidth": false
-            }, columns_settings);
+            }, table_settings);
        });
   </script>
 [% END %]

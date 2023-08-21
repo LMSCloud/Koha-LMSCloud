@@ -21,31 +21,43 @@
 
 use Modern::Perl;
 
-use CGI q(-utf8);
-use C4::Output;
-use C4::Auth;
-use C4::Biblio;
-use C4::Search;
-use C4::AuthoritiesMarc;
+use CGI;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user haspermission );
+use C4::Biblio qw(
+    AddBiblio
+    DelBiblio
+    GetFrameworkCode
+    GetMarcFromKohaField
+    GetMarcStructure
+    GetUsedMarcStructure
+    ModBiblio
+    prepare_host_field
+    PrepHostMarcField
+    TransformHtmlToMarc
+    ApplyMarcOverlayRules
+);
+use C4::Search qw( FindDuplicate enabled_staff_search_views );
+use C4::Auth qw( get_template_and_user haspermission );
 use C4::Context;
 use MARC::Record;
-use C4::Log;
-use C4::Koha;
-use C4::ClassSource;
-use C4::ImportBatch;
-use C4::Charset;
+use C4::ClassSource qw( GetClassSources );
+use C4::ImportBatch qw( GetImportRecordMarc );
+use C4::Charset qw( SetMarcUnicodeFlag );
 use Koha::BiblioFrameworks;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 
+use Koha::Biblios;
 use Koha::ItemTypes;
 use Koha::Libraries;
 
 use Koha::BiblioFrameworks;
+use Koha::Patrons;
+use Koha::UI::Form::Builder::Biblio;
 
-use Date::Calc qw(Today);
 use MARC::File::USMARC;
 use MARC::File::XML;
-use URI::Escape;
+use URI::Escape qw( uri_escape_utf8 );
 
 if ( C4::Context->preference('marcflavour') eq 'UNIMARC' ) {
     MARC::File::XML->default_record_format('UNIMARC');
@@ -72,6 +84,10 @@ sub MARCfindbreeding {
     # remove the - in isbn, koha store isbn without any -
     if ($marc) {
         my $record = MARC::Record->new_from_usmarc($marc);
+        if(C4::Context->preference('autoControlNumber') eq 'biblionumber'){
+            my @control_num = $record->field('001');
+            $record->delete_fields(@control_num);
+        }
         my ($isbnfield,$isbnsubfield) = GetMarcFromKohaField( 'biblioitems.isbn' );
         if ( $record->field($isbnfield) ) {
             foreach my $field ( $record->field($isbnfield) ) {
@@ -157,82 +173,6 @@ sub MARCfindbreeding {
     return -1;
 }
 
-=head2 build_authorized_values_list
-
-=cut
-
-sub build_authorized_values_list {
-    my ( $tag, $subfield, $value, $dbh, $authorised_values_sth,$index_tag,$index_subfield ) = @_;
-
-    my @authorised_values;
-    my %authorised_lib;
-
-    # builds list, depending on authorised value...
-
-    #---- branch
-    my $category = $tagslib->{$tag}->{$subfield}->{authorised_value};
-    if ( $category eq "branches" ) {
-        my $libraries = Koha::Libraries->search_filtered({}, {order_by => ['branchname']});
-        while ( my $l = $libraries->next ) {
-            push @authorised_values, $l->branchcode;;
-            $authorised_lib{$l->branchcode} = $l->branchname;
-        }
-    }
-    elsif ( $category eq "itemtypes" ) {
-        push @authorised_values, "";
-
-        my $itemtype;
-        my $itemtypes = Koha::ItemTypes->search_with_localization;
-        while ( $itemtype = $itemtypes->next ) {
-            push @authorised_values, $itemtype->itemtype;
-            $authorised_lib{$itemtype->itemtype} = $itemtype->translated_description;
-        }
-        $value = $itemtype unless ($value);
-    }
-    elsif ( $category eq "cn_source" ) {
-        push @authorised_values, "";
-
-        my $class_sources = GetClassSources();
-
-        my $default_source = C4::Context->preference("DefaultClassificationSource");
-
-        foreach my $class_source (sort keys %$class_sources) {
-            next unless $class_sources->{$class_source}->{'used'} or
-                        ($value and $class_source eq $value) or
-                        ($class_source eq $default_source);
-            push @authorised_values, $class_source;
-            $authorised_lib{$class_source} = $class_sources->{$class_source}->{'description'};
-        }
-        $value = $default_source unless $value;
-    }
-    else {
-        my $branch_limit = C4::Context->userenv ? C4::Context->userenv->{"branch"} : "";
-        $authorised_values_sth->execute(
-            $tagslib->{$tag}->{$subfield}->{authorised_value},
-            $branch_limit ? $branch_limit : (),
-        );
-
-        push @authorised_values, "";
-
-        while ( my ( $value, $lib ) = $authorised_values_sth->fetchrow_array ) {
-            push @authorised_values, $value;
-            $authorised_lib{$value} = $lib;
-        }
-    }
-    $authorised_values_sth->finish;
-
-    return {
-        type     => 'select',
-        id       => "tag_".$tag."_subfield_".$subfield."_".$index_tag."_".$index_subfield,
-        name     => "tag_".$tag."_subfield_".$subfield."_".$index_tag."_".$index_subfield,
-        default  => $value,
-        values   => \@authorised_values,
-        labels   => \%authorised_lib,
-        ( ( grep { $_ eq $category } ( qw(branches itemtypes cn_source) ) ) ? () : ( category => $category ) ),
-    };
-
-}
-
 =head2 CreateKey
 
     Create a random value to set it into the input name
@@ -266,201 +206,6 @@ sub GetMandatoryFieldZ3950 {
         $lccn[0].$lccn[1]     => 'lccn',
     };
 }
-
-=head2 create_input
-
- builds the <input ...> entry for a subfield.
-
-=cut
-
-sub create_input {
-    my ( $tag, $subfield, $value, $index_tag, $tabloop, $rec, $authorised_values_sth,$cgi ) = @_;
-    
-    my $index_subfield = CreateKey(); # create a specifique key for each subfield
-
-    # if there is no value provided but a default value in parameters, get it
-    if ( $value eq '' ) {
-        $value = $tagslib->{$tag}->{$subfield}->{defaultvalue} // q{};
-
-        # get today date & replace <<YYYY>>, <<YY>>, <<MM>>, <<DD>> if provided in the default value
-        my $today_dt = dt_from_string;
-        my $year = $today_dt->strftime('%Y');
-        my $shortyear = $today_dt->strftime('%y');
-        my $month = $today_dt->strftime('%m');
-        my $day = $today_dt->strftime('%d');
-        $value =~ s/<<YYYY>>/$year/g;
-        $value =~ s/<<YY>>/$shortyear/g;
-        $value =~ s/<<MM>>/$month/g;
-        $value =~ s/<<DD>>/$day/g;
-        # And <<USER>> with surname (?)
-        my $username=(C4::Context->userenv?C4::Context->userenv->{'surname'}:"superlibrarian");
-        $value=~s/<<USER>>/$username/g;
-    
-    }
-    my $dbh = C4::Context->dbh;
-
-    # map '@' as "subfield" label for fixed fields
-    # to something that's allowed in a div id.
-    my $id_subfield = $subfield;
-    $id_subfield = "00" if $id_subfield eq "@";
-
-    my %subfield_data = (
-        tag        => $tag,
-        subfield   => $id_subfield,
-        marc_lib       => $tagslib->{$tag}->{$subfield}->{lib},
-        tag_mandatory  => $tagslib->{$tag}->{mandatory},
-        mandatory      => $tagslib->{$tag}->{$subfield}->{mandatory},
-        important      => $tagslib->{$tag}->{$subfield}->{important},
-        repeatable     => $tagslib->{$tag}->{$subfield}->{repeatable},
-        kohafield      => $tagslib->{$tag}->{$subfield}->{kohafield},
-        index          => $index_tag,
-        id             => "tag_".$tag."_subfield_".$id_subfield."_".$index_tag."_".$index_subfield,
-        value          => $value,
-        maxlength      => $tagslib->{$tag}->{$subfield}->{maxlength},
-        random         => CreateKey(),
-    );
-
-    if(exists $mandatory_z3950->{$tag.$subfield}){
-        $subfield_data{z3950_mandatory} = $mandatory_z3950->{$tag.$subfield};
-    }
-    # Subfield is hidden depending of hidden and mandatory flag, and is always
-    # shown if it contains anything or if its field is mandatory or important.
-    my $tdef = $tagslib->{$tag};
-    $subfield_data{visibility} = "display:none;"
-        if $tdef->{$subfield}->{hidden} % 2 == 1 &&
-           $value eq '' &&
-           !$tdef->{$subfield}->{mandatory} &&
-           !$tdef->{mandatory} &&
-           !$tdef->{$subfield}->{important} &&
-           !$tdef->{important};
-    # expand all subfields of 773 if there is a host item provided in the input
-    $subfield_data{visibility} ="" if ($tag eq 773 and $cgi->param('hostitemnumber'));
-
-
-    # it's an authorised field
-    if ( $tagslib->{$tag}->{$subfield}->{authorised_value} ) {
-        $subfield_data{marc_value} =
-          build_authorized_values_list( $tag, $subfield, $value, $dbh,
-            $authorised_values_sth,$index_tag,$index_subfield );
-
-    # it's a subfield $9 linking to an authority record - see bug 2206
-    }
-    elsif ($subfield eq "9" and
-           exists($tagslib->{$tag}->{'a'}->{authtypecode}) and
-           defined($tagslib->{$tag}->{'a'}->{authtypecode}) and
-           $tagslib->{$tag}->{'a'}->{authtypecode} ne '') {
-
-        $subfield_data{marc_value} = {
-            type      => 'text',
-            id        => $subfield_data{id},
-            name      => $subfield_data{id},
-            value     => $value,
-            size      => 5,
-            maxlength => $subfield_data{maxlength},
-            readonly  => 1,
-        };
-
-    # it's a thesaurus / authority field
-    }
-    elsif ( $tagslib->{$tag}->{$subfield}->{authtypecode} ) {
-        # when authorities auto-creation is allowed, do not set readonly
-        my $is_readonly = !C4::Context->preference("BiblioAddsAuthorities");
-
-        $subfield_data{marc_value} = {
-            type      => 'text',
-            id        => $subfield_data{id},
-            name      => $subfield_data{id},
-            value     => $value,
-            size      => 67,
-            maxlength => $subfield_data{maxlength},
-            readonly  => ($is_readonly) ? 1 : 0,
-            authtype  => $tagslib->{$tag}->{$subfield}->{authtypecode},
-        };
-
-    # it's a plugin field
-    } elsif ( $tagslib->{$tag}->{$subfield}->{'value_builder'} ) {
-        require Koha::FrameworkPlugin;
-        my $plugin = Koha::FrameworkPlugin->new( {
-            name => $tagslib->{$tag}->{$subfield}->{'value_builder'},
-        });
-        my $pars= { dbh => $dbh, record => $rec, tagslib => $tagslib,
-            id => $subfield_data{id}, tabloop => $tabloop };
-        $plugin->build( $pars );
-        if( !$plugin->errstr ) {
-            $subfield_data{marc_value} = {
-                type           => 'text_complex',
-                id             => $subfield_data{id},
-                name           => $subfield_data{id},
-                value          => $value,
-                size           => 67,
-                maxlength      => $subfield_data{maxlength},
-                javascript     => $plugin->javascript,
-                plugin         => $plugin->name,
-                noclick        => $plugin->noclick,
-            };
-        } else {
-            warn $plugin->errstr;
-            # supply default input form
-            $subfield_data{marc_value} = {
-                type      => 'text',
-                id        => $subfield_data{id},
-                name      => $subfield_data{id},
-                value     => $value,
-                size      => 67,
-                maxlength => $subfield_data{maxlength},
-                readonly  => 0,
-            };
-        }
-
-    # it's an hidden field
-    } elsif ( $tag eq '' ) {
-        $subfield_data{marc_value} = {
-            type      => 'hidden',
-            id        => $subfield_data{id},
-            name      => $subfield_data{id},
-            value     => $value,
-            size      => 67,
-            maxlength => $subfield_data{maxlength},
-        };
-
-    }
-    else {
-        # it's a standard field
-        if (
-            length($value) > 100
-            or
-            ( C4::Context->preference("marcflavour") eq "UNIMARC" && $tag >= 300
-                and $tag < 400 && $subfield eq 'a' )
-            or (    $tag >= 500
-                and $tag < 600
-                && C4::Context->preference("marcflavour") eq "MARC21" )
-          )
-        {
-            $subfield_data{marc_value} = {
-                type      => 'textarea',
-                id        => $subfield_data{id},
-                name      => $subfield_data{id},
-                value     => $value,
-            };
-
-        }
-        else {
-            $subfield_data{marc_value} = {
-                type      => 'text',
-                id        => $subfield_data{id},
-                name      => $subfield_data{id},
-                value     => $value,
-                size      => 67,
-                maxlength => $subfield_data{maxlength},
-                readonly  => 0,
-            };
-
-        }
-    }
-    $subfield_data{'index_subfield'} = $index_subfield;
-    return \%subfield_data;
-}
-
 
 =head2 format_indicator
 
@@ -516,6 +261,13 @@ sub build_tabs {
     if($max_num_tab >= 9){
         $max_num_tab = 9;
     }
+
+    my $biblio_form_builder = Koha::UI::Form::Builder::Biblio->new(
+        {
+            biblionumber => scalar $input->param('biblionumber'),
+        }
+    );
+
     # loop through each tab 0 through 9
     for ( my $tabloop = 0 ; $tabloop <= $max_num_tab ; $tabloop++ ) {
         my @loop_data = (); #innerloop in the template.
@@ -556,9 +308,20 @@ sub build_tabs {
                             'biblio.biblionumber' );
                         push(
                             @subfields_data,
-                            &create_input(
-                                $tag, $subfield, $value, $index_tag, $tabloop, $record,
-                                $authorised_values_sth,$input
+                            $biblio_form_builder->generate_subfield_form(
+                                {
+                                    tag => $tag,
+                                    subfield => $subfield,
+                                    value => $value,
+                                    index_tag => $index_tag,
+                                    record => $record,
+                                    hostitemnumber => scalar $input->param('hostitemnumber'),
+                                    op => scalar $input->param('op'),
+                                    changed_framework => scalar $input->param('changed_framework'),
+                                    breedingid => scalar $input->param('breedingid'),
+                                    tagslib => $tagslib,
+                                    mandatory_z3950 => $mandatory_z3950,
+                                }
                             )
                         );
                     }
@@ -571,9 +334,17 @@ sub build_tabs {
                             next if ( !defined $tagslib->{$tag}->{$subfield} || $tagslib->{$tag}->{$subfield}->{tab} ne $tabloop );
                             push(
                                 @subfields_data,
-                                &create_input(
-                                    $tag, $subfield, $value, $index_tag, $tabloop,
-                                    $record, $authorised_values_sth,$input
+                                $biblio_form_builder->generate_subfield_form(
+                                    {
+                                        tag => $tag,
+                                        subfield => $subfield,
+                                        value => $value,
+                                        index_tag => $index_tag,
+                                        record => $record,
+                                        hostitemnumber => scalar $input->param('hostitemnumber'),
+                                        tagslib => $tagslib,
+                                        mandatory_z3950 => $mandatory_z3950,
+                                    }
                                 )
                             );
                         }
@@ -591,17 +362,27 @@ sub build_tabs {
                             and not ( $subfield eq "9" and
                                       exists($tagslib->{$tag}->{'a'}->{authtypecode}) and
                                       defined($tagslib->{$tag}->{'a'}->{authtypecode}) and
-                                      $tagslib->{$tag}->{'a'}->{authtypecode} ne ""
+                                      $tagslib->{$tag}->{'a'}->{authtypecode} ne "" and
+                                      $tagslib->{$tag}->{'a'}->{hidden} > -4 and
+                                      $tagslib->{$tag}->{'a'}->{hidden} < 5
                                     )
                           ;    #check for visibility flag
                                # if subfield is $9 in a field whose $a is authority-controlled,
-                               # always include in the form regardless of the hidden setting - bug 2206
+                               # always include in the form regardless of the hidden setting - bug 2206 and 28022
                         next if ( defined( $field->subfield($subfield) ) );
                         push(
                             @subfields_data,
-                            &create_input(
-                                $tag, $subfield, '', $index_tag, $tabloop, $record,
-                                $authorised_values_sth,$input
+                            $biblio_form_builder->generate_subfield_form(
+                                {
+                                    tag => $tag,
+                                    subfield => $subfield,
+                                    value => '',
+                                    index_tag => $index_tag,
+                                    record => $record,
+                                    hostitemnumber => scalar $input->param('hostitemnumber'),
+                                    tagslib => $tagslib,
+                                    mandatory_z3950 => $mandatory_z3950,
+                                }
                             )
                         );
                     }
@@ -644,18 +425,28 @@ sub build_tabs {
                       and not ( $subfield->{subfield} eq "9" and
                                 exists($tagslib->{$tag}->{'a'}->{authtypecode}) and
                                 defined($tagslib->{$tag}->{'a'}->{authtypecode}) and
-                                $tagslib->{$tag}->{'a'}->{authtypecode} ne ""
+                                $tagslib->{$tag}->{'a'}->{authtypecode} ne "" and
+                                $tagslib->{$tag}->{'a'}->{hidden} > -4 and
+                                $tagslib->{$tag}->{'a'}->{hidden} < 5
                               )
                       ;    #check for visibility flag
                            # if subfield is $9 in a field whose $a is authority-controlled,
-                           # always include in the form regardless of the hidden setting - bug 2206
+                           # always include in the form regardless of the hidden setting - bug 2206 and 28022
                     next
                       if ( $subfield->{tab} ne $tabloop );
 			push(
                         @subfields_data,
-                        &create_input(
-                            $tag, $subfield->{subfield}, '', $index_tag, $tabloop, $record,
-                            $authorised_values_sth,$input
+                        $biblio_form_builder->generate_subfield_form(
+                            {
+                                tag => $tag,
+                                subfield => $subfield->{subfield},
+                                value => '',
+                                index_tag => $index_tag,
+                                record => $record,
+                                hostitemnumber => scalar $input->param('hostitemnumber'),
+                                tagslib => $tagslib,
+                                mandatory_z3950 => $mandatory_z3950,
+                            }
                         )
                     );
                 }
@@ -699,7 +490,7 @@ my $parentbiblio  = $input->param('parentbiblionumber');
 my $breedingid    = $input->param('breedingid');
 my $z3950         = $input->param('z3950');
 my $op            = $input->param('op') // q{};
-my $mode          = $input->param('mode');
+my $mode          = $input->param('mode') // q{};
 my $frameworkcode = $input->param('frameworkcode');
 my $redirect      = $input->param('redirect');
 my $searchid      = $input->param('searchid') // "";
@@ -733,9 +524,10 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
+my $biblio;
 if ($biblionumber){
-    my $does_bib_exist = Koha::Biblios->find($biblionumber);
-    if (!defined $does_bib_exist){
+    $biblio = Koha::Biblios->find($biblionumber);
+    unless ( $biblio ) {
         $biblionumber = undef;
         $template->param( bib_doesnt_exist => 1 );
     }
@@ -784,13 +576,17 @@ my (
 	$biblioitemnumber
 );
 
-if (($biblionumber) && !($breedingid)){
-    $record = GetMarcBiblio({ biblionumber => $biblionumber });
+if ( $biblio && !$breedingid ) {
+    $record = $biblio->metadata->record;
 }
 if ($breedingid) {
     ( $record, $encoding ) = MARCfindbreeding( $breedingid ) ;
 }
-
+if ( $record && $op eq 'duplicate' &&
+     C4::Context->preference('autoControlNumber') eq 'biblionumber' ){
+    my @control_num = $record->field('001');
+    $record->delete_fields(@control_num);
+}
 #populate hostfield if hostbiblionumber is available
 if ($hostbiblionumber) {
     my $marcflavour = C4::Context->preference("marcflavour");
@@ -829,6 +625,20 @@ if ($biblionumber) {
     my $sth =  $dbh->prepare("select biblioitemnumber from biblioitems where biblionumber=?");
     $sth->execute($biblionumber);
     ($biblioitemnumber) = $sth->fetchrow;
+    if (C4::Context->preference('MARCOverlayRules')) {
+        my $member = Koha::Patrons->find($loggedinuser);
+        $record = ApplyMarcOverlayRules(
+            {
+                biblionumber    => $biblionumber,
+                record          => $record,
+                overlay_context =>  {
+                        source       => $z3950 ? 'z3950' : 'intranet',
+                        categorycode => $member->categorycode,
+                        userid       => $member->userid
+                }
+            }
+        );
+    }
 }
 
 #-------------------------------------------------------------------------------------
@@ -850,7 +660,19 @@ if ( $op eq "addbiblio" ) {
     if ( !$duplicatebiblionumber or $confirm_not_duplicate ) {
         my $oldbibitemnum;
         if ( $is_a_modif ) {
-            ModBiblio( $record, $biblionumber, $frameworkcode );
+            my $member = Koha::Patrons->find($loggedinuser);
+            ModBiblio(
+                $record,
+                $biblionumber,
+                $frameworkcode,
+                {
+                    overlay_context => {
+                        source       => $z3950 ? 'z3950' : 'intranet',
+                        categorycode => $member->categorycode,
+                        userid       => $member->userid
+                    }
+                }
+            );
         }
         else {
             ( $biblionumber, $oldbibitemnum ) = AddBiblio( $record, $frameworkcode );
@@ -943,6 +765,7 @@ elsif ( $op eq "delete" ) {
     $template->param(
         biblionumberdata => $biblionumber,
         op               => $op,
+        z3950            => $z3950
     );
     if ( $op eq "duplicate" ) {
         $biblionumber = "";

@@ -20,12 +20,12 @@
 
 use Modern::Perl;
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use CGI qw ( -utf8 );
 use C4::Context;
 
 use C4::Search;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 
 =head1 DESCRIPTION
 
@@ -34,7 +34,7 @@ plugin_parameters : other parameters added when the plugin is called by the dopo
 =cut
 
 sub plugin_javascript {
-my ($dbh,$record,$tagslib,$field_number,$tabloop) = @_;
+my ($dbh,$record,$tagslib,$field_number) = @_;
 my $function_name= $field_number;
 my $res="
 <script>
@@ -61,7 +61,6 @@ my ($template, $loggedinuser, $cookie)
 			     query => $input,
 			     type => "intranet",
 			     flagsrequired => {editcatalogue => '*'},
-			     debug => 1,
 			     });
 	my $f1 = substr($result,0,8);
 	my $f2 = substr($result,8,1);

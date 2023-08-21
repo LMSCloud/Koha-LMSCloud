@@ -35,4 +35,15 @@ sub PRINT {
     $Log::Log4perl::caller_depth--;
 }
 
+=head2 BINMODE
+
+    Suppress errors from Log::Log4perl::Appender::Screen
+
+=cut
+
+sub BINMODE {
+    my ( $self, $mode ) = @_;
+    binmode( STDOUT, $mode );
+};
+
 1;

@@ -1,11 +1,12 @@
 [%- USE raw -%]
 [%- USE Branches -%]
 [%- USE Koha -%]
+[%- USE KohaDates -%]
 [%- USE ItemTypes -%]
 [%- USE AuthorisedValues -%]
 [%- SET biblio = item.biblio -%]
 [%- SET biblioitem = item.biblioitem -%]
-[%- SET delimiter = Koha.Preference( 'CSVDelimiter' ) || ',' -%]
+[%- SET delimiter = Koha.CSVDelimiter() -%]
 "[% biblio.title | replace('"', '""') | $raw %] [% IF ( Koha.Preference( 'marcflavour' ) == 'UNIMARC' && biblio.author ) %]by [% END %][% biblio.author | replace('"', '""') | $raw %]"
 [%- delimiter | $raw -%]
 "[% (biblioitem.publicationyear || biblio.copyrightdate) | replace('"', '""') | $raw %]"
@@ -15,6 +16,8 @@
 "[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => item.ccode ) | replace('"', '""') | $raw %]"
 [%- delimiter | $raw -%]
 "[% item.barcode | replace('"', '""') | $raw %]"
+[%- delimiter | $raw -%]
+"[% item.enumchron | replace('"', '""') | $raw %]"
 [%- delimiter | $raw -%]
 "[% item.itemcallnumber | replace('"', '""') | $raw %]"
 [%- delimiter | $raw -%]
@@ -35,3 +38,5 @@
 "[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.withdrawn', authorised_value => item.withdrawn ) || "" | replace('"', '""') | $raw %]"
 [%- delimiter | $raw -%]
 "[% (item.issues || 0) | $raw %]"
+[%- delimiter | $raw -%]
+"[% IF item.checkout %][% item.checkout.date_due | $KohaDates | $raw %][% END %]"

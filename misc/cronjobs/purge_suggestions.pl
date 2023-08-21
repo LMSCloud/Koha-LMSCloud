@@ -19,22 +19,16 @@
 
 use Modern::Perl;
 
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
-
-use Getopt::Long;
-use Pod::Usage;
+use Getopt::Long qw( GetOptions );
 
 use Koha::Script -cron;
 use C4::Suggestions;
-use C4::Log;
+use C4::Log qw( cronlogaction );
 use C4::Context;
 
 my ( $help, $days, $confirm );
+
+my $command_line_options = join(" ",@ARGV);
 
 GetOptions(
     'help|?' => \$help,
@@ -65,8 +59,11 @@ if( !$confirm || $help || !defined($days) ) {
     print "No confirm parameter passed!\n\n" if !$confirm && !$help;
     print $usage;
 } elsif( $days and $days > 0 ) {
-    cronlogaction( " ( days: $days )");
+    $command_line_options .= " ( effective days = $days )";
+    cronlogaction({ info => $command_line_options });
     DelSuggestionsOlderThan($days);
 } else {
     warn "This script requires a positive number of days. Aborted.\n";
 }
+
+cronlogaction({ action => 'End', info => "COMPLETED" });

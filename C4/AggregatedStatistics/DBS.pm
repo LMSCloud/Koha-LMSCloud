@@ -23,8 +23,8 @@ use warnings;
 use CGI qw ( -utf8 );
 use Data::Dumper;
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 
 use C4::AggregatedStatistics::AggregatedStatisticsBase;
 use parent qw(C4::AggregatedStatistics::AggregatedStatisticsBase);
@@ -2141,13 +2141,13 @@ sub read_categories_and_branches {
 
     # read library categories into variable @categories
     @categories = ();
-    for my $category ( Koha::Library::Groups->get_search_groups( { interface => 'staff' } ) ) {    # fields used in template: category.id and category.categoryname
+    for my $category ( Koha::Library::Groups->get_search_groups( { interface => 'staff' } )->as_list ) {    # fields used in template: category.id and category.categoryname
         push @categories, { categorycode => $category->id, categoryname => $category->title };
         print STDERR "C4::AggregatedStatistics::DBS::read_categories_and_branches category->unblessed categorycode:", $category->description,  ": categoryname:", $category->title, ":\n" if $debug;
     }
 
     # read branch information into variable @branchloop
-    my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search };
+    my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search->as_list };
     @branchloop = ();
     for my $loopbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
         push @branchloop, {

@@ -7,36 +7,32 @@
 </head>
 
 <body id="pcard_edit-batch" class="tools pcard">
-    [% INCLUDE 'header.inc' %]
+    [% WRAPPER 'header.inc' %]
     [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-        <ol>
-            <li>
-                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-            </li>
-            <li>
+    [% WRAPPER 'sub-header.inc' %]
+        [% WRAPPER breadcrumbs %]
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
-            </li>
-            <li>
+            [% END %]
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/patroncards/home.pl">Patron card creator</a>
-            </li>
-            <li>
+            [% END %]
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/patroncards/manage.pl?card_element=batch">Batches</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    [% IF description %]
-                        Edit [% description | html %]
-                    [% ELSIF batch_id %]
-                        Edit ([% batch_id | html %])
-                    [% ELSE %]
-                        New
-                    [% END %]
-                </a>
-            </li>
-        </ol>
-    </nav>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% IF description %]
+                    <span>Edit [% description | html %]</span>
+                [% ELSIF batch_id %]
+                    <span>Edit ([% batch_id | html %])</span>
+                [% ELSE %]
+                    <span>New</span>
+                [% END %]
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
+    [% END #/ WRAPPER sub-header.inc %]
 
     <div class="main container-fluid">
         <div class="row">
@@ -44,6 +40,11 @@
                 <main>
 
                     [% INCLUDE 'patroncards-toolbar.inc' %]
+
+                    <h1>[% IF description %]<span>Edit</span> [% description | html %]
+                        [% ELSIF batch_id %]<span>Edit patron card batch</span> [% batch_id | html %]
+                        [% ELSE %]<span>New patron card batch</span>[% END %]
+                    </h1>
 
                 [% IF ( duplicate_message ) %]
                     <div class="dialog message">
@@ -82,46 +83,48 @@
                             [% IF ( table_loop ) %]
                             <form name="items">
                                 <h2>Patrons in batch number [% batch_id | html %]</h2>
-                                <table id="batcht">
-                                    [% FOREACH table_loo IN table_loop %]
-                                        [% IF ( table_loo.header_fields ) %]
-                                            <thead>
+                                <div class="page-section">
+                                    <table id="batcht">
+                                        [% FOREACH table_loo IN table_loop %]
+                                            [% IF ( table_loo.header_fields ) %]
+                                                <thead>
+                                                    <tr>
+                                                        [% FOREACH header_field IN table_loo.header_fields %]
+                                                            [% SWITCH header_field.field_label -%]
+                                                                [% CASE "Summary" -%]
+                                                                    <th>Patron name</th>
+                                                                [% CASE "Borrower Number" %]
+                                                                    <th>Borrower number</th>
+                                                                [% CASE "Actions " %]
+                                                                    <th class="noExport">Actions</th>
+                                                                [% CASE "Select" -%]
+                                                                    <th>Select</th>
+                                                                [% CASE %]
+                                                                    <th>[% header_field.field_label | html %]</th>
+                                                            [% END -%]
+                                                        [% END %]
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                            [% ELSE %]
                                                 <tr>
-                                                    [% FOREACH header_field IN table_loo.header_fields %]
-                                                        [% SWITCH header_field.field_label -%]
-                                                            [% CASE "Summary" -%]
-                                                                <th>Borrower name</th>
-                                                            [% CASE "Borrower Number" %]
-                                                                <th>Borrower number</th>
-                                                            [% CASE "Actions " %]
-                                                                <th class="noExport">Actions</th>
-                                                            [% CASE "Select" -%]
-                                                                <th>Select</th>
-                                                            [% CASE %]
-                                                                <th>[% header_field.field_label | html %]</th>
-                                                        [% END -%]
+                                                    [% FOREACH text_field IN table_loo.text_fields %]
+                                                        [% IF ( text_field.select_field ) %]
+                                                            <td>
+                                                                <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/patroncards/edit-batch.pl?op=remove&amp;batch_id=[% batch_id | html %]&amp;label_id=[% text_field.field_value | html %]"><i class="fa fa-trash"></i> Delete</a>
+                                                                <a class="btn btn-default btn-xs export" href="#" data-batch-id="[% batch_id | html %]" data-label-id="[% text_field.field_value | html %]"><i class="fa fa-share-square-o"></i> Export</a>
+                                                            </td>
+                                                            <td><input type="checkbox" name="action" value="[% text_field.field_value | html %]" /></td>
+                                                        [% ELSE %]
+                                                            <td>[% text_field.field_value | html %]</td>
+                                                        [% END %]
                                                     [% END %]
                                                 </tr>
-                                            </thead>
-                                            <tbody>
-                                        [% ELSE %]
-                                            <tr>
-                                                [% FOREACH text_field IN table_loo.text_fields %]
-                                                    [% IF ( text_field.select_field ) %]
-                                                        <td>
-                                                            <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/patroncards/edit-batch.pl?op=remove&amp;batch_id=[% batch_id | html %]&amp;label_id=[% text_field.field_value | html %]"><i class="fa fa-trash"></i> Delete</a>
-                                                            <a class="btn btn-default btn-xs export" href="#" data-batch-id="[% batch_id | html %]" data-label-id="[% text_field.field_value | html %]"><i class="fa fa-share-square-o"></i> Export</a>
-                                                        </td>
-                                                        <td><input type="checkbox" name="action" value="[% text_field.field_value | html %]" /></td>
-                                                    [% ELSE %]
-                                                        <td>[% text_field.field_value | html %]</td>
-                                                    [% END %]
-                                                [% END %]
-                                            </tr>
+                                            [% END %]
                                         [% END %]
-                                    [% END %]
-                                    </tbody>
-                                </table>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </form>
                             [% ELSE %]
                                 <fieldset class="rows" style="border-bottom: 0px; border: 0px;">
@@ -185,9 +188,9 @@
         function Add() {
             var bor_nums = document.getElementById("bor_num_list");
             if (bor_nums.value == '') {
-                window.open("/cgi-bin/koha/patroncards/add_user_search.pl",
+                window.open("/cgi-bin/koha/members/search.pl?columns=cardnumber,name,category,branch,dateexpiry,borrowernotes,action&selection_type=add",
                'PatronPopup',
-               'width=840,height=500,location=yes,toolbar=no,'
+               'width=1024,height=768,location=yes,toolbar=no,'
                + 'scrollbars=yes,resize=yes');
             } else {
                 document.forms["add_by_bor_num"].submit();
@@ -245,6 +248,21 @@
         };
 
         $(document).ready(function() {
+            // Prepare DataTables settings
+            var aLengthMenu = [10, 20, 50, 100, -1];
+            var aLengthMenuLabel = [10, 20, 50, 100, _("All")];
+            var patronsPerPage = [% Koha.Preference('PatronsPerPage') | html %];
+            for ( var i = 0; i < aLengthMenu.length; i++ ) {
+                if ( aLengthMenu[i] == patronsPerPage ) {
+                    break;
+                }
+                if ( aLengthMenu[i] > patronsPerPage || aLengthMenu[i] == -1 ) {
+                    aLengthMenu.splice(i, 0, patronsPerPage);
+                    aLengthMenuLabel.splice(i, 0, patronsPerPage);
+                    break;
+                }
+            }
+
             [% IF table_loop %]
                 $("#description").show();
             [% ELSE %]
@@ -256,6 +274,8 @@
                 ],
                 "aaSorting": [[ 0, "asc" ]],
                 "sPaginationType": "full",
+                "aLengthMenu": [aLengthMenu, aLengthMenuLabel],
+                "pageLength": patronsPerPage,
                 "autoWidth": false
             }));
             $("#additems").click(function(){

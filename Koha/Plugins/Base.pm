@@ -19,14 +19,17 @@ package Koha::Plugins::Base;
 
 use Modern::Perl;
 
-use Module::Pluggable require => 1;
-use Cwd qw(abs_path);
-use List::Util qw(max);
+use Cwd qw( abs_path );
+use List::Util qw( max );
+use Try::Tiny;
 
 use base qw{Module::Bundled::Files};
 
 use C4::Context;
-use C4::Output qw(output_with_http_headers output_html_with_http_headers);
+use C4::Output qw( output_with_http_headers );
+
+use Koha::Exceptions::Plugin;
+use Koha::Cache::Memory::Lite;
 
 =head1 NAME
 
@@ -49,21 +52,31 @@ sub new {
 
     ## Run the installation method if it exists and hasn't been run before
     if ( $self->can('install') && !$self->retrieve_data('__INSTALLED__') ) {
-        if ( $self->install() ) {
-            $self->store_data( { '__INSTALLED__' => 1, '__ENABLED__' => 1 } );
-            if ( my $version = $plugin_version ) {
-                $self->store_data({ '__INSTALLED_VERSION__' => $version });
+        try {
+            if ( $self->install() ) {
+                $self->store_data( { '__INSTALLED__' => 1, '__ENABLED__' => 1 } );
+                if ( my $version = $plugin_version ) {
+                    $self->store_data({ '__INSTALLED_VERSION__' => $version });
+                }
+            } else {
+                warn "Plugin $class failed during installation!";
             }
-        } else {
-            warn "Plugin $class failed during installation!";
         }
+        catch {
+            Koha::Exceptions::Plugin::InstallDied->throw( plugin_class => $class );
+        };
     } elsif ( $self->can('upgrade') ) {
         if ( _version_compare( $plugin_version, $database_version ) == 1 ) {
-            if ( $self->upgrade() ) {
-                $self->store_data({ '__INSTALLED_VERSION__' => $plugin_version });
-            } else {
-                warn "Plugin $class failed during upgrade!";
+            try {
+                if ( $self->upgrade() ) {
+                    $self->store_data({ '__INSTALLED_VERSION__' => $plugin_version });
+                } else {
+                    warn "Plugin $class failed during upgrade!";
+                }
             }
+            catch {
+                Koha::Exceptions::Plugin::UpgradeDied->throw( plugin_class => $class );
+            };
         }
     } elsif ( $plugin_version ne $database_version ) {
         $self->store_data({ '__INSTALLED_VERSION__' => $plugin_version });
@@ -91,6 +104,10 @@ sub store_data {
 
     foreach my $key ( keys %$data ) {
         $sth->execute( $self->{'class'}, $key, $data->{$key} );
+    }
+
+    if (exists $data->{__ENABLED__}) {
+        Koha::Cache::Memory::Lite->clear_from_cache(Koha::Plugins->ENABLED_PLUGINS_CACHE_KEY);
     }
 }
 
@@ -314,6 +331,11 @@ sub _version_compare {
         # 0.0.0 <=> 0.2.1 = -1
         push( @v1, 0 ) unless defined( $v1[$i] );
         push( @v2, 0 ) unless defined( $v2[$i] );
+
+        # Strip letters before comparing, supresses 'Argument "v1" isn't numeric in int' warning
+        $v1[$i] =~ s/^v//g;
+        $v2[$i] =~ s/^v//g;
+
         if ( int( $v1[$i] ) > int( $v2[$i] ) ) {
             return 1;
         }

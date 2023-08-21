@@ -49,17 +49,6 @@ OPAC:
             - "Koha OPAC as public. Private OPAC requires authentication before accessing the OPAC. "
             - 'Note: This does not affect the public API, see the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=RESTPublicAnonymousRequests">RESTPublicAnonymousRequests</a> to control the API.'
         -
-            - pref: HighlightOwnItemsOnOPAC
-              choices:
-                  1: Emphasize
-                  0: "Don't emphasize"
-            - "results from the "
-            - pref: HighlightOwnItemsOnOPACWhich
-              choices:
-                  PatronBranch: "patron's home library"
-                  OpacURLBranch: "OPAC's library via the URL"
-            - " by moving the results to the front and increasing the size or highlighting the rows for those results (non-XSLT only)."
-        -
             - "Show star-ratings on"
             - pref: OpacStarRatings
               choices:
@@ -107,29 +96,39 @@ OPAC:
             - 'Display lists in the OPAC using XSLT stylesheet at: '
             - pref: OPACXSLTListsDisplay
               class: file
-            - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="OPACXSLTListsDisplay" data-value="">leave empty</a> for "no xslt"</li><li>Enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTListsDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li><li>NOTE: The system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes data in the item fields</li></ul>If you have multiple stylesheets for different langues the placeholder {langcode} will be replaced with current interface language.'
+            - '<br />Options:<ul><li>Enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTListsDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li></ul>If you have multiple stylesheets for different languages the placeholder {langcode} will be replaced with current interface language.'
         -
             - 'Display OPAC results using XSLT stylesheet at: '
             - pref: OPACXSLTResultsDisplay
               class: file
-            - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="OPACXSLTResultsDisplay" data-value="">leave empty</a> for "no xslt"</li><li>Enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTResultsDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li><li>NOTE: The system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes data in the item fields</li></ul>If you have multiple stylesheets for different langues the placeholder {langcode} will be replaced with current interface language.'
+            - '<br />Options:<ul><li>Enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTResultsDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li><li>NOTE: The system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes data in the item fields</li></ul>If you have multiple stylesheets for different languages the placeholder {langcode} will be replaced with current interface language.'
         -
             - 'Display OPAC details using XSLT stylesheet at: '
             - pref: OPACXSLTDetailsDisplay
               class: file
-            - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="OPACXSLTDetailsDisplay" data-value="">leave empty</a> for "no xslt"</li><li>Enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTDetailsDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li><li>NOTE: The system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes data in the item fields</li></ul>If you have multiple stylesheets for different langues the placeholder {langcode} will be replaced with current interface language.'
+            - '<br />Options:<ul><li>Enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTDetailsDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li></ul>If you have multiple stylesheets for different languages the placeholder {langcode} will be replaced with current interface language.'
         -
             - 'Display volumes of a title in OPAC details view using XSLT stylesheet at: '
             - pref: OPACXSLTVolumeDisplay
               class: file
-            - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="OPACXSLTVolumeDisplay" data-value="">leave empty</a> for "no xslt"</li><li>Enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTVolumeDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li><li>NOTE: The system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes data in the item fields</li></ul>If you have multiple stylesheets for different langues the placeholder {langcode} will be replaced with current interface language.'
+            - '<br />Options:<ul><li>Enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTVolumeDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li><li>NOTE: The system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes data in the item fields</li></ul>If you have multiple stylesheets for different langues the placeholder {langcode} will be replaced with current interface language.'
         -
-            - "Show itemtype icons in the OPAC: "
+            - 'Display authority results in the OPAC using the XSLT stylesheet at: '
+            - pref: AuthorityXSLTOpacResultsDisplay
+              class: file
+            - '<br />Options:<ul><li>Empty. No XSLT will be applied (<strong>default</strong>)</li><li>Enter a path to a custom XSLT file.</li><li>Enter a URL for an external stylesheet.</li></ul>If you have multiple stylesheets for: <ul><li>different languages: use the placeholder {langcode} - this will be replaced with the current interface language</li><li>authority types: use the placeholder {authtypecode} - this will be replaced with the authority type code'
+        -
+            - 'Display authority details in the OPAC using the XSLT stylesheet at: '
+            - pref: AuthorityXSLTOpacDetailsDisplay
+              class: file
+            - '<br />Options:<ul><li>Empty. No XSLT will be applied (<strong>default</strong>)</li><li>Enter a path to a custom XSLT file.</li><li>Enter a URL for an external stylesheet.</li></ul>If you have multiple stylesheets for: <ul><li>different languages: use the placeholder {langcode} - this will be replaced with the current interface language</li><li>authority types: use the placeholder {authtypecode} - this will be replaced with the authority type code'
+        -
             - pref: OpacNoItemTypeImages
               default: 0
               choices:
-                  1: "No"
-                  0: "Yes"
+                  1: "Don't show"
+                  0: "Show"
+            - "itemtype icons in the OPAC."
         -
             - pref: DisplayOPACiconsXSLT
               choices:
@@ -248,20 +247,8 @@ OPAC:
               syntax: css
               class: code
         -
-            - "Show the following HTML on the left hand column of the main page and patron account on the OPAC (generally navigation links):"
-            - pref: OpacNav
-              type: textarea
-              syntax: text/html
-              class: code
-        -
-            - 'Show the following HTML on the left hand column of the main page and patron account on the OPAC, after <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OpacNav">OpacNav</a>, and before patron account links if available:'
-            - pref: OpacNavBottom
-              type: textarea
-              syntax: text/html
-              class: code
-        -
             - 'Include a "More Searches" box on the detail pages of items on the OPAC, with the following HTML (leave blank to disable):'
-            - '<br />Note: The placeholders {BIBLIONUMBER}, {CONTROLNUMBER}, {TITLE}, {ISBN}, {ISSN} and {AUTHOR} will be replaced with information from the displayed record.'
+            - '<br />Note: The placeholders {BIBLIONUMBER}, {CONTROLNUMBER}, {OCLC_NO}, {TITLE}, {ISBN}, {ISSN} and {AUTHOR} will be replaced with information from the displayed record.'
             - pref: OPACSearchForTitleIn
               type: textarea
               syntax: text/html
@@ -273,11 +260,6 @@ OPAC:
                   1: Show
                   0: "Don't show"
             - a column containing the call number of the items on the "my summary" tab.
-        -
-            - 'Add additional elements to the "More Searches" bar on the OPAC, with the following HTML (leave blank to disable):'
-            - pref: OpacMoreSearches
-              type: textarea
-              class: code
         -
             - 'Include a "Links" column on the "my summary" and "my checkout history" tabs when a patron is logged in to the OPAC, with the following HTML (leave blank to disable):'
             - '<br />Note: The placeholders {BIBLIONUMBER}, {TITLE}, {ISBN} and {AUTHOR} will be replaced with information from the displayed record.'
@@ -292,11 +274,6 @@ OPAC:
                   1: Show
                   0: "Don't show"
             - a column containing the issuing library branch of the checked out / overdue items on the "my summary" tab.
-        -
-            - "Note to display on the patron summary page. This note only appears if the patron is logged in:"
-            - pref: OPACMySummaryNote
-              type: textarea
-              syntax: text/html
         -
             - "Include the following HTML under the facets in OPAC search results:"
             - pref: OPACResultsSidebar
@@ -357,12 +334,6 @@ OPAC:
                   holdingbranch: Holding library
             - "is the default sort field for the holdings table."
         -
-            - pref: OpacSuggestionManagedBy
-              choices:
-                  1: Show
-                  0: Don't show
-            - "the name of the staff member who managed a suggestion in OPAC."
-        -
             - Display up to
             - pref: OpacMaxItemsToDisplay
               class: integer
@@ -391,6 +362,21 @@ OPAC:
                   1: Show
                   0: Don't show
             - "a single hit search result as result hit list rather than in the detailed result view."
+        -
+            - Show no more than
+            - pref: OPACResultsMaxItems
+            - 'individual (available) items on the OPAC XSLT search results.<br>'
+            - If <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OPACResultsUnavailableGroupingBy">OPACResultsUnavailableGroupingBy</a> is set to "library and substatus", show no more than
+            - pref: OPACResultsMaxItemsUnavailable
+            - 'individual (unavailable) items per library and category (like Checked out, Damaged, On hold, etc.)<br>'
+            - Group unavailable items by
+            - pref: OPACResultsUnavailableGroupingBy
+              choices:
+                  branch: "library and substatus"
+                  substatus: "substatus only"
+                  branchonly: "library only"
+            - ". (NOTE: For large consortia we recommend to group unavailable items by 'substatus only', listing item counts per substatus. Similarly the option 'library only' results in unavailable item counts per library.)"
+
     Features:
         -
             - pref: OPACReportProblem
@@ -480,12 +466,6 @@ OPAC:
                   0: "Don't allow"
             - patrons to access a list of the most checked out items on the OPAC. Note that this is somewhat experimental, and should be avoided if your collection has a large number of items.
         -
-            - pref: suggestion
-              choices:
-                  1: Allow
-                  0: "Don't allow"
-            - patrons to make purchase suggestions on the OPAC.
-        -
             - pref: OPACComments
               choices:
                   1: Allow
@@ -506,10 +486,10 @@ OPAC:
             - pref: ShowReviewerPhoto
               choices:
                   1: Show
-                  0: Hide
+                  0: Don't show
             - reviewer's avatar beside comments in OPAC. The avatar will be searched on <a href="https://www.libravatar.org" target="_blank">Libravatar</a> using the patron's e-mail address.
         -
-            - pref: RequestOnOpac
+            - pref: OPACHoldRequests
               choices:
                   1: Allow
                   0: "Don't allow"
@@ -546,8 +526,8 @@ OPAC:
             - pref: OPACPopupAuthorsSearch
               default: 0
               choices:
-                1: Display
-                0: Don't display
+                1: Show
+                0: Don't show
             - the list of authors/subjects in a popup for a combined search on OPAC detail pages.
         -
             - pref: OpacHoldNotes
@@ -560,15 +540,15 @@ OPAC:
             - pref: OPACAcquisitionDetails
               default: 0
               choices:
-                  1: Display
-                  0: Don't display
+                  1: Show
+                  0: Don't show
             - the acquisition details on OPAC detail pages.
         -
             - pref: OpacNewsLibrarySelect
               default: 0
               choices:
-                  1: Display
-                  0: Don't display
+                  1: Show
+                  0: Don't show
             - a library selection list for news items in the OPAC.
         -
             - "Limit the number of news displayed on the OPAC start page to news with a maximum position number of "
@@ -628,6 +608,15 @@ OPAC:
                   1: Enable
                   0: Disable
             - "interface for browsing all holdings (Elasticsearch only)."
+        -
+            - pref: OPACAuthorIdentifiers
+              default: 0
+              choices:
+                  1: Display
+                  0: "Don't display"
+            - "identifiers for authors and contributors to the detail pages in the OPAC."
+            - "This feature requires authorities with 024$2 and 024$a."
+            - "Valid source codes in $2 are currently: orcid, scopus, loop, rid and viaf."
         -
             - pref: OpacDetailAntolinLinks
               default: 0
@@ -750,7 +739,7 @@ OPAC:
             - Only allow patrons to renew their own books on the OPAC if they have less than
             - pref: OPACFineNoRenewals
               class: currency
-            - '[% local_currency %] in fines (leave blank to disable).'
+            - '[% local_currency %] in charges (leave blank to disable).'
         -
             - pref: OPACFineNoRenewalsIncludeCredits
               choices:
@@ -758,52 +747,16 @@ OPAC:
                   0: "Don't include"
             - outstanding/unapplied credits when applying the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OPACFineNoRenewals">OPACFineNoRenewals</a> rule to patrons.
         -
-            - pref: OPACViewOthersSuggestions
-              choices:
-                  1: Show
-                  0: "Don't show"
-            - purchase suggestions from other patrons on the OPAC.
-        -
-            - "Fields that should be mandatory for patron purchase suggestions:"
-            - pref: OPACSuggestionMandatoryFields
-              multiple:
-                title: Title
-                author: Author
-                copyrightdate: Copyright or publication date
-                isbn: ISBN, ISSN or other standard number
-                publishercode: Publisher name
-                collectiontitle: Collection title
-                place: Publication place
-                itemtype: Item type
-                branch: Library or branch
-                patronreason: Patron reason
-                note: Note
-            - "<br />Note: if none of the above options are selected, 'Title' field would be mandatory anyway, by default."
-        -
-            - "Fields that should be hidden for patron purchase suggestions:"
-            - pref: OPACSuggestionUnwantedFields
-              multiple:
-                author: Author
-                copyrightdate: Copyright or publication date
-                isbn: ISBN, ISSN or other standard number
-                publishercode: Publisher name
-                collectiontitle: Collection title
-                place: Publication place
-                itemtype: Item type
-                quantity: Quantity
-                branch: Library or branch
-                patronreason: Patron reason
-                note: Note
-            - '<br />Note: Do not make <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OPACSuggestionMandatoryFields">OPACSuggestionMandatoryFields</a> unwanted fields '
-        -
             - pref: OpacHiddenItems
               type: textarea
               syntax: text/x-yaml
               class: code
             - Define custom rules to hide specific items from search and view on the OPAC. How to write these rules is documented on the <a href="http://wiki.koha-community.org/wiki/OpacHiddenItems" target="_blank">Koha wiki</a>.
         -
-            - 'List of patron categories, separated by |, that can see items otherwise hidden by <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OpacHiddenItems">OpacHiddenItems</a>:'
+            - 'List of patron categories, that can see items otherwise hidden by <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OpacHiddenItems">OpacHiddenItems</a>:'
             - pref: OpacHiddenItemsExceptions
+              choices: patron-categories
+              class: multiple
         -
             - pref: OpacHiddenItemsHidesRecord
               default: 1
@@ -831,26 +784,8 @@ OPAC:
                 1: "Block"
                 0: "Don't block"
             - expired patrons from OPAC actions such as placing a hold or renewing. Note that the setting for a patron category takes priority over this system preference.
-        -
-            - Limit patrons to
-            - pref: MaxOpenSuggestions
-              class: integer
-            - "open suggestions. Leave empty for no limit. **Note: this setting does not affect anonymous suggestions."
-        -
-            - Number of total suggestions allowed
-            - pref: MaxTotalSuggestions
-              class: integer
-            - "in"
-            - pref: NumberOfSuggestionDays
-              class: integer
-            - "days."
+
     Privacy:
-        -
-            - pref: AnonSuggestions
-              choices:
-                  1: Allow
-                  0: "Don't allow"
-            - 'patrons that aren''t logged in to make purchase suggestions. Suggestions are connected to the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=AnonymousPatron">AnonymousPatron</a> system preference.'
         -
             - pref: opacreadinghistory
               choices:
@@ -890,7 +825,7 @@ OPAC:
               choices:
                   1: Allow
                   0: "Don't allow"
-            - "patrons to choose their own privacy settings for showing the patron's fines to the patron's guarantor."
+            - "patrons to choose their own privacy settings for showing the patron's charges to the patron's guarantor."
         -
             - Use borrowernumber
             - pref: AnonymousPatron
@@ -978,23 +913,29 @@ OPAC:
             - "days after account creation."
             - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/cleanup_database.pl</code> cronjob. Ask your system administrator to schedule it.<br>No patrons will be deleted if you set the pref to zero or make it empty."
         -
+            - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron modification screen:"
+            - pref: PatronSelfModificationMandatoryField
+              type: modalselect
+              source: borrowers
+              exclusions: password|cardnumber|dateexpiry|categorycode|sort1|sort2|opacnote|borrowernotes|gonenoaddress|lost|flags
+        -
             - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
             - pref: PatronSelfRegistrationBorrowerMandatoryField
               type: modalselect
               source: borrowers
-              exclusions: sort1|sort2
+              exclusions: sort1|sort2|opacnote|borrowernotes|gonenoaddress|lost|flags
         -
             - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-registration screen:"
             - pref: PatronSelfRegistrationBorrowerUnwantedField
               type: modalselect
               source: borrowers
-              exclusions: branchcode|sort1|sort2
+              exclusions: branchcode|sort1|sort2|gonenoaddress|lost|flags
         -
             - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-modification screen:"
             - pref: PatronSelfModificationBorrowerUnwantedField
               type: modalselect
               source: borrowers
-              exclusions: sort1|sort2
+              exclusions: sort1|sort2|gonenoaddress|lost|flags
         -
             - "Display the following additional instructions for patrons who self register via the OPAC ( HTML is allowed ):"
             - pref: PatronSelfRegistrationAdditionalInstructions
@@ -1015,8 +956,8 @@ OPAC:
         -
             - pref: PatronSelfRegistrationPrefillForm
               choices:
-                  1: "Display and prefill"
-                  0: "Don't display and prefill"
+                  1: "Show and prefill"
+                  0: "Don't show and prefill"
             - "password and login form after a patron has self registered."
         -
             - pref: PatronSelfRegistrationConfirmEmail
@@ -1030,7 +971,81 @@ OPAC:
                   1: Allow
                   0: "Don't allow"
             - patrons to notify the library of changes to their contact information from the OPAC.
-
+        -
+            - "Choose email address that new patron self-registrations will be sent to: "
+            - pref: EmailPatronRegistrations
+              default: 0
+              choices:
+                  0: none
+                  EmailAddressForPatronRegistrations: EmailAddressForPatronRegistrations
+                  BranchEmailAddress: email address of library
+                  KohaAdminEmailAddress: KohaAdminEmailAddress
+            - '<br>If you chooose <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=EmailAddressForPatronRegistrations">EmailAddressForPatronRegistrations</a> you have to enter a valid email address: '
+            - pref: EmailAddressForPatronRegistrations
+              class: email
+    Suggestions:
+        -
+            - pref: OpacSuggestionManagedBy
+              choices:
+                  1: Show
+                  0: Don't show
+            - "the name of the staff member who managed a suggestion in OPAC."
+        -
+            - pref: AnonSuggestions
+              choices:
+                  1: Allow
+                  0: "Don't allow"
+            - 'patrons that aren''t logged in to make purchase suggestions. Suggestions are connected to the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=AnonymousPatron">AnonymousPatron</a> system preference.'
+        -
+            - Limit patrons to
+            - pref: MaxOpenSuggestions
+              class: integer
+            - "open suggestions. Leave empty for no limit. **Note: this setting does not affect anonymous suggestions."
+        -
+            - Number of total suggestions allowed
+            - pref: MaxTotalSuggestions
+              class: integer
+            - "in"
+            - pref: NumberOfSuggestionDays
+              class: integer
+            - "days."
+        -
+            - pref: OPACViewOthersSuggestions
+              choices:
+                  1: Show
+                  0: "Don't show"
+            - purchase suggestions from other patrons on the OPAC.
+        -
+            - "Fields that should be mandatory for patron purchase suggestions:"
+            - pref: OPACSuggestionMandatoryFields
+              type: modalselect
+              source: suggestions
+              required: title
+            - "<br />Note: if none of the above options are selected, 'Title' field would be mandatory anyway, by default."
+        -
+            - "Fields that should be hidden for patron purchase suggestions:"
+            - pref: OPACSuggestionUnwantedFields
+              type: modalselect
+              source: suggestions
+              exclusions: title
+            - '<br />Note: Do not make <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OPACSuggestionMandatoryFields">OPACSuggestionMandatoryFields</a> unwanted fields '
+        -
+            - pref: suggestion
+              choices:
+                  1: Enable
+                  0: "Disable"
+            - 'purchase suggestions in the OPAC.<br>'
+            - 'When <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=suggestion">suggestion</a> is enabled and <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=AnonSuggestions">AnonSuggestions</a> is disabled, following patron categories are not allowed to make purchase suggestions:'
+            - pref: suggestionPatronCategoryExceptions
+              choices: patron-categories
+              class: multiple
+        -
+            - pref: OPACSuggestionAutoFill
+              default: 0
+              choices:
+                  1: Enable
+                  0: Disable
+            - OPAC suggestions form automatically filling with data from Google Books API.
     Advanced search options:
         -
             - "Show search options:"
@@ -1052,6 +1067,13 @@ OPAC:
                 subtype: Subtypes
                 sorting: Sorting
                 location: Location and availability
+        -
+            - Show tabs in the OPAC advanced search for limiting searches on the
+            - pref: OpacAdvancedSearchTypes
+              class: long
+            - "fields (separate values with |). Tabs appear in the order listed.<br/>"
+            - "<em>Currently supported values</em>: Item types (<strong>itemtypes</strong>), Collection, (<strong>ccode</strong>) and Shelving location (<strong>loc</strong>)."
+
     Payments:
         -
             - "The minimum patron age for permission to the payment functionality is "

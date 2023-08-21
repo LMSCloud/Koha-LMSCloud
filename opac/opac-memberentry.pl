@@ -19,14 +19,15 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use Digest::MD5 qw( md5_base64 md5_hex );
-use JSON;
+use JSON qw( to_json );
 use List::MoreUtils qw( any each_array uniq );
 use String::Random qw( random_string );
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
-use C4::Members;
+use C4::Letters qw( GetPreparedLetter EnqueueLetter SendQueuedMessages );
+use C4::Members qw( checkcardnumber );
 use C4::Form::MessagingPreferences;
 use Koha::AuthUtils;
 use Koha::Patrons;
@@ -34,14 +35,12 @@ use Koha::Patron::Consent;
 use Koha::Patron::Modification;
 use Koha::Patron::Modifications;
 use C4::Scrubber;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Email;
 use Koha::Libraries;
 use Koha::Patron::Attribute::Types;
 use Koha::Patron::Attributes;
 use Koha::Patron::Images;
-use Koha::Patron::Modification;
-use Koha::Patron::Modifications;
 use Koha::Patron::Categories;
 use Koha::Token;
 use Koha::AuthorisedValues;
@@ -86,7 +85,7 @@ if ( $action eq 'create' || $action eq 'new' ) {
     $params = { branchcode => { -in => \@PatronSelfRegistrationLibraryList } }
       if @PatronSelfRegistrationLibraryList;
 }
-my @libraries = Koha::Libraries->search($params);
+my $libraries = Koha::Libraries->search($params);
 
 my ( $min, $max ) = C4::Members::get_cardnumber_length();
 if ( defined $min ) {
@@ -102,7 +101,7 @@ $template->param(
     action            => $action,
     hidden            => GetHiddenFields( $mandatory, $action ),
     mandatory         => $mandatory,
-    libraries         => \@libraries,
+    libraries         => $libraries,
     OPACPatronDetails => C4::Context->preference('OPACPatronDetails'),
     defaultCategory  => $defaultCategory,
 );
@@ -162,7 +161,7 @@ if ( $action eq 'create' ) {
             borrower       => \%borrower
         );
         $template->param( patron_attribute_classes => GeneratePatronAttributesForm( undef, $attributes ) );
-    } elsif ( ! grep { $borrower{branchcode} eq $_->branchcode } @libraries ) {
+    } elsif ( !$libraries->find($borrower{branchcode}) ) {
         die "Branchcode not allowed"; # They hack the form
     }
     else {
@@ -189,6 +188,7 @@ if ( $action eq 'create' ) {
             $borrower{password}          = Koha::AuthUtils::generate_password(Koha::Patron::Categories->find($borrower{categorycode})) unless $borrower{password};
             $borrower{verification_token} = $verification_token;
 
+            $borrower{extended_attributes} = to_json($attributes);
             Koha::Patron::Modification->new( \%borrower )->store();
 
             #Send verification email
@@ -242,6 +242,46 @@ if ( $action eq 'create' ) {
 
                 $template->param( password_cleartext => $patron->plain_text_password );
                 $template->param( borrower => $patron->unblessed );
+
+                # If 'AutoEmailNewUser' syspref is on, email user their account details from the 'notice' that matches the user's branchcode.
+                if ( C4::Context->preference("AutoEmailNewUser") ) {
+                    #look for defined primary email address, if blank - attempt to use borr.email and borr.emailpro instead
+                    my $emailaddr = $patron->notice_email_address;
+                    # if we manage to find a valid email address, send notice
+                    if ($emailaddr) {
+                        eval {
+                            my $letter = GetPreparedLetter(
+                                module      => 'members',
+                                letter_code => 'WELCOME',
+                                branchcode  => $patron->branchcode,
+                                lang        => $patron->lang || 'default',
+                                tables      => {
+                                    'branches'  => $patron->branchcode,
+                                    'borrowers' => $patron->borrowernumber,
+                                },
+                                want_librarian => 1,
+                            ) or return;
+
+                            my $message_id = EnqueueLetter(
+                                {
+                                    letter                 => $letter,
+                                    borrowernumber         => $patron->id,
+                                    to_address             => $emailaddr,
+                                    message_transport_type => 'email',
+                                    branchcode             => $patron->branchcode,
+                                }
+                            );
+                            SendQueuedMessages({ message_id => $message_id });
+                        };
+                    }
+                }
+
+                # Notify library of new patron registration
+                my $notify_library = C4::Context->preference('EmailPatronRegistrations');
+                if ($notify_library) {
+                    $patron->notify_library_of_registration($notify_library);
+                }
+
             } else {
                 # FIXME Handle possible errors here
             }
@@ -392,11 +432,12 @@ sub GetMandatoryFields {
 
     my %mandatory_fields;
 
-    my $BorrowerMandatoryField =
+    my $BorrowerMandatoryField = $action eq 'edit' || $action eq 'update' ?
+      C4::Context->preference("PatronSelfModificationMandatoryField") :
       C4::Context->preference("PatronSelfRegistrationBorrowerMandatoryField");
 
     my @fields = split( /\|/, $BorrowerMandatoryField );
-    push @fields, 'gdpr_proc_consent' if C4::Context->preference('GDPR_Policy') && $action eq 'create';
+    push @fields, 'gdpr_proc_consent' if C4::Context->preference('PrivacyPolicyConsent') && $action eq 'create';
 
     foreach (@fields) {
         $mandatory_fields{$_} = 1;
@@ -511,20 +552,6 @@ sub ParseCgiForBorrower {
         }
     }
 
-    if ( defined $borrower{'dateofbirth'} ) {
-        my $dob_dt;
-        $dob_dt = eval { dt_from_string( $borrower{'dateofbirth'} ); }
-            if ( $borrower{'dateofbirth'} );
-
-        if ( $dob_dt ) {
-            $borrower{'dateofbirth'} = output_pref( { dt => $dob_dt, dateonly => 1, dateformat => 'iso' } );
-        }
-        else {
-            # Trigger validation
-            $borrower{'dateofbirth'} = undef;
-        }
-    }
-
     # Replace checkbox 'agreed' by datetime in gdpr_proc_consent
     $borrower{gdpr_proc_consent} = dt_from_string if  $borrower{gdpr_proc_consent} && $borrower{gdpr_proc_consent} eq 'agreed';
 
@@ -625,7 +652,7 @@ sub GeneratePatronAttributesForm {
     my ( $borrowernumber, $entered_attributes ) = @_;
 
     # Get all attribute types and the values for this patron (if applicable)
-    my @types = grep { $_->opac_editable() or $_->opac_display }
+    my @types = grep { $_->opac_editable() or $_->opac_display } # FIXME filter using DBIC
         Koha::Patron::Attribute::Types->search()->as_list();
     if ( scalar(@types) == 0 ) {
         return [];
@@ -698,13 +725,14 @@ sub ParsePatronAttributes {
     my @values = $cgi->multi_param('patron_attribute_value');
 
     my @editable_attribute_types
-        = map { $_->code } Koha::Patron::Attribute::Types->search({ opac_editable => 1 });
+        = map { $_->code } Koha::Patron::Attribute::Types->search({ opac_editable => 1 })->as_list;
 
     my $ea = each_array( @codes, @values );
     my @attributes;
 
     my $delete_candidates = {};
 
+    my $scrubber = C4::Scrubber->new();
     while ( my ( $code, $value ) = $ea->() ) {
         if ( any { $_ eq $code } @editable_attribute_types ) {
             # It is an editable attribute
@@ -714,7 +742,7 @@ sub ParsePatronAttributes {
             }
             else {
                 # we've got a value
-                push @attributes, { code => $code, attribute => $value };
+                push @attributes, { code => $code, attribute => $scrubber->scrub( $value ) };
 
                 # 'code' is no longer a delete candidate
                 delete $delete_candidates->{$code}

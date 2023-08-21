@@ -17,9 +17,8 @@ package Koha::Patron::Relationship;
 
 use Modern::Perl;
 
-use Carp;
 use List::MoreUtils qw( any );
-use Try::Tiny;
+use Try::Tiny qw( catch try );
 
 use Koha::Database;
 use Koha::Exceptions::Patron::Relationship;
@@ -74,15 +73,12 @@ sub store {
 
 =head3 guarantor
 
-Returns the Koha::Patron object for the guarantor, if there is one
+Returns the Koha::Patron object for the guarantor
 
 =cut
 
 sub guarantor {
     my ( $self ) = @_;
-
-    return unless $self->guarantor_id;
-
     return Koha::Patrons->find( $self->guarantor_id );
 }
 
@@ -94,7 +90,6 @@ Returns the Koha::Patron object for the guarantee
 
 sub guarantee {
     my ( $self ) = @_;
-
     return Koha::Patrons->find( $self->guarantee_id );
 }
 

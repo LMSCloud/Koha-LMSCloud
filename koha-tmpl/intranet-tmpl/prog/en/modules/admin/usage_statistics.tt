@@ -11,24 +11,20 @@
 </head>
 
 <body id="admin_usage_statistics" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Usage statistics
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Usage statistics</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -39,21 +35,21 @@
     <div class="dialog [% m.type | html %]">
         [% SWITCH m.code %]
         [% CASE 'error_on_update' %]
-            An error occurred when updating this patron category. Perhaps it already exists.
+            <span>An error occurred when updating this patron category. Perhaps it already exists</span>
         [% CASE 'error_on_insert' %]
-            An error occurred when inserting this patron category. The patron category might already exist.
+            <span>An error occurred when inserting this patron category. The patron category might already exist</span>
         [% CASE 'error_on_delete' %]
-            An error occurred when deleting this patron category. Check the logs.
+            <span>An error occurred when deleting this patron category. Check the logs</span>
         [% CASE 'success_on_update' %]
-            Patron category updated successfully.
+            <span>Patron category updated successfully</span>
         [% CASE 'success_on_insert' %]
-            Patron category inserted successfully.
+            <span>Patron category inserted successfully</span>
         [% CASE 'success_on_delete' %]
-            Patron category deleted successfully.
+            <span>Patron category deleted successfully</span>
         [% CASE 'already_exists' %]
-            This patron category already exists.
+            <span>This patron category already exists</span>
         [% CASE %]
-            [% m.code | html %]
+            <span>[% m.code | html %]</span>
         [% END %]
     </div>
 [% END %]
@@ -181,7 +177,7 @@
                             [% IF UsageStatsLastUpdateTime %]
                                 [% UsageStatsLastUpdateTime | html %]
                             [% ELSE %]
-                                Your data have never been shared
+                                <span>Your data have never been shared</span>
                             [% END %]
                         </li>
                         <li>
@@ -245,7 +241,7 @@
 
         <fieldset class="action">
             <input type="hidden" name="op" value="update" />
-            <input type="submit" value="Update your statistics usage" />
+            <input type="submit" class="btn btn-primary" value="Update your statistics usage" />
             <a class="cancel" href="/cgi-bin/koha/admin/usage_statistics.pl">Cancel</a>
         </fieldset>
     </form>

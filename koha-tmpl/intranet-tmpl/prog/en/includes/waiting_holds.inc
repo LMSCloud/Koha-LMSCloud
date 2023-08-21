@@ -1,10 +1,16 @@
+[% USE KohaDates %]
 [% USE ItemTypes %]
 [% USE AuthorisedValues %]
-<table id="[% table_name | html %]">
+<table class="holds_table" id="[% table_name | html %]">
     <thead>
         <tr>
-            <th class="title-string">Waiting since</th>
-            <th class="title-string">Date hold placed</th>
+            <th class="NoSort"><input type="checkbox" class="select_hold_all"/></th>
+            <th>Waiting since</th>
+            <th>Date hold placed</th>
+          [% IF table_name == 'holdscr' %]
+            <th>Date cancellation requested</th>
+          [% END %]
+            <th>Expiration date</th>
             <th class="anti-the">Title</th>
             <th>Patron</th>
             <th>Home library</th>
@@ -19,8 +25,25 @@
     <tbody>
         [% FOREACH reserveloo IN reserveloop %]
             <tr>
-                <td><span title="[% reserveloo.waitingdate | html %]">[% reserveloo.waitingdate | $KohaDates %]</span></td>
-                <td><span title="[% reserveloo.reservedate | html %]">[% reserveloo.reservedate | $KohaDates %]</span></td>
+                <th><input type="checkbox" class="select_hold" data-id="[% reserveloo.reserve_id | html %]"/></th>
+                <td data-order="[% reserveloo.waitingdate | html %]"><span>[% reserveloo.waitingdate | $KohaDates %]</span></td>
+                <td data-order="[% reserveloo.reservedate | html %]"><span>[% reserveloo.reservedate | $KohaDates %]</span></td>
+              [% IF table_name == 'holdscr' %]
+                [% IF reserveloo.cancellation_requests.count %]
+                  [% FOREACH cancellation_request IN reserveloo.cancellation_requests %]
+                    [% IF loop.first %]
+                      <td data-order="[% cancellation_request.creation_date | html %]">
+                    [% END %]
+                        <span>[% cancellation_request.creation_date | $KohaDates %]</span>
+                    [% IF loop.last %]
+                      </td>
+                    [% END %]
+                  [% END %]
+                [% ELSE %]
+                  <td></td>
+                [% END %]
+              [% END %]
+                <td data-order="[% reserveloo.expirationdate | html %]"><span>[% reserveloo.expirationdate | $KohaDates %]</span></td>
                 <td>
                     [% INCLUDE 'biblio-title.inc' biblio=reserveloo.biblio link = 1 %]
                         [% UNLESS ( item_level_itypes ) %]

@@ -23,50 +23,43 @@ package C4::Members;
 
 use Modern::Perl;
 use C4::Context;
-use String::Random qw( random_string );
 use Scalar::Util qw( looks_like_number );
-use Date::Calc qw/Today Add_Delta_YM check_date Date_to_Days/;
-use Locale::Currency::Format 1.28;
-use List::MoreUtils qw( uniq );
-use JSON qw(to_json);
-use C4::Log; # logaction
-use C4::Overdues;
+use Date::Calc qw( check_date Date_to_Days );
+use C4::Overdues qw( checkoverdues );
 use C4::Reserves;
 use C4::Accounts;
-use C4::Biblio;
-use C4::Letters;
-use C4::NewsChannels; #get slip news
+use C4::Letters qw( GetPreparedLetter );
 use DateTime;
 use Koha::Database;
-use Koha::DateUtils;
-use Koha::AuthUtils qw(hash_password);
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Acquisition::Currencies;
 use Koha::Database;
 use Koha::Holds;
-use Koha::List::Patron;
+use Koha::AdditionalContents;
 use Koha::Patrons;
 use Koha::Patron::Categories;
+use Locale::Currency::Format 1.28 qw( currency_format FMT_SYMBOL );
 
-our (@ISA,@EXPORT,@EXPORT_OK,$debug);
-
+our (@ISA, @EXPORT_OK);
 BEGIN {
-    $debug = $ENV{DEBUG} || 0;
     require Exporter;
     @ISA = qw(Exporter);
-    #Get data
-    push @EXPORT, qw(
+    @EXPORT_OK = qw(
+      GetMemberDetails
+      GetMember
 
-        &GetAllIssues
+      GetAllIssues
 
-        &GetBorrowersToExpunge
+      GetBorrowersToExpunge
 
-        &IssueSlip
-    );
+      IssueSlip
 
-    #Check data
-    push @EXPORT, qw(
-        &checkuserpassword
-        &checkcardnumber
+      checkuserpassword
+      get_cardnumber_length
+      checkcardnumber
+
+      DeleteUnverifiedOpacRegistrations
+      DeleteExpiredOpacRegistrations
     );
 }
 
@@ -177,7 +170,7 @@ sub patronflags {
     $no_issues_charge_guarantees = undef unless looks_like_number( $no_issues_charge_guarantees );
     if ( defined $no_issues_charge_guarantees ) {
         my $p = Koha::Patrons->find( $patroninformation->{borrowernumber} );
-        my @guarantees = map { $_->guarantee } $p->guarantee_relationships;
+        my @guarantees = map { $_->guarantee } $p->guarantee_relationships->as_list;
         my $guarantees_non_issues_charges = 0;
         foreach my $g ( @guarantees ) {
             $guarantees_non_issues_charges += $g->account->non_issues_charges;
@@ -277,7 +270,7 @@ sub GetAllIssues {
 
     my $dbh = C4::Context->dbh;
     my $query =
-'SELECT issues.*, items.*, biblio.*, biblioitems.*, issues.timestamp as issuestimestamp, issues.renewals AS renewals,items.renewals AS totalrenewals,items.timestamp AS itemstimestamp,borrowers.firstname,borrowers.surname
+'SELECT issues.*, items.*, biblio.*, biblioitems.*, issues.timestamp as issuestimestamp, issues.renewals_count AS renewals,items.renewals AS totalrenewals,items.timestamp AS itemstimestamp,borrowers.firstname,borrowers.surname
   FROM issues
   LEFT JOIN items on items.itemnumber=issues.itemnumber
   LEFT JOIN borrowers on borrowers.borrowernumber=issues.issuer_id
@@ -285,7 +278,7 @@ sub GetAllIssues {
   LEFT JOIN biblioitems ON items.biblioitemnumber=biblioitems.biblioitemnumber
   WHERE issues.borrowernumber=?
   UNION ALL
-  SELECT old_issues.*, items.*, biblio.*, biblioitems.*, old_issues.timestamp as issuestimestamp, old_issues.renewals AS renewals,items.renewals AS totalrenewals,items.timestamp AS itemstimestamp,borrowers.firstname,borrowers.surname
+  SELECT old_issues.*, items.*, biblio.*, biblioitems.*, old_issues.timestamp as issuestimestamp, old_issues.renewals_count AS renewals,items.renewals AS totalrenewals,items.timestamp AS itemstimestamp,borrowers.firstname,borrowers.surname
   FROM old_issues
   LEFT JOIN items on items.itemnumber=old_issues.itemnumber
   LEFT JOIN borrowers on borrowers.borrowernumber=old_issues.issuer_id
@@ -454,8 +447,6 @@ sub GetBorrowersToExpunge {
         push( @query_params, $anonymous_patron );
     }
 
-    warn $query if $debug;
-
     my $sth = $dbh->prepare($query);
     if (scalar(@query_params)>0){
         $sth->execute(@query_params);
@@ -503,7 +494,7 @@ sub GetBorrowersToExpunge {
       </overdue>
 
       <news>
-         <<opac_news.*>>
+         <<additional_contents.*>>
       </news>
 
   ISSUEQSLIP:
@@ -602,11 +593,29 @@ sub IssueSlip {
                 issues      => $all,
             };
         }
-        my $news = GetNewsToDisplay( "slip", $branch );
-        my @news = map {
-            $_->{'timestamp'} = $_->{'newdate'};
-            { opac_news => $_ }
-        } @$news;
+        my $news = Koha::AdditionalContents->search_for_display(
+            {
+                category   => 'news',
+                location   => 'slip',
+                lang       => $patron->lang,
+                library_id => $branch,
+            }
+        );
+        my @news;
+        while ( my $n = $news->next ) {
+            my $all = $n->unblessed_all_relateds;
+
+            # FIXME We keep newdate and timestamp for backward compatibility (from GetNewsToDisplay)
+            # But we should remove them and adjust the existing templates in a db rev
+            # FIXME This must be formatted in the notice template
+            my $published_on_dt = output_pref({ dt => dt_from_string( $all->{published_on} ), dateonly => 1 });
+            $all->{newdate} = $published_on_dt;
+            $all->{timestamp} = $published_on_dt;
+
+            push @news, {
+                additional_contents => $all,
+            };
+        }
         $letter_code = 'ISSUESLIP';
         %repeat      = (
             checkedout => \@checkouts,
@@ -616,7 +625,8 @@ sub IssueSlip {
         %loops = (
             issues => [ map { $_->{issues}{itemnumber} } @checkouts ],
             overdues   => [ map { $_->{issues}{itemnumber} } @overdues ],
-            opac_news => [ map { $_->{opac_news}{idnew} } @news ],
+            opac_news => [ map { $_->{additional_contents}{idnew} } @news ],
+            additional_contents => [ map { $_->{additional_contents}{idnew} } @news ],
         );
         
         $checkoutcount = scalar @checkouts;

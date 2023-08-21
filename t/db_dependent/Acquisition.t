@@ -19,7 +19,7 @@ use Modern::Perl;
 
 use POSIX qw(strftime);
 
-use Test::More tests => 67;
+use Test::More tests => 71;
 use t::lib::Mocks;
 use Koha::Database;
 use Koha::DateUtils qw(dt_from_string output_pref);
@@ -28,9 +28,9 @@ use Koha::Acquisition::Basket;
 use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'MARC21' );
 
 BEGIN {
-    use_ok('C4::Acquisition');
-    use_ok('C4::Biblio');
-    use_ok('C4::Budgets');
+    use_ok('C4::Acquisition', qw( NewBasket GetBasket AddInvoice GetInvoice GetInvoices ModReceiveOrder SearchOrders GetOrder GetHistory ModOrder get_rounding_sql get_rounded_price ReopenBasket ModBasket ModBasketHeader ModBasketUsers ));
+    use_ok('C4::Biblio', qw( AddBiblio GetMarcSubfieldStructure ));
+    use_ok('C4::Budgets', qw( AddBudgetPeriod AddBudget GetBudget GetBudgetByOrderNumber GetBudgetsReport GetBudgets GetBudgetReport ));
     use_ok('Koha::Acquisition::Orders');
     use_ok('Koha::Acquisition::Booksellers');
     use_ok('t::lib::TestBuilder');
@@ -173,7 +173,7 @@ my ( $biblionumber5, $biblioitemnumber5 ) = AddBiblio( MARC::Record->new, '' );
 
 
 
-# Prepare 5 orders, and make distinction beween fields to be tested with eq and with ==
+# Prepare 6 orders, and make distinction beween fields to be tested with eq and with ==
 # Ex : a price of 50.1 will be stored internally as 5.100000
 
 my @order_content = (
@@ -183,8 +183,8 @@ my @order_content = (
             biblionumber   => $biblionumber1,
             budget_id      => $budget->{budget_id},
             uncertainprice => 0,
-            order_internalnote => "internal note",
-            order_vendornote   => "vendor note",
+            order_internalnote => "internal note foo",
+            order_vendornote   => "vendor note bar",
             ordernumber => '',
         },
         num => {
@@ -209,8 +209,8 @@ my @order_content = (
             biblionumber   => $biblionumber2,
             budget_id      => $budget->{budget_id},
             uncertainprice => 0,
-            order_internalnote => "internal note",
-            order_vendornote   => "vendor note"
+            order_internalnote => "internal note foo",
+            order_vendornote   => "vendor note bar"
         },
         num => {
             quantity  => 4,
@@ -246,8 +246,8 @@ my @order_content = (
             basketno     => $basketno,
             biblionumber => $biblionumber4,
             budget_id    => $budget->{budget_id},
-            order_internalnote => "internal note",
-            order_vendornote   => "vendor note"
+            order_internalnote => "internal note bar",
+            order_vendornote   => "vendor note foo"
         },
         num => {
             quantity       => 1,
@@ -281,7 +281,7 @@ my @order_content = (
     }
 );
 
-# Create 5 orders in database
+# Create 6 orders in database
 for ( 0 .. 5 ) {
     my %ocontent;
     @ocontent{ keys %{ $order_content[$_]->{num} } } =
@@ -444,7 +444,7 @@ is( $order2->{order_internalnote}, "my notes",
 my $order1 = GetOrder( $ordernumbers[0] );
 is(
     $order1->{order_internalnote},
-    "internal note",
+    "internal note foo",
     "ModReceiveOrder only changes the supplied orders internal notes"
 );
 
@@ -466,9 +466,14 @@ is( scalar( @$orders ), 1, 'GetHistory with a given ordernumbers returns 1 order
 $orders = GetHistory( ordernumbers => \@ordernumbers );
 is( scalar( @$orders ), scalar( @ordernumbers ) - 1, 'GetHistory with a list of ordernumbers returns N-1 orders (was has been deleted [3])' );
 
-
-# Test GetHistory() with and without SearchWithISBNVariations
-# The ISBN passed as a param is the ISBN-10 version of the 13-digit ISBN in the sample record declared in $marcxml
+$orders = GetHistory( internalnote => 'internal note foo' );
+is( scalar( @$orders ), 2, 'GetHistory returns correctly a search for internalnote' );
+$orders = GetHistory( vendornote => 'vendor note bar' );
+is( scalar( @$orders ), 2, 'GetHistory returns correctly a search for vendornote' );
+$orders = GetHistory( internalnote => 'internal note bar' );
+is( scalar( @$orders ), 1, 'GetHistory returns correctly a search for internalnote' );
+$orders = GetHistory( vendornote => 'vendor note foo' );
+is( scalar( @$orders ), 1, 'GetHistory returns correctly a search for vendornote' );
 
 my $budgetid2 = C4::Budgets::AddBudget(
     {
@@ -607,22 +612,54 @@ sub run_flavoured_tests {
     is( scalar(@$orders), 1, "GetHistory searches correctly by ISBN" );
 
     Koha::Acquisition::Orders->find($ordernumber)->cancel;
+
+    my $marc_record_issn = MARC::Record->new;
+    $marc_record_issn->append_fields( create_issn_field( '2434561X', $marcflavour ) );
+    my ( $biblionumber6_issn, undef ) = AddBiblio( $marc_record_issn, '' );
+
+    my $orders_issn = GetHistory( issn => '2434561X' );
+    is( scalar(@$orders_issn), 0, "Precheck that ISSN shouldn't be in database" );
+
+    # Create order
+    my $ordernumber_issn = Koha::Acquisition::Order->new( {
+            basketno     => $basketno,
+            biblionumber => $biblionumber6_issn,
+            budget_id    => $budget->{budget_id},
+            order_internalnote => "internal note",
+            order_vendornote   => "vendor note",
+            quantity       => 1,
+            ecost          => 10,
+            rrp            => 10,
+            listprice      => 10,
+            ecost          => 10,
+            rrp            => 10,
+            discount       => 0,
+            uncertainprice => 0,
+    } )->store->ordernumber;
+
+    t::lib::Mocks::mock_preference('SearchWithISSNVariations', 0);
+    $orders_issn = GetHistory( issn => '2434-561X' );
+    is( scalar(@$orders_issn), 0, "GetHistory searches correctly by ISSN" );
+
+    t::lib::Mocks::mock_preference('SearchWithISSNVariations', 1);
+    $orders_issn = GetHistory( issn => '2434-561X' );
+    is( scalar(@$orders_issn), 1, "GetHistory searches correctly by ISSN" );
+
+    Koha::Acquisition::Orders->find($ordernumber_issn)->cancel;
 }
+
+# Test GetHistory() with and without SearchWithISBNVariations or SearchWithISSNVariations
+# The ISBN passed as a param is the ISBN-10 version of the 13-digit ISBN in the sample record declared in $marcxml
 
 # Do "flavoured" tests
 subtest 'MARC21' => sub {
-    plan tests => 2;
+    plan tests => 5;
     run_flavoured_tests('MARC21');
 };
 
 subtest 'UNIMARC' => sub {
-    plan tests => 2;
+    plan tests => 5;
     run_flavoured_tests('UNIMARC');
-};
-
-subtest 'NORMARC' => sub {
-    plan tests => 2;
-    run_flavoured_tests('NORMARC');
 };
 
 ### Functions required for "flavoured" tests
@@ -659,6 +696,15 @@ sub create_isbn_field {
     return $field;
 }
 
+sub create_issn_field {
+    my ( $issn, $marcflavour ) = @_;
+
+    my ( $issn_field, $issn_subfield ) = get_issn_field();
+    my $field = MARC::Field->new( $issn_field, '', '', $issn_subfield => $issn );
+
+    return $field;
+}
+
 subtest 'ModReceiveOrder replacementprice tests' => sub {
     plan tests => 2;
     #Let's build an order, we need a couple things though
@@ -670,7 +716,6 @@ subtest 'ModReceiveOrder replacementprice tests' => sub {
     my $order_vendor = $builder->build({ source => 'Aqbookseller',value => { listincgst => 0, listprice => $order_currency->{currency}, invoiceprice => $order_currency->{currency} } });
     my $orderinfo ={
         basketno => $order_basket->{basketno},
-        booksellerid => $order_vendor->{id},
         rrp => 19.99,
         replacementprice => undef,
         quantity => 1,
@@ -907,12 +952,12 @@ subtest 'Acquisition logging' => sub {
 
     Koha::ActionLogs->delete;
     my $basketno = NewBasket( $booksellerid, 1 );
-    my @create_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'ADD_BASKET', object => $basketno });
+    my @create_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'ADD_BASKET', object => $basketno })->as_list;
     is (scalar @create_logs, 1, 'Basket creation is logged');
 
     Koha::ActionLogs->delete;
     C4::Acquisition::ReopenBasket($basketno);
-    my @reopen_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'REOPEN_BASKET', object => $basketno });
+    my @reopen_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'REOPEN_BASKET', object => $basketno })->as_list;
     is (scalar @reopen_logs, 1, 'Basket reopen is logged');
 
     Koha::ActionLogs->delete;
@@ -920,20 +965,89 @@ subtest 'Acquisition logging' => sub {
         basketno => $basketno,
         booksellerid => $booksellerid
     });
-    my @mod_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'MODIFY_BASKET', object => $basketno });
+    my @mod_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'MODIFY_BASKET', object => $basketno })->as_list;
     is (scalar @mod_logs, 1, 'Basket modify is logged');
 
     Koha::ActionLogs->delete;
     C4::Acquisition::ModBasketHeader($basketno,"Test","","","",$booksellerid);
-    my @mod_header_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'MODIFY_BASKET_HEADER', object => $basketno });
+    my @mod_header_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'MODIFY_BASKET_HEADER', object => $basketno })->as_list;
     is (scalar @mod_header_logs, 1, 'Basket header modify is logged');
 
     Koha::ActionLogs->delete;
     C4::Acquisition::ModBasketUsers($basketno,(1));
-    my @mod_users_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'MODIFY_BASKET_USERS', object => $basketno });
+    my @mod_users_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'MODIFY_BASKET_USERS', object => $basketno })->as_list;
     is (scalar @mod_users_logs, 1, 'Basket users modify is logged');
 
     t::lib::Mocks::mock_preference('AcquisitionLog', 0);
 };
 
 $schema->storage->txn_rollback();
+
+subtest 'GetInvoices() tests with additional fields' => sub {
+
+    plan tests => 7;
+
+    $schema->storage->txn_begin;
+
+    my $builder = t::lib::TestBuilder->new;
+
+    my $invoice_1 = $builder->build_object(
+        {
+             class => 'Koha::Acquisition::Invoices',
+             value => {
+                invoicenumber => 'whataretheodds1'
+             }
+        }
+    );
+    my $invoice_2 = $builder->build_object(
+        {
+             class => 'Koha::Acquisition::Invoices',
+             value => {
+                invoicenumber => 'whataretheodds2'
+             }
+        }
+    );
+
+
+    my $invoices = [ GetInvoices( invoicenumber => 'whataretheodds' ) ];
+    is( scalar @{$invoices}, 2, 'Two invoices retrieved' );
+    is( $invoices->[0]->{invoiceid}, $invoice_1->id );
+    is( $invoices->[1]->{invoiceid}, $invoice_2->id );
+
+    my $additional_field_1 = $builder->build_object(
+        {   class => 'Koha::AdditionalFields',
+            value => {
+                tablename                 => 'aqinvoices',
+                authorised_value_category => "",
+            }
+        }
+    );
+
+    my $additional_field_2 = $builder->build_object(
+        {   class => 'Koha::AdditionalFields',
+            value => {
+                tablename                 => 'aqinvoices',
+                authorised_value_category => "",
+            }
+        }
+    );
+
+    $invoice_1->set_additional_fields([ { id => $additional_field_1->id, value => 'Ya-Hey' } ]);
+    $invoice_2->set_additional_fields([ { id => $additional_field_2->id, value => "Hey ho let's go" } ]);
+
+    $invoices = [ GetInvoices(
+        invoicenumber => 'whataretheodds',
+        additional_fields => [{ id => $additional_field_1->id, value => 'Ya-Hey' }]
+    )];
+    is( scalar @{$invoices}, 1, 'One invoice retrieved' );
+    is( $invoices->[0]->{invoiceid}, $invoice_1->id, 'Ya-Hey' );
+
+    $invoices = [ GetInvoices(
+        invoicenumber => 'whataretheodds',
+        additional_fields => [{ id => $additional_field_2->id, value => "Hey ho let's go" }]
+    )];
+    is( scalar @{$invoices}, 1, 'One invoice retrieved' );
+    is( $invoices->[0]->{invoiceid}, $invoice_2->id, "Hey ho let's go" );
+
+    $schema->storage->txn_rollback;
+};

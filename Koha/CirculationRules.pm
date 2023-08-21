@@ -18,15 +18,17 @@ package Koha::CirculationRules;
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Carp qw(croak);
+use Carp qw( croak );
 
 use Koha::Exceptions;
 use Koha::CirculationRule;
 use Koha::Libraries;
+use Koha::Caches;
+use Koha::Cache::Memory::Lite;
 
 use base qw(Koha::Objects);
 
-use constant GUESSED_ITEMTYPES_KEY => 'Koha_IssuingRules_last_guess';
+use constant GUESSED_ITEMTYPES_KEY => 'Koha_CirculationRules_last_guess';
 
 =head1 NAME
 
@@ -50,7 +52,9 @@ our $RULE_KINDS = {
     lostreturn => {
         scope => [ 'branchcode' ],
     },
-
+    processingreturn => {
+        scope => [ 'branchcode' ],
+    },
     patron_maxissueqty => {
         scope => [ 'branchcode', 'categorycode' ],
     },
@@ -77,6 +81,13 @@ our $RULE_KINDS = {
     article_requests => {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
     },
+    article_request_fee => {
+        scope => [ 'branchcode', 'categorycode' ],
+    },
+    open_article_requests_limit => {
+        scope => [ 'branchcode', 'categorycode' ],
+    },
+
     auto_renew => {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
     },
@@ -103,6 +114,10 @@ our $RULE_KINDS = {
     },
     hardduedatecompare => {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
+    },
+    waiting_hold_cancellation => {
+        scope        => [ 'branchcode', 'categorycode', 'itemtype' ],
+        can_be_blank => 0,
     },
     holds_per_day => {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
@@ -171,6 +186,24 @@ our $RULE_KINDS = {
     decreaseloanholds => {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
     },
+    recalls_allowed => {
+        scope => [ 'branchcode', 'categorycode', 'itemtype' ],
+    },
+    recalls_per_record => {
+        scope => [ 'branchcode', 'categorycode', 'itemtype' ],
+    },
+    on_shelf_recalls => {
+        scope => [ 'branchcode', 'categorycode', 'itemtype' ],
+    },
+    recall_due_date_interval => {
+        scope => [ 'branchcode', 'categorycode', 'itemtype' ],
+    },
+    recall_overdue_fine => {
+        scope => [ 'branchcode', 'categorycode', 'itemtype' ],
+    },
+    recall_shelf_time => {
+        scope => [ 'branchcode', 'categorycode', 'itemtype' ],
+    },
     # Not included (deprecated?):
     #   * accountsent
     #   * reservecharge
@@ -182,6 +215,18 @@ sub rule_kinds {
 }
 
 =head3 get_effective_rule
+
+  my $effective_rule = Koha::CirculationRules->get_effective_rule(
+    {
+        rule_name    => $name,
+        categorycode => $categorycode,
+        itemtype     => $itemtype,
+        branchcode   => $branchcode
+    }
+  );
+
+Return the effective rule object for the rule associated with the criteria passed.
+
 
 =cut
 
@@ -248,6 +293,46 @@ sub get_effective_rule {
     return $rule;
 }
 
+=head3 get_effective_rule_value
+
+  my $effective_rule_value = Koha::CirculationRules->get_effective_rule_value(
+    {
+        rule_name    => $name,
+        categorycode => $categorycode,
+        itemtype     => $itemtype,
+        branchcode   => $branchcode
+    }
+  );
+
+Return the effective value for the rule associated with the criteria passed.
+
+This is a cached method so should be used in preference to get_effective_rule where possible
+to aid performance.
+
+=cut
+
+sub get_effective_rule_value {
+    my ( $self, $params ) = @_;
+
+    my $rule_name    = $params->{rule_name};
+    my $categorycode = $params->{categorycode};
+    my $itemtype     = $params->{itemtype};
+    my $branchcode   = $params->{branchcode};
+
+    my $memory_cache = Koha::Cache::Memory::Lite->get_instance;
+    my $cache_key = sprintf "CircRules:%s:%s:%s:%s", $rule_name // q{},
+      $categorycode // q{}, $branchcode // q{}, $itemtype // q{};
+
+    my $cached       = $memory_cache->get_from_cache($cache_key);
+    return $cached if $cached;
+
+    my $rule = $self->get_effective_rule($params);
+
+    my $value= $rule ? $rule->rule_value : undef;
+    $memory_cache->set_in_cache( $cache_key, $value );
+    return $value;
+}
+
 =head3 get_effective_rules
 
 =cut
@@ -262,7 +347,7 @@ sub get_effective_rules {
 
     my $r;
     foreach my $rule (@$rules) {
-        my $effective_rule = $self->get_effective_rule(
+        my $effective_rule = $self->get_effective_rule_value(
             {
                 rule_name    => $rule,
                 categorycode => $categorycode,
@@ -271,7 +356,7 @@ sub get_effective_rules {
             }
         );
 
-        $r->{$rule} = $effective_rule->rule_value if $effective_rule;
+        $r->{$rule} = $effective_rule if defined $effective_rule;
     }
 
     return $r;
@@ -350,6 +435,11 @@ sub set_rule {
         }
     }
 
+    my $memory_cache = Koha::Cache::Memory::Lite->get_instance;
+    for my $k ( $memory_cache->all_keys ) {
+        $memory_cache->clear_from_cache($k) if $k =~ m{^CircRules:};
+    }
+
     return $rule;
 }
 
@@ -409,6 +499,53 @@ sub clone {
     }
 }
 
+=head2 get_return_branch_policy
+
+  my $returnbranch = Koha::CirculationRules->get_return_branch_policy($item);
+
+Returns the branch to use for returning the item based on the
+item type, and a branch selected via CircControlReturnsBranch.
+
+The return value is the branch to which to return the item. Possible values:
+  noreturn: do not return, let item remain where checked in (floating collections)
+  homebranch: return to item's home branch
+  holdingbranch: return to issuer branch
+
+This searches branchitemrules in the following order:
+  * Same branchcode and itemtype
+  * Same branchcode, itemtype '*'
+  * branchcode '*', same itemtype
+  * branchcode '*' and itemtype '*'
+
+=cut
+
+sub get_return_branch_policy {
+    my ( $self, $item ) = @_;
+
+    my $pref = C4::Context->preference('CircControlReturnsBranch');
+
+    my $branchcode =
+        $pref eq 'ItemHomeLibrary'     ? $item->homebranch
+      : $pref eq 'ItemHoldingLibrary' ? $item->holdingbranch
+      : $pref eq 'CheckInLibrary'      ? C4::Context->userenv
+          ? C4::Context->userenv->{branch}
+          : $item->homebranch
+      : $item->homebranch;
+
+    my $itemtype = $item->effective_itemtype;
+
+    my $rule = Koha::CirculationRules->get_effective_rule(
+        {
+            rule_name  => 'returnbranch',
+            itemtype   => $itemtype,
+            branchcode => $branchcode,
+        }
+    );
+
+    return $rule ? $rule->rule_value : 'homebranch';
+}
+
+
 =head3 get_opacitemholds_policy
 
 my $can_place_a_hold_at_item_level = Koha::CirculationRules->get_opacitemholds_policy( { patron => $patron, item => $item } );
@@ -464,9 +601,9 @@ sub get_onshelfholds_policy {
 
 =head3 get_lostreturn_policy
 
-  my $lostrefund_policy = Koha::CirculationRules->get_lostreturn_policy( { return_branch => $return_branch, item => $item } );
+  my $lost_proc_refund_policy = Koha::CirculationRules->get_lostreturn_policy( { return_branch => $return_branch, item => $item } );
 
-Return values are:
+lostreturn return values are:
 
 =over 2
 
@@ -479,6 +616,21 @@ Return values are:
 =item 'charge' - Refund the lost item charge and charge a new overdue fine
 
 =back
+
+processing return return values are:
+
+=over 2
+
+=item '0' - Do not refund
+
+=item 'refund' - Refund the lost item processing charge
+
+=item 'restore' - Refund the lost item processing charge and restore the original overdue fine
+
+=item 'charge' - Refund the lost item processing charge and charge a new overdue fine
+
+=back
+
 
 =cut
 
@@ -496,14 +648,16 @@ sub get_lostreturn_policy {
 
     my $branch = $behaviour_mapping->{ $behaviour };
 
-    my $rule = Koha::CirculationRules->get_effective_rule(
+    my $rules = Koha::CirculationRules->get_effective_rules(
         {
             branchcode => $branch,
-            rule_name  => 'lostreturn',
+            rules  => ['lostreturn','processingreturn']
         }
     );
 
-    return $rule ? $rule->rule_value : 'refund';
+    $rules->{lostreturn} //= 'refund';
+    $rules->{processingreturn} //= 'refund';
+    return $rules;
 }
 
 =head3 article_requestable_rules
@@ -570,7 +724,7 @@ sub guess_article_requestable_itemtypes {
     return $res;
 }
 
-=head3 get_daysmode_effective_value
+=head3 get_effective_daysmode
 
 Return the value for daysmode defined in the circulation rules.
 If not defined (or empty string), the value of the system preference useDaysMode is returned

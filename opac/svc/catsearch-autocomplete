@@ -51,9 +51,8 @@ Number of suggestions to display. Defaults to 20.
 
 use Modern::Perl;
 use JSON qw( encode_json to_json);
-use C4::Auth;
+use C4::Auth qw( checkauth );
 use C4::Context;
-use C4::Output;
 use CGI qw ( -utf8 );
 use Koha::SearchEngine::Elasticsearch::AutoComplete;
 

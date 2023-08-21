@@ -19,20 +19,47 @@
 
 use Modern::Perl;
 
-use Test::More tests => 2;
+use Test::More tests => 3;
 
 use Koha::Edifact::Order;
 
+use t::lib::Mocks;
 use t::lib::TestBuilder;
 
 my $schema = Koha::Database->new->schema;
 
 my $builder = t::lib::TestBuilder->new;
 
+subtest 'beggining_of_message tests' => sub {
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my $basketno = sprintf '%011d', '123456';
+    my $edi_vendor = $builder->build(
+        {
+            source => 'VendorEdiAccount',
+            value  => {
+                standard => 'EUR',
+            }
+        }
+    );
+    my $dbic_edi_vendor = $schema->resultset('VendorEdiAccount')->find($edi_vendor->{id});
+
+    my $bgm = Koha::Edifact::Order::beginning_of_message($basketno, $dbic_edi_vendor->standard, 1);
+    is( $bgm, qq{BGM+220+$basketno+9'}, "When vendor is set to EDItEUR standard we use 220 in BGM segment");
+
+    $dbic_edi_vendor->update({ standard => 'BIC'});
+    $bgm = Koha::Edifact::Order::beginning_of_message($basketno, $dbic_edi_vendor->standard, 1);
+    is( $bgm, qq{BGM+22V+$basketno+9'}, "When vendor is set to BiC standard we use 22V in BGM segment");
+
+    $schema->storage->txn_rollback;
+};
+
 subtest 'order_line() tests' => sub {
     # TODO: Split up order_line() to smaller methods in order
     #       to allow better testing
-    plan tests => 24;
+    plan tests => 27;
 
     $schema->storage->txn_begin;
 
@@ -45,6 +72,7 @@ subtest 'order_line() tests' => sub {
         {
             biblionumber   => $biblio->biblionumber,
             location       => 'PROCESSING',
+            ccode          => 'COLLECTION',
             itemcallnumber => '000.101'
         }
     );
@@ -54,6 +82,7 @@ subtest 'order_line() tests' => sub {
         {
             biblionumber   => $biblio->biblionumber,
             location       => 'PROCESSING',
+            ccode          => 'COLLECTION',
             itemcallnumber => '000.102'
         }
     );
@@ -104,6 +133,9 @@ subtest 'order_line() tests' => sub {
     );
 
     # FIXME: Add test for an order where the attached biblio has been deleted.
+
+    # Set EdifactLSQ field to default
+    t::lib::Mocks::mock_preference( 'EdifactLSQ', 'location' );
 
     $order->basket->create_items('ordering')->store;
     is( $edi_order->order_line( 1, $orders[0] ),
@@ -177,6 +209,40 @@ subtest 'order_line() tests' => sub {
     is( $segs->[8], 'PRI+AAE:1.50:CA\'', 'PRI segment added containing data orderline listprice' );
     is( $segs->[9], "RFF+LI:$ordernumber'", 'RFF segment added containing koha orderline id' );
     is( $segs->[10], "RFF+$supplier_qualifier:$supplier_ordernumber'", 'RFF segment added containing supplier orderline id' );
+
+    # Reset segments for testing EdifactLSQ preference
+    $edi_order->{segs} = [];
+
+    # Set EdifactLSQ field to ccode
+    t::lib::Mocks::mock_preference( 'EdifactLSQ', 'ccode' );
+
+    $order->basket->create_items('ordering')->store;
+    is( $edi_order->order_line( 1, $orders[0] ),
+        undef, 'order_line run for message formed with EdifactLSQ = "ccode"' );
+
+    $segs = $edi_order->{segs};
+    is(
+        $segs->[5],
+        'GIR+001'
+          . "+$budgetcode:LFN"
+          . "+$item1_homebranch:LLO"
+          . "+$item1_itype:LST"
+          . "+COLLECTION:LSQ"
+          . "+000.101:LSM"
+          . "'",
+        'GIR segment added for first item and contains item ccode data'
+    );
+    is(
+        $segs->[6],
+        'GIR+002'
+          . "+$budgetcode:LFN"
+          . "+$item2_homebranch:LLO"
+          . "+$item2_itype:LST"
+          . "+COLLECTION:LSQ"
+          . "+000.102:LSM"
+          . "'",
+        'GIR segment added for second item and contains item ccode data'
+    );
 
     $schema->storage->txn_rollback;
 };

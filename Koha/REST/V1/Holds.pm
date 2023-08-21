@@ -19,18 +19,17 @@ use Modern::Perl;
 
 use Mojo::Base 'Mojolicious::Controller';
 
-use Mojo::JSON qw(decode_json);
+use Mojo::JSON;
 
-use C4::Biblio;
 use C4::Reserves;
 
 use Koha::Items;
 use Koha::Patrons;
 use Koha::Holds;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 
-use List::MoreUtils qw(any);
-use Try::Tiny;
+use List::MoreUtils qw( any );
+use Try::Tiny qw( catch try );
 
 =head1 API
 
@@ -71,6 +70,7 @@ sub add {
         my $item;
 
         my $biblio_id         = $body->{biblio_id};
+        my $item_group_id     = $body->{item_group_id};
         my $pickup_library_id = $body->{pickup_library_id};
         my $item_id           = $body->{item_id};
         my $patron_id         = $body->{patron_id};
@@ -143,57 +143,55 @@ sub add {
             );
         }
 
-        # Validate pickup location
-        my $valid_pickup_location;
-        if ($item) {    # item-level hold
-            $valid_pickup_location =
-              any { $_->branchcode eq $pickup_library_id }
-            $item->pickup_locations(
-                { patron => $patron } )->as_list;
-        }
-        else {
-            $valid_pickup_location =
-              any { $_->branchcode eq $pickup_library_id }
-            $biblio->pickup_locations(
-                { patron => $patron } )->as_list;
-        }
-
-        return $c->render(
-            status  => 400,
-            openapi => {
-                error => 'The supplied pickup location is not valid'
+        # If the hold is being forced, no need to validate
+        unless( $can_override ){
+            # Validate pickup location
+            my $valid_pickup_location;
+            if ($item) {    # item-level hold
+                $valid_pickup_location =
+                  any { $_->branchcode eq $pickup_library_id }
+                $item->pickup_locations(
+                    { patron => $patron } )->as_list;
             }
-        ) unless $valid_pickup_location || $can_override;
+            else {
+                $valid_pickup_location =
+                  any { $_->branchcode eq $pickup_library_id }
+                $biblio->pickup_locations(
+                    { patron => $patron } )->as_list;
+            }
 
-        my $can_place_hold
-            = $item_id
-            ? C4::Reserves::CanItemBeReserved( $patron_id, $item_id )
-            : C4::Reserves::CanBookBeReserved( $patron_id, $biblio_id );
-
-        if ( C4::Context->preference('maxreserves') && $patron->holds->count + 1 > C4::Context->preference('maxreserves') ) {
-            $can_place_hold->{status} = 'tooManyReserves';
-        }
-
-        unless ( $can_override || $can_place_hold->{status} eq 'OK' ) {
             return $c->render(
-                status => 403,
-                openapi =>
-                    { error => "Hold cannot be placed. Reason: " . $can_place_hold->{status} }
-            );
+                status  => 400,
+                openapi => {
+                    error => 'The supplied pickup location is not valid'
+                }
+            ) unless $valid_pickup_location;
+
+            my $can_place_hold
+                = $item
+                ? C4::Reserves::CanItemBeReserved( $patron, $item )
+                : C4::Reserves::CanBookBeReserved( $patron_id, $biblio_id );
+
+            if ( C4::Context->preference('maxreserves') && $patron->holds->count + 1 > C4::Context->preference('maxreserves') ) {
+                $can_place_hold->{status} = 'tooManyReserves';
+            }
+
+            unless ( $can_place_hold->{status} eq 'OK' ) {
+                return $c->render(
+                    status => 403,
+                    openapi =>
+                        { error => "Hold cannot be placed. Reason: " . $can_place_hold->{status} }
+                );
+            }
         }
 
         my $priority = C4::Reserves::CalculatePriority($biblio_id);
-
-        # AddReserve expects date to be in syspref format
-        if ($expiration_date) {
-            $expiration_date = output_pref( dt_from_string( $expiration_date, 'rfc3339' ) );
-        }
 
         my $hold_id = C4::Reserves::AddReserve(
             {
                 branchcode       => $pickup_library_id,
                 borrowernumber   => $patron_id,
-                biblionumber     => $biblio_id,
+                biblionumber     => $biblio->id,
                 priority         => $priority,
                 reservation_date => $hold_date,
                 expiration_date  => $expiration_date,
@@ -203,6 +201,7 @@ sub add {
                 found            => undef,                # TODO: Why not?
                 itemtype         => $item_type,
                 non_priority     => $non_priority,
+                item_group_id    => $item_group_id,
             }
         );
 
@@ -281,14 +280,14 @@ sub edit {
         $pickup_library_id //= $hold->branchcode;
         my $priority         = $body->{priority} // $hold->priority;
         # suspended_until can also be set to undef
-        my $suspended_until   = exists $body->{suspended_until} ? $body->{suspended_until} : $hold->suspend_until;
+        my $suspended_until = $body->{suspended_until} || $hold->suspend_until;
 
         my $params = {
             reserve_id    => $hold_id,
             branchcode    => $pickup_library_id,
             rank          => $priority,
-            suspend_until => $suspended_until ? output_pref(dt_from_string($suspended_until, 'rfc3339')) : '',
-            itemnumber    => $hold->itemnumber
+            suspend_until => $suspended_until,
+            itemnumber    => $hold->itemnumber,
         };
 
         C4::Reserves::ModReserve($params);
@@ -352,23 +351,15 @@ sub suspend {
     }
 
     return try {
-        my $date = ($end_date) ? dt_from_string( $end_date, 'rfc3339' ) : undef;
-        $hold->suspend_hold($date);
+        $hold->suspend_hold($end_date);
         $hold->discard_changes;
         $c->res->headers->location( $c->req->url->to_string );
-        my $suspend_end_date;
-        if ($hold->suspend_until) {
-            $suspend_end_date = output_pref({
-                dt         => dt_from_string( $hold->suspend_until ),
-                dateformat => 'rfc3339',
-                dateonly   => 1
-                }
-            );
-        }
+
+        my $suspend_until = $end_date ? dt_from_string($hold->suspend_until)->ymd : undef;
         return $c->render(
             status  => 201,
             openapi => {
-                end_date => $suspend_end_date
+                end_date => $suspend_until,
             }
         );
     }

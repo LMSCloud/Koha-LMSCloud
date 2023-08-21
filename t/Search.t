@@ -64,7 +64,7 @@ subtest "_build_initial_query tests" => sub {
         C4::Search::_build_initial_query($params);
     is( $query, "query operator parsed_operand",
         "\$query built correctly");
-    is( $query_cgi, "query_cgi&op=%20operator%20&idx=index&q=original_operand",
+    is( $query_cgi, "query_cgi&op=operator&idx=index&q=original_operand",
         "\$query_cgi built correctly");
     is( $query_desc, "query_desc operator index_plus original_operand",
         "\$query_desc build correctly");
@@ -87,11 +87,11 @@ subtest "_build_initial_query tests" => sub {
 
     ($query,$query_cgi,$query_desc,$previous_operand) =
         C4::Search::_build_initial_query($params);
-    is( $query, "query and parsed_operand",
+    is( $query, "query AND parsed_operand",
         "\$query built correctly (no operator)");
-    is( $query_cgi, "query_cgi&op=%20and%20&idx=index&q=original_operand",
+    is( $query_cgi, "query_cgi&op=AND&idx=index&q=original_operand",
         "\$query_cgi built correctly (no operator)");
-    is( $query_desc, "query_desc and index_plus original_operand",
+    is( $query_desc, "query_desc AND index_plus original_operand",
         "\$query_desc build correctly (no operator)");
     is( $previous_operand, "previous_operand",
         "\$query build correctly (no operator)");
@@ -112,11 +112,11 @@ subtest "_build_initial_query tests" => sub {
 
     ($query,$query_cgi,$query_desc,$previous_operand) =
         C4::Search::_build_initial_query($params);
-    is( $query, "queryparsed_operand",
+    is( $query, "query  parsed_operand",
         "\$query built correctly (no previous operand)");
     is( $query_cgi, "query_cgi&idx=index&q=original_operand",
         "\$query_cgi built correctly (no previous operand)");
-    is( $query_desc, "query_descindex_plus original_operand",
+    is( $query_desc, "query_desc  index_plus original_operand",
         "\$query_desc build correctly (no previous operand)");
     is( $previous_operand, 1,
         "\$query build correctly (no previous operand)");
@@ -139,7 +139,7 @@ subtest "_build_initial_query tests" => sub {
         C4::Search::_build_initial_query($params);
     is( $query, "query operator parsed_operand",
         "\$query built correctly (no index passed)");
-    is( $query_cgi, "query_cgi&op=%20operator%20&q=original_operand",
+    is( $query_cgi, "query_cgi&op=operator&q=original_operand",
         "\$query_cgi built correctly (no index passed)");
     is( $query_desc, "query_desc operator index_plus original_operand",
         "\$query_desc build correctly (no index passed)");
@@ -164,7 +164,7 @@ subtest "_build_initial_query tests" => sub {
         C4::Search::_build_initial_query($params);
     is( $query, "query operator parsed_operand",
         "\$query built correctly (no index_plus passed)");
-    is( $query_cgi, "query_cgi&op=%20operator%20&idx=index&q=original_operand",
+    is( $query_cgi, "query_cgi&op=operator&idx=index&q=original_operand",
         "\$query_cgi built correctly (no index_plus passed)");
     is( $query_desc, "query_desc operator  original_operand",
         "\$query_desc build correctly (no index_plus passed)");
@@ -181,27 +181,67 @@ subtest "searchResults PassItemMarcToXSLT test" => sub {
     t::lib::Mocks::mock_preference('marcflavour','MARC21');
     my $mock_xslt = Test::MockModule->new("C4::Search");
     $mock_xslt->mock( XSLTParse4Display => sub {
-        my $biblionumber = shift;
-        my $record = shift;
+        my $params = shift;
+        my $record = $params->{record};
         warn $record->field('952') ? "Item here" : "No item";
         return;
     });
 
     my $builder = t::lib::TestBuilder->new;
 
-    my $item = $builder->build_sample_item();
-    my $record = $item->biblio->metadata->record;
-    C4::Biblio::EmbedItemsInMarcBiblio({ marc_record => $record, biblionumber => $item->biblionumber });
+    my $xml_record = q{
+<record
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.loc.gov/MARC21/slim http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd"
+    xmlns="http://www.loc.gov/MARC21/slim">
 
+  <leader>00144    a2200073   4500</leader>
+  <datafield tag="245" ind1=" " ind2=" ">
+    <subfield code="a">Some boring read</subfield>
+  </datafield>
+  <datafield tag="100" ind1=" " ind2=" ">
+    <subfield code="a">Some boring author</subfield>
+  </datafield>
+  <datafield tag="942" ind1=" " ind2=" ">
+    <subfield code="c">gOlAIZMF</subfield>
+  </datafield>
+  <datafield tag="952" ind1=" " ind2=" ">
+    <subfield code="0">0</subfield>
+    <subfield code="1">0</subfield>
+    <subfield code="4">0</subfield>
+    <subfield code="7">0</subfield>
+    <subfield code="9">1117</subfield>
+    <subfield code="a">D6C8Pj</subfield>
+    <subfield code="b">D6C8Pj</subfield>
+    <subfield code="d">2023-03-31</subfield>
+    <subfield code="l">0</subfield>
+    <subfield code="p">g57ad1Zn3NOYZ</subfield>
+    <subfield code="r">2023-03-31</subfield>
+    <subfield code="w">2023-03-31</subfield>
+    <subfield code="y">gOlAIZMF</subfield>
+  </datafield>
+  <datafield tag="999" ind1=" " ind2=" ">
+    <subfield code="c">553</subfield>
+    <subfield code="d">553</subfield>
+  </datafield>
+</record>
+};
     t::lib::Mocks::mock_preference('PassItemMarcToXSLT','1');
 
-    warnings_like { C4::Search::searchResults({ interface => "opac" },"test",1,1,0,0,[ $record->as_xml_record ] ,undef) }
+    # The routine uses a count of items in DB to determine if record should be hidden.
+    # Our item is not in the DB, so we avoid hiding the record which would
+    # mean we don't call XSLTParse4Display.
+    # Also ensure item is not hidden
+    t::lib::Mocks::mock_preference('OpacHiddenItems','');
+    t::lib::Mocks::mock_preference('OpacHiddenItemsHidesRecord','0');
+
+    warnings_like { C4::Search::searchResults({ interface => "opac" },"test",1,1,0,0,[ $xml_record ] ,undef) }
         [qr/Item here/],
         "Item field returned from default XSLT if pref set";
 
     t::lib::Mocks::mock_preference('PassItemMarcToXSLT','0');
 
-    warnings_like { C4::Search::searchResults({ interface => "opac" },"test",1,1,0,0,[ $record->as_xml_record ] ,undef) }
+    warnings_like { C4::Search::searchResults({ interface => "opac" },"test",1,1,0,0,[ $xml_record ] ,undef) }
         [qr/No item/],
         "Item field returned from default XSLT if pref set";
 

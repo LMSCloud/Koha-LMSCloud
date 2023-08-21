@@ -22,14 +22,10 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Debug;
 use C4::Context;
-use C4::Circulation;
-use C4::Output;
-use C4::Koha;
-use C4::Auth;
+use C4::Output qw( output_and_exit output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
 use Koha::Biblios;
-use Koha::DateUtils;
 use Koha::Libraries;
 
 my $input        = CGI->new;
@@ -46,7 +42,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { circulate => "circulate_remaining_permissions" },
-        debug           => 1,
     }
 );
 
@@ -73,6 +68,7 @@ for my $library ( @$libraries ) {
 }
 
 $template->param(
+    biblio                  => $biblio,
     biblionumber            => $biblionumber,
     title                   => $biblio->title,
     author                  => $biblio->author,

@@ -20,12 +20,12 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use List::MoreUtils qw(any);
+use List::MoreUtils qw( any );
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Koha;
-use C4::Output;
+use C4::Koha qw( getitemtypeimagelocation );
+use C4::Output qw( output_html_with_http_headers );
 
 use Koha::AuthorisedValues;
 use Koha::AuthorisedValueCategories;
@@ -44,7 +44,6 @@ our ($template, $borrowernumber, $cookie)= get_template_and_user({
     flagsrequired => {parameters => 'manage_auth_values'},
     query => $input,
     type => "intranet",
-    debug => 1,
 });
 
 ################## ADD_FORM ##################################
@@ -79,10 +78,7 @@ if ($op eq 'add_form') {
     if ( $av ) {
         $template->param(
             category_name => $av->category,
-            authorised_value => $av->authorised_value,
-            lib              => $av->lib,
-            lib_opac         => $av->lib_opac,
-            id               => $av->id,
+            av               => $av,
             imagesets        => C4::Koha::getImageSets( checked => $av->imageurl ),
         );
     } else {
@@ -98,8 +94,13 @@ if ($op eq 'add_form') {
 } elsif ($op eq 'add') {
     my $new_authorised_value = $input->param('authorised_value');
     my $new_category = $input->param('category');
-    my $imageurl     = $input->param( 'imageurl' ) || '';
-    $imageurl = '' if $imageurl =~ /removeImage/;
+    my $image = $input->param( 'image' ) || '';
+    my $imageurl =
+      $image eq 'removeImage' ? ''
+      : (
+          $image eq 'remoteImage' ? $input->param('remoteImage')
+        : $image
+      );
     my $duplicate_entry = 0;
     my @branches = grep { $_ ne q{} } $input->multi_param('branches');
 
@@ -213,15 +214,17 @@ $template->param(
 
 if ( $op eq 'list' ) {
     # build categories list
-    my @categories = Koha::AuthorisedValueCategories->search({ category_name => { -not_in => ['', 'branches', 'itemtypes', 'cn_source']}}, { order_by => ['category_name'] } );
-    my @category_list;
-    for my $category ( @categories ) {
-        push( @category_list, $category->category_name );
-    }
+    my @category_names = Koha::AuthorisedValueCategories->search(
+        {
+            category_name =>
+              { -not_in => [ '', 'branches', 'itemtypes', 'cn_source' ] }
+        },
+        { order_by => ['category_name'] }
+    )->get_column('category_name');
 
-    $searchfield ||= $category_list[0];
+    $searchfield ||= "";
 
-    my @avs_by_category = Koha::AuthorisedValues->new->search( { category => $searchfield } );
+    my @avs_by_category = Koha::AuthorisedValues->new->search( { category => $searchfield } )->as_list;
     my @loop_data = ();
     # builds value list
     for my $av ( @avs_by_category ) {
@@ -230,7 +233,7 @@ if ( $op eq 'list' ) {
         $row_data{authorised_value}      = $av->authorised_value;
         $row_data{lib}                   = $av->lib;
         $row_data{lib_opac}              = $av->lib_opac;
-        $row_data{imageurl}              = getitemtypeimagelocation( 'intranet', $av->imageurl );
+        $row_data{image}                 = getitemtypeimagelocation( 'intranet', $av->imageurl );
         $row_data{branches}              = $av->library_limits ? $av->library_limits->as_list : [];
         $row_data{id}                    = $av->id;
         push(@loop_data, \%row_data);
@@ -239,7 +242,7 @@ if ( $op eq 'list' ) {
     $template->param(
         loop     => \@loop_data,
         category => Koha::AuthorisedValueCategories->find($searchfield), # TODO Move this up and add a Koha::AVC->authorised_values method to replace call for avs_by_category
-        categories => \@category_list,
+        category_names => \@category_names,
     );
 
 }

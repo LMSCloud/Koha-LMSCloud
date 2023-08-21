@@ -19,17 +19,21 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use vars qw($debug);
 
 use CGI qw ( -utf8 );
 use autouse 'Data::Dumper' => qw(Dumper);
 
-use C4::Auth qw(get_template_and_user);
-use C4::Output qw(output_html_with_http_headers);
-use C4::Creators;
-use C4::Patroncards;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Creators qw(
+    get_all_layouts
+    get_all_profiles
+    get_all_templates
+    get_batch_summary
+    html_table
+);
 use C4::Labels;
-use Koha::List::Patron;
+use Koha::List::Patron qw( GetPatronLists );
 
 my $cgi = CGI->new;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -38,9 +42,15 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $cgi,
         type            => "intranet",
         flagsrequired   => { tools => 'label_creator' },
-        debug           => 1,
     }
 );
+
+my @errors = ( 'pdferr', 'errnocards', 'errba', 'errpl', 'errpt', 'errlo', 'errtpl', );
+foreach my $param (@errors) {
+    my $error = $cgi->param($param) ? 1 : 0;
+    $template->param( 'error_' . $param => $error )
+      if $error;
+}
 
 my $op = $cgi->param('op') || 'none';
 my $card_element = $cgi->param('card_element') || 'template';   # default to template management

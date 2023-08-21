@@ -17,20 +17,14 @@
 
 use Modern::Perl;
 
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
-
 use C4::Context;
-use Getopt::Long;
-use Pod::Usage;
+use C4::Log qw(cronlogaction);
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 use Koha::Logger;
 use Koha::Patrons;
 use Koha::Patron::Categories;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Script -cron;
 
 =head1 NAME
@@ -51,9 +45,9 @@ Options:
    --help                   brief help message
    --man                    full documentation
    -too_old                 update if over  maximum age for current category
-   -too_young               update if under minimuum age  current category
-   -fo=X --fineover=X       update if fines over  X amount
-   -fu=X --fineunder=X      update if fines under X amount
+   -too_young               update if under minimuum age current category
+   -fo=X --finesover=X      update if fines over X amount
+   -fu=X --finesunder=X     update if fines under X amount
    -rb=date --regbefore     update if registration date is before given date
    -ra=date --regafter      update if registration date is after a given date
    -d --field name=value    where <name> is a column in the borrowers table, patrons will be updated if the field is equal to given <value>
@@ -87,16 +81,16 @@ Commit changes. Unless this flag set is, the script will report changes but not 
 
 =item B<--branch | -b>
 
-changes patrons for one specific branch. Use the value in the
+Changes patrons for one specific branch. Use the value in the
 branches.branchcode table.
 
 =item B<--from | -f>
 
-*required* defines the category to update. Expects the code from categories.categorycode.
+*Required* Defines the category to update. Expects the code from categories.categorycode.
 
 =item B<--to | -t>
 
-*required* defines the category patrons will be converted to. Expects the code from categories.categorycode.
+*Required* Defines the category patrons will be converted to. Expects the code from categories.categorycode.
 
 =item B<--too_old>
 
@@ -106,11 +100,11 @@ Update patron only if they are above the maximum age range specified for the 'fr
 
 Update patron only if they are below the minimum age range specified for the 'from' category.
 
-=item B<--fineover=X | -fo=X>
+=item B<--finesover=X | -fo=X>
 
 Supply a number and only account with fines over this number will be updated.
 
-=item B<--fineunder=X | -fu=X>
+=item B<--finesunder=X | -fu=X>
 
 Supply a number and only account with fines under this number will be updated.
 
@@ -214,6 +208,8 @@ if ( not $fromcat && $tocat ) {    #make sure we've specified the info we need.
 ( $verbose && !$doit ) and print "No actions will be taken (test mode)\n";
 
 $verbose and print "Will update patrons from $fromcat to $tocat with conditions below (if any)\n";
+
+cronlogaction();
 
 my %params;
 

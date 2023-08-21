@@ -1,7 +1,10 @@
 [% USE raw %]
 [% USE Asset %]
 [% USE Koha %]
+[% USE KohaDates %]
 [% USE TablesSettings %]
+[% USE AuthorisedValues %]
+[%- USE KohaSpan -%]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 [% IF plugin %]
@@ -16,31 +19,6 @@
         <input type="hidden" name="plugin" value="1" />
         <input type="hidden" name="index" value="[% index | html %]" />
     [% END %]
-[% END %]
-
-[% BLOCK breadcrumbs %]
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-        <ol>
-            <li>
-                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-            </li>
-            <li>
-                <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
-            </li>
-            <li>
-                <a href="/cgi-bin/koha/tools/upload.pl">Upload</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    [% IF mode=='new' || mode =='deleted'%]
-                        Add new upload or search
-                    [% ELSE %]
-                        Results
-                    [% END %]
-                </a>
-            </li>
-        </ol>
-    </nav>
 [% END %]
 
 [% BLOCK form_new %]
@@ -76,9 +54,10 @@
                 <div class="hint">
                     Note: No upload categories are defined.
                     [% IF ( CAN_user_parameters_manage_auth_values ) -%]
-                        Add values to the <a href="/cgi-bin/koha/admin/authorised_values.pl?searchfield=UPLOAD">UPLOAD authorized value category</a> otherwise all uploads will be marked as temporary.
+                        [% av_UPLOAD_link = BLOCK %]<a href='/cgi-bin/koha/admin/authorised_values.pl?searchfield=UPLOAD'>UPLOAD</a>[% END %]
+                        <span>Add values to the [% av_UPLOAD_link | $raw | $KohaSpan %] authorized value category otherwise all uploads will be marked as temporary.</span>
                     [% ELSE -%]
-                        An administrator must add values to the UPLOAD authorized value category otherwise all uploads will be marked as temporary.
+                        <span>An administrator must add values to the UPLOAD authorized value category otherwise all uploads will be marked as temporary.</span>
                     [% END %]
                 </div>
             [% END %]
@@ -93,10 +72,10 @@
             [% END %]
         </li>
         </ol>
-        <fieldset class="action">
-            <button id="fileuploadbutton">Upload</button>
-            <button id="fileuploadcancel">Cancel</button>
         </fieldset>
+        <fieldset class="action">
+            <button id="fileuploadbutton" class="btn btn-primary">Upload</button>
+            <button id="fileuploadcancel">Cancel</button>
         </fieldset>
         <div id="fileuploadpanel">
             <div id="fileuploadstatus" class="progress_panel">Upload progress:
@@ -111,44 +90,49 @@
 
 [% BLOCK form_browse %]
     [% IF uploadcategories %]
-    <form method="post" id="browsefile" action="/cgi-bin/koha/tools/upload.pl" enctype="multipart/form-data">
+    <form method="post" id="browsefile" action="/cgi-bin/koha/tools/upload.pl">
         [% PROCESS plugin_pars %]
         <input type="hidden" name="op" value="browse"/>
-        <fieldset class="rows">
-        <legend>Search uploads by category</legend>
+        <fieldset class="brief">
+        <h4>Search uploads by category</h4>
         <ol>
             <li>
                 <label for="browsecategory">Category: </label>
-                <select id="browsecategory" name="browsecategory">
-                [% FOREACH cat IN uploadcategories %]
-                    <option value="[% cat.code | html %]">[% cat.name | html %]</option>
-                [% END %]
+                <select id="browsecategory" name="browsecategory" required="required">
+                    <option value="">Choose</option>
+                    [% FOREACH cat IN uploadcategories %]
+                        [% IF cat.code == browsecategory %]
+                            <option value="[% cat.code | html %]" selected="selected">[% cat.name | html %]</option>
+                        [% ELSE -%]
+                            <option value="[% cat.code | html %]">[% cat.name | html %]</option>
+                        [% END %]
+                    [% END %]
                 </select>
             </li>
         </ol>
-        <fieldset class="action">
-            <button id="browsebutton" class="submit">Search</button>
         </fieldset>
+        <fieldset class="action">
+            <button id="browsebutton" class="btn btn-primary">Search</button>
         </fieldset>
     </form>
     [% END %]
 [% END %]
 
 [% BLOCK form_search %]
-    <form method="post" id="searchfile" action="/cgi-bin/koha/tools/upload.pl" enctype="multipart/form-data">
+    <form method="post" id="searchfile" action="/cgi-bin/koha/tools/upload.pl">
         [% PROCESS plugin_pars %]
         <input type="hidden" name="op" value="search"/>
-        <fieldset class="rows">
-        <legend>Search uploads by name or hashvalue</legend>
+        <fieldset class="brief">
+        <h4>Search uploads by name or hashvalue</h4>
         <ol>
         <li>
             <label for="term">Search term: </label>
             <input type="text" id="term" name="term" value=""/>
         </li>
         </ol>
-        <fieldset class="action">
-            <button id="searchbutton" class="submit">Search</button>
         </fieldset>
+        <fieldset class="action">
+            <button id="searchbutton" class="btn btn-primary">Search</button>
         </fieldset>
     </form>
 [% END %]
@@ -190,48 +174,54 @@
 [% END %]
 
 [% BLOCK table_results %]
-    <table id="uploadresults">
-    <thead>
-    <tr>
-        <th>Filename</th>
-        <th>Size</th>
-        <th>Hashvalue</th>
-        <th>Category</th>
-        [% IF !plugin %]<th>Public</th>[% END %]
-        [% IF !plugin %]<th>Temporary</th>[% END %]
-        <th class="NoSort noExport">Actions</th>
-    </tr>
-    </thead>
-    <tbody>
-    [% FOREACH record IN uploads %]
-    <tr>
-        <td>[% record.filename | html %]</td>
-        <td>[% record.filesize | html %]</td>
-        <td>[% record.hashvalue | html %]</td>
-        <td>[% record.uploadcategorycode | html %]</td>
-        [% IF !plugin %]
-            <td>
-                [% IF record.public %]
-                    <a href="[% Koha.Preference('OPACBaseURL') | url %]/cgi-bin/koha/opac-retrieve-file.pl?id=[% record.hashvalue | uri %]" class="get-file" data-toggle="tooltip"><i class="fa fa-link" aria-hidden="true"></i> Yes</a>
-                [% ELSE %]
-                    No
+    <div class="page-section">
+        <table id="uploadresults">
+            <thead>
+                <tr>
+                    <th>Filename</th>
+                    <th>Size</th>
+                    <th>Hashvalue</th>
+                    <th>Date added</th>
+                    <th>Category</th>
+                    [% IF !plugin %]<th>Public</th>[% END %]
+                    [% IF !plugin %]<th>Temporary</th>[% END %]
+                    <th class="NoSort noExport">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                [% FOREACH record IN uploads %]
+                    <tr>
+                        <td>[% record.filename | html %]</td>
+                        <td>[% record.filesize | html %]</td>
+                        <td>[% record.hashvalue | html %]</td>
+                        <td data-order="[% record.dtcreated | html %]">[% record.dtcreated | $KohaDates with_hours = 1 %]</td>
+                        <td>
+                            <a href="/cgi-bin/koha/tools/upload.pl?op=browse&browsecategory=[% record.uploadcategorycode | uri %]">[% AuthorisedValues.GetByCode( 'UPLOAD', record.uploadcategorycode ) | html %]</a>
+                        </td>
+                        [% IF !plugin %]
+                            <td>
+                                [% IF record.public %]
+                                    <a href="[% Koha.Preference('OPACBaseURL') | url %]/cgi-bin/koha/opac-retrieve-file.pl?id=[% record.hashvalue | uri %]" class="get-file" data-toggle="tooltip"><i class="fa fa-link" aria-hidden="true"></i> Yes</a>
+                                [% ELSE %]
+                                    No
+                                [% END %]
+                            </td>
+                            <td>[% IF record.permanent %]No[% ELSE %]Yes[% END %]</td>
+                        [% END %]
+                        <td class="actions">
+                            [% IF plugin %]
+                                <button class="btn btn-default btn-xs choose_entry" data-record-hashvalue="[% record.hashvalue | html %]"><i class="fa fa-plus"></i> Choose</button>
+                            [% END %]
+                            <button class="btn btn-default btn-xs download_entry" data-record-id="[% record.id | html %]"><i class="fa fa-download"></i> Download</button>
+                            [% IF record.owner == owner || CAN_user_tools_upload_manage %]
+                                <button class="btn btn-default btn-xs delete_entry" data-record-id="[% record.id | html %]"><i class="fa fa-trash"></i> Delete</button>
+                            [% END %]
+                        </td>
+                    </tr>
                 [% END %]
-            </td>
-            <td>[% IF record.permanent %]No[% ELSE %]Yes[% END %]</td>
-        [% END %]
-        <td class="actions">
-            [% IF plugin %]
-                <button class="btn btn-default btn-xs choose_entry" data-record-hashvalue="[% record.hashvalue | html %]"><i class="fa fa-plus"></i> Choose</button>
-            [% END %]
-            <button class="btn btn-default btn-xs download_entry" data-record-id="[% record.id | html %]"><i class="fa fa-download"></i> Download</button>
-            [% IF record.owner == owner || CAN_user_tools_upload_manage %]
-                <button class="btn btn-default btn-xs delete_entry" data-record-id="[% record.id | html %]"><i class="fa fa-trash"></i> Delete</button>
-            [% END %]
-        </td>
-   </tr>
-   [% END %]
-   </tbody>
-   </table>
+            </tbody>
+        </table>
+    </div> <!-- /.page-section -->
 [% END %]
 
 <style>
@@ -251,9 +241,28 @@
                     <main>
 [% ELSE %]
     <body id="tools_upload" class="tools">
-    [% INCLUDE 'header.inc' %]
-    [% INCLUDE 'cat-search.inc' %]
-    [% PROCESS breadcrumbs %]
+    [% WRAPPER 'header.inc' %]
+        [% INCLUDE 'cat-search.inc' %]
+    [% END %]
+    [% WRAPPER 'sub-header.inc' %]
+        [% WRAPPER breadcrumbs %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/tools/upload.pl">Upload</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="#" aria-current="page">
+                    [% IF mode=='new' || mode =='deleted'%]
+                        <span>Add new upload or search</span>
+                    [% ELSE %]
+                        <span>Results</span>
+                    [% END %]
+                </a>
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
+    [% END #/ WRAPPER sub-header.inc %]
 
     <div class="main container-fluid">
         <div class="row">
@@ -267,10 +276,23 @@
 [% PROCESS submitter %]
 [% IF mode == 'new' || mode == 'deleted' %]
     [% PROCESS form_new %]
-    [% PROCESS form_browse %]
-    [% PROCESS form_search %]
+    <div class="row">
+        [% IF uploadcategories %]
+            <div class="col-xs-6">
+                [% PROCESS form_browse %]
+            </div>
+            <div class="col-xs-6">
+        [% ELSE %]
+            <div class="col-xs-12">
+        [% END %]
+            [% PROCESS form_search %]
+        </div>
+    </div>
     [% PROCESS closer %]
 [% ELSIF mode == 'report' %]
+    <div id="toolbar" class="btn-toolbar">
+        <a href="/cgi-bin/koha/tools/upload.pl" class="btn btn-default">Upload file</a>
+    </div>
     [% IF uploads %]
         <h3>Your request gave the following results:</h3>
         [% PROCESS table_results %]
@@ -288,6 +310,12 @@
 
         <div class="col-sm-2 col-sm-pull-10">
             <aside>
+                [% IF mode == 'report' %]
+                    [% PROCESS form_browse %]
+                    [% PROCESS form_search %]
+                [% END %]
+
+
                 [% INCLUDE 'tools-menu.inc' %]
             </aside>
         </div> <!-- /.col-sm-2.col-sm-pull-10 -->
@@ -429,8 +457,15 @@
             [% END %]
             window.close();
         }
+        var table_settings = [% TablesSettings.GetTableSettings( 'tools', 'upload', 'uploadresults', 'json' ) | $raw %];
+        [% IF plugin %]
+            table_settings['columns'].splice(6, 1);
+            table_settings['columns'].splice(5, 1);
+        [% END %]
         $(document).ready(function() {
-            KohaTable("uploadresults",{});
+            KohaTable("uploadresults",{
+            }, table_settings);
+
             [% IF msg %]
                 ShowAlerts( [% msg | html %] );
             [% END %]

@@ -23,13 +23,11 @@ use CGI qw ( -utf8 );
 
 use C4::Context;
 use C4::Output;
-use C4::Debug;
 use C4::Letters;
 use C4::Biblio qw( GetMarcFromKohaField );
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Suggestions;
 
-use List::MoreUtils qw(any);
 use base qw(Exporter);
 
 our @EXPORT  = qw(
@@ -43,7 +41,6 @@ our @EXPORT  = qw(
   ModStatus
   ModSuggestion
   NewSuggestion
-  SearchSuggestion
   DelSuggestionsOlderThan
   GetUnprocessedSuggestions
   MarcRecordFromNewSuggestion
@@ -59,7 +56,7 @@ use C4::Suggestions;
 
 =head1 DESCRIPTION
 
-The functions in this module deal with the aqorders in OPAC and in librarian interface
+The functions in this module deal with the aqorders in OPAC and in staff interface
 
 A suggestion is done in the OPAC. It has the status "ASKED"
 
@@ -73,156 +70,6 @@ All aqorders of a borrower can be seen by the borrower itself.
 Suggestions done by other borrowers can be seen when not "AVAILABLE"
 
 =head1 FUNCTIONS
-
-=head2 SearchSuggestion
-
-(\@array) = &SearchSuggestion($suggestionhashref_to_search)
-
-searches for a suggestion
-
-return :
-C<\@array> : the aqorders found. Array of hash.
-Note the status is stored twice :
-* in the status field
-* as parameter ( for example ASKED => 1, or REJECTED => 1) . This is for template & translation purposes.
-
-=cut
-
-sub SearchSuggestion {
-    my ($suggestion) = @_;
-    my $dbh = C4::Context->dbh;
-    my @sql_params;
-    my @query = (
-        q{
-        SELECT suggestions.*,
-            U1.branchcode       AS branchcodesuggestedby,
-            B1.branchname       AS branchnamesuggestedby,
-            U1.surname          AS surnamesuggestedby,
-            U1.firstname        AS firstnamesuggestedby,
-            U1.cardnumber       AS cardnumbersuggestedby,
-            U1.email            AS emailsuggestedby,
-            U1.borrowernumber   AS borrnumsuggestedby,
-            U1.categorycode     AS categorycodesuggestedby,
-            C1.description      AS categorydescriptionsuggestedby,
-            U2.surname          AS surnamemanagedby,
-            U2.firstname        AS firstnamemanagedby,
-            B2.branchname       AS branchnamesuggestedby,
-            U2.email            AS emailmanagedby,
-            U2.branchcode       AS branchcodemanagedby,
-            U2.borrowernumber   AS borrnummanagedby,
-            U3.surname          AS surnamelastmodificationby,
-            U3.firstname        AS firstnamelastmodificationby,
-            BU.budget_name      AS budget_name
-        FROM suggestions
-            LEFT JOIN borrowers     AS U1 ON suggestedby=U1.borrowernumber
-            LEFT JOIN branches      AS B1 ON B1.branchcode=U1.branchcode
-            LEFT JOIN categories    AS C1 ON C1.categorycode=U1.categorycode
-            LEFT JOIN borrowers     AS U2 ON managedby=U2.borrowernumber
-            LEFT JOIN branches      AS B2 ON B2.branchcode=U2.branchcode
-            LEFT JOIN categories    AS C2 ON C2.categorycode=U2.categorycode
-            LEFT JOIN borrowers     AS U3 ON lastmodificationby=U3.borrowernumber
-            LEFT JOIN aqbudgets     AS BU ON budgetid=BU.budget_id
-        WHERE 1=1
-    }
-    );
-
-    # filter on biblio informations
-    foreach my $field (
-        qw( title author isbn publishercode copyrightdate collectiontitle ))
-    {
-        if ( $suggestion->{$field} ) {
-            push @sql_params, '%' . $suggestion->{$field} . '%';
-            push @query,      qq{ AND suggestions.$field LIKE ? };
-        }
-    }
-
-    # filter on user branch
-    if (   C4::Context->preference('IndependentBranches')
-        && !C4::Context->IsSuperLibrarian() )
-    {
-        # If IndependentBranches is set and the logged in user is not superlibrarian
-        # Then we want to filter by the user's library (i.e. cannot see suggestions from other libraries)
-        my $userenv = C4::Context->userenv;
-        if ($userenv) {
-            {
-                push @sql_params, $$userenv{branch};
-                push @query,      q{
-                    AND (suggestions.branchcode=? OR suggestions.branchcode='')
-                };
-            }
-        }
-    }
-    elsif (defined $suggestion->{branchcode}
-        && $suggestion->{branchcode}
-        && $suggestion->{branchcode} ne '__ANY__' )
-    {
-        # If IndependentBranches is not set OR the logged in user is not superlibrarian
-        # AND the branchcode filter is passed and not '__ANY__'
-        # Then we want to filter using this parameter
-        push @sql_params, $suggestion->{branchcode};
-        push @query,      qq{ AND suggestions.branchcode=? };
-    }
-
-    # filter on nillable fields
-    foreach my $field (
-        qw( STATUS itemtype suggestedby managedby acceptedby budgetid biblionumber )
-      )
-    {
-        if ( exists $suggestion->{$field}
-                and defined $suggestion->{$field}
-                and $suggestion->{$field} ne '__ANY__'
-                and (
-                    $suggestion->{$field} ne q||
-                        or $field eq 'STATUS'
-                )
-        ) {
-            if ( $suggestion->{$field} eq '__NONE__' ) {
-                push @query, qq{ AND (suggestions.$field = '' OR suggestions.$field IS NULL) };
-            }
-            else {
-                push @sql_params, $suggestion->{$field};
-                push @query, qq{ AND suggestions.$field = ? };
-            }
-        }
-    }
-
-    # filter on date fields
-    my $dtf = Koha::Database->new->schema->storage->datetime_parser;
-    foreach my $field (qw( suggesteddate manageddate accepteddate )) {
-        my $from = $field . "_from";
-        my $to   = $field . "_to";
-        my $from_dt;
-        $from_dt = eval { dt_from_string( $suggestion->{$from} ) } if ( $suggestion->{$from} );
-        my $to_dt;
-        $to_dt = eval { dt_from_string( $suggestion->{$to} ) } if ( $suggestion->{$to} );
-        if ( $from_dt ) {
-            push @query, qq{ AND suggestions.$field >= ?};
-            push @sql_params, $dtf->format_date($from_dt);
-        }
-        if ( $to_dt ) {
-            push @query, qq{ AND suggestions.$field <= ?};
-            push @sql_params, $dtf->format_date($to_dt);
-        }
-    }
-
-    # By default do not search for archived suggestions
-    unless ( exists $suggestion->{archived} && $suggestion->{archived} ) {
-        push @query, q{ AND suggestions.archived = 0 };
-    }
-
-    $debug && warn "@query";
-    my $sth = $dbh->prepare("@query");
-    $sth->execute(@sql_params);
-    my @results;
-
-    # add status as field
-    while ( my $data = $sth->fetchrow_hashref ) {
-        $data->{ $data->{STATUS} } = 1;
-        push( @results, $data );
-    }
-
-    return ( \@results );
-}
 
 =head2 GetSuggestion
 
@@ -402,7 +249,8 @@ sub NewSuggestion {
 
     $suggestion->{suggesteddate} = dt_from_string unless $suggestion->{suggesteddate};
 
-    delete $suggestion->{branchcode} if $suggestion->{branchcode} eq '';
+    delete $suggestion->{branchcode}
+      if defined $suggestion->{branchcode} and $suggestion->{branchcode} eq '';
 
     my $suggestion_object = Koha::Suggestion->new( $suggestion )->store;
     my $suggestion_id = $suggestion_object->suggestionid;
@@ -558,7 +406,9 @@ sub DelSuggestion {
     my $sth = $dbh->prepare($query);
     $sth->execute($suggestionid);
     my ($suggestedby) = $sth->fetchrow;
-    if ( $type eq 'intranet' || $suggestedby eq $borrowernumber ) {
+    $suggestedby //= '';
+    $borrowernumber //= '';
+    if ( defined $type && $type eq 'intranet' || $suggestedby eq $borrowernumber ) {
         my $queryDelete = q{
             DELETE FROM suggestions
             WHERE suggestionid=?
@@ -620,22 +470,32 @@ sub MarcRecordFromNewSuggestion {
     my ($suggestion) = @_;
     my $record = MARC::Record->new();
 
-    my ($title_tag, $title_subfield) = GetMarcFromKohaField('biblio.title', '');
-    $record->append_fields(
-        MARC::Field->new($title_tag, ' ', ' ', $title_subfield => $suggestion->{title})
-    );
-
-    my ($author_tag, $author_subfield) = GetMarcFromKohaField('biblio.author', '');
-    if ($record->field( $author_tag )) {
-        $record->field( $author_tag )->add_subfields( $author_subfield => $suggestion->{author} );
+    if (my $isbn = $suggestion->{isbn}) {
+        for my $field (qw(biblioitems.isbn biblioitems.issn)) {
+            my ($tag, $subfield) = GetMarcFromKohaField($field);
+            $record->append_fields(
+                MARC::Field->new($tag, ' ', ' ', $subfield => $isbn)
+            );
+        }
     }
     else {
+        my ($title_tag, $title_subfield) = GetMarcFromKohaField('biblio.title');
         $record->append_fields(
-            MARC::Field->new($author_tag, ' ', ' ', $author_subfield => $suggestion->{author})
+            MARC::Field->new($title_tag, ' ', ' ', $title_subfield => $suggestion->{title})
         );
+
+        my ($author_tag, $author_subfield) = GetMarcFromKohaField('biblio.author');
+        if ($record->field( $author_tag )) {
+            $record->field( $author_tag )->add_subfields( $author_subfield => $suggestion->{author} );
+        }
+        else {
+            $record->append_fields(
+                MARC::Field->new($author_tag, ' ', ' ', $author_subfield => $suggestion->{author})
+            );
+        }
     }
 
-    my ($it_tag, $it_subfield) = GetMarcFromKohaField('biblioitems.itemtype', '');
+    my ($it_tag, $it_subfield) = GetMarcFromKohaField('biblioitems.itemtype');
     if ($record->field( $it_tag )) {
         $record->field( $it_tag )->add_subfields( $it_subfield => $suggestion->{itemtype} );
     }

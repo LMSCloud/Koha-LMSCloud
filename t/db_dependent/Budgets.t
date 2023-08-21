@@ -1,14 +1,16 @@
 #!/usr/bin/perl
 use Modern::Perl;
-use Test::More tests => 144;
+use Test::More tests => 154;
+use JSON;
 
 BEGIN {
-    use_ok('C4::Budgets')
+    use_ok('C4::Budgets', qw( AddBudgetPeriod AddBudget GetBudgetPeriods GetBudgetPeriod GetBudget ModBudgetPeriod ModBudget DelBudgetPeriod DelBudget GetBudgets GetBudgetName GetBudgetByCode GetBudgetHierarchy GetBudgetHierarchySpent GetBudgetSpent GetBudgetOrdered CloneBudgetPeriod GetBudgetsByActivity MoveOrders GetBudgetByOrderNumber SetOwnerToFundHierarchy GetBudgetAuthCats GetBudgetsPlanCell ));
 }
 use C4::Context;
-use C4::Biblio;
-use C4::Acquisition;
+use C4::Biblio qw( AddBiblio );
+use C4::Acquisition qw( NewBasket AddInvoice GetInvoice ModReceiveOrder );
 
+use Koha::ActionLogs;
 use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Orders;
 use Koha::Acquisition::Funds;
@@ -22,6 +24,7 @@ use Koha::DateUtils;
 
 use t::lib::Mocks;
 t::lib::Mocks::mock_preference('OrderPriceRounding','');
+t::lib::Mocks::mock_preference('AcquisitionLog','1');
 
 my $schema  = Koha::Database->new->schema;
 $schema->storage->txn_begin;
@@ -34,10 +37,14 @@ my $library = $builder->build({
     source => 'Branch',
 });
 
+my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+$patron->store;
+
 t::lib::Mocks::mock_userenv(
     {
         flags => 1,
-        userid => 'my_userid',
+        userid => $patron->userid,
+        borrowernumber => $patron->borrowernumber,
         branch => $library->{branchcode},
     }
 );
@@ -125,10 +132,11 @@ $bpid = AddBudgetPeriod($my_budgetperiod); #this is an active budget
 my $my_budget = {
     budget_code      => 'ABCD',
     budget_amount    => '123.132000',
+    budget_expend    => '789',
     budget_name      => 'Periodiques',
     budget_notes     => 'This is a note',
     budget_period_id => $bpid,
-    budget_encumb    => '', # Bug 21604
+    budget_encumb    => '456', # Bug 21604
 };
 my $budget_id = AddBudget($my_budget);
 isnt( $budget_id, undef, 'AddBudget does not returns undef' );
@@ -139,10 +147,25 @@ is( $budget->{budget_name}, $my_budget->{budget_name}, 'AddBudget stores the bud
 is( $budget->{budget_notes}, $my_budget->{budget_notes}, 'AddBudget stores the budget notes correctly' );
 is( $budget->{budget_period_id}, $my_budget->{budget_period_id}, 'AddBudget stores the budget period id correctly' );
 
+my @create_logs = Koha::ActionLogs->find({ module =>'ACQUISITIONS', action => 'CREATE_FUND', object => $budget->{budget_id} });
+
+my $expected_create_payload = {
+    budget_amount => $my_budget->{budget_amount},
+    budget_expend => $my_budget->{budget_expend},
+    budget_encumb => $my_budget->{budget_encumb},
+};
+
+my $actual_create_payload = from_json($create_logs[0]->info);
+
+is_deeply ($actual_create_payload, $expected_create_payload, 'ModBudget logs a budget creation with the correct payload');
+
+my $before = $budget;
 
 $my_budget = {
     budget_code      => 'EFG',
     budget_amount    => '321.231000',
+    budget_encumb    => '567',
+    budget_expend    => '890',
     budget_name      => 'Modified name',
     budget_notes     => 'This is a modified note',
     budget_period_id => $bpid,
@@ -160,6 +183,18 @@ is( $budget->{budget_name}, $my_budget->{budget_name}, 'ModBudget updates the bu
 is( $budget->{budget_notes}, $my_budget->{budget_notes}, 'ModBudget updates the budget notes correctly' );
 is( $budget->{budget_period_id}, $my_budget->{budget_period_id}, 'ModBudget updates the budget period id correctly' );
 
+my @mod_logs = Koha::ActionLogs->find({ module =>'ACQUISITIONS', action => 'MODIFY_FUND', object => $budget->{budget_id} });
+my $expected_mod_payload = {
+    budget_amount_new    => $my_budget->{budget_amount},
+    budget_encumb_new    => $my_budget->{budget_encumb},
+    budget_expend_new    => $my_budget->{budget_expend},
+    budget_amount_old    => $before->{budget_amount},
+    budget_encumb_old    => $before->{budget_encumb},
+    budget_expend_old    => $before->{budget_expend},
+    budget_amount_change => 0 - ($before->{budget_amount} - $my_budget->{budget_amount})
+};
+my $actual_mod_payload = from_json($mod_logs[0]->info);
+is_deeply ($actual_mod_payload, $expected_mod_payload, 'ModBudget logs a budget modification with the correct payload');
 
 $budgets = GetBudgets();
 is( @$budgets, 1, 'GetBudgets returns the correct number of budgets' );
@@ -219,6 +254,9 @@ is( DelBudget($budget_id), 1, 'DelBudget returns true' );
 $budgets = GetBudgets();
 is( @$budgets, 2, 'GetBudgets returns the correct number of budget periods' );
 
+my @delete_logs = Koha::ActionLogs->find({ module =>'ACQUISITIONS', action => 'DELETE_FUND', object => $budget_id });
+
+is (scalar @delete_logs, 1, 'DelBudget logs a budget deletion');
 
 # GetBudgetHierarchySpent and GetBudgetHierarchyOrdered
 my $budget_period_total = 10_000;
@@ -482,7 +520,7 @@ is ( GetBudgetOrdered( $fund ), '20', "total ordered price is 20");
 
 # CloneBudgetPeriod
 # Let's make sure our timestamp is old
-my @orig_funds = Koha::Acquisition::Funds->search({ budget_period_id => $budget_period_id });
+my @orig_funds = Koha::Acquisition::Funds->search({ budget_period_id => $budget_period_id })->as_list;
 foreach my $fund (@orig_funds){
     $fund->timestamp('1999-12-31 23:59:59')->store;
 }
@@ -551,9 +589,19 @@ is($budget_hierarchy->[0]->{budget_level},'0','budget_level of budget (budget_1)
 is($budget_hierarchy->[0]->{children}->[0]->{budget_level},'1','budget_level of first fund(budget_11)  should be 1');
 is($budget_hierarchy->[0]->{children}->[1]->{budget_level},'1','budget_level of second fund(budget_12)  should be 1');
 is($budget_hierarchy->[0]->{children}->[0]->{children}->[0]->{budget_level},'2','budget_level of  child fund budget_11 should be 2');
+
+#Test skiptotals
+$budget_hierarchy        = GetBudgetHierarchy($budget_period_id, undef, undef, 1);
+is( $budget_hierarchy->[0]->{children}->[0]->{budget_name}, 'budget_11', 'GetBudgetHierarchy skiptotals should return budgets ordered by name, first child is budget_11' );
+is( $budget_hierarchy->[0]->{children}->[1]->{budget_name}, 'budget_12', 'GetBudgetHierarchy skiptotals should return budgets ordered by name, second child is budget_12' );
+is($budget_hierarchy->[0]->{budget_name},'budget_1','GetBudgetHierarchy skiptotals should return budgets ordered by name, first budget is budget_1');
+is($budget_hierarchy->[0]->{budget_level},'0','skiptotals: budget_level of budget (budget_1)  should be 0');
+is($budget_hierarchy->[0]->{children}->[0]->{budget_level},'1','skiptotals: budget_level of first fund(budget_11)  should be 1');
+is($budget_hierarchy->[0]->{children}->[1]->{budget_level},'1','skiptotals: budget_level of second fund(budget_12)  should be 1');
+is($budget_hierarchy->[0]->{children}->[0]->{children}->[0]->{budget_level},'2','skiptotals: budget_level of  child fund budget_11 should be 2');
+
 $budget_hierarchy        = GetBudgetHierarchy($budget_period_id);
 $budget_hierarchy_cloned = GetBudgetHierarchy($budget_period_id_cloned);
-
 is( scalar(@$budget_hierarchy_cloned), scalar(@$budget_hierarchy),
 'CloneBudgetPeriod (with inactive param) clones the same number of budgets (funds)'
 );
@@ -823,7 +871,7 @@ subtest 'GetBudgetSpent and GetBudgetOrdered and GetBudgetHierarchy shipping and
         source => 'Aqbudgetperiod',
         value  => {
             budget_period_active => 1,
-            budget_total => 10000,
+            budget_period_total  => 10000,
         }
     });
     my $budget = $builder->build({
@@ -1039,11 +1087,9 @@ subtest 'GetBudgetSpent GetBudgetOrdered GetBudgetsPlanCell tests' => sub {
 
 #Okay we have basically what the user would enter, now we do some maths
 
-    $spent_orderinfo = C4::Acquisition::populate_order_with_prices({
-            order        => $spent_orderinfo,
-            booksellerid => $spent_orderinfo->{booksellerid},
-            ordering     => 1,
-    });
+    my $spent_order_obj = Koha::Acquisition::Order->new($spent_orderinfo);
+    $spent_order_obj->populate_with_prices_for_ordering();
+    $spent_orderinfo = $spent_order_obj->unblessed();
 
 #And let's place the order
 
@@ -1126,11 +1172,9 @@ subtest 'GetBudgetSpent GetBudgetOrdered GetBudgetsPlanCell tests' => sub {
 
 #Do our maths
 
-    $spent_orderinfo = C4::Acquisition::populate_order_with_prices({
-            order        => $spent_orderinfo,
-            booksellerid => $spent_orderinfo->{booksellerid},
-            receiving    => 1,
-    });
+    $spent_order_obj = Koha::Acquisition::Order->new($spent_orderinfo);
+    $spent_order_obj->populate_with_prices_for_receiving();
+    $spent_orderinfo = $spent_order_obj->unblessed();
     my $received_order = $builder->build({ source => 'Aqorder', value => $spent_orderinfo });
 
 #And receive a copy of the order so we have both spent and ordered values

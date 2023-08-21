@@ -37,7 +37,6 @@ Koha::Logger
 use Modern::Perl;
 
 use Log::Log4perl;
-use Carp;
 
 use C4::Context;
 
@@ -58,7 +57,7 @@ sub get {
     my ( $class, $params ) = @_;
     my $interface = $params ? ( $params->{interface} || C4::Context->interface ) : C4::Context->interface;
     my $category = $params ? ( $params->{category} || caller ) : caller;
-    my $l4pcat = $interface . '.' . $category;
+    my $l4pcat = ( C4::Context->psgi_env ? 'plack-' : q{} ) . $interface . '.' . $category;
 
     my $init = _init();
     my $self = {};
@@ -69,6 +68,49 @@ sub get {
     }
     bless $self, $class;
     return $self;
+}
+
+=head2 put_mdc
+
+my $foo = $logger->put_mdc('foo', $foo );
+
+put_mdc sets global thread specific data that can be access later when generating log lines
+via the "%X{key}" placeholder in Log::Log4perl::Layout::PatternLayouts.
+
+=cut
+
+sub put_mdc {
+    my ( $self, $key, $value ) = @_;
+
+    Log::Log4perl::MDC->put( $key, $value );
+}
+
+=head2 get_mdc
+
+my $foo = $logger->get_mdc('foo');
+
+Retrieves the stored mdc value from the stored map.
+
+=cut
+
+sub get_mdc {
+    my ( $self, $key ) = @_;
+
+    return Log::Log4perl::MDC->get( $key );
+}
+
+=head2 clear_mdc
+
+$logger->clear_mdc();
+
+Removes *all* stored key/value pairs from the MDC map.
+
+=cut
+
+sub clear_mdc {
+    my ( $self, $key ) = @_;
+
+    return Log::Log4perl::MDC->remove( $key );
 }
 
 =head1 INTERNALS
@@ -145,6 +187,38 @@ sub debug_to_screen {
     $appender->threshold( $Log::Log4perl::DEBUG );
     $self->{logger}->add_appender( $appender );
     $self->{logger}->level( $Log::Log4perl::DEBUG );
+}
+
+=head2 context
+
+Mojolicous 8.23 added a "context" method, which Mojolicious will die
+on if it's missing from the logger.
+
+Note: We are just preventing a crash here not returning a new context logger.
+
+=cut
+
+sub context {
+    my ( $self, @context ) = @_;
+    $self->{context} = \@context;
+    return $self;
+}
+
+=head2 history
+
+Similar to above, Mojolicious has a "history" method and will die
+on it if it's missing from the logger.
+
+Note: We are just preventing a crash here not returning a new history logger.
+
+=cut
+
+sub history {
+    my ( $self, @history) = @_;
+    if ( @history ) {
+        $self->{history} = \@history;
+    }
+    return $self->{history} || [];
 }
 
 =head1 AUTHOR

@@ -5,18 +5,18 @@
 
 [% BLOCK ServerType %]
     [% IF (server.servertype||type) == 'sru' %]
-        SRU
+        <span>SRU</span>
     [% ELSIF (server.servertype||type) == 'zed' %]
-        Z39.50
+        <span>Z39.50</span>
     [% END %]
 [% END %]
 
 <title>
     [% IF op == 'edit' %]
-        Modify [% PROCESS ServerType %] server [% server.servername | html %] &rsaquo; [% END %]
+        Modify [% PROCESS ServerType | remove("</*span>") %] server [% server.servername | html %] &rsaquo; [% END %]
 
     [% IF op ==  'add' %]
-        New [% PROCESS ServerType %] server &rsaquo; [% END %]
+        New [% PROCESS ServerType | remove("</*span>") %] server &rsaquo; [% END %]
 
     Z39.50/SRU servers &rsaquo; Administration &rsaquo; Koha
 </title>
@@ -24,48 +24,39 @@
 </head>
 
 <body id="admin_z3950servers" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'z3950-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'z3950-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
-
-        [% IF op == 'edit' %]
-            <li>
-                <a href="/cgi-bin/koha/admin/z3950servers.pl">Z39.50/SRU servers</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Modify [% PROCESS ServerType %] server [% server.servername | html %]
-                </a>
-            </li>
-
-        [% ELSIF op == 'add' %]
-            <li>
-                <a href="/cgi-bin/koha/admin/z3950servers.pl">Z39.50/SRU servers</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    New [% PROCESS ServerType %] server
-                </a>
-            </li>
-
-        [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Z39.50/SRU servers
-                </a>
-            </li>
         [% END %]
 
-    </ol>
-</nav>
+        [% IF op == 'edit' || op == 'add' %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/admin/z3950servers.pl">Z39.50/SRU servers</a>
+           [% END %]
+        [% END %]
+
+        [% IF op == 'edit' %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Modify [% PROCESS ServerType %] server [% server.servername | html %]</span>
+           [% END %]
+
+        [% ELSIF op == 'add' %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>New [% PROCESS ServerType %] server</span>
+           [% END %]
+
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Z39.50/SRU servers</span>
+           [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -79,7 +70,7 @@
 [% ELSIF msg_added %]
     <div class="dialog message">Z39.50/SRU server added ([% msg_add | html %])</div>
 [% ELSIF msg_notfound %]
-    <div class="dialog alert">Error: Server with id [% msg_add | html %] not found</div>
+    <div class="dialog alert">Error: Server with ID [% msg_add | html %] not found</div>
 [% END %]
 
 [% IF ( add_form ) %]
@@ -95,7 +86,12 @@
         <fieldset class="rows">
         <ol>
         <li><label for="name" class="required">Server name: </label>
-            <input type="text" name="servername" id="servername" size="65" maxlength="100" value="[% server.servername | html %]" required="required" /> <span class="required">Required</span>
+            [% IF server.servername %]
+                <input type="text" name="servername" id="servername" size="65" maxlength="100" value="[% server.servername | html %]" required="required" />
+            [% ELSE %]
+                <input type="text" name="servername" id="servername" class="focus" size="65" maxlength="100" value="[% server.servername | html %]" required="required" />
+            [% END %]
+             <span class="required">Required</span>
         </li>
 
         <li><label for="host" class="required">Hostname: </label> <input type="text" name="host" id="host" size="30" value="[% server.host | html %]" required="required" /> <span class="required">Required</span>
@@ -111,21 +107,30 @@
         </li>
         <li><label for="password">Password: </label> <input type="text" name="password" id="password" value="[% server.password | html %]" />
         </li>
-        <li><label for="checked">Preselected (searched by default): </label>
+        <li>
+            <label for="checked">Preselected: </label>
         [% IF ( server.checked ) %]
             <input type="checkbox" name="checked" id="checked" value="1" checked="checked" />
         [% ELSE %]
             <input type="checkbox" name="checked" id="checked" value="1" />
         [% END %]
+            <span class="hint">Searched by default.</span>
         </li>
-        <li><label for="rank">Rank (display order): </label> <input type="text" name="rank" id="rank" size="4" value="[% server.rank | html %]" />
+        <li>
+            <label for="rank">Rank: </label>
+            <input type="text" name="rank" id="rank" size="4" value="[% server.rank | html %]" />
+            <div class="hint">Display order.</div>
         </li>
         [% IF (server.servertype||type) == 'zed' %]
-        <li><label for="attributes">Attributes (additional PQF attributes added to each query): </label><input type="text" name="attributes" id="attributes" size="30" value="[% server.attributes | html %]" />
+        <li>
+            <label for="attributes">Attributes: </label>
+            <input type="text" name="attributes" id="attributes" size="30" value="[% server.attributes | html %]" />
+            <div class="hint">Additional PQF attributes added to each query.</div>
         </li>
         [% END %]
 
-        <li><label for="syntax">Syntax (z3950 can send<br /> records in various format. Choose one): </label>
+        <li>
+            <label for="syntax">Syntax: </label>
         <select name="syntax" id="syntax">
             <option value="UNIMARC">UNIMARC</option>
             <option value="INTERMARC">INTERMARC</option>
@@ -144,18 +149,23 @@
             <option value="CATMARC">CATMARC</option>
             <option value="MALMARC">MALMARC</option>
         </select>
+            <div class="hint">Z39.50 can send records in various formats. Choose one.</div>
         </li>
 
-        <li><label for="encoding">Encoding (z3950 can send<br /> records in various encodings. Choose one): </label>
+        <li>
+            <label for="encoding">Encoding: </label>
         <select name="encoding" id="encoding">
             [% FOREACH enc IN [ 'utf8' 'EUC-KR' 'ISO_5426' 'ISO_6937' 'ISO_8859-1' 'MARC-8' ] %]
                 <option value="[% enc | html %]">[% enc | html %]</option>
             [% END %]
         </select>
+            <div class="hint">Z39.50 can send records in various encodings. Choose one.</div>
         </li>
 
-        <li><label for="timeout">Timeout (0 its like not set): </label>
+        <li>
+            <label for="timeout">Timeout: </label>
         <input type="text" name="timeout" id="timeout" size="4" value="[% server.timeout | html %]" /> seconds
+            <div class="hint">Enter 0 to disable.</div>
         </li>
         <li><label for="recordtype">Record type: </label>
         <select name="recordtype" id="recordtype">
@@ -184,7 +194,7 @@
         </ol>
         </fieldset>
 
-        <fieldset class="action"><input type="submit" value="Save" /> <a class="cancel" href="/cgi-bin/koha/admin/z3950servers.pl">Cancel</a></fieldset>
+        <fieldset class="action"><input type="submit" class="btn btn-primary" value="Save" /> <a class="cancel" href="/cgi-bin/koha/admin/z3950servers.pl">Cancel</a></fieldset>
     </form>
 [% END %]
 
@@ -193,12 +203,14 @@
         <a id="newserver" class="btn btn-default" href="/cgi-bin/koha/admin/z3950servers.pl?op=add&type=zed"><i class="fa fa-plus"></i> New Z39.50 server</a>
         <a id="newserver" class="btn btn-default" href="/cgi-bin/koha/admin/z3950servers.pl?op=add&type=sru"><i class="fa fa-plus"></i> New SRU server</a>
     </div>
-    <h3>Z39.50/SRU servers administration</h3>
+    <h1>Z39.50/SRU servers administration</h1>
     [% IF id %]
         You searched for record [% id | html %]
     [% ELSIF searchfield %]
         You searched for [% searchfield | html %]
     [% END %]
+
+    <div class="page-section">
     <table id="serverst">
 
         <thead><tr><th>Target</th><th>Hostname/Port</th><th>Database</th><th>Userid</th><th>Password</th><th>Preselected</th><th>Rank</th><th>Syntax</th><th>Encoding</th><th>Timeout</th><th>Record type</th><th>Attributes</th><th class="noExport">Actions</th>
@@ -231,6 +243,7 @@
         [% END %]
         </tbody>
     </table>
+    </div> <!-- /.page-section -->
 [% END %]
 
             </main>

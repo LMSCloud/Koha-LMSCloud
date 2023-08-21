@@ -21,12 +21,9 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use C4::Auth;    # checkauth, getborrowernumber.
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Koha;
-use C4::Circulation;
-use C4::Output;
-use C4::Members;
+use C4::Output qw( output_html_with_http_headers );
 use C4::Members::Messaging;
 use C4::Form::MessagingPreferences;
 use Koha::Patrons;
@@ -34,8 +31,9 @@ use Koha::SMS::Providers;
 use Koha::Token;
 
 my $query = CGI->new();
+my $opac_messaging = C4::Context->preference('EnhancedMessagingPreferencesOPAC');
 
-unless ( C4::Context->preference('EnhancedMessagingPreferencesOPAC') and
+unless ( ( $opac_messaging or C4::Context->preference('TranslateNotices') ) and
          C4::Context->preference('EnhancedMessagingPreferences') ) {
     print $query->redirect("/cgi-bin/koha/errors/404.pl");
     exit;
@@ -46,13 +44,13 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         template_name   => 'opac-messaging.tt',
         query           => $query,
         type            => 'opac',
-        debug           => 1,
     }
 );
 
 my $patron = Koha::Patrons->find( $borrowernumber ); # FIXME and if borrowernumber is invalid?
 
-my $messaging_options = C4::Members::Messaging::GetMessagingOptions();
+my $messaging_options;
+$messaging_options = C4::Members::Messaging::GetMessagingOptions() if $opac_messaging;
 
 if ( defined $query->param('modify') && $query->param('modify') eq 'yes' ) {
     die "Wrong CSRF token" unless Koha::Token->new->check_csrf({
@@ -60,34 +58,40 @@ if ( defined $query->param('modify') && $query->param('modify') eq 'yes' ) {
         token  => scalar $query->param('csrf_token'),
     });
 
-    my $sms = $query->param('SMSnumber');
-    my $sms_provider_id = $query->param('sms_provider_id');
-    $patron->set({
-        smsalertnumber  => $sms,
-        sms_provider_id => $sms_provider_id,
-    })->store;
+    if( $opac_messaging ) {
+        my $sms = $query->param('SMSnumber');
+        my $sms_provider_id = $query->param('sms_provider_id');
+        $patron->set({
+            smsalertnumber  => $sms,
+            sms_provider_id => $sms_provider_id,
+        })->store;
 
-    C4::Form::MessagingPreferences::handle_form_action($query, { borrowernumber => $patron->borrowernumber }, $template);
+        C4::Form::MessagingPreferences::handle_form_action($query, { borrowernumber => $patron->borrowernumber }, $template);
+    }
 
     if ( C4::Context->preference('TranslateNotices') ) {
         $patron->set({ lang => scalar $query->param('lang') })->store;
     }
 }
 
-C4::Form::MessagingPreferences::set_form_values({ borrowernumber     => $patron->borrowernumber }, $template);
+C4::Form::MessagingPreferences::set_form_values({ borrowernumber     => $patron->borrowernumber }, $template) if $opac_messaging;
 
 $template->param(
-                  messagingview         => 1,
-                  SMSnumber             => $patron->smsalertnumber, # FIXME This is already sent 2 lines above
-                  SMSSendDriver                =>  C4::Context->preference("SMSSendDriver"),
-                  TalkingTechItivaPhone        =>  C4::Context->preference("TalkingTechItivaPhoneNotification") );
+    messagingview         => 1,
+    SMSnumber             => $patron->smsalertnumber, # FIXME This is already sent 2 lines above
+    SMSSendDriver         => C4::Context->preference("SMSSendDriver"),
+    TalkingTechItivaPhone => C4::Context->preference("TalkingTechItivaPhoneNotification"),
+);
 
-if ( C4::Context->preference("SMSSendDriver") eq 'Email' ) {
-    my @providers = Koha::SMS::Providers->search();
-    $template->param( sms_providers => \@providers, sms_provider_id => $patron->sms_provider_id );
+if( $opac_messaging && C4::Context->preference("SMSSendDriver") eq 'Email' ) {
+    my @providers = Koha::SMS::Providers->search( {}, { order_by => 'name' } )->as_list;
+    $template->param(
+        sms_providers => \@providers,
+        sms_provider_id => $patron->sms_provider_id,
+    );
 }
 
-my $new_session_id = $cookie->value;
+my $new_session_id = $query->cookie('CGISESSID');
 $template->param(
     csrf_token => Koha::Token->new->generate_csrf({
             session_id => $new_session_id,

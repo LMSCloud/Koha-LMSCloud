@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2000-2002 Katipo Communications
+# Copyright 2023 LMSCloud GmbH
 #
 # This file is part of Koha.
 #
@@ -39,19 +39,13 @@ In order to keep the catalogue data up-to-date, its necessary to run the script 
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 
-use C4::Auth;
-use C4::Context;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use CGI qw ( -utf8 );
-use C4::Biblio;
-use C4::Koha;       # use getitemtypeinfo
 
 my $query = new CGI;
-
-my $dbh = C4::Context->dbh;
 
 # open template
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -62,13 +56,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         authnotrequired => ( C4::Context->preference("OpacPublic") ? 1 : 0 ),
         debug           => 1,
     }
-);
-
-
-$template->param(
-#    LEVEL_LOOP => \@level_loop,
-#    HIERARCHY_LOOP => \@hierarchy_loop,
-#    have_hierarchy => $have_hierarchy,
 );
 
 output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };

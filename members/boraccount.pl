@@ -24,10 +24,10 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use URI::Escape;
+use URI::Escape qw( uri_unescape );
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_and_exit_if_error output_and_exit output_html_with_http_headers );
 use CGI qw ( -utf8 );
 use C4::Members;
 use C4::Accounts;
@@ -48,7 +48,6 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user(
         type            => "intranet",
         flagsrequired   => { borrowers     => 'edit_borrowers',
                              updatecharges => 'remaining_permissions'},
-        debug           => 1,
     }
 );
 
@@ -221,7 +220,7 @@ if ( $action eq 'discount' ) {
 #get account details
 my $total = $patron->account->balance;
 
-my @accountlines = Koha::Account::Lines->search(
+my $accountlines = Koha::Account::Lines->search(
     { borrowernumber => $patron->borrowernumber },
     { order_by       => { -desc => 'accountlines_id' } }
 );
@@ -257,7 +256,7 @@ $template->param(
     total               => sprintf("%.2f",$total),
     totalcredit         => $totalcredit,
     checkCashRegisterFailed => (! $checkCashRegisterOk),
-    accounts            => \@accountlines,
+    accounts            => $accountlines,
     payment_id          => $payment_id,
     change_given        => $change_given,
     renew_results       => $renew_results_display,

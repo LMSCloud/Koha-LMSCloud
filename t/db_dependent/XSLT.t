@@ -18,15 +18,17 @@
 use Modern::Perl;
 
 use MARC::Record;
-use Test::More tests => 4;
+use Test::More tests => 3;
 use Test::Warn;
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
+use Koha::Database;
+use Koha::Libraries;
 use Koha::ItemTypes;
 
 BEGIN {
-    use_ok('C4::XSLT');
+    use_ok('C4::XSLT', qw( buildKohaItemsNamespace ));
 }
 
 my $schema  = Koha::Database->new->schema;
@@ -34,25 +36,18 @@ my $builder = t::lib::TestBuilder->new;
 
 $schema->storage->txn_begin;
 
-subtest 'transformMARCXML4XSLT tests' => sub {
-    plan tests => 1;
-    my $mock_xslt =  Test::MockModule->new("C4::XSLT");
-    $mock_xslt->mock( getAuthorisedValues4MARCSubfields => sub { return { 942 => { 'n' => 1 } } } );
-    $mock_xslt->mock( GetAuthorisedValueDesc => sub { warn "called"; });
-    my $record = MARC::Record->new();
-    my $suppress_field = MARC::Field->new( 942, ' ', ' ', n => '1' );
-    $record->append_fields($suppress_field);
-    warning_is { C4::XSLT::transformMARCXML4XSLT( 3,$record ) } undef, "942n auth value not translated";
-};
-
 subtest 'buildKohaItemsNamespace status tests' => sub {
-    plan tests => 14;
+    plan tests => 17;
 
     t::lib::Mocks::mock_preference('Reference_NFL_Statuses', '1|2');
+    t::lib::Mocks::mock_preference( 'OPACResultsLibrary', 'holdingbranch' );
+    t::lib::Mocks::mock_preference( 'OPACResultsMaxItems', '2' );
 
     my $itype = $builder->build_object({ class => 'Koha::ItemTypes' });
     my $itemtype = $builder->build_object({ class => 'Koha::ItemTypes' });
-    my $item  = $builder->build_sample_item({ itype => $itype->itemtype });
+    my $holdinglibrary = $builder->build_object({ class => 'Koha::Libraries' });
+    my $item = $builder->build_sample_item({ itype => $itype->itemtype });
+    $item->holdingbranch( $holdinglibrary->branchcode )->store;
     $item->biblioitem->itemtype($itemtype->itemtype)->store;
 
     my $xml = C4::XSLT::buildKohaItemsNamespace( $item->biblionumber,[]);
@@ -93,19 +88,20 @@ subtest 'buildKohaItemsNamespace status tests' => sub {
 
     $item->onloan('2001-01-01')->store;
     $xml = C4::XSLT::buildKohaItemsNamespace( $item->biblionumber,[]);
-    like($xml,qr{<status>Checked out</status>},"Checked out status takes precedence over Not for loan");
+    like( $xml, qr/<status>other<\/status>/, "Checked out is part of other statuses" );
+    like($xml,qr{<substatus>Checked out</substatus>},"Checked out status takes precedence over Not for loan");
 
     $item->withdrawn(1)->store;
     $xml = C4::XSLT::buildKohaItemsNamespace( $item->biblionumber,[]);
-    like($xml,qr{<status>Withdrawn</status>},"Withdrawn status takes precedence over Checked out");
+    like($xml,qr{<substatus>Withdrawn</substatus>},"Withdrawn status takes precedence over Checked out");
 
     $item->itemlost(1)->store;
     $xml = C4::XSLT::buildKohaItemsNamespace( $item->biblionumber,[]);
-    like($xml,qr{<status>Lost</status>},"Lost status takes precedence over Withdrawn");
+    like($xml,qr{<substatus>Lost</substatus>},"Lost status takes precedence over Withdrawn");
 
     $item->damaged(1)->store;
     $xml = C4::XSLT::buildKohaItemsNamespace( $item->biblionumber,[]);
-    like($xml,qr{<status>Damaged</status>},"Damaged status takes precedence over Lost");
+    like($xml,qr{<substatus>Damaged</substatus>},"Damaged status takes precedence over Lost");
 
     $builder->build({ source => "Branchtransfer", value => {
         itemnumber  => $item->itemnumber,
@@ -114,7 +110,7 @@ subtest 'buildKohaItemsNamespace status tests' => sub {
         }
     });
     $xml = C4::XSLT::buildKohaItemsNamespace( $item->biblionumber,[]);
-    like($xml,qr{<status>In transit</status>},"In-transit status takes precedence over Damaged");
+    like($xml,qr{<substatus>In transit</substatus>},"In-transit status takes precedence over Damaged");
 
     my $hold = $builder->build_object({ class => 'Koha::Holds', value => {
         biblionumber => $item->biblionumber,
@@ -124,15 +120,34 @@ subtest 'buildKohaItemsNamespace status tests' => sub {
         }
     });
     $xml = C4::XSLT::buildKohaItemsNamespace( $item->biblionumber,[]);
-    like($xml,qr{<status>Waiting</status>},"Waiting status takes precedence over In transit");
+    like($xml,qr{<substatus>Hold waiting</substatus>},"Waiting status takes precedence over In transit (holds)");
+    $hold->cancel;
 
     $builder->build({ source => "TmpHoldsqueue", value => {
         itemnumber => $item->itemnumber
         }
     });
     $xml = C4::XSLT::buildKohaItemsNamespace( $item->biblionumber,[]);
-    like($xml,qr{<status>Pending hold</status>},"Pending status takes precedence over all");
+    like($xml,qr{<substatus>Pending hold</substatus>},"Pending status takes precedence over all");
+    my $library_name = $holdinglibrary->branchname;
+    like($xml,qr{<resultbranch>${library_name}</resultbranch>}, "Found resultbranch / holding branch" );
 
+    t::lib::Mocks::mock_preference('UseRecalls', 1);
+    my $recall = $builder->build_object(
+        {
+            class => 'Koha::Recalls',
+            value => {
+                biblio_id         => $item->biblionumber,
+                item_id           => $item->itemnumber,
+                pickup_library_id => $item->holdingbranch,
+                item_level        => 1,
+            }
+        }
+    );
+    $recall->set_waiting;
+    $xml = C4::XSLT::buildKohaItemsNamespace( $item->biblionumber,[]);
+    like($xml,qr{<substatus>Recall waiting</substatus>},"Waiting status takes precedence over In transit (recalls)");
+    t::lib::Mocks::mock_preference('UseRecalls', 0);
 
 };
 
@@ -140,11 +155,12 @@ $schema->storage->txn_rollback;
 
 subtest 'buildKohaItemsNamespace() including/omitting items tests' => sub {
 
-    plan tests => 20;
+    plan tests => 23;
 
     $schema->storage->txn_begin;
 
     my $biblio = $builder->build_sample_biblio;
+    my $biblio2 = $builder->build_sample_biblio;
 
     # Have two known libraries for testing purposes
     my $library_1 = $builder->build_object({ class => 'Koha::Libraries' });
@@ -167,6 +183,14 @@ subtest 'buildKohaItemsNamespace() including/omitting items tests' => sub {
     like(   $xml, qr{<homebranch>$library_1_name</homebranch>}, '$item_1 present in the XML' );
     like(   $xml, qr{<homebranch>$library_2_name</homebranch>}, '$item_2 present in the XML' );
     unlike( $xml, qr{<homebranch>$library_3_name</homebranch>}, '$item_3 not present in the XML' );
+
+    t::lib::Mocks::mock_preference('OpacHiddenItems', 'biblionumber: ['.$biblio2->biblionumber.']');
+    my $hid_rs = $biblio->items->search({ "me.itemnumber" => { '!=' => $item_3->itemnumber } })->filter_by_visible_in_opac();
+    $xml = C4::XSLT::buildKohaItemsNamespace( $biblio->biblionumber, undef, $hid_rs );
+    like(   $xml, qr{<homebranch>$library_1_name</homebranch>}, '$item_1 present in the XML' );
+    like(   $xml, qr{<homebranch>$library_2_name</homebranch>}, '$item_2 present in the XML' );
+    unlike( $xml, qr{<homebranch>$library_3_name</homebranch>}, '$item_3 not present in the XML' );
+
     ## Test passing one item in hidden_items and items_rs
     $xml = C4::XSLT::buildKohaItemsNamespace( $biblio->biblionumber, [ $item_1->itemnumber ], $items_rs->reset );
 

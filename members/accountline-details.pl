@@ -20,8 +20,8 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
 use Koha::Patrons;
 use Koha::Account::Lines;
@@ -45,20 +45,21 @@ my $accountlines_id = $input->param('accountlines_id');
 my $accountline = Koha::Account::Lines->find($accountlines_id);
 
 if ($accountline) {
-    my $type = $accountline->amount < 0 ? 'credit' : 'debit';
-    my $column = $type eq 'credit' ? 'credit_id' : 'debit_id';
-
     my $account_offsets = Koha::Account::Offsets->search(
-        { $column  => $accountlines_id },
-        { order_by => 'created_on' },
+        [
+            {
+                credit_id => $accountline->accountlines_id
+            },
+            {
+                debit_id => $accountline->accountlines_id
+            }
+        ],
+        { order_by => 'created_on' }
     );
 
     $template->param(
-        type            => $type,
         accountline     => $accountline,
         account_offsets => $account_offsets,
-
-        finesview => 1,
     );
 
     my $patron = Koha::Patrons->find( $accountline->borrowernumber );

@@ -29,18 +29,18 @@ This script allows ajax call for dynamic authorities search
 
 use CGI qw ( -utf8 );
 use Modern::Perl;
-use JSON;
+use JSON qw( to_json );
 
 use C4::Context;
-use C4::Charset;
-use C4::Auth qw/check_cookie_auth/;
-use C4::Output;
+use C4::Charset qw( nsb_clean );
+use C4::Auth qw( check_cookie_auth );
+use C4::Output qw( output_with_http_headers );
 use Koha::SearchEngine::Search;
 use Koha::SearchEngine::QueryBuilder;
 
 my $query = CGI->new;
 
-my ( $auth_status, $sessionID ) = check_cookie_auth( $query->cookie('CGISESSID'), { catalogue => 1 } );
+my ( $auth_status) = check_cookie_auth( $query->cookie('CGISESSID'), { catalogue => 1 } );
 
 if ( $auth_status ne "ok" ) {
     # send empty response

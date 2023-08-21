@@ -25,12 +25,12 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use CGI qw( -utf8 );
-use Koha::DateUtils;
-use Koha::List::Patron;
+use Koha::List::Patron qw( GetPatronLists );
 use Koha::Patrons;
+use Koha::Patron::Attribute::Types;
 
 my $input = CGI->new;
 
@@ -45,8 +45,9 @@ my $theme = $input->param('theme') || "default";
 
 my $searchmember = $input->param('searchmember');
 my $quicksearch = $input->param('quicksearch') // 0;
+my $circsearch = $input->param('circsearch') // 0;
 
-if ( $quicksearch and $searchmember ) {
+if ( $quicksearch and $searchmember && !$circsearch ) {
     my $branchcode;
     if ( C4::Context::only_my_library ) {
         my $userenv = C4::Context->userenv;
@@ -68,7 +69,7 @@ my $searchfieldstype = $input->param('searchfieldstype') || 'standard';
 
 $template->param( 'alphabet' => C4::Context->preference('alphabet') || join ' ', 'A' .. 'Z' );
 
-my $view = $input->request_method() eq "GET" ? "show_form" : "show_results";
+my $defer_loading = $input->request_method() eq "GET"  && !$circsearch ? 1 : 0;
 
 $template->param(
     patron_lists => [ GetPatronLists() ],
@@ -94,7 +95,11 @@ $template->param(
     validemailavailable => scalar $input->param('validemailavailable'),
     patronlistid        => scalar $input->param('patronlistid'),
     PatronsPerPage      => C4::Context->preference("PatronsPerPage") || 20,
-    view                => $view,
+    do_not_defer_loading => !$defer_loading,
+    circsearch          => $circsearch,
+    attribute_type_codes => ( C4::Context->preference('ExtendedPatronAttributes')
+        ? [ Koha::Patron::Attribute::Types->search( { staff_searchable => 1 } )->get_column('code') ]
+        : [] ),
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

@@ -19,8 +19,9 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Letters qw( GetPreparedLetter EnqueueLetter SendQueuedMessages );
 use C4::Members;
 use C4::Form::MessagingPreferences;
 use Koha::AuthUtils;
@@ -66,16 +67,63 @@ if (
     delete $patron_attrs->{timestamp};
     delete $patron_attrs->{verification_token};
     delete $patron_attrs->{changed_fields};
+    delete $patron_attrs->{extended_attributes};
     my $patron = Koha::Patron->new( $patron_attrs )->store;
 
     Koha::Patron::Consent->new({ borrowernumber => $patron->borrowernumber, type => 'GDPR_PROCESSING', given_on => $consent_dt })->store if $consent_dt;
 
     if ($patron) {
-        $m->delete();
+        if( $m->extended_attributes ){
+            $m->borrowernumber( $patron->borrowernumber);
+            $m->changed_fields(['extended_attributes']);
+            $m->approve();
+        } else {
+            $m->delete();
+        }
         C4::Form::MessagingPreferences::handle_form_action($cgi, { borrowernumber => $patron->borrowernumber }, $template, 1, C4::Context->preference('PatronSelfRegistrationDefaultCategory') ) if C4::Context->preference('EnhancedMessagingPreferences');
 
         $template->param( password_cleartext => $patron->plain_text_password );
         $template->param( borrower => $patron );
+
+        # If 'AutoEmailNewUser' syspref is on, email user their account details from the 'notice' that matches the user's branchcode.
+        if ( C4::Context->preference("AutoEmailNewUser") ) {
+            # Look up correct email address taking AutoEmailPrimaryAddress into account
+            my $emailaddr = $patron->notice_email_address;
+            # if we manage to find a valid email address, send notice
+            if ($emailaddr) {
+                eval {
+                    my $letter = GetPreparedLetter(
+                        module      => 'members',
+                        letter_code => 'WELCOME',
+                        branchcode  => $patron->branchcode,
+                        lang        => $patron->lang || 'default',
+                        tables      => {
+                            'branches'  => $patron->branchcode,
+                            'borrowers' => $patron->borrowernumber,
+                        },
+                        want_librarian => 1,
+                    ) or return;
+
+                    my $message_id = EnqueueLetter(
+                        {
+                            letter                 => $letter,
+                            borrowernumber         => $patron->id,
+                            to_address             => $emailaddr,
+                            message_transport_type => 'email',
+                            branchcode             => $patron->branchcode,
+                        }
+                    );
+                    SendQueuedMessages({ message_id => $message_id });
+                };
+            }
+        }
+
+        # Notify library of new patron registration
+        my $notify_library = C4::Context->preference("EmailPatronRegistrations");
+        if ($notify_library) {
+            $patron->notify_library_of_registration($notify_library);
+        }
+
         $template->param(
             PatronSelfRegistrationAdditionalInstructions =>
               C4::Context->preference(

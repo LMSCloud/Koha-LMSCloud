@@ -22,7 +22,7 @@ use warnings;
 use CGI qw ( -utf8 );
 use Data::Dumper;
 
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 
 
 my $debug = 1;

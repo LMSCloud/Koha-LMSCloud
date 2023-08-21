@@ -19,26 +19,19 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use List::MoreUtils qw/uniq/;
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Koha;
-use C4::Acquisition;
-use C4::Output;
-use C4::Reports;
-use C4::Circulation;
+use C4::Koha qw( GetAuthorisedValues );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Reports qw( GetDelimiterChoices );
 
 use Koha::AuthorisedValues;
-use Koha::DateUtils;
 use Koha::Libraries;
 use Koha::Patron::Attribute::Types;
 use Koha::Patron::Categories;
 
-use Date::Calc qw(
-  Today
-  Add_Delta_YM
-  );
+use Date::Calc qw( Add_Delta_YM Today );
 
 =head1 NAME
 
@@ -54,25 +47,19 @@ my $fullreportname = "reports/borrowers_stats.tt";
 my $line = $input->param("Line");
 my $column = $input->param("Column");
 my @filters = $input->multi_param("Filter");
-$filters[3] = eval { output_pref( { dt => dt_from_string( $filters[3]), dateonly => 1, dateformat => 'iso' } ); }
-    if ( $filters[3] );
-$filters[4] = eval { output_pref ({ dt => dt_from_string( $filters[4]), dateonly => 1, dateformat => 'iso' } ); }
-    if ( $filters[4] );
 my $digits = $input->param("digits");
 our $period = $input->param("period");
 my $borstat = $input->param("status");
 my $borstat1 = $input->param("activity");
 my $output = $input->param("output");
 my $basename = $input->param("basename");
-our $sep     = $input->param("sep");
-$sep = "\t" if ($sep and $sep eq 'tabulation');
+our $sep     = C4::Context->csv_delimiter(scalar $input->param("sep"));
 
 my ($template, $borrowernumber, $cookie)
 	= get_template_and_user({template_name => $fullreportname,
 				query => $input,
 				type => "intranet",
 				flagsrequired => {reports => '*'},
-				debug => 1,
 				});
 $template->param(do_it => $do_it);
 if ($do_it) {
@@ -197,13 +184,6 @@ sub calculate {
     foreach my $i (0 .. scalar @$filters) {
         my %cell;
         if ( @$filters[$i] ) {
-            if ($i == 3 or $i == 4) {
-                $cell{filter} = eval { output_pref( { dt => dt_from_string( @$filters[$i] ), dateonly => 1 }); }
-                    if ( @$filters[$i] );
-            } else {
-                $cell{filter} = @$filters[$i];
-            }
-
             if    ( $i == 0)  { $cell{crit} = "Cat code"; }
             elsif ( $i == 1 ) { $cell{crit} = "ZIP/Postal code"; }
             elsif ( $i == 2 ) { $cell{crit} = "Branch code"; }
@@ -226,7 +206,7 @@ sub calculate {
         }
     }
 
-    my @branchcodes = map { $_->branchcode } Koha::Libraries->search;
+    my @branchcodes = Koha::Libraries->search->get_column('branchcode');
 	($status  ) and push @loopfilter,{crit=>"Status",  filter=>$status  };
 	($activity) and push @loopfilter,{crit=>"Activity",filter=>$activity};
 # year of activity

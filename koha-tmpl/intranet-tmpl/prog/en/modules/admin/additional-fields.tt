@@ -1,4 +1,5 @@
 [% USE AuthorisedValues %]
+[% USE raw %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>
@@ -11,59 +12,51 @@
 </head>
 
 [% marcfield_tables = ['subscription'] %]
+[% searchable_tables = ['subscription', 'aqbasket', 'aqinvoices'] %]
 [% show_marcfield = marcfield_tables.grep('^' _ tablename _ '$').size ? 1 : 0 %]
+[% show_searchable = searchable_tables.grep('^' _ tablename _ '$').size ? 1 : 0 %]
 
 <body id="ser_add_fields" class="ser">
-    [% INCLUDE 'header.inc' %]
+    [% WRAPPER 'header.inc' %]
     [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-        <ol>
-            <li>
-                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-            </li>
-            <li>
-                <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-            </li>
-            [% SWITCH op %]
-                [% CASE 'add_form' %]
-                    <li>
-                        <a href="/cgi-bin/koha/admin/additional-fields.pl">Manage additional fields</a>
-                    </li>
-                    [% IF field %]
-                        <li>
-                            <a href="#" aria-current="page">
-                                Modify field '[% field.name | html %]'
-                            </a>
-                        </li>
-                    [% ELSE %]
-                        <li>
-                            <a href="#" aria-current="page">
-                                Add field
-                            </a>
-                        </li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
+        [% END %]
+        [% SWITCH op %]
+            [% CASE 'add_form' %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/admin/additional-fields.pl">Manage additional fields</a>
+                [% END %]
+                [% IF field %]
+                    [% WRAPPER breadcrumb_item bc_active= 1 %]
+                        <span>Modify field '[% field.name | html %]'</span>
                     [% END %]
+                [% ELSE %]
+                    [% WRAPPER breadcrumb_item bc_active= 1 %]
+                        <span>Add field</span>
+                    [% END %]
+                [% END %]
 
-                [% CASE 'list' %]
-                    <li>
-                        <a href="/cgi-bin/koha/admin/additional-fields.pl">Manage additional fields</a>
-                    </li>
-                    <li>
-                        <a href="#" aria-current="page">
-                            Modify fields for '[% tablename | html %]'
-                        </a>
-                    </li>
+            [% CASE 'list' %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/admin/additional-fields.pl">Manage additional fields</a>
+                [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Modify fields for '[% tablename | html %]'</span>
+                [% END %]
 
-                [% CASE %]
-                    <li>
-                        <a href="#" aria-current="page">
-                            Manage additional fields
-                        </a>
-                    </li>
+            [% CASE %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Manage additional fields</span>
+                [% END %]
 
-            [% END %]
-        </ol>
-    </nav>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -101,77 +94,93 @@
     [% END %]
 
     [% IF op == 'list_tables' %]
-        [% IF CAN_user_acquisitions_order_manage || CAN_user_serials_edit_subscription %]
-        <h3>Additional fields</h3>
-        <p>Select a table:</p>
-        [% BLOCK table_option %]
-            <li><a href="?tablename=[% value | uri %]">[% content | html %] (<span class="ex">[% value | html %]</span>)</a></li>
-        [% END %]
-        <ul>
-            [% IF CAN_user_acquisition_order_manage %]
-                [% WRAPPER table_option value="aqbasket" %]Order baskets[% END %]
+        [% IF CAN_user_acquisitions_order_manage || CAN_user_serials_edit_subscription || CAN_user_updatecharges_remaining_permissions %]
+        <h1>Additional fields</h1>
+
+        <div class="page-section">
+            <p>Select a table:</p>
+            [% BLOCK table_option %]
+                <li><a href="?tablename=[% value | uri %]">[% content | $raw %] (<span class="ex">[% value | html %]</span>)</a></li>
             [% END %]
-            [% IF CAN_user_serials_edit_subscription %]
-                [% WRAPPER table_option value="subscription" %]Subscriptions[% END %]
+            <ul>
+                [% IF CAN_user_acquisition_order_manage %]
+                    [% WRAPPER table_option value="aqbasket" %]<span>Order baskets</span>[% END %]
+                [% END %]
+                [% IF CAN_user_acquisition_edit_invoices %]
+                    [% WRAPPER table_option value="aqinvoices" %]<span>Invoices</span>[% END %]
+                [% END %]
+                [% IF CAN_user_serials_edit_subscription %]
+                    [% WRAPPER table_option value="subscription" %]<span>Subscriptions</span>[% END %]
+                [% END %]
+                [% IF CAN_user_updatecharges_remaining_permissions %]
+                    [% WRAPPER table_option value="accountlines:credit" %]Account lines (credit)[% END %]
+                    [% WRAPPER table_option value="accountlines:debit" %]Account lines (debit)[% END %]
+                [% END %]
+            </ul>
+            [% ELSE %]
+                Additional permissions are required for editing additional fields
             [% END %]
-        </ul>
-        [% ELSE %]
-            Additional permissions in the acquisitions or serials modules are required for editing additional fields
-        [% END %]
+        </div><!-- /.page-section -->
     [% ELSIF op == 'list' %]
-        <h3>Additional fields for '[% tablename | html %]'</h3>
+        <h1>Additional fields for '[% tablename | html %]'</h1>
         [% IF fields %]
-            <table id="fieldst">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Authorised value category</th>
-                        [% IF show_marcfield %]
-                            <th>MARC field</th>
-                        [% END %]
-                        <th>Searchable</th>
-                        <th class="noExport">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    [% FOR field IN fields %]
+            <div class="page-section">
+                <table id="fieldst">
+                    <thead>
                         <tr>
-                            <td>[% field.name | html %]</td>
-                            <td>[% field.authorised_value_category | html %]</td>
+                            <th>Name</th>
+                            <th>Authorized value category</th>
                             [% IF show_marcfield %]
-                                <td>[% field.marcfield | html %]</td>
+                                <th>MARC field</th>
                             [% END %]
-                            <td>
-                                [% IF field.searchable %]Yes[% ELSE %]No[% END %]
-                            </td>
-                            <td class="actions">
-                                <a class="btn btn-default btn-xs" href="?op=add_form&amp;field_id=[% field.id | html %]"><i class="fa fa-pencil"></i> Edit</a>
-                                <a class="confirmdelete btn btn-default btn-xs" href="?op=delete&amp;field_id=[% field.id | uri %]&amp;tablename=[% tablename | uri %]"><i class="fa fa-trash"></i> Delete</a>
-                            </td>
+                            [% IF show_searchable %]
+                                <th>Searchable</th>
+                            [% END %]
+                            <th class="noExport">Actions</th>
                         </tr>
-                    [% END %]
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        [% FOR field IN fields %]
+                            <tr>
+                                <td>[% field.name | html %]</td>
+                                <td>[% field.authorised_value_category | html %]</td>
+                                [% IF show_marcfield %]
+                                    <td>[% field.marcfield | html %]</td>
+                                [% END %]
+                                [% IF show_searchable %]
+                                    <td>
+                                        [% IF field.searchable %]Yes[% ELSE %]No[% END %]
+                                    </td>
+                                [% END %]
+                                <td class="actions">
+                                    <a class="btn btn-default btn-xs" href="?op=add_form&amp;field_id=[% field.id | html %]"><i class="fa fa-pencil"></i> Edit</a>
+                                    <a class="confirmdelete btn btn-default btn-xs" href="?op=delete&amp;field_id=[% field.id | uri %]&amp;tablename=[% tablename | uri %]"><i class="fa fa-trash"></i> Delete</a>
+                                </td>
+                            </tr>
+                        [% END %]
+                    </tbody>
+                </table>
+            </div><!-- /.page-section -->
         [% ELSE %]
             [% IF tablename %]There are no additional fields defined for this table.[% END %]
         [% END %]
     [% ELSIF op == 'add_form' %]
         [% IF field %]
-            <h3>Modify field</h3>
+            <h1>Modify field</h1>
         [% ELSE %]
-            <h3>Add field</h3>
+            <h1>Add field</h1>
         [% END %]
         <form action="" name="add_form" id="add_field" method="post">
             <fieldset class="rows">
                 <ol>
                     <li>
                         <label for="name" class="required">Name: </label>
-                        <input type="text" name="name" id="name" value="[% field.name | html %]" class="required" required="required" />
+                        <input type="text" name="name" id="name" value="[% field.name | html %]" class="required focus" required="required" />
                         <span class="required">Required</span>
                     </li>
                     <li>
-                        <label for="av">Authorised value category: </label>
-                        <select name="authorised_value_category">
+                        <label for="av">Authorized value category: </label>
+                        <select id="av" name="authorised_value_category">
                             <option value="">None</option>
                             [% PROCESS options_for_authorised_value_categories authorised_value_categories = AuthorisedValues.GetCategories({selected => field.authorised_value_category}) %]
                         </select>
@@ -182,14 +191,16 @@
                             <input type="text" name="marcfield" id="marcfield" value="[% field.marcfield | html %]" />
                         </li>
                     [% END %]
-                    <li>
-                        <label for="searchable">Searchable: </label>
-                        [% IF field.searchable %]
-                            <input type="checkbox" name="searchable" id="searchable" checked="checked" />
-                        [% ELSE %]
-                            <input type="checkbox" name="searchable" id="searchable" />
-                        [% END %]
-                    </li>
+                    [% IF show_searchable %]
+                        <li>
+                            <label for="searchable">Searchable: </label>
+                            [% IF field.searchable %]
+                                <input type="checkbox" name="searchable" id="searchable" checked="checked" />
+                            [% ELSE %]
+                                <input type="checkbox" name="searchable" id="searchable" />
+                            [% END %]
+                        </li>
+                    [% END %]
                 </ol>
             </fieldset>
             <fieldset class="action">
@@ -198,7 +209,7 @@
                 [% END %]
                 <input type="hidden" name="tablename" value="[% tablename | html %]" />
                 <input type="hidden" name="op" value="add" />
-                <input type="submit" value="Save" />
+                <input type="submit" class="btn btn-primary" value="Save" />
                 <a href="?tablename=[% tablename | uri %]" class="cancel">Cancel</a>
             </fieldset>
         </form>

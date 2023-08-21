@@ -23,19 +23,10 @@ use Modern::Perl;
 
 binmode( STDOUT, ":encoding(UTF-8)" );
 
-BEGIN {
-
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
-
-use Getopt::Long;
-use Pod::Usage;
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 use Koha::Script -cron;
-use C4::Biblio;
-use C4::Items;
+use C4::Biblio qw( DelBiblio );
 use Koha::Database;
 use Koha::Biblios;
 use Koha::Biblio::Metadatas;
@@ -79,40 +70,42 @@ This script has the following parameters :
     exit();
 }
 
-my @metadatas =    # Should be replaced by a call to C4::Search on zebra index
+my $metadatas =    # Should be replaced by a call to C4::Search on zebra index
                    # Record-status when bug 15537 will be pushed
   Koha::Biblio::Metadatas->search( { format => 'marcxml', schema => C4::Context->preference('marcflavour'), metadata => { LIKE => '%<leader>_____d%' } } );
 
-my $total_records_count   = @metadatas;
+my $total_records_count   = $metadatas->count;
 my $deleted_records_count = 0;
 my $total_items_count     = 0;
 my $deleted_items_count   = 0;
-foreach my $m (@metadatas) {
-    my $biblionumber = $m->get_column('biblionumber');
+while ( my $m = $metadatas->next ) {
+    my $biblionumber = $m->biblionumber;
 
     say "RECORD: $biblionumber" if $verbose;
 
     if ($delete_items) {
         my $deleted_count = 0;
         my $biblio = Koha::Biblios->find( $biblionumber );
-        my @items = Koha::Items->search( { biblionumber => $biblionumber } );
+        my @items = Koha::Items->search( { biblionumber => $biblionumber } )->as_list;
         foreach my $item ( @items ) {
             my $itemnumber = $item->itemnumber;
 
             if( $test ){
-                my $result = $item->safe_to_delete;
-                if ( $result eq "1") {
+                my $deleted = $item->safe_to_delete;
+                if ( $deleted ) {
                     say "TEST MODE: Item $itemnumber would have been deleted";
                 } else {
-                    say "TEST MODE: ERROR DELETING ITEM $itemnumber: $result";
+                    my $error = @{$deleted->messages}[0]->message;
+                    say "TEST MODE: ERROR DELETING ITEM $itemnumber: $error";
                 }
             } else {
-                my $result = $item->safe_delete;
-                if ( ref $result eq "Koha::Item" ){
+                my $deleted = $item->safe_delete;
+                if ( $deleted ) {
                     say "DELETED ITEM $itemnumber" if $verbose;
                     $deleted_items_count++;
                 } else {
-                    say "ERROR DELETING ITEM $itemnumber: $result";
+                    my $error = @{$deleted->messages}[0]->message;
+                    say "ERROR DELETING ITEM $itemnumber: $error";
                 }
             }
             $total_items_count++;

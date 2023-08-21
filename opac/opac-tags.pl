@@ -34,19 +34,24 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use CGI::Cookie; # need to check cookies before having CGI parse the POST request
+use Array::Utils qw( array_minus );
 
-use C4::Auth qw(:DEFAULT check_cookie_auth);
+use C4::Auth qw( check_cookie_auth get_template_and_user );
 use C4::Context;
-use C4::Debug;
-use C4::Output qw(:html :ajax );
+use C4::Output qw( output_with_http_headers is_ajax output_html_with_http_headers );
 use C4::Scrubber;
-use C4::Biblio;
-use C4::Items qw(GetItemsInfo GetHiddenItemnumbers);
-use C4::Tags qw(add_tag get_approval_rows get_tag_rows remove_tag stratify_tags);
-use C4::XSLT;
+use C4::Tags qw(
+    add_tag
+    get_approval_rows
+    get_tag_rows
+    remove_tag
+    stratify_tags
+);
+use C4::XSLT qw( XSLTParse4Display );
+use Koha::Biblios;
 
-use Data::Dumper;
 
+use Koha::Logger;
 use Koha::Biblios;
 use Koha::CirculationRules;
 
@@ -64,17 +69,13 @@ sub ajax_auth_cgi {     # returns CGI object
     my %cookies = CGI::Cookie->fetch;
 	my $input = CGI->new;
     my $sessid = $cookies{'CGISESSID'}->value;
-	my ($auth_status, $auth_sessid) = check_cookie_auth($sessid, $needed_flags);
-	$debug and
-	print STDERR "($auth_status, $auth_sessid) = check_cookie_auth($sessid," . Dumper($needed_flags) . ")\n";
+    my ($auth_status) = check_cookie_auth($sessid, $needed_flags);
 	if ($auth_status ne "ok") {
 		output_with_http_headers $input, undef,
 		"window.alert('Your CGI session cookie ($sessid) is not current.  " .
 		"Please refresh the page and try again.');\n", 'js';
 		exit 0;
 	}
-	$debug and print STDERR "AJAX request: " . Dumper($input),
-		"\n(\$auth_status,\$auth_sessid) = ($auth_status,$auth_sessid)\n";
 	return $input;
 }
 
@@ -91,7 +92,6 @@ foreach ($query->param) {
     if (/^newtag(.*)/) {
         my $biblionumber = $1;
         unless ($biblionumber =~ /^\d+$/) {
-            $debug and warn "$_ references non numerical biblionumber '$biblionumber'";
             push @errors, {+'badparam' => $_ };
             push @globalErrorIndexes, $#errors;
             next;
@@ -106,14 +106,12 @@ my $add_op = (scalar(keys %newtags) + scalar(@deltags)) ? 1 : 0;
 my ($template, $loggedinuser, $cookie);
 if ($is_ajax) {
 	$loggedinuser = C4::Context->userenv->{'number'};  # must occur AFTER auth
-	$debug and print STDERR "op: $loggedinuser\n";
 } else {
 	($template, $loggedinuser, $cookie) = get_template_and_user({
         template_name   => "opac-tags.tt",
         query           => $query,
         type            => "opac",
         authnotrequired => ($add_op ? 0 : 1), # auth required to add tags
-        debug           => 1,
 	});
 }
 
@@ -160,7 +158,7 @@ if (scalar @newtags_keys) {
 			} else {
 				push @errors, {failed_add_tag=>$clean_tag};
 				push @{$bibResults->{errors}}, {failed_add_tag=>$clean_tag};
-				$debug and warn "add_tag($biblionumber,$clean_tag,$loggedinuser...) returned bad result (" . (defined $result ? $result : 'UNDEF') .")";
+                Koha::Logger->get->warn("add_tag($biblionumber,$clean_tag,$loggedinuser...) returned bad result (" . (defined $result ? $result : 'UNDEF') .")");
 			}
 		}
         $perBibResults->{$biblionumber} = $bibResults;
@@ -228,11 +226,9 @@ if ($is_ajax) {
 
 my $results = [];
 my $my_tags = [];
-my $borcat  = q{};
 
 if ($loggedinuser) {
     my $patron = Koha::Patrons->find( { borrowernumber => $loggedinuser } );
-    $borcat = $patron ? $patron->categorycode : $borcat;
     my $rules = C4::Context->yaml_preference('OpacHiddenItems');
     my $should_hide = ( $rules ) ? 1 : 0;
     $my_tags = get_tag_rows({borrowernumber=>$loggedinuser});
@@ -254,21 +250,20 @@ if ($loggedinuser) {
     foreach my $tag (@$my_tags) {
         $tag->{visible} = 0;
         my $biblio = Koha::Biblios->find( $tag->{biblionumber} );
-        my $record = &GetMarcBiblio({
-            biblionumber => $tag->{biblionumber},
-            embed_items  => 1,
-            opac         => 1,
-            borcat       => $borcat });
+        my $record = $biblio->metadata->record(
+            {
+                embed_items => 1,
+                opac        => 1,
+                patron      => $patron,
+            }
+        );
         next unless $record;
-        my $hidden_items = undef;
-        my @hidden_itemnumbers;
-        my @all_items;
+        my @hidden_items;
         if ($should_hide) {
-            @all_items = GetItemsInfo( $tag->{biblionumber} );
-            @hidden_itemnumbers = GetHiddenItemnumbers({
-                items => \@all_items,
-                borcat => $borcat });
-            $hidden_items = \@hidden_itemnumbers;
+            my $items = $biblio->items->search_ordered;
+            my @all_itemnumbers = $items->get_column('itemnumber');
+            my @items_to_show = $items->filter_by_visible_in_opac({ opac => 1, patron => $patron })->as_list;
+            @hidden_items = array_minus( @all_itemnumbers, @items_to_show );
         }
         next
           if (
@@ -287,22 +282,19 @@ if ($loggedinuser) {
         # BZ17530: 'Intelligent' guess if result can be article requested
         $tag->{artreqpossible} = ( $art_req_itypes->{ $tag->{itemtype} // q{} } || $art_req_itypes->{ '*' } ) ? 1 : q{};
 
-        my $xslfile = C4::Context->preference('OPACXSLTResultsDisplay');
-        my $lang   = $xslfile ? C4::Languages::getlanguage()  : undef;
-        my $sysxml = $xslfile ? C4::XSLT::get_xslt_sysprefs() : undef;
-
-        if ($xslfile) {
-            my $variables = {
-                anonymous_session => ($loggedinuser) ? 0 : 1
-            };
-            $tag->{XSLTBloc} = XSLTParse4Display(
-                $tag->{biblionumber},     $record,
-                "OPACXSLTResultsDisplay", 1,
-                $hidden_items,            $sysxml,
-                $xslfile,                 $lang,
-                $variables
-            );
-        }
+        my $variables = {
+            anonymous_session => ($loggedinuser) ? 0 : 1
+        };
+        $tag->{XSLTBloc} = XSLTParse4Display(
+            {
+                biblionumber   => $tag->{biblionumber},
+                record         => $record,
+                xsl_syspref    => 'OPACXSLTResultsDisplay',
+                fix_amps       => 1,
+                hidden_items   => \@hidden_items,
+                xslt_variables => $variables,
+            }
+        );
 
         my $date = $tag->{date_created} || '';
         $date =~ /\s+(\d{2}\:\d{2}\:\d{2})/;

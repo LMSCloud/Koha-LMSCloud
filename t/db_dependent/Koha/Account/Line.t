@@ -19,13 +19,13 @@
 
 use Modern::Perl;
 
-use Test::More tests => 14;
+use Test::More tests => 15;
 use Test::Exception;
 use Test::MockModule;
 
 use DateTime;
 
-use C4::Circulation qw/AddIssue AddReturn/;
+use C4::Circulation qw( AddRenewal CanBookBeRenewed LostItem AddIssue AddReturn );
 use Koha::Account;
 use Koha::Account::Lines;
 use Koha::Account::Offsets;
@@ -62,6 +62,34 @@ subtest 'patron() tests' => sub {
 
     $line->borrowernumber(undef)->store;
     is( $line->patron, undef, 'Koha::Account::Line->patron should return undef if no patron linked' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'manager() tests' => sub {
+
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+
+    my $library = $builder->build( { source => 'Branch' } );
+    my $manager = $builder->build( { source => 'Borrower' } );
+
+    my $line = Koha::Account::Line->new(
+    {
+        manager_id      => $manager->{borrowernumber},
+        debit_type_code => "OVERDUE",
+        status          => "RETURNED",
+        amount          => 10,
+        interface       => 'commandline',
+    })->store;
+
+    my $account_line_manager = $line->manager;
+    is( ref( $account_line_manager ), 'Koha::Patron', 'Koha::Account::Line->manager should return a Koha::Patron' );
+    is( $line->manager_id, $account_line_manager->borrowernumber, 'Koha::Account::Line->manager should return the correct staff' );
+
+    $line->manager_id(undef)->store;
+    is( $line->manager, undef, 'Koha::Account::Line->manager should return undef if no staff linked' );
 
     $schema->storage->txn_rollback;
 };
@@ -175,7 +203,7 @@ subtest 'is_credit() and is_debit() tests' => sub {
 
 subtest 'apply() tests' => sub {
 
-    plan tests => 31;
+    plan tests => 32;
 
     $schema->storage->txn_begin;
 
@@ -208,7 +236,7 @@ subtest 'apply() tests' => sub {
     $debit_1->discard_changes;
 
     my $debits = Koha::Account::Lines->search({ accountlines_id => $debit_1->id });
-    $credit = $credit->apply( { debits => [ $debits->as_list ], offset_type => 'Manual Credit' } );
+    $credit = $credit->apply( { debits => [ $debits->as_list ] } );
     is( ref($credit), 'Koha::Account::Line', '->apply returns the updated Koha::Account::Line credit object');
     is( $credit->amountoutstanding * -1, 90, 'Remaining credit is correctly calculated' );
 
@@ -220,7 +248,7 @@ subtest 'apply() tests' => sub {
     is( $offsets->count, 1, 'Only one offset is generated' );
     my $THE_offset = $offsets->next;
     is( $THE_offset->amount * 1, -10, 'Amount was calculated correctly (less than the available credit)' );
-    is( $THE_offset->type, 'Manual Credit', 'Passed type stored correctly' );
+    is( $THE_offset->type, 'APPLY', 'Passed type stored correctly' );
 
     $debits = Koha::Account::Lines->search({ accountlines_id => $debit_2->id });
     $credit = $credit->apply( { debits => [ $debits->as_list ] } );
@@ -232,7 +260,7 @@ subtest 'apply() tests' => sub {
     is( $offsets->count, 1, 'Only one offset is generated' );
     $THE_offset = $offsets->next;
     is( $THE_offset->amount * 1, -90, 'Amount was calculated correctly (less than the available credit)' );
-    is( $THE_offset->type, 'Credit Applied', 'Defaults to \'Credit Applied\' offset type' );
+    is( $THE_offset->type, 'APPLY', 'Defaults to \'APPLY\' offset type' );
 
     $debits = Koha::Account::Lines->search({ accountlines_id => $debit_1->id });
     throws_ok
@@ -266,7 +294,7 @@ subtest 'apply() tests' => sub {
 
     $debits = Koha::Account::Lines->search({ accountlines_id => { -in => [ $debit_1->id, $debit_2->id, $debit_3->id, $credit->id ] } });
     throws_ok {
-        $credit_2->apply( { debits => [ $debits->as_list ], offset_type => 'Manual Credit' } ); }
+        $credit_2->apply( { debits => [ $debits->as_list ] }); }
         'Koha::Exceptions::Account::IsNotDebit',
         '->apply() rolls back if any of the passed lines is not a debit';
 
@@ -276,7 +304,7 @@ subtest 'apply() tests' => sub {
     is( $credit_2->discard_changes->amountoutstanding * -1, 20, 'No changes made' );
 
     $debits = Koha::Account::Lines->search({ accountlines_id => { -in => [ $debit_1->id, $debit_2->id, $debit_3->id ] } });
-    $credit_2 = $credit_2->apply( { debits => [ $debits->as_list ], offset_type => 'Manual Credit' } );
+    $credit_2 = $credit_2->apply( { debits => [ $debits->as_list ] } );
 
     is( $debit_1->discard_changes->amountoutstanding * 1,  0, 'No changes to already cancelled debit' );
     is( $debit_2->discard_changes->amountoutstanding * 1,  0, 'Debit cancelled' );
@@ -318,6 +346,9 @@ subtest 'apply() tests' => sub {
         }
     )->store();
 
+    my $a = $checkout->account_lines->next;
+    is( $a->id, $accountline->id, "Koha::Checkout::account_lines returns the related acountline" );
+
     # Enable renewing upon fine payment
     t::lib::Mocks::mock_preference( 'RenewAccruingItemWhenPaid', 1 );
     my $called = 0;
@@ -333,7 +364,7 @@ subtest 'apply() tests' => sub {
         }
     );
     my $debits_renew = Koha::Account::Lines->search({ accountlines_id => $accountline->id })->as_list;
-    $credit_forgive = $credit_forgive->apply( { debits => $debits_renew, offset_type => 'Forgiven' } );
+    $credit_forgive = $credit_forgive->apply( { debits => $debits_renew } );
     is( $called, 0, 'C4::Circulation::AddRenew NOT called when RenewAccruingItemWhenPaid enabled but credit type is "FORGIVEN"' );
 
     $accountline = Koha::Account::Line->new(
@@ -352,7 +383,7 @@ subtest 'apply() tests' => sub {
     )->store();
     my $credit_renew = $account->add_credit({ amount => 100, user_id => $patron->id, interface => 'commandline' });
     $debits_renew = Koha::Account::Lines->search({ accountlines_id => $accountline->id })->as_list;
-    $credit_renew = $credit_renew->apply( { debits => $debits_renew, offset_type => 'Manual Credit' } );
+    $credit_renew = $credit_renew->apply( { debits => $debits_renew } );
     is( $called, 1, 'RenewAccruingItemWhenPaid causes C4::Circulation::AddRenew to be called when appropriate' );
 
     my @messages = @{$credit_renew->object_messages};
@@ -473,15 +504,15 @@ subtest 'Renewal related tests' => sub {
     $schema->storage->txn_begin;
 
     my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
-    my $staff = $builder->build_object( { class => 'Koha::Patrons' } );
-    my $item = $builder->build_object({ class => 'Koha::Items' });
-    my $issue = $builder->build_object(
+    my $staff  = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $item   = $builder->build_sample_item;
+    my $issue  = $builder->build_object(
         {
             class => 'Koha::Checkouts',
             value => {
                 itemnumber      => $item->itemnumber,
                 onsite_checkout => 0,
-                renewals        => 99,
+                renewals_count  => 99,
                 auto_renew      => 0
             }
         }
@@ -494,6 +525,7 @@ subtest 'Renewal related tests' => sub {
         debit_type_code   => "OVERDUE",
         status            => "UNRETURNED",
         amountoutstanding => 0,
+        amount            => 0,
         interface         => 'commandline',
     })->store;
 
@@ -530,17 +562,17 @@ subtest 'Renewal related tests' => sub {
             value => {
                 itemnumber      => $item->itemnumber,
                 onsite_checkout => 0,
-                renewals        => 0,
+                renewals_count  => 0,
                 auto_renew      => 0
             }
         }
     );
     my $called = 0;
     my $module = Test::MockModule->new('C4::Circulation');
-    $module->mock('AddRenewal', sub { $called = 1; });
     $module->mock('CanBookBeRenewed', sub { return 1; });
     $line->renew_item;
-    is( $called, 1, 'Attempt to renew succeeds when conditions are met' );
+    my $r = Koha::Checkouts::Renewals->find({ checkout_id => $issue->id });
+    is( $r->seen, 0, "RenewAccruingItemWhenPaid triggers an unseen renewal" );
 
     $schema->storage->txn_rollback;
 };
@@ -606,7 +638,7 @@ subtest 'adjust() tests' => sub {
 
     # Update fine to partially paid
     my $debits = Koha::Account::Lines->search({ accountlines_id => $debit_2->id });
-    $credit->apply( { debits => [ $debits->as_list ], offset_type => 'Manual Credit' } );
+    $credit->apply( { debits => [ $debits->as_list ] } );
 
     $debit_2->discard_changes;
     is( $debit_2->amount * 1, 150, 'Fine amount unaffected by partial payment' );
@@ -1030,7 +1062,7 @@ subtest "payout() tests" => sub {
 
 subtest "reduce() tests" => sub {
 
-    plan tests => 29;
+    plan tests => 34;
 
     $schema->storage->txn_begin;
 
@@ -1153,12 +1185,16 @@ subtest "reduce() tests" => sub {
     is( $reduction->status(),    'APPLIED', "Reduction status is 'APPLIED'" );
 
     my $offsets = Koha::Account::Offsets->search(
-        { credit_id => $reduction->id, debit_id => $debit1->id } );
-    is( $offsets->count, 1, 'Only one offset is generated' );
+        { credit_id => $reduction->id } );
+    is( $offsets->count, 2, 'Two offsets generated' );
     my $THE_offset = $offsets->next;
+    is( $THE_offset->type, 'CREATE', 'CREATE offset added for discount line');
     is( $THE_offset->amount * 1,
-        -5, 'Correct amount was applied against debit' );
-    is( $THE_offset->type, 'DISCOUNT', "Offset type set to 'DISCOUNT'" );
+        -5, 'Correct offset amount recorded');
+    $THE_offset = $offsets->next;
+    is( $THE_offset->type, 'APPLY', "APPLY offset added for 'DISCOUNT'" );
+    is( $THE_offset->amount * 1, -5, 'Correct amount offset against debt');
+    is( $THE_offset->debit_id, $debit1->accountlines_id, 'APPLY offset recorded the correct debit_id');
 
     # Zero offset created when zero outstanding
     # (Refund another 5 on paid debt of 20)
@@ -1173,12 +1209,16 @@ subtest "reduce() tests" => sub {
     is( $debit1->status(), 'REFUNDED', "Debit status updated to REFUNDED");
 
     $offsets = Koha::Account::Offsets->search(
-        { credit_id => $reduction->id, debit_id => $debit1->id } );
-    is( $offsets->count, 1, 'Only one new offset is generated' );
+        { credit_id => $reduction->id } );
+    is( $offsets->count, 2, 'Two offsets generated' );
     $THE_offset = $offsets->next;
+    is( $THE_offset->type, 'CREATE', 'CREATE offset added for refund line');
+    is( $THE_offset->amount * 1,
+        -5, 'Correct offset amount recorded');
+    $THE_offset = $offsets->next;
+    is( $THE_offset->type, 'APPLY', "APPLY offset added for 'REFUND'" );
     is( $THE_offset->amount * 1,
         0, 'Zero offset created for already paid off debit' );
-    is( $THE_offset->type, 'REFUND', "Offset type set to 'REFUND'" );
 
     # Compound reduction should not allow more than original amount
     # (Reduction of 5 + 5 + 20 > 20)
@@ -1209,7 +1249,7 @@ subtest "reduce() tests" => sub {
 };
 
 subtest "cancel() tests" => sub {
-    plan tests => 16;
+    plan tests => 18;
 
     $schema->storage->txn_begin;
 
@@ -1295,13 +1335,15 @@ subtest "cancel() tests" => sub {
     is( $account->balance() * 1, 15, "Account balance is 15" );
 
     my $offsets = Koha::Account::Offsets->search(
-        { credit_id => $cancellation->id, debit_id => $debit1->id } );
-    is( $offsets->count, 1, 'Only one offset is generated' );
+        { credit_id => $cancellation->id } );
+    is( $offsets->count, 2, 'Two offsets are generated' );
     my $THE_offset = $offsets->next;
+    is( $THE_offset->type, 'CREATE', 'CREATE offset added for cancel line');
+    is( $THE_offset->amount * 1, -10, 'Correct offset amount recorded' );
+    $THE_offset = $offsets->next;
+    is( $THE_offset->type, 'APPLY', "APPLY offset added" );
     is( $THE_offset->amount * 1,
         -10, 'Correct amount was applied against debit' );
-    is( $THE_offset->type, 'CANCELLATION',
-        "Offset type set to 'CANCELLATION'" );
 
     $schema->storage->txn_rollback;
 };

@@ -20,15 +20,12 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Output;
-use C4::Auth;
-use C4::Koha;
-use C4::Debug;
-use C4::HoldsQueue qw(TransportCostMatrix UpdateTransportCostMatrix);
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
+use C4::HoldsQueue qw( TransportCostMatrix UpdateTransportCostMatrix );
 
 use Koha::Libraries;
 
-use Data::Dumper;
 
 my $input = CGI->new;
 
@@ -37,7 +34,6 @@ my ($template, $loggedinuser, $cookie)
                             query => $input,
                             type => "intranet",
                             flagsrequired => { parameters => 'manage_transfers' },
-                            debug => 1,
                             });
 my $use_transport_cost_matrix = C4::Context->preference("UseTransportCostMatrix");
 
@@ -49,7 +45,7 @@ unless ($update) {
     $have_matrix = keys %$cost_matrix if $cost_matrix;
 }
 
-my @branchloop = map { code => $_->branchcode, name => $_->branchname }, Koha::Libraries->search({ -or => [ mobilebranch => undef, mobilebranch => '' ] }, { order_by => 'branchname' });
+my @branchloop = map { code => $_->branchcode, name => $_->branchname }, Koha::Libraries->search({ -or => [ mobilebranch => undef, mobilebranch => '' ] }, { order_by => 'branchname' })->as_list;
 my (@branchfromloop, @errors);
 foreach my $branchfrom ( @branchloop ) {
     my $fromcode = $branchfrom->{code};

@@ -25,7 +25,8 @@ use File::Temp qw( tempdir tempfile );
 use FindBin qw($Bin);
 use Module::Load::Conditional qw(can_load);
 use Test::MockModule;
-use Test::More tests => 53;
+use Test::More tests => 61;
+use Test::Warn;
 
 use C4::Context;
 use Koha::Database;
@@ -35,27 +36,34 @@ use t::lib::Mocks;
 
 BEGIN {
     # Mock pluginsdir before loading Plugins module
-    my $path = dirname(__FILE__) . '/../../../lib';
+    my $path = dirname(__FILE__) . '/../../../lib/plugins';
     t::lib::Mocks::mock_config( 'pluginsdir', $path );
 
     use_ok('Koha::Plugins');
     use_ok('Koha::Plugins::Handler');
     use_ok('Koha::Plugins::Base');
     use_ok('Koha::Plugin::Test');
+    use_ok('Koha::Plugin::TestItemBarcodeTransform');
 }
 
 my $schema = Koha::Database->new->schema;
 
 subtest 'call() tests' => sub {
-    plan tests => 3;
+
+    plan tests => 4;
 
     $schema->storage->txn_begin;
     # Temporarily remove any installed plugins data
     Koha::Plugins::Methods->delete;
+    $schema->resultset('PluginData')->delete();
 
     t::lib::Mocks::mock_config('enable_plugins', 1);
     my $plugins = Koha::Plugins->new({ enable_plugins => 1 });
-    my @plugins = $plugins->InstallPlugins;
+
+    my @plugins;
+
+    warning_is { @plugins = $plugins->InstallPlugins; } undef;
+
     foreach my $plugin (@plugins) {
         $plugin->enable();
     }
@@ -78,16 +86,60 @@ subtest 'call() tests' => sub {
     $schema->storage->txn_rollback;
 };
 
+subtest 'more call() tests' => sub {
+
+    plan tests => 6;
+
+    $schema->storage->txn_begin;
+    # Temporarily remove any installed plugins data
+    Koha::Plugins::Methods->delete;
+    $schema->resultset('PluginData')->delete();
+
+    t::lib::Mocks::mock_config('enable_plugins', 1);
+    my $plugins = Koha::Plugins->new({ enable_plugins => 1 });
+    my @plugins;
+
+    warning_is { @plugins = $plugins->InstallPlugins; } undef;
+
+    foreach my $plugin (@plugins) {
+        $plugin->enable();
+    }
+
+    # Barcode is multiplied by 2 by Koha::Plugin::Test, and again by 4 by Koha::Plugin::TestItemBarcodeTransform
+    # showing that call has passed the same ref to multiple plugins to operate on
+    my $bc = 1;
+    warnings_are
+        { Koha::Plugins->call('item_barcode_transform', \$bc); }
+        [ qq{Plugin error (Test Plugin): Exception 'Koha::Exception' thrown 'item_barcode_transform called with parameter: 1'\n},
+          qq{Plugin error (Test Plugin for item_barcode_transform): Exception 'Koha::Exception' thrown 'item_barcode_transform called with parameter: 2'\n} ];
+    is( $bc, 8, "Got expected response" );
+
+    my $cn = 'abcd';
+    warnings_are
+        { Koha::Plugins->call('item_barcode_transform', \$bc); }
+        [ qq{Plugin error (Test Plugin): Exception 'Koha::Exception' thrown 'item_barcode_transform called with parameter: 8'\n},
+          qq{Plugin error (Test Plugin for item_barcode_transform): Exception 'Koha::Exception' thrown 'item_barcode_transform called with parameter: 16'\n} ];
+    is( $cn, 'abcd', "Got expected response" );
+
+    t::lib::Mocks::mock_config('enable_plugins', 0);
+    $bc = 1;
+    Koha::Plugins->call('item_barcode_transform', \$bc);
+    is( $bc, 1, "call should return the original arguments if plugins are disabled" );
+
+    $schema->storage->txn_rollback;
+};
+
 subtest 'GetPlugins() tests' => sub {
 
-    plan tests => 2;
+    plan tests => 3;
 
     $schema->storage->txn_begin;
     # Temporarily remove any installed plugins data
     Koha::Plugins::Methods->delete;
 
     my $plugins = Koha::Plugins->new({ enable_plugins => 1 });
-    $plugins->InstallPlugins;
+
+    warning_is { $plugins->InstallPlugins; } undef;
 
     my @plugins = $plugins->GetPlugins({ method => 'report', all => 1 });
 
@@ -147,8 +199,9 @@ subtest 'is_enabled() tests' => sub {
 
 $schema->storage->txn_begin;
 Koha::Plugins::Methods->delete;
+$schema->resultset('PluginData')->delete;
 
-Koha::Plugins->new( { enable_plugins => 1 } )->InstallPlugins();
+warning_is { Koha::Plugins->new( { enable_plugins => 1 } )->InstallPlugins(); } undef;
 
 ok( Koha::Plugins::Methods->search( { plugin_class => 'Koha::Plugin::Test' } )->count, 'Test plugin methods added to database' );
 is( Koha::Plugins::Methods->search({ plugin_class => 'Koha::Plugin::Test', plugin_method => '_private_sub' })->count, 0, 'Private methods are skipped' );
@@ -181,6 +234,7 @@ ok( $plugin->can('opac_head'), 'Test plugin can opac_head' );
 ok( $plugin->can('opac_js'), 'Test plugin can opac_js' );
 ok( $plugin->can('intranet_head'), 'Test plugin can intranet_head' );
 ok( $plugin->can('intranet_js'), 'Test plugin can intranet_js' );
+ok( $plugin->can('item_barcode_transform'), 'Test plugin can barcode_transform' );
 ok( $plugin->can('configure'), 'Test plugin can configure' );
 ok( $plugin->can('install'), 'Test plugin can install' );
 ok( $plugin->can('upgrade'), 'Test plugin can upgrade' );
@@ -262,12 +316,13 @@ for my $pass ( 1 .. 2 ) {
 
     ok( -f $plugins_dir . "/Koha/Plugin/Com/ByWaterSolutions/KitchenSink.pm", "KitchenSink plugin installed successfully" );
     $INC{$pm_path} = $full_pm_path; # FIXME I do not really know why, but if this is moved before the $plugin constructor, it will fail with Can't locate object method "new" via package "Koha::Plugin::Com::ByWaterSolutions::KitchenSink"
-    Koha::Plugins->new( { enable_plugins => 1 } )->InstallPlugins();
+    warning_is { Koha::Plugins->new( { enable_plugins => 1 } )->InstallPlugins(); } undef;
+    ok( -f $full_pm_path, "Koha::Plugins::Handler::delete works correctly (pass $pass)" );
     Koha::Plugins::Handler->delete({ class => "Koha::Plugin::Com::ByWaterSolutions::KitchenSink", enable_plugins => 1 });
     my $sth = C4::Context->dbh->table_info( undef, undef, $table, 'TABLE' );
     my $info = $sth->fetchall_arrayref;
     is( @$info, 0, "Table $table does no longer exist" );
-    ok( !( -f $full_pm_path ), "Koha::Plugins::Handler::delete works correctly." );
+    ok( !( -f $full_pm_path ), "Koha::Plugins::Handler::delete works correctly (pass $pass)" );
 }
 
 subtest 'output and output_html tests' => sub {
@@ -339,7 +394,7 @@ subtest 'bundle_path() tests' => sub {
 
     my $plugin = Koha::Plugin::Test->new;
 
-    is( $plugin->bundle_path, File::Spec->catdir(@current_dir) . '/lib/Koha/Plugin/Test' );
+    is( $plugin->bundle_path, File::Spec->catdir(@current_dir) . '/lib/plugins/Koha/Plugin/Test' );
 
 };
 

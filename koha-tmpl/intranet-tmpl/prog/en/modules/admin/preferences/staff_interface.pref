@@ -1,6 +1,11 @@
 Staff interface:
     Appearance:
         -
+            - 'Display authority results in the staff interface using XSLT stylesheet at: '
+            - pref: AuthorityXSLTResultsDisplay
+              class: file
+            - '<br />Options:<ul><li>Put a path to define a xslt file</li><li>Put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language and {authtypecode} will be replaced by the authority type code'
+        -
             - "Display language selector on "
             - pref: StaffLangSelectorMode
               choices:
@@ -77,17 +82,17 @@ Staff interface:
             - 'Display lists in the staff interface using XSLT stylesheet at: '
             - pref: XSLTListsDisplay
               class: file
-            - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="XSLTListsDisplay" data-value="">Leave empty</a> for "no xslt"</li><li>Enter "<a href="#" class="set_syspref" data-syspref="XSLTListsDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li><li>NOTE: The system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes data in the item fields</li></ul>If you have multiple stylesheets for different langues the placeholder {langcode} will be replaced with current interface language.'
+            - '<br />Options:<ul><li>Enter "<a href="#" class="set_syspref" data-syspref="XSLTListsDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li></ul>If you have multiple stylesheets for different languages the placeholder {langcode} will be replaced with current interface language.'
         -
             - 'Display results in the staff interface using XSLT stylesheet at: '
             - pref: XSLTResultsDisplay
               class: file
-            - '<br />Options:<ul><li>Enter "<a href="#" class="set_syspref" data-syspref="XSLTResultsDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li><li>NOTE: The system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes data in the item fields</li></ul>If you have multiple stylesheets for different langues the placeholder {langcode} will be replaced with current interface language.'
+            - '<br />Options:<ul><li>Enter "<a href="#" class="set_syspref" data-syspref="XSLTResultsDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li><li>NOTE: The system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes data in the item fields</li></ul>If you have multiple stylesheets for different languages the placeholder {langcode} will be replaced with current interface language.'
         -
             - 'Display details in the staff interface using XSLT stylesheet at: '
             - pref: XSLTDetailsDisplay
               class: file
-            - '<br />Options:<ul><li>Enter "<a href="#" class="set_syspref" data-syspref="XSLTDetailsDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li><li>NOTE: The system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes data in the item fields</li></ul>If you have multiple stylesheets for different langues the placeholder {langcode} will be replaced with current interface language.'
+            - '<br />Options:<ul><li>Enter "<a href="#" class="set_syspref" data-syspref="XSLTDetailsDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li></ul>If you have multiple stylesheets for different languages the placeholder {langcode} will be replaced with current interface language.'
         -
             - pref: DisplayIconsXSLT
               choices:
@@ -136,6 +141,13 @@ Staff interface:
             - pref: IncludeAdditionalMARCFieldsInStaffResultView
             - ".<br /> Each field will be displayed in a single line. Multiple field values or subfield values are separated by |.<br />"
             - "A field name can be specified after an equal sign. Seperate multiple fields by | (e.g. 500$a=Footnote|072$ax=Subject category code)."
+        -
+            - pref: StaffHighlightedWords
+              type: boolean
+              choices:
+                  1: Highlight
+                  0: Don't highlight
+            - words searched for in the staff interface search results pages.
     Options:
         -
             - pref: viewMARC
@@ -192,6 +204,12 @@ Staff interface:
                  0: "Don't enable"
             - audio alerts for events defined in the <a href="/cgi-bin/koha/admin/audio_alerts.pl">audio alerts</a> section of administration.
         -
+            - pref: IntranetAddMastheadLibraryPulldown
+              choices:
+                  1: Show
+                  0: "Don't show"
+            - a library select pulldown menu on the staff header search.
+        -
             - pref: IntranetCatalogSearchPulldown
               choices:
                   1: Show
@@ -212,3 +230,10 @@ Staff interface:
                   1: "Don't allow"
                   0: Allow
             - staff to login by means other than shibboleth.
+        -
+            - pref: TwoFactorAuthentication
+              choices:
+                  "enforced": Enforce
+                  "enabled": Enable
+                  "disabled": "Don't enable"
+            - two-factor authentication (2FA) for staff members.

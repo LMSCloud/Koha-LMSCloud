@@ -41,12 +41,15 @@ usage()
 $scriptname
 This script lets you manage the plack daemons for your Koha instances.
 Usage:
-$scriptname --start|--stop|--restart [--quiet|-q] instancename1 [instancename2...]
+$scriptname --start|--stop|--restart|--reload [--quiet|-q] instancename1 [instancename2...]
 $scriptname --enable|--disable instancename1 [instancename2]
 $scriptname -h|--help
     --start               Start the plack daemon for the specified instances
     --stop                Stop the plack daemon for the specified instances
     --restart             Restart the plack daemon for the specified instances
+    --reload              Reload the plack daemon for the specified instances,
+                          letting the busy workers finish processing their
+                          requests before restarting them
     --enable              Enable plack for the specified instances
     --disable             Disable plack for the specified instances
     --debugger            Enable running Plack in debug mode
@@ -142,7 +145,7 @@ stop_plack()
 
         log_daemon_msg "Stopping Plack daemon for ${instancename}"
 
-        if start-stop-daemon --pidfile ${PIDFILE} --user="${instancename}-koha" --stop --retry=TERM/30/KILL/5; then
+        if start-stop-daemon --pidfile ${PIDFILE} --user="${instancename}-koha" --stop --retry=QUIT/30/KILL/5; then
             log_end_msg 0
         else
             log_end_msg 1
@@ -161,6 +164,26 @@ restart_plack()
 
     if is_plack_running ${instancename}; then
         stop_plack $instancename && start_plack $instancename
+    else
+        log_warning_msg "Plack not running for ${instancename}."
+        start_plack $instancename
+    fi
+}
+
+reload_plack()
+{
+    local instancename=$1
+
+    local PIDFILE="/var/run/koha/${instancename}/plack.pid"
+
+    if is_plack_running ${instancename}; then
+        log_daemon_msg "Reloading Plack daemon for ${instancename}"
+
+        if start-stop-daemon --pidfile ${PIDFILE} --user="${instancename}-koha" --stop --signal HUP; then
+            log_end_msg 0
+        else
+            log_end_msg 1
+        fi
     else
         log_daemon_msg "Error: Plack not running for ${instancename}"
         log_end_msg 1
@@ -356,6 +379,9 @@ _do_instance() {
         "restart")
             restart_plack $name
             ;;
+        "reload")
+            reload_plack $name
+            ;;
         "enable")
             enable_plack $name
             ;;
@@ -393,6 +419,9 @@ while [ $# -gt 0 ]; do
             shift ;;
         --restart)
             set_action "restart"
+            shift ;;
+        --reload)
+            set_action "reload"
             shift ;;
         --enable)
             set_action "enable"

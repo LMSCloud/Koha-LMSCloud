@@ -37,7 +37,7 @@ Export search_marc_map, search_marc_to_field and search_field tables to YAML.
 
 =over
 
-=item B<-t|--type>=C<marc21|unimarc|normarc>
+=item B<-t|--type>=C<marc21|unimarc>
 
 Only export a specific marc type. All if empty.
 
@@ -61,8 +61,8 @@ use Koha::SearchMarcMaps;
 use Koha::SearchEngine::Elasticsearch;
 
 use YAML::XS;
-use Getopt::Long;
-use Pod::Usage;
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 
 my $type = '';
 my $man;
@@ -74,7 +74,7 @@ GetOptions(
 
 pod2usage( -exitstatus => 0, -verbose => 2 ) if $man;
 
-if ( $type && $type !~ /^(marc21|unimarc|normarc)$/ ) {
+if ( $type && $type !~ /^(marc21|unimarc)$/ ) {
     print "Bad marc type provided.\n";
     pod2usage(1);
 }

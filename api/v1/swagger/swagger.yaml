@@ -1,19 +1,691 @@
 ---
-swagger: 2.0
+swagger: "2.0"
 basePath: /api/v1
-paths:
-  $ref: paths.json
 definitions:
-  $ref: definitions.json
+  account_line:
+    $ref: ./definitions/account_line.yaml
+  advancededitormacro:
+    $ref: ./definitions/advancededitormacro.yaml
+  allows_renewal:
+    $ref: ./definitions/allows_renewal.yaml
+  alv_illrequest:
+    $ref: ./definitions/alv_illrequest.yaml
+  authorised_value:
+    $ref: ./definitions/authorised_value.yaml
+  authorised_value_category:
+    $ref: ./definitions/authorised_value_category.yaml
+  identity_provider:
+    "$ref": ./definitions/identity_provider.yaml
+  identity_provider_domain:
+    "$ref": ./definitions/identity_provider_domain.yaml
+  basket:
+    $ref: ./definitions/basket.yaml
+  bundle_link:
+    $ref: ./definitions/bundle_link.yaml
+  bzsh_bib_updates:
+    $ref: ./definitions/bzsh_bib_updates.yaml
+  bzsh_external_order_item_biblionumber_updates:
+    $ref: ./definitions/bzsh_external_order_item_biblionumber_updates.yaml
+  bzsh_order_items_status:
+    $ref: ./definitions/bzsh_order_items_status.yaml
+  bzshid_mapping:
+    $ref: ./definitions/bzshid_mapping.yaml
+  cashup:
+    $ref: ./definitions/cashup.yaml
+  checkout:
+    $ref: ./definitions/checkout.yaml
+  checkouts:
+    $ref: ./definitions/checkouts.yaml
+  circ-rule-kind:
+    $ref: ./definitions/circ-rule-kind.yaml
+  city:
+    $ref: ./definitions/city.yaml
+  coverflow_data_biblionumber:
+    $ref: ./definitions/coverflow_data_biblionumber.yaml
+  coverflow_data_query:
+    $ref: ./definitions/coverflow_data_query.yaml
+  coverflow_data_nearby_items:
+    $ref: ./definitions/coverflow_data_nearby_items.yaml
+  erm_agreement:
+    $ref: ./definitions/erm_agreement.yaml
+  erm_eholdings_title:
+    $ref: ./definitions/erm_eholdings_title.yaml
+  erm_eholdings_package:
+    $ref: ./definitions/erm_eholdings_package.yaml
+  erm_eholdings_resource:
+    $ref: ./definitions/erm_eholdings_resource.yaml
+  erm_license:
+    $ref: ./definitions/erm_license.yaml
+  error:
+    $ref: ./definitions/error.yaml
+  external_order:
+    $ref: ./definitions/external_order.yaml
+  fund:
+    $ref: ./definitions/fund.yaml
+  hold:
+    $ref: ./definitions/hold.yaml
+  holds:
+    $ref: ./definitions/holds.yaml
+  ill_backend:
+    $ref: ./definitions/ill_backend.yaml
+  ill_backends:
+    $ref: ./definitions/ill_backends.yaml
+  ill_status:
+    $ref: ./definitions/ill_status.yaml
+  ill_request:
+    $ref: ./definitions/ill_request.yaml
+  import_batch_profile:
+    $ref: ./definitions/import_batch_profile.yaml
+  import_batch_profiles:
+    $ref: ./definitions/import_batch_profiles.yaml
+  import_record_match:
+    $ref: ./definitions/import_record_match.yaml
+  invoice:
+    $ref: ./definitions/invoice.yaml
+  item:
+    $ref: ./definitions/item.yaml
+  item_group:
+    $ref: ./definitions/item_group.yaml
+  job:
+    $ref: ./definitions/job.yaml
+  library:
+    $ref: ./definitions/library.yaml
+  order:
+    $ref: ./definitions/order.yaml
+  patron:
+    $ref: ./definitions/patron.yaml
+  patron_account_credit:
+    $ref: ./definitions/patron_account_credit.yaml
+  patron_balance:
+    $ref: ./definitions/patron_balance.yaml
+  patron_extended_attribute:
+    $ref: ./definitions/patron_extended_attribute.yaml
+  quote:
+    $ref: ./definitions/quote.yaml
+  renewal:
+    $ref: ./definitions/renewal.yaml
+  renewals:
+    $ref: ./definitions/renewals.yaml
+  return_claim:
+    $ref: ./definitions/return_claim.yaml
+  search_filter:
+    $ref: ./definitions/search_filter.yaml
+  smtp_server:
+    $ref: ./definitions/smtp_server.yaml
+  suggestion:
+    $ref: ./definitions/suggestion.yaml
+  transfer_limit:
+    $ref: ./definitions/transfer_limit.yaml
+  vendor:
+    $ref: ./definitions/vendor.yaml
+  zksha_illrequest:
+    $ref: ./definitions/zksha_illrequest.yaml
+  zkshp_illrequest:
+    $ref: ./definitions/zkshp_illrequest.yaml
+paths:
+  /acquisitions/baskets/managers:
+    $ref: paths/acquisitions_baskets.yaml#/~1acquisitions~1baskets~1managers
+  /acquisitions/funds:
+    $ref: ./paths/acquisitions_funds.yaml#/~1acquisitions~1funds
+  /acquisitions/funds/owners:
+    $ref: paths/acquisitions_funds.yaml#/~1acquisitions~1funds~1owners
+  /acquisitions/funds/users:
+    $ref: paths/acquisitions_funds.yaml#/~1acquisitions~1funds~1users
+  /acquisitions/orders:
+    $ref: ./paths/acquisitions_orders.yaml#/~1acquisitions~1orders
+  "/acquisitions/orders/{order_id}":
+    $ref: "./paths/acquisitions_orders.yaml#/~1acquisitions~1orders~1{order_id}"
+  /acquisitions/vendors:
+    $ref: ./paths/acquisitions_vendors.yaml#/~1acquisitions~1vendors
+  "/acquisitions/vendors/{vendor_id}":
+    $ref: "./paths/acquisitions_vendors.yaml#/~1acquisitions~1vendors~1{vendor_id}"
+  /advanced_editor/macros:
+    $ref: ./paths/advancededitormacros.yaml#/~1advanced_editor~1macros
+  /advanced_editor/macros/shared:
+    $ref: ./paths/advancededitormacros.yaml#/~1advanced_editor~1macros~1shared
+  /search_filters:
+    $ref: ./paths/search_filters.yaml#/~1search_filters
+  "/search_filters/{search_filter_id}":
+    $ref: "./paths/search_filters.yaml#/~1search_filters~1{search_filter_id}"
+  "/advanced_editor/macros/shared/{advancededitormacro_id}":
+    $ref: "./paths/advancededitormacros.yaml#/~1advanced_editor~1macros~1shared~1{advancededitormacro_id}"
+  "/advanced_editor/macros/{advancededitormacro_id}":
+    $ref: "./paths/advancededitormacros.yaml#/~1advanced_editor~1macros~1{advancededitormacro_id}"
+  "/alv_illrequests":
+    $ref: "./paths/alv_illrequests.yaml#/~1alv_illrequests"
+  "/article_requests/{article_request_id}":
+    $ref: "./paths/article_requests.yaml#/~1article_requests~1{article_request_id}"
+  /auth/otp/token_delivery:
+    $ref: paths/auth.yaml#/~1auth~1otp~1token_delivery
+  "/auth/password/validation":
+    $ref: "./paths/auth.yaml#/~1auth~1password~1validation"
+  /auth/two-factor/registration:
+    $ref: paths/auth.yaml#/~1auth~1two-factor~1registration
+  /auth/two-factor/registration/verification:
+    $ref: paths/auth.yaml#/~1auth~1two-factor~1registration~1verification
+  /auth/identity_providers:
+    $ref: paths/auth.yaml#/~1auth~1identity_providers
+  "/auth/identity_providers/{identity_provider_id}":
+    $ref: paths/auth.yaml#/~1auth~1identity_providers~1{identity_provider_id}
+  "/auth/identity_providers/{identity_provider_id}/domains":
+    $ref: paths/auth.yaml#/~1auth~1identity_providers~1{identity_provider_id}~1domains
+  "/auth/identity_providers/{identity_provider_id}/domains/{identity_provider_domain_id}":
+    $ref: paths/auth.yaml#/~1auth~1identity_providers~1{identity_provider_id}~1domains~1{identity_provider_domain_id}
+  /authorised_value_categories:
+    $ref: paths/authorised_value_categories.yaml#/~1authorised_value_categories
+  "/authorised_value_categories/{authorised_value_category_name}/authorised_values":
+    $ref: "./paths/authorised_values.yaml#/~1authorised_value_categories~1{authorised_value_category_name}~1authorised_values"
+  "/biblios":
+    $ref: "./paths/biblios.yaml#/~1biblios"
+  "/biblios/{biblio_id}":
+    $ref: "./paths/biblios.yaml#/~1biblios~1{biblio_id}"
+  "/biblios/{biblio_id}/checkouts":
+    $ref: "./paths/biblios.yaml#/~1biblios~1{biblio_id}~1checkouts"
+  "/biblios/{biblio_id}/items":
+    $ref: "./paths/biblios.yaml#/~1biblios~1{biblio_id}~1items"
+  "/biblios/{biblio_id}/pickup_locations":
+    $ref: "./paths/biblios.yaml#/~1biblios~1{biblio_id}~1pickup_locations"
+  "/biblios/{biblio_id}/item_groups":
+    $ref: "./paths/biblios_item_groups.yaml#/~1biblios~1{biblio_id}~1item_groups"
+  "/biblios/{biblio_id}/item_groups/{item_group_id}":
+    $ref: "./paths/biblios_item_groups.yaml#/~1biblios~1{biblio_id}~1item_groups~1{item_group_id}"
+  "/biblios/{biblio_id}/item_groups/{item_group_id}/items":
+    $ref: "./paths/biblios_item_groups.yaml#/~1biblios~1{biblio_id}~1item_groups~1{item_group_id}~1items"
+  "/biblios/{biblio_id}/item_groups/{item_group_id}/items/{item_id}":
+    $ref: "./paths/biblios_item_groups.yaml#/~1biblios~1{biblio_id}~1item_groups~1{item_group_id}~1items~1{item_id}"
+  "/bzsh/bib_updates":
+    $ref: "./paths/bzsh_bib_updates.yaml#/~1bzsh~1bib_updates"
+  "/bzsh/external_order_item_biblionumber_updates":
+    $ref: "./paths/bzsh_external_order_item_biblionumber_updates.yaml#/~1bzsh~1external_order_item_biblionumber_updates"
+  "/bzsh/id_mapping":
+    $ref: "./paths/bzshid_mapping.yaml#/~1bzsh~1id_mapping"
+  "/bzsh/order_status":
+    $ref: "./paths/bzsh_order_status.yaml#/~1bzsh~1order_status"
+  "/cash_registers/{cash_register_id}/cashups":
+    $ref: "./paths/cash_registers.yaml#/~1cash_registers~1{cash_register_id}~1cashups"
+  "/cashups/{cashup_id}":
+    $ref: "./paths/cash_registers.yaml#/~1cashups~1{cashup_id}"
+  /checkouts:
+    $ref: ./paths/checkouts.yaml#/~1checkouts
+  "/checkouts/{checkout_id}":
+    $ref: "./paths/checkouts.yaml#/~1checkouts~1{checkout_id}"
+  "/checkouts/{checkout_id}/allows_renewal":
+    $ref: "./paths/checkouts.yaml#/~1checkouts~1{checkout_id}~1allows_renewal"
+  "/checkouts/{checkout_id}/renewals":
+    $ref: "./paths/checkouts.yaml#/~1checkouts~1{checkout_id}~1renewals"
+  "/checkouts/{checkout_id}/renewal":
+    $ref: "./paths/checkouts.yaml#/~1checkouts~1{checkout_id}~1renewal"
+  /circulation-rules/kinds:
+    $ref: ./paths/circulation-rules.yaml#/~1circulation-rules~1kinds
+  /cities:
+    $ref: ./paths/cities.yaml#/~1cities
+  "/cities/{city_id}":
+    $ref: "./paths/cities.yaml#/~1cities~1{city_id}"
+  "/clubs/{club_id}/holds":
+    $ref: "./paths/clubs.yaml#/~1clubs~1{club_id}~1holds"
+  /config/smtp_servers:
+    $ref: ./paths/config_smtp_servers.yaml#/~1config~1smtp_servers
+  "/config/smtp_servers/{smtp_server_id}":
+    $ref: "./paths/config_smtp_servers.yaml#/~1config~1smtp_servers~1{smtp_server_id}"
+  /erm/agreements:
+    $ref: ./paths/erm_agreements.yaml#/~1erm~1agreements
+  "/erm/agreements/{agreement_id}":
+    $ref: "./paths/erm_agreements.yaml#/~1erm~1agreements~1{agreement_id}"
+  "/erm/documents/{document_id}/file/content":
+    $ref: "./paths/erm_documents.yaml#/~1erm~1documents~1{document_id}~1file~1content"
+  "/erm/eholdings/{provider}/titles":
+    $ref: "./paths/erm_eholdings_titles.yaml#/~1erm~1eholdings~1{provider}~1titles"
+  /erm/eholdings/local/titles/import:
+    $ref: ./paths/erm_eholdings_titles.yaml#/~1erm~1eholdings~1local~1titles~1import
+  "/erm/eholdings/{provider}/titles/{title_id}":
+    $ref: "./paths/erm_eholdings_titles.yaml#/~1erm~1eholdings~1{provider}~1titles~1{title_id}"
+  "/erm/eholdings/{provider}/titles/{title_id}/resources":
+    $ref: "./paths/erm_eholdings_titles_resources.yaml#/~1erm~1eholdings~1{provider}~1titles~1{title_id}~1resources"
+  "/erm/eholdings/{provider}/packages":
+    $ref: "./paths/erm_eholdings_packages.yaml#/~1erm~1eholdings~1{provider}~1packages"
+  "/erm/eholdings/{provider}/resources":
+    $ref: "./paths/erm_eholdings_resources.yaml#/~1erm~1eholdings~1{provider}~1resources"
+  "/erm/eholdings/{provider}/resources/{resource_id}":
+    $ref: "./paths/erm_eholdings_resources.yaml#/~1erm~1eholdings~1{provider}~1resources~1{resource_id}"
+  "/erm/eholdings/{provider}/packages/{package_id}":
+    $ref: "./paths/erm_eholdings_packages.yaml#/~1erm~1eholdings~1{provider}~1packages~1{package_id}"
+  "/erm/eholdings/{provider}/packages/{package_id}/resources":
+    $ref: "./paths/erm_eholdings_packages_resources.yaml#/~1erm~1eholdings~1{provider}~1packages~1{package_id}~1resources"
+  /erm/licenses:
+    $ref: ./paths/erm_licenses.yaml#/~1erm~1licenses
+  "/erm/licenses/{license_id}":
+    $ref: "./paths/erm_licenses.yaml#/~1erm~1licenses~1{license_id}"
+  /erm/users:
+    $ref: ./paths/erm_users.yaml#/~1erm~1users
+  "/bzsh/external_order":
+    $ref: "./paths/external_order.yaml#/~1bzsh~1external_order"
+  /holds:
+    $ref: ./paths/holds.yaml#/~1holds
+  "/holds/{hold_id}":
+    $ref: "./paths/holds.yaml#/~1holds~1{hold_id}"
+  "/holds/{hold_id}/pickup_location":
+    $ref: "./paths/holds.yaml#/~1holds~1{hold_id}~1pickup_location"
+  "/holds/{hold_id}/pickup_locations":
+    $ref: "./paths/holds.yaml#/~1holds~1{hold_id}~1pickup_locations"
+  "/holds/{hold_id}/priority":
+    $ref: "./paths/holds.yaml#/~1holds~1{hold_id}~1priority"
+  "/holds/{hold_id}/suspension":
+    $ref: "./paths/holds.yaml#/~1holds~1{hold_id}~1suspension"
+  /ill/backends:
+    $ref: ./paths/ill_backends.yaml#/~1ill~1backends
+  "/ill/backends/{ill_backend_id}":
+    $ref: "./paths/ill_backends.yaml#/~1ill~1backends~1{ill_backend_id}"
+  /ill/requests:
+    $ref: ./paths/ill_requests.yaml#/~1ill~1requests
+  "/import_batches/{import_batch_id}/records/{import_record_id}/matches/chosen":
+    $ref: "./paths/import_batches.yaml#/~1import_batches~1{import_batch_id}~1records~1{import_record_id}~1matches~1chosen"
+  /import_batch_profiles:
+    $ref: ./paths/import_batch_profiles.yaml#/~1import_batch_profiles
+  "/import_batch_profiles/{import_batch_profile_id}":
+    $ref: "./paths/import_batch_profiles.yaml#/~1import_batch_profiles~1{import_batch_profile_id}"
+  /items:
+    $ref: ./paths/items.yaml#/~1items
+  "/items/{item_id}":
+    $ref: "./paths/items.yaml#/~1items~1{item_id}"
+  "/items/{item_id}/bundled_items":
+    $ref: ./paths/items.yaml#/~1items~1{item_id}~1bundled_items
+  "/items/{item_id}/bundled_items/{bundled_item_id}":
+    $ref: ./paths/items.yaml#/~1items~1{item_id}~1bundled_items~1{bundled_item_id}
+  "/items/{item_id}/pickup_locations":
+    $ref: "./paths/items.yaml#/~1items~1{item_id}~1pickup_locations"
+  /jobs:
+    $ref: ./paths/jobs.yaml#/~1jobs
+  "/jobs/{job_id}":
+    $ref: "./paths/jobs.yaml#/~1jobs~1{job_id}"
+  /libraries:
+    $ref: ./paths/libraries.yaml#/~1libraries
+  "/libraries/{library_id}":
+    $ref: "./paths/libraries.yaml#/~1libraries~1{library_id}"
+  "/oauth/login/{provider_code}/{interface}":
+    $ref: ./paths/oauth.yaml#/~1oauth~1login~1{provider_code}~1{interface}
+  /oauth/token:
+    $ref: ./paths/oauth.yaml#/~1oauth~1token
+  /patrons:
+    $ref: ./paths/patrons.yaml#/~1patrons
+  "/patrons/{patron_id}":
+    $ref: "./paths/patrons.yaml#/~1patrons~1{patron_id}"
+  "/patrons/{patron_id}/account":
+    $ref: "./paths/patrons_account.yaml#/~1patrons~1{patron_id}~1account"
+  "/patrons/{patron_id}/account/credits":
+    $ref: "./paths/patrons_account.yaml#/~1patrons~1{patron_id}~1account~1credits"
+  "/patrons/{patron_id}/extended_attributes":
+    $ref: "./paths/patrons_extended_attributes.yaml#/~1patrons~1{patron_id}~1extended_attributes"
+  "/patrons/{patron_id}/extended_attributes/{extended_attribute_id}":
+    $ref: "./paths/patrons_extended_attributes.yaml#/~1patrons~1{patron_id}~1extended_attributes~1{extended_attribute_id}"
+  "/patrons/{patron_id}/holds":
+    $ref: "./paths/patrons_holds.yaml#/~1patrons~1{patron_id}~1holds"
+  "/patrons/{patron_id}/password":
+    $ref: "./paths/patrons_password.yaml#/~1patrons~1{patron_id}~1password"
+  "/patrons/{patron_id}/password/expiration_date":
+    $ref: "./paths/patrons_password.yaml#/~1patrons~1{patron_id}~1password~1expiration_date"
+  "/public/biblios/{biblio_id}":
+    $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}"
+  "/public/biblios/{biblio_id}/items":
+    $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}~1items"
+  "/public/biblios/{biblio_id}/ratings":
+    $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}~1ratings"
+  "/public/coverflow_data_biblionumber/{biblio_ids}":
+    $ref: "./paths/coverflow_data_biblionumber.yaml#/~1public~1coverflow_data_biblionumber~1{biblio_ids}"
+  "/public/coverflow_data_nearby_items/{item_id}":
+    $ref: "./paths/coverflow_data_nearby_items.yaml#/~1public~1coverflow_data_nearby_items~1{item_id}"
+  "/public/coverflow_data_query":
+    $ref: "./paths/coverflow_data_query.yaml#/~1public~1coverflow_data_query"
+  "/public/generated_cover":
+    $ref: "./paths/generated_cover.yaml#/~1public~1generated_cover"
+  /public/libraries:
+    $ref: ./paths/libraries.yaml#/~1public~1libraries
+  "/public/libraries/{library_id}":
+    $ref: "./paths/libraries.yaml#/~1public~1libraries~1{library_id}"
+  "/public/oauth/login/{provider_code}/{interface}":
+    $ref: ./paths/public_oauth.yaml#/~1public~1oauth~1login~1{provider_code}~1{interface}
+  "/public/patrons/{patron_id}/article_requests/{article_request_id}":
+    $ref: "./paths/article_requests.yaml#/~1public~1patrons~1{patron_id}~1article_requests~1{article_request_id}"
+  "/public/patrons/{patron_id}/guarantors/can_see_charges":
+    $ref: "./paths/public_patrons.yaml#/~1public~1patrons~1{patron_id}~1guarantors~1can_see_charges"
+  "/public/patrons/{patron_id}/guarantors/can_see_checkouts":
+    $ref: "./paths/public_patrons.yaml#/~1public~1patrons~1{patron_id}~1guarantors~1can_see_checkouts"
+  "/public/patrons/{patron_id}/password":
+    $ref: "./paths/public_patrons.yaml#/~1public~1patrons~1{patron_id}~1password"
+  /quotes:
+    $ref: ./paths/quotes.yaml#/~1quotes
+  "/quotes/{quote_id}":
+    $ref: "./paths/quotes.yaml#/~1quotes~1{quote_id}"
+  /return_claims:
+    $ref: ./paths/return_claims.yaml#/~1return_claims
+  "/return_claims/{claim_id}":
+    $ref: "./paths/return_claims.yaml#/~1return_claims~1{claim_id}"
+  "/return_claims/{claim_id}/notes":
+    $ref: "./paths/return_claims.yaml#/~1return_claims~1{claim_id}~1notes"
+  "/return_claims/{claim_id}/resolve":
+    $ref: "./paths/return_claims.yaml#/~1return_claims~1{claim_id}~1resolve"
+  "/rotas/{rota_id}/stages/{stage_id}/position":
+    $ref: "./paths/rotas.yaml#/~1rotas~1{rota_id}~1stages~1{stage_id}~1position"
+  /suggestions:
+    $ref: ./paths/suggestions.yaml#/~1suggestions
+  "/suggestions/{suggestion_id}":
+    $ref: "./paths/suggestions.yaml#/~1suggestions~1{suggestion_id}"
+  /suggestions/managers:
+    $ref: paths/suggestions.yaml#/~1suggestions~1managers
+  /transfer_limits:
+    $ref: ./paths/transfer_limits.yaml#/~1transfer_limits
+  /transfer_limits/batch:
+    $ref: ./paths/transfer_limits.yaml#/~1transfer_limits~1batch
+  "/transfer_limits/{limit_id}":
+    $ref: "./paths/transfer_limits.yaml#/~1transfer_limits~1{limit_id}"
+  "/zksha_illrequests":
+    $ref: "./paths/zksha_illrequests.yaml#/~1zksha_illrequests"
+  "/zkshp_illrequests":
+    $ref: "./paths/zkshp_illrequests.yaml#/~1zkshp_illrequests"
 parameters:
-  $ref: parameters.json
-x-primitives:
-  $ref: x-primitives.json
+  advancededitormacro_id_pp:
+    description: Advanced editor macro internal identifier
+    in: path
+    name: advancededitormacro_id
+    required: true
+    type: integer
+  agreement_id_pp:
+    description: Agreement internal identifier
+    in: path
+    name: agreement_id
+    required: true
+    type: integer
+  agreement_period_id_pp:
+    description: Agreement period internal identifier
+    in: path
+    name: agreement_period_id
+    required: true
+    type: integer
+  authorised_value_id_pp:
+    description: Authorised value internal identifier
+    in: path
+    name: authorised_value_id
+    required: true
+    type: integer
+  authority_id_pp:
+    description: Authority identifier
+    in: path
+    name: authority_id
+    required: true
+    type: integer
+  framework_id_header:
+    description: Framework id. Use when content type is not application/json
+    name: x-framework-id
+    in: header
+    required: false
+    type: string
+  marc_schema_header:
+    description: March schema. One of MARC21 or UNIMARC
+    name: x-record-schema
+    in: header
+    required: false
+    type: string
+    enum:
+      - MARC21
+      - UNIMARC
+  confirm_not_duplicate_header:
+    description: Confirm the posted element is not a duplicate
+    name: x-confirm-not-duplicate
+    in: header
+    required: false
+    type: integer
+  identity_provider_id_pp:
+    description: Identity provider internal identifier
+    in: path
+    name: identity_provider_id
+    required: true
+    type: integer
+  identity_provider_domain_id_pp:
+    description: Identity provider domain internal identifier
+    in: path
+    name: identity_provider_domain_id
+    required: true
+    type: integer
+  biblio_id_pp:
+    description: Record internal identifier
+    in: path
+    name: biblio_id
+    required: true
+    type: integer
+  biblio_ids_pp:
+    description: Record internal identifiers
+    in: path
+    name: biblio_ids
+    required: true
+    type: array
+    collectionFormat: csv
+    items:
+      type: integer
+  candidate_match_id_pp:
+    description: Internal import record match identifier
+    in: path
+    name: candidate_match_id
+    required: true
+    type: integer
+  cash_register_id_pp:
+    description: Cash register internal identifier
+    in: path
+    name: cash_register_id
+    required: true
+    type: integer
+  cashup_id_pp:
+    description: Cashup internal identifier
+    in: path
+    name: cashup_id
+    required: true
+    type: integer
+  checkout_id_pp:
+    description: Internal checkout identifier
+    in: path
+    name: checkout_id
+    required: true
+    type: integer
+  city_id_pp:
+    description: City internal identifier
+    in: path
+    name: city_id
+    required: true
+    type: integer
+  club_id_pp:
+    description: Internal club identifier
+    in: path
+    name: club_id
+    required: true
+    type: integer
+  eholdings_title_id_pp:
+    description: Title internal identifier
+    in: path
+    name: title_id
+    required: true
+    type: integer
+  eholdings_package_id_pp:
+    description: Package internal identifier
+    in: path
+    name: package_id
+    required: true
+    type: string
+  eholdings_resource_id_pp:
+    description: Resource internal identifier
+    in: path
+    name: resource_id
+    required: true
+    type: string
+  fund_id_pp:
+    description: Fund id
+    in: path
+    name: fund_id
+    required: true
+    type: integer
+  hold_id_pp:
+    description: Internal hold identifier
+    in: path
+    name: hold_id
+    required: true
+    type: integer
+  import_batch_profile_id_pp:
+    description: Internal profile identifier
+    in: path
+    name: import_batch_profile_id
+    required: true
+    type: integer
+  import_record_id_pp:
+    description: Internal import record identifier
+    in: path
+    name: import_record_id
+    required: true
+    type: integer
+  item_id_pp:
+    description: Internal item identifier
+    in: path
+    name: item_id
+    required: true
+    type: integer
+  job_id_pp:
+    description: Job internal identifier
+    in: path
+    name: job_id
+    required: true
+    type: integer
+  library_id_pp:
+    description: Internal library identifier
+    in: path
+    name: library_id
+    required: true
+    type: string
+  license_id_pp:
+    description: License internal identifier
+    in: path
+    name: license_id
+    required: true
+    type: integer
+  match:
+    description: Matching criteria
+    enum:
+      - contains
+      - exact
+      - starts_with
+      - ends_with
+    in: query
+    name: _match
+    required: false
+    type: string
+  order_by:
+    collectionFormat: csv
+    description: Sorting criteria
+    in: query
+    items:
+      type: string
+    name: _order_by
+    required: false
+    type: array
+  order_id_pp:
+    description: Internal order identifier
+    in: path
+    name: order_id
+    required: true
+    type: integer
+  page:
+    description: "Page number, for paginated object listing"
+    in: query
+    name: _page
+    required: false
+    type: integer
+  patron_id_pp:
+    description: Internal patron identifier
+    in: path
+    name: patron_id
+    required: true
+    type: integer
+  patron_id_qp:
+    description: Internal patron identifier
+    in: query
+    name: patron_id
+    type: integer
+  per_page:
+    description: "Page size, for paginated object listing"
+    in: query
+    name: _per_page
+    required: false
+    type: integer
+  q_body:
+    description: Query filter sent through request"s body
+    in: body
+    name: query
+    required: false
+    schema:
+      type: object
+  q_header:
+    description: Query filter sent as a request header
+    in: header
+    name: x-koha-query
+    required: false
+    type: string
+  q_param:
+    description: Query filter sent as a request parameter
+    in: query
+    name: q
+    required: false
+    type: array
+    items:
+      type: string
+    collectionFormat: multi
+  quote_id_pp:
+    description: Quote internal identifier
+    in: path
+    name: quote_id
+    required: true
+    type: integer
+  request_id_header:
+    description: Request id header
+    in: header
+    name: x-koha-request-id
+    required: false
+    type: integer
+  search_filter_id_pp:
+    name: search_filter_id
+    in: path
+    description: Search filter internal identifier
+    required: true
+    type: integer
+  seen_pp:
+    description: Item was seen flag
+    in: query
+    name: seen
+    required: false
+    type: integer
+  smtp_server_id_pp:
+    description: SMTP server internal identifier
+    in: path
+    name: smtp_server_id
+    required: true
+    type: integer
+  suggestion_id_pp:
+    description: Internal suggestion identifier
+    in: path
+    name: suggestion_id
+    required: true
+    type: integer
+  transfer_limit_id_pp:
+    description: Internal transfer limit identifier
+    in: path
+    name: limit_id
+    required: true
+    type: string
+  vendor_id_pp:
+    description: Vendor id
+    in: path
+    name: vendor_id
+    required: true
+    type: integer
 info:
   title: Koha REST API
   version: "1"
   license:
-    name: GPL v3,
+    name: "GPL v3,"
     url: http://www.gnu.org/licenses/gpl.txt
   contact:
     name: Koha Development Team
@@ -23,107 +695,181 @@ info:
 
     This API is documented in **OpenAPI format**.
 
+    ## Authentication
+
+    The API supports the following authentication mechanisms
+
+    * HTTP Basic authentication
+    * OAuth2 (client credentials grant)
+    * Cookie-based
+
+    Both _Basic authentication_ and the _OAuth2_ flow, need to be enabled
+    by system preferences.
+
+    ## Errors
+
+    The API uses standard HTTP status codes to indicate the success or failure
+    of the API call. The body of the response will be JSON in the following format:
+
+    ```
+    {
+      "error": "Current settings prevent the passed due date to be applied",
+      "error_code": "invalid_due_date"
+    }
+    ```
+
+    Note: Some routes might offer additional attributes in their error responses but that"s
+    subject to change and thus not documented.
+
+    ## Filtering responses
+
+    The API allows for some advanced response filtering using a JSON based query syntax. The
+    query can be added to the requests:
+
+    * as a query parameter `q=`
+    * in the request body
+    * in a special header `x-koha-query`
+
+    For simple field equality matches we can use `{ "fieldname": "value" }` where the fieldname
+    matches one of the fields as described in the particular endpoints response object.
+
+    We can refine that with more complex matching clauses by nesting a the clause into the
+    object; `{ "fieldname": { "clause": "value" } }`.
+
+    Available matching clauses include ">", "<", ">=", "<=", "-like", and "-not_like".
+
+    We can filter on multiple fields by adding them to the JSON respresentation. Adding at `HASH`
+    level will result in an "AND" query, whilst combinding them in an `ARRAY` wilth result in an
+    "OR" query: `{ "field1": "value2", "field2": "value2" }` will filter the response to only those
+    results with both field1 containing value2 AND field2 containing value2 for example.
+
+    Additionally, if you are requesting related data be embedded into the response one can query
+    on the related data using dot notation in the field names.
+
+    ### Examples
+
+    The following request would return any patron with firstname "Henry" and lastname "Acevedo";
+
+    `curl -u koha:koha --request GET "http://127.0.0.1:8081/api/v1/patrons/" --data-raw "{ "surname": "Acevedo", "firstname": "Henry" }"`
+
+    The following request would return any patron whose lastname begins with "Ace";
+
+    `curl -u koha:koha --request GET "http://127.0.0.1:8081/api/v1/patrons/" --data-raw "{ "surname": { "-like": "Ace%" }"`
+
+    The following request would return any patron whose lastname is "Acevedo" OR "Bernardo"
+
+    `curl -u koha:koha --request GET "http://127.0.0.1:8081/api/v1/patrons/" --data-raw "{ "surname": [ "Acevedo", "Bernardo" ] }"`
+
+    The following request embeds the related patron extended attributes data and filters on it.
+
+    `curl -u koha:koha =--request GET 'http://127.0.0.1:8081/api/v1/patrons/' --header 'x-koha-embed: extended_attributes' --data-raw '{ "extended_attributes.code": "internet", "extended_attributes.attribute": "1" }'`
+
     ## Special headers
+
+    ### x-koha-embed
+
+    This optional header allows the api consumer to request additional related data
+    to be returned in the api response.  It also allows for cross referencing in the
+    queries as described above. It accepts a comma delimited list of relation names.
+
+    Relations may on occasion also support dot delimited nesting to allow traversal.
 
     ### x-koha-library
 
     This optional header should be passed to give your api request a library
     context; If it is not included in the request, then the request context
-    will default to using your api comsumer's assigned home library.
+    will default to using your api comsumer"s assigned home library.
 tags:
-  - name: "biblios"
+  - description: "Handle two factor authentication flows\n"
+    name: 2fa
+    x-displayName: Two factor authentication
+  - description: "Manage article requests\n"
+    name: article_requests
+    x-displayName: Article requests
+  - description: "Manage identity providers\n"
+    name: identity_providers
+    x-displayName: Identity providers
+  - description: "Manage baskets for the acquisitions module\n"
+    name: baskets
+    x-displayName: Baskets
+  - description: "Manage bibliographic records\n"
+    name: biblios
     x-displayName: Biblios
-    description: |
-      Manage bibliographic records
-  - name: "cashups"
+  - description: "Manage cash register cashups\n"
+    name: cashups
     x-displayName: Cashups
-    description: |
-      Manage cash register cashups
-  - name: "checkouts"
+  - description: "Manage checkouts\n"
+    name: checkouts
     x-displayName: Checkouts
-    description: |
-      Manage checkouts
-  - name: "circulation_rules"
+  - description: "Manage circulation rules\n"
+    name: circulation_rules
     x-displayName: Circulation rules
-    description: |
-      Manage circulation rules
-  - name: "cities"
+  - description: "Manage cities\n"
+    name: cities
     x-displayName: Cities
-    description: |
-      Manage cities
-  - name: "clubs"
+  - description: "Manage patron clubs\n"
+    name: clubs
     x-displayName: Clubs
-    description: |
-      Manage patron clubs
-  - name: "funds"
+  - description: "Manage funds for the acquisitions module\n"
+    name: funds
     x-displayName: Funds
-    description: |
-      Manage funds for the acquisitions module
-  - name: "holds"
+  - description: "Manage holds\n"
+    name: holds
     x-displayName: Holds
-    description: |
-      Manage holds
-  - name: "illbackends"
+  - description: "Manage ILL module backends\n"
+    name: ill_backends
     x-displayName: ILL backends
-    description: |
-      Manage ILL module backends
-  - name: "illrequests"
+  - description: "Manage ILL requests\n"
+    name: ill_requests
     x-displayName: ILL requests
-    description: |
-      Manage ILL requests
-  - name: "items"
+  - description: "Manage import batches\n"
+    name: import_batches
+    x-display-name: Import batches
+  - description: "Manage item groups\n"
+    name: item_groups
+    x-displayName: Item groups
+  - description: "Manage items\n"
+    name: items
     x-displayName: Items
-    description: |
-      Manage items
-  - name: "library"
+  - description: "Manage jobs\n"
+    name: jobs
+    x-displayName: Jobs
+  - description: "Manage libraries\n"
+    name: libraries
     x-displayName: Libraries
-    description: |
-      Manage libraries
-  - name: "macros"
+  - description: "Manage macros\n"
+    name: macros
     x-displayName: Macros
-    description: |
-      Manage macros
-  - name: "orders"
+  - description: "Manage acquisition orders\n"
+    name: orders
     x-displayName: Orders
-    description: |
-      Manage acquisition orders
-  - name: "oauth"
-    x-displayName: "OAuth"
-    description: |
-      Handle OAuth flows
-  - name: "patrons"
+  - description: "Handle OAuth flows\n"
+    name: oauth
+    x-displayName: OAuth
+  - description: "Manage patrons\n"
+    name: patrons
     x-displayName: Patrons
-    description: |
-      Manage patrons
-  - name: "quotes"
+  - description: "Manage quotes\n"
+    name: quotes
     x-displayName: Quotes
-    description: |
-      Manage quotes
-  - name: "return_claims"
+  - description: "Manage return claims\n"
+    name: return_claims
     x-displayName: Return claims
-    description: |
-      Manage return claims
-  - name: "rotas"
+  - description: "Manage rotas\n"
+    name: rotas
     x-displayName: Rotas
-    description: |
-      Manage rotas
-  - name: "smtp_servers"
+  - description: "Manage SMTP servers configurations\n"
+    name: smtp_servers
     x-displayName: SMTP servers
-    description: |
-      Manage SMTP servers configurations
-  - name: "transfer"
+  - description: "Manage transfer limits\n"
+    name: transfer
     x-displayName: Transfer limits
-    description: |
-      Manage transfer limits
-  - name: "suggestions"
-    x-displayName: "Purchase suggestions"
-    description: |
-      Manage purchase suggestions
-  - name: "vendors"
-    x-displayName: "Vendors"
-    description: |
-      Manage vendors for the acquisitions module
-  - name: "batch_import_profiles"
+  - description: "Manage purchase suggestions\n"
+    name: suggestions
+    x-displayName: Purchase suggestions
+  - description: "Manage vendors for the acquisitions module\n"
+    name: vendors
+    x-displayName: Vendors
+  - description: "Manage batch import profiles\n"
+    name: batch_import_profiles
     x-displayName: Batch import profiles
-    description: |
-      Manage batch import profiles

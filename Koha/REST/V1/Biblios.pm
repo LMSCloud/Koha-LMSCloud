@@ -20,14 +20,16 @@ use Modern::Perl;
 use Mojo::Base 'Mojolicious::Controller';
 
 use Koha::Biblios;
+use Koha::Ratings;
 use Koha::RecordProcessor;
 use Koha::SearchEngine::Search;
-use C4::Biblio qw(DelBiblio);
+use C4::Biblio qw( DelBiblio AddBiblio ModBiblio );
+use C4::Search qw( FindDuplicate );
 
-use List::MoreUtils qw(any);
+use List::MoreUtils qw( any );
 use MARC::Record::MiJ;
 
-use Try::Tiny;
+use Try::Tiny qw( catch try );
 
 =head1 API
 
@@ -66,13 +68,15 @@ sub get {
             );
         }
         else {
-            my $record = $biblio->metadata->record;
+            my $metadata = $biblio->metadata;
+            my $record   = $metadata->record;
+            my $schema   = $metadata->schema // C4::Context->preference("marcflavour");
 
             $c->respond_to(
                 marcxml => {
                     status => 200,
                     format => 'marcxml',
-                    text   => $record->as_xml_record
+                    text   => $record->as_xml_record($schema),
                 },
                 mij => {
                     status => 200,
@@ -227,7 +231,8 @@ sub get_public {
 
     return try {
 
-        my $record = $biblio->metadata->record;
+        my $metadata = $biblio->metadata;
+        my $record   = $metadata->record;
 
         my $opachiddenitems_rules = C4::Context->yaml_preference('OpacHiddenItems');
         my $patron = $c->stash('koha.user');
@@ -247,7 +252,7 @@ sub get_public {
             }
         }
 
-        my $marcflavour = C4::Context->preference("marcflavour");
+        my $schema = $metadata->schema // C4::Context->preference("marcflavour");
 
         my $record_processor = Koha::RecordProcessor->new({
             filters => 'ViewPolicy',
@@ -263,7 +268,7 @@ sub get_public {
             marcxml => {
                 status => 200,
                 format => 'marcxml',
-                text   => $record->as_xml_record
+                text   => $record->as_xml_record($schema),
             },
             mij => {
                 status => 200,
@@ -323,6 +328,42 @@ sub get_items {
         return $c->render(
             status  => 200,
             openapi => $items
+        );
+    }
+    catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 get_checkouts
+
+List Koha::Checkout objects
+
+=cut
+
+sub get_checkouts {
+    my $c = shift->openapi->valid_input or return;
+
+    my $checked_in = delete $c->validation->output->{checked_in};
+
+    try {
+        my $biblio = Koha::Biblios->find( $c->validation->param('biblio_id') );
+
+        unless ($biblio) {
+            return $c->render(
+                status  => 404,
+                openapi => { error => 'Object not found' }
+            );
+        }
+
+        my $checkouts =
+          ($checked_in)
+          ? $c->objects->search( $biblio->old_checkouts )
+          : $c->objects->search( $biblio->current_checkouts );
+
+        return $c->render(
+            status  => 200,
+            openapi => $checkouts
         );
     }
     catch {
@@ -391,6 +432,312 @@ sub pickup_locations {
             status  => 200,
             openapi => \@response
         );
+    }
+    catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 get_items_public
+
+Controller function that handles retrieving biblio's items, for unprivileged
+access.
+
+=cut
+
+sub get_items_public {
+    my $c = shift->openapi->valid_input or return;
+
+    my $biblio = Koha::Biblios->find( { biblionumber => $c->validation->param('biblio_id') }, { prefetch => ['items'] } );
+
+    unless ( $biblio ) {
+        return $c->render(
+            status  => 404,
+            openapi => {
+                error => "Object not found."
+            }
+        );
+    }
+
+    return try {
+
+        my $patron = $c->stash('koha.user');
+
+        my $items_rs = $biblio->items->filter_by_visible_in_opac({ patron => $patron });
+        my $items    = $c->objects->search( $items_rs );
+        return $c->render(
+            status  => 200,
+            openapi => $items
+        );
+    }
+    catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 set_rating
+
+Set rating for the logged in user
+
+=cut
+
+
+sub set_rating {
+    my $c = shift->openapi->valid_input or return;
+
+    my $biblio = Koha::Biblios->find( $c->validation->param('biblio_id') );
+
+    unless ($biblio) {
+        return $c->render(
+            status  => 404,
+            openapi => {
+                error => "Object not found."
+            }
+        );
+    }
+
+    my $patron = $c->stash('koha.user');
+    unless ($patron) {
+        return $c->render(
+            status => 403,
+            openapi =>
+                { error => "Cannot rate. Reason: must be logged-in" }
+        );
+    }
+
+    my $body   = $c->validation->param('body');
+    my $rating_value = $body->{rating};
+
+    return try {
+
+        my $rating = Koha::Ratings->find(
+            {
+                biblionumber   => $biblio->biblionumber,
+                borrowernumber => $patron->borrowernumber,
+            }
+        );
+        $rating->delete if $rating;
+
+        if ( $rating_value ) { # Cannot set to 0 from the UI
+            $rating = Koha::Rating->new(
+                {
+                    biblionumber   => $biblio->biblionumber,
+                    borrowernumber => $patron->borrowernumber,
+                    rating_value   => $rating_value,
+                }
+            )->store;
+        };
+        my $ratings =
+          Koha::Ratings->search( { biblionumber => $biblio->biblionumber } );
+        my $average = $ratings->get_avg_rating;
+
+        return $c->render(
+            status  => 200,
+            openapi => {
+                rating  => $rating && $rating->in_storage ? $rating->rating_value : undef,
+                average => $average,
+                count   => $ratings->count
+            },
+        );
+    }
+    catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 add
+
+Controller function that handles creating a biblio object
+
+=cut
+
+sub add {
+    my $c = shift->openapi->valid_input or return;
+
+    try {
+        my $headers = $c->req->headers;
+
+        my $flavour = $headers->header('x-record-schema');
+        $flavour //= C4::Context->preference('marcflavour');
+
+        my $record;
+
+        my $frameworkcode = $headers->header('x-framework-id');
+        my $content_type  = $headers->content_type;
+
+        if ( $content_type =~ m/application\/marcxml\+xml/ ) {
+            $record = MARC::Record->new_from_xml( $c->req->body, 'UTF-8', $flavour );
+        }
+        elsif ( $content_type =~ m/application\/marc-in-json/ ) {
+            $record = MARC::Record->new_from_mij_structure( $c->req->json );
+        }
+        elsif ( $content_type =~ m/application\/marc/ ) {
+            $record = MARC::Record->new_from_usmarc( $c->req->body );
+        }
+        else {
+            return $c->render(
+                status  => 406,
+                openapi => [
+                    "application/marcxml+xml",
+                    "application/marc-in-json",
+                    "application/marc"
+                ]
+            );
+        }
+
+        my ( $duplicatebiblionumber, $duplicatetitle ) = FindDuplicate($record);
+
+        my $confirm_not_duplicate = $headers->header('x-confirm-not-duplicate');
+
+        return $c->render(
+            status  => 400,
+            openapi => {
+                error => "Duplicate biblio $duplicatebiblionumber",
+            }
+        ) unless !$duplicatebiblionumber || $confirm_not_duplicate;
+
+        my ( $biblionumber, $oldbibitemnum );
+            ( $biblionumber, $oldbibitemnum ) = AddBiblio( $record, $frameworkcode );
+
+        $c->render(
+            status  => 200,
+            openapi => { id => $biblionumber }
+        );
+    }
+    catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 update
+
+Controller function that handles modifying an biblio object
+
+=cut
+
+sub update {
+    my $c = shift->openapi->valid_input or return;
+
+    my $biblio_id = $c->param('biblio_id');
+    my $biblio    = Koha::Biblios->find($biblio_id);
+
+    if ( ! defined $biblio ) {
+        return $c->render(
+            status  => 404,
+            openapi => { error => "Object not found" }
+        );
+    }
+
+    try {
+        my $headers = $c->req->headers;
+
+        my $flavour = $headers->header('x-record-schema');
+        $flavour //= C4::Context->preference('marcflavour');
+
+        my $frameworkcode = $headers->header('x-framework-id') || $biblio->frameworkcode;
+
+        my $content_type = $headers->content_type;
+
+        my $record;
+
+        if ( $content_type =~ m/application\/marcxml\+xml/ ) {
+            $record = MARC::Record->new_from_xml( $c->req->body, 'UTF-8', $flavour );
+        }
+        elsif ( $content_type =~ m/application\/marc-in-json/ ) {
+            $record = MARC::Record->new_from_mij_structure( $c->req->json );
+        }
+        elsif ( $content_type =~ m/application\/marc/ ) {
+            $record = MARC::Record->new_from_usmarc( $c->req->body );
+        }
+        else {
+            return $c->render(
+                status  => 406,
+                openapi => [
+                    "application/json",
+                    "application/marcxml+xml",
+                    "application/marc-in-json",
+                    "application/marc"
+                ]
+            );
+        }
+
+        ModBiblio( $record, $biblio_id, $frameworkcode );
+
+        $c->render(
+            status  => 200,
+            openapi => { id => $biblio_id }
+        );
+    }
+    catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 list
+
+Controller function that handles retrieving a single biblio object
+
+=cut
+
+sub list {
+    my $c = shift->openapi->valid_input or return;
+
+    my $attributes;
+    $attributes =
+      { prefetch => ['metadata'] }    # don't prefetch metadata if not needed
+      unless $c->req->headers->accept =~ m/application\/json/;
+
+    my $biblios = $c->objects->search_rs( Koha::Biblios->new );
+
+    return try {
+
+        if ( $c->req->headers->accept =~ m/application\/json(;.*)?$/ ) {
+            return $c->render(
+                status => 200,
+                json   => $c->objects->to_api( $biblios ),
+            );
+        }
+        elsif (
+            $c->req->headers->accept =~ m/application\/marcxml\+xml(;.*)?$/ )
+        {
+            $c->res->headers->add( 'Content-Type', 'application/marcxml+xml' );
+            return $c->render(
+                status => 200,
+                text   => $biblios->print_collection('marcxml')
+            );
+        }
+        elsif (
+            $c->req->headers->accept =~ m/application\/marc-in-json(;.*)?$/ )
+        {
+            $c->res->headers->add( 'Content-Type', 'application/marc-in-json' );
+            return $c->render(
+                status => 200,
+                data   => $biblios->print_collection('mij')
+            );
+        }
+        elsif ( $c->req->headers->accept =~ m/application\/marc(;.*)?$/ ) {
+            $c->res->headers->add( 'Content-Type', 'application/marc' );
+            return $c->render(
+                status => 200,
+                text   => $biblios->print_collection('marc')
+            );
+        }
+        elsif ( $c->req->headers->accept =~ m/text\/plain(;.*)?$/ ) {
+            return $c->render(
+                status => 200,
+                text   => $biblios->print_collection('txt')
+            );
+        }
+        else {
+            return $c->render(
+                status  => 406,
+                openapi => [
+                    "application/json",         "application/marcxml+xml",
+                    "application/marc-in-json", "application/marc",
+                    "text/plain"
+                ]
+            );
+        }
     }
     catch {
         $c->unhandled_exception($_);

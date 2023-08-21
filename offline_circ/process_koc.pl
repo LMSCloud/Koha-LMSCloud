@@ -21,16 +21,13 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use Carp;
 
-use C4::Output;
-use C4::Auth;
-use C4::Koha;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Biblio;
 use C4::Accounts;
-use C4::Circulation;
-use C4::Items;
+use C4::Circulation qw( barcodedecode AddRenewal AddIssue MarkIssueReturned );
+use C4::Items qw( ModDateLastSeen );
 use C4::Members;
 use C4::Stats;
 use C4::BackgroundJob;
@@ -39,7 +36,7 @@ use Koha::Account;
 use Koha::Checkouts;
 use Koha::Patrons;
 
-use Date::Calc qw( Add_Delta_Days Date_to_Days );
+use Date::Calc qw( Date_to_Days );
 
 use constant DEBUG => 0;
 
@@ -59,7 +56,7 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user({
 my $fileID=$query->param('uploadedfileid');
 my $runinbackground = $query->param('runinbackground');
 my $completedJobID = $query->param('completedJobID');
-my %cookies = parse CGI::Cookie($cookie);
+my %cookies = CGI::Cookie->fetch();
 my $sessionID = $cookies{'CGISESSID'}->value;
 ## 'Local' globals.
 our $dbh = C4::Context->dbh();
@@ -245,7 +242,8 @@ sub arguments_for_command {
 sub kocIssueItem {
     my $circ = shift;
 
-    $circ->{ 'barcode' } = barcodedecode($circ->{'barcode'}) if( $circ->{'barcode'} && C4::Context->preference('itemBarcodeInputFilter'));
+    $circ->{barcode} = barcodedecode( $circ->{barcode} ) if $circ->{barcode};
+
     my $branchcode = C4::Context->userenv->{branch};
     my $patron = Koha::Patrons->find( { cardnumber => $circ->{cardnumber} } );
     my $borrower = $patron->unblessed;
@@ -255,18 +253,17 @@ sub kocIssueItem {
 
     if ( $issue ) { ## Item is currently checked out to another person.
         #warn "Item Currently Issued.";
-        my $issue = GetOpenIssue( $item->itemnumber ); # FIXME Hum? That does not make sense, if it's in the issue table, the issue is open (i.e. returndate is null)
 
-        if ( $issue->{'borrowernumber'} eq $borrower->{'borrowernumber'} ) { ## Issued to this person already, renew it.
+        if ( $issue->borrowernumber eq $borrower->{'borrowernumber'} ) { ## Issued to this person already, renew it.
             #warn "Item issued to this member already, renewing.";
 
             C4::Circulation::AddRenewal(
-                $issue->{'borrowernumber'},    # borrowernumber
+                $issue->borrowernumber,        # borrowernumber
                 $item->itemnumber,             # itemnumber
                 undef,                         # branch
                 undef,                         # datedue - let AddRenewal calculate it automatically
                 $circ->{'date'},               # issuedate
-            ) unless ($DEBUG);
+            ) unless (DEBUG);
 
             push @output, {
                 renew => 1,
@@ -282,9 +279,9 @@ sub kocIssueItem {
 
         } else {
             #warn "Item issued to a different member.";
-            #warn "Date of previous issue: $issue->{'issuedate'}";
+            #warn "Date of previous issue: $issue->issuedate";
             #warn "Date of this issue: $circ->{'date'}";
-            my ( $i_y, $i_m, $i_d ) = split( /-/, $issue->{'issuedate'} );
+            my ( $i_y, $i_m, $i_d ) = split( /-/, $issue->issuedate );
             my ( $c_y, $c_m, $c_d ) = split( /-/, $circ->{'date'} );
 
             if ( Date_to_Days( $i_y, $i_m, $i_d ) < Date_to_Days( $c_y, $c_m, $c_d ) ) { ## Current issue to a different persion is older than this issue, return and issue.
@@ -325,7 +322,9 @@ sub kocIssueItem {
 
 sub kocReturnItem {
     my ( $circ ) = @_;
-    $circ->{'barcode'} = barcodedecode($circ->{'barcode'}) if( $circ->{'barcode'} && C4::Context->preference('itemBarcodeInputFilter'));
+
+    $circ->{barcode} = barcodedecode( $circ->{barcode} ) if $circ->{barcode};
+
     my $item = Koha::Items->find({ barcode => $circ->{barcode} });
     my $biblio = $item->biblio;
     my $borrowernumber = _get_borrowernumber_from_barcode( $circ->{'barcode'} );

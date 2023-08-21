@@ -19,18 +19,12 @@
 
 use strict;
 use warnings;
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
 
 use Koha::Script;
 use C4::Context;
 use C4::Members::Messaging;
-use Getopt::Long;
-use Pod::Usage;
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 
 
 sub usage {
@@ -139,6 +133,16 @@ already set their preferences.
 =item B<--category>
 
 Will only update patrons in the category specified.
+
+=item B<--since>
+
+Will only update borrowers enrolled since the specified date.
+
+Examples:
+
+--since "2022-07-13"
+
+--since `date -d "1 day ago" '+%Y-%m-%d'
 
 =back
 

@@ -21,19 +21,21 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Output;
-use C4::Auth;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
 use C4::Koha;
-use C4::NewsChannels; # GetNewsToDisplay
-use C4::Tags qw/get_count_by_tag_status/;
+use C4::Tags qw( get_count_by_tag_status );
+use Koha::AdditionalContents;
 use Koha::Patron::Modifications;
 use Koha::Patron::Discharge;
 use Koha::Reviews;
 use Koha::ArticleRequests;
+use Koha::BiblioFrameworks;
 use Koha::ProblemReports;
 use Koha::Quotes;
 use Koha::Suggestions;
 use Koha::BackgroundJobs;
+use Koha::CurbsidePickups;
 
 my $query = CGI->new;
 
@@ -48,17 +50,25 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
 
 my $logged_in_user = Koha::Patrons->find($loggedinuser);
 
+# Checking if there is a Fast Cataloging Framework
+$template->param( fast_cataloging => 1 ) if Koha::BiblioFrameworks->find( 'FA' );
+
 my $homebranch;
 if (C4::Context->userenv) {
     $homebranch = C4::Context->userenv->{'branch'};
 }
-my $all_koha_news   = &GetNewsToDisplay("koha",$homebranch);
-my $koha_news_count = scalar @$all_koha_news;
+my $koha_news = Koha::AdditionalContents->search_for_display(
+    {
+        category   => 'news',
+        location   => [ 'staff_only', 'staff_and_opac' ],
+        lang       => $template->lang,
+        library_id => $homebranch
+    }
+);
 
 $template->param(
-    koha_news       => $all_koha_news,
-    koha_news_count => $koha_news_count,
-    daily_quote     => Koha::Quotes->get_daily_quote(),
+    koha_news   => $koha_news,
+    daily_quote => Koha::Quotes->get_daily_quote(),
 );
 
 my $branch =
@@ -91,7 +101,7 @@ my $pending_borrower_modifications = Koha::Patron::Modifications->pending_count(
 my $pending_discharge_requests = Koha::Patron::Discharge::count({ pending => 1 });
 my $pending_article_requests = Koha::ArticleRequests->search_limited(
     {
-        status => Koha::ArticleRequest::Status::Pending,
+        status => Koha::ArticleRequest::Status::Requested,
         $branch ? ( 'me.branchcode' => $branch ) : (),
     }
 )->count;
@@ -105,7 +115,15 @@ unless ( $logged_in_user->has_permission( { parameters => 'manage_background_job
     $template->param( already_ran_jobs => $already_ran_jobs );
 }
 
-my $plugins_enabled = C4::Context->config("enable_plugins");
+if ( C4::Context->preference('CurbsidePickup') ) {
+    $template->param(
+        new_curbside_pickups => Koha::CurbsidePickups->search(
+            {
+                branchcode                => $homebranch,
+            }
+        )->filter_by_to_be_staged->filter_by_scheduled_today,
+    );
+}
 
 $template->param(
     pendingcomments                => $pendingcomments,
@@ -115,7 +133,7 @@ $template->param(
     pending_article_requests       => $pending_article_requests,
     backends_available             => $backends_available,
     pending_problem_reports        => $pending_problem_reports,
-    plugins_enabled                => $plugins_enabled
+    plugins_enabled                => C4::Context->config("enable_plugins")
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

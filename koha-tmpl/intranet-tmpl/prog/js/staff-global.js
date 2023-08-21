@@ -45,22 +45,66 @@ $.fn.tabIndex = function () {
     return $(this).parent().children('div').index(this);
 };
 $.fn.selectTabByID = function (tabID) {
-    $(this).tabs("option", "active", $( tabID ).tabIndex());
+    $("a[href='" + tabID + "']", $(this) ).tab("show");
 };
 
 $(document).ready(function() {
-    $('#header_search').tabs().on( "tabsactivate", function() { $(this).find("div:visible").find('input').eq(0).focus(); });
+
+    //check for a hash before setting focus
+    let hash = window.location.hash;
+    if ( ! hash ) {
+        $(".tab-pane.active input:text:first").focus();
+    }
+    $("#header_search a[data-toggle='tab']").on("shown.bs.tab", function (e) {
+        $( e.target.hash ).find("input:text:first").focus();
+    });
 
     $(".close").click(function(){ window.close(); });
 
     $("#checkin_search form").preventDoubleFormSubmit();
 
-    if($("#header_search #checkin_search").length > 0){ shortcut.add('Alt+r',function (){ $("#header_search").selectTabByID("#checkin_search"); $("#ret_barcode").focus(); }); } else { shortcut.add('Alt+r',function (){ location.href="/cgi-bin/koha/circ/returns.pl"; }); }
-    if($("#header_search #circ_search").length > 0){ shortcut.add('Alt+u',function (){ $("#header_search").selectTabByID("#circ_search"); $("#findborrower").focus(); }); } else { shortcut.add('Alt+u',function(){ location.href="/cgi-bin/koha/circ/circulation.pl"; }); }
-    if($("#header_search #catalog_search").length > 0){ shortcut.add('Alt+q',function (){ $("#header_search").selectTabByID("#catalog_search"); $("#search-form").focus(); }); } else { shortcut.add('Alt+q',function(){ location.href="/cgi-bin/koha/catalogue/search.pl"; }); }
-    if($("#header_search #renew_search").length > 0){ shortcut.add('Alt+w',function (){ $("#header_search").selectTabByID("#renew_search"); $("#ren_barcode").focus(); }); } else { shortcut.add('Alt+w',function(){ location.href="/cgi-bin/koha/circ/renew.pl"; }); }
+    if($("#header_search #checkin_search").length > 0){
+        shortcut.add('Alt+r',function (){
+            $("#header_search").selectTabByID("#checkin_search");
+            $("#ret_barcode").focus();
+        });
+    } else {
+        shortcut.add('Alt+r',function (){
+            location.href="/cgi-bin/koha/circ/returns.pl"; });
+    }
+    if($("#header_search #circ_search").length > 0){
+        shortcut.add('Alt+u',function (){
+            $("#header_search").selectTabByID("#circ_search");
+            $("#findborrower").focus();
+        });
+    } else {
+        shortcut.add('Alt+u',function(){ location.href="/cgi-bin/koha/circ/circulation.pl"; });
+    }
+    if($("#header_search #catalog_search").length > 0){
+        shortcut.add('Alt+q',function (){
+            $("#header_search").selectTabByID("#catalog_search");
+            $("#search-form").focus();
+        });
+    } else {
+        shortcut.add('Alt+q',function(){ location.href="/cgi-bin/koha/catalogue/search.pl"; });
+    }
+    if($("#header_search #renew_search").length > 0){
+        shortcut.add('Alt+w',function (){
+            $("#header_search").selectTabByID("#renew_search");
+            $("#ren_barcode").focus();
+        });
+    } else {
+        shortcut.add('Alt+w',function(){ location.href="/cgi-bin/koha/circ/renew.pl"; });
+    }
 
-    $("#header_search > ul > li").show();
+    $('#header_search .form-extra-content-toggle').on('click', function () {
+        const extraContent = $(this).closest('form').find('.form-extra-content');
+        if (extraContent.is(':visible')) {
+            extraContent.hide();
+        } else {
+            extraContent.show();
+        }
+    });
 
     $(".focus").focus();
     $(".validated").each(function() {
@@ -103,17 +147,16 @@ $(document).ready(function() {
         $("a[href$=\"/" + path + params + "\"]", navmenulist).addClass("current");
     }
 
-    $("#catalog-search-link a").on("hover", function(){
+    $("#catalog-search-link a").on("mouseenter mouseleave", function(){
         $("#catalog-search-dropdown a").toggleClass("catalog-search-dropdown-hover");
     });
 
     if ( localStorage.getItem("lastborrowernumber") ){
         if( $("#hiddenborrowernumber").val() != localStorage.getItem("lastborrowernumber") ) {
-            $("#lastborrower-window").detach().appendTo("#breadcrumbs");
             $("#lastborrowerlink").show();
             $("#lastborrowerlink").prop("title", localStorage.getItem("lastborrowername") + " (" + localStorage.getItem("lastborrowercard") + ")");
             $("#lastborrowerlink").prop("href", "/cgi-bin/koha/circ/circulation.pl?borrowernumber=" + localStorage.getItem("lastborrowernumber"));
-            $("#lastborrower-window").css("display", "inline-block");
+            $("#lastborrower-window").css("display", "inline-flex");
         }
     }
 
@@ -194,7 +237,7 @@ function checkEnter(e){ //e is event object passed from function invocation
 }
 
 function clearHoldFor(){
-    Cookies.remove("holdfor", { path: '/' });
+    Cookies.remove("holdfor", { path: '/', SameSite: 'Lax' });
 }
 
 function logOut(){
@@ -206,6 +249,7 @@ function logOut(){
     localStorage.removeItem("sql_reports_activetab");
     localStorage.removeItem("searches");
     localStorage.removeItem("bibs_selected");
+    localStorage.removeItem("patron_search_selections");
 }
 
 function openHelp(){

@@ -17,7 +17,6 @@ package Koha::Account::Offsets;
 
 use Modern::Perl;
 
-use Carp;
 
 use Koha::Database;
 
@@ -35,13 +34,13 @@ Account offsets track the changes made to the balance of account lines
 
 =head2 Class methods
 
+=head3 total
+
     my $offsets = Koha::Account::Offsets->search({ ...  });
     my $total   = $offsets->total;
 
 Returns the sum of the amounts of the account offsets resultset. If the resultset is
 empty it returns 0.
-
-=head3 total
 
 =cut
 
@@ -51,7 +50,7 @@ sub total {
     my $offsets = $self->search(
         {},
         {
-            select => [ { sum => 'amount' } ],
+            select => [ { sum => 'me.amount' } ],
             as     => ['total_amount'],
         }
     );
@@ -59,6 +58,58 @@ sub total {
     return $offsets->count
       ? $offsets->next->get_column('total_amount') + 0
       : 0;
+}
+
+=head3 filter_by_non_reversible
+
+    my $non_reversible_offsets = Koha::Account::Offsets->search(..)->filter_by_non_reversible;
+
+Filter offsets so only non-reversible ones are left in the resultset.
+
+=cut
+
+sub filter_by_non_reversible {
+    my ($self) = @_;
+
+    my $me = $self->_resultset()->current_source_alias;
+
+    my $where = {
+        debit_id                  => { '!='      => undef },
+        credit_id                 => { '!='      => undef },
+        type                      => 'APPLY',
+        'credit.credit_type_code' => [ 'WRITEOFF', 'DISCOUNT', 'CANCELLATION' ],
+        'credit.status'           => [ { '!=' => 'VOID' }, undef ],
+        $me . '.amount'           => { '<' => 0 }
+    };
+    my $attr = { join => 'credit' };
+
+    return $self->search( $where, $attr );
+}
+
+=head3 filter_by_reversible
+
+    my $reversible_offsets = Koha::Account::Offsets->search(..)->filter_by_reversible;
+
+Filter offsets so only reversible ones are left in the resultset.
+
+=cut
+
+sub filter_by_reversible {
+    my ($self) = @_;
+
+    my $me = $self->_resultset()->current_source_alias;
+
+    my $where = {
+        debit_id                  => { '!='      => undef },
+        credit_id                 => { '!='      => undef },
+        type                      => 'APPLY',
+        'credit.credit_type_code' => { -not_in => [ 'WRITEOFF', 'DISCOUNT', 'CANCELLATION' ] },
+        'credit.status'           => [ { '!=' => 'VOID' }, undef ],
+        $me . '.amount'           => { '<' => 0 }
+    };
+    my $attr = { join => 'credit' };
+
+    return $self->search( $where, $attr );
 }
 
 =head2 Internal methods

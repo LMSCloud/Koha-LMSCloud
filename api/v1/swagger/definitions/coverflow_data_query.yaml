@@ -1,0 +1,27 @@
+type: object
+properties:
+  countItems:
+    description: number of items in response
+    type:
+      - integer
+      - 'null'
+  totalCount:
+    description: number of total search results with query string
+    type:
+      - integer
+      - 'null'
+  offset:
+    description: offset of base index
+    type:
+      - integer
+      - 'null'
+  query:
+    description: query string used
+    type:
+      - string
+      - 'null'
+  items:
+    description: list of items
+    type:
+      - array
+      - 'null'

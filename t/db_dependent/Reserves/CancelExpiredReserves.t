@@ -7,9 +7,9 @@ use t::lib::Mocks;
 use t::lib::TestBuilder;
 
 use C4::Members;
-use C4::Reserves;
+use C4::Reserves qw( CancelExpiredReserves );
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Holds;
 
 my $schema = Koha::Database->new->schema;
@@ -37,7 +37,7 @@ subtest 'CancelExpiredReserves tests incl. holidays' => sub {
         source => 'Reserve',
         value => {
             reservedate => $reserve_reservedate,
-            expirationdate => $reserve1_expirationdate,
+            patron_expiration_date => $reserve1_expirationdate,
             cancellationdate => undef,
             priority => 0,
             found => 'W',
@@ -56,7 +56,7 @@ subtest 'CancelExpiredReserves tests incl. holidays' => sub {
         source => 'Reserve',
         value => {
             reservedate => $reserve_reservedate,
-            expirationdate => $reserve2_expirationdate,
+            patron_expiration_date => $reserve2_expirationdate,
             cancellationdate => undef,
             priority => 0,
             found => 'W',
@@ -72,7 +72,7 @@ subtest 'CancelExpiredReserves tests incl. holidays' => sub {
         source => 'Reserve',
         value => {
             reservedate => $reserve_reservedate,
-            expirationdate => $reserve2_expirationdate,
+            patron_expiration_date => $reserve2_expirationdate,
             branchcode => 'LIB1',
             cancellationdate => undef,
             priority => 0,
@@ -172,7 +172,7 @@ subtest 'Test handling of in transit reserves by CancelExpiredReserves' => sub {
     my $reserve = $builder->build({
         source => 'Reserve',
         value  => {
-            expirationdate => '2018-01-01',
+            patron_expiration_date => '2018-01-01',
             found => 'T',
             cancellationdate => undef,
             suspend => 0,
@@ -187,7 +187,7 @@ subtest 'Test handling of in transit reserves by CancelExpiredReserves' => sub {
     my $reserve2 = $builder->build({
         source => 'Reserve',
         value  => {
-            expirationdate => '2018-01-01',
+            patron_expiration_date => '2018-01-01',
             found => 'T',
             cancellationdate => undef,
             suspend => 0,
@@ -208,7 +208,7 @@ subtest 'Test handling of cancellation reason if passed' => sub {
     my $reserve = $builder->build({
         source => 'Reserve',
         value  => {
-            expirationdate => '2018-01-01',
+            patron_expiration_date => '2018-01-01',
             found => 'T',
             cancellationdate => undef,
             suspend => 0,

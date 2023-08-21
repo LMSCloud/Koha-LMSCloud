@@ -23,14 +23,14 @@ use Test::Exception;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
-use C4::Circulation;
+use C4::Circulation qw( MarkIssueReturned AddIssue );
 use C4::Context;
 use Koha::Checkouts;
 use Koha::Database;
 use Koha::DateUtils qw(dt_from_string);
 use Koha::Old::Checkouts;
 use Koha::Patrons;
-use Koha::Patron::Debarments;
+use Koha::Patron::Debarments qw( AddUniqueDebarment );
 
 my $schema = Koha::Database->schema;
 my $builder = t::lib::TestBuilder->new;
@@ -76,7 +76,7 @@ subtest 'Failure tests' => sub {
 
 subtest 'Anonymous patron tests' => sub {
 
-    plan tests => 2;
+    plan tests => 3;
 
     $schema->storage->txn_begin;
 
@@ -99,8 +99,13 @@ subtest 'Anonymous patron tests' => sub {
     t::lib::Mocks::mock_preference( 'AnonymousPatron', '' );
 
     my $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
-    eval { C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item->itemnumber, undef, 2 ) };
-    like ( $@, qr<Fatal error: the patron \(\d+\) .* AnonymousPatron>, 'AnonymousPatron is not set - Fatal error on anonymization' );
+
+    throws_ok
+        { C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item->itemnumber, undef, 2 ); }
+        'Koha::Exceptions::SysPref::NotSet',
+        'AnonymousPatron not set causes an exception';
+
+    is( $@->syspref, 'AnonymousPatron', 'AnonymousPatron is not set - Fatal error on anonymization' );
     Koha::Checkouts->find( $issue->issue_id )->delete;
 
     # Create a valid anonymous user
@@ -194,13 +199,14 @@ subtest 'AutoRemoveOverduesRestrictions' => sub {
 
     C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item_1->itemnumber );
 
-    my $debarments = Koha::Patron::Debarments::GetDebarments({ borrowernumber => $patron->borrowernumber });
-    is( $debarments->[0]->{type}, 'OVERDUES', 'OVERDUES debarment is not removed if patron still has overdues' );
+    my $restrictions = $patron->restrictions;
+    my $THE_restriction = $restrictions->next;
+    is( $THE_restriction->type->code, 'OVERDUES', 'OVERDUES debarment is not removed if patron still has overdues' );
 
     C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item_2->itemnumber );
 
-    $debarments = Koha::Patron::Debarments::GetDebarments({ borrowernumber => $patron->borrowernumber });
-    is( scalar @$debarments, 0, 'OVERDUES debarment is removed if patron does not have overdues' );
+    $restrictions = $patron->restrictions;
+    is( $restrictions->count, 0, 'OVERDUES debarment is removed if patron does not have overdues' );
 
     $schema->storage->txn_rollback;
 };

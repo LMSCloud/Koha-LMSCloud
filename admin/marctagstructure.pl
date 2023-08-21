@@ -20,10 +20,9 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Koha;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
 
 use Koha::Caches;
@@ -53,7 +52,6 @@ my ($template, $loggedinuser, $cookie)
 			     query => $input,
 			     type => "intranet",
                  flagsrequired => { parameters => 'manage_marc_frameworks' },
-			     debug => 1,
 			     });
 
 my $frameworks = Koha::BiblioFrameworks->search({}, { order_by => ['frameworktext'] });
@@ -155,8 +153,8 @@ if ($op eq 'add_form') {
     }
     $cache->clear_from_cache("MarcStructure-0-$frameworkcode");
     $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
-    $cache->clear_from_cache("default_value_for_mod_marc-");
     $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
+    $cache->clear_from_cache("MarcCodedFields-$frameworkcode");
     print $input->redirect("/cgi-bin/koha/admin/marctagstructure.pl?searchfield=$tagfield&frameworkcode=$frameworkcode");
     exit;
 													# END $OP eq ADD_VALIDATE
@@ -180,8 +178,8 @@ if ($op eq 'add_form') {
     $sth2->execute($searchfield, $frameworkcode);
     $cache->clear_from_cache("MarcStructure-0-$frameworkcode");
     $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
-    $cache->clear_from_cache("default_value_for_mod_marc-");
     $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
+    $cache->clear_from_cache("MarcCodedFields-$frameworkcode");
     $template->param( searchfield => $searchfield );
 													# END $OP eq DELETE_CONFIRMED
 ################## ITEMTYPE_CREATE ##################################

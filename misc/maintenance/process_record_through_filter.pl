@@ -8,11 +8,15 @@ use strict;
 use warnings;
 
 use Koha::Script;
+use Koha::Biblios;
 use Koha::RecordProcessor;
-use Data::Dumper;
-use C4::Biblio;
 
-my $record = GetMarcBiblio({ biblionumber => $ARGV[0] });
+my $biblio = Koha::Biblios->find($ARGV[0]);
+unless ( $biblio ) {
+    print "Biblio not found\n";
+    exit;
+}
+my $record = $biblio->metadata->record;
 
 print "Before: " . $record->as_formatted() . "\n";
 my $processor = Koha::RecordProcessor->new( { filters => ( $ARGV[1] ) });

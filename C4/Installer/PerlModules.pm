@@ -3,8 +3,7 @@ package C4::Installer::PerlModules;
 use warnings;
 use strict;
 
-use File::Spec;
-use File::Basename;
+use File::Basename qw( dirname );
 use Module::CPANfile;
 
 sub new {
@@ -55,9 +54,7 @@ sub versions_info {
     foreach my $phase ($self->prereqs->phases) {
         foreach my $type ($self->prereqs->types_in($phase)) {
             my $reqs = $self->prereqs->requirements_for($phase, $type);
-            foreach my $module ($reqs->required_modules) {
-                no warnings;  # perl throws warns for invalid $VERSION numbers which some modules use
-
+            foreach my $module (sort $reqs->required_modules) {
                 my $module_infos = {
                     cur_ver  => 0,
                     required => $type eq 'requires',
@@ -75,9 +72,11 @@ sub versions_info {
                 }
 
                 my $attr;
-
-                $Readonly::XS::MAGIC_COOKIE="Do NOT use or require Readonly::XS unless you're me.";
-                eval "require $module";
+                {
+                    # ignore warnings from noisy modules
+                    local $SIG{__WARN__} = sub {};
+                    eval "require $module";
+                }
                 if ($@) {
                     $attr = 'missing_pm';
                 } else {

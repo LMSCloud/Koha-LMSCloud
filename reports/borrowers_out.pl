@@ -20,15 +20,11 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Koha;
-use C4::Output;
-use C4::Circulation;
-use C4::Reports;
-use C4::Members;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Reports qw( GetDelimiterChoices );
 
-use Koha::DateUtils;
 use Koha::Patron::Categories;
 
 =head1 NAME
@@ -47,19 +43,15 @@ my $fullreportname = "reports/borrowers_out.tt";
 my $limit = $input->param("Limit");
 my $column = $input->param("Criteria");
 my @filters = $input->multi_param("Filter");
-$filters[1] = eval { output_pref( { dt => dt_from_string( $filters[1]), dateonly => 1, dateformat => 'iso' } ); }
-    if ( $filters[1] );
 
 my $output = $input->param("output");
 my $basename = $input->param("basename");
-our $sep     = $input->param("sep") || '';
-$sep = "\t" if ($sep eq 'tabulation');
+our $sep     = C4::Context->csv_delimiter(scalar $input->param("sep"));
 my ($template, $borrowernumber, $cookie)
     = get_template_and_user({template_name => $fullreportname,
                 query => $input,
                 type => "intranet",
                 flagsrequired => {reports => '*'},
-                debug => 1,
                 });
 $template->param(do_it => $do_it,
         );
@@ -212,6 +204,11 @@ sub calculate {
     $strcalc .= " , " . $dbh->quote($colfield) if ($colfield);
     $strcalc .= " FROM borrowers ";
     $strcalc .= "WHERE 1 ";
+    if(C4::Context->preference('IndependentBranches') && !C4::Context->IsSuperLibrarian()){
+      $strcalc .= "AND branchcode = '".C4::Context->userenv->{branch}."' ";
+    }
+
+
     my @query_args;
     if ( @$filters[0] ) {
         @$filters[0]=~ s/\*/%/g;

@@ -19,7 +19,6 @@ package Koha::ApiKey;
 
 use Modern::Perl;
 
-use Carp;
 
 use Koha::AuthUtils qw(hash_password);
 use Koha::Exceptions::Object;

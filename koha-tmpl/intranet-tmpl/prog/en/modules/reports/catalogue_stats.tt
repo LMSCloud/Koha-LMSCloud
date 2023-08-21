@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
@@ -6,44 +7,38 @@
 </head>
 
 <body id="rep_catalogue_stats" class="rep">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
-        </li>
-        [% IF ( do_it ) %]
-            <li>
-                <a href="/cgi-bin/koha/reports/catalogue_stats.pl">Catalog statistics</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Results
-                </a>
-            </li>
-        [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Catalog statistics
-                </a>
-            </li>
         [% END %]
-    </ol>
-</nav>
+        [% IF ( do_it ) %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/reports/catalogue_stats.pl">Catalog statistics</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Results</span>
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Catalog statistics</span>
+            [% END %]
+        [% END # /IF ( do_it ) %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
         <div class="col-sm-10 col-sm-push-2">
             <main>
 
+<h1>Catalog statistics</h1>
 [% IF ( do_it ) %]
 	[% FOREACH mainloo IN mainloop %]
-		<h1>Catalog statistics</h1>
 		[% IF ( mainloo.loopfilter ) %]
             <p>Filtered on:</p>
 			[% FOREACH loopfilte IN mainloo.loopfilter %]
@@ -252,9 +247,10 @@
                 <td><input type="radio" name="Column" value="items.dateaccessioned" /></td>
                 <td>
                     <label for="acqdateFrom">From</label>
-                    <input type="text" name="Filter" id="acqdateFrom" class="datepicker" />
+                    <input type="text" name="Filter" id="acqdateFrom" data-date_to="acqdateTo" class="flatpickr" />
+
                     <label for="acqdateTo">To</label>
-                    <input type="text" name="Filter" id="acqdateTo" class="datepicker" />
+                    <input type="text" name="Filter" id="acqdateTo" class="flatpickr" />
                 </td>
             </tr>
             <tr id="removeddatetr">
@@ -263,9 +259,10 @@
                 <td><input type="radio" name="Column" value="deleteditems.timestamp" /></td>
                 <td>
                     <label for="deldateFrom">From</label>
-                    <input type="text" name="Filter" id="deldateFrom" class="datepicker" />
+                    <input type="text" name="Filter" id="deldateFrom" data-date_to="deldateTo" class="flatpickr" />
+
                     <label for="deldateTo">To</label>
-                    <input type="text" name="Filter" id="deldateTo" class="datepicker"/>
+                    <input type="text" name="Filter" id="deldateTo" class="flatpickr" />
                 </td>
             </tr>
 		</tbody>
@@ -315,7 +312,7 @@
 	</fieldset>
 
 	<fieldset class="action">
-	<input type="submit" value="Submit" />
+    <input type="submit" class="btn btn-primary" value="Submit" />
 	<input type="hidden" name="report_name" value="[% report_name | html %]" />
 	<input type="hidden" name="do_it" value="1" />
 	</fieldset>
@@ -353,16 +350,6 @@
         }
 
         $(document).ready(function() {
-            $('#acqdateFrom, #deldateFrom')
-              .datepicker('option', 'onSelect', function(selectedDate) {
-                var id = $(this).attr('id').replace('From', 'To');
-                $('#' + id).datepicker('option', 'minDate', selectedDate);
-              });
-            $('#acqdateTo, #deldateTo')
-              .datepicker('option', 'onSelect', function(selectedDate) {
-                var id = $(this).attr('id').replace('To', 'From');
-                $('#' + id).datepicker('option', 'maxDate', selectedDate);
-              });
 
             $("input[name='Cellvalue']").change(function() {
                 changeRemovedDateTrStatus();

@@ -172,9 +172,11 @@ __PACKAGE__->set_primary_key("id");
 
 =head1 UNIQUE CONSTRAINTS
 
-=head2 C<issue_id>
+=head2 C<item_issue>
 
 =over 4
+
+=item * L</itemnumber>
 
 =item * L</issue_id>
 
@@ -182,7 +184,7 @@ __PACKAGE__->set_primary_key("id");
 
 =cut
 
-__PACKAGE__->add_unique_constraint("issue_id", ["issue_id"]);
+__PACKAGE__->add_unique_constraint("item_issue", ["itemnumber", "issue_id"]);
 
 =head1 RELATIONS
 
@@ -277,8 +279,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-11-17 10:01:24
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Ik93SD3kLNecIyRgsBVKDQ
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-07-18 15:06:21
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Xj7Juwt0e0wxEf+CZRfyMQ
 
 =head2 checkout
 
@@ -314,6 +316,21 @@ __PACKAGE__->belongs_to(
         is_deferrable => 1,
         join_type     => "LEFT",
     },
+);
+
+=head2 item
+
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::Item>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "item",
+  "Koha::Schema::Result::Item",
+  { itemnumber => "itemnumber" },
+  { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
 );
 
 sub koha_objects_class {

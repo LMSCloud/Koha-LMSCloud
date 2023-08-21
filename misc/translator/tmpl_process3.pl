@@ -16,12 +16,11 @@ using gettext-compatible translation files
 
 use strict;
 #use warnings; FIXME - Bug 2505
-use File::Basename;
-use Getopt::Long;
+use File::Basename qw( fileparse );
+use Getopt::Long qw( GetOptions );
 use Locale::PO;
-use File::Temp qw( :POSIX );
 use TmplTokenizer;
-use VerboseWarnings qw( :warn :die );
+use VerboseWarnings qw( pedantic_p warn_additional warn_normal warn_pedantic error_additional error_normal );
 
 ###############################################################################
 
@@ -158,9 +157,10 @@ sub listfiles {
     my $match     = join ('|', @match);     # use only this files
     my $nomatch   = join ('|', @nomatch);   # do no use this files
     my @it = ();
-    if (opendir(DIR, $dir)) {
-        my @dirent = readdir DIR;   # because DIR is shared when recursing
-        closedir DIR;
+    my $dir_h;
+    if (opendir($dir_h, $dir)) {
+        my @dirent = readdir $dir_h;   # because $dir_h is shared when recursing
+        closedir $dir_h;
         for my $dirent (@dirent) {
             my $path = "$dir/$dirent";
             if ($dirent =~ /^\./ || $dirent eq 'CVS' || $dirent eq 'RCS'

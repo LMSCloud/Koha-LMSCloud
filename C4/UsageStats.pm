@@ -19,9 +19,9 @@ package C4::UsageStats;
 
 use Modern::Perl;
 use C4::Context;
-use POSIX qw(strftime);
+use POSIX qw( strftime );
 use LWP::UserAgent;
-use JSON;
+use JSON qw( decode_json encode_json );
 
 use Koha::Libraries;
 
@@ -87,8 +87,52 @@ sub BuildReport {
     }
 
     # Get systempreferences.
-    foreach (
-        qw/
+    foreach ( @{ _shared_preferences() } )
+    {
+        $report->{systempreferences}{$_} = C4::Context->preference($_);
+    }
+    return $report;
+}
+
+=head2 ReportToCommunity
+
+  ReportToCommunity;
+
+Send to hea.koha-community.org database informations
+
+=cut
+
+sub ReportToCommunity {
+    my $data = shift;
+    my $json = encode_json($data);
+
+    my $url = "https://hea.koha-community.org/upload.pl";
+    my $ua = LWP::UserAgent->new;
+    my $res = $ua->post(
+        $url,
+        'Content-type' => 'application/json;charset=utf-8',
+        Content => $json,
+    );
+    my $content = decode_json( $res->decoded_content );
+    if ( $content->{koha_id} ) {
+        C4::Context->set_preference( 'UsageStatsID', $content->{koha_id} );
+    }
+    if ( $content->{id} ) {
+        C4::Context->set_preference( 'UsageStatsPublicID', $content->{id} );
+    }
+}
+
+=head2 _shared_preferences
+
+    my $preferences = C4::UsageStats::_shared_preferences
+
+Returns an I<arreyref> with the system preferences to be shared.
+
+=cut
+
+sub _shared_preferences {
+
+    my @preferences = qw/
         AcqCreateItem
         AcqWarnOnDuplicateInvoice
         AcqViewBaskets
@@ -108,7 +152,8 @@ sub BuildReport {
         Persona
         AuthDisplayHierarchy
         AutoCreateAuthorities
-        BiblioAddsAuthorities
+        AutoLinkBiblios
+        RequireChoosingExistingAuthority
         AuthorityMergeLimit
         AuthorityMergeMode
         UseAuthoritiesForTracings
@@ -164,6 +209,7 @@ sub BuildReport {
         WhenLostChargeReplacementFee
         WhenLostForgiveFine
         AllowHoldDateInFuture
+        AllowHoldItemTypeSelection
         AllowHoldPolicyOverride
         AllowHoldsOnDamagedItems
         AllowHoldsOnPatronsPossessions
@@ -230,7 +276,6 @@ sub BuildReport {
         COinSinOPACResults
         DisplayOPACiconsXSLT
         hidelostitems
-        HighlightOwnItemsOnOPAC
         OpacAddMastheadLibraryPulldown
         OPACDisplay856uAsImage
         OpacHighlightedWords
@@ -261,7 +306,7 @@ sub BuildReport {
         OpacTopissue
         opacuserlogin
         QuoteOfTheDay
-        RequestOnOpac
+        OPACHoldRequests
         OPACComments
         ShowReviewer
         ShowReviewerPhoto
@@ -280,7 +325,7 @@ sub BuildReport {
         TrackClicks
         PatronSelfRegistration
         OPACShelfBrowser
-        AutoEmailOpacUser
+        AutoEmailNewUser
         AutoEmailPrimaryAddress
         autoMemberNum
         BorrowerRenewalPeriodBase
@@ -302,7 +347,6 @@ sub BuildReport {
         defaultSortField
         displayFacetCount
         OPACdefaultSortField
-        OPACItemsResultsDisplay
         expandedSearchOption
         IntranetNumbersPreferPhrase
         OPACNumbersPreferPhrase
@@ -324,40 +368,9 @@ sub BuildReport {
         ILS-DI
         OAI-PMH
         version
-        /
-      )
-    {
-        $report->{systempreferences}{$_} = C4::Context->preference($_);
-    }
-    return $report;
-}
+        /;
 
-=head2 ReportToCommunity
-
-  ReportToCommunity;
-
-Send to hea.koha-community.org database informations
-
-=cut
-
-sub ReportToCommunity {
-    my $data = shift;
-    my $json = encode_json($data);
-
-    my $url = "https://hea.koha-community.org/upload.pl";
-    my $ua = LWP::UserAgent->new;
-    my $res = $ua->post(
-        $url,
-        'Content-type' => 'application/json;charset=utf-8',
-        Content => $json,
-    );
-    my $content = decode_json( $res->decoded_content );
-    if ( $content->{koha_id} ) {
-        C4::Context->set_preference( 'UsageStatsID', $content->{koha_id} );
-    }
-    if ( $content->{id} ) {
-        C4::Context->set_preference( 'UsageStatsPublicID', $content->{id} );
-    }
+    return \@preferences;
 }
 
 =head2 _count

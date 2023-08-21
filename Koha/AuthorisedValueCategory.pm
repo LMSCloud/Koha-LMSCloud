@@ -17,7 +17,6 @@ package Koha::AuthorisedValueCategory;
 
 use Modern::Perl;
 
-use Carp;
 
 use Koha::Database;
 use Koha::Exceptions;
@@ -33,6 +32,19 @@ Koha::AuthorisedValueCategory - Koha AuthorisedValueCategory Object class
 =head2 Class Methods
 
 =cut
+
+=head3 authorised_values
+
+Returns the authorised values for this authorised value category
+
+=cut
+
+sub authorised_values {
+    my ( $self ) = @_;
+
+    my $authorised_values_rs = $self->_result->authorised_values;
+    return Koha::AuthorisedValues->_new_from_dbic($authorised_values_rs);
+}
 
 =head3 delete
 

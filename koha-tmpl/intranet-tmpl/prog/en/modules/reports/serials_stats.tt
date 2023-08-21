@@ -12,24 +12,29 @@
 </head>
 
 <body id="rep_serials_stats" class="rep">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Serials subscriptions stats
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% IF ( do_it ) %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/reports/serials_stats.pl">Serials subscriptions stats</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Results</span>
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Serials subscriptions stats</span>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -63,9 +68,9 @@
                     <td data-order="[% data.enddate | html %]">[% data.enddate | $KohaDates %]</td>
                     <td>
                         [% IF data.closed %]
-                            Closed
+                            <span>Closed</span>
                         [% ELSIF data.expired %]
-                            Expired
+                            <span>Expired</span>
                         [% END %]
                     </td>
                 </tr>
@@ -137,7 +142,7 @@
 	</fieldset>
 
 	<fieldset class="action">
-	<input type="submit" value="Submit" />
+    <input type="submit" class="btn btn-primary" value="Submit" />
 	<input type="hidden" name="report_name" value="[% report_name | html %]" />
 	<input type="hidden" name="do_it" value="1" />
 	</fieldset>

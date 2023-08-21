@@ -30,37 +30,36 @@ use Koha::MarcSubfieldStructures;
 use Business::ISBN;
 use Business::ISSN;
 use autouse 'Data::cselectall_arrayref' => qw(Dumper);
-use vars qw(@ISA @EXPORT @EXPORT_OK $DEBUG);
 
+our (@ISA, @EXPORT_OK);
 BEGIN {
-	require Exporter;
-	@ISA    = qw(Exporter);
-	@EXPORT = qw(
-        &GetItemTypesCategorized
-        &getallthemes
-        &getFacets
-        &getnbpages
-		&getitemtypeimagedir
-		&getitemtypeimagesrc
-		&getitemtypeimagelocation
-		&GetAuthorisedValues
-		&GetNormalizedUPC
-		&GetNormalizedISBN
-		&GetNormalizedISBN13
-		&GetNormalizedEAN
-		&GetNormalizedOCLCNumber
-        &xml_escape
+    require Exporter;
+    @ISA       = qw(Exporter);
+    @EXPORT_OK = qw(
+      GetItemTypesCategorized
+      getallthemes
+      getFacets
+      getImageSets
+      getnbpages
+      getitemtypeimagedir
+      getitemtypeimagesrc
+      getitemtypeimagelocation
+      GetAuthorisedValues
+      GetNormalizedUPC
+      GetNormalizedISBN
+      GetNormalizedISBN13
+      GetNormalizedEAN
+      GetNormalizedOCLCNumber
+      xml_escape
 
-        &GetVariationsOfISBN
-        &GetVariationsOfISBNs
-        &NormalizeISBN
-        &GetVariationsOfISSN
-        &GetVariationsOfISSNs
-        &NormalizeISSN
+      GetVariationsOfISBN
+      GetVariationsOfISBNs
+      NormalizeISBN
+      GetVariationsOfISSN
+      GetVariationsOfISSNs
+      NormalizeISSN
 
-		$DEBUG
-	);
-	$DEBUG = 0;
+    );
 }
 
 =head1 NAME
@@ -250,7 +249,6 @@ sub getImageSets {
     my @imagesets = (); # list of hasrefs of image set data to pass to template
     my @subdirectories = _getSubdirectoryNames( $paths->{'staff'}{'filesystem'} );
     foreach my $imagesubdir ( @subdirectories ) {
-    warn $imagesubdir if $DEBUG;
         my @imagelist     = (); # hashrefs of image info
         my @imagenames = _getImagesFromDirectory( File::Spec->catfile( $paths->{'staff'}{'filesystem'}, $imagesubdir ) );
         my $imagesetactive = 0;
@@ -304,12 +302,14 @@ sub getallthemes {
     else {
         $htdocs = C4::Context->config('opachtdocs');
     }
-    opendir D, "$htdocs";
-    my @dirlist = readdir D;
+    my $dir_h;
+    opendir $dir_h, "$htdocs";
+    my @dirlist = readdir $dir_h;
     foreach my $directory (@dirlist) {
         next if $directory eq 'lib';
         -d "$htdocs/$directory/en" and push @themes, $directory;
     }
+    close $dir_h;
     return @themes;
 }
 
@@ -497,10 +497,10 @@ C<$opac> If set to a true value, displays OPAC descriptions rather than normal o
 =cut
 
 sub GetAuthorisedValues {
-    my ( $category, $opac ) = @_;
+    my $category = shift // '';  # optional parameter
+    my $opac = shift ? 1 : 0;  # normalise to be safe
 
     # Is this cached already?
-    $opac = $opac ? 1 : 0;    # normalise to be safe
     my $branch_limit =
       C4::Context->userenv ? C4::Context->userenv->{"branch"} : "";
     my $cache_key =

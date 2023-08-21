@@ -5,11 +5,12 @@ use MARC::File::XML;
 use MARC::File::USMARC;
 
 use C4::AuthoritiesMarc;
-use C4::Biblio;
+use C4::Biblio qw( GetMarcFromKohaField );
 use C4::Record;
+use Koha::Biblios;
 use Koha::CsvProfiles;
 use Koha::Logger;
-use List::Util qw(all any);
+use List::Util qw( all any );
 
 sub _get_record_for_export {
     my ($params)           = @_;
@@ -120,15 +121,20 @@ sub _get_biblio_for_export {
     my $export_items = $params->{export_items} // 1;
     my $only_export_items_for_branches = $params->{only_export_items_for_branches};
 
-    my $record = eval { C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber }); };
+    my $biblio = Koha::Biblios->find($biblionumber);
+    my $record = eval { $biblio->metadata->record };
 
     return if $@ or not defined $record;
 
     if ($export_items) {
-        C4::Biblio::EmbedItemsInMarcBiblio({
-            marc_record  => $record,
-            biblionumber => $biblionumber,
-            item_numbers => $itemnumbers });
+        Koha::Biblio::Metadata->record(
+            {
+                record       => $record,
+                embed_items  => 1,
+                biblionumber => $biblionumber,
+                item_numbers => $itemnumbers,
+            }
+        );
         if ($only_export_items_for_branches && @$only_export_items_for_branches) {
             my %export_items_for_branches = map { $_ => 1 } @$only_export_items_for_branches;
             my ( $homebranchfield, $homebranchsubfield ) = GetMarcFromKohaField( 'items.homebranch' );

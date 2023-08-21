@@ -22,6 +22,8 @@
             [% IF rancor %]
                 function RancorReplaceField( new_text, ind_1, ind_2 ){
                     var cur_field = opener.opener.jQuery(".CodeMirror")[0].CodeMirror.marceditor.getCurrentField();
+                    // The new_text is entity-encoded and we want decoded text
+                    new_text = new DOMParser().parseFromString(new_text, 'text/html').body.innerText;
                     cur_field.setText(new_text);
                     [% IF update_ind1 %]cur_field.setIndicator1(ind_1);[% END %]
                     [% IF update_ind2 %]cur_field.setIndicator2(ind_2);[% END %]
@@ -110,7 +112,32 @@
                         i++;
                     });
                 }
+
+                function ReOrderSubField(){
+                    var isFirst=1;
+                    var subfield_start = $(field_start).children('ul')[0];
+                    var first = subfield_start.firstElementChild;
+
+                    [% FOREACH SUBFIELD IN SUBFIELD_LOOP %]
+                        // grab all subfields
+                        var subfield_name = "[% To.json(tag_number) | $raw %][% To.json(SUBFIELD.marc_subfield) | $raw %]"
+                        var re = new RegExp('^subfield' + subfield_name,'g');
+                        var subfields = $(subfield_start).children('li').filter( function() {return this.id.match(re); });
+                        for (var i=0; i<subfields.length; i++){
+                            var subfield = subfields[i];
+                            if (isFirst ==1){
+                                first = subfield_start.insertBefore(subfield, first);
+                                isFirst=0;
+                            }
+                            else{
+                                first = subfield_start.insertBefore(subfield, first.nextSibling);
+                            }
+                        }
+                    [% END %]
+                }
+
                 [% UNLESS ( clear ) %]
+                    ReOrderSubField()
                     [% FOREACH SUBFIELD_LOO IN SUBFIELD_LOOP %]
                         SetSubfieldValues(
                             "[% To.json(tag_number) | $raw %][% To.json(SUBFIELD_LOO.marc_subfield) | $raw %]"

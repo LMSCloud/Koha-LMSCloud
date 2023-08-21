@@ -22,8 +22,8 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use Koha::AuthorisedValues;
 
 =head1 DESCRIPTION
@@ -47,8 +47,9 @@ my $builder = sub {
     my ( $params ) = @_;
     my $res = qq{
     <script>
-        function Click$params->{id}() {
-                var code = document.getElementById('$params->{id}');
+        function Click$params->{id}(ev) {
+                ev.preventDefault();
+                var code = document.getElementById(ev.data.id);
                 \$.ajax({
                     url: '/cgi-bin/koha/cataloguing/plugin_launcher.pl',
                     type: 'POST',
@@ -57,7 +58,7 @@ my $builder = sub {
                         'code'    : code.value,
                     },
                     success: function(data){
-                        var field = document.getElementById('$params->{id}');
+                        var field = document.getElementById(ev.data.id);
                         field.value = data;
                         return 1;
                     }
@@ -79,7 +80,6 @@ my $launcher = sub {
             query           => $input,
             type            => "intranet",
             flagsrequired   => { editcatalogue => '*' },
-            debug           => 1,
         }
     );
 

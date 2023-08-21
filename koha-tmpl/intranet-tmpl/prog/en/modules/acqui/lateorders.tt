@@ -11,23 +11,20 @@
 </head>
 
 <body id="acq_lateorders" class="acq">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'acquisitions-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'acquisitions-search.inc' %]
+[% END %]
 
-
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">Late orders</a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Late orders</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -35,7 +32,7 @@
             <main>
 
 <h1>[% IF bookseller_filter %][% bookseller_filter.name | html %] : [% END %]Late orders</h1>
-<div id="acqui_lateorders">
+<div id="acqui_lateorders" class="page-section">
 
 [% IF error_claim %]
     [% IF ( error_claim == "no_email" ) %]
@@ -102,9 +99,20 @@
             <td data-order="[% lateorder.basket.closedate | html %]">
                 [% lateorder.basket.closedate | $KohaDates %] ([% lateorder.basket.late_since_days | html %] days)
             </td>
-            [% SET estimated_delivery_date = lateorder.get_column('estimated_delivery_date') %]
+            [% IF lateorder.get_column('estimated_delivery_date') %]
+                [% SET estimated_delivery_date = lateorder.get_column('estimated_delivery_date') %]
+            [% ELSIF lateorder.get_column('calculated_estimated_delivery_date') %]
+                [% SET estimated_delivery_date = lateorder.get_column('calculated_estimated_delivery_date') %]
+            [% END %]
             <td data-order="[% estimated_delivery_date | html %]">
-                [% estimated_delivery_date | $KohaDates  %]
+                <p class="delivery_date">
+                    <span>[% estimated_delivery_date | $KohaDates %]</span>
+                    [% IF CAN_user_acquisition_order_manage %]
+                        <a class="edit_delivery_date noExport" data-ordernumber="[% lateorder.ordernumber | html %]" data-delivery_date="[% estimated_delivery_date | html %]" id="delivery_date_[% lateorder.ordernumber | html %]" href="/cgi-bin/koha/acqui/moddeliverydate.pl?ordernumber=[% lateorder.ordernumber | html %]" title="Edit delivery date">
+                            <i class="fa fa-pencil"></i> Edit
+                        </a>
+                    [% END %]
+                </p>
             </td>
             <td>
                 [% lateorder.basket.bookseller.name | html %]
@@ -204,7 +212,7 @@
           <a class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></a>
           <ul class="dropdown-menu" id="export-csv-menu">
               <li><a href="#">Default</a></li>
-              [% IF csv_profiles %]
+              [% IF csv_profiles.count %]
                   [% FOR csv IN csv_profiles %]
                     <li><a href="#" data-value="[% csv.export_format_id | html %]">[% csv.profile | html %]</a></li>
                   [% END %]
@@ -232,11 +240,11 @@
 <ol>
     <li><label for="delay">Order date:</label><input size="3" maxlength="3" id="delay" type="text" name="delay" value="[% delay | html %]" /> days ago</li>
     <li><label for="from">Estimated delivery date from: </label>
-        <input type="text" size="10" id="from" name="estimateddeliverydatefrom" value="[% estimateddeliverydatefrom | html %]" class="datepickerfrom" />
+        <input type="text" size="10" id="from" name="estimateddeliverydatefrom" value="[% estimateddeliverydatefrom | html %]" class="flatpickr" data-date_to="to"/>
         <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
     </li>
     <li><label for="to">To: </label>
-        <input type="text" size="10" id="to" name="estimateddeliverydateto" value="[% estimateddeliverydateto | html %]" class="datepickerto" />
+        <input type="text" size="10" id="to" name="estimateddeliverydateto" value="[% estimateddeliverydateto | html %]" class="flatpickr" />
         <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
     </li>
 
@@ -252,8 +260,8 @@
             [% END %]
         </select>
 </ol>
-    <fieldset class="action"><input type="submit" value="Filter" /></fieldset>
 </fieldset>
+    <fieldset class="action"><input type="submit" class="btn btn-primary" value="Filter" /></fieldset>
     </form>
 [% INCLUDE 'acquisitions-menu.inc' %]
 </aside>
@@ -271,9 +279,33 @@
                 </div>
                 <div class="modal-body">
                 <textarea id="ordernotes" name="ordernotes" rows="3" cols="30" class="focus">[% ordernotes | html %]</textarea>
-                <input type="hidden" id="ordernumber" name="ordernumber" value="" />
+                <input type="hidden" id="notes_ordernumber" name="ordernumber" value="" />
                 <input type="hidden" name="op" value="save" />
                 <input type="hidden" id="type" name="type" value="" />
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-default">Save</button>
+                <button type="button" class="btn btn-link cancel" data-dismiss="modal">Cancel</button>
+            </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal for editing estimated delivery date -->
+<div class="modal" id="dateEditor" tabindex="-1" role="dialog" aria-labelledby="dateEditorLabel">
+    <div class="modal-dialog" role="document">
+        <form id="modify_estimated_delivery_date" action="/cgi-bin/koha/acqui/moddeliverydate.pl" method="post">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="dateEditorLabel">Estimated delivery date</h4>
+                </div>
+                <div class="modal-body">
+                <input type="text" id="estimated_delivery_date" size="10" name="estimated_delivery_date" class="flatpickr" value="[% estimated_delivery_date | html %]"/>
+                <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
+                <input type="hidden" id="date_ordernumber" name="ordernumber" value="" />
+                <input type="hidden" name="op" value="save" />
             </div>
             <div class="modal-footer">
                 <button type="submit" class="btn btn-default">Save</button>
@@ -303,7 +335,7 @@
 
         $(document).ready(function() {
 
-            var columns_settings = [% TablesSettings.GetColumns( 'acqui', 'lateorders', 'late_orders', 'json' ) | $raw %];
+            var table_settings = [% TablesSettings.GetTableSettings( 'acqui', 'lateorders', 'late_orders', 'json' ) | $raw %];
             late_orderst = KohaTable("late_orders", {
                 "sorting": [[ 1, "asc" ]],
                 "sPaginationType": "full",
@@ -314,7 +346,7 @@
                         $('input:checkbox[name=ordernumber]').bind('click', check_uncheck);
                     };
                 }
-            }, columns_settings );
+            }, table_settings );
             $('input:checkbox[name=ordernumber]').bind('click', check_uncheck);
             $('#CheckAll').click(function(e){
                 e.preventDefault();
@@ -352,10 +384,10 @@
                 e.preventDefault();
                 var ordernumber = $(this).data("ordernumber");
                 var note_type = $(this).data("note_type");
-                var modalTitle = $(this).attr("title") + " (order number " + ordernumber + ")";
+                var modalTitle = _("%s (order number %s)").format($(this).attr("title"), ordernumber);
                 var note_text = $( "#" + note_type + "-note-" + ordernumber ).html();
                 $("#noteEditor .modal-title").text(modalTitle);
-                $("#ordernumber").val( ordernumber );
+                $("#notes_ordernumber").val( ordernumber );
                 $("#ordernotes").html( note_text );
                 $("#type").val( note_type );
                 $("#noteEditor").modal("show");
@@ -366,8 +398,27 @@
                 $("#noteEditorLabel").html("");
                 $("#noteEditor .modal-title").text("");
                 $("#ordernotes").html( "" );
-                $("#ordernumber").val("");
+                $("#notes_ordernumber").val("");
                 $("#type").val("");
+            });
+
+            $(".edit_delivery_date").on("click", function(e) {
+                e.preventDefault();
+                var ordernumber = $(this).data("ordernumber");
+                var modalTitle = $(this).attr("title") + " (order number " + ordernumber + ")";
+                var delivery_date = $( "#delivery_date_" + ordernumber ).data("delivery_date");
+                const estimated_delivery_date = document.querySelector("#estimated_delivery_date")._flatpickr;
+                estimated_delivery_date.setDate( delivery_date );
+                $("#dateEditor .modal-title").text(modalTitle);
+                $("#date_ordernumber").val(ordernumber);
+                $("#dateEditor").modal("show");
+            });
+
+             $("#dateEditor").on('hidden.bs.modal', function (e) {
+                $("#dateEditorLabel").html("");
+                $("#dateEditor .modal-title").text("");
+                $("#estimated_delivery_date").html( "" );
+                $("#date_ordernumber").val("");
             });
         });
     </script>

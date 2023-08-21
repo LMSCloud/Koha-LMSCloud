@@ -24,11 +24,12 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use C4::Auth;
-use C4::Output;
-use C4::Members;
-use List::MoreUtils qw/any uniq/;
-use Koha::DateUtils;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_and_exit_if_error output_and_exit output_html_with_http_headers );
+use C4::Members qw( GetAllIssues );
+use List::MoreUtils qw( any uniq );
+use Koha::DateUtils qw( dt_from_string );
+use Koha::ActionLogs;
 
 use Koha::Patrons;
 use Koha::Patron::Categories;
@@ -39,7 +40,6 @@ my ($template, $loggedinuser, $cookie)= get_template_and_user({template_name => 
 				query => $input,
 				type => "intranet",
                 flagsrequired => {borrowers => 'edit_borrowers'},
-				debug => 1,
 				});
 
 my $op = $input->param('op') || '';
@@ -98,7 +98,7 @@ if (! $limit){
 $template->param(
     patron            => $patron,
     readingrecordview => 1,
-    loop_reading      => $issues,
+    loop_reading      => $issues
 );
 output_html_with_http_headers $input, $cookie, $template->output;
 

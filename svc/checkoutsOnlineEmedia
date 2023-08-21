@@ -22,9 +22,10 @@ use warnings;
 
 use CGI;
 use JSON qw(to_json);
+use Try::Tiny;
+use Data::Dumper;
 
 use C4::Auth qw(check_cookie_auth haspermission get_session);
-use C4::Biblio qw(GetMarcBiblio GetFrameworkCode);
 use C4::Context;
 use C4::Divibib::NCIPService;
 use C4::Items;
@@ -32,15 +33,20 @@ use C4::Items;
 use Koha::DateUtils;
 use Koha::Libraries;
 use Koha::ItemTypes;
+use Koha::Biblios;
 
 my $input = new CGI;
 
-my ( $auth_status, $sessionID ) = check_cookie_auth( $input->cookie('CGISESSID'));
-my $session = get_session($sessionID);
+my ( $auth_status, $session ) = check_cookie_auth( $input->cookie('CGISESSID'));
+if( $auth_status ne 'ok' ) {
+    print CGI::header( '-status' => '401' );
+    exit 0;
+}
+
 my $userid = $session->param('id');
 
 unless (haspermission($userid, { circulate => 'circulate_remaining_permissions' })
-    || haspermission($userid, { borrowers => '*' })) {
+    || haspermission($userid, { borrowers => 'edit_borrowers' })) {
     exit 0;
 }
 
@@ -61,75 +67,80 @@ $results_per_page = undef if ( $results_per_page == -1 );
 binmode STDOUT, ":encoding(UTF-8)";
 print $input->header( -type => 'text/plain', -charset => 'UTF-8' );
 
-
-my $divibib_issues = [];
-if (C4::Context->preference('DivibibEnabled')) {
-    my $service = C4::Divibib::NCIPService->new();
-    $divibib_issues = $service->getPendingIssues($borrowernumber[0]);
-}
-
 my @checkouts = ();
-my $item_level_itypes = C4::Context->preference('item-level_itypes');
-my %branches = map { $_->branchcode => $_->branchname } Koha::Libraries->search({}, { order_by => 'branchname' });    # load the branches
 
-foreach my $c ( @{$divibib_issues} ) {
+try {
 
-    # read dummy items record of divibib title
-    my @all_items = GetItemsInfo( $c->{biblionumber} );
-    my $item;
-    if ( scalar @all_items  >= 1) {
-        $item = $all_items[0];
-    } else {
-        $item = {};
-    }
+	my $divibib_issues = [];
+	if (C4::Context->preference('DivibibEnabled')) {
+		my $service = C4::Divibib::NCIPService->new();
+		$divibib_issues = $service->getPendingIssues($borrowernumber[0]);
+	}
 
-    my $itemtype = Koha::ItemTypes->find($item_level_itypes ? $item->{itype} : lc($c->{itemtype}));
-    my $checkout = {
-        DT_RowId             => ($c->{itemnumber} ? $c->{itemnumber} : '') . '-' . ( $c->{borrowernumber} ? $c->{borrowernumber} : ''),
-        title                => $c->{title},
-        author               => $c->{author},
-        barcode              => ( $item->{barcode} ? $item->{barcode} : $c->{barcode} ),    # $c->{barcode} contains the Onleihe itemtype
-        itemtype             => ( $item_level_itypes ? $item->{itype} : lc($c->{itemtype})),
-        itemtype_description => ( $itemtype ? $itemtype->translated_description : '' ),
-        itemnotes            => $item->{itemnotes},
-        itemnotes_nonpublic  => $item->{itemnotes_nonpublic},
-        branchname           => ( defined($item->{homebranch}) && defined($branches{$item->{homebranch}}) ? $branches{$item->{homebranch}} : ''),
-        branchcode           => $item->{homebranch},
-        itemnumber          => $item->{itemnumber},
-        borrowernumber      => $c->{borrowernumber},
-        biblionumber        => $c->{biblionumber},
-        issuedate           => output_pref({ dt => $c->{issuedate}, dateformat => 'sql' }),
-        date_due            => output_pref({ dt => $c->{date_due}, dateformat => 'sql' }),
-        date_due_overdue    => $c->{overdue} ? JSON::true : JSON::false,
-        onsite_checkout     => $c->{onsite_checkout},
-        issuedate_formatted => output_pref(
-            {
-                dt          => dt_from_string( output_pref({ dt => $c->{issuedate}, dateformat => 'sql' }) ),
-                dateonly => 1,
-                as_due_date => 1
-            }
-        ),
-        date_due_formatted => output_pref(
-            {
-                dt          => dt_from_string( output_pref({ dt => $c->{date_due}, dateformat => 'sql' }) ),
-                dateonly => 1,
-                as_due_date => 1
-            }
-        ),
-    };
+	my $item_level_itypes = C4::Context->preference('item-level_itypes');
+	my %branches = map { $_->branchcode => $_->branchname } Koha::Libraries->search({}, { order_by => 'branchname' })->as_list;    # load the branches
 
-    push( @checkouts, $checkout );
-}
+	foreach my $c ( @{$divibib_issues} ) {
+
+		# read dummy items record of divibib title
+		my $biblio = Koha::Biblios->find( $c->{biblionumber} );
+		my $items = $biblio->items->search_ordered;
+		my $item;
+		if ( $items->count  >= 1) {
+			$item = $items->next->unblessed;
+		} else {
+			$item = {};
+		}
+
+		my $itemtype = Koha::ItemTypes->find($item_level_itypes ? $item->{itype} : lc($c->{itemtype}));
+		my $checkout = {
+			DT_RowId             => ($c->{itemnumber} ? $c->{itemnumber} : '') . '-' . ( $c->{borrowernumber} ? $c->{borrowernumber} : ''),
+			title                => $c->{title},
+			author               => $c->{author},
+			barcode              => ( $item->{barcode} ? $item->{barcode} : $c->{barcode} ),    # $c->{barcode} contains the Onleihe itemtype
+			itemtype             => ( $item_level_itypes ? $item->{itype} : lc($c->{itemtype})),
+			itemtype_description => ( $itemtype ? $itemtype->translated_description : '' ),
+			itemnotes            => $item->{itemnotes},
+			itemnotes_nonpublic  => $item->{itemnotes_nonpublic},
+			branchname           => ( defined($item->{homebranch}) && defined($branches{$item->{homebranch}}) ? $branches{$item->{homebranch}} : ''),
+			branchcode           => $item->{homebranch},
+			itemnumber          => $item->{itemnumber},
+			borrowernumber      => $c->{borrowernumber},
+			biblionumber        => $c->{biblionumber},
+			issuedate           => output_pref({ dt => $c->{issuedate}, dateformat => 'sql' }),
+			date_due            => output_pref({ dt => $c->{date_due}, dateformat => 'sql' }),
+			date_due_overdue    => $c->{overdue} ? JSON::true : JSON::false,
+			onsite_checkout     => $c->{onsite_checkout},
+			issuedate_formatted => output_pref(
+				{
+					dt          => dt_from_string( output_pref({ dt => $c->{issuedate}, dateformat => 'sql' }) ),
+					dateonly => 1,
+					as_due_date => 1
+				}
+			),
+			date_due_formatted => output_pref(
+				{
+					dt          => dt_from_string( output_pref({ dt => $c->{date_due}, dateformat => 'sql' }) ),
+					dateonly => 1,
+					as_due_date => 1
+				}
+			),
+		};
+
+		push( @checkouts, $checkout );
+	}
 
 
-@checkouts = sort { $a->{timestamp} cmp $b->{timestamp} } @checkouts;
-@checkouts = reverse(@checkouts)
-  unless ( C4::Context->preference('previousIssuesDefaultSortOrder') eq 'desc' );
+	@checkouts = sort { $a->{timestamp} cmp $b->{timestamp} } @checkouts;
+	@checkouts = reverse(@checkouts)
+	unless ( C4::Context->preference('previousIssuesDefaultSortOrder') eq 'desc' );
 
-my $i = 1;
-map { $_->{sort_order} = $i++ } @checkouts;
-
-
+	my $i = 1;
+	map { $_->{sort_order} = $i++ } @checkouts;
+} catch {
+	$_->rethrow;
+};
+	
 my $data;
 $data->{'iTotalRecords'}        = scalar @checkouts;
 $data->{'iTotalDisplayRecords'} = scalar @checkouts;

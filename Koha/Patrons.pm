@@ -20,17 +20,14 @@ package Koha::Patrons;
 
 use Modern::Perl;
 
-use Carp;
 
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 
 use Koha::ArticleRequests;
-use Koha::ArticleRequest::Status;
 use Koha::Patron;
 use Koha::Exceptions::Patron;
 use Koha::Patron::Categories;
-use Date::Calc qw( Today Add_Delta_YMD );
 
 use base qw(Koha::Objects);
 
@@ -161,45 +158,6 @@ sub search_patrons_to_anonymise {
     return Koha::Patrons->_new_from_dbic($rs);
 }
 
-=head3 anonymise_issue_history
-
-    Koha::Patrons->search->anonymise_issue_history( { [ before => $older_than_date ] } );
-
-Anonymise issue history (old_issues) for all patrons older than the given date (optional).
-To make sure all the conditions are met, the caller has the responsibility to
-call search_patrons_to_anonymise to filter the Koha::Patrons set
-
-=cut
-
-sub anonymise_issue_history {
-    my ( $self, $params ) = @_;
-
-    my $older_than_date = $params->{before};
-
-    $older_than_date = dt_from_string $older_than_date if $older_than_date;
-
-    # The default of 0 does not work due to foreign key constraints
-    # The anonymisation should not fail quietly if AnonymousPatron is not a valid entry
-    # Set it to undef (NULL)
-    my $dtf = Koha::Database->new->schema->storage->datetime_parser;
-    my $nb_rows = 0;
-    while ( my $patron = $self->next ) {
-        my $old_issues_to_anonymise = $patron->old_checkouts->search(
-        {
-            (
-                $older_than_date
-                ? ( returndate =>
-                      { '<' => $dtf->format_datetime($older_than_date) } )
-                : ()
-            )
-        }
-        );
-        my $anonymous_patron = C4::Context->preference('AnonymousPatron') || undef;
-        $nb_rows += $old_issues_to_anonymise->update( { 'old_issues.borrowernumber' => $anonymous_patron } );
-    }
-    return $nb_rows;
-}
-
 =head3 delete
 
     Koha::Patrons->search({ some filters here })->delete({ move => 1 });
@@ -279,6 +237,7 @@ sub search_unsubscribed {
     return $class->search(
         {
             'patron_consents.refused_on' => { '<=' => $str },
+            'patron_consents.type' => 'GDPR_PROCESSING',
             'login_attempts' => $cond,
         },
         { join => 'patron_consents' },
@@ -489,6 +448,130 @@ sub filter_by_attribute_value {
     return Koha::Patrons->_new_from_dbic($rs);
 }
 
+=head3 filter_by_amount_owed
+
+    Koha::Patrons->filter_by_amount_owed(
+        {
+            less_than  => '2.00',
+            more_than  => '0.50',
+            debit_type => $debit_type_code,
+            library    => $branchcode
+        }
+    );
+
+Returns patrons filtered by how much money they owe, between passed limits.
+
+Optionally limit to debts of a particular debit_type or/and owed to a particular library.
+
+=head4 arguments hashref
+
+=over 4
+
+=item less_than (optional)  - filter out patrons who owe less than Amount
+
+=item more_than (optional)  - filter out patrons who owe more than Amount
+
+=item debit_type (optional) - filter the amount owed by debit type
+
+=item library (optional)    - filter the amount owed to a particular branch
+
+=back
+
+=cut
+
+sub filter_by_amount_owed {
+    my ( $self, $options ) = @_;
+
+    return $self
+      unless (
+        defined($options)
+        && (   defined( $options->{less_than} )
+            || defined( $options->{more_than} ) )
+      );
+
+    my $where = {};
+    my $group_by =
+      [ map { 'me.' . $_ } $self->_resultset->result_source->columns ];
+
+    my $attrs = {
+        join     => 'accountlines',
+        group_by => $group_by,
+        '+select' =>
+          { sum => 'accountlines.amountoutstanding', '-as' => 'outstanding' },
+        '+as' => 'outstanding'
+    };
+
+    $where->{'accountlines.debit_type_code'} = $options->{debit_type}
+      if defined( $options->{debit_type} );
+
+    $where->{'accountlines.branchcode'} = $options->{library}
+      if defined( $options->{library} );
+
+    $attrs->{'having'} = [
+        { 'outstanding' => { '<' => $options->{less_than} } },
+        { 'outstanding' => undef }
+      ]
+      if ( defined( $options->{less_than} )
+        && !defined( $options->{more_than} ) );
+
+    $attrs->{'having'} = { 'outstanding' => { '>' => $options->{more_than} } }
+      if (!defined( $options->{less_than} )
+        && defined( $options->{more_than} ) );
+
+    $attrs->{'having'}->{'-and'} = [
+        { 'outstanding' => { '>' => $options->{more_than} } },
+        { 'outstanding' => { '<' => $options->{less_than} } }
+      ]
+      if ( defined( $options->{less_than} )
+        && defined( $options->{more_than} ) );
+
+    return $self->search( $where, $attrs );
+}
+
+=head3 filter_by_have_permission
+
+    my $patrons = Koha::Patrons->search->filter_by_have_permission('suggestions.suggestions_manage');
+
+    my $patrons = Koha::Patrons->search->filter_by_have_permission('suggestions');
+
+Filter patrons who have a given subpermission or the whole permission.
+
+=cut
+
+sub filter_by_have_permission {
+    my ($self, $subpermission) = @_;
+
+    my ($p, $sp) = split '\.', $subpermission;
+
+    my $perm = Koha::Database->new()->schema()->resultset('Userflag')->find({flag => $p});
+
+    Koha::Exceptions::ObjectNotFound->throw( sprintf( "Permission %s not found", $p ) )
+      unless $perm;
+
+    my $bit = $perm->bit;
+
+    return $self->search(
+        {
+            -and => [
+                -or => [
+                    \"me.flags & (1 << $bit)",
+                    { 'me.flags' => 1 },
+                    (
+                        $sp
+                        ? {
+                            -and => [
+                                { 'user_permissions.module_bit' => $bit },
+                                { 'user_permissions.code'       => $sp }
+                            ]
+                          }
+                        : ()
+                    )
+                ]
+            ]
+        },
+        { prefetch => 'user_permissions' }
+    );
+}
 
 =head3 _type
 

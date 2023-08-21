@@ -2,27 +2,24 @@
 [% USE Asset %]
 [% USE KohaDates %]
 [% USE Koha %]
+[% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Serials [% biblionumber | html %] &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="ser_serials-home" class="ser">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'serials-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'serials-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Serials
-            </a>
-        </li>
-    </ol>
-</nav>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            Serials
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -31,6 +28,8 @@
 
       [% INCLUDE 'serials-toolbar.inc' %]
 
+            <h1>Serials</h1>
+                [% INCLUDE 'serials-advsearch.inc' %]
             </main>
         </div> <!-- /.col-sm-10.col-sm-push-2 -->
 
@@ -43,6 +42,7 @@
 </div>
 
 [% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
     [% Asset.js("js/serials-toolbar.js") | $raw %]
     <script>
         var subscriptionid = "[% subscriptionid | html %]";

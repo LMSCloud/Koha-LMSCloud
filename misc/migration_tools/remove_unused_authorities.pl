@@ -24,8 +24,8 @@ use Modern::Perl;
 
 use Koha::Script;
 use C4::Context;
-use C4::AuthoritiesMarc;
-use Getopt::Long;
+use C4::AuthoritiesMarc qw( DelAuthority );
+use Getopt::Long qw( GetOptions );
 
 use Koha::SearchEngine::Search;
 

@@ -19,19 +19,19 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use C4::AuthoritiesMarc;
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( pagination_bar output_html_with_http_headers );
 use CGI qw ( -utf8 );
 use C4::Search;
-use MARC::Record;
-use C4::Koha;
+use C4::Koha qw( getnbpages );
+use C4::AuthoritiesMarc qw( GetAuthority SearchAuthorities );
 
 ###TODO To rewrite in order to use SearchAuthorities
 
 sub plugin_javascript {
-my ($dbh,$record,$tagslib,$field_number,$tabloop) = @_;
+my ($dbh,$record,$tagslib,$field_number) = @_;
 my $function_name= $field_number;
 #---- build editors list.
 #---- the editor list is built from the "EDITORS" thesaurus
@@ -43,9 +43,10 @@ my $function_name= $field_number;
 
 my $res  = "
 <script>
-function Clic$function_name(subfield_managed) {
-    defaultvalue=escape(document.getElementById(\"$field_number\").value);
-    newin=window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_210c.pl&index=\"+subfield_managed,\"unimarc_225a\",'width=500,height=600,toolbar=false,scrollbars=yes');
+function Clic$function_name(event) {
+    event.preventDefault();
+    defaultvalue=escape(document.getElementById(event.data.id).value);
+    newin=window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_210c.pl&index=\" + event.data.id, \"unimarc_225a\",'width=500,height=600,toolbar=false,scrollbars=yes');
 }
 </script>
 ";
@@ -95,7 +96,6 @@ my ($input) = @_;
                     query => $query,
                     type => 'intranet',
                     flagsrequired => {editcatalogue => '*'},
-                    debug => 1,
                     });
 
         # Results displayed in current page
@@ -125,7 +125,6 @@ my ($input) = @_;
                     query => $query,
                     type => 'intranet',
                     flagsrequired => {editcatalogue => '*'},
-                    debug => 1,
                     });
 
         $template->param(index => $index,

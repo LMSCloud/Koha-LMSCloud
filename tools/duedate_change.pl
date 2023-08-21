@@ -21,13 +21,14 @@ use strict;
 use warnings;
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Output;
-use C4::Auth;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
 use C4::Koha;
-use C4::Circulation;
+use C4::Circulation qw( SetDueDateOfItems );
 use Koha::Libraries;
+use Koha::Library::Groups;
 use Koha::Checkouts;
-use Koha::DateUtils;
+use Koha::DateUtils qw ( output_pref dt_from_string );
 
 my $input = new CGI;
 my $dbh = C4::Context->dbh;
@@ -107,16 +108,8 @@ if ($op eq 'select') {
 ########################################
 #  Read library groups
 ########################################
-my @search_groups = Koha::Library::Groups->get_search_groups( { interface => 'staff' }, );
+my @search_groups = Koha::Library::Groups->get_search_groups( { interface => 'staff' } )->as_list;
 @search_groups = sort { $a->title cmp $b->title } @search_groups;
-
-
-
-########################################
-#  Read message transport types
-########################################
-my @line_loop;
-my $message_transport_types = C4::Letters::GetMessageTransportTypes();
 
 
 ########################################

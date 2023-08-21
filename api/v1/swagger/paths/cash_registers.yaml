@@ -1,0 +1,107 @@
+---
+"/cash_registers/{cash_register_id}/cashups":
+  get:
+    x-mojo-to: CashRegisters::Cashups#list
+    operationId: listCashups
+    tags:
+      - cashups
+    summary: List cashups for the cash register
+    produces:
+      - application/json
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/cash_register_id_pp"
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - $ref: "../swagger.yaml#/parameters/q_header"
+      - $ref: "../swagger.yaml#/parameters/request_id_header"
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - manager
+        collectionFormat: csv
+    responses:
+      "200":
+        description: Cashups performed on this register
+        schema:
+          type: array
+          items:
+            $ref: "../swagger.yaml#/definitions/cashup"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Register not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        cash_management: cashup
+"/cashups/{cashup_id}":
+  get:
+    x-mojo-to: CashRegisters::Cashups#get
+    operationId: getCashup
+    tags:
+      - cashups
+    summary: Get cashup
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/cashup_id_pp"
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - summary
+        collectionFormat: csv
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: A cashup
+        schema:
+          $ref: "../swagger.yaml#/definitions/cashup"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Patron not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        cash_management: cashup

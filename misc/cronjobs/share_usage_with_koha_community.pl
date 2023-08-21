@@ -2,14 +2,16 @@
 
 use Modern::Perl;
 
-use Pod::Usage;
-use Getopt::Long;
+use Pod::Usage qw( pod2usage );
+use Getopt::Long qw( GetOptions );
 
 use Koha::Script -cron;
 use C4::Context;
 use C4::UsageStats;
-use C4::Log;
-use POSIX qw(strftime);
+use C4::Log qw( cronlogaction );
+use POSIX qw( strftime );
+
+my $command_line_options = join(" ",@ARGV);
 
 my ( $help, $verbose, $force, $quiet );
 GetOptions(
@@ -36,7 +38,7 @@ Setting the quiet flag will silence this message.
     exit 1;
 }
 
-cronlogaction();
+cronlogaction({ info => $command_line_options });
 
 my $need_update = ($force ? 1 : C4::UsageStats::NeedUpdate() );
 
@@ -50,6 +52,8 @@ if ($need_update) {
 elsif ($verbose) {
     say "Data don't need to be updated";
 }
+
+cronlogaction({ action => 'End', info => "COMPLETED" });
 
 =head1 NAME
 

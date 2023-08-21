@@ -18,8 +18,9 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use C4::Output;
-use C4::Auth;
+use Encode qw( encode_utf8 );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
 use CGI qw ( -utf8 );
 use C4::Context;
 
@@ -44,7 +45,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { parameters => 'manage_marc_frameworks' },
-        debug           => 1,
     }
 );
 my $cache = Koha::Caches->get_instance();
@@ -98,11 +98,10 @@ if ( $op eq 'add_form' ) {
     $sth2->finish;
     $sth2 = $dbh->prepare("select distinct category from authorised_values");
     $sth2->execute;
-    my @av_cat = Koha::AuthorisedValueCategories->search;
-    my @authorised_values = map { $_->category_name } @av_cat;
+    my @authorised_values= Koha::AuthorisedValueCategories->search->get_column('category_name');
 
     # build thesaurus categories list
-    my @authtypes = uniq( "", map { $_->authtypecode } Koha::Authority::Types->search );
+    my @authtypes = uniq( "", map { $_->authtypecode } Koha::Authority::Types->search->as_list );
 
     # build value_builder list
     my @value_builder = ('');
@@ -112,19 +111,20 @@ if ( $op eq 'add_form' ) {
     # on a standard install, /cgi-bin need to be added.
     # test one, then the other
     my $cgidir = C4::Context->config('intranetdir') . "/cgi-bin";
-    unless ( opendir( DIR, "$cgidir/cataloguing/value_builder" ) ) {
+    my $dir_h;
+    unless ( opendir( $dir_h, "$cgidir/cataloguing/value_builder" ) ) {
         $cgidir = C4::Context->config('intranetdir');
-        opendir( DIR, "$cgidir/cataloguing/value_builder" )
+        opendir( $dir_h, "$cgidir/cataloguing/value_builder" )
           || die "can't opendir $cgidir/value_builder: $!";
     }
-    while ( my $line = readdir(DIR) ) {
+    while ( my $line = readdir($dir_h) ) {
         if ( $line =~ /\.pl$/ &&
              $line !~ /EXAMPLE\.pl$/ ) { # documentation purposes
             push( @value_builder, $line );
         }
     }
     @value_builder= sort {$a cmp $b} @value_builder;
-    closedir DIR;
+    closedir $dir_h;
 
     # build values list
     my $mss = Koha::MarcSubfieldStructures->search(
@@ -201,6 +201,7 @@ if ( $op eq 'add_form' ) {
     $template->param(
         action   => "Edit subfields",
         tagfield => $tagfield,
+        tagsubfield => $tagsubfield,
         loop           => \@loop_data,
         more_tag       => $tagfield
     );
@@ -212,42 +213,31 @@ if ( $op eq 'add_form' ) {
 elsif ( $op eq 'add_validate' ) {
     my $dbh = C4::Context->dbh;
     $template->param( tagfield => "$input->param('tagfield')" );
-    my @tagsubfield       = $input->multi_param('tagsubfield');
-    my @liblibrarian      = $input->multi_param('liblibrarian');
-    my @libopac           = $input->multi_param('libopac');
-    my @kohafield         = $input->multi_param('kohafield');
-    my @tab               = $input->multi_param('tab');
-    my @seealso           = $input->multi_param('seealso');
-    my @hidden            = $input->multi_param('hidden');
-    my @authorised_values = $input->multi_param('authorised_value');
-    my @authtypecodes     = $input->multi_param('authtypecode');
-    my @value_builder     = $input->multi_param('value_builder');
-    my @link              = $input->multi_param('link');
-    my @defaultvalue      = $input->multi_param('defaultvalue');
-    my @maxlength         = $input->multi_param('maxlength');
+    my $tagfield    = $input->param('tagfield');
+    my @tagsubfield = $input->multi_param('tagsubfield');
+    my @tab_ids     = $input->multi_param('tab_id');
 
     my $display_order;
-    for ( my $i = 0 ; $i <= $#tagsubfield ; $i++ ) {
-        my $tagfield    = $input->param('tagfield');
-        my $tagsubfield = $tagsubfield[$i];
+    for my $tagsubfield ( @tagsubfield ) {
         $tagsubfield = "@" unless $tagsubfield ne '';
-        my $liblibrarian     = $liblibrarian[$i];
-        my $libopac          = $libopac[$i];
-        my $repeatable       = $input->param("repeatable$i") ? 1 : 0;
-        my $mandatory        = $input->param("mandatory$i") ? 1 : 0;
-        my $important        = $input->param("important$i") ? 1 : 0;
-        my $kohafield        = $kohafield[$i];
-        my $tab              = $tab[$i];
-        my $seealso          = $seealso[$i];
-        my $authorised_value = $authorised_values[$i];
-        my $authtypecode     = $authtypecodes[$i];
-        my $value_builder    = $value_builder[$i];
-        my $hidden = $hidden[$i];                     #input->param("hidden$i");
-        my $isurl  = $input->param("isurl$i") ? 1 : 0;
-        my $link   = $link[$i];
-        my $defaultvalue = $defaultvalue[$i];
-        my $maxlength = $maxlength[$i] ? $maxlength[$i] : 9999;
-        
+        my $id = shift @tab_ids;
+        my $liblibrarian     = $input->param("liblibrarian_$id");
+        my $libopac          = $input->param("libopac_$id");
+        my $repeatable       = $input->param("repeatable_$id") ? 1 : 0;
+        my $mandatory        = $input->param("mandatory_$id") ? 1 : 0;
+        my $important        = $input->param("important_$id") ? 1 : 0;
+        my $kohafield        = $input->param("kohafield_$id");
+        my $tab              = $input->param("tab_$id");
+        my $seealso          = $input->param("seealso_$id");
+        my $authorised_value = $input->param("authorised_value_$id");
+        my $authtypecode     = $input->param("authtypecode_$id");
+        my $value_builder    = $input->param("value_builder_$id");
+        my $hidden = $input->param("hidden_$id");
+        my $isurl  = $input->param("isurl_$id") ? 1 : 0;
+        my $link   = $input->param("link_$id");
+        my $defaultvalue = $input->param("defaultvalue_$id");
+        my $maxlength = $input->param("maxlength_$id") || 9999;
+
         if (defined($liblibrarian) && $liblibrarian ne "") {
             my $mss = Koha::MarcSubfieldStructures->find({tagfield => $tagfield, tagsubfield => $tagsubfield, frameworkcode => $frameworkcode });
             if ($mss) {
@@ -308,8 +298,8 @@ elsif ( $op eq 'add_validate' ) {
     }
     $cache->clear_from_cache("MarcStructure-0-$frameworkcode");
     $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
-    $cache->clear_from_cache("default_value_for_mod_marc-");
     $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
+    $cache->clear_from_cache("MarcCodedFields-$frameworkcode");
 
     print $input->redirect("/cgi-bin/koha/admin/marc_subfields_structure.pl?tagfield=$tagfield&amp;frameworkcode=$frameworkcode");
     exit;
@@ -346,8 +336,8 @@ elsif ( $op eq 'delete_confirmed' ) {
 
     $cache->clear_from_cache("MarcStructure-0-$frameworkcode");
     $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
-    $cache->clear_from_cache("default_value_for_mod_marc-");
     $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
+    $cache->clear_from_cache("MarcCodedFields-$frameworkcode");
     print $input->redirect("/cgi-bin/koha/admin/marc_subfields_structure.pl?tagfield=$tagfield&amp;frameworkcode=$frameworkcode");
     exit;
 

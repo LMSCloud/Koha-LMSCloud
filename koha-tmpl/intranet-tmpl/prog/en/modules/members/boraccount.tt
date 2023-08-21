@@ -19,24 +19,23 @@
 </head>
 
 <body id="pat_borraccount" class="pat">
-[% INCLUDE 'header.inc' %]
-[% PROCESS 'patron-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'patron-search-header.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Account for [% INCLUDE 'patron-title.inc' %]
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber | uri %]">[% INCLUDE 'patron-title.inc' %]</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Account</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -44,17 +43,31 @@
             <main>
 
 [% INCLUDE 'members-toolbar.inc' %]
+<h1>Account for [% INCLUDE 'patron-title.inc' %]</h1>
 <form action="/cgi-bin/koha/members/boraccount.pl" method="get"><input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber | html %]" /></form>
 
 <!-- The manual invoice and credit buttons -->
-<div class="statictabs">
-<ul>
-    <li class="active"><a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | uri %]">Transactions</a></li>
-    <li><a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber | uri %]" >Make a payment</a></li>
-    <li><a href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% patron.borrowernumber | uri %]" >Create manual invoice</a></li>
-    <li><a href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% patron.borrowernumber | uri %]" >Create manual credit</a></li>
-</ul>
-<div class="tabs-container">
+<div class="toptabs">
+    <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="transactions active">
+            <a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Transactions</a>
+        </li>
+        <li role="presentation" class="makepayment">
+            <a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Make a payment</a>
+        </li>
+        [% IF CAN_user_updatecharges_manual_invoice %]
+            <li role="presentation" class="manualinvoice">
+                <a href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual invoice</a>
+            </li>
+        [% END %]
+        [% IF CAN_user_updatecharges_manual_credit %]
+            <li role="presentation" class="manualcredit">
+                <a href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual credit</a>
+            </li>
+        [% END %]
+    </ul> <!-- /.nav.nav-tabs -->
+    <div class="tab-content">
+        <div role="tabpanel" class="tab-pane active">
 [% INCLUDE 'renew_results.inc' renew_results=renew_results %]
 <!-- The table with the account items -->
 <table id="table_account_fines">
@@ -105,16 +118,16 @@
       [% IF account.amountoutstanding <= 0 %]<td class="credit" style="text-align: right;">[% ELSE %]<td class="debit" style="text-align: right;">[% END %][% account.amountoutstanding | $Price %]</td>
       <td class="actions">
         [% IF ( account.is_credit ) %]
-          <a target="_blank" href="printfeercpt.pl?action=print&amp;accountlines_id=[% account.accountlines_id | uri %]" class="btn btn-default btn-xs"><i class="fa fa-print"></i> Print</a>
+          <a target="_blank" href="printfeercpt.pl?action=print&amp;accountlines_id=[% account.accountlines_id | uri %]" class="btn btn-default btn-xs receipt-print-action"><i class="fa fa-print"></i> Print</a>
         [% ELSE %]
-          <a target="_blank" href="printinvoice.pl?action=print&amp;accountlines_id=[% account.accountlines_id | uri %]" class="btn btn-default btn-xs"><i class="fa fa-print"></i> Print</a>
+          <a target="_blank" href="printinvoice.pl?action=print&amp;accountlines_id=[% account.accountlines_id | uri %]" class="btn btn-default btn-xs invoice-print-action"><i class="fa fa-print"></i> Print</a>
         [% END %]
-        <a href="accountline-details.pl?accountlines_id=[% account.accountlines_id | uri %]" class="btn btn-default btn-xs"><i class="fa fa-list"></i> Details</a>
+        <a href="accountline-details.pl?accountlines_id=[% account.accountlines_id | uri %]" class="btn btn-default btn-xs details-action"><i class="fa fa-list"></i> Details</a>
         [% IF account.is_debit && account.amountoutstanding > 0 %]
           [% IF (checkCashRegisterFailed) %]
-            <a class="btn btn-default btn-xs" href="javascript:void(0)" disabled="disabled"><i class="fa fa-money"></i> Pay</a>
+            <a class="btn btn-default btn-xs pay-action" href="javascript:void(0)" disabled="disabled"><i class="fa fa-money"></i> Pay</a>
           [% ELSE %]
-            <a class="btn btn-default btn-xs" href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% account.borrowernumber | html %]&pay_individual=1&debit_type_code=[% account.debit_type_code | html %]&amount=[% account.amount | html %]&amountoutstanding=[% account.amountoutstanding | html %]&description=[% account.description | html %]&itemnumber=[% account.itemnumber | html %]&accountlines_id=[% account.accountlines_id | html %]"><i class="fa fa-money"></i> Pay</a>
+            <a class="btn btn-default btn-xs pay-action" href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% account.borrowernumber | html %]&pay_individual=1&debit_type_code=[% account.debit_type_code | html %]&amount=[% account.amount | html %]&amountoutstanding=[% account.amountoutstanding | html %]&description=[% account.description | html %]&itemnumber=[% account.itemnumber | html %]&accountlines_id=[% account.accountlines_id | html %]"><i class="fa fa-money"></i> Pay</a>
           [% END %]
         [% END %]
         [% IF account.is_credit && account.status != 'VOID' %]
@@ -123,14 +136,14 @@
               [% IF (checkCashRegisterFailed) %]
                 <a href="javascript:void(0)" class="btn btn-default btn-xs void" disabled="disabled"><i class="fa fa-ban"></i> Void payment</a>
               [% ELSE %]
-                <a href="boraccount.pl?action=void&amp;accountlines_id=[% account.accountlines_id | uri %]&amp;borrowernumber=[% account.borrowernumber | uri %]" class="btn btn-default btn-xs void"><i class="fa fa-ban"></i> Void payment</a>
+                <a href="boraccount.pl?action=void&amp;accountlines_id=[% account.accountlines_id | uri %]&amp;borrowernumber=[% account.borrowernumber | uri %]" class="btn btn-default btn-xs void-action"><i class="fa fa-ban"></i> Void payment</a>
               [% END %]
               -->
           [% ELSE %]
               [% IF (checkCashRegisterFailed) %]
                 <a href="javascript:void(0)" class="btn btn-default btn-xs void" disabled="disabled"><i class="fa fa-ban"></i> Void payment</a>
               [% ELSE %]
-                <a href="boraccount.pl?action=reverse&amp;accountlines_id=[% account.accountlines_id | uri %]&amp;borrowernumber=[% account.borrowernumber | uri %]&amp;refund_type=" class="btn btn-default btn-xs void"><i class="fa fa-ban"></i> Void payment</a>
+                <a href="boraccount.pl?action=reverse&amp;accountlines_id=[% account.accountlines_id | uri %]&amp;borrowernumber=[% account.borrowernumber | uri %]&amp;refund_type=" class="btn btn-default btn-xs void-action"><i class="fa fa-ban"></i> Void payment</a>
               [% END %]
           [% END %]
         [% END %]
@@ -139,7 +152,7 @@
             <input type="hidden" name="csrf_token" value="[% csrf_token | html %]">
             <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber | html %]">
             <input type="hidden" name="accountlines_id" value="[% account.accountlines_id | html %]">
-            <button type="submit" class="btn btn-default btn-xs">
+            <button type="submit" class="btn btn-default btn-xs cancel-action">
                 <i class="fa fa-ban"></i>
                 Cancel charge
             </button>
@@ -147,20 +160,20 @@
         [% END %]
         [% IF CAN_user_updatecharges_payout && account.is_credit && ( account.amountoutstanding < 0 ) %]
           [% IF (checkCashRegisterFailed) %]
-            <button type="button" class="btn btn-default btn-xs" disabled="disabled"><i class="fa fa-money"></i> Issue payout</button>
+            <button type="button" class="btn btn-default btn-xs payout-action" disabled="disabled"><i class="fa fa-money"></i> Issue payout</button>
           [% ELSE %]
-            <button type="button" data-toggle="modal" data-target="#issuePayoutModal" data-account="[%- PROCESS account_type_description account=account -%]" data-accountline="[% account.accountlines_id | html %]" data-amount="[% account.amountoutstanding %]" data-amount-formatted="[% account.amountoutstanding | $Price %]" class="btn btn-default btn-xs"><i class="fa fa-money"></i> Issue payout</button>
+            <button type="button" data-toggle="modal" data-target="#issuePayoutModal" data-account="[%- PROCESS account_type_description account=account -%]" data-accountline="[% account.accountlines_id | html %]" data-amount="[% account.amountoutstanding %]" data-amount-formatted="[% account.amountoutstanding | $Price %]" class="btn btn-default btn-xs payout-action"><i class="fa fa-money"></i> Issue payout</button>
           [% END %]
         [% END %]
         [% IF CAN_user_updatecharges_refund && account.is_debit && ( account.amountoutstanding != account.amount ) && !(account.status == 'REFUNDED' || account.status == 'CANCELLED') && (account.debit_type_code == 'VOID') && !(account.debit_type_code == 'PAYOUT') %]
           [% IF (checkCashRegisterFailed) %]
-            <button type="button"  class="btn btn-default btn-xs" disabled="disabled"><i class="fa fa-money"></i> Issue refund</button>
+            <button type="button"  class="btn btn-default btn-xs refund-action" disabled="disabled"><i class="fa fa-money"></i> Issue refund</button>
           [% ELSE %]
-            <button type="button"  class="btn btn-default btn-xs" data-toggle="modal" data-target="#issueRefundModal" data-item="[%- PROCESS account_type_description account=account -%]" data-accountline="[% account.accountlines_id | html %]" data-amount="[% account.amount %]" data-amountformatted="[% account.amount | $Price %]" data-amountoutstanding="[% account.amountoutstanding %]" data-amountoutstandingformatted="[% account.amountoutstanding | $Price %]" data-member="[% account.borrowernumber | html %]"><i class="fa fa-money"></i> Issue refund</button>
+            <button type="button"  class="btn btn-default btn-xs refund-action" data-toggle="modal" data-target="#issueRefundModal" data-item="[%- PROCESS account_type_description account=account -%]" data-accountline="[% account.accountlines_id | html %]" data-amount="[% account.amount %]" data-amountformatted="[% account.amount | $Price %]" data-amountoutstanding="[% account.amountoutstanding %]" data-amountoutstandingformatted="[% account.amountoutstanding | $Price %]" data-member="[% account.borrowernumber | html %]"><i class="fa fa-money"></i> Issue refund</button>
           [% END %]
         [% END %]
         [% IF CAN_user_updatecharges_discount && account.is_debit && ( account.amountoutstanding == account.amount ) && !(account.debit_type_code == 'PAYOUT') && !(account.debit_type_code == 'VOID') %]
-          <button type="button" data-toggle="modal" data-target="#applyDiscountModal" data-item="[%- PROCESS account_type_description account=account -%]" data-accountline="[% account.accountlines_id | html %]" data-amount="[% account.amount %]" data-amountformatted="[% account.amount | $Price %]" data-amountoutstanding="[% account.amountoutstanding %]" data-amountoutstandingformatted="[% account.amountoutstanding | $Price %]" class="btn btn-default btn-xs">Apply discount</button>
+          <button type="button" data-toggle="modal" data-target="#applyDiscountModal" data-item="[%- PROCESS account_type_description account=account -%]" data-accountline="[% account.accountlines_id | html %]" data-amount="[% account.amount %]" data-amountformatted="[% account.amount | $Price %]" data-amountoutstanding="[% account.amountoutstanding %]" data-amountoutstandingformatted="[% account.amountoutstanding | $Price %]" class="btn btn-default btn-xs discount-action">Apply discount</button>
         [% END %]
       </td>
     </tr>
@@ -173,7 +186,7 @@
         <td class="credit" style="text-align: right;">[% total | $Price %]</td>
         <td>
           [% IF CAN_user_updatecharges_payout && total < 0.0 %]
-          <button type="button" data-toggle="modal" data-target="#issuePayoutModal" data-amount="[% total %]" data-amount-formatted="[% total | $Price %]" class="btn btn-default btn-xs"><i class="fa fa-money"></i> Payout amount</button>
+          <button type="button" data-toggle="modal" data-target="#issuePayoutModal" data-amount="[% total %]" data-amount-formatted="[% total | $Price %]" class="btn btn-default btn-xs payout-amount-action"><i class="fa fa-money"></i> Payout amount</button>
           [% END %]
         </td>
     [% ELSE %]
@@ -189,8 +202,9 @@ Please open a cash register to reverse payments.
 </div>
 [% END %]
 
-</div>
-</div>
+</div> <!-- /.tab-pane -->
+</div> <!-- /.tab-content -->
+</div> <!-- /.toptabs -->
 
             </main>
         </div> <!-- /.col-sm-10.col-sm-push-2 -->
@@ -354,6 +368,7 @@ Please open a cash register to reverse payments.
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'format_price.inc' %]
     [% INCLUDE 'columns_settings.inc' %]
     [% INCLUDE 'str/members-menu.inc' %]
     [% Asset.js("js/members-menu.js") | $raw %]
@@ -365,12 +380,12 @@ Please open a cash register to reverse payments.
 
             var txtActivefilter = _("Filter paid transactions");
             var txtInactivefilter = _("Show all transactions");
-            var columns_settings = [% TablesSettings.GetColumns('members', 'fines', 'account-fines', 'json') | $raw %];
+            var table_settings = [% TablesSettings.GetTableSettings('members', 'fines', 'account-fines', 'json') | $raw %];
             var table_account_fines = KohaTable("table_account_fines", {
                 "sPaginationType": "full",
                 'aaSorting': [[0, 'desc']],
                 "sDom": 'C<"top pager"ilpfB><"#filter_c">tr<"bottom pager"ip>',
-            }, columns_settings);
+            }, table_settings);
             $("#filter_c").html('<p><a href="#" id="filter_transacs"><i class="fa fa-filter"></i> '+txtActivefilter+'</a>');
             $('#filter_transacs').click(function(e) {
                 e.preventDefault();
@@ -385,7 +400,7 @@ Please open a cash register to reverse payments.
                 $(this).toggleClass('filtered');
             });
 
-            $(".void").on("click",function(e){
+            $(".void-action").on("click",function(e){
                 if( confirm( _("Are you sure you want to void this credit?") ) ) {
                     return true;
                 } else {
@@ -413,7 +428,7 @@ Please open a cash register to reverse payments.
                 var amount = button.data('amount');
                 var amountoutstanding = button.data('amountoutstanding') || 0;
                 var paid = amount - amountoutstanding;
-                $("#paid + span").replaceWith(paid);
+                $("#paid + span").replaceWith(paid.format_price());
                 $("#returned").attr({ "value": paid, "max": paid, "min": 0 });
                 var member = button.data('member');
                 if ( member === '' ) {

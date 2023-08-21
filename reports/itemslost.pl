@@ -29,14 +29,11 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use Text::CSV_XS;
-use C4::Auth;
-use C4::Output;
-use C4::Biblio;
-use C4::Items;
-
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use Text::CSV::Encoded;
 use Koha::AuthorisedValues;
 use Koha::CsvProfiles;
-use Koha::DateUtils;
 
 my $query = CGI->new;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -45,7 +42,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $query,
         type            => "intranet",
         flagsrequired   => { reports => '*' },
-        debug           => 1,
     }
 );
 
@@ -64,7 +60,6 @@ if ( $op eq 'export' ) {
         my $csv_profile = Koha::CsvProfiles->find( $csv_profile_id );
         die "There is no valid csv profile given" unless $csv_profile;
 
-        my $csv = Text::CSV_XS->new({'quote_char'=>'"','escape_char'=>'"','sep_char'=>$csv_profile->csv_separator,'binary'=>1});
         my $csv_profile_content = $csv_profile->content;
         my ( @headers, @fields );
         while ( $csv_profile_content =~ /
@@ -93,11 +88,16 @@ if ( $op eq 'export' ) {
             }
             push @rows, \@row;
         }
-        my $content = join( $csv_profile->csv_separator, @headers ) . "\n";
+        my $delimiter = $csv_profile->csv_separator;
+        $delimiter = "\t" if $delimiter eq "\\t";
+
+        my $csv = Text::CSV::Encoded->new({ encoding_out => 'UTF-8', sep_char => $delimiter});
+        $csv or die "Text::CSV::Encoded->new({binary => 1}) FAILED: " . Text::CSV::Encoded->error_diag();
+        $csv->combine(@headers);
+        my $content .= Encode::decode('UTF-8', $csv->string()) . "\n";
         for my $row ( @rows ) {
             $csv->combine(@$row);
-            my $string = $csv->string;
-            $content .= $string . "\n";
+            $content .= $csv->string . "\n";
         }
         print $query->header(
             -type       => 'text/csv',

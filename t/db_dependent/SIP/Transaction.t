@@ -4,7 +4,7 @@
 # Current state is very rudimentary. Please help to extend it!
 
 use Modern::Perl;
-use Test::More tests => 12;
+use Test::More tests => 17;
 
 use Koha::Database;
 use t::lib::TestBuilder;
@@ -18,7 +18,7 @@ use C4::SIP::ILS::Transaction::Hold;
 use C4::SIP::ILS::Transaction::Checkout;
 use C4::SIP::ILS::Transaction::Checkin;
 
-use C4::Reserves;
+use C4::Reserves qw( AddReserve ModReserve ModReserveAffect RevertWaitingStatus );
 use Koha::CirculationRules;
 use Koha::Item::Transfer;
 use Koha::DateUtils qw( dt_from_string output_pref );
@@ -212,7 +212,14 @@ subtest cancel_hold => sub {
 subtest do_hold => sub {
     plan tests => 8;
 
-    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $library = $builder->build_object(
+        {
+            class => 'Koha::Libraries',
+            value => {
+                pickup_location => 1
+            }
+        }
+    );
     my $patron_1 = $builder->build_object(
         {
             class => 'Koha::Patrons',
@@ -269,6 +276,61 @@ subtest do_hold => sub {
     my $THE_hold = $patron_2->holds->next;
     is( $THE_hold->priority, 2, 'Hold placed from SIP should have a correct priority of 2');
     is( $THE_hold->branchcode, $patron_2->branchcode, 'Hold placed from SIP should have the branchcode set' );
+};
+
+subtest "Placing holds via SIP check CanItemBeReserved" => sub {
+    plan tests => 4;
+
+    my $library = $builder->build_object(
+        {
+            class => 'Koha::Libraries',
+            value => {
+                pickup_location => 0
+            }
+        }
+    );
+    my $patron_1 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                branchcode => $library->branchcode,
+            }
+        }
+    );
+    my $patron_2 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                branchcode   => $library->branchcode,
+                categorycode => $patron_1->categorycode,
+            }
+        }
+    );
+
+    t::lib::Mocks::mock_userenv(
+        { branchcode => $library->branchcode, flags => 1 } );
+
+    my $item = $builder->build_sample_item(
+        {
+            library => $library->branchcode,
+        }
+    );
+
+    my $sip_patron  = C4::SIP::ILS::Patron->new( $patron_2->cardnumber );
+    my $sip_item    = C4::SIP::ILS::Item->new( $item->barcode );
+    my $transaction = C4::SIP::ILS::Transaction::Hold->new();
+    is(
+        ref $transaction,
+        "C4::SIP::ILS::Transaction::Hold",
+        "New transaction created"
+    );
+    is( $transaction->patron($sip_patron),
+        $sip_patron, "Patron assigned to transaction" );
+    is( $transaction->item($sip_item),
+        $sip_item, "Item assigned to transaction" );
+    my $hold = $transaction->do_hold();
+
+    is( $transaction->ok, 0, "Hold was not allowed" );
 };
 
 subtest do_checkin => sub {
@@ -375,6 +437,240 @@ subtest do_checkin => sub {
         is( $hold->itemnumber, $item->itemnumber, );
         is( Koha::Checkouts->search({itemnumber => $item->itemnumber})->count, 0, );
     };
+};
+
+subtest do_checkout_with_sysprefs_override => sub {
+    plan tests => 8;
+
+    my $mockILS = Test::MockObject->new;
+    my $server = { ils => $mockILS };
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $institution = {
+        id             => $library->id,
+        implementation => "ILS",
+        policy         => {
+            checkin  => "true",
+            renewal  => "true",
+            checkout => "true",
+            timeout  => 100,
+            retries  => 5,
+        }
+    };
+    my $ils = C4::SIP::ILS->new($institution);
+    my $item = $builder->build_sample_item(
+        {
+            library => $library->branchcode,
+        }
+    );
+
+    my $patron_under_noissuescharge = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                branchcode => $library->branchcode,
+            }
+        }
+    );
+
+    my $fee_under_noissuescharge = $builder->build(
+        {
+            source => 'Accountline',
+            value  => {
+                borrowernumber => $patron_under_noissuescharge->borrowernumber,
+                amountoutstanding => 4,
+            }
+        }
+    );
+
+    my $patron_over_noissuescharge = $builder->build_object(
+
+        {
+            class => 'Koha::Patrons',
+            value => {
+                branchcode => $library->branchcode,
+            }
+        }
+    );
+
+    my $fee_over_noissuescharge = $builder->build(
+        {
+            source => 'Accountline',
+            value  => {
+                borrowernumber => $patron_over_noissuescharge->borrowernumber,
+                amountoutstanding => 6,
+            }
+        }
+    );
+
+
+    $server->{account}->{override_fine_on_checkout} = 0;
+
+    t::lib::Mocks::mock_preference( 'AllFinesNeedOverride', '0' );
+    t::lib::Mocks::mock_preference( 'AllowFineOverride', '0' );
+    my $circ = $ils->checkout($patron_under_noissuescharge->cardnumber, $item->barcode, undef, undef, $server->{account});
+    is( $patron_under_noissuescharge->checkouts->count, 1, 'Checkout is allowed when the amount is under noissuecharge, AllFinesNeedOverride and AllowFineOverride disabled');
+
+    $circ = $ils->checkin( $item->barcode, C4::SIP::Sip::timestamp, undef, $library->branchcode );
+
+    $circ = $ils->checkout($patron_over_noissuescharge->cardnumber, $item->barcode, undef, undef, $server->{account});
+    is( $patron_over_noissuescharge->checkouts->count, 0, 'Checkout is blocked when the amount is over noissuecharge, AllFinesNeedOverride and AllowFineOverride disabled');
+
+    t::lib::Mocks::mock_preference( 'AllFinesNeedOverride', '0' );
+    t::lib::Mocks::mock_preference( 'AllowFineOverride', '1' );
+
+    $circ = $ils->checkout($patron_under_noissuescharge->cardnumber, $item->barcode, undef, undef, $server->{account});
+    is( $patron_under_noissuescharge->checkouts->count, 1, 'Checkout is allowed when the amount is under noissuecharge, AllFinesNeedOverride disabled and AllowFineOverride enabled');
+
+    $circ = $ils->checkin( $item->barcode, C4::SIP::Sip::timestamp, undef, $library->branchcode );
+
+    $circ = $ils->checkout($patron_over_noissuescharge->cardnumber, $item->barcode, undef, undef, $server->{account});
+    is( $patron_over_noissuescharge->checkouts->count, 0, 'Checkout is blocked when the amount is over noissuecharge, AllFinesNeedOverride disabled and AllowFineOverride enabled');
+
+    t::lib::Mocks::mock_preference( 'AllFinesNeedOverride', '1' );
+    t::lib::Mocks::mock_preference( 'AllowFineOverride', '0' );
+
+    $circ = $ils->checkout($patron_under_noissuescharge->cardnumber, $item->barcode, undef, undef, $server->{account});
+    is( $patron_under_noissuescharge->checkouts->count, 0, 'Checkout is blocked when the amount is under noissuecharge, AllFinesNeedOverride enabled and AllowFineOverride disabled');
+
+    $circ = $ils->checkout($patron_over_noissuescharge->cardnumber, $item->barcode, undef, undef, $server->{account});
+    is( $patron_over_noissuescharge->checkouts->count, 0, 'Checkout is blocked when the amount is over noissuecharge, AllFinesNeedOverride enabled and AllowFineOverride disabled');
+
+    t::lib::Mocks::mock_preference( 'AllFinesNeedOverride', '1' );
+    t::lib::Mocks::mock_preference( 'AllowFineOverride', '1' );
+
+    $circ = $ils->checkout($patron_under_noissuescharge->cardnumber, $item->barcode, undef, undef, $server->{account});
+    is( $patron_under_noissuescharge->checkouts->count, 0, 'Checkout is blocked when the amount is under noissuecharge, AllFinesNeedOverride and AllowFineOverride enabled');
+
+    $circ = $ils->checkout($patron_over_noissuescharge->cardnumber, $item->barcode, undef, undef, $server->{account});
+    is( $patron_over_noissuescharge->checkouts->count, 0, 'Checkout is blocked when the amount is over noissuecharge, AllFinesNeedOverride and AllowFineOverride enabled');
+};
+
+
+subtest do_checkout_with_patron_blocked => sub {
+    plan tests => 4;
+
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $institution = {
+        id             => $library->id,
+        implementation => "ILS",
+        policy         => {
+            checkin  => "true",
+            renewal  => "true",
+            checkout => "true",
+            timeout  => 100,
+            retries  => 5,
+        }
+    };
+    my $ils = C4::SIP::ILS->new($institution);
+    my $item = $builder->build_sample_item(
+        {
+            library => $library->branchcode,
+        }
+    );
+
+    my $expired_patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                branchcode => $library->branchcode,
+                dateexpiry => '2020/01/01',
+            }
+        }
+    );
+    my $circ = $ils->checkout($expired_patron->cardnumber, $item->barcode);
+    is( $circ->{screen_msg}, 'Patron expired', "Got correct expired screen message" );
+
+    my $fines_patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                branchcode => $library->branchcode,
+            }
+        }
+    );
+    my $fee1 = $builder->build(
+        {
+            source => 'Accountline',
+            value  => {
+                borrowernumber => $fines_patron->borrowernumber,
+                amountoutstanding => 10,
+            }
+        }
+    );
+
+    my $fines_sip_patron  = C4::SIP::ILS::Patron->new( $fines_patron->cardnumber );
+    $circ = $ils->checkout($fines_patron->cardnumber, $item->barcode);
+    is( $circ->{screen_msg}, 'Patron has fines', "Got correct fines screen message" );
+
+    my $debarred_patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                branchcode => $library->branchcode,
+                debarred => '9999/01/01',
+            }
+        }
+    );
+    my $debarred_sip_patron  = C4::SIP::ILS::Patron->new( $debarred_patron->cardnumber );
+    $circ = $ils->checkout($debarred_patron->cardnumber, $item->barcode);
+    is( $circ->{screen_msg}, 'Patron debarred', "Got correct debarred screen message" );
+
+    my $overdue_patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                branchcode => $library->branchcode,
+            }
+        }
+    );
+
+    my $odue = $builder->build({ source => 'Issue', value => {
+            borrowernumber => $overdue_patron->borrowernumber,
+            date_due => '2017-01-01',
+        }
+    });
+    t::lib::Mocks::mock_preference( 'OverduesBlockCirc', 'block' );
+    my $overdue_sip_patron  = C4::SIP::ILS::Patron->new( $overdue_patron->cardnumber );
+    $circ = $ils->checkout($overdue_patron->cardnumber, $item->barcode);
+    is( $circ->{screen_msg}, 'Patron blocked', "Got correct blocked screen message" );
+
+};
+
+subtest do_checkout_with_noblock => sub {
+    plan tests => 3;
+
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                branchcode => $library->branchcode,
+                debarred => '9999/01/01',
+            },
+        }
+    );
+
+    t::lib::Mocks::mock_userenv(
+        { branchcode => $library->branchcode, flags => 1 } );
+
+    my $item = $builder->build_sample_item(
+        {
+            library => $library->branchcode,
+        }
+    );
+
+
+    my $sip_patron  = C4::SIP::ILS::Patron->new( $patron->cardnumber );
+    my $sip_item    = C4::SIP::ILS::Item->new( $item->barcode );
+    my $co_transaction = C4::SIP::ILS::Transaction::Checkout->new();
+    is( $co_transaction->patron($sip_patron),
+        $sip_patron, "Patron assigned to transaction" );
+    is( $co_transaction->item($sip_item),
+        $sip_item, "Item assigned to transaction" );
+
+    $co_transaction->do_checkout(undef, '19990102    030405');
+
+    is( $patron->checkouts->count, 1, 'No Block checkout was performed for debarred patron');
 };
 
 subtest do_checkout_with_holds => sub {
@@ -522,6 +818,59 @@ subtest checkin_withdrawn => sub {
     t::lib::Mocks::mock_preference('BlockReturnOfWithdrawnItems', '0');
     $circ = $ils->checkin( $item->barcode, C4::SIP::Sip::timestamp, undef, $library->branchcode );
     is( $circ->{screen_msg}, 'Item not checked out', "Got 'Item not checked out' screen message" );
+};
+
+subtest _get_sort_bin => sub {
+    plan tests => 4;
+
+    my $library  = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $branch   = $library->branchcode;
+    my $library2 = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $branch2  = $library2->branchcode;
+
+    my $rules = <<"RULES";
+$branch:homebranch:ne:\$holdingbranch:X\r
+$branch:effective_itemtype:eq:CD:0\r
+$branch:itemcallnumber:<:340:1\r
+$branch:itemcallnumber:<:370:2\r
+$branch:itemcallnumber:<:600:3\r
+$branch2:homebranch:ne:\$holdingbranch:X\r
+$branch2:effective_itemtype:eq:CD:4\r
+$branch2:itemcallnumber:>:600:5\r
+RULES
+    t::lib::Mocks::mock_preference('SIP2SortBinMapping', $rules);
+
+    my $item_cd = $builder->build_sample_item(
+        {
+            library     => $library->branchcode,
+            itype       => 'CD'
+        }
+    );
+
+    my $item_book = $builder->build_sample_item(
+        {
+            library        => $library->branchcode,
+            itype          => 'BOOK',
+            itemcallnumber => '200.01'
+        }
+    );
+
+    my $bin;
+
+    # Set holdingbranch as though item returned to library other than homebranch (As AddReturn would)
+    $item_cd->holdingbranch($library2->branchcode)->store();
+    $bin = C4::SIP::ILS::Transaction::Checkin::_get_sort_bin( $item_cd, $library2->branchcode );
+    is($bin, 'X', "Item parameter on RHS of comparison works (ne comparator)");
+
+    # Reset holdingbranch as though item returned to home library
+    $item_cd->holdingbranch($library->branchcode)->store();
+    $bin = C4::SIP::ILS::Transaction::Checkin::_get_sort_bin( $item_cd, $library->branchcode );
+    is($bin, '0', "Fixed value on RHS of comparison works (eq comparator)");
+    $bin = C4::SIP::ILS::Transaction::Checkin::_get_sort_bin( $item_book, $library->branchcode );
+    is($bin, '1', "Rules applied in order (< comparator)");
+    $item_book->itemcallnumber('350.20')->store();
+    $bin = C4::SIP::ILS::Transaction::Checkin::_get_sort_bin( $item_book, $library->branchcode );
+    is($bin, '2', "Rules applied in order (< comparator)");
 };
 
 subtest item_circulation_status => sub {

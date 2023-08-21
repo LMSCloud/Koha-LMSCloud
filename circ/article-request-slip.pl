@@ -22,15 +22,15 @@ use Modern::Perl;
 use CGI qw( -utf8 );
 
 use C4::Context;
-use C4::Output;
-use C4::Auth;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
 use C4::Letters;
 use Koha::ArticleRequests;
 use Koha::Patrons;
 
 my $cgi = CGI->new;
 
-my $id = scalar $cgi->param('id');
+my @ids = split( ',', scalar $cgi->param('id') );
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
@@ -41,30 +41,42 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
-my $ar = Koha::ArticleRequests->find($id);
+my $ars         = Koha::ArticleRequests->search( { id => { '-in' => \@ids } } );
+my $slipContent = '';
+my $first       = 1;
+while ( my $ar = $ars->next ) {
+    if ( !$first ) {
+        $slipContent .= "<hr/>";
+    }
+    $first = 0;
+    $template->param( article_request => $ar );
+    my $patron = Koha::Patrons->find( $ar->borrowernumber );
 
-$template->param( article_request => $ar );
-my $patron = Koha::Patrons->find( $ar->borrowernumber );
+    my $slip = C4::Letters::GetPreparedLetter(
+        module                 => 'circulation',
+        letter_code            => 'AR_SLIP',
+        message_transport_type => 'print',
+        lang                   => $patron->lang,
+        tables                 => {
+            article_requests => $ar->id,
+            borrowers        => $ar->borrowernumber,
+            biblio           => $ar->biblionumber,
+            biblioitems      => $ar->biblionumber,
+            items            => $ar->itemnumber,
+            branches         => $ar->branchcode,
+        },
+    );
 
-my $slip = C4::Letters::GetPreparedLetter(
-    module                 => 'circulation',
-    letter_code            => 'AR_SLIP',
-    message_transport_type => 'print',
-    lang                   => $patron->lang,
-    tables                 => {
-        article_requests => $ar->id,
-        borrowers        => $ar->borrowernumber,
-        biblio           => $ar->biblionumber,
-        biblioitems      => $ar->biblionumber,
-        items            => $ar->itemnumber,
-        branches         => $ar->branchcode,
-    },
-);
+    $slipContent .=
+        $slip->{is_html}
+      ? $slip->{content}
+      : '<pre>' . $slip->{content} . '</pre>';
+}
 
 $template->param(
-    slip   => $slip->{content},
+    slip => $slipContent,
     caller => 'article-request',
-    plain  => !$slip->{is_html},
+    plain  => 0,
 );
 
 output_html_with_http_headers $cgi, $cookie, $template->output;

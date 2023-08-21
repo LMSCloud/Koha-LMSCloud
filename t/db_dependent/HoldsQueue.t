@@ -8,15 +8,15 @@
 
 use Modern::Perl;
 
-use Test::More tests => 57;
+use Test::More tests => 60;
 use Data::Dumper;
 
-use C4::Calendar;
+use C4::Calendar qw( new insert_single_holiday );
 use C4::Context;
 use C4::Members;
-use C4::Circulation;
+use C4::Circulation qw( AddIssue AddReturn );
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Items;
 use Koha::Holds;
 use Koha::CirculationRules;
@@ -27,8 +27,8 @@ use t::lib::Mocks;
 BEGIN {
     use FindBin;
     use lib $FindBin::Bin;
-    use_ok('C4::Reserves');
-    use_ok('C4::HoldsQueue');
+    use_ok('C4::Reserves', qw( AddReserve ModReserve ModReserveAffect ));
+    use_ok('C4::HoldsQueue', qw( TransportCostMatrix GetHoldsQueueItems CreateQueue UpdateTransportCostMatrix GetPendingHoldRequestsForBib ));
 }
 
 my $schema = Koha::Database->schema;
@@ -163,7 +163,7 @@ $dbh->do("DELETE FROM items WHERE holdingbranch = '$borrower_branchcode'");
 # Frst branch from StaticHoldsQueueWeight
 test_queue ('take from lowest cost branch', 0, $borrower_branchcode, $other_branches[0]);
 test_queue ('take from lowest cost branch', 1, $borrower_branchcode, $least_cost_branch_code);
-my $queue = C4::HoldsQueue::GetHoldsQueueItems($least_cost_branch_code) || [];
+my $queue = C4::HoldsQueue::GetHoldsQueueItems({ branchlmit => $least_cost_branch_code}) || [];
 my $queue_item = $queue->[0];
 ok( $queue_item
  && $queue_item->{pickbranch} eq $borrower_branchcode
@@ -978,7 +978,7 @@ subtest "Test Local Holds Priority - Bib level" => sub {
     is( $queue_rs->count(), 1,
         "Hold queue contains one hold" );
     is(
-        $queue_rs->next->borrowernumber,
+        $queue_rs->next->borrowernumber->borrowernumber,
         $local_patron->borrowernumber,
         "We should pick the local hold over the next available"
     );
@@ -1048,7 +1048,7 @@ subtest "Test Local Holds Priority - Item level" => sub {
     is( $queue_rs->count(), 1,
         "Hold queue contains one hold" );
     is(
-        $q->borrowernumber,
+        $q->borrowernumber->borrowernumber,
         $local_patron->borrowernumber,
         "We should pick the local hold over the next available"
     );
@@ -1116,7 +1116,7 @@ subtest "Test Local Holds Priority - Item level hold over Record level hold (Bug
     is( $queue_rs->count(), 1,
         "Hold queue contains one hold" );
     is(
-        $q->borrowernumber,
+        $q->borrowernumber->borrowernumber,
         $local_patron->borrowernumber,
         "We should pick the local hold over the next available"
     );
@@ -1193,7 +1193,7 @@ subtest "Test Local Holds Priority - Get correct item for item level hold" => su
     is( $queue_rs->count(), 1,
         "Hold queue contains one hold" );
     is(
-        $q->borrowernumber,
+        $q->borrowernumber->borrowernumber,
         $local_patron->borrowernumber,
         "We should pick the local hold over the next available"
     );
@@ -1444,7 +1444,7 @@ subtest 'Excludes from local holds priority' => sub {
     my $queue_rs = $schema->resultset('TmpHoldsqueue');
     my $next = $queue_rs->next;
     is($queue_rs->count, 1, 'Only 1 patron queueud' );
-    is($next->borrowernumber, $local_patron_not_excluded->borrowernumber, 'Not excluded local patron is queued');
+    is($next->borrowernumber->borrowernumber, $local_patron_not_excluded->borrowernumber, 'Not excluded local patron is queued');
 
     my $item2  = $builder->build_sample_item(
         {
@@ -1458,9 +1458,9 @@ subtest 'Excludes from local holds priority' => sub {
     $queue_rs = $schema->resultset('TmpHoldsqueue');
     is( $queue_rs->count, 2, '2 patrons queued' );
     $next = $queue_rs->next;
-    is($next->borrowernumber, $local_patron_not_excluded->borrowernumber, 'Not excluded local patron is queued');
+    is($next->borrowernumber->borrowernumber, $local_patron_not_excluded->borrowernumber, 'Not excluded local patron is queued');
     $next = $queue_rs->next;
-    is($next->borrowernumber, $other_patron->borrowernumber, 'Other patron is queued');
+    is($next->borrowernumber->borrowernumber, $other_patron->borrowernumber, 'Other patron is queued');
 
     $item1->exclude_from_local_holds_priority(1)->store;
 
@@ -1469,10 +1469,160 @@ subtest 'Excludes from local holds priority' => sub {
     $queue_rs = $schema->resultset('TmpHoldsqueue');
     is( $queue_rs->count, 2, '2 patrons queued' );
     $next = $queue_rs->next;
-    is($next->borrowernumber, $other_patron->borrowernumber, 'Other patron is queued');
+    is($next->borrowernumber->borrowernumber, $other_patron->borrowernumber, 'Other patron is queued');
     $next = $queue_rs->next;
-    is($next->borrowernumber, $local_patron_excluded->borrowernumber, 'Excluded local patron is queued');
+    is($next->borrowernumber->borrowernumber, $local_patron_excluded->borrowernumber, 'Excluded local patron is queued');
 };
+
+subtest "Test item group holds" => sub {
+
+    plan tests => 4;
+
+    $dbh->do("DELETE FROM tmp_holdsqueue");
+    $dbh->do("DELETE FROM hold_fill_targets");
+    $dbh->do("DELETE FROM reserves");
+    $dbh->do("DELETE FROM circulation_rules");
+
+    t::lib::Mocks::mock_preference('HoldsQueueSkipClosed', 0);
+    t::lib::Mocks::mock_preference('LocalHoldsPriority', 0);
+
+    my $library  = $builder->build_object({ class => 'Koha::Libraries' });
+    my $category = $builder->build_object( { class => 'Koha::Patron::Categories', value => {exclude_from_local_holds_priority => 0} });
+    my $patron_1 = $builder->build_object(
+        {
+            class => "Koha::Patrons",
+            value => {
+                branchcode => $library->branchcode,
+                categorycode => $category->categorycode
+            }
+        }
+    );
+
+    my $patron_2 = $builder->build_object(
+        {
+            class => "Koha::Patrons",
+            value => {
+                branchcode => $library->branchcode,
+                categorycode => $category->categorycode
+            }
+        }
+    );
+
+    my $patron_3 = $builder->build_object(
+        {
+            class => "Koha::Patrons",
+            value => {
+                branchcode => $library->branchcode,
+                categorycode => $category->categorycode
+            }
+        }
+    );
+
+    my $patron_4 = $builder->build_object(
+        {
+            class => "Koha::Patrons",
+            value => {
+                branchcode => $library->branchcode,
+                categorycode => $category->categorycode
+            }
+        }
+    );
+
+    my $biblio = $builder->build_sample_biblio();
+
+    my $item_1 = $builder->build_sample_item(
+        {
+            biblionumber => $biblio->biblionumber,
+            library      => $library->branchcode,
+            exclude_from_local_holds_priority => 0,
+        }
+    );
+    my $item_2 = $builder->build_sample_item(
+        {
+            biblionumber => $biblio->biblionumber,
+            library      => $library->branchcode,
+            exclude_from_local_holds_priority => 0,
+        }
+    );
+    my $item_3 = $builder->build_sample_item(
+        {
+            biblionumber => $biblio->biblionumber,
+            library      => $library->branchcode,
+            exclude_from_local_holds_priority => 0,
+        }
+    );
+    my $item_4 = $builder->build_sample_item(
+        {
+            biblionumber => $biblio->biblionumber,
+            library      => $library->branchcode,
+            exclude_from_local_holds_priority => 0,
+        }
+    );
+
+    my $item_group_1 = Koha::Biblio::ItemGroup->new( { biblio_id => $biblio->id } )->store();
+    my $item_group_2 = Koha::Biblio::ItemGroup->new( { biblio_id => $biblio->id } )->store();
+
+    $item_group_1->add_item({ item_id => $item_1->id });
+    $item_group_1->add_item({ item_id => $item_2->id });
+
+    # Add item-level hold for patron_1
+    my $reserve_id_1 = AddReserve(
+        {
+            branchcode     => $library->branchcode,
+            borrowernumber => $patron_1->borrowernumber,
+            biblionumber   => $biblio->id,
+            itemnumber     => $item_1->itemnumber,
+            priority       => 1,
+            item_group_id  => $item_group_1->id
+        }
+    );
+
+    my $reserve_id_2 = AddReserve(
+        {
+            branchcode     => $library->branchcode,
+            borrowernumber => $patron_2->borrowernumber,
+            biblionumber   => $biblio->id,
+            priority       => 2,
+            item_group_id  => $item_group_2->id
+        }
+    );
+
+    my $reserve_id_3 = AddReserve(
+        {
+            branchcode     => $library->branchcode,
+            borrowernumber => $patron_3->borrowernumber,
+            biblionumber   => $biblio->id,
+            priority       => 3,
+            item_group_id  => $item_group_1->id
+        }
+    );
+
+    my $reserve_id_4 = AddReserve(
+        {
+            branchcode     => $library->branchcode,
+            borrowernumber => $patron_4->borrowernumber,
+            biblionumber   => $biblio->id,
+            priority       => 4,
+            item_group_id  => undef
+        }
+    );
+
+    C4::HoldsQueue::CreateQueue();
+
+    my $queue_rs = $schema->resultset('TmpHoldsqueue');
+
+    is( $queue_rs->count(), 3, "Hold queue contains two holds" );
+
+    my $queue_line_1 = $queue_rs->next;
+    is( $queue_line_1->borrowernumber->id, $patron_1->id, "Correct Hold was filled for the correct patron, item group 1, priority 1" );
+
+    my $queue_line_2 = $queue_rs->next;
+    is( $queue_line_2->borrowernumber->id, $patron_3->id, "Correct Hold was filled for the correct patron, item group 1, priority 2" );
+
+    my $queue_line_3 = $queue_rs->next;
+    is( $queue_line_3->borrowernumber->id, $patron_4->id, "Correct Hold was filled for the correct patron, no item group" );
+};
+
 # Cleanup
 $schema->storage->txn_rollback;
 
@@ -1736,4 +1886,115 @@ subtest 'Remove holds on check-in match' => sub {
         "Holds queue has no elements, even when queue was not rebuilt" );
 
     $schema->storage->txn_rollback;
+};
+
+subtest "GetHoldsQueueItems" => sub {
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    my $ccode = $builder->build_object(
+        {
+            class => 'Koha::AuthorisedValues',
+            value => {
+                category => 'CCODE'
+            }
+        }
+    );
+    my $location = $builder->build_object(
+        {
+            class => 'Koha::AuthorisedValues',
+            value => {
+                category => 'LOC'
+            }
+        }
+    );
+    my $item_1 = $builder->build_sample_item();
+    my $item_2 = $builder->build_sample_item(
+        {
+            itype => $item_1->itype,
+            ccode => $ccode->authorised_value
+        }
+    );
+    my $item_3 = $builder->build_sample_item(
+        {
+            itype    => $item_1->itype,
+            ccode    => $item_2->ccode,
+            location => $location->authorised_value
+        }
+    );
+
+    my $itemnumber_1 = $item_1->itemnumber;
+    my $itemnumber_2 = $item_2->itemnumber;
+    my $itemnumber_3 = $item_3->itemnumber;
+
+    my $biblionumber_1 = $item_1->biblionumber;
+    my $biblionumber_2 = $item_2->biblionumber;
+    my $biblionumber_3 = $item_3->biblionumber;
+
+    my $sth = $dbh->prepare(q{ SELECT  COUNT(*) FROM tmp_holdsqueue });
+    $sth->execute();
+    my ($count) = $sth->fetchrow_array;
+
+    $dbh->do( "
+        INSERT INTO tmp_holdsqueue (itemnumber,biblionumber,surname,firstname,phone,borrowernumber,title,notes) VALUES
+        ($itemnumber_1,$biblionumber_1,'','','',22,'',''),
+        ($itemnumber_2,$biblionumber_2,'','','',32,'',''),
+        ($itemnumber_3,$biblionumber_3,'','','',42,'','')
+     " );
+
+    my $queue_items = GetHoldsQueueItems();
+    is( scalar @$queue_items, $count + 3, 'Three items added to queue' );
+
+    $queue_items = GetHoldsQueueItems( { itemtypeslimit => $item_1->itype } );
+    is( scalar @$queue_items,
+        3, 'Three items of same itemtype found when itemtypeslimit passed' );
+
+    $queue_items = GetHoldsQueueItems(
+        { itemtypeslimit => $item_1->itype, ccodeslimit => $item_2->ccode } );
+    is( scalar @$queue_items,
+        2, 'Two items of same collection found when ccodeslimit passed' );
+
+    @$queue_items = GetHoldsQueueItems(
+        {
+            itemtypeslimit => $item_1->itype,
+            ccodeslimit    => $item_2->ccode,
+            locationslimit => $item_3->location
+        }
+    );
+    is( scalar @$queue_items,
+        1, 'One item of shleving location found when locationslimit passed' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest "GetItemsAvailableToFillHoldsRequestsForBib" => sub {
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my $item_1 = $builder->build_sample_item();
+    my $item_2 = $builder->build_sample_item({ biblionumber => $item_1->biblionumber });
+    my $item_3 = $builder->build_sample_item({ biblionumber => $item_1->biblionumber });
+
+    my $transfer_1 = $builder->build_object({ class => 'Koha::Item::Transfers', value => {
+        itemnumber => $item_1->itemnumber,
+        datearrived => undef,
+        datecancelled => undef
+    }});
+    my $transfer_2 = $builder->build_object({ class => 'Koha::Item::Transfers', value => {
+        itemnumber => $item_2->itemnumber,
+        datearrived => dt_from_string,
+        datecancelled => undef
+    }});
+    my $transfer_3 = $builder->build_object({ class => 'Koha::Item::Transfers', value => {
+        itemnumber => $item_3->itemnumber,
+        datearrived => undef,
+        datecancelled => dt_from_string
+    }});
+
+    my $items = C4::HoldsQueue::GetItemsAvailableToFillHoldRequestsForBib( $item_1->biblionumber );
+    is( scalar @$items, 2, "Two items without active transfers correctly retrieved");
+    is_deeply( [$items->[0]->{itemnumber},$items->[1]->{itemnumber}],[$item_2->itemnumber,$item_3->itemnumber],"Correct two items retrieved");
+
 };

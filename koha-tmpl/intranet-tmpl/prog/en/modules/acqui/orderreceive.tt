@@ -13,29 +13,27 @@
 </head>
 
 <body id="acq_orderreceive" class="acq">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'acquisitions-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'acquisitions-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a>
-        </li>
-        <li>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% order.basket.booksellerid | uri %]">[% name | html %]</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-    Receive items from : [% name | html %] [% IF ( invoice ) %]
-    [[% invoice | html %]]
-    [% END %] (order #[% order.ordernumber | html %])
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            [% IF ( invoice ) %]
+                <span>Receive items from: [% name | html %] [[% invoice | html %]] (order #[% order.ordernumber | html %])</span>
+            [% ELSE %]
+                <span>Receive items from: [% name | html %] (order #[% order.ordernumber | html %])</span>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -53,7 +51,11 @@
 
     <fieldset class="rows">
     <legend>Catalog details</legend>
-    <ol><li><span class="label">Title: </span><span class="title">[% order.biblio.title | html %]</span></li>
+    <ol>
+        <li>
+            <span class="label">Title: </span>
+            [% INCLUDE 'biblio-title.inc' biblio=order.biblio link = 1 %]
+        </li>
     <li> <span class="label">Author: </span>
         [% order.biblio.author | html %]</li>
     <li><span class="label">Copyright: </span>
@@ -148,19 +150,19 @@
                             [%# FIXME We should only see/display Complete here, right? %]
                             [% CASE 'new' %]
                                 <td data-order="status_1">
-                                    New
+                                    <span>New</span>
                             [% CASE 'ordered' %]
                                 <td data-order="status_2">
-                                    Ordered
+                                    <span>Ordered</span>
                             [% CASE 'partial' %]
                                 <td data-order="status_3">
-                                    Partial
+                                    <span>Partial</span>
                             [% CASE 'complete' %]
                                 <td data-order="status_4">
-                                    Complete
+                                    <span>Complete</span>
                             [% CASE 'cancelled' %]
                                 <td data-order="status_5">
-                                    Cancelled
+                                    <span>Cancelled</span>
                           [% END %]
                         </td>
                         <td>
@@ -219,8 +221,8 @@
         [% END %]
     [% ELSIF (AcqCreateItem == 'ordering') %]
         [% IF (order.items) %]
-            <h5>Items</h5>
-            <div style="width:100%;overflow:auto">
+            <div class="page-section" style="width:100%;overflow:auto">
+                <h2>Items</h2>
                 <table>
                     <thead>
                         <tr>
@@ -277,22 +279,58 @@
         <ol>
             <li>
                 <label for="datereceived">Date received: </label>
-                <input type="text" size="10" id="datereceived" name="datereceived" value="[% datereceived | $KohaDates %]" class="datepicker" />
+                <input type="text" size="10" id="datereceived" name="datereceived" value="[% datereceived | html %]" class="flatpickr" />
+                <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
             </li>
-       <li><label for="bookfund">Fund: </label><select id="bookfund" name="bookfund">
-            <option value="">Keep current ([% budget_period_description | html %] - [% order.fund.budget_name | html %])</option>
-            [% FOREACH period IN budget_loop %]
-                <optgroup label="[% period.description | html %]">
-                [% FOREACH fund IN period.funds %]
-                    [% IF ( fund.b_sel ) %]
-                        <option value="[% fund.b_id | html %]" selected="selected">[% fund.b_txt | html %]</option>
-                    [% ELSE %]
-                        <option value="[% fund.b_id | html %]">[% fund.b_txt | html %]</option>
+       <li>
+            <label class="required" for="bookfund">Fund: </label>
+            [% active_count = 0 %]
+            [% IF !ordernumber %]
+                [% FOREACH budget_period IN budget_loops.keys %]
+                    [% FOREACH fund IN budget_loops.$budget_period.funds %]
+                        [% active_count= active_count + fund.b_active %]
                     [% END %]
+                [% END %]
+            [% END %]
+            <select class="select2" id="bookfund" name="bookfund">
+                <optgroup label="Current">
+                        <option value="[% order.fund.budget_id | html %]" selected="selected" data-sort1-authcat="[% order.fund.sort1_authcat | html %]" data-sort2-authcat="[% order.fund.sort2_authcat | html %]">
+                            Keep current ([% order.fund.budget_name | html %])</option>
+                </optgroup>
+            [% FOREACH budget_period_id IN budget_loops.keys %]
+                [% SET budget_period = budget_loops.$budget_period_id %]
+                [% IF budget_period.active %]
+                    <optgroup label="[% budget_period.description | html %]">
+                [% ELSE %]
+                    <optgroup class="inactive_budget" label="[% budget_period.description | html %] (Inactive)">
+                [% END %]
+                [% FOREACH budget_loo IN budget_period.funds %]
+                   [% level_indent_cnt = 0 %]
+                    [% level_indent = "" %]
+                    [% WHILE level_indent_cnt < budget_loo.b_level %]
+                        [% level_indent = level_indent _ " -- " %]
+                        [% level_indent_cnt = level_indent_cnt +1 %]
+                    [% END %]
+
+                    [% IF ( budget_loo.b_sel ) %]
+                        [% active_count = 0 #select no other fund %]
+                        <option value="[% budget_loo.b_id | html %]" selected="selected" data-sort1-authcat="[% budget_loo.b_sort1_authcat | html %]" data-sort2-authcat="[% budget_loo.b_sort2_authcat | html %]">
+                    [% ELSIF active_count==1 && budget_loo.b_active %]
+                        <option value="[% budget_loo.b_id | html %]" selected="selected" data-sort1-authcat="[% budget_loo.b_sort1_authcat | html %]" data-sort2-authcat="[% budget_loo.b_sort2_authcat | html %]">
+                    [% ELSE %]
+                        [% bdgclass=budget_loo.b_active? "": "inactive_budget" | html %]
+                        <option value="[% budget_loo.b_id | html %]" class="[% bdgclass | html %]" data-sort1-authcat="[% budget_loo.b_sort1_authcat | html %]" data-sort2-authcat="[% budget_loo.b_sort2_authcat | html %]">
+                    [% END %]
+                        [% level_indent | html %][% budget_loo.b_txt | html %][% IF !budget_loo.b_active %] (inactive)[% END %]
+                    </option>
                 [% END %]
                 </optgroup>
             [% END %]
-       </select></li>
+            </select>
+            <span class="required">Required</span>
+            <label for="showallbudgets" style="float:none;">&nbsp;Show inactive:</label>
+            <input type="checkbox" id="showallbudgets" />
+       </li>
        <li><label>&nbsp;</label><span>(Current: [% budget_period_description | html %] - [% bookfund | html %])</span></li>
        <li>
         <label for="creator">Ordered by: </label>
@@ -405,7 +443,7 @@
 
 </div>
 </div><div class="row"><fieldset class="action">
-        <input type="submit"  value="Save" class="button" accesskey="w" />
+        <input type="submit" value="Save" class="btn btn-primary" accesskey="w" />
         <a class="cancel" href="/cgi-bin/koha/acqui/parcel.pl?invoiceid=[% invoiceid | html %]">Cancel</a>
 </fieldset></div>    </form>
 [% ELSE %]
@@ -426,6 +464,7 @@
 [% INCLUDE 'calendar.inc' %]
     [% Asset.js("js/additem.js") | $raw %]
     [% Asset.js("js/cataloging.js") | $raw %]
+    [% INCLUDE 'select2.inc' %]
     <script>
         function Check(form) {
             [% IF (AcqCreateItem == 'receiving') %]
@@ -520,6 +559,20 @@
         [% END %]
 
         $(document).ready(function() {
+
+            //keep a copy of all budgets before removing the inactives
+            disabledBudgetsCopy = $('#bookfund').html();
+            $('#bookfund .inactive_budget').remove();
+
+            $('#showallbudgets').click(function() {
+                if ($(this).is(":checked")) {
+                    $('#bookfund').html(disabledBudgetsCopy); //Puts back all the funds
+                }
+                else {
+                    $('#bookfund .inactive_budget').remove();
+                }
+            });
+
             [% IF (AcqCreateItem == 'receiving') %]
                 cloneItemBlock(0, '[% Koha.Preference('UniqueItemFields') | html %]');
             [% ELSIF (AcqCreateItem == 'ordering') && not order.subscriptionid %]

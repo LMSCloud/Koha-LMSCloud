@@ -19,19 +19,18 @@
 
 use Modern::Perl;
 
-use Test::More tests => 42;
+use Test::More tests => 44;
 use Test::Warn;
 use Test::Exception;
 use Test::MockModule;
 use Time::Fake;
 use DateTime;
 use JSON;
-use Data::Dumper;
 use utf8;
 
-use C4::Circulation;
+use C4::Circulation qw( AddIssue AddReturn );
 use C4::Biblio;
-use C4::Auth qw(checkpw_hash);
+use C4::Auth qw( checkpw checkpw_hash );
 
 use Koha::ActionLogs;
 use Koha::Holds;
@@ -42,7 +41,8 @@ use Koha::Patron::Attribute::Types;
 use Koha::Patron::Categories;
 use Koha::Patron::Relationship;
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
+use Koha::Virtualshelf;
 use Koha::Virtualshelves;
 use Koha::Notice::Messages;
 
@@ -99,16 +99,14 @@ subtest 'sms_provider' => sub {
 };
 
 subtest 'guarantees' => sub {
-    plan tests => 13;
+
+    plan tests => 9;
 
     t::lib::Mocks::mock_preference( 'borrowerRelationship', 'test|test2' );
 
     my $guarantees = $new_patron_1->guarantee_relationships;
     is( ref($guarantees), 'Koha::Patron::Relationships', 'Koha::Patron->guarantees should return a Koha::Patrons result set in a scalar context' );
     is( $guarantees->count, 0, 'new_patron_1 should have 0 guarantee relationships' );
-    my @guarantees = $new_patron_1->guarantee_relationships;
-    is( ref(\@guarantees), 'ARRAY', 'Koha::Patron->guarantee_relationships should return an array in a list context' );
-    is( scalar(@guarantees), 0, 'new_patron_1 should have 0 guarantee' );
 
     my $guarantee_1 = $builder->build({ source => 'Borrower' });
     my $relationship_1 = Koha::Patron::Relationship->new( { guarantor_id => $new_patron_1->id, guarantee_id => $guarantee_1->{borrowernumber}, relationship => 'test' } )->store();
@@ -118,10 +116,8 @@ subtest 'guarantees' => sub {
     $guarantees = $new_patron_1->guarantee_relationships;
     is( ref($guarantees), 'Koha::Patron::Relationships', 'Koha::Patron->guarantee_relationships should return a Koha::Patrons result set in a scalar context' );
     is( $guarantees->count, 2, 'new_patron_1 should have 2 guarantees' );
-    @guarantees = $new_patron_1->guarantee_relationships;
-    is( ref(\@guarantees), 'ARRAY', 'Koha::Patron->guarantee_relationships should return an array in a list context' );
-    is( scalar(@guarantees), 2, 'new_patron_1 should have 2 guarantees' );
-    $_->delete for @guarantees;
+
+    $guarantees->delete;
 
     #Test return order of guarantees BZ 18635
     my $categorycode = $builder->build({ source => 'Category' })->{categorycode};
@@ -193,7 +189,6 @@ subtest 'guarantees' => sub {
             value => {
                 surname     => 'Xerus',
                 firstname   => 'Vulture',
-                guarantorid => $guarantor->borrowernumber
             }
         }
     )->borrowernumber;
@@ -214,7 +209,6 @@ subtest 'guarantees' => sub {
             value => {
                 surname     => 'Xerus',
                 firstname   => 'Unicorn',
-                guarantorid => $guarantor->borrowernumber
             }
         }
     )->borrowernumber;
@@ -246,7 +240,9 @@ subtest 'category' => sub {
 };
 
 subtest 'siblings' => sub {
-    plan tests => 7;
+
+    plan tests => 6;
+
     my $siblings = $new_patron_1->siblings;
     is( $siblings, undef, 'Koha::Patron->siblings should not crashed if the patron has no guarantor' );
     my $guarantee_1 = $builder->build( { source => 'Borrower' } );
@@ -254,8 +250,6 @@ subtest 'siblings' => sub {
     my $retrieved_guarantee_1 = Koha::Patrons->find($guarantee_1);
     $siblings = $retrieved_guarantee_1->siblings;
     is( ref($siblings), 'Koha::Patrons', 'Koha::Patron->siblings should return a Koha::Patrons result set in a scalar context' );
-    my @siblings = $retrieved_guarantee_1->siblings;
-    is( ref( \@siblings ), 'ARRAY', 'Koha::Patron->siblings should return an array in a list context' );
     is( $siblings->count,  0,       'guarantee_1 should not have siblings yet' );
     my $guarantee_2 = $builder->build( { source => 'Borrower' } );
     my $relationship_2 = Koha::Patron::Relationship->new( { guarantor_id => $new_patron_1->borrowernumber, guarantee_id => $guarantee_2->{borrowernumber}, relationship => 'test' } )->store();
@@ -464,37 +458,96 @@ subtest "move_to_deleted" => sub {
 };
 
 subtest "delete" => sub {
-    plan tests => 7;
+    plan tests => 16;
     t::lib::Mocks::mock_preference( 'BorrowersLog', 1 );
-    my $patron           = $builder->build( { source => 'Borrower' } );
-    my $retrieved_patron = Koha::Patrons->find( $patron->{borrowernumber} );
-    my $hold             = $builder->build(
-        {   source => 'Reserve',
-            value  => { borrowernumber => $patron->{borrowernumber} }
-        }
-    );
-    my $list = $builder->build(
-        {   source => 'Virtualshelve',
-            value  => { owner => $patron->{borrowernumber} }
-        }
-    );
-    my $modification = $builder->build_object({ class => 'Koha::Patron::Modifications', value => { borrowernumber => $patron->{borrowernumber} } });
+    t::lib::Mocks::mock_preference( 'ListOwnershipUponPatronDeletion', 'transfer' );
+    t::lib::Mocks::mock_preference( 'ListOwnerDesignated', undef );
+    Koha::Virtualshelves->delete;
 
-    my $deleted = $retrieved_patron->delete;
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+    my $patron_for_sharing = $builder->build_object({ class => 'Koha::Patrons' });
+    my $staff_patron = $builder->build_object({ class => 'Koha::Patrons' });
+    t::lib::Mocks::mock_userenv({ patron => $staff_patron });
+
+    my $hold = $builder->build_object({ class => 'Koha::Holds', value => { borrowernumber => $patron->borrowernumber } });
+    my $modification = $builder->build_object({ class => 'Koha::Patron::Modifications', value => { borrowernumber => $patron->borrowernumber } });
+    my $private_list = Koha::Virtualshelf->new({
+        shelfname => "private",
+        owner => $patron->borrowernumber,
+        public => 0,
+    })->store;
+    my $public_list = Koha::Virtualshelf->new({
+        shelfname => "public",
+        owner => $patron->borrowernumber,
+        public => 1,
+    })->store;
+    my $list_to_share = Koha::Virtualshelf->new({
+        shelfname => "shared",
+        owner => $patron->borrowernumber,
+        public => 0,
+    })->store;
+
+    $list_to_share->share("valid key")->accept( "valid key", $patron_for_sharing->borrowernumber );
+    $list_to_share->share("valid key")->accept( "valid key", $staff_patron->borrowernumber ); # this share should be removed at deletion too
+    my $deleted = $patron->delete;
     is( ref($deleted), 'Koha::Patron', 'Koha::Patron->delete should return the deleted patron object if the patron has been correctly deleted' );
+    ok( $patron->borrowernumber, 'Still have the deleted borrowernumber' );
 
-    is( Koha::Patrons->find( $patron->{borrowernumber} ), undef, 'Koha::Patron->delete should have deleted the patron' );
+    is( Koha::Patrons->find( $patron->borrowernumber ), undef, 'Koha::Patron->delete should have deleted the patron' );
 
-    is (Koha::Old::Holds->search( { reserve_id => $hold->{ reserve_id } } )->count, 1, q|Koha::Patron->delete should have cancelled patron's holds| );
+    is (Koha::Old::Holds->search({ reserve_id => $hold->reserve_id })->count, 1, q|Koha::Patron->delete should have cancelled patron's holds| );
 
-    is( Koha::Holds->search( { borrowernumber => $patron->{borrowernumber} } )->count, 0, q|Koha::Patron->delete should have cancelled patron's holds 2| );
+    is( Koha::Holds->search( { borrowernumber => $patron->borrowernumber } )->count, 0, q|Koha::Patron->delete should have cancelled patron's holds 2| );
 
-    is( Koha::Virtualshelves->search( { owner => $patron->{borrowernumber} } )->count, 0, q|Koha::Patron->delete should have deleted patron's lists| );
+    my $transferred_lists = Koha::Virtualshelves->search({ owner => $staff_patron->borrowernumber })->count;
+    is( $transferred_lists, 2, 'Public and shared lists should stay in database under a different owner with a unique name, while private lists delete, with ListOwnershipPatronDeletion set to Transfer');
+    is( Koha::Virtualshelfshares->search({ borrowernumber => $staff_patron->borrowernumber })->count, 0, "New owner of list should have shares removed" );
+    is( Koha::Virtualshelfshares->search({ borrowernumber => $patron_for_sharing->borrowernumber })->count, 1, "But the other share is still there" );
+    is( Koha::Virtualshelves->search({ owner => $patron->borrowernumber })->count, 0, q|Koha::Patron->delete should have deleted patron's lists/removed their ownership| );
 
-    is( Koha::Patron::Modifications->search( { borrowernumber => $patron->{borrowernumber} } )->count, 0, q|Koha::Patron->delete should have deleted patron's modifications| );
+    is( Koha::Patron::Modifications->search( { borrowernumber => $patron->borrowernumber } )->count, 0, q|Koha::Patron->delete should have deleted patron's modifications| );
 
-    my $number_of_logs = $schema->resultset('ActionLog')->search( { module => 'MEMBERS', action => 'DELETE', object => $retrieved_patron->borrowernumber } )->count;
+    my $number_of_logs = $schema->resultset('ActionLog')->search( { module => 'MEMBERS', action => 'DELETE', object => $patron->borrowernumber } )->count;
     is( $number_of_logs, 1, 'With BorrowerLogs, Koha::Patron->delete should have logged' );
+
+    # Test deletion with designated fallback owner
+    my $designated_owner = $builder->build_object({ class => 'Koha::Patrons' });
+    t::lib::Mocks::mock_preference( 'ListOwnerDesignated', $designated_owner->id );
+    $patron = $builder->build_object({ class => 'Koha::Patrons' });
+    $private_list = Koha::Virtualshelf->new({ shelfname => "PR1", owner => $patron->id })->store;
+    $public_list = Koha::Virtualshelf->new({ shelfname => "PU1", public => 1, owner => $patron->id })->store;
+    $list_to_share = Koha::Virtualshelf->new({ shelfname => "SH1", owner => $patron->id })->store;
+    $list_to_share->share("valid key")->accept( "valid key", $patron_for_sharing->id );
+    $patron->delete;
+    is( Koha::Virtualshelves->find( $private_list->id ), undef, 'Private list gone' );
+    is( $public_list->discard_changes->get_column('owner'), $designated_owner->id, 'Public list transferred' );
+    is( $list_to_share->discard_changes->get_column('owner'), $designated_owner->id, 'Shared list transferred' );
+
+    # Finally test deleting lists
+    t::lib::Mocks::mock_preference( 'ListOwnershipUponPatronDeletion', 'delete' );
+    Koha::Virtualshelves->delete;
+    my $patron2 = $builder->build_object({ class => 'Koha::Patrons' });
+    my $private_list2 = Koha::Virtualshelf->new({
+         shelfname => "private",
+         owner => $patron2->borrowernumber,
+         public => 0,
+    })->store;
+    my $public_list2 = Koha::Virtualshelf->new({
+        shelfname => "public",
+        owner => $patron2->borrowernumber,
+        public => 1,
+    })->store;
+    my $list_to_share2 = Koha::Virtualshelf->new({
+        shelfname => "shared",
+        owner => $patron2->borrowernumber,
+        public => 0,
+    })->store;
+    $list_to_share2->share("valid key")->accept( "valid key", $patron_for_sharing->borrowernumber );
+
+    # Delete patron2, check if shelves and shares are now empty
+    $patron2->delete;
+    is( Koha::Virtualshelves->count, 0, 'All lists should be gone now' );
+    is( Koha::Virtualshelfshares->count, 0, 'All shares should be gone too' );
 };
 
 subtest 'Koha::Patrons->delete' => sub {
@@ -563,7 +616,7 @@ subtest 'add_enrolment_fee_if_needed' => sub {
     $patron->delete;
 };
 
-subtest 'checkouts + pending_checkouts + get_overdues + old_checkouts' => sub {
+subtest 'checkouts + pending_checkouts + overdues + old_checkouts' => sub {
     plan tests => 17;
 
     my $library = $builder->build( { source => 'Branch' } );
@@ -625,9 +678,9 @@ subtest 'checkouts + pending_checkouts + get_overdues + old_checkouts' => sub {
     my $first_checkout = $pending_checkouts->next;
     is( $first_checkout->unblessed_all_relateds->{biblionumber}, $item_3->biblionumber, 'pending_checkouts should prefetch values from other tables (here biblio)' );
 
-    my $overdues = $patron->get_overdues;
+    my $overdues = $patron->overdues;
     is( $overdues->count, 2, 'Patron should have 2 overdues');
-    is( ref($overdues), 'Koha::Checkouts', 'Koha::Patron->get_overdues should return Koha::Checkouts' );
+    is( ref($overdues), 'Koha::Checkouts', 'Koha::Patron->overdues should return Koha::Checkouts' );
     is( $overdues->next->itemnumber, $item_1->itemnumber, 'The issue should be returned in the same order as they have been done, first is correct' );
     is( $overdues->next->itemnumber, $item_2->itemnumber, 'The issue should be returned in the same order as they have been done, second is correct' );
 
@@ -1022,7 +1075,8 @@ subtest 'notice_email_address' => sub {
     $patron->delete;
 };
 
-subtest 'search_patrons_to_anonymise & anonymise_issue_history' => sub {
+subtest 'search_patrons_to_anonymise' => sub {
+
     plan tests => 5;
 
     # TODO create a subroutine in t::lib::Mocks
@@ -1083,7 +1137,16 @@ subtest 'search_patrons_to_anonymise & anonymise_issue_history' => sub {
         my $patrons_to_anonymise = Koha::Patrons->search_patrons_to_anonymise( { before => '2010-10-11' } )->search( { 'me.borrowernumber' => $patron->{borrowernumber} } );
         is( ref($patrons_to_anonymise), 'Koha::Patrons', 'search_patrons_to_anonymise should return Koha::Patrons' );
 
-        my $rows_affected = Koha::Patrons->search_patrons_to_anonymise( { before => '2011-11-12' } )->anonymise_issue_history( { before => '2010-10-11' } );
+        my $rows_affected = Koha::Old::Checkouts->search(
+            {
+                borrowernumber => [
+                    Koha::Patrons->search_patrons_to_anonymise(
+                        { before => '2011-11-12' }
+                    )->get_column('borrowernumber')
+                ],
+                returndate => { '<' => '2011-10-11', }
+            }
+        )->anonymize;
         ok( $rows_affected > 0, 'AnonymiseIssueHistory should affect at least 1 row' );
 
         $patrons_to_anonymise = Koha::Patrons->search_patrons_to_anonymise( { before => '2010-10-11' } );
@@ -1098,7 +1161,16 @@ subtest 'search_patrons_to_anonymise & anonymise_issue_history' => sub {
         ($borrowernumber_used_to_anonymised) = $sth->fetchrow_array;
         is( $borrowernumber_used_to_anonymised, $patron->{borrowernumber}, 'The issue should not have been anonymised, the returned date is later' );
 
-        $rows_affected = Koha::Patrons->search_patrons_to_anonymise( { before => '2011-11-12' } )->anonymise_issue_history;
+        $rows_affected = Koha::Old::Checkouts->search(
+            {
+                borrowernumber => [
+                    Koha::Patrons->search_patrons_to_anonymise(
+                        { before => '2011-11-12' }
+                    )->get_column('borrowernumber')
+                ],
+                returndate => { '<' => '2011-11-12', }
+            }
+        )->anonymize;
         $sth->execute($item_2->itemnumber);
         ($borrowernumber_used_to_anonymised) = $sth->fetchrow_array;
         is( $borrowernumber_used_to_anonymised, $anonymous->{borrowernumber}, 'The issue should have been anonymised, the returned date is before' );
@@ -1106,7 +1178,14 @@ subtest 'search_patrons_to_anonymise & anonymise_issue_history' => sub {
         my $sth_reset = $dbh->prepare(q|UPDATE old_issues SET borrowernumber = ? WHERE itemnumber = ?|);
         $sth_reset->execute( $patron->{borrowernumber}, $item_1->itemnumber );
         $sth_reset->execute( $patron->{borrowernumber}, $item_2->itemnumber );
-        $rows_affected = Koha::Patrons->search_patrons_to_anonymise->anonymise_issue_history;
+        $rows_affected = Koha::Old::Checkouts->search(
+            {
+                borrowernumber => [
+                    Koha::Patrons->search_patrons_to_anonymise->get_column(
+                        'borrowernumber')
+                ]
+            }
+        )->anonymize;
         $sth->execute($item_1->itemnumber);
         ($borrowernumber_used_to_anonymised) = $sth->fetchrow_array;
         is( $borrowernumber_used_to_anonymised, $anonymous->{borrowernumber}, 'The issue 1 should have been anonymised, before parameter was not passed' );
@@ -1150,7 +1229,8 @@ subtest 'search_patrons_to_anonymise & anonymise_issue_history' => sub {
     t::lib::Mocks::mock_preference( 'AnonymousPatron', '' );
 
     subtest 'AnonymousPatron is not defined' => sub {
-        plan tests => 3;
+
+        plan tests => 2;
 
         t::lib::Mocks::mock_preference('IndependentBranches', 0);
         my $patron = $builder->build(
@@ -1170,14 +1250,9 @@ subtest 'search_patrons_to_anonymise & anonymise_issue_history' => sub {
 
         my ( $returned, undef, undef ) = C4::Circulation::AddReturn( $item->barcode, undef, undef, dt_from_string('2010-10-10') );
         is( $returned, 1, 'The item should have been returned' );
-        my $rows_affected = Koha::Patrons->search_patrons_to_anonymise( { before => '2010-10-11' } )->anonymise_issue_history( { before => '2010-10-11' } );
-        ok( $rows_affected > 0, 'AnonymiseIssueHistory should affect at least 1 row' );
+        my $patrons_to_anonymize = Koha::Patrons->search_patrons_to_anonymise( { before => '2010-10-11' } );
+        ok( $patrons_to_anonymize->count > 0, 'search_patrons_to_anonymize' );
 
-        my $dbh = C4::Context->dbh;
-        my ($borrowernumber_used_to_anonymised) = $dbh->selectrow_array(q|
-            SELECT borrowernumber FROM old_issues where itemnumber = ?
-        |, undef, $item->itemnumber);
-        is( $borrowernumber_used_to_anonymised, undef, 'With AnonymousPatron is not defined, the issue should have been anonymised anyway' );
         Koha::Patrons->find( $patron->{borrowernumber})->delete;
     };
 
@@ -1402,7 +1477,7 @@ subtest 'is_child | is_adult' => sub {
     $patron_other->delete;
 };
 
-subtest 'get_overdues' => sub {
+subtest 'overdues' => sub {
     plan tests => 7;
 
     my $library = $builder->build( { source => 'Branch' } );
@@ -1439,7 +1514,7 @@ subtest 'get_overdues' => sub {
     AddIssue( $patron, $item_3->barcode );
 
     $patron = Koha::Patrons->find( $patron->{borrowernumber} );
-    my $overdues = $patron->get_overdues;
+    my $overdues = $patron->overdues;
     is( $overdues->count, 2, 'Patron should have 2 overdues');
     is( $overdues->next->itemnumber, $item_1->itemnumber, 'The issue should be returned in the same order as they have been done, first is correct' );
     is( $overdues->next->itemnumber, $item_2->itemnumber, 'The issue should be returned in the same order as they have been done, second is correct' );
@@ -1658,7 +1733,7 @@ subtest 'Test Koha::Patrons::merge' => sub {
     is( Koha::Patrons->search( { borrowernumber => $keeper->id } )->count, 1, "Patron from attempted merge with AnonymousPatron still exists" );
 
     subtest 'extended attributes' => sub {
-        plan tests => 5;
+        plan tests => 8;
 
         my $keep_patron =
           $builder->build_object( { class => 'Koha::Patrons' } );
@@ -1745,7 +1820,7 @@ subtest 'Test Koha::Patrons::merge' => sub {
         $keep_patron->delete;
         $merge_patron->delete;
 
-        # Recreate but expect an exception because 2 "normal" attributes will be in the resulting patron
+        # Recreate but don't expect an exception if 2 non-repeatable attributes exist, pick the one from the patron we keep
         $keep_patron =
           $builder->build_object( { class => 'Koha::Patrons' } );
         $merge_patron =
@@ -1762,11 +1837,25 @@ subtest 'Test Koha::Patrons::merge' => sub {
             ]
         );
 
-        throws_ok {
-            $keep_patron->merge_with( [ $merge_patron->borrowernumber ] );
-        }
-        'Koha::Exceptions::Patron::Attribute::NonRepeatable',
-            'Exception thrown trying to merge several non-repeatable attributes';
+        $keep_patron->merge_with( [ $merge_patron->borrowernumber ] );
+        $merged_attributes = $keep_patron->extended_attributes;
+        is( $merged_attributes->count, 4 );
+        compare_attributes(
+            $merged_attributes,
+            ['from attr 1'],
+            $attribute_type_normal_1->code
+        );
+        compare_attributes(
+            $merged_attributes,
+            ['to attr 2'],
+            $attribute_type_normal_2->code
+        );
+        compare_attributes(
+            $merged_attributes,
+            [ 'from attr repeatable', 'to attr repeatable' ],
+            $attribute_type_repeatable->code
+        );
+
     };
 
     t::lib::Mocks::mock_preference( 'AnonymousPatron', '' );
@@ -1774,7 +1863,7 @@ subtest 'Test Koha::Patrons::merge' => sub {
 };
 
 subtest '->store' => sub {
-    plan tests => 7;
+    plan tests => 8;
     my $schema = Koha::Database->new->schema;
     $schema->storage->txn_begin;
 
@@ -1830,18 +1919,55 @@ subtest '->store' => sub {
         is($logs->count, 0, '->store should not have generated a log for updated_on') or diag 'Log generated:'.Dumper($logs->unblessed);
         $schema->storage->txn_rollback;
     };
+
+    subtest 'create user usage' => sub {
+        plan tests => 1;
+        $schema->storage->txn_begin;
+
+        my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+        my $patron_category = $builder->build_object(
+            {
+                class => 'Koha::Patron::Categories',
+                value => { category_type => 'P', enrolmentfee => 0 }
+            }
+        );
+        my %data = (
+            cardnumber   => "123456789",
+            firstname    => "Tômàsító",
+            surname      => "Ñoné",
+            password     => 'Funk3y',
+            categorycode => $patron_category->categorycode,
+            branchcode   => $library->branchcode,
+        );
+
+        # Enable notifying patrons of password changes for these tests
+        t::lib::Mocks::mock_preference( 'NotifyPasswordChange', 1 );
+        my $new_patron     = Koha::Patron->new( \%data )->store();
+        my $queued_notices = Koha::Notice::Messages->search(
+            { borrowernumber => $new_patron->borrowernumber }
+        );
+        is(
+            $queued_notices->count, 0,
+            "No notice queued when NotifyPasswordChange enabled and this is a new patron"
+        );
+
+        $schema->storage->txn_rollback;
+    };
 };
 
 subtest '->set_password' => sub {
 
-    plan tests => 14;
+    plan tests => 16;
 
     $schema->storage->txn_begin;
 
     my $patron = $builder->build_object( { class => 'Koha::Patrons', value => { login_attempts => 3 } } );
 
-    # Disable logging password changes for this tests
+    # Disable logging password changes for these tests
     t::lib::Mocks::mock_preference( 'BorrowersLog', 0 );
+
+    # Disable notifying patrons of password changes for these tests
+    t::lib::Mocks::mock_preference( 'NotifyPasswordChange', 0 );
 
     # Password-length tests
     t::lib::Mocks::mock_preference( 'minPasswordLength', undef );
@@ -1907,6 +2033,13 @@ subtest '->set_password' => sub {
     $number_of_logs = $schema->resultset('ActionLog')->search( { module => 'MEMBERS', action => 'CHANGE PASS', object => $patron->borrowernumber } )->count;
     is( $number_of_logs, 1, 'With BorrowerLogs, Koha::Patron->set_password does log password changes' );
 
+    # Enable notifying patrons of password changes
+    t::lib::Mocks::mock_preference( 'NotifyPasswordChange', 1 );
+    $patron->set_password({ password => 'abcd   c' });
+    my $queued_notices = Koha::Notice::Messages->search({ borrowernumber => $patron->borrowernumber });
+    is( $queued_notices->count, 1, "One notice queued when NotifyPasswordChange enabled" );
+    my $THE_notice = $queued_notices->next;
+    is( $THE_notice->status, 'failed', "The notice was handled immediately and failed on wrong email address."); #FIXME Mock sending mail
     $schema->storage->txn_rollback;
 };
 
@@ -2182,6 +2315,236 @@ subtest 'queue_notice' => sub {
         {sent => ['email'] }, "Report that email sent when using borrower preferences in test_mode"
     );
     is( Koha::Notice::Messages->search({borrowernumber => $patron->borrowernumber })->count, $counter,"Count of queued notices not increased in test mode");
+};
+
+subtest 'filter_by_amount_owed' => sub {
+    plan tests => 6;
+
+    my $library = $builder->build({source => 'Branch' });
+    my $category = $builder->build({source => 'Category' });
+
+    my $new_patron_cf_1 = Koha::Patron->new(
+        {
+            cardnumber   => 'test_cn_cf_1',
+            branchcode   => $library->{branchcode},
+            categorycode => $category->{categorycode},
+            surname      => 'surname for patron1',
+            firstname    => 'firstname for patron1',
+            userid       => 'a_nonexistent_userid_cf_1',
+        }
+    )->store;
+    my $new_patron_cf_2 = Koha::Patron->new(
+        {
+            cardnumber   => 'test_cn_cf_2',
+            branchcode   => $library->{branchcode},
+            categorycode => $category->{categorycode},
+            surname      => 'surname for patron2',
+            firstname    => 'firstname for patron2',
+            userid       => 'a_nonexistent_userid_cf_2',
+        }
+    )->store;
+    my $new_patron_cf_3 = Koha::Patron->new(
+        {
+            cardnumber   => 'test_cn_cf_3',
+            branchcode   => $library->{branchcode},
+            categorycode => $category->{categorycode},
+            surname      => 'surname for patron3',
+            firstname    => 'firstname for patron3',
+            userid       => 'a_nonexistent_userid_cf_3',
+        }
+    )->store;
+
+    my $results = Koha::Patrons->search(
+        {
+            'me.borrowernumber' => [
+                $new_patron_cf_1->borrowernumber,
+                $new_patron_cf_2->borrowernumber,
+                $new_patron_cf_3->borrowernumber
+            ]
+        }
+    );
+
+    my $fine1 = $builder->build(
+        {
+            source => 'Accountline',
+            value  => {
+                borrowernumber    => $new_patron_cf_1->borrowernumber,
+                amountoutstanding => 12.00,
+                amount            => 12.00,
+                debit_type_code   => 'OVERDUE',
+                branchcode        => $library->{branchcode}
+            },
+        }
+    );
+    my $fine2 = $builder->build(
+        {
+            source => 'Accountline',
+            value  => {
+                borrowernumber    => $new_patron_cf_2->borrowernumber,
+                amountoutstanding => 8.00,
+                amount            => 8.00,
+                debit_type_code   => 'OVERDUE',
+                branchcode        => $library->{branchcode}
+
+            },
+        }
+    );
+    my $fine3 = $builder->build(
+        {
+            source => 'Accountline',
+            value  => {
+                borrowernumber    => $new_patron_cf_2->borrowernumber,
+                amountoutstanding => 10.00,
+                amount            => 10.00,
+                debit_type_code   => 'OVERDUE',
+                branchcode        => $library->{branchcode}
+            },
+        }
+    );
+
+    my $filtered = $results->filter_by_amount_owed();
+    is( ref($filtered), 'Koha::Patrons',
+'Koha::Patrons->filter_by_amount_owed should return a Koha::Patrons result set in a scalar context'
+    );
+
+    my $lower_limit = 12.00;
+    my $upper_limit = 16.00;
+
+    # Catch user with 1 x 12.00 fine and user with no fines.
+    $filtered =
+      $results->filter_by_amount_owed( { less_than => $upper_limit } );
+    is( $filtered->_resultset->as_subselect_rs->count, 2,
+"filter_by_amount_owed({ less_than => $upper_limit }) found two patrons"
+    );
+
+    # Catch user with 1 x 8.00 and 1 x 10.00 fine
+    $filtered =
+      $results->filter_by_amount_owed( { more_than => $lower_limit } );
+    is( $filtered->_resultset->as_subselect_rs->count, 1,
+"filter_by_amount_owed({ more_than => $lower_limit }) found two patrons"
+    );
+
+    # User with 2 fines falls above upper limit - Excluded,
+    # user with 1 fine falls below lower limit - Excluded
+    # and user with no fines falls below lower limit - Excluded.
+    $filtered = $results->filter_by_amount_owed(
+        { more_than => $lower_limit, less_than => $upper_limit } );
+    is( $filtered->_resultset->as_subselect_rs->count, 0,
+"filter_by_amount_owed({ more_than => $lower_limit, less_than => $upper_limit }) found zero patrons"
+    );
+
+    my $library2 = $builder->build({source => 'Branch' });
+    my $fine4 = $builder->build(
+        {
+            source => 'Accountline',
+            value  => {
+                borrowernumber    => $new_patron_cf_2->borrowernumber,
+                amountoutstanding => 10.00,
+                amount            => 10.00,
+                debit_type_code   => 'HOLD',
+                branchcode        => $library2->{branchcode}
+            },
+        }
+    );
+
+    # Catch only the user with a HOLD fee over 6.00
+    $filtered = $results->filter_by_amount_owed( { more_than => 6.00, debit_type => 'HOLD' } );
+    is( $filtered->_resultset->as_subselect_rs->count, 1,
+"filter_by_amount_owed({ more_than => 6.00, debit_type => 'HOLD' }) found one patron"
+    );
+
+    # Catch only the user with a fee over 6.00 at the specified library
+    $filtered = $results->filter_by_amount_owed( { more_than => 6.00, library => $library2->{branchcode} } );
+    is( $filtered->_resultset->as_subselect_rs->count, 1,
+"filter_by_amount_owed({ more_than => 6.00, library => $library2->{branchcode} }) found one patron"
+    );
+
+};
+
+subtest 'filter_by_have_permission' => sub {
+    plan tests => 5;
+
+    $schema->storage->txn_begin;
+
+    my $library  = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $patron_1 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 1, branchcode => $library->branchcode }
+        }
+    );
+
+    my $patron_2 = $builder->build_object( # 4096 = 1 << 12 for suggestions
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 4096, branchcode => $library->branchcode }
+        }
+    );
+
+    my $patron_3 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 0, branchcode => $library->branchcode }
+        }
+    );
+    $builder->build(
+        {
+            source => 'UserPermission',
+            value  => {
+                borrowernumber => $patron_3->borrowernumber,
+                module_bit     => 11,
+                code           => 'order_manage',
+            },
+        }
+    );
+
+    is_deeply(
+        [
+            Koha::Patrons->search( { branchcode => $library->branchcode } )
+              ->filter_by_have_permission('suggestions.suggestions_manage')
+              ->get_column('borrowernumber')
+        ],
+        [ $patron_1->borrowernumber, $patron_2->borrowernumber ],
+        'Superlibrarian and patron with suggestions.suggestions_manage'
+    );
+
+    is_deeply(
+        [
+            Koha::Patrons->search( { branchcode => $library->branchcode } )
+              ->filter_by_have_permission('acquisition.order_manage')
+              ->get_column('borrowernumber')
+        ],
+        [ $patron_1->borrowernumber, $patron_3->borrowernumber ],
+        'Superlibrarian and patron with acquisition.order_manage'
+    );
+
+    is_deeply(
+        [
+            Koha::Patrons->search( { branchcode => $library->branchcode } )
+              ->filter_by_have_permission('parameters.manage_cities')
+              ->get_column('borrowernumber')
+        ],
+        [ $patron_1->borrowernumber ],
+        'Only Superlibrarian is returned'
+    );
+
+    is_deeply(
+        [
+            Koha::Patrons->search( { branchcode => $library->branchcode } )
+              ->filter_by_have_permission('suggestions')
+              ->get_column('borrowernumber')
+        ],
+        [ $patron_1->borrowernumber, $patron_2->borrowernumber ],
+        'Superlibrarian and patron with suggestions'
+    );
+
+    throws_ok {
+        Koha::Patrons->search( { branchcode => $library->branchcode } )
+          ->filter_by_have_permission('dont_exist.subperm');
+    } 'Koha::Exceptions::ObjectNotFound';
+
+
+    $schema->storage->txn_rollback;
 };
 
 $schema->storage->txn_rollback;

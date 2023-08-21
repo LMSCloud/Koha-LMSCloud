@@ -22,14 +22,14 @@ use Test::Warn;
 
 use File::Basename;
 
-use C4::Circulation qw(AddIssue AddRenewal AddReturn);
+use C4::Circulation qw( AddIssue AddRenewal AddReturn );
 
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
 BEGIN {
     # Mock pluginsdir before loading Plugins module
-    my $path = dirname(__FILE__) . '/../../../lib';
+    my $path = dirname(__FILE__) . '/../../../lib/plugins';
     t::lib::Mocks::mock_config( 'pluginsdir', $path );
 
     use_ok('Koha::Plugins');
@@ -66,6 +66,7 @@ subtest 'after_circ_action() hook tests' => sub {
     my $test_plugin = Test::MockModule->new('Koha::Plugin::Test');
     $test_plugin->mock( 'after_item_action',   undef );
     $test_plugin->mock( 'after_biblio_action', undef );
+    $test_plugin->mock( 'item_barcode_transform', sub { my ( $self, $barcode ) = @_; return $barcode; } );
 
     my $biblio = $builder->build_sample_biblio();
     my $item_1 = $builder->build_sample_item( { biblionumber => $biblio->biblionumber } );

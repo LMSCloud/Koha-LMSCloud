@@ -46,6 +46,13 @@ the biblio the imported record matches (biblio.biblionumber)
 
 the match score
 
+=head2 chosen
+
+  data_type: 'tinyint'
+  is_nullable: 1
+
+whether this match has been allowed or denied
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -55,7 +62,23 @@ __PACKAGE__->add_columns(
   { data_type => "integer", is_nullable => 0 },
   "score",
   { data_type => "integer", default_value => 0, is_nullable => 0 },
+  "chosen",
+  { data_type => "tinyint", is_nullable => 1 },
 );
+
+=head1 PRIMARY KEY
+
+=over 4
+
+=item * L</import_record_id>
+
+=item * L</candidate_match_id>
+
+=back
+
+=cut
+
+__PACKAGE__->set_primary_key("import_record_id", "candidate_match_id");
 
 =head1 RELATIONS
 
@@ -75,9 +98,18 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:kWU/SGWvZBBvVwEvDysrtA
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-05-03 20:30:28
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:a1GMA3K9ZgtPGdsCWmDMFw
 
+__PACKAGE__->add_columns(
+    '+chosen' => { is_boolean => 1 },
+);
 
-# You can replace this text with custom code or comments, and it will be preserved on regeneration
+sub koha_object_class {
+    'Koha::Import::Record::Match';
+}
+sub koha_objects_class {
+    'Koha::Import::Record::Matches';
+}
+
 1;

@@ -18,7 +18,7 @@
 use Modern::Perl;
 
 use DBI;
-use Test::More tests => 35;
+use Test::More tests => 34;
 use Test::MockModule;
 use Test::Warn;
 use YAML::XS;
@@ -63,6 +63,53 @@ subtest 'needs_install() tests' => sub {
     is( C4::Context->needs_install, 1, "->preference(Version) is not defined, need to install" );
 };
 
+subtest 'csv_delimiter() tests' => sub {
+
+    plan tests => 4;
+
+    t::lib::Mocks::mock_preference( 'CSVDelimiter', undef );
+    is( C4::Context->csv_delimiter, ',', "csv_delimiter returns comma if system preference CSVDelimiter is undefined" );
+
+    t::lib::Mocks::mock_preference( 'CSVDelimiter', '' );
+    is( C4::Context->csv_delimiter, ',', "csv_delimiter returns comma if system preference CSVDelimiter is empty string" );
+
+    t::lib::Mocks::mock_preference( 'CSVDelimiter', ';' );
+    is( C4::Context->csv_delimiter, ';', "csv_delimiter returns semicolon if system preference CSVDelimiter is semicolon" );
+
+    t::lib::Mocks::mock_preference( 'CSVDelimiter', 'tabulation' );
+    is( C4::Context->csv_delimiter, "\t", "csv_delimiter returns '\t' if system preference CSVDelimiter is tabulation" );
+};
+
+subtest 'default_catalog_sort_by() tests' => sub {
+
+    plan tests => 5;
+
+    my $context = Test::MockModule->new( 'C4::Context' );
+
+    $context->mock( 'interface', 'intranet' );
+
+    t::lib::Mocks::mock_preference( 'defaultSortField', undef );
+    is( C4::Context->default_catalog_sort_by, undef, "default_catalog_sort_by() returns undef if system preference defaultSortField is undefined" );
+
+    t::lib::Mocks::mock_preference( 'defaultSortField', 'title' );
+    t::lib::Mocks::mock_preference( 'defaultSortOrder', 'az' );
+    is( C4::Context->default_catalog_sort_by, 'title_az', "default_catalog_sort_by() returns concatenation of system preferences defaultSortField and defaultSortOrder" );
+
+    t::lib::Mocks::mock_preference( 'defaultSortField', 'relevance' );
+    is( C4::Context->default_catalog_sort_by, 'relevance', "default_catalog_sort_by() returns only system preference defaultSortField if it is relevance" );
+
+    $context->mock( 'interface', 'opac' );
+
+    t::lib::Mocks::mock_preference( 'OPACdefaultSortField', 'pubdate' );
+    t::lib::Mocks::mock_preference( 'OPACdefaultSortOrder', 'desc' );
+    is( C4::Context->default_catalog_sort_by, 'pubdate_desc', "default_catalog_sort_by() returns concatenation of system preferences OPACdefaultSortField and OPACdefaultSortOrder" );
+
+    t::lib::Mocks::mock_preference( 'OPACdefaultSortField', 'relevance' );
+    is( C4::Context->default_catalog_sort_by, 'relevance', "default_catalog_sort_by() returns only system preference OPACdefaultSortField if it is relevance" );
+
+    $context->unmock( 'interface' );
+};
+
 my $context = Test::MockModule->new('C4::Context');
 my $userenv = {};
 
@@ -94,11 +141,6 @@ $userenv->{flags} = 0;
 $is_super_librarian = eval{ C4::Context::IsSuperLibrarian() };
 is ( $@, q||, "IsSuperLibrarian does not log an error if \$userenv->{flags} is equal to 0" );
 is ( $is_super_librarian, 0, "With flag=0, it is not a super librarian" );
-
-is(C4::Context::db_scheme2dbi('mysql'), 'mysql', 'ask for mysql, get mysql');
-is(C4::Context::db_scheme2dbi('Pg'),    'Pg',    'ask for Pg, get Pg');
-is(C4::Context::db_scheme2dbi('xxx'),   'mysql', 'ask for unsupported DBMS, get mysql');
-is(C4::Context::db_scheme2dbi(),        'mysql', 'ask for nothing, get mysql');
 
 # C4::Context::interface
 my $lastwarn;
@@ -133,3 +175,35 @@ is( C4::Context->interface( 'CRON' ), 'cron', 'interface cron uc' );
     $ENV{HTTPS} = 'ON';
     is( C4::Context->https_enabled, 1, "ON HTTPS env returns 1");
 }
+
+subtest 'psgi_env and is_internal_PSGI_request' => sub {
+
+    plan tests => 11;
+
+    local %ENV = ( no_plack => 1 );
+    ok( !C4::Context->psgi_env, 'no_plack' );
+    $ENV{plackishere} = 1;
+    ok( !C4::Context->psgi_env, 'plackishere is wrong' );
+    $ENV{'plack.ishere'} = 1;
+    ok( C4::Context->psgi_env, 'plack.ishere' );
+    delete $ENV{'plack.ishere'};
+    ok( !C4::Context->psgi_env, 'plack.ishere was here' );
+    $ENV{'plack_env'} = 1;
+    ok( C4::Context->psgi_env, 'plack_env' );
+    delete $ENV{'plack_env'};
+    $ENV{'psgi_whatever'} = 1;
+    ok( !C4::Context->psgi_env, 'psgi_whatever' );
+    delete $ENV{'psgi_whatever'};
+    $ENV{'psgi.whatever'} = 1;
+    ok( C4::Context->psgi_env, 'psgi.whatever' );
+    delete $ENV{'psgi.whatever'};
+    $ENV{'PSGI.UPPERCASE'} = 1;
+    ok( C4::Context->psgi_env, 'PSGI uppercase' );
+
+    $ENV{'REQUEST_URI'} = '/intranet/whatever';
+    ok( !C4::Context->is_internal_PSGI_request, 'intranet not considered internal in regex' );
+    $ENV{'REQUEST_URI'} = '/api/v1/tralala';
+    ok( C4::Context->is_internal_PSGI_request, 'api considered internal in regex' );
+    delete $ENV{'PSGI.UPPERCASE'};
+    ok( !C4::Context->is_internal_PSGI_request, 'api but no longer PSGI' );
+};

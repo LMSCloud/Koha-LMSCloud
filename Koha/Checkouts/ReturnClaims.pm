@@ -19,7 +19,6 @@ package Koha::Checkouts::ReturnClaims;
 
 use Modern::Perl;
 
-use Carp;
 
 use Koha::Database;
 
@@ -61,7 +60,7 @@ sub resolved {
     return Koha::Checkouts::ReturnClaims->_new_from_dbic( $results );
 }
 
-=head3 type
+=head3 _type
 
 =cut
 

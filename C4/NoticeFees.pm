@@ -25,7 +25,8 @@ use Locale::Currency::Format;
 use Koha::NoticeFeeRule;
 use Koha::NoticeFeeRules;
 use Koha::Account;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
+use Koha::Notice::Templates;
 use C4::Log; # logaction
 
 
@@ -345,19 +346,51 @@ sub GetNoticeFeeDescription {
     
     # if it is a overdue claim we support to format messages depending on the calim lebvel
     if ( $params->{'claimlevel'} ) {
-        $letter_exists = C4::Letters::getletter( 'fines', $letter_code . '_CLAIM'.$params->{'claimlevel'}, $branchcode, 'email' ) ? 1 : 0;
+		my $template = Koha::Notice::Templates->find_effective_template(
+			{
+				module                 => 'fines',
+				code                   => $letter_code . '_CLAIM'.$params->{'claimlevel'},
+				branchcode             => $branchcode,
+				message_transport_type => 'email'
+			}
+		);
+		$letter_exists = ($template) ? 1 : 0;
         $letter_code = $letter_code . '_CLAIM'.$params->{'claimlevel'} if ($letter_exists);
         if (! $letter_exists ) {
-            $letter_exists = C4::Letters::getletter( 'fines', $letter_code . '_CLAIM', $branchcode, 'email' ) ? 1 : 0;
+			$template = Koha::Notice::Templates->find_effective_template(
+				{
+					module                 => 'fines',
+					code                   => $letter_code . '_CLAIM',
+					branchcode             => $branchcode,
+					message_transport_type => 'email'
+				}
+			);
+            $letter_exists = ($template) ? 1 : 0;
             $letter_code = $letter_code . '_CLAIM' if ($letter_exists);
         }
     }
     elsif ( $params->{'letter_code'} ) {
-        $letter_exists = C4::Letters::getletter( 'fines', $letter_code . '_' . $params->{'letter_code'}, $branchcode, 'email' ) ? 1 : 0;
+		my $template = Koha::Notice::Templates->find_effective_template(
+			{
+				module                 => 'fines',
+				code                   => $letter_code . '_' . $params->{'letter_code'},
+				branchcode             => $branchcode,
+				message_transport_type => 'email'
+			}
+		);
+        $letter_exists = ($template) ? 1 : 0;
         $letter_code = $letter_code . '_' . $params->{'letter_code'} if ($letter_exists);
     }
     if (! $letter_exists ) {
-        $letter_exists = C4::Letters::getletter( 'fines', $letter_code, $branchcode, 'email' ) ? 1 : 0;
+		my $template = Koha::Notice::Templates->find_effective_template(
+			{
+				module                 => 'fines',
+				code                   => $letter_code,
+				branchcode             => $branchcode,
+				message_transport_type => 'email'
+			}
+		);
+        $letter_exists = ($template) ? 1 : 0;
     }
 
     if ( $letter_exists ) {

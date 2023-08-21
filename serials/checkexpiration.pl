@@ -44,11 +44,11 @@ The date to filter on.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Serials; # GetExpirationDate
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Serials qw( SearchSubscriptions GetExpirationDate );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 
 use DateTime;
 
@@ -60,7 +60,6 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user (
         query           => $query,
         type            => "intranet",
         flagsrequired   => { serials => 'check_expiration' },
-        debug           => 1,
     }
 );
 
@@ -109,7 +108,6 @@ if ($date) {
         numsubscription     => scalar @subscriptions_loop,
         date                => $date,
         subscriptions_loop  => \@subscriptions_loop,
-        "BiblioDefaultView" . C4::Context->preference("BiblioDefaultView") => 1,
         searched                                                           => 1,
     );
 }

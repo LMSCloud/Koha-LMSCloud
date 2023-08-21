@@ -21,20 +21,21 @@
 use Modern::Perl;
 
 use Koha::Util::FrameworkPlugin qw(wrapper);
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use CGI qw ( -utf8 );
 use C4::Context;
 
 use C4::Search;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 
 sub plugin_javascript {
-    my ( $dbh, $record, $tagslib, $field_number, $tabloop ) = @_;
+    my ( $dbh, $record, $tagslib, $field_number ) = @_;
     my $res = "
 <script>
-function Clic$field_number() {
-	defaultvalue=document.getElementById(\"$field_number\").value;
-	window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_115b.pl&index=$field_number&result=\"+defaultvalue,\"unimarc_field_115b\",'width=1200,height=600,toolbar=false,scrollbars=yes');
+function Clic$field_number(ev) {
+    ev.preventDefault();
+    defaultvalue=document.getElementById(ev.data.id).value;
+    window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_115b.pl&index=\" + ev.data.id + \"&result=\"+defaultvalue,\"unimarc_field_115b\",'width=1200,height=600,toolbar=false,scrollbars=yes');
 
 }
 </script>
@@ -57,7 +58,6 @@ sub plugin {
             query           => $input,
             type            => "intranet",
             flagsrequired   => { editcatalogue => '*' },
-            debug           => 1,
         }
     );
     my $f1  = substr( $result, 0,  1 ); $f1  = wrapper( $f1 ) if $f1;

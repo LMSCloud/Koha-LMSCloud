@@ -18,15 +18,12 @@
 use Modern::Perl;
 
 use Archive::Extract;
-use File::Temp;
-use File::Copy;
 use CGI qw ( -utf8 );
 
 use C4::Context;
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Output;
 use C4::Members;
-use C4::Debug;
 use Koha::Plugins::Handler;
 
 die("Koha plugins are disabled!") unless C4::Context->config("enable_plugins");
@@ -38,7 +35,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { plugins => 'manage' },
-        debug           => 1,
     }
 );
 

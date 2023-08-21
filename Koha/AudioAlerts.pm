@@ -19,7 +19,6 @@ package Koha::AudioAlerts;
 
 use Modern::Perl;
 
-use Carp;
 
 use Koha::Database;
 
@@ -92,14 +91,14 @@ sub move {
 
     if ( $where eq 'up' ) {
         unless ( $alert->precedence() == 1 ) {
-            my ($other) = $self->search( { precedence => $alert->precedence() - 1 } );
+            my $other = $self->search( { precedence => $alert->precedence() - 1 } )->next;
             $other->precedence( $alert->precedence() )->store();
             $alert->precedence( $alert->precedence() - 1 )->store();
         }
     }
     elsif ( $where eq 'down' ) {
         unless ( $alert->precedence() == $self->get_last_precedence() ) {
-            my ($other) = $self->search( { precedence => $alert->precedence() + 1 } );
+            my $other = $self->search( { precedence => $alert->precedence() + 1 } )->next;
             $other->precedence( $alert->precedence() )->store();
             $alert->precedence( $alert->precedence() + 1 )->store();
         }
@@ -126,7 +125,7 @@ and to have no gaps
 sub fix_precedences {
     my ($self) = @_;
 
-    my @alerts = $self->search();
+    my @alerts = $self->search->as_list;
 
     my $i = 1;
     map { $_->precedence( $i++ )->store() } @alerts;

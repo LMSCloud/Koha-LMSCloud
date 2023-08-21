@@ -160,13 +160,6 @@ the IP address for your library or branch
 
 notes related to your library or branch
 
-=head2 opac_info
-
-  data_type: 'mediumtext'
-  is_nullable: 1
-
-HTML that displays in OPAC
-
 =head2 geolocation
 
   data_type: 'varchar'
@@ -190,6 +183,14 @@ MARC Organization Code, see http://www.loc.gov/marc/organizations/orgshome.html,
   is_nullable: 0
 
 the ability to act as a pickup location
+
+=head2 public
+
+  data_type: 'tinyint'
+  default_value: 1
+  is_nullable: 0
+
+whether this library should show in the opac
 
 =head2 mobilebranch
 
@@ -241,13 +242,13 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 15 },
   "branchnotes",
   { data_type => "longtext", is_nullable => 1 },
-  "opac_info",
-  { data_type => "mediumtext", is_nullable => 1 },
   "geolocation",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "marcorgcode",
   { data_type => "varchar", is_nullable => 1, size => 16 },
   "pickup_location",
+  { data_type => "tinyint", default_value => 1, is_nullable => 0 },
+  "public",
   { data_type => "tinyint", default_value => 1, is_nullable => 0 },
   "mobilebranch",
   { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 10 },
@@ -308,6 +309,21 @@ Related object: L<Koha::Schema::Result::Accountline>
 __PACKAGE__->has_many(
   "accountlines",
   "Koha::Schema::Result::Accountline",
+  { "foreign.branchcode" => "self.branchcode" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 additional_contents
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::AdditionalContent>
+
+=cut
+
+__PACKAGE__->has_many(
+  "additional_contents",
+  "Koha::Schema::Result::AdditionalContent",
   { "foreign.branchcode" => "self.branchcode" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
@@ -613,6 +629,36 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 curbside_pickup_policy
+
+Type: might_have
+
+Related object: L<Koha::Schema::Result::CurbsidePickupPolicy>
+
+=cut
+
+__PACKAGE__->might_have(
+  "curbside_pickup_policy",
+  "Koha::Schema::Result::CurbsidePickupPolicy",
+  { "foreign.branchcode" => "self.branchcode" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 curbside_pickups
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::CurbsidePickup>
+
+=cut
+
+__PACKAGE__->has_many(
+  "curbside_pickups",
+  "Koha::Schema::Result::CurbsidePickup",
+  { "foreign.branchcode" => "self.branchcode" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 desks
 
 Type: has_many
@@ -655,6 +701,21 @@ __PACKAGE__->has_many(
   "hold_fill_targets",
   "Koha::Schema::Result::HoldFillTarget",
   { "foreign.source_branchcode" => "self.branchcode" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 identity_provider_domains
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::IdentityProviderDomain>
+
+=cut
+
+__PACKAGE__->has_many(
+  "identity_provider_domains",
+  "Koha::Schema::Result::IdentityProviderDomain",
+  { "foreign.default_library_id" => "self.branchcode" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -783,21 +844,6 @@ __PACKAGE__->might_have(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
-=head2 opac_news
-
-Type: has_many
-
-Related object: L<Koha::Schema::Result::OpacNews>
-
-=cut
-
-__PACKAGE__->has_many(
-  "opac_news",
-  "Koha::Schema::Result::OpacNews",
-  { "foreign.branchcode" => "self.branchcode" },
-  { cascade_copy => 0, cascade_delete => 0 },
-);
-
 =head2 problem_reports
 
 Type: has_many
@@ -810,6 +856,21 @@ __PACKAGE__->has_many(
   "problem_reports",
   "Koha::Schema::Result::ProblemReport",
   { "foreign.branchcode" => "self.branchcode" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 recalls
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Recall>
+
+=cut
+
+__PACKAGE__->has_many(
+  "recalls",
+  "Koha::Schema::Result::Recall",
+  { "foreign.pickup_library_id" => "self.branchcode" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -919,11 +980,12 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-11-19 16:54:35
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:5wzOOc+6RKMjNe+Yf7/LkA
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-11-08 17:35:26
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:QPqXuEigMeIBb9NKMSkrNw
 
 __PACKAGE__->add_columns(
-    '+pickup_location' => { is_boolean => 1 }
+    '+pickup_location' => { is_boolean => 1 },
+    '+public'          => { is_boolean => 1 }
 );
 
 sub koha_object_class {

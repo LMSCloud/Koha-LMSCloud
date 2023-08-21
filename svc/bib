@@ -22,10 +22,11 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth qw/check_api_auth/;
-use C4::Biblio;
+use C4::Auth qw( check_api_auth );
+use C4::Biblio qw( GetFrameworkCode );
 use C4::Items;
 use XML::Simple;
+use Koha::Biblios;
 
 my $query = CGI->new;
 binmode STDOUT, ':encoding(UTF-8)';
@@ -65,9 +66,8 @@ exit 0;
 sub fetch_bib {
     my $query = shift;
     my $biblionumber = shift;
-    my $record = GetMarcBiblio({
-        biblionumber => $biblionumber,
-        embed_items  => scalar $query->param('items') });
+    my $biblio = Koha::Biblios->find( $biblionumber );
+    my $record = $biblio->metadata->record({ embed_items => scalar $query->param('items') });
     if  (defined $record) {
         print $query->header(-type => 'text/xml',-charset => 'utf-8',);
         print $record->as_xml_record();
@@ -79,7 +79,8 @@ sub fetch_bib {
 sub update_bib {
     my $query = shift;
     my $biblionumber = shift;
-    my $old_record = GetMarcBiblio({ biblionumber => $biblionumber });
+    my $biblio = Koha::Biblios->find( $biblionumber );
+    my $old_record = $biblio->metadata->record;
     my $frameworkcode = $query->url_param('frameworkcode') // GetFrameworkCode($biblionumber);
     unless  (defined $old_record) {
         print $query->header(-type => 'text/xml', -status => '404 Not Found');
@@ -98,7 +99,7 @@ sub update_bib {
     } else {
         my $fullrecord = $record->clone();
         my ( $itemtag, $itemsubfield ) =
-          GetMarcFromKohaField( "items.itemnumber" );
+          C4::Biblio::GetMarcFromKohaField( "items.itemnumber" );
 
         # delete any item tags
         foreach my $field ( $record->field($itemtag) ) {
@@ -109,15 +110,14 @@ sub update_bib {
             foreach my $field ( $fullrecord->field($itemtag) ) {
                 my $one_item_record = $record->clone();
                 $one_item_record->add_fields($field);
-                ModItemFromMarc( $one_item_record, $biblionumber,
+                C4::Items::ModItemFromMarc( $one_item_record, $biblionumber,
                     $field->subfield($itemsubfield) );
             }
         }
 
-        ModBiblio( $record, $biblionumber, $frameworkcode );
-        my $new_record = GetMarcBiblio({
-            biblionumber => $biblionumber,
-            embed_items  => scalar $query->url_param('items') });
+        C4::Biblio::ModBiblio( $record, $biblionumber, $frameworkcode );
+        my $biblio = Koha::Biblios->find( $biblionumber );
+        my $new_record = $biblio->metadata->record({ embed_items => scalar $query->url_param('items') });
 
         $result->{'status'} = "ok";
         $result->{'biblionumber'} = $biblionumber;
@@ -133,7 +133,7 @@ sub update_bib {
 sub delete_bib {
     my $query = shift;
     my $biblionumber = shift;
-    my $error = DelBiblio($biblionumber);
+    my $error = C4::Biblio::DelBiblio($biblionumber);
 
     if (defined $error) {
         print $query->header(-type => 'text/xml', -status => '400 Bad request');

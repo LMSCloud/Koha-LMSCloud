@@ -18,15 +18,13 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use File::Basename;
-use Encode;
-use JSON;
+use JSON qw( encode_json );
 #use Data::Dump 'pp';
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
 use C4::ItemCirculationAlertPreference;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 
 use Koha::ItemTypes;
 use Koha::Patron::Categories;
@@ -43,22 +41,21 @@ sub show {
             template_name   => "admin/item_circulation_alerts.tt",
             query           => $input,
             type            => "intranet",
-            flagsrequired   => { parameters => 'item_circ_alerts' },
+            flagsrequired   => { parameters => 'manage_item_circ_alerts' },
             debug           => defined($input->param('debug')),
         }
     );
 
     my $branch   = $input->param('branch') || '*';
-    my @categories = Koha::Patron::Categories->search_with_library_limits;
-    my @item_types = Koha::ItemTypes->search;
     my $grid_checkout = $preferences->grid({ branchcode => $branch, notification => 'CHECKOUT' });
     my $grid_checkin  = $preferences->grid({ branchcode => $branch, notification => 'CHECKIN' });
 
-    $template->param(branch             => $branch);
-    $template->param(categories         => \@categories);
-    $template->param(item_types         => \@item_types);
-    $template->param(grid_checkout      => $grid_checkout);
-    $template->param(grid_checkin       => $grid_checkin);
+    $template->param(
+        branch        => $branch,
+        item_types    => Koha::ItemTypes->search,
+        grid_checkout => $grid_checkout,
+        grid_checkin  => $grid_checkin,
+    );
 
     output_html_with_http_headers $input, $cookie, $template->output;
 }

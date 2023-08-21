@@ -70,33 +70,6 @@ $.fn.dataTable.ext.buttons.clearFilter = {
     }
 };
 
-/* Plugin to allow sorting on numeric data stored in a span's title attribute
- *
- * Ex: <td><span title="[% decimal_number_that_JS_parseFloat_accepts %]">
- *              [% formatted currency %]
- *     </span></td>
- *
- * In DataTables config:
- *     "aoColumns": [
- *        { "sType": "title-numeric" },
- *      ]
- * http://datatables.net/plug-ins/sorting#hidden_title
- */
-jQuery.extend( jQuery.fn.dataTableExt.oSort, {
-    "title-numeric-pre": function ( a ) {
-        var x = a.match(/title="*(-?[0-9\.]+)/)[1];
-        return parseFloat( x );
-    },
-
-    "title-numeric-asc": function ( a, b ) {
-        return ((a < b) ? -1 : ((a > b) ? 1 : 0));
-    },
-
-    "title-numeric-desc": function ( a, b ) {
-        return ((a < b) ? 1 : ((a > b) ? -1 : 0));
-    }
-} );
-
 (function() {
 
     /* Plugin to allow text sorting to ignore articles
@@ -168,10 +141,6 @@ jQuery.extend( jQuery.fn.dataTableExt.oSort, {
                                 if(options.embed) {
                                     xhr.setRequestHeader('x-koha-embed', Array.isArray(options.embed)?options.embed.join(','):options.embed);
                                 }
-                                if(options.header_filter && options.query_parameters) {
-                                    xhr.setRequestHeader('x-koha-query', options.query_parameters);
-                                    delete options.query_parameters;
-                                }
                             },
                             'dataFilter': function(data, type) {
                                 var json = {data: JSON.parse(data)};
@@ -207,12 +176,8 @@ jQuery.extend( jQuery.fn.dataTableExt.oSort, {
 
                                 if(query_parameters.length) {
                                     query_parameters = JSON.stringify(query_parameters.length === 1?query_parameters[0]:query_parameters);
-                                    if(options.header_filter) {
-                                        options.query_parameters = query_parameters;
-                                    } else {
-                                        dataSet.q = query_parameters;
-                                        delete options.query_parameters;
-                                    }
+                                    dataSet.q = query_parameters;
+                                    delete options.query_parameters;
                                 } else {
                                     delete options.query_parameters;
                                 }

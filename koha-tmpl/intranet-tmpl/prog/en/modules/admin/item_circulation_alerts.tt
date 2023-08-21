@@ -45,24 +45,20 @@
 </head>
 
 <body id="admin_item_circulation_alerts" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Item circulation alerts
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Item circulation alerts</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -77,7 +73,7 @@
     <option value="*">Default</option>
     [% PROCESS options_for_libraries libraries => Branches.all( selected => branch, unfiltered => 1, restrict => 'NoMobileStations' ) %]
 </select>
-<input type="submit" name="pick" value="Pick" />
+<input type="submit" name="pick" class="btn btn-primary" value="Pick" />
 </form>
 </div>
                     <div class="col-sm-6">
@@ -107,63 +103,66 @@
                     </div> <!-- /.col-sm-6 -->
                 </div> <!-- /.row -->
 
-<h2>Circulation alerts for [% Branches.GetName( branch ) || 'Default' | html %]</h2>
-<p>Click on the grid to toggle the settings.</p>
+                <h2>Circulation alerts for [% Branches.GetName( branch ) || 'Default' | html %]</h2>
+                <p>Click on the grid to toggle the settings.</p>
 
-<div id="alerttabs" class="toptabs">
-<ul>
-<li><a href="#checkout">Checkout</a></li>
-<li><a href="#checkin">Check-in</a></li>
-</ul>
+                [% WRAPPER tabs id= "alerttabs" %]
+                    [% WRAPPER tabs_nav %]
+                        [% WRAPPER tab_item tabname= "checkout" bt_active= 1 %] <span>Checkout</span> [% END %]
+                        [% WRAPPER tab_item tabname= "checkin" %] <span>Check-in</span> [% END %]
+                    [% END %]
 
-<div id="checkout">
-<h3>Checkout</h3>
-<table class="grid active" width="100%">
-<thead>
-<tr>
-  <th>&nbsp;</th>
-  [% FOREACH item_type IN item_types %]
-  <th>[% item_type.description | html %]</th>
-  [% END %]
-</tr>
-</thead>
-<tbody>
-[% FOREACH grid_checkou IN grid_checkout %]
-<tr>
-  <th>[% grid_checkou.description | html %]</th>
-  [% FOREACH item IN grid_checkou.items %]
-  <td class="[% item.class | html %]" id="[% item.id | html %]">[% item.text | html %]</td>
-  [% END %]
-</tr>
-[% END %]
-</tbody>
-</table>
-</div>
+                    [% WRAPPER tab_panels %]
+                        [% WRAPPER tab_panel tabname="checkout" bt_active= 1 %]
+                            <h3>Checkout</h3>
+                            <table class="grid active" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>&nbsp;</th>
+                                        [% FOREACH item_type IN item_types %]
+                                            <th>[% item_type.description | html %]</th>
+                                        [% END %]
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    [% FOREACH grid_checkou IN grid_checkout %]
+                                        <tr>
+                                            <th>[% grid_checkou.description | html %]</th>
+                                            [% FOREACH item IN grid_checkou.items %]
+                                                <td class="[% item.class | html %]" id="[% item.id | html %]">[% item.text | html %]</td>
+                                            [% END %]
+                                        </tr>
+                                    [% END %]
+                                </tbody>
+                            </table> <!-- /.grid.active -->
+                        [% END #/ #checkout %]
 
-<div id="checkin">
-<h3>Check-in</h3>
-<table class="grid active" width="100%">
-<thead>
-<tr>
-  <th>&nbsp;</th>
-  [% FOREACH item_type IN item_types %]
-  <th>[% item_type.description | html %]</th>
-  [% END %]
-</tr>
-</thead>
-<tbody>
-[% FOREACH grid_checki IN grid_checkin %]
-<tr>
-  <th>[% grid_checki.description | html %]</th>
-  [% FOREACH item IN grid_checki.items %]
-  <td class="[% item.class | html %]" id="[% item.id | html %]">[% item.text | html %]</td>
-  [% END %]
-</tr>
-[% END %]
-</tbody>
-</table>
-</div>
-</div>
+                        [% WRAPPER tab_panel tabname="checkin" %]
+                            <h3>Check-in</h3>
+                            <table class="grid active" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>&nbsp;</th>
+                                        [% FOREACH item_type IN item_types %]
+                                        <th>[% item_type.description | html %]</th>
+                                        [% END %]
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    [% FOREACH grid_checki IN grid_checkin %]
+                                    <tr>
+                                        <th>[% grid_checki.description | html %]</th>
+                                        [% FOREACH item IN grid_checki.items %]
+                                        <td class="[% item.class | html %]" id="[% item.id | html %]">[% item.text | html %]</td>
+                                        [% END %]
+                                    </tr>
+                                    [% END %]
+                                </tbody>
+                            </table>
+                        [% END # /#checkin %]
+                    [% END # /.tab_panels %]
+
+                [% END # //#alerttabs %]
 
             </main>
         </div> <!-- /.col-sm-10.col-sm-push-2 -->
@@ -180,7 +179,6 @@
     <script>
         var $branch = "[% branch | html %]";
         $(function(){
-            $('#alerttabs').tabs();
 
             var blocked            = _("Blocked!");
             var saving             = _("Saving...");

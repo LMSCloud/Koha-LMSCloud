@@ -19,7 +19,6 @@ package C4::Heading::MARC21;
 
 use strict;
 use warnings;
-use MARC::Record;
 use MARC::Field;
 
 
@@ -80,7 +79,7 @@ my $bib_heading_fields = {
     },
     '150' => {
         auth_type => 'TOPIC_TERM',
-        subfields => 'abvxyz68',
+        subfields => 'abgvxyz68',
         main_entry => 1
     },
     '151' => {
@@ -168,12 +167,12 @@ my $bib_heading_fields = {
 my $auth_heading_fields = {
     '100' => {
         auth_type  => 'PERSO_NAME',
-        subfields  => 'abcdefghjklmnopqrstvxyz68',
+        subfields  => 'abcdfghjklmnopqrstvxyz68',
         main_entry => 1
     },
     '110' => {
         auth_type  => 'CORPO_NAME',
-        subfields  => 'abcdefghklmnoprstvxyz68',
+        subfields  => 'abcdfghklmnoprstvxyz68',
         main_entry => 1
     },
     '111' => {
@@ -198,7 +197,7 @@ my $auth_heading_fields = {
     },
     '150' => {
         auth_type  => 'TOPIC_TERM',
-        subfields  => 'abvxyz68',
+        subfields  => 'abgvxyz68',
         main_entry => 1
     },
     '151' => {
@@ -340,7 +339,7 @@ sub parse_heading {
     my $thesaurus =
       $tag =~ m/6../
       ? _get_subject_thesaurus($field)
-      : "lcsh";    # use 'lcsh' for names, UT, etc.
+      : undef;    # We can't know the thesaurus for non-subject fields
     my $search_heading =
       _get_search_heading( $field, $field_info->{'subfields'} );
     my $display_heading =
@@ -359,6 +358,11 @@ sub parse_heading {
 sub _get_subject_thesaurus {
     my $field = shift;
     my $ind2  = $field->indicator(2);
+
+    # NOTE: sears and aat do not appear
+    # here as they do not have indicator values
+    # though the 008 in the authority records
+    # do have values for them
 
     my $thesaurus = "notdefined";
     if ( $ind2 eq '0' ) {
@@ -405,7 +409,7 @@ sub _get_search_heading {
         my $code    = $subfields[$i]->[0];
         my $code_re = quotemeta $code;
         my $value   = $subfields[$i]->[1];
-        $value =~ s/[\s]*[-,.:=;!%\/][\s]*$//;
+        $value =~ s/[\s]*[-,.:=;!%\/]*[\s]*$//;
         next unless $subfields =~ qr/$code_re/;
         if ($first) {
             $first   = 0;

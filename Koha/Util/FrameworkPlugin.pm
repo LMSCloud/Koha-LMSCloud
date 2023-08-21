@@ -24,11 +24,10 @@ use Modern::Perl;
 
 use constant DEFAULT_008_POS_6_39 => 'b        |||||||| |||| 00| 0 eng d';
 
-our ( @ISA, @EXPORT, @EXPORT_OK );
+our ( @ISA, @EXPORT_OK );
 BEGIN {
     require Exporter;
     @ISA = qw( Exporter );
-    @EXPORT = qw( );
     @EXPORT_OK = qw( wrapper date_entered biblio_008 );
 }
 

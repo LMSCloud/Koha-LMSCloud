@@ -22,86 +22,76 @@ MARC frameworks &rsaquo; Administration &rsaquo; Koha
 </head>
 
 <body id="admin_marctagstructure" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
-        <li>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/biblio_framework.pl">MARC frameworks</a>
-        </li>
+        [% END %]
 
         [% IF ( add_form ) %]
-            <li>
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/admin/marctagstructure.pl?frameworkcode=[% framework.frameworkcode | uri %]">
                     [% IF framework %]
-                        [% framework.frameworktext | html %] ([% framework.frameworkcode | html %])
+                        <span>[% framework.frameworktext | html %] ([% framework.frameworkcode | html %])</span>
                     [% ELSE %]
-                        Default MARC framework
+                        <span>Default MARC framework</span>
                     [% END%]
                 </a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    [% IF heading_add_tag_p %]
-                        Add tag
-                    [% ELSE %]
-                        Modify tag
-                    [% END %] [% searchfield | html %]
-                </a>
-            </li>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1%]
+                [% IF heading_add_tag_p %]
+                    <span>Add tag [% searchfield | html %]</span>
+                [% ELSE %]
+                    <span>Modify tag [% searchfield | html %]</span>
+                [% END %]
+            [% END %]
 
         [% ELSIF ( else ) %]
-            <li>
-                <a href="#" aria-current="page">
-                    [% IF framework %]
-                        [% framework.frameworktext | html %] ([% framework.frameworkcode | html %])
-                    [% ELSE %]
-                        Default MARC framework
-                    [% END %]
-                </a>
-            </li>
+            [% WRAPPER breadcrumb_item bc_active= 1%]
+                [% IF framework %]
+                    <span>[% framework.frameworktext | html %] ([% framework.frameworkcode | html %])</span>
+                [% ELSE %]
+                    <span>Default MARC framework</span>
+                [% END %]
+            [% END %]
 
         [% ELSIF ( delete_confirm ) %]
-            <li>
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/admin/marctagstructure.pl?frameworkcode=[% framework.frameworkcode | uri %]">
                     [% IF framework %]
-                        [% framework.frameworktext | html %] ([% framework.frameworkcode | html %])
+                        <span>[% framework.frameworktext | html %] ([% framework.frameworkcode | html %])</span>
                     [% ELSE %]
-                        Default MARC framework
+                        <span>Default MARC framework</span>
                     [% END %]
                 </a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Confirm deletion of tag '[% searchfield | html %]'
-                </a>
-            </li>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1%]
+                <span>Confirm deletion of tag [% searchfield | html %]</span>
+            [% END %]
 
         [% ELSIF ( delete_confirmed ) %]
-            <li>
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/admin/marctagstructure.pl?frameworkcode=[% framework.frameworkcode | uri %]">
                     [% IF framework %]
-                        [% framework.frameworktext | html %] ([% framework.frameworkcode | html %])
+                        <span>[% framework.frameworktext | html %] ([% framework.frameworkcode | html %])</span>
                     [% ELSE %]
-                        Default MARC framework
+                        <span>Default MARC framework</span>
                     [% END %]
                 </a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Data deleted
-                </a>
-            </li>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1%]
+                <span>Data deleted</span>
+            [% END %]
         [% END %]
-    </ol>
-</nav>
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -113,7 +103,11 @@ MARC frameworks &rsaquo; Administration &rsaquo; Koha
     <a class="btn btn-default" id="addtag" href="/cgi-bin/koha/admin/marctagstructure.pl?op=add_form&amp;frameworkcode=[% framework.frameworkcode | uri %]"><i class="fa fa-plus"></i> New tag</a>
 </div>[% END %]
 
-<h1>MARC Framework for [% IF framework %][% framework.frameworktext | html %] ([% framework.frameworkcode | html %])[% ELSE %]default MARC framework[% END %]</h1>
+[% IF framework %]
+    <h1>MARC Framework for [% framework.frameworktext | html %] ([% framework.frameworkcode | html %])</h1>
+[% ELSE %]
+    <h1>MARC Framework for default MARC framework</h1>
+[% END %]
 
 [% IF ( add_form ) %]
 
@@ -122,9 +116,9 @@ MARC frameworks &rsaquo; Administration &rsaquo; Koha
       <fieldset class="rows">
             <legend>
                 [% IF heading_add_tag_p %]
-                    Add tag
+                    <span>Add tag</span>
                 [% ELSE %]
-                    Modify tag <input type="hidden" name="modif" value="1" />[% searchfield | html %]
+                    <span>Modify tag</span> <input type="hidden" name="modif" value="1" />[% searchfield | html %]
                 [% END %]
             </legend>
             <input type="hidden" name="op" value="add_validate" />
@@ -178,7 +172,7 @@ MARC frameworks &rsaquo; Administration &rsaquo; Koha
         (if you select a value here, the indicators will be limited to the authorized value list)</li>
 </ol></fieldset> 
     <fieldset class="action">
-        <input type="submit" value="Save changes" />
+        <input type="submit" class="btn btn-primary" value="Save changes" />
         <a class="cancel" href="[% script_name | url %]?frameworkcode=[% framework.frameworkcode | uri %]">Cancel</a>
     </fieldset>
     </form>
@@ -221,7 +215,7 @@ MARC frameworks &rsaquo; Administration &rsaquo; Koha
             <option value="[% fw.frameworkcode | html %]">[% fw.frameworktext | html %]</option>
         [% END %]
         </select>
-        <input type="submit" value="OK" />
+        <input type="submit" class="btn btn-primary" value="OK" />
     </form>
 [% END %]
 
@@ -243,7 +237,7 @@ MARC frameworks &rsaquo; Administration &rsaquo; Koha
                 [% END %]
             [% END %]
         </select>
-    <input type="submit" value="Search" />
+    <input type="submit" class="btn btn-primary" value="Search" />
 <p>        <label for="select_display">Display only used tags/subfields</label>
         [% IF ( select_display ) %]
             <input type="checkbox" name="select_display" id="select_display" value="True" checked="checked" />
@@ -253,6 +247,7 @@ MARC frameworks &rsaquo; Administration &rsaquo; Koha
 </fieldset>
 </form>
 
+<div class="page-section">
     <table id="table_marctagstructure">
     <thead>
         <tr>
@@ -276,15 +271,15 @@ MARC frameworks &rsaquo; Administration &rsaquo; Koha
             [% IF ( select_display ) %]
                 [% FOREACH subfield IN loo.subfields %]
                     <p>
-                        Tab:[% subfield.tab | html %] | $[% subfield.tagsubfield | html %]
-                        [% subfield.liblibrarian | html %] [% IF ( subfield.kohafield ) %][% subfield.kohafield | html %][% END %][% IF ( subfield.repeatable ) %], repeatable[% END %][% IF ( subfield.mandatory ) %], Mandatory[% END %][% IF ( subfield.seealso ) %], See [% subfield.seealso | html %][% END %][% IF ( subfield.authorised_value ) %], [% subfield.authorised_value | html %][% END %][% IF ( subfield.authtypecode ) %], [% subfield.authtypecode | html %][% END %][% IF ( subfield.value_builder ) %], [% subfield.value_builder | html %][% END %]
+                        <span>Tab:[% subfield.tab | html %]</span> | $[% subfield.tagsubfield | html %]
+                        [% subfield.liblibrarian | html %] [% IF ( subfield.kohafield ) %][% subfield.kohafield | html %][% END %][% IF ( subfield.repeatable ) %], <span>repeatable</span>[% END %][% IF ( subfield.mandatory ) %], <span>Mandatory</span>[% END %][% IF ( subfield.seealso ) %], <span>See [% subfield.seealso | html %]</span>[% END %][% IF ( subfield.authorised_value ) %], [% subfield.authorised_value | html %][% END %][% IF ( subfield.authtypecode ) %], [% subfield.authtypecode | html %][% END %][% IF ( subfield.value_builder ) %], [% subfield.value_builder | html %][% END %]
                     </p>
                 [% END %]
             [% END %]
             </td>
-            <td>[% IF ( loo.repeatable ) %]Yes[% ELSE %]No[% END %]</td>
-            <td>[% IF ( loo.mandatory ) %]Yes[% ELSE %]No[% END %]</td>
-            <td>[% IF ( loo.important ) %]Yes[% ELSE %]No[% END %]</td>
+            <td>[% IF ( loo.repeatable ) %]<span>Yes</span>[% ELSE %]<span>No</span>[% END %]</td>
+            <td>[% IF ( loo.mandatory ) %]<span>Yes</span>[% ELSE %]<span>No</span>[% END %]</td>
+            <td>[% IF ( loo.important ) %]<span>Yes</span>[% ELSE %]<span>No</span>[% END %]</td>
             <td>[% loo.authorised_value | html %]</td>
             <td>[% loo.ind1_defaultvalue | html %]</td>
             <td>[% loo.ind2_defaultvalue | html %]</td>
@@ -304,6 +299,7 @@ MARC frameworks &rsaquo; Administration &rsaquo; Koha
     [% END %]
     </tbody>
     </table>
+    </div> <!-- /.page-section -->
 [% END %]
 
             </main>
@@ -329,7 +325,7 @@ MARC frameworks &rsaquo; Administration &rsaquo; Koha
             }));
             $("#select_display").on("change",function(){
                 var checked = $(this).prop("checked") ? 1: 0;
-                Cookies.set("marctagstructure_selectdisplay", checked);
+                Cookies.set("marctagstructure_selectdisplay", checked, { sameSite: 'Lax' });
                 this.form.submit();
             });
         });

@@ -19,16 +19,14 @@
 
 use Modern::Perl;
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Reports;
-use C4::Output;
-use C4::Koha;
-use C4::Circulation;
-use C4::Biblio;
+use C4::Reports qw( GetDelimiterChoices );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Koha qw( GetAuthorisedValues );
+use C4::Biblio qw( GetMarcSubfieldStructureFromKohaField );
 use Koha::ItemTypes;
-use Koha::DateUtils;
 use Koha::Libraries;
 
 =head1 NAME
@@ -47,14 +45,6 @@ my $fullreportname = "reports/acquisitions_stats.tt";
 my $line           = $input->param("Line");
 my $column         = $input->param("Column");
 my @filters        = $input->multi_param("Filter");
-$filters[0] = eval { output_pref( { dt => dt_from_string( $filters[0]), dateonly => 1, dateformat => 'iso' } ); }
-    if ( $filters[0] );
-$filters[1] = eval { output_pref( { dt => dt_from_string( $filters[1]), dateonly => 1, dateformat => 'iso' } ); }
-    if ( $filters[1] );
-$filters[2] = eval { output_pref( { dt => dt_from_string( $filters[2]), dateonly => 1, dateformat => 'iso' } ); }
-    if ( $filters[2] );
-$filters[3] = eval { output_pref( { dt => dt_from_string( $filters[3]), dateonly => 1, dateformat => 'iso' } ); }
-    if ( $filters[3] );
 my $podsp          = $input->param("PlacedOnDisplay");
 my $rodsp          = $input->param("ReceivedOnDisplay");
 my $calc           = $input->param("Cellvalue");
@@ -67,12 +57,10 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { reports => '*' },
-        debug           => 1,
     }
 );
 
-our $sep     = $input->param("sep") // '';
-$sep = "\t" if ($sep eq 'tabulation');
+our $sep = C4::Context->csv_delimiter(scalar $input->param("sep"));
 
 $template->param(
     do_it                    => $do_it,
@@ -183,7 +171,7 @@ else {
 
     my $CGIsepChoice = GetDelimiterChoices;
 
-    my @branches = Koha::Libraries->search({}, { order_by => 'branchname' });
+    my $libraries = Koha::Libraries->search({}, { order_by => 'branchname' });
 
     my $ccode_subfield_structure = GetMarcSubfieldStructureFromKohaField('items.ccode');
     my $ccode_label;
@@ -203,7 +191,7 @@ else {
         Sort1         => $Sort1,
         Sort2         => $Sort2,
         CGIsepChoice  => $CGIsepChoice,
-        branches      => \@branches,
+        branches      => $libraries,
         ccode_label   => $ccode_label,
         ccode_avlist  => $ccode_avlist,
     );
@@ -237,13 +225,7 @@ sub calculate {
             if ( ( ( $i == 1 ) or ( $i == 3 ) ) and ( @$filters[ $i - 1 ] ) ) {
                 $cell{err} = 1 if ( @$filters[$i] lt @$filters[ $i - 1 ] );
             }
-            # format the dates filters, otherwise just fill as is
-            if ($i >= 4) {
-                $cell{filter} = @$filters[$i];
-            } else {
-                $cell{filter} = eval { output_pref( { dt => dt_from_string( @$filters[$i] ), dateonly => 1 }); }
-                   if ( @$filters[$i] );
-            }
+            $cell{filter} = @$filters[$i];
             $cell{crit} = $i;
             push @loopfilter, \%cell;
         }

@@ -1,6 +1,10 @@
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Branches %]
+[% USE AdditionalContents %]
+[% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% USE AuthorisedValues %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Full subscription history for [% bibliotitle | html %] &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
@@ -55,19 +59,19 @@
 [% INCLUDE 'masthead.inc' %]
 
     <div class="main">
-        <nav aria-label="breadcrumb">
-            <ul class="breadcrumb">
+        <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
+            <ol class="breadcrumb">
                 <li class="breadcrumb-item">
                     <a href="/cgi-bin/koha/opac-main.pl">Home</a>
                 </li>
                 <li class="breadcrumb-item">
                     <a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblionumber | uri %]">Details for [% bibliotitle | html %]</a>
                 </li>
-                <li class="breadcrumb-item active" aria-current="page">
-                    <a href="#">Full subscription history</a>
+                <li class="breadcrumb-item active">
+                    <a href="#" aria-current="page">Full subscription history</a>
                 </li>
-            </ul>
-        </nav>
+            </ol>
+        </nav> <!-- /#breadcrumbs -->
 
         <div class="container-fluid">
             <div class="row">
@@ -126,6 +130,7 @@
                                         <tr>
                                             <th>Date</th>
                                             <th>Library</th>
+                                            <th>Location</th>
                                             <th>Notes</th>
                                             <th>Date received</th>
                                             <th>Number</th>
@@ -148,6 +153,7 @@
                                                     [% END %]
                                                 </td>
                                                 <td class="libraryfilterclass">[% Branches.GetName( serial.branchcode ) | html %]</td>
+                                                <td>[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => serial.location, opac => 1 ) | html %]</td>
                                                 <td>[% serial.notes | html %]</td>
                                                 [% IF ( serial.status2 && serial.planneddate ) %]
                                                     <td data-order="[% serial.planneddate | html %]">
@@ -159,18 +165,18 @@
                                                 </td>
                                                 <td>[% serial.serialseq | html %]</td>
                                                 <td>
-                                                    [% IF ( serial.status1 ) %]Expected[% END %]
-                                                    [% IF ( serial.status2 ) %]Arrived[% END %]
-                                                    [% IF ( serial.status3 ) %]Late[% END %]
-                                                    [% IF ( serial.status4 ) %]Missing[% END %]
-                                                        [% IF ( serial.status41 ) %]Missing (never received)[% END %]
-                                                        [% IF ( serial.status42 ) %]Missing (sold out)[% END %]
-                                                        [% IF ( serial.status43 ) %]Missing (damaged)[% END %]
-                                                        [% IF ( serial.status44 ) %]Missing (lost)[% END %]
-                                                    [% IF ( serial.status5 ) %]Not available[% END %]
-                                                    [% IF ( serial.status6 ) %]Delete[% END %]
-                                                    [% IF ( serial.status7 ) %]Claimed[% END %]
-                                                    [% IF ( serial.status8 ) %]Stopped[% END %]
+                                                    [% IF ( serial.status1 ) %]<span>Expected</span>[% END %]
+                                                    [% IF ( serial.status2 ) %]<span>Arrived</span>[% END %]
+                                                    [% IF ( serial.status3 ) %]<span>Late</span>[% END %]
+                                                    [% IF ( serial.status4 ) %]<span>Missing</span>[% END %]
+                                                        [% IF ( serial.status41 ) %]<span>Missing (never received)</span>[% END %]
+                                                        [% IF ( serial.status42 ) %]<span>Missing (sold out)</span>[% END %]
+                                                        [% IF ( serial.status43 ) %]<span>Missing (damaged)</span>[% END %]
+                                                        [% IF ( serial.status44 ) %]<span>Missing (lost)</span>[% END %]
+                                                    [% IF ( serial.status5 ) %]<span>Not available</span>[% END %]
+                                                    [% IF ( serial.status6 ) %]<span>Delete</span>[% END %]
+                                                    [% IF ( serial.status7 ) %]<span>Claimed</span>[% END %]
+                                                    [% IF ( serial.status8 ) %]<span>Stopped</span>[% END %]
                                                 </td>
                                                 <td class="subscriptionidfilterclass">[% serial.subscriptionid | html %]</td>
                                             </tr>

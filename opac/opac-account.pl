@@ -23,12 +23,12 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Members;
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use Koha::Account::Lines;
 use Koha::Patrons;
 use Koha::Plugins;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 
 my $query = CGI->new;
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
@@ -36,7 +36,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         template_name   => "opac-account.tt",
         query           => $query,
         type            => "opac",
-        debug           => 1,
     }
 );
 
@@ -53,7 +52,7 @@ if ( C4::Context->preference('AllowPatronToSetFinesVisibilityForGuarantor')
     my @relatives;
 
     # Filter out guarantees that don't want guarantor to see checkouts
-    foreach my $gr ( $patron->guarantee_relationships() ) {
+    foreach my $gr ( $patron->guarantee_relationships->as_list ) {
         my $g = $gr->guarantee;
         if ( $g->privacy_guarantor_fines ) {
 

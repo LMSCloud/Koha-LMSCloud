@@ -20,17 +20,21 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use Encode qw( encode );
-use Carp;
-use Try::Tiny;
+use Encode;
+use Carp qw( carp );
+use Try::Tiny qw( catch try );
 
-use C4::Auth;
-use C4::Biblio;
-use C4::Items;
+use C4::Auth qw( get_template_and_user );
+use C4::Biblio qw(
+    GetMarcISBN
+    GetMarcSubjects
+);
 use C4::Output qw(
     output_html_with_http_headers
     output_and_exit
 );
+
+use Koha::Biblios;
 use Koha::Email;
 use Koha::Virtualshelves;
 
@@ -72,21 +76,23 @@ if ($to_address) {
 
     while ( my $content = $contents->next ) {
         my $biblionumber     = $content->biblionumber;
-        my $dat              = GetBiblioData($biblionumber);
-        my $record           = GetMarcBiblio({
-            biblionumber => $biblionumber,
-            embed_items  => 1 });
-        my $marcauthorsarray = GetMarcAuthors( $record, $marcflavour );
+        my $biblio           = Koha::Biblios->find( $biblionumber ) or next;
+        my $dat              = $biblio->unblessed;
+        my $record           = $biblio->metadata->record({ embed_items => 1 });
+        my $marcauthorsarray = $biblio->get_marc_contributors;
         my $marcsubjctsarray = GetMarcSubjects( $record, $marcflavour );
 
-        my @items = GetItemsInfo($biblionumber);
+        my $items = $biblio->items->search_ordered;
 
         $dat->{ISBN}           = GetMarcISBN($record, $marcflavour);
         $dat->{MARCSUBJCTS}    = $marcsubjctsarray;
         $dat->{MARCAUTHORS}    = $marcauthorsarray;
         $dat->{'biblionumber'} = $biblionumber;
-        $dat->{ITEM_RESULTS}   = \@items;
+        $dat->{ITEM_RESULTS}   = $items;
         $dat->{HASAUTHORS}     = $dat->{'author'} || @$marcauthorsarray;
+        my ( $host, $relatedparts ) = $biblio->get_marc_host;
+        $dat->{HOSTITEMENTRIES} = $host;
+        $dat->{RELATEDPARTS} = $relatedparts;
 
         $iso2709 .= $record->as_usmarc();
 

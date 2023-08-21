@@ -23,12 +23,15 @@ use Test::Warn;
 use DateTime;
 
 use C4::Context;
-use C4::Circulation; # AddIssue
-use C4::Biblio; # AddBiblio
+use C4::Circulation qw( AddIssue );
+use C4::Biblio qw( AddBiblio );
 
 use Koha::Database;
 
 use Koha::Acquisition::Orders;
+use Koha::ApiKeys;
+use Koha::AuthorisedValueCategories;
+use Koha::AuthorisedValues;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Libraries;
 use Koha::Patrons;
@@ -223,7 +226,7 @@ subtest 'TO_JSON tests' => sub {
 
 subtest "to_api() tests" => sub {
 
-    plan tests => 28;
+    plan tests => 31;
 
     $schema->storage->txn_begin;
 
@@ -267,8 +270,8 @@ subtest "to_api() tests" => sub {
     ok( !exists $api_city->{postal_code}, 'Attribute removed' );
 
     # Pick a class that won't have a mapping for the API
-    my $illrequest = $builder->build_object({ class => 'Koha::Illrequests' });
-    is_deeply( $illrequest->to_api, $illrequest->TO_JSON, 'If no overloaded to_api_mapping method, return TO_JSON' );
+    my $action_log = $builder->build_object({ class => 'Koha::ActionLogs' });
+    is_deeply( $action_log->to_api, $action_log->TO_JSON, 'If no overloaded to_api_mapping method, return TO_JSON' );
 
     my $biblio = $builder->build_sample_biblio();
     my $item = $builder->build_sample_item({ biblionumber => $biblio->biblionumber });
@@ -300,14 +303,36 @@ subtest "to_api() tests" => sub {
     is($biblio_api->{items}->[0]->{holds}->[0]->{hold_id}, $hold->reserve_id, 'Hold matches');
     is_deeply($biblio_api->{biblioitem}, $biblio->biblioitem->to_api, 'More than one root');
 
+    my $_strings = {
+        location => {
+            category => 'ASD',
+            str      => 'Estante alto',
+            type     => 'av'
+        }
+    };
+
+    # mock Koha::Item so it implements 'strings_map'
+    my $item_mock = Test::MockModule->new('Koha::Item');
+    $item_mock->mock(
+        'strings_map',
+        sub {
+            return $_strings;
+        }
+    );
+
     my $hold_api = $hold->to_api(
         {
-            embed => { 'item' => {} }
+            embed => { 'item' => { strings => 1 } }
         }
     );
 
     is( ref($hold_api->{item}), 'HASH', 'Single nested object works correctly' );
     is( $hold_api->{item}->{item_id}, $item->itemnumber, 'Object embedded correctly' );
+    is_deeply(
+        $hold_api->{item}->{_strings},
+        $_strings,
+        '_strings correctly added to nested embed'
+    );
 
     # biblio with no items
     my $new_biblio = $builder->build_sample_biblio;
@@ -329,11 +354,11 @@ subtest "to_api() tests" => sub {
         $new_biblio_api = $new_biblio->to_api(
             { embed => { 'items' => { children => { asd => {} } } } } );
     }
-    'Koha::Exceptions::Exception',
+    'Koha::Exception',
 "An exception is thrown if a blessed object to embed doesn't implement to_api";
 
     is(
-        "$@",
+        $@->message,
         "Asked to embed items but its return value doesn't implement to_api",
         "Exception message correct"
     );
@@ -373,6 +398,144 @@ subtest "to_api() tests" => sub {
         'Koha::Exceptions::Object::MethodNotCoveredByTests',
         'Unknown method exception thrown if is_count not specified';
 
+    subtest 'unprivileged request tests' => sub {
+
+        my @all_attrs = Koha::Libraries->columns();
+        my $public_attrs = { map { $_ => 1 } @{ Koha::Library->public_read_list() } };
+        my $mapping = Koha::Library->to_api_mapping;
+
+        plan tests => scalar @all_attrs * 2;
+
+        # Create a sample library
+        my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+
+        my $unprivileged_representation = $library->to_api({ public => 1 });
+        my $privileged_representation   = $library->to_api;
+
+        foreach my $attr (@all_attrs) {
+            my $mapped = exists $mapping->{$attr} ? $mapping->{$attr} : $attr;
+            if ( defined($mapped) ) {
+                ok(
+                    exists $privileged_representation->{$mapped},
+                    "Attribute '$attr' is present when privileged"
+                );
+                if ( exists $public_attrs->{$attr} ) {
+                    ok(
+                        exists $unprivileged_representation->{$mapped},
+                        "Attribute '$attr' is present when public"
+                    );
+                }
+                else {
+                    ok(
+                        !exists $unprivileged_representation->{$mapped},
+                        "Attribute '$attr' is not present when public"
+                    );
+                }
+            }
+            else {
+                ok(
+                    !exists $privileged_representation->{$attr},
+                    "Unmapped attribute '$attr' is not present when privileged"
+                );
+                ok(
+                    !exists $unprivileged_representation->{$attr},
+                    "Unmapped attribute '$attr' is not present when public"
+                );
+            }
+        }
+    };
+
+    subtest 'Authorised values expansion' => sub {
+
+        plan tests => 4;
+
+        $schema->storage->txn_begin;
+
+        # new category
+        my $category = $builder->build_object({ class => 'Koha::AuthorisedValueCategories' });
+        # add two countries
+        my $argentina = $builder->build_object(
+            {   class => 'Koha::AuthorisedValues',
+                value => {
+                    category => $category->category_name,
+                    lib      => 'AR (Argentina)',
+                    lib_opac => 'Argentina',
+                }
+            }
+        );
+        my $france = $builder->build_object(
+            {   class => 'Koha::AuthorisedValues',
+                value => {
+                    category => $category->category_name,
+                    lib      => 'FR (France)',
+                    lib_opac => 'France',
+                }
+            }
+        );
+
+        my $city_mock = Test::MockModule->new('Koha::City');
+        $city_mock->mock(
+            'strings_map',
+            sub {
+                my ( $self, $params ) = @_;
+
+                my $av = Koha::AuthorisedValues->find(
+                    {
+                        authorised_value => $self->city_country,
+                        category         => $category->category_name,
+                    }
+                );
+
+                return {
+                    city_country => {
+                        category => $av->category,
+                        str      => ( $params->{public} ) ? $av->lib_opac : $av->lib,
+                        type     => 'av',
+                    }
+                };
+            }
+        );
+        $city_mock->mock( 'public_read_list', sub { return [ 'city_id', 'city_country', 'city_name', 'city_state' ] } );
+
+        my $cordoba = $builder->build_object(
+            {   class => 'Koha::Cities',
+                value => { city_country => $argentina->authorised_value, city_name => 'Cordoba' }
+            }
+        );
+        my $marseille = $builder->build_object(
+            {   class => 'Koha::Cities',
+                value => { city_country => $france->authorised_value, city_name => 'Marseille' }
+            }
+        );
+
+        my $mobj = $marseille->to_api( { strings => 1, public => 1 } );
+        my $cobj = $cordoba->to_api( { strings => 1, public => 0 } );
+
+        ok( exists $mobj->{_strings}, '_strings exists for Marseille' );
+        ok( exists $cobj->{_strings}, '_strings exists for Córdoba' );
+
+        is_deeply(
+            $mobj->{_strings}->{country},
+            {
+                category => $category->category_name,
+                str      => $france->lib_opac,
+                type     => 'av',
+            },
+            'Authorised value for country expanded'
+        );
+        is_deeply(
+            $cobj->{_strings}->{country},
+            {
+                category => $category->category_name,
+                str      => $argentina->lib,
+                type     => 'av'
+            },
+            'Authorised value for country expanded'
+        );
+
+        $schema->storage->txn_rollback;
+    };
+
     $schema->storage->txn_rollback;
 };
 
@@ -382,8 +545,8 @@ subtest "to_api_mapping() tests" => sub {
 
     $schema->storage->txn_begin;
 
-    my $illrequest = $builder->build_object({ class => 'Koha::Illrequests' });
-    is_deeply( $illrequest->to_api_mapping, {}, 'If no to_api_mapping present, return empty hashref' );
+    my $action_log = $builder->build_object({ class => 'Koha::ActionLogs' });
+    is_deeply( $action_log->to_api_mapping, {}, 'If no to_api_mapping present, return empty hashref' );
 
     $schema->storage->txn_rollback;
 };
@@ -824,7 +987,7 @@ subtest 'unblessed_all_relateds' => sub {
     );
 
     my $issue = AddIssue( $patron->unblessed, $item->barcode, DateTime->now->subtract( days => 1 ) );
-    my $overdues = Koha::Patrons->find( $patron->id )->get_overdues; # Koha::Patron->get_overdue prefetches
+    my $overdues = Koha::Patrons->find( $patron->id )->overdues; # Koha::Patron->overdues prefetches
     my $overdue = $overdues->next->unblessed_all_relateds;
     is( $overdue->{issue_id}, $issue->issue_id, 'unblessed_all_relateds has field from the original table (issues)' );
     is( $overdue->{title}, $biblio->title, 'unblessed_all_relateds has field from other tables (biblio)' );

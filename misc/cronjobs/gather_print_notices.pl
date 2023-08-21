@@ -2,27 +2,20 @@
 
 use Modern::Perl;
 
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
-
-use CGI qw( utf8 ); # NOT a CGI script, this is just to keep C4::Templates::gettemplate happy
+use CGI; # NOT a CGI script, this is just to keep C4::Templates::gettemplate happy
 use Koha::Script -cron;
 use C4::Context;
-use C4::Debug;
-use C4::Letters;
+use C4::Letters qw( GetPrintMessages );
 use C4::Templates;
 use File::Spec;
-use Pod::Usage;
-use Getopt::Long;
-use C4::Log;
+use Pod::Usage qw( pod2usage );
+use Getopt::Long qw( GetOptions );
+use C4::Log qw( cronlogaction );
 
-use Koha::DateUtils;
-use Koha::Util::OpenDocument;
-use MIME::Lite;
+use Koha::DateUtils qw( dt_from_string output_pref );
+use Koha::Email;
+use Koha::Util::OpenDocument qw( generate_ods );
+use Koha::SMTP::Servers;
 
 my (
     $help,
@@ -36,6 +29,8 @@ my (
     $send,
     @emails,
 );
+
+my $command_line_options = join(" ",@ARGV);
 
 $send = 1;
 GetOptions(
@@ -81,7 +76,7 @@ if ( $ods and @letter_codes != 1 ) {
 
 $delimiter ||= q|,|;
 
-cronlogaction();
+cronlogaction({ info => $command_line_options });
 
 my $today_iso     = output_pref( { dt => dt_from_string, dateonly => 1, dateformat => 'iso' } ) ;
 my $today_syspref = output_pref( { dt => dt_from_string, dateonly => 1 } );
@@ -139,15 +134,23 @@ if ( @emails ) {
         csv  => $csv_filenames,
         ods  => $ods_filenames,
     };
+
+    my $transport = Koha::SMTP::Servers->get_default->transport;
+
     for my $email ( @emails ) {
-        send_files({
-            directory => $output_directory,
-            files => $files,
-            to => $email,
-            from => C4::Context->preference('KohaAdminEmailAddress'), # Should be replaced if bug 8000 is pushed
-        });
+        send_files(
+            {
+                directory => $output_directory,
+                files     => $files,
+                from      => C4::Context->preference('KohaAdminEmailAddress'),    # Should be replaced if bug 8000 is pushed
+                to        => $email,
+                transport => $transport,
+            }
+        );
     }
 }
+
+cronlogaction({ action => 'End', info => "COMPLETED" });
 
 sub print_notices {
     my ( $params ) = @_;
@@ -302,16 +305,19 @@ sub _generate_ods {
 sub send_files {
     my ( $params ) = @_;
     my $directory = $params->{directory};
-    my $files = $params->{files};
-    my $to = $params->{to};
-    my $from = $params->{from};
-    return unless $to and $from;
+    my $files     = $params->{files};
+    my $to        = $params->{to};
+    my $from      = $params->{from};
+    my $transport = $params->{transport};
 
-    my $mail = MIME::Lite->new(
-        From     => $from,
-        To       => $to,
-        Subject  => 'Print notices for ' . $today_syspref,
-        Type     => 'multipart/mixed',
+    return unless $to and $from and $transport;
+
+    my $email = Koha::Email->create(
+        {
+            from    => $from,
+            to      => $to,
+            subject => 'Print notices for ' . $today_syspref,
+        }
     );
 
     while ( my ( $type, $filenames ) = each %$files ) {
@@ -326,20 +332,21 @@ sub send_files {
 
             next unless $mimetype;
 
-            my $filepath = File::Spec->catdir( $directory, $filename );
+            my $filepath = File::Spec->catfile( $directory, $filename );
 
             next unless $filepath or -f $filepath;
 
-            $mail->attach(
-              Type     => $mimetype,
-              Path     => $filepath,
-              Filename => $filename,
-              Encoding => 'base64',
+            $email->attach_file(
+                $filepath,
+                content_type => $mimetype,
+                name         => $filename,
+                disposition  => 'attachment',
             );
         }
     }
 
-    $mail->send;
+    $email->send_or_die( { transport => $transport } );
+
 }
 
 =head1 NAME

@@ -1,11 +1,21 @@
 [% USE raw %]
 [% USE Asset %]
+[% USE Koha %]
 [% SET footerjs = 1 %]
 [% PROCESS 'authorities-search-results.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Cataloging authority plugin &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.css("css/addbiblio.css") | $raw %]
+<style>
+.usefor {
+    padding: 0;
+    margin: 0;
+}
+.usefor li {
+    list-style-type: none;
+}
+</style>
 </head>
 
 <body id="auth_searchresultlist_auth" class="auth">
@@ -45,14 +55,24 @@
                     <th>Summary</th>
                     <th>Heading type</th>
                     <th>Used</th>
+                    [% IF Koha.Preference('ShowHeadingUse') %]
+                        <th class="heading_use">Heading use</th>
+                    [% END %]
                     <th>Get it!</th>
                     <th>Other action</th>
                 </tr>
                 [% FOREACH resul IN result %]
                     <tr>
-                        <td>[% PROCESS authresult summary=resul.summary authid=resul.authid %]</td>
+                        <td>[% PROCESS authresult summary=resul.summary authid=resul.authid auth_preview=1 %]</td>
                         <td>[% resul.summary.label | html %]</td>
                         <td>[% resul.used | html %] times</td>
+                        [% IF Koha.Preference('ShowHeadingUse') %]
+                            <td class="heading_use"><ul class="usefor">
+                                <li>[% IF resul.main %]<i class="fa fa-check"></i>[% ELSE %]<i class="fa fa-times"></i>[% END %] Main/Added Entry</li>
+                                <li>[% IF resul.subject %]<i class="fa fa-check"></i>[% ELSE %]<i class="fa fa-times"></i>[% END %] Subject</li>
+                                <li>[% IF resul.series %]<i class="fa fa-check"></i>[% ELSE %]<i class="fa fa-times"></i>[% END %] Series Title</li>
+                            </ul></td>
+                        [% END %]
                         <td>
                             [% IF resul.summary && resul.summary.authorized && resul.summary.authorized.size > 1 %]
                                 [% FOREACH authorized IN resul.summary.authorized %]
@@ -89,23 +109,7 @@
         </div>[% END %]
     </div>
 
-<!-- Authority details modal -->
-<div class="modal" id="authorityDetail" tabindex="-1" role="dialog" aria-labelledby="authorityDetailLabel">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="authorityDetailLabel"></h4>
-            </div>
-            <div class="modal-body">
-                <img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" alt="" />
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
+[% INCLUDE 'authority-detail-modal.inc' %]
 
 [% MACRO jsinclude BLOCK %]
     <script>
@@ -113,26 +117,8 @@
         var authtypecode = "[% authtypecode | html %]";
     </script>
     [% Asset.js("js/auth-finder-search.js") | $raw %]
+    [% Asset.js("js/authorities-detail-modal.js") | $raw %]
     <script>
-        $(document).ready(function(){
-            $(".authorizedheading a").on("click", function(e){
-                e.preventDefault();
-                var authid = $(this).data("authid");
-
-                $.get("/cgi-bin/koha/authorities/detail.pl", { authid : authid }, function( data ){
-                    var auth_detail = $(data).find("#authoritiestabs");
-                    auth_detail.find("ul").remove();
-                    $("#authorityDetail .modal-title").html(_("Authority") + " " + authid );
-                    $("#authorityDetail .modal-body").html( auth_detail );
-                });
-
-                $("#authorityDetail").modal("show");
-            });
-            $("#authorityDetail").on("hidden.bs.modal", function(){
-                $("#authorityDetail .modal-body, #authorityDetail .modal-title").html("");
-                $("#authorityDetail .modal-body").html("<div id=\"loading\"><img src=\"[% interface | html %]/[% theme | html %]/img/spinner-small.gif\" alt=\"\" /></div>");
-            });
-        });
         function jumpfull(page){
             window.open(page,'','width=100,height=100,resizable=yes,toolbar=false,scrollbars=yes,top');
         }

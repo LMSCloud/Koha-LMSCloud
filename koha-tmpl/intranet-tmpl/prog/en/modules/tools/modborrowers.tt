@@ -12,22 +12,20 @@
 </head>
 
 <body id="tools_modborrowers" class="tools">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">Batch patron modification</a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Batch patron modification</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -35,54 +33,108 @@
             <main>
 
                 [% IF ( op == 'show_form' ) %]
-                <h1>Batch patron modification</h1>
-                <form method="post" enctype="multipart/form-data" action="/cgi-bin/koha/tools/modborrowers.pl">
-                    <fieldset class="rows">
-                        <legend>Use a file</legend>
-                        <ol>
-                            <li><label for="uploadfile">File: </label> <input type="file" id="uploadfile" name="uploadfile" /></li>
-                        </ol>
-                    </fieldset>
+                    <h1>Batch patron modification</h1>
+                    <form id="patron_batchmod_form" method="post" enctype="multipart/form-data" action="/cgi-bin/koha/tools/modborrowers.pl">
+                        <input type="hidden" name="op" value="show" />
 
-                    [% IF patron_lists %]
-                    <fieldset class="rows">
-                        <legend>Or use a patron list</legend>
-                        <ol>
-                            <li>
-                                <label for="patron_list_id">Patron list: </label>
-                                <select id="patron_list_id" name="patron_list_id">
-                                    <option value=""></option>
-                                    [% FOREACH pl IN patron_lists %]
-                                        <option value="[% pl.patron_list_id | html %]">[% pl.name | html %]</option>
-                                    [% END %]
-                                </select>
-                            </li>
-                        </ol>
-                    </fieldset>
-                    [% END %]
+                        [% WRAPPER tabs id= "batch_patron_options" %]
+                            [% WRAPPER tabs_nav %]
+                                [% WRAPPER tab_item tabname= "usecardnumber" bt_active= 1 %] <span>By card number</span> [% END %]
+                                [% WRAPPER tab_item tabname= "useborrowernumber" %] <span>By borrowernumber</span> [% END %]
+                                [% IF patron_lists %]
+                                    [% WRAPPER tab_item tabname= "uselist" %] <span>By patron list</span> [% END %]
+                                [% END %]
+                            [% END # /WRAPPER tabs_nav %]
 
-                    <fieldset class="rows">
-                        <legend>Or list cardnumbers one by one</legend>
-                        <ol>
-                            <li>
-                              <label for="cardnumberlist">Card number list (one cardnumber per line): </label>
-                              <textarea rows="10" cols="30" id="cardnumberlist" name="cardnumberlist">[% cardnumberlist | html %]</textarea>
-                            </li>
-                        </ol>
-                    </fieldset>
-                    <input type="hidden" name="op" value="show" />
-                    <fieldset class="action">
-                        <input type="submit" value="Continue" class="button" />
-                        <a class="cancel" href="/cgi-bin/koha/tools/tools-home.pl">Cancel</a>
-                    </fieldset>
-                </form>
+                            [% WRAPPER tab_panels %]
+                                [% WRAPPER tab_panel tabname="usecardnumber" bt_active= 1 %]
+                                    <fieldset class="rows">
+                                        <legend>Use a file of card numbers</legend>
+                                        <ol>
+                                            <li>
+                                                <label for="cardnumberuploadfile">File: </label> <input type="file"
+                                                    id="cardnumberuploadfile" name="cardnumberuploadfile" />
+                                                <div class="hint">File must contain one card number per line.</div>
+                                            </li>
+                                        </ol>
+                                    </fieldset>
+                                    <fieldset class="rows">
+                                        <legend>Or list card numbers one by one</legend>
+                                        <ol>
+                                            <li>
+                                                <label for="cardnumberlist">Card number list (one card number per line):
+                                                </label>
+                                                <textarea rows="10" cols="30" id="cardnumberlist"
+                                                    name="cardnumberlist">[% cardnumberlist | html %]</textarea>
+                                            </li>
+                                        </ol>
+                                    </fieldset>
+                                    <fieldset class="action">
+                                        <input type="submit" class="btn btn-primary" value="Continue" />
+                                        <a class="cancel" href="/cgi-bin/koha/tools/tools-home.pl">Cancel</a>
+                                    </fieldset>
+                                [% END # /tab_panel# %]
+
+                                [% WRAPPER tab_panel tabname="useborrowernumber" %]
+                                    <fieldset class="rows">
+                                        <legend>Use a file of borrowernumbers</legend>
+                                        <ol>
+                                            <li>
+                                                <label for="borrowernumberuploadfile">File: </label> <input type="file"
+                                                    id="borrowernumberuploadfile" name="borrowernumberuploadfile" />
+                                                <div class="hint">File must contain one borrowernumber per line.</div>
+                                            </li>
+                                        </ol>
+                                    </fieldset>
+                                    <fieldset class="rows">
+                                        <legend>List borrowernumbers one by one</legend>
+                                        <ol>
+                                            <li>
+                                                <label for="borrowernumberlist">Borrowernumber list (one number per line):
+                                                </label>
+                                                <textarea rows="10" cols="30" id="borrowernumberlist"
+                                                    name="borrowernumberlist">[% borrowernumberlist | html %]</textarea>
+                                            </li>
+                                        </ol>
+                                    </fieldset>
+                                    <fieldset class="action">
+                                        <input type="submit" class="btn btn-primary" value="Continue" />
+                                        <a class="cancel" href="/cgi-bin/koha/tools/tools-home.pl">Cancel</a>
+                                    </fieldset>
+                                [% END # /tab_panel# %]
+
+                                [% IF patron_lists %]
+                                    [% WRAPPER tab_panel tabname="uselist" %]
+                                        <fieldset class="rows">
+                                            <legend>Use a patron list</legend>
+                                            <ol>
+                                                <li>
+                                                    <label for="patron_list_id">Patron list: </label>
+                                                    <select id="patron_list_id" name="patron_list_id">
+                                                        <option value=""> -- Choose a patron list -- </option>
+                                                        [% FOREACH pl IN patron_lists %]
+                                                        <option value="[% pl.patron_list_id | html %]">[% pl.name | html %]</option>
+                                                        [% END %]
+                                                    </select>
+                                                </li>
+                                            </ol>
+                                        </fieldset>
+                                        <fieldset class="action">
+                                            <input type="submit" class="btn btn-primary" value="Continue" />
+                                            <a class="cancel" href="/cgi-bin/koha/tools/tools-home.pl">Cancel</a>
+                                        </fieldset>
+                                    [% END # /tab_panel# %]
+                                [% END %]
+                            [% END # /WRAPPER tab_panels %]
+                        [% END # /WRAPPER tabs %]
+                    </form>
                 [% END %]
 
                 [% IF ( op == 'show') && (!borrowers) && (!notfoundcardnumbers) # Alert if no patrons given%]
                     [% op = 'noshow' # Change op to prevent display in code below %]
                     <h1>Batch patrons modification</h1>
                     <div class="dialog alert">
-                        <p>No patron card numbers given.</p>
+                        <p>No patron card numbers or borrowernumbers given.</p>
                         <form action="/cgi-bin/koha/tools/modborrowers.pl" method="get">
                          <button type="submit" class="approve"><i class="fa fa-fw fa-check"></i> OK</button>
                         </form>
@@ -96,17 +148,28 @@
                         <h1>Batch patrons results</h1>
                     [% END %]
                     [% IF ( notfoundcardnumbers ) %]
-                        <div class="dialog alert"><p>Warning, the following cardnumbers were not found:</p></div>
-                        <table style="margin:auto;">
-                            <thead>
-                                <tr><th>Cardnumbers not found</th></tr>
-                            </thead>
-                            <tbody>
-                                [% FOREACH notfoundcardnumber IN notfoundcardnumbers %]
-                                    <tr><td>[% notfoundcardnumber.cardnumber | html %]</td></tr>
-                                [% END %]
-                            </tbody>
-                        </table>
+                        [% IF ( useborrowernumbers ) -%]
+                            <div class="dialog alert"><p>Warning, the following borrowernumbers were not found:</p></div>
+                        [% ELSE -%]
+                            <div class="dialog alert"><p>Warning, the following card numbers were not found:</p></div>
+                        [% END %]
+
+                        <div class="page-section">
+                            <table style="margin:auto;">
+                                <thead>
+                                    [% IF ( useborrowernumbers ) -%]
+                                        <tr><th>Borrowernumbers not found</th></tr>
+                                    [% ELSE -%]
+                                        <tr><th>Card numbers not found</th></tr>
+                                    [% END %]
+                                </thead>
+                                <tbody>
+                                    [% FOREACH notfoundcardnumber IN notfoundcardnumbers %]
+                                        <tr><td>[% notfoundcardnumber.cardnumber | html %]</td></tr>
+                                    [% END %]
+                                </tbody>
+                            </table>
+                        </div> <!-- /.page-section -->
                     [% END %]
 
                     [% IF ( op == 'show_results' ) %]
@@ -117,7 +180,7 @@
                             [% FOREACH error IN errors %]
                                 [% IF ( error.error == 'can_not_update' ) %]
                                     <li>Can not update patron.
-                                    [% IF ( error.cardnumber ) %] Cardnumber:  [% error.cardnumber | html %] [% END %]
+                                    [% IF ( error.cardnumber ) %] Card number:  [% error.cardnumber | html %] [% END %]
                                     (Borrowernumber: [% error.borrowernumber | html %])
                                     </li>
                                 [% ELSE %]
@@ -133,11 +196,11 @@
                     <form name="f" action="modborrowers.pl" method="post">
                         <input type="hidden" name="op" value="do" />
                         [% IF ( borrowers ) %]
-                            <div id="toolbar"><a id="selectallbutton" href="#"><i class="fa fa-check"></i> Select all</a> | <a id="clearallbutton" href="#"><i class="fa fa-remove"></i> Clear all</a></div>
+                            <div class="btn-toolbar selections-toolbar"><a id="selectallbutton" href="#"><i class="fa fa-check"></i> Select all</a> | <a id="clearallbutton" href="#"><i class="fa fa-remove"></i> Clear all</a></div>
                         [% END %]
                     [% END %]
                         [% IF borrowers %]
-                            <div id="cataloguing_additem_itemlist">
+                            <div id="cataloguing_additem_itemlist" class="page-section">
                                 <div style="overflow:auto">
                                     <table id="borrowerst">
                                         <thead>
@@ -164,6 +227,9 @@
                                                 <th>Mobile</th>
                                                 <th>Registration date</th>
                                                 <th>Expiry date</th>
+                                                [% IF CanUpdatePasswordExpiration %]
+                                                    <th>Password expiration date</th>
+                                                [% END %]
                                                 <th>Circulation note</th>
                                                 <th>OPAC note</th>
                                                 <th>Restriction expiration</th>
@@ -200,7 +266,16 @@
                                                     <td>[% borrower.mobile | html %]</td>
                                                     <td data-order="[% borrower.dateenrolled | html %]">[% borrower.dateenrolled | $KohaDates %]</td>
                                                     <td data-order="[% borrower.dateexpiry | html %]">[% borrower.dateexpiry | $KohaDates %]</td>
-                                                    <td>[% borrower.borrowernotes | html %]</td>
+                                                    [% IF CanUpdatePasswordExpiration %]
+                                                        [% IF borrower.password_expiration_date  %]
+                                                            <td data-order="[% borrower.password_expiration_date | html %]">
+                                                                [% borrower.password_expiration_date | $KohaDates %]
+                                                            </td>
+                                                        [% ELSE %]
+                                                            <td data-order="9999-99-99">Never</td>
+                                                        [% END %]
+                                                    [% END %]
+                                                    <td>[% borrower.borrowernotes | $raw | html_line_break %]</td>
                                                     <td>[% borrower.opacnote | html %]</td>
                                                     <td data-order="[% borrower.debarred | html %]">[% borrower.debarred | $KohaDates %]</td>
                                                     <td>[% borrower.debarredcomment | html %]</td>
@@ -233,50 +308,29 @@
                                             <label for="[% field.name | html %]">
                                             [% END %]
                                             [% SWITCH ( field.name ) %]
-                                                [% CASE 'surname' %]
-                                                Surname:
-                                                [% CASE 'firstname' %]
-                                                First name:
-                                                [% CASE 'branchcode' %]
-                                                Library:
-                                                [% CASE 'categorycode' %]
-                                                Patron category:
-                                                [% CASE 'streetnumber' %]
-                                                Street number:
-                                                [% CASE 'address' %]
-                                                Address:
-                                                [% CASE 'address2' %]
-                                                Address 2:
-                                                [% CASE 'city' %]
-                                                City:
-                                                [% CASE 'state' %]
-                                                State:
-                                                [% CASE 'zipcode' %]
-                                                ZIP/Postal code:
-                                                [% CASE 'country' %]
-                                                Country:
-                                                [% CASE 'email' %]
-                                                Primary email:
-                                                [% CASE 'phone' %]
-                                                Phone:
-                                                [% CASE 'mobile' %]
-                                                Mobile:
-                                                [% CASE 'sort1' %]
-                                                Sort 1:
-                                                [% CASE 'sort2' %]
-                                                Sort 2:
-                                                [% CASE 'dateenrolled' %]
-                                                Registration date:
-                                                [% CASE 'dateexpiry' %]
-                                                Expiry date:
-                                                [% CASE 'borrowernotes' %]
-                                                Circulation note:
-                                                [% CASE 'opacnote' %]
-                                                OPAC note:
-                                                [% CASE 'debarred' %]
-                                                Restriction expiration:
-                                                [% CASE 'debarredcomment' %]
-                                                Restriction comment:
+                                                [% CASE 'surname' %]<span>Surname:</span>
+                                                [% CASE 'firstname' %]<span>First name:</span>
+                                                [% CASE 'branchcode' %]<span>Library:</span>
+                                                [% CASE 'categorycode' %]<span>Patron category:</span>
+                                                [% CASE 'streetnumber' %]<span>Street number:</span>
+                                                [% CASE 'address' %]<span>Address:</span>
+                                                [% CASE 'address2' %]<span>Address 2:</span>
+                                                [% CASE 'city' %]<span>City:</span>
+                                                [% CASE 'state' %]<span>State:</span>
+                                                [% CASE 'zipcode' %]<span>ZIP/Postal code:</span>
+                                                [% CASE 'country' %]<span>Country:</span>
+                                                [% CASE 'email' %]<span>Primary email:</span>
+                                                [% CASE 'phone' %]<span>Phone:</span>
+                                                [% CASE 'mobile' %]<span>Mobile:</span>
+                                                [% CASE 'sort1' %]<span>Sort 1:</span>
+                                                [% CASE 'sort2' %]<span>Sort 2:</span>
+                                                [% CASE 'dateenrolled' %]<span>Registration date:</span>
+                                                [% CASE 'dateexpiry' %]<span>Expiry date:</span>
+                                                [% CASE 'borrowernotes' %]<span>Circulation note:</span>
+                                                [% CASE 'opacnote' %]<span>OPAC note:</span>
+                                                [% CASE 'debarred' %]<span>Restriction expiration:</span>
+                                                [% CASE 'debarredcomment' %]<span>Restriction comment:</span>
+                                                [% CASE 'password_expiration_date' %]<span>Password expiration date:</span>
                                             [% END %]
                                             </label>
                                             [% IF ( field.type == 'text' ) %]
@@ -294,7 +348,7 @@
                                                 [% END %]
                                             [% END %]
                                             [% IF ( field.type == 'date' ) %]
-                                                <input type="text" name="[% field.name | html %]" id="[% field.name | html %]" value="" size="10" maxlength="10" class="datepicker" />
+                                                <input type="text" name="[% field.name | html %]" id="[% field.name | html %]" value="" size="10" maxlength="10" class="flatpickr" />
                                                 <a href="#"  class="clear-date" id="clear-date-[% field.name | html %]" ><i class="fa fa-fw fa-trash"></i> Clear</a>
                                             [% END %]
                                             [% IF field.mandatory %]
@@ -307,14 +361,16 @@
                                         [% END %]
                                         [% IF ( patron_attributes_codes ) %]
                                             <li class="attributes">
-                                                <label style="width:auto;">Patron attribute:
-                                                    <select name="patron_attributes">
-                                                        <option value=""></option>
-                                                        [% FOREACH pac IN patron_attributes_codes %]
-                                                            <option value="[% pac.attribute_code | html %]" data-type="[% pac.type | html %]" data-category="[% pac.category_lib | html %]">[% pac.attribute_lib | html %]</option>
-                                                        [% END %]
-                                                    </select>
+                                                <label style="width:auto;">
+                                                    <span>Patron attribute:</span>
                                                 </label>
+                                                <select name="patron_attributes">
+                                                    <option value=""></option>
+                                                    [% FOREACH pac IN patron_attributes_codes %]
+                                                        <option value="[% pac.attribute_code | html %]" data-type="[% pac.type | html %]" data-category="[% pac.category_lib | html %]">[% pac.attribute_lib | html %]</option>
+                                                    [% END %]
+                                                </select>
+
                                                 <input type="checkbox" title="check to delete this field" name="disable_input" value="attr0_value" />
                                                 <span class="patron_attributes_value"><input type"hidden" name="patron_attributes_value" /></span>
                                                 <a href="#" class="add_attributes" title="Add an attribute"><i class="fa fa-fw fa-plus"></i> New</a>
@@ -324,7 +380,7 @@
                                     </ol>
                                 </fieldset>
                                 <fieldset class="action">
-                                    <input type="submit" name="mainformsubmit" value="Save" />
+                                    <input type="submit" name="mainformsubmit" class="btn btn-primary" value="Save" />
                                     <a href="/cgi-bin/koha/tools/modborrowers.pl" class="cancel">Cancel</a>
                                 </fieldset>
                             </div>
@@ -356,9 +412,10 @@
     <script>
         var patron_attributes_lib = new Array();
         var patron_attributes_values = new Array();
-        var table_settings = [% TablesSettings.GetColumns( 'tools', 'batch_patron_modification', 'borrowerst', 'json' ) | $raw %];
+        var table_settings = [% TablesSettings.GetTableSettings( 'tools', 'batch_patron_modification', 'borrowerst', 'json' ) | $raw %];
+
         [% FOREACH attrh IN attributes_header %]
-            table_settings.push({
+            table_settings["columns"].push({
                 columname: "[% attrh.attribute | html %]",
                 cannot_be_modified: 0,
                 cannot_be_toggled: 0,
@@ -367,7 +424,7 @@
         [% END %]
         $(document).ready(function() {
             [% IF borrowers %]
-                KohaTable("borrowerst", {
+                let patron_table = KohaTable("borrowerst", {
                     "order": [[ 1, "asc" ]],
                     "autoWidth": false,
                 }, table_settings);
@@ -418,6 +475,34 @@
                 e.preventDefault();
                 del_attributes(this);
             });
+            $("#patron_batchmod_form").on("submit", function(){
+                /* Reset form fields on inactive tabs */
+                var tab = $(this).find('ul.nav-tabs li.active a').attr('href');
+                if ( tab == '#usecardnumber_panel' ) {
+                    $("#borrowernumberuploadfile, #patron_list_id, #borrowernumberlist").val("");
+                } else if ( tab == '#useborrowernumber_panel' ) {
+                    $("#cardnumberuploadfile, #cardnumberlist, #patron_list_id").val("");
+                } else { // uselist_panel
+                    $("#borrowernumberuploadfile, #cardnumberuploadfile, #borrowernumberlist, #cardnumberlist").val("");
+                }
+            });
+
+            $('form[name="f"]').on("submit", function(){
+                // Add the checkboxes to the DOM before we submit the form
+                var form = this;
+                var checkboxes = patron_table.$('input:checkbox:checked').serializeArray();
+                $.each(checkboxes, function(){
+                    let borrowernumber = this.value;
+                    if(!$(form).find('input[name="borrowernumber"][value="'+borrowernumber+'"]').length){
+                        $(form).append(
+                            $('<input>')
+                                .attr('type', 'hidden')
+                                .attr('name', 'borrowernumber')
+                                .val(borrowernumber)
+                        );
+                    }
+                });
+            });
         });
 
         function updateAttrValues (select_attr) {
@@ -454,7 +539,8 @@
             var li_node = $("li.attributes:last");
             var li_clone = $(li_node).clone();
             if ( $(li_clone).find("a.del_attributes").length == 0 ) {
-                $(li_clone).append('<a href="#" title="' + _("Delete") + '" class="del_attributes"><i class="fa fa-fw fa-trash"></i> ' + _("Delete") + '</a>');
+                var add_attributes = $(li_clone).find("a.add_attributes")
+                $(add_attributes).after('<a href="#" title="' + _("Delete") + '" class="del_attributes"><i class="fa fa-fw fa-trash"></i> ' + _("Delete") + '</a>');
             }
             $(li_clone).find('select[name="patron_attributes"]').change(function() {
                 updateAttrValues(this);

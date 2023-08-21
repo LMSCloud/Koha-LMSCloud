@@ -1,0 +1,13 @@
+---
+type: object
+properties:
+  items:
+    description: list of items
+    type:
+      - array
+      - 'null'
+  count:
+    description: number of items
+    type:
+      - integer
+      - 'null'

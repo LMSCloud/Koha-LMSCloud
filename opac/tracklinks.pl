@@ -20,18 +20,20 @@
 
 use Modern::Perl;
 use C4::Context;
-use C4::Auth qw(checkauth);
+use C4::Auth qw( checkauth );
 use C4::Biblio;
-use C4::Output;
+use C4::Output qw( output_error );
+use Koha::Biblios;
 use Koha::Items;
 use Koha::Linktracker;
 use CGI qw ( -utf8 );
-use List::MoreUtils qw(any);
+use List::MoreUtils qw( any );
 
 my $cgi = CGI->new;
 my $uri = $cgi->param('uri') || '';
-my $biblionumber = $cgi->param('biblionumber') || 0;
-my $itemnumber   = $cgi->param('itemnumber')   || 0;
+my $biblionumber = $cgi->param('biblionumber');;
+my $itemnumber   = $cgi->param('itemnumber');
+$uri =~ s/^\s+|\s+$//g if $uri; # trim
 
 my $tracking_method = C4::Context->preference('TrackClicks');
 unless ( $tracking_method ) {
@@ -41,7 +43,7 @@ unless ( $tracking_method ) {
 my $tracker = Koha::Linktracker->new(
     { trackingmethod => $tracking_method } );
 if ($uri && ($biblionumber || $itemnumber) ) {
-    my $borrowernumber = 0;
+    my $borrowernumber;
 
     # we have a uri and we want to track
     if ( $tracker->trackingmethod() eq 'track' ) {
@@ -58,7 +60,8 @@ if ($uri && ($biblionumber || $itemnumber) ) {
         # get borrower info
     }
 
-    my $record = C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber });
+    my $biblio = Koha::Biblios->find($biblionumber);
+    my $record = eval{ $biblio->metadata->record };
     my $marc_urls = $record ? C4::Biblio::GetMarcUrls($record, C4::Context->preference('marcflavour')) : [];
     my $search_crit = { uri => { -like => "%$uri%" } };
     if( $itemnumber ) { # itemnumber is leading over biblionumber

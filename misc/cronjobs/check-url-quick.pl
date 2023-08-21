@@ -18,15 +18,15 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Pod::Usage;
-use Getopt::Long;
+use Pod::Usage qw( pod2usage );
+use Getopt::Long qw( GetOptions );
 
 use Koha::Script -cron;
 use C4::Context;
-use C4::Biblio;
+use Koha::Biblios;
 use AnyEvent;
-use AnyEvent::HTTP;
-use Encode;
+use AnyEvent::HTTP qw( http_request );
+use Encode qw( encode_utf8 );
 
 my ( $verbose, $help, $html ) = ( 0, 0, 0 );
 my ( $host,    $host_intranet ) = ( '', '' );
@@ -93,7 +93,8 @@ sub check_all_url {
         cb       => sub {
             return if $count > $maxconn;
             while ( my ($biblionumber) = $sth->fetchrow ) {
-                my $record = GetMarcBiblio({ biblionumber => $biblionumber });
+                my $biblio = Koha::Biblios->find($biblionumber);
+                my $record = $biblio->metadata->record;
                 for my $tag (@tags) {
                     foreach my $field ( $record->field($tag) ) {
                         my $url = $field->subfield('u');

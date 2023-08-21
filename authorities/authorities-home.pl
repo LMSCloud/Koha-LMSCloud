@@ -20,22 +20,21 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use URI::Escape;
+use URI::Escape qw( uri_escape_utf8 );
 use POSIX qw( ceil );
 
 use C4::Context;
-use C4::Auth;
-use C4::Output;
-use C4::AuthoritiesMarc;
-use C4::Acquisition;
-use C4::Koha;
-use C4::Biblio;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_and_exit pagination_bar output_html_with_http_headers );
+use C4::AuthoritiesMarc qw( DelAuthority );
 use C4::Search::History;
+use C4::Languages;
 
 use Koha::Authority::Types;
 use Koha::SearchEngine::Search;
 use Koha::SearchEngine::QueryBuilder;
 use Koha::Token;
+use Koha::XSLT::Base;
 use Koha::Z3950Servers;
 
 my $query = CGI->new;
@@ -47,6 +46,7 @@ my $authid       = $query->param('authid')       || '';
 my ( $template, $loggedinuser, $cookie );
 
 my $authority_types = Koha::Authority::Types->search( {}, { order_by => ['authtypetext'] } );
+my $pending_deletion_authid;
 
 if ( $op eq "delete" ) {
     ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -55,7 +55,6 @@ if ( $op eq "delete" ) {
             query           => $query,
             type            => 'intranet',
             flagsrequired   => { catalogue => 1 },
-            debug           => 1,
         }
     );
 
@@ -66,6 +65,8 @@ if ( $op eq "delete" ) {
         });
 
     DelAuthority({ authid => $authid });
+    # FIXME No error handling here, DelAuthority needs adjustments
+    $pending_deletion_authid = $authid;
 
     if ( $query->param('operator') ) {
         # query contains search params so perform search
@@ -105,7 +106,6 @@ if ( $op eq "do_search" ) {
             query           => $query,
             type            => 'intranet',
             flagsrequired   => { catalogue => 1 },
-            debug           => 1,
         }
     );
 
@@ -178,6 +178,33 @@ if ( $op eq "do_search" ) {
         $to = $startfrom * $resultsperpage;
     }
 
+    my $AuthorityXSLTResultsDisplay = C4::Context->preference('AuthorityXSLTResultsDisplay');
+    if ($results && $AuthorityXSLTResultsDisplay) {
+        my $lang = C4::Languages::getlanguage();
+        foreach my $result (@$results) {
+            my $authority = Koha::Authorities->find($result->{authid});
+            next unless $authority;
+
+            my $authtypecode = $authority->authtypecode;
+            my $xsl = $AuthorityXSLTResultsDisplay;
+            $xsl =~ s/\{langcode\}/$lang/g;
+            $xsl =~ s/\{authtypecode\}/$authtypecode/g;
+
+            my $xslt_engine = Koha::XSLT::Base->new;
+            my $output = $xslt_engine->transform({ xml => $authority->marcxml, file => $xsl });
+            if ($xslt_engine->err) {
+                warn "XSL transformation failed ($xsl): " . $xslt_engine->err;
+                next;
+            }
+
+            $result->{html} = $output;
+        }
+    }
+
+    if( $pending_deletion_authid && $results ) {
+        $results = [ grep { $_->{authid} != $pending_deletion_authid } @$results ];
+    }
+
     $template->param( result => $results ) if $results;
 
     my $max_result_window = $searcher->max_result_window;
@@ -203,7 +230,6 @@ if ( $op eq '' ) {
             query           => $query,
             type            => 'intranet',
             flagsrequired   => { catalogue => 1 },
-            debug           => 1,
         }
     );
 

@@ -16,51 +16,43 @@ Library EANs &rsaquo; Administration &rsaquo; Koha
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="admin_edi_ean" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
+        [% END %]
 
         [% IF ean_form %]
-            <li>
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/admin/edi_ean_accounts.pl">Library EANs</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    [% IF ean %]
-                        Modify library EAN
-                    [% ELSE %]
-                        Add new library EAN
-                    [% END %]
-                </a>
-            </li>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1%]
+                [% IF ean %]
+                    <span>Modify library EAN</span>
+                [% ELSE %]
+                    <span>Add new library EAN</span>
+                [% END %]
+            [% END %]
 
         [% ELSIF delete_confirm %]
-            <li>
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/admin/edi_ean_accounts.pl">Library EANs</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Confirm deletion of EAN
-                </a>
-            </li>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1%]
+                <span>Confirm deletion of EAN</span>
+            [% END %]
 
         [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Library EANs
-                </a>
-            </li>
+            [% WRAPPER breadcrumb_item bc_active= 1%]
+                <span>Library EANs</span>
+            [% END %]
         [% END %]
-    </ol>
-</nav>
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -86,11 +78,13 @@ Library EANs &rsaquo; Administration &rsaquo; Koha
 
   <fieldset class="rows">
       <legend>
-          [% IF ean %]
-             Modify EAN
-          [% ELSE %]
-            New EAN
-          [% END %]
+            <h1>
+                [% IF ean %]
+                    Modify EAN
+                [% ELSE %]
+                    New EAN
+                [% END %]
+            </h1>
       </legend>
 
       <ol>
@@ -135,7 +129,7 @@ Library EANs &rsaquo; Administration &rsaquo; Koha
   </fieldset>
 
   <fieldset class="action">
-    <input type="submit" value="Submit"/>
+    <input type="submit" class="btn btn-primary" value="Submit" />
     <a href="/cgi-bin/koha/admin/edi_ean_accounts.pl" class="cancel">Cancel</a>
   </fieldset>
 </form>
@@ -143,7 +137,7 @@ Library EANs &rsaquo; Administration &rsaquo; Koha
 
 [% IF delete_confirm %]
 <div class="dialog alert">
-<h3>Delete EAN [% ean.ean | html %] for [% ean.branch.branchname | html %]?</h3>
+<h1>Delete EAN [% ean.ean | html %] for [% ean.branch.branchname | html %]?</h1>
 <form action="/cgi-bin/koha/admin/edi_ean_accounts.pl" method="post">
     <input type="hidden" name="op" value="delete_confirmed" />
     <input type="hidden" name="id" value="[% ean.id | html %]" />
@@ -156,8 +150,9 @@ Library EANs &rsaquo; Administration &rsaquo; Koha
 [% END %]
 
 [% IF display %]
+    <h1>Library EANs</h1>
 [% IF ( eans ) %]
-    <h2>Library EANs</h2>
+    <div class="page-section">
     <table>
         <tr>
             <th>Library</th>
@@ -189,6 +184,7 @@ Library EANs &rsaquo; Administration &rsaquo; Koha
             </tr>
         [% END %]
     </table>
+    </div> <!-- /.page-section -->
 [% ELSE %]
     <div class="dialog message">
         There are no library EANs.

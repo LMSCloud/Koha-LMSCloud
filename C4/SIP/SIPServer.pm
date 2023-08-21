@@ -21,8 +21,8 @@ use C4::SIP::Sip::MsgType qw( handle login_core );
 use C4::SIP::Logger qw(set_logger);
 
 use Koha::Caches;
-
 use Koha::Logger;
+
 use C4::SIP::Trapper;
 tie *STDERR, "C4::SIP::Trapper";
 
@@ -109,6 +109,9 @@ sub process_request {
     $self->{account} = undef;  # Clear out the account from the last request, it may be different
     $self->{logger} = set_logger( Koha::Logger->get( { interface => 'sip' } ) );
 
+    # Flush previous MDCs to prevent accidentally leaking incorrect MDC-entries
+    Koha::Logger->clear_mdc();
+
     my $sockname = getsockname(STDIN);
 
     # Check if socket connection is IPv6 before resolving address
@@ -182,6 +185,10 @@ sub raw_transport {
             }
         )
     );
+
+    # Set MDCs after properly authenticating
+    Koha::Logger->put_mdc( "accountid", $self->{account}->{id} );
+    Koha::Logger->put_mdc( "peeraddr",  $self->{server}->{peeraddr} );
 
     siplog("LOG_DEBUG", "raw_transport: uname/inst: '%s/%s'",
         $self->{account}->{id},

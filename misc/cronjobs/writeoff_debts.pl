@@ -3,11 +3,11 @@
 use Modern::Perl;
 use feature 'say';
 
-use Getopt::Long;
-use Pod::Usage;
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 
 use Koha::Account::Lines;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 
 use Koha::Script -cron;
 
@@ -94,8 +94,7 @@ while ( my $line = $lines->next ) {
                 # Link writeoff to charge
                 $writeoff->apply(
                     {
-                        debits      => [$line],
-                        offset_type => 'WRITEOFF'
+                        debits => [$line]
                     }
                 );
                 $writeoff->status('APPLIED')->store();

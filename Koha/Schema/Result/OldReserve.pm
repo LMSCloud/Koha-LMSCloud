@@ -54,6 +54,14 @@ the date the hold was places
 
 foreign key from the biblio table defining which bib record this hold is on
 
+=head2 item_group_id
+
+  data_type: 'integer'
+  is_foreign_key: 1
+  is_nullable: 1
+
+foreign key from the item_groups table defining if this is an item group level hold
+
 =head2 branchcode
 
   data_type: 'varchar'
@@ -157,6 +165,14 @@ the date the item was marked as waiting for the patron at the library
 
 the date the hold expires (usually the date entered by the patron to say they don't need the hold after a certain date)
 
+=head2 patron_expiration_date
+
+  data_type: 'date'
+  datetime_undef_if_invalid: 1
+  is_nullable: 1
+
+the date the hold expires - usually the date entered by the patron to say they don't need the hold after a certain date
+
 =head2 lowestPriority
 
   accessor: 'lowest_priority'
@@ -197,7 +213,7 @@ If record level hold, the optional itemtype of the item the patron is requesting
   default_value: 0
   is_nullable: 0
 
-Is the hpld placed at item level
+Is the hold placed at item level
 
 =head2 non_priority
 
@@ -217,6 +233,8 @@ __PACKAGE__->add_columns(
   "reservedate",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "biblionumber",
+  { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
+  "item_group_id",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "branchcode",
   { data_type => "varchar", is_nullable => 1, size => 10 },
@@ -248,6 +266,8 @@ __PACKAGE__->add_columns(
   "waitingdate",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "expirationdate",
+  { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
+  "patron_expiration_date",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "lowestPriority",
   {
@@ -326,6 +346,26 @@ __PACKAGE__->belongs_to(
   },
 );
 
+=head2 item_group
+
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::ItemGroup>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "item_group",
+  "Koha::Schema::Result::ItemGroup",
+  { item_group_id => "item_group_id" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "SET NULL",
+    on_update     => "SET NULL",
+  },
+);
+
 =head2 itemnumber
 
 Type: belongs_to
@@ -367,8 +407,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:aVQsdX811LswCsWyBqkSbQ
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-02-10 14:01:25
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:evv31XLI36n7e+oYL/hsug
 
 __PACKAGE__->belongs_to(
   "item",
@@ -391,6 +431,18 @@ __PACKAGE__->belongs_to(
     join_type     => "LEFT",
     on_delete     => "CASCADE",
     on_update     => "CASCADE",
+  },
+);
+
+__PACKAGE__->belongs_to(
+  "patron",
+  "Koha::Schema::Result::Borrower",
+  { borrowernumber => "borrowernumber" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "SET NULL",
+    on_update     => "SET NULL",
   },
 );
 

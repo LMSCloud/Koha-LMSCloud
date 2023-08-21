@@ -38,7 +38,8 @@ Acquisitions:
             - Tax rates are
             - pref: TaxRates
             - . Enter in numeric form, 0.12 for 12%. The first item in the list will be selected by default. For more than one value, separate with | (pipe).
-            - "Please note: The database will only accept values up to 4 decimals precision, further values will be rounded."
+            - "<br/><strong>NOTE:</strong> The database will only accept values up to 4 decimals precision, further values will be rounded."
+            - "<br/><strong>NOTE:</strong> Vendor tax rate information may need updating if tax rate values are removed."
         -
             - pref: AcqWarnOnDuplicateInvoice
               choices:
@@ -107,16 +108,18 @@ Acquisitions:
               choices:
                   0: none
                   EmailAddressForSuggestions: EmailAddressForSuggestions
-                  BranchEmailAddress: email address of branch
+                  BranchEmailAddress: email address of library
                   KohaAdminEmailAddress: KohaAdminEmailAddress
-            - 'If you choose <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=EmailAddressForSuggestions">EmailAddressForSuggestions</a> you have to enter a valid email address:'
+            - '<br>If you choose <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=EmailAddressForSuggestions">EmailAddressForSuggestions</a> you have to enter a valid email address:'
             - pref: EmailAddressForSuggestions
               class: email
+
     Printing:
         -
             - Use the
             - pref: OrderPdfFormat
               choices:
+                  "pdfformat::layout1page":    English 1-page
                   "pdfformat::layout2pages":   English 2-page
                   "pdfformat::layout3pages":   English 3-page
                   "pdfformat::layout3pagesfr": French 3-page
@@ -125,9 +128,24 @@ Acquisitions:
             - layout when printing basket groups.
     EDIFACT:
         -
+            - pref: EDIFACT
+              default: no
+              choices:
+                1: Enable
+                0:  Disable
+            - EDIFACT message exchange for acquisitions
+        -
             - pref: EdifactInvoiceImport
               default: no
               choices:
                 automatic: "Do"
                 manual: "Don't"
             - " automatically import EDIFACT invoice message files when they are downloaded."
+        -
+            - "Map sequence code (GIR:LSQ) field to "
+            - pref: EdifactLSQ
+              default: location
+              choices:
+                location: "location"
+                ccode: "collection"
+            - " in items."

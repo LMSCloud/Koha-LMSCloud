@@ -22,34 +22,34 @@ use strict;
 #use warnings; FIXME - Bug 2505
 
 use CGI qw ( -utf8 );
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
-use C4::Search;
-use C4::Auth;
-use C4::Output;
+use C4::Search qw( new_record_from_zebra );
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 
-use C4::Biblio;
-use C4::Koha;
-use MARC::Record;
+use C4::Biblio qw( TransformMarcToKoha );
 
+use Koha::Biblios;
 use Koha::ItemTypes;
 
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
 
 sub plugin_parameters {
-    my ( $dbh, $record, $tagslib, $i, $tabloop ) = @_;
+    my ( $dbh, $record, $tagslib, $i ) = @_;
     return "";
 }
 
 sub plugin_javascript {
-    my ( $dbh, $record, $tagslib, $field_number, $tabloop ) = @_;
+    my ( $dbh, $record, $tagslib, $field_number ) = @_;
     my $function_name = $field_number;
     my $res           = "
     <script>
-        function Clic$function_name(i) {
-            defaultvalue=document.getElementById(\"$field_number\").value;
-            window.open(\"/cgi-bin/koha/cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_4XX.pl&index=\" + i + \"&result=\"+defaultvalue,\"unimarc_field_4\"+i+\"\",'width=900,height=700,toolbar=false,scrollbars=yes');
+        function Clic$function_name(event) {
+            event.preventDefault();
+            defaultvalue=document.getElementById(event.data.id).value;
+            window.open(\"/cgi-bin/koha/cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_4XX.pl&index=\" + event.data.id + \"&result=\"+defaultvalue,\"unimarc_field_4\"+event.data.id+\"\",'width=900,height=700,toolbar=false,scrollbars=yes');
 
         }
     </script>
@@ -90,12 +90,12 @@ sub plugin {
                 query           => $query,
                 type            => "intranet",
                 flagsrequired   => { editcatalogue => '*' },
-                debug           => 1,
             }
         );
 
         #get marc record
-        $marcrecord = GetMarcBiblio({ biblionumber => $biblionumber });
+        my $biblio = Koha::Biblios->find($biblionumber);
+        $marcrecord = $biblio->metadata->record;
 
         my $subfield_value_9 = $biblionumber;
         my $subfield_value_0;
@@ -340,7 +340,7 @@ sub plugin {
         my $startfrom      = $query->param('startfrom');
         my $resultsperpage = $query->param('resultsperpage') || 20;
         my $orderby;
-        my $op = 'and';
+        my $op = 'AND';
         $search = 'kw:'.$search." $op mc-itemtype:".$itype if $itype;
         my $searcher = Koha::SearchEngine::Search->new({index => $Koha::SearchEngine::BIBLIOS_INDEX});
         my ( $errors, $results, $total_hits ) = $searcher->simple_search_compat($search, $startfrom * $resultsperpage, $resultsperpage );
@@ -357,7 +357,6 @@ sub plugin {
                   "cataloguing/value_builder/unimarc_field_4XX.tt",
                 query           => $query,
                 type            => 'intranet',
-                debug           => 1,
             }
         );
 
@@ -378,7 +377,7 @@ sub plugin {
          {
             my $record = C4::Search::new_record_from_zebra( 'biblioserver', $results->[$i] );
             next unless $record;
-            my $rechash = TransformMarcToKoha( $record );
+            my $rechash = TransformMarcToKoha({ record => $record });
             if ( my $f = $record->field('200') ) {
                 $rechash->{fulltitle} =
                     join(', ', map { $_->[1] } grep { $_->[0] =~ /[aehi]/ } $f->subfields() );
@@ -443,8 +442,6 @@ sub plugin {
         }else{
             $to = $from + $resultsperpage ;
         }
-        my $defaultview =
-          'BiblioDefaultView' . C4::Context->preference('BiblioDefaultView');
 #         my $link="/cgi-bin/koha/cataloguing/value_builder/unimarc4XX.pl?op=do_search&q=$search_desc&resultsperpage=$resultsperpage&startfrom=$startfrom&search=$search";
 #           foreach my $sort (@sort_by){
 #             $link.="&sort_by=".$sort."&";
@@ -473,7 +470,6 @@ sub plugin {
             to             => $to,
             numbers        => \@numbers,
             search         => $search,
-            $defaultview   => 1,
             Search         => 0
         );
 
@@ -488,7 +484,7 @@ sub plugin {
             }
         );
 
-        my @itemtypes = Koha::ItemTypes->search;
+        my @itemtypes = Koha::ItemTypes->search->as_list;
 
         $template->param(    #classlist => $classlist,
             itypeloop    => \@itemtypes,

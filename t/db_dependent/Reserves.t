@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 69;
+use Test::More tests => 78;
 use Test::MockModule;
 use Test::Warn;
 
@@ -27,14 +27,15 @@ use t::lib::TestBuilder;
 use MARC::Record;
 use DateTime::Duration;
 
-use C4::Circulation;
+use C4::Circulation qw( AddReturn AddIssue );
 use C4::Items;
-use C4::Biblio;
+use C4::Biblio qw( GetMarcFromKohaField ModBiblio );
 use C4::Members;
-use C4::Reserves;
+use C4::Reserves qw( AddReserve AlterPriority CheckReserves GetReservesControlBranch ModReserve ModReserveAffect ReserveSlip CalculatePriority CanReserveBeCanceledFromOpac CanBookBeReserved IsAvailableForItemLevelRequest MoveReserve ChargeReserveFee RevertWaitingStatus CanItemBeReserved MergeHolds );
 use Koha::ActionLogs;
+use Koha::Biblios;
 use Koha::Caches;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Holds;
 use Koha::Items;
 use Koha::Libraries;
@@ -66,7 +67,6 @@ $dbh->do("update marc_subfield_structure set kohafield='biblioitems.agerestricti
 my $cache = Koha::Caches->get_instance;
 $cache->clear_from_cache("MarcStructure-0-$frameworkcode");
 $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
-$cache->clear_from_cache("default_value_for_mod_marc-");
 $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
 
 ## Setup Test
@@ -272,7 +272,7 @@ is($holds->next->priority, 0, 'Item is correctly waiting');
 is($holds->next->priority, 1, 'Item is correctly priority 1');
 is($holds->next->priority, 2, 'Item is correctly priority 2');
 
-my @reserves = Koha::Holds->search({ borrowernumber => $requesters{$branch_3} })->waiting();
+my @reserves = Koha::Holds->search({ borrowernumber => $requesters{$branch_3} })->waiting->as_list;
 is( @reserves, 1, 'GetWaiting got only the waiting reserve' );
 is( $reserves[0]->borrowernumber(), $requesters{$branch_3}, 'GetWaiting got the reserve for the correct borrower' );
 
@@ -355,7 +355,6 @@ $dbh->do("DELETE FROM reserves WHERE biblionumber=?",undef,($bibnum));
 t::lib::Mocks::mock_preference('AllowHoldDateInFuture', 1);
 my $resdate= dt_from_string();
 $resdate->add_duration(DateTime::Duration->new(days => 4));
-$resdate=output_pref($resdate);
 my $reserve_id = AddReserve(
     {
         branchcode       => $branch_1,
@@ -387,7 +386,28 @@ t::lib::Mocks::mock_preference('ConfirmFutureHolds', 7);
 ($doreturn, $messages)= AddReturn('97531',$branch_1);
 is(exists $messages->{ResFound}?1:0, 1, 'AddReturn considers future reserve within ConfirmFutureHolds days');
 
+my $now_holder = $builder->build_object({ class => 'Koha::Patrons', value => {
+    branchcode       => $branch_1,
+}});
+my $now_reserve_id = AddReserve(
+    {
+        branchcode       => $branch_1,
+        borrowernumber   => $requesters{$branch_1},
+        biblionumber     => $bibnum,
+        priority         => 2,
+        reservation_date => dt_from_string(),
+    }
+);
+my $which_highest;
+($status,$which_highest)=CheckReserves($item->itemnumber,undef,3);
+is( $which_highest->{reserve_id}, $now_reserve_id, 'CheckReserves returns lower priority current reserve with insufficient lookahead');
+($status, $which_highest)=CheckReserves($item->itemnumber,undef,4);
+is( $which_highest->{reserve_id}, $reserve_id, 'CheckReserves returns higher priority future reserve with sufficient lookahead');
+ModReserve({ reserve_id => $now_reserve_id, rank => 'del', cancellation_reason => 'test reserve' });
+
+
 # End of tests for bug 9761 (ConfirmFutureHolds)
+
 
 # test marking a hold as captured
 my $hold_notice_count = count_hold_print_messages();
@@ -404,7 +424,7 @@ is($new_count, $hold_notice_count + 1, 'patron not notified a second time (bug 1
 t::lib::Mocks::mock_preference('IndependentBranches', 0);
 $item = Koha::Items->find($item->itemnumber);
 is(
-    $item->safe_delete,
+    @{$item->safe_delete->messages}[0]->message,
     'book_reserved',
     'item that is captured to fill a hold cannot be deleted',
 );
@@ -419,7 +439,6 @@ t::lib::Mocks::mock_preference('ConfirmFutureHolds', 2);
 t::lib::Mocks::mock_preference('AllowHoldDateInFuture', 1);
 $resdate= dt_from_string();
 $resdate->add_duration(DateTime::Duration->new(days => 2));
-$resdate=output_pref($resdate);
 AddReserve(
     {
         branchcode       => $branch_1,
@@ -508,7 +527,7 @@ AddReserve(
         borrowernumber => $requesters{'CPL2'},
         biblionumber   => $bibnum,
         priority       => $p,
-        reservation_date => output_pref($resdate),
+        reservation_date => $resdate,
     }
 );
 $p = C4::Reserves::CalculatePriority($bibnum);
@@ -517,6 +536,45 @@ is($p, 2, 'CalculatePriority should now still return priority 2');
 $p = C4::Reserves::CalculatePriority($bibnum, $resdate);
 is($p, 3, 'CalculatePriority should now return priority 3');
 # End of tests for bug 8918
+
+# regression test for bug 12630
+# Now there are 2 reserves on $bibnum
+t::lib::Mocks::mock_preference('AllowHoldDateInFuture', 1);
+my $bor_tmp_1 = $builder->build_object({ class => 'Koha::Patrons',value =>{
+    firstname =>  'my firstname tmp 1',
+    surname => 'my surname tmp 1',
+    categorycode => 'S',
+    branchcode => 'CPL',
+}});
+my $bor_tmp_2 = $builder->build_object({ class => 'Koha::Patrons',value =>{
+    firstname =>  'my firstname tmp 2',
+    surname => 'my surname tmp 2',
+    categorycode => 'S',
+    branchcode => 'CPL',
+}});
+my $borrowernumber_tmp_1 = $bor_tmp_1->borrowernumber;
+my $borrowernumber_tmp_2 = $bor_tmp_2->borrowernumber;
+my $date_in_future = dt_from_string();
+$date_in_future = $date_in_future->add_duration(DateTime::Duration->new(days => 1));
+AddReserve({
+    branchcode => 'CPL',
+    borrowernumber => $borrowernumber_tmp_1,
+    biblionumber => $bibnum,
+    priority => 3,
+    reservation_date => $date_in_future
+});
+AddReserve({
+    branchcode => 'CPL',
+    borrowernumber => $borrowernumber_tmp_2,
+    biblionumber => $bibnum,
+    priority => 4,
+    reservation_date => $date_in_future
+});
+my @r1 = Koha::Holds->search({ borrowernumber => $borrowernumber_tmp_1 })->as_list;
+my @r2 = Koha::Holds->search({ borrowernumber => $borrowernumber_tmp_2 })->as_list;
+is( $r1[0]->priority, 3, 'priority for hold in future should be correct');
+is( $r2[0]->priority, 4, 'priority for hold not in future should be correct');
+# end of tests for bug 12630
 
 # Tests for cancel reserves by users from OPAC.
 $dbh->do('DELETE FROM reserves', undef, ($bibnum));
@@ -583,7 +641,8 @@ t::lib::Mocks::mock_preference( 'AgeRestrictionMarker', 'FSK|PEGI|Age|K' );
 #Reserving an not-agerestricted Biblio by a Borrower with no dateofbirth is tested previously.
 
 #Set the ageRestriction for the Biblio
-my $record = GetMarcBiblio({ biblionumber =>  $bibnum });
+$biblio = Koha::Biblios->find($bibnum);
+my $record = $biblio->metadata->record;
 my ( $ageres_tagid, $ageres_subfieldid ) = GetMarcFromKohaField( "biblioitems.agerestriction" );
 $record->append_fields(  MARC::Field->new($ageres_tagid, '', '', $ageres_subfieldid => 'PEGI 16')  );
 C4::Biblio::ModBiblio( $record, $bibnum, $frameworkcode );
@@ -667,7 +726,6 @@ is( $status, '', 'MoveReserve filled waiting hold');
 #   hold from A pos 1, tomorrow, no fut holds: not filled
 $resdate= dt_from_string();
 $resdate->add_duration(DateTime::Duration->new(days => 1));
-$resdate=output_pref($resdate);
 AddReserve(
     {
         branchcode     => $branch_1,
@@ -711,7 +769,6 @@ is( $status, '', 'MoveReserve filled future waiting hold now');
 #   hold from A pos 1, today+3, fut holds=2: MoveReserve should not fill it
 $resdate= dt_from_string();
 $resdate->add_duration(DateTime::Duration->new(days => 3));
-$resdate=output_pref($resdate);
 AddReserve(
     {
         branchcode     => $branch_1,
@@ -728,12 +785,24 @@ $dbh->do('DELETE FROM reserves', undef, ($bibnum));
 
 $cache->clear_from_cache("MarcStructure-0-$frameworkcode");
 $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
-$cache->clear_from_cache("default_value_for_mod_marc-");
 $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
 
 subtest '_koha_notify_reserve() tests' => sub {
 
-    plan tests => 2;
+    plan tests => 3;
+
+    my $branch = $builder->build_object({
+        class => 'Koha::Libraries',
+        value => {
+            branchemail => 'branch@e.mail',
+            branchreplyto => 'branch@reply.to',
+            pickup_location => 1
+        }
+    });
+    my $item = $builder->build_sample_item({
+        homebranch => $branch->branchcode,
+        holdingbranch => $branch->branchcode
+    });
 
     my $wants_hold_and_email = {
         wants_digest => '0',
@@ -796,12 +865,15 @@ subtest '_koha_notify_reserve() tests' => sub {
         })->next()->to_address();
     is($sms_message_address, undef ,"We should not populate the sms message with the sms number, sending will do so");
 
-    my $email_message_address = $schema->resultset('MessageQueue')->search({
+    my $email = $schema->resultset('MessageQueue')->search({
             letter_code     => 'HOLD',
             message_transport_type => 'email',
             borrowernumber => $hold_borrower,
-        })->next()->to_address();
-    is($email_message_address, undef ,"We should not populate the hold message with the email address, sending will do so");
+        })->next();
+    my $email_to_address = $email->to_address();
+    is($email_to_address, undef ,"We should not populate the hold message with the email address, sending will do so");
+    my $email_from_address = $email->from_address();
+    is($email_from_address,'branch@e.mail',"Library's from address is used for sending");
 
 };
 
@@ -934,7 +1006,7 @@ subtest 'reserves.item_level_hold' => sub {
     );
 
     subtest 'item level hold' => sub {
-        plan tests => 2;
+        plan tests => 3;
         my $reserve_id = AddReserve(
             {
                 branchcode     => $item->homebranch,
@@ -951,6 +1023,18 @@ subtest 'reserves.item_level_hold' => sub {
         # Mark it waiting
         ModReserveAffect( $item->itemnumber, $patron->borrowernumber, 1 );
 
+        my $mock = Test::MockModule->new('Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue');
+        $mock->mock( 'enqueue', sub {
+            my ( $self, $args ) = @_;
+            is_deeply(
+                $args->{biblio_ids},
+                [ $hold->biblionumber ],
+                "AlterPriority triggers a holds queue update for the related biblio"
+            );
+        } );
+
+        t::lib::Mocks::mock_preference( 'RealTimeHoldsQueue', 1 );
+
         # Revert the waiting status
         C4::Reserves::RevertWaitingStatus(
             { itemnumber => $item->itemnumber } );
@@ -958,6 +1042,14 @@ subtest 'reserves.item_level_hold' => sub {
         $hold = Koha::Holds->find($reserve_id);
 
         is( $hold->itemnumber, $item->itemnumber, 'Itemnumber should not be removed when the waiting status is revert' );
+
+        t::lib::Mocks::mock_preference( 'RealTimeHoldsQueue', 0 );
+
+        $hold->set_waiting;
+
+        # Revert the waiting status, RealTimeHoldsQueue => shouldn't add a test
+        C4::Reserves::RevertWaitingStatus(
+            { itemnumber => $item->itemnumber } );
 
         $hold->delete;    # cleanup
     };
@@ -1239,8 +1331,7 @@ subtest 'AllowHoldOnPatronPossession test' => sub {
        'alreadypossession',
        'Patron cannot place hold on a book loaned to itself');
 
-    is(C4::Reserves::CanItemBeReserved($patron->borrowernumber,
-                                       $item->itemnumber)->{status},
+    is(C4::Reserves::CanItemBeReserved( $patron, $item )->{status},
        'alreadypossession',
        'Patron cannot place hold on an item loaned to itself');
 
@@ -1251,8 +1342,7 @@ subtest 'AllowHoldOnPatronPossession test' => sub {
        'OK',
        'Patron can place hold on a book loaned to itself');
 
-    is(C4::Reserves::CanItemBeReserved($patron->borrowernumber,
-                                       $item->itemnumber)->{status},
+    is(C4::Reserves::CanItemBeReserved( $patron, $item )->{status},
        'OK',
        'Patron can place hold on an item loaned to itself');
 };
@@ -1389,7 +1479,7 @@ subtest 'IsAvailableForItemLevelRequest() tests' => sub {
     my $itemtype = $builder->build_object(
         {
             class => 'Koha::ItemTypes',
-            value => { itemtype => $item_type, notloan => 0 }
+            value => { itemtype => $item_type }
         }
     );
     ok(
@@ -1398,4 +1488,276 @@ subtest 'IsAvailableForItemLevelRequest() tests' => sub {
     );
 
     $schema->storage->txn_rollback;
+};
+
+subtest 'AddReserve() tests' => sub {
+
+    plan tests => 1;
+
+    $schema->storage->txn_begin;
+
+    my $library = $builder->build_object({ class => 'Koha::Libraries' });
+    my $patron  = $builder->build_object({ class => 'Koha::Patrons' });
+    my $biblio  = $builder->build_sample_biblio;
+
+    my $mock = Test::MockModule->new('Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue');
+    $mock->mock( 'enqueue', sub {
+        my ( $self, $args ) = @_;
+        is_deeply(
+            $args->{biblio_ids},
+            [ $biblio->id ],
+            "AddReserve triggers a holds queue update for the related biblio"
+        );
+    } );
+
+    t::lib::Mocks::mock_preference( 'RealTimeHoldsQueue', 1 );
+
+    AddReserve(
+        {
+            branchcode     => $library->branchcode,
+            borrowernumber => $patron->id,
+            biblionumber   => $biblio->id,
+        }
+    );
+
+    t::lib::Mocks::mock_preference( 'RealTimeHoldsQueue', 0 );
+
+    AddReserve(
+        {
+            branchcode     => $library->branchcode,
+            borrowernumber => $patron->id,
+            biblionumber   => $biblio->id,
+        }
+    );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'AlterPriorty() tests' => sub {
+
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my $library = $builder->build_object({ class => 'Koha::Libraries' });
+    my $patron_1  = $builder->build_object({ class => 'Koha::Patrons' });
+    my $patron_2  = $builder->build_object({ class => 'Koha::Patrons' });
+    my $patron_3  = $builder->build_object({ class => 'Koha::Patrons' });
+    my $biblio  = $builder->build_sample_biblio;
+
+    my $reserve_id = AddReserve(
+        {
+            branchcode     => $library->branchcode,
+            borrowernumber => $patron_1->id,
+            biblionumber   => $biblio->id,
+        }
+    );
+    AddReserve(
+        {
+            branchcode     => $library->branchcode,
+            borrowernumber => $patron_2->id,
+            biblionumber   => $biblio->id,
+        }
+    );
+    AddReserve(
+        {
+            branchcode     => $library->branchcode,
+            borrowernumber => $patron_3->id,
+            biblionumber   => $biblio->id,
+        }
+    );
+
+    my $mock = Test::MockModule->new('Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue');
+    $mock->mock( 'enqueue', sub {
+        my ( $self, $args ) = @_;
+        is_deeply(
+            $args->{biblio_ids},
+            [ $biblio->id ],
+            "AlterPriority triggers a holds queue update for the related biblio"
+        );
+    } );
+
+    t::lib::Mocks::mock_preference( 'RealTimeHoldsQueue', 1 );
+
+    AlterPriority( "bottom", $reserve_id, 1, 2, 1, 3 );
+
+    my $hold = Koha::Holds->find($reserve_id);
+
+    is($hold->priority,3,'Successfully altered priority to bottom');
+
+    t::lib::Mocks::mock_preference( 'RealTimeHoldsQueue', 0 );
+
+    AlterPriority( "bottom", $reserve_id, 1, 2, 1, 3 );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'CanBookBeReserved() tests' => sub {
+
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my $library = $builder->build_object(
+        { class => 'Koha::Libraries', value => { pickup_location => 1 } } );
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $itype  = $builder->build_object( { class => 'Koha::ItemTypes' } );
+
+    my $biblio = $builder->build_sample_biblio();
+    my $item_1 = $builder->build_sample_item(
+        { biblionumber => $biblio->id, itype => $itype->id } );
+    my $item_2 = $builder->build_sample_item(
+        { biblionumber => $biblio->id, itype => $itype->id } );
+
+    Koha::CirculationRules->delete;
+    Koha::CirculationRules->set_rules(
+        {
+            branchcode   => undef,
+            categorycode => undef,
+            itemtype     => undef,
+            rules        => {
+                holds_per_record => 100,
+            }
+        }
+    );
+    Koha::CirculationRules->set_rules(
+        {
+            branchcode   => undef,
+            categorycode => undef,
+            itemtype     => $itype->id,
+            rules        => {
+                reservesallowed => 2,
+            }
+        }
+    );
+
+    C4::Reserves::AddReserve(
+        {
+            branchcode     => $library->id,
+            borrowernumber => $patron->id,
+            biblionumber   => $biblio->id,
+            title          => $biblio->title,
+            itemnumber     => $item_1->id
+        }
+    );
+
+    ## Limit on item type is 2, only one hold, success tests
+
+    my $res = CanBookBeReserved( $patron->id, $biblio->id, $library->id,
+        { itemtype => $itype->id } );
+    is_deeply( $res, { status => 'OK' },
+        'Holds on itemtype limit not reached' );
+
+    # Add a second hold, biblio-level and item type-constrained
+    C4::Reserves::AddReserve(
+        {
+            branchcode     => $library->id,
+            borrowernumber => $patron->id,
+            biblionumber   => $biblio->id,
+            title          => $biblio->title,
+            itemtype       => $itype->id,
+        }
+    );
+
+    ## Limit on item type is 2, two holds, one of them biblio-level/item type-constrained
+
+    $res = CanBookBeReserved( $patron->id, $biblio->id, $library->id,
+        { itemtype => $itype->id } );
+    is_deeply( $res, { status => '' }, 'Holds on itemtype limit reached' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'CanItemBeReserved() tests' => sub {
+
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my $library = $builder->build_object( { class => 'Koha::Libraries', value => { pickup_location => 1 } } );
+    my $patron  = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $itype   = $builder->build_object( { class => 'Koha::ItemTypes' } );
+
+    my $biblio = $builder->build_sample_biblio();
+    my $item_1 = $builder->build_sample_item({ biblionumber => $biblio->id, itype => $itype->id });
+    my $item_2 = $builder->build_sample_item({ biblionumber => $biblio->id, itype => $itype->id });
+
+    Koha::CirculationRules->delete;
+    Koha::CirculationRules->set_rules(
+        {   branchcode   => undef,
+            categorycode => undef,
+            itemtype     => undef,
+            rules        => {
+                holds_per_record => 100,
+            }
+        }
+    );
+    Koha::CirculationRules->set_rules(
+        {   branchcode   => undef,
+            categorycode => undef,
+            itemtype     => $itype->id,
+            rules        => {
+                reservesallowed => 2,
+            }
+        }
+    );
+
+    C4::Reserves::AddReserve(
+        {
+            branchcode     => $library->id,
+            borrowernumber => $patron->id,
+            biblionumber   => $biblio->id,
+            title          => $biblio->title,
+            itemnumber     => $item_1->id
+        }
+    );
+
+    ## Limit on item type is 2, only one hold, success tests
+
+    my $res = CanItemBeReserved( $patron, $item_2, $library->id );
+    is_deeply( $res, { status => 'OK' }, 'Holds on itemtype limit not reached' );
+
+    # Add a second hold, biblio-level and item type-constrained
+    C4::Reserves::AddReserve(
+        {
+            branchcode     => $library->id,
+            borrowernumber => $patron->id,
+            biblionumber   => $biblio->id,
+            title          => $biblio->title,
+            itemtype       => $itype->id,
+        }
+    );
+
+    ## Limit on item type is 2, two holds, one of them biblio-level/item type-constrained
+
+    $res = CanItemBeReserved( $patron, $item_2, $library->id );
+    is_deeply( $res, { status => 'tooManyReserves', limit => 2 }, 'Holds on itemtype limit reached' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'DefaultHoldExpiration tests' => sub {
+    plan tests => 2;
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'DefaultHoldExpirationdate', 1 );
+    t::lib::Mocks::mock_preference( 'DefaultHoldExpirationdatePeriod', 365 );
+    t::lib::Mocks::mock_preference( 'DefaultHoldExpirationUnitOfTime', 'days;' );
+
+    my $patron  = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $item    = $builder->build_sample_item();
+
+    my $reserve_id = AddReserve({
+        branchcode     => $item->homebranch,
+        borrowernumber => $patron->id,
+        biblionumber   => $item->biblionumber,
+    });
+
+    my $today = dt_from_string();
+    my $hold = Koha::Holds->find( $reserve_id );
+
+    is( $hold->reservedate, $today->ymd, "Hold created today" );
+    is( $hold->expirationdate, $today->add( days => 365)->ymd, "Reserve date set 1 year from today" );
+
+    $schema->txn_rollback;
 };

@@ -20,19 +20,14 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use Date::Manip;
 
-use C4::Auth;
-use C4::Debug;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Koha;
-use C4::Output;
-use C4::Circulation;
-use C4::Reports;
-use C4::Members;
+use C4::Koha qw( GetAuthorisedValues );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Reports qw( GetDelimiterChoices );
 
 use Koha::AuthorisedValues;
-use Koha::DateUtils;
 use Koha::ItemTypes;
 use Koha::Patron::Attribute::Types;
 
@@ -46,17 +41,12 @@ Plugin that shows circulation stats
 
 =cut
 
-# my $debug = 1;	# override for now.
 my $input = CGI->new;
 my $fullreportname = "reports/issues_stats.tt";
 my $do_it    = $input->param('do_it');
 my $line     = $input->param("Line");
 my $column   = $input->param("Column");
 my @filters  = $input->multi_param("Filter");
-$filters[0] = eval { output_pref( { dt => dt_from_string( $filters[0]), dateonly => 1, dateformat => 'iso' } ); }
-    if ( $filters[0] );
-$filters[1] = eval { output_pref( { dt => dt_from_string( $filters[1]), dateonly => 1, dateformat => 'iso' } ); }
-    if ( $filters[1] );
 my $podsp    = $input->param("DisplayBy");
 my $type     = $input->param("PeriodTypeSel");
 my $daysel   = $input->param("PeriodDaySel");
@@ -79,16 +69,14 @@ my ($template, $borrowernumber, $cookie) = get_template_and_user({
 	query => $input,
 	type => "intranet",
 	flagsrequired => {reports => '*'},
-	debug => 0,
 });
-our $sep     = $input->param("sep") // ';';
-$sep = "\t" if ($sep eq 'tabulation');
+our $sep = C4::Context->csv_delimiter(scalar $input->param("sep"));
 $template->param(do_it => $do_it,
 );
 
 our $itemtypes = Koha::ItemTypes->search_with_localization->unblessed;
 
-our @patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']});
+our @patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']})->as_list;
 
 our $locations = { map { ( $_->{authorised_value} => $_->{lib} ) } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => '', kohafield => 'items.location' }, { order_by => ['description'] } ) };
 our $ccodes = { map { ( $_->{authorised_value} => $_->{lib} ) } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => '', kohafield => 'items.ccode' }, { order_by => ['description'] } ) };
@@ -226,12 +214,7 @@ sub calculate {
             $cell{err} = 1 if ( @$filters[$i] < @$filters[ $i - 1 ] );
         }
             # format the dates filters, otherwise just fill as is
-        if ($i>=2) {
-            $cell{filter} = @$filters[$i];
-        } else {
-            $cell{filter} = eval { output_pref( { dt => dt_from_string( @$filters[$i] ), dateonly => 1 }); }
-              if ( @$filters[$i] );
-        }
+        $cell{filter} = @$filters[$i];
         $cell{crit} = $i;
 
         push @loopfilter, \%cell;
@@ -246,7 +229,6 @@ sub calculate {
     push @loopfilter, { crit => "Select Month", filter => $monthsel } if ($monthsel);
 
     my @linefilter;
-    $debug and warn "filtres " . join "|", @$filters;
     my ( $colsource, $linesource ) = ('', '');
     $linefilter[1] = @$filters[1] if ( $line =~ /datetime/ );
     $linefilter[0] =
@@ -339,7 +321,6 @@ sub calculate {
         $strsth .= " AND $line LIKE ? ";
     }
     $strsth .= " group by $linefield order by $lineorder ";
-    $debug and warn $strsth;
     push @loopfilter, { crit => 'SQL =', sql => 1, filter => $strsth };
     my $sth = $dbh->prepare($strsth);
     if ( (@linefilter) and ($linefilter[0]) and ($linefilter[1]) ) {
@@ -430,7 +411,6 @@ sub calculate {
     }
 
     $strsth2 .= " group by $colfield order by $colorder ";
-    $debug and warn $strsth2;
     push @loopfilter, { crit => 'SQL =', sql => 1, filter => $strsth2 };
     my $sth2 = $dbh->prepare($strsth2);
     if ( (@colfilter) and ($colfilter[0]) and ($colfilter[1]) ) {
@@ -473,7 +453,6 @@ sub calculate {
     my %table;
     foreach my $row (@loopline) {
         foreach my $col (@loopcol) {
-            $debug and warn " init table : $row->{rowtitle} ( $row->{rowtitle_display} ) / $col->{coltitle} ( $col->{coltitle_display} )  ";
             table_set(\%table, $row->{rowtitle}, $col->{coltitle}, 0);
         }
         table_set(\%table, $row->{rowtitle}, 'totalrow', 0);
@@ -516,7 +495,7 @@ sub calculate {
             $strcalc .= " LEFT JOIN borrower_attributes AS attribute_$_ ON (statistics.borrowernumber = attribute_$_.borrowernumber AND attribute_$_.code = '$_') ";
         }
     }
-    $strcalc .= "LEFT JOIN items ON statistics.itemnumber=items.itemnumber "
+    $strcalc .= "LEFT JOIN (SELECT * FROM items UNION SELECT * FROM deleteditems) items ON statistics.itemnumber=items.itemnumber "
       if ( $linefield =~ /^items\./
         or $colfield =~ /^items\./
         or $process == 5
@@ -571,13 +550,11 @@ sub calculate {
         $strcalc .= " $colorder ";
     }
 
-    ($debug) and warn $strcalc;
     my $dbcalc = $dbh->prepare($strcalc);
     push @loopfilter, { crit => 'SQL =', sql => 1, filter => $strcalc };
     $dbcalc->execute;
     my ( $emptycol, $emptyrow );
     while ( my ( $row, $col, $value ) = $dbcalc->fetchrow ) {
-        ($debug) and warn "filling table $row / $col / $value ";
         unless ( defined $col ) {
             $emptycol = 1;
         }
@@ -611,7 +588,6 @@ sub calculate {
         my $total = 0;
         foreach my $row (@looprow) {
             $total += table_get(\%table, $row->{rowtitle}, $col->{coltitle}) || 0;
-            $debug and warn "value added " . table_get(\%table, $row->{rowtitle}, $col->{coltitle}) . "for line " . $row->{rowtitle};
         }
         push @loopfooter, { 'totalcol' => $total };
     }

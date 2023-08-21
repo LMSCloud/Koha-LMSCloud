@@ -54,6 +54,13 @@ number of months the patron is enrolled for (will be NULL if enrolmentperioddate
 
 date the patron is enrolled until (will be NULL if enrolmentperiod is set)
 
+=head2 password_expiry_days
+
+  data_type: 'smallint'
+  is_nullable: 1
+
+number of days after which the patron must reset their password
+
 =head2 upperagelimit
 
   data_type: 'smallint'
@@ -163,6 +170,14 @@ Is the library card of the patron a familiy card
 
 produce a warning for this patron category if this item has previously been checked out to this patron if 'yes', not if 'no', defer to syspref setting if 'inherit'.
 
+=head2 can_be_guarantee
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+if patrons of this category can be guarantees
+
 =head2 reset_password
 
   data_type: 'tinyint'
@@ -209,6 +224,8 @@ __PACKAGE__->add_columns(
   { data_type => "smallint", is_nullable => 1 },
   "enrolmentperioddate",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
+  "password_expiry_days",
+  { data_type => "smallint", is_nullable => 1 },
   "upperagelimit",
   { data_type => "smallint", is_nullable => 1 },
   "dateofbirthrequired",
@@ -252,6 +269,8 @@ __PACKAGE__->add_columns(
     is_nullable => 0,
     size => 7,
   },
+  "can_be_guarantee",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "reset_password",
   { data_type => "tinyint", is_nullable => 1 },
   "change_password",
@@ -277,6 +296,21 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("categorycode");
 
 =head1 RELATIONS
+
+=head2 borrower_attribute_types
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::BorrowerAttributeType>
+
+=cut
+
+__PACKAGE__->has_many(
+  "borrower_attribute_types",
+  "Koha::Schema::Result::BorrowerAttributeType",
+  { "foreign.category_code" => "self.categorycode" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
 
 =head2 borrower_message_preferences
 
@@ -338,13 +372,24 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 identity_provider_domains
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-11-19 16:54:35
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:JbXVlvtonUsCEv/5Eqjlsw
+Type: has_many
 
-__PACKAGE__->add_columns(
-    '+exclude_from_local_holds_priority' => { is_boolean => 1 },
+Related object: L<Koha::Schema::Result::IdentityProviderDomain>
+
+=cut
+
+__PACKAGE__->has_many(
+  "identity_provider_domains",
+  "Koha::Schema::Result::IdentityProviderDomain",
+  { "foreign.default_category_id" => "self.categorycode" },
+  { cascade_copy => 0, cascade_delete => 0 },
 );
+
+
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-11-08 17:35:26
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:B89OgAY/KnJbQaHpu5Xdfg
 
 sub koha_object_class {
     'Koha::Patron::Category';
@@ -354,7 +399,9 @@ sub koha_objects_class {
 }
 
 __PACKAGE__->add_columns(
-    '+require_strong_password' => { is_boolean => 1 }
+    '+can_be_guarantee'                  => { is_boolean => 1 },
+    '+exclude_from_local_holds_priority' => { is_boolean => 1 },
+    '+require_strong_password'           => { is_boolean => 1 },
 );
 
 1;

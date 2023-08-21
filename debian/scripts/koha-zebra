@@ -146,10 +146,11 @@ restart_zebra()
         echo $noLF `start_zebra ${name}`
     else
         if [ "$verbose" != "no" ]; then
-            log_daemon_msg "Error: Zebra not running for ${name}"
-            log_end_msg 1
+            log_warning_msg "Zebra not running for ${name}."
+            start_zebra ${name}
         else
-            return 1
+            start_zebra ${name}
+            return 0
         fi
     fi
 }

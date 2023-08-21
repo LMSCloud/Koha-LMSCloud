@@ -34,29 +34,27 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 use DateTime;
 
-use C4::Auth qw/:DEFAULT get_session/;
-use C4::Output;
-use C4::Circulation;
-use C4::Reserves;
-use C4::Biblio;
-use C4::Circulation;
+use C4::Auth qw( get_template_and_user get_session haspermission );
+use C4::Circulation qw( barcodedecode GetBranchItemRule AddReturn updateWrongTransfer LostItem );
 use C4::Context;
-use C4::Items;
-use C4::Koha;   # FIXME : is it still useful ?
+use C4::Items qw( ModItemTransfer );
 use C4::Members::Messaging;
 use C4::Members;
-use C4::Output;
-use C4::Reserves;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Reserves qw( ModReserve ModReserveAffect GetOtherReserves );
 use C4::RotatingCollections;
 use Koha::AuthorisedValues;
 use Koha::BiblioFrameworks;
 use Koha::Calendar;
 use Koha::Checkouts;
-use Koha::DateUtils;
+use Koha::CirculationRules;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Holds;
+use Koha::Item::Transfers;
 use Koha::Items;
 use Koha::Item::Transfers;
 use Koha::Patrons;
+use Koha::Recalls;
 
 my $query = CGI->new;
 
@@ -82,6 +80,15 @@ if ( $query->param('print_slip') ) {
     );
 }
 
+# print a recall slip
+if ( $query->param('recall_slip') ) {
+    $template->param(
+        recall_slip => 1,
+        recall_id => scalar $query->param('recall_id'),
+    );
+}
+
+
 #####################
 #Global vars
 my $userenv = C4::Context->userenv;
@@ -89,6 +96,9 @@ my $userenv_branch = $userenv->{'branch'} // '';
 my $forgivemanualholdsexpire = $query->param('forgivemanualholdsexpire');
 
 my $overduecharges = (C4::Context->preference('finesMode') && C4::Context->preference('finesMode') eq 'production');
+
+#set up so only the last 8 returned items display (make for faster loading pages)
+my $returned_counter = C4::Context->preference('numReturnedItemsToShow') || 8;
 
 # Set up the item stack ....
 my %returneditems;
@@ -99,7 +109,7 @@ foreach ( $query->param ) {
     my $counter;
     if (/ri-(\d*)/) {
         $counter = $1;
-        if ($counter > 20) {
+        if ($counter > $returned_counter) {
             next;
         }
     }
@@ -114,8 +124,7 @@ foreach ( $query->param ) {
     $counter++;
 
     # decode barcode    ## Didn't we already decode them before passing them back last time??
-    $barcode =~ s/^\s*|\s*$//g; # remove leading/trailing whitespace
-    $barcode = barcodedecode($barcode) if(C4::Context->preference('itemBarcodeInputFilter'));
+    $barcode = barcodedecode($barcode) if $barcode;
 
     ######################
     #Are these lines still useful ?
@@ -169,6 +178,26 @@ if ( $query->param('reserve_id') ) {
     }
 }
 
+if ( $query->param('recall_id') ) {
+    my $recall = Koha::Recalls->find( scalar $query->param('recall_id') );
+    my $itemnumber = $query->param('itemnumber');
+    my $return_branch = $query->param('returnbranch');
+
+    if ($recall) {
+        my $item;
+        if ( !$recall->item_level ) {
+            $item = Koha::Items->find( $itemnumber );
+        }
+
+        if ( $recall->pickup_library_id ne $return_branch ) {
+            $recall->start_transfer({ item => $item }) if !$recall->in_transit;
+        } else {
+            my $expirationdate = $recall->calc_expirationdate;
+            $recall->set_waiting({ item => $item, expirationdate => $expirationdate }) if !$recall->waiting;
+        }
+    }
+}
+
 my $borrower;
 my $returned = 0;
 my $messages;
@@ -191,28 +220,21 @@ my $dest = $query->param('dest');
 #dropbox: get last open day (today - 1)
 my $dropboxdate = Koha::Checkouts::calculate_dropbox_date();
 
-my $return_date_override = $query->param('return_date_override');
-my $return_date_override_dt;
-my $return_date_override_remember =
-  $query->param('return_date_override_remember');
+my $return_date_override = $query->param('return_date_override') || q{};
 if ($return_date_override) {
     if ( C4::Context->preference('SpecifyReturnDate') ) {
-        $return_date_override_dt = eval {dt_from_string( $return_date_override ) };
-        if ( $return_date_override_dt ) {
-            # note that we've overriden the return date
-            $template->param( return_date_was_overriden => 1);
-            # Save the original format if we are remembering for this series
-            $template->param(
-                return_date_override          => $return_date_override,
-                return_date_override_remember => 1
-            ) if ($return_date_override_remember);
 
-            $return_date_override =
-              DateTime::Format::MySQL->format_datetime( $return_date_override_dt );
-        }
-    }
-    else {
-        $return_date_override = q{};
+        # note that we've overriden the return date
+        $template->param( return_date_was_overriden => 1 );
+
+        my $return_date_override_remember =
+          $query->param('return_date_override_remember');
+
+        # Save the original format if we are remembering for this series
+        $template->param(
+            return_date_override          => $return_date_override,
+            return_date_override_remember => 1
+        ) if ($return_date_override_remember);
     }
 }
 
@@ -228,6 +250,12 @@ if ($transit) {
     my $transfer = Koha::Item::Transfers->find($transit);
     if ( $canceltransfer ) {
         $transfer->cancel({ reason => 'Manual', force => 1});
+        if ( C4::Context->preference('UseRecalls') ) {
+            my $recall_transfer_deleted = Koha::Recalls->find({ item_id => $itemnumber, status => 'in_transit' });
+            if ( defined $recall_transfer_deleted ) {
+                $recall_transfer_deleted->revert_transfer;
+            }
+        }
         $template->param( transfercancelled => 1);
     } else {
         $transfer->transit;
@@ -236,6 +264,12 @@ if ($transit) {
     my $item = Koha::Items->find($itemnumber);
     my $transfer = $item->get_transfer;
     $transfer->cancel({ reason => 'Manual', force => 1});
+    if ( C4::Context->preference('UseRecalls') ) {
+        my $recall_transfer_deleted = Koha::Recalls->find({ item_id => $itemnumber, status => 'in_transit' });
+        if ( defined $recall_transfer_deleted ) {
+            $recall_transfer_deleted->revert_transfer;
+        }
+    }
     if($dest eq "ttr"){
         print $query->redirect("/cgi-bin/koha/circ/transferstoreceive.pl");
         exit;
@@ -248,8 +282,7 @@ if ($transit) {
 # actually return book and prepare item table.....
 my $returnbranch;
 if ($barcode) {
-    $barcode =~ s/^\s*|\s*$//g; # remove leading/trailing whitespace
-    $barcode = barcodedecode($barcode) if C4::Context->preference('itemBarcodeInputFilter');
+    $barcode = barcodedecode($barcode) if $barcode;
     my $item = Koha::Items->find({ barcode => $barcode });
 
     if ( $item ) {
@@ -265,7 +298,7 @@ if ($barcode) {
         }
 
         # make sure return branch respects home branch circulation rules, default to homebranch
-        my $hbr = GetBranchItemRule($item->homebranch, $itemtype ? $itemtype->itemtype : undef )->{'returnbranch'} || "homebranch";
+        my $hbr = Koha::CirculationRules->get_return_branch_policy($item);
         $returnbranch = $hbr ne 'noreturn' ? $item->$hbr : $userenv_branch; # can be noreturn, homebranch or holdingbranch
 
         my $materials = $item->materials;
@@ -292,7 +325,10 @@ if ($barcode) {
         barcode => $barcode,
     );
 
-    my $return_date = $dropboxmode ? $dropboxdate : $return_date_override_dt;
+    my $return_date =
+        $dropboxmode
+      ? $dropboxdate
+      : dt_from_string( $return_date_override );
 
     # Block return if multi-part and confirm has not been received
     my $needs_confirm =
@@ -303,10 +339,27 @@ if ($barcode) {
     $template->param( 'multiple_confirmed' => 1 )
       if $query->param('multiple_confirm');
 
+    # Block return if bundle and confirm has not been received
+    my $bundle_confirm =
+         $item
+      && $item->is_bundle
+      && !$query->param('confirm_items_bundle_return');
+    $template->param( 'confirm_items_bundle_returned' => 1 )
+      if $query->param('confirm_items_bundle_return');
+
+    # is there a waiting hold for the item, for which cancellation
+    # has been requested?
+    if ($item) {
+        my $waiting_holds_to_be_cancelled = $item->holds->waiting->filter_by_has_cancellation_requests;
+        while ( my $hold = $waiting_holds_to_be_cancelled->next ) {
+            $hold->cancel;
+        }
+    }
+
     # do the return
     ( $returned, $messages, $issue, $borrower ) =
       AddReturn( $barcode, $userenv_branch, $exemptfine, $return_date )
-          unless $needs_confirm;
+          unless ( $needs_confirm || $bundle_confirm );
 
     if ($returned) {
         my $time_now = dt_from_string()->truncate( to => 'minute');
@@ -352,7 +405,8 @@ if ($barcode) {
                 );
             }
         }
-    } elsif ( C4::Context->preference('ShowAllCheckins') and !$messages->{'BadBarcode'} and !$needs_confirm ) {
+
+    } elsif ( C4::Context->preference('ShowAllCheckins') and !$messages->{'BadBarcode'} and !$needs_confirm and !$bundle_confirm ) {
         $input{duedate}   = 0;
         $returneditems{0} = $barcode;
         $riduedate{0}     = 0;
@@ -363,12 +417,96 @@ if ($barcode) {
     if ( $needs_confirm ) {
         $template->param( needs_confirm => $needs_confirm );
     }
+
+    if ( $bundle_confirm ) {
+        $template->param(
+            items_bundle_return_confirmation => 1,
+        );
+    }
+
+    # Mark missing bundle items as lost and report unexpected items
+    if ( $item && $item->is_bundle && $query->param('confirm_items_bundle_return') ) {
+        my $BundleLostValue = C4::Context->preference('BundleLostValue');
+        my $barcodes = $query->param('verify-items-bundle-contents-barcodes');
+        my @barcodes = map { s/^\s+|\s+$//gr } ( split /\n/, $barcodes );
+        my $expected_items = { map { $_->barcode => $_ } $item->bundle_items->as_list };
+        my $verify_items = Koha::Items->search( { barcode => { 'in' => \@barcodes } } );
+        my @unexpected_items;
+        my @missing_items;
+        my @bundle_items;
+        while ( my $verify_item = $verify_items->next ) {
+            # Fix and lost statuses
+            $verify_item->itemlost(0);
+
+            # Update last_seen
+            $verify_item->datelastseen( dt_from_string()->ymd() );
+
+            # Update last_borrowed if actual checkin
+            $verify_item->datelastborrowed( dt_from_string()->ymd() ) if $issue;
+
+            # Expected item, remove from lookup table
+            if ( delete $expected_items->{$verify_item->barcode} ) {
+                push @bundle_items, $verify_item;
+            }
+            # Unexpected item, warn and remove from bundle
+            else {
+                $verify_item->remove_from_bundle;
+                push @unexpected_items, $verify_item;
+            }
+
+            # Store results
+            $verify_item->store();
+        }
+        for my $missing_item ( keys %{$expected_items} ) {
+            my $bundle_item = $expected_items->{$missing_item};
+            # Mark as lost if it's not already lost
+            if ( !$bundle_item->itemlost ) {
+                $bundle_item->itemlost($BundleLostValue)->store();
+
+                # Add return_claim record if this is an actual checkin
+                if ($issue) {
+                    $bundle_item->_result->create_related(
+                        'return_claims',
+                        {
+                            issue_id       => $issue->issue_id,
+                            itemnumber     => $bundle_item->itemnumber,
+                            borrowernumber => $issue->borrowernumber,
+                            created_by     => C4::Context->userenv()->{number},
+                            created_on     => dt_from_string
+                        }
+                    );
+                }
+                push @missing_items, $bundle_item;
+
+                # NOTE: We cannot use C4::LostItem here because the item itself doesn't have a checkout
+                # and thus would not get charged.. it's checked out as part of the bundle.
+                if ( C4::Context->preference('WhenLostChargeReplacementFee') && $issue ) {
+                    C4::Accounts::chargelostitem(
+                        $issue->borrowernumber,
+                        $bundle_item->itemnumber,
+                        $bundle_item->replacementprice,
+                        sprintf( "%s %s %s",
+                            $bundle_item->biblio->title  || q{},
+                            $bundle_item->barcode        || q{},
+                            $bundle_item->itemcallnumber || q{},
+                        ),
+                    );
+                }
+            }
+        }
+        $template->param(
+            unexpected_items => \@unexpected_items,
+            missing_items    => \@missing_items,
+            bundle_items     => \@bundle_items
+        );
+    }
 }
 $template->param( inputloop => \@inputloop );
 
 my $found    = 0;
 my $waiting  = 0;
 my $reserved = 0;
+my $recalled = 0;
 
 # new op dev : we check if the document must be returned to his homebranch directly,
 #  if the document is transferred, we have warning message .
@@ -427,7 +565,7 @@ if ( $messages->{'WrongTransfer'} and not $messages->{'WasTransfered'}) {
 #
 # reserve found and item arrived at the expected branch
 #
-if ( $messages->{'ResFound'}) {
+if ( $messages->{'ResFound'} ) {
     my $reserve    = $messages->{'ResFound'};
     my $patron = Koha::Patrons->find( $reserve->{borrowernumber} );
     my $holdmsgpreferences =  C4::Members::Messaging::GetMessagingPreferences( { borrowernumber => $reserve->{'borrowernumber'}, message_name   => 'Hold_Filled' } );
@@ -441,7 +579,7 @@ if ( $messages->{'ResFound'}) {
         my $biblio = $item->biblio;
 
         my $diffBranchSend = !$branchCheck ? $reserve->{branchcode} : undef;
-        ModReserveAffect( $reserve->{itemnumber}, $reserve->{borrowernumber}, $diffBranchSend, $reserve->{reserve_id}, $desk_id );
+        ModReserveAffect( $itemnumber, $reserve->{borrowernumber}, $diffBranchSend, $reserve->{reserve_id}, $desk_id );
         my ( $messages, $nextreservinfo ) = GetOtherReserves($reserve->{itemnumber});
 
         $template->param(
@@ -479,6 +617,40 @@ if ( $messages->{'ResFound'}) {
     );
 }
 
+if ( $messages->{RecallFound} ) {
+    my $recall = $messages->{RecallFound};
+    if ( dt_from_string( $recall->timestamp ) == dt_from_string ) {
+        # we just updated this recall
+        $template->param( recall => $recall );
+    } else {
+        my $transferbranch = $messages->{RecallNeedsTransfer};
+        my $transfertodo = ( !$transferbranch or $transferbranch eq $recall->library->branchcode ) ? undef : 1;
+        $template->param(
+            found => 1,
+            recall => $recall,
+            recalled => $recall->waiting ? 0 : 1,
+            transfertodo => $transfertodo,
+            waitingrecall => $recall->waiting ? 1 : 0,
+        );
+    }
+}
+
+if ( $messages->{TransferredRecall} ) {
+    my $recall = $messages->{TransferredRecall};
+
+    # confirm transfer has arrived at the branch
+    my $transfer = Koha::Item::Transfers->search({ datearrived => { '!=' => undef }, itemnumber => $recall->item_id }, { order_by => { -desc => 'datearrived' } })->next;
+
+    # if transfer has completed, show popup to confirm as waiting
+    if ( defined $transfer and $transfer->tobranch eq $recall->pickup_library_id ) {
+        $template->param(
+            found => 1,
+            recall => $recall,
+            recalled => 1,
+        );
+    }
+}
+
 # Error Messages
 my @errmsgloop;
 foreach my $code ( keys %$messages ) {
@@ -507,6 +679,9 @@ foreach my $code ( keys %$messages ) {
     }
     elsif ( $code eq 'LostItemFeeRestored' ) {
         $template->param( LostItemFeeRestored => 1 );
+    }
+    elsif ( $code eq 'ProcessingFeeRefunded' ) {
+        $template->param( ProcessingFeeRefunded => 1 );
     }
     elsif ( $code eq 'ResFound' ) {
         ;    # FIXME... anything to do here?
@@ -562,6 +737,14 @@ foreach my $code ( keys %$messages ) {
     }
     elsif ( $code eq 'ReturnClaims' ) {
         $template->param( ReturnClaims => $messages->{ReturnClaims} );
+    } elsif ( $code eq 'RecallFound' ) {
+        ;
+    } elsif ( $code eq 'RecallNeedsTransfer' ) {
+        ;
+    } elsif ( $code eq 'TransferredRecall' ) {
+        ;
+    } elsif ( $code eq 'InBundle' ) {
+        $template->param( InBundle => $messages->{InBundle} );
     } else {
         die "Unknown error code $code";    # note we need all the (empty) elsif's above, or we die.
         # This forces the issue of staying in sync w/ Circulation.pm
@@ -573,8 +756,6 @@ foreach my $code ( keys %$messages ) {
 }
 $template->param( errmsgloop => \@errmsgloop );
 
-#set up so only the last 8 returned items display (make for faster loading pages)
-my $returned_counter = ( C4::Context->preference('numReturnedItemsToShow') ) ? C4::Context->preference('numReturnedItemsToShow') : 8;
 my $count = 0;
 my @riloop;
 my $shelflocations =
@@ -590,7 +771,7 @@ foreach ( sort { $a <=> $b } keys %returneditems ) {
             $ri{day}   = $duedate->day();
             $ri{hour}   = $duedate->hour();
             $ri{minute}   = $duedate->minute();
-            $ri{duedate} = output_pref($duedate);
+            $ri{duedate} = $duedate;
             my $patron = Koha::Patrons->find( $riborrowernumber{$_} );
             unless ( $dropboxmode ) {
                 $ri{return_overdue} = 1 if (DateTime->compare($duedate, dt_from_string()) == -1);
@@ -626,7 +807,7 @@ foreach ( sort { $a <=> $b } keys %returneditems ) {
         $ri{itemnumber}          = $item->itemnumber;
         $ri{barcode}             = $bar_code;
         $ri{homebranch}          = $item->homebranch;
-        $ri{holdingbranch}       = $item->holdingbranch;
+        $ri{transferbranch}      = $item->get_transfer ? $item->get_transfer->tobranch : '';
         $ri{damaged}             = $item->damaged;
 
         $ri{location} = $item->location;

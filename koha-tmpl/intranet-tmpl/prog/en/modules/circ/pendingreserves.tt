@@ -13,25 +13,20 @@
 </head>
 
 <body id="circ_pendingreserves" class="circ">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'circ-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+[% END %]
 
-
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Holds to pull
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Holds to pull</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -57,7 +52,7 @@
             </div>
         [% END %]
 
-<h2>Holds to pull placed between [% from | $KohaDates %] and [% to | $KohaDates %]</h2>
+<h1>Holds to pull placed between [% from | $KohaDates %] and [% to | $KohaDates %]</h1>
 <h3>Reported on [% todaysdate | $KohaDates %]</h3>
 <p>The following holds have not been filled. Please retrieve them and check them in.</p>
 <div id="searchresults">
@@ -77,8 +72,9 @@
         <th>Available enumeration</th>
         <th class="string-sort">Available item types</th>
         <th class="string-sort">Available locations</th>
+        <th class="string-sort">Available collections</th>
         <th>Earliest hold date</th>
-        <th>Reserve notes</th>
+        <th>Hold notes</th>
         <th class="string-sort">Pickup location</th>
         <th>Action</th>
         </tr>
@@ -126,7 +122,19 @@
         <td>
             [% IF ( hold_info.barcodes.size ) %]
                 [% SET barcode = hold_info.barcodes.first %]
-                [% IF ( hold_info.item ) %]Only [% barcode | html %][% ELSE %][% barcode | html %] or any available.[% END %]
+                [% IF ( hold_info.item ) %]
+                    <span>Only [% barcode | html %]</span>
+                [% ELSE %]
+                    <span>[% barcode | html %] or
+                        [% IF hold_info.item_group %]
+                            any available from item group <em>[% hold_info.item_group.description | html %]</em>.
+                        [% ELSE %]
+                            any available.
+                        [% END %]
+                    </span>
+                [% END %]
+            [% ELSIF hold_info.item_group %]
+                Any available from item group <em>[% hold_info.item_group.description | html %]</em>.
             [% END %]
         </td>
         <td>
@@ -176,6 +184,13 @@
             [% END %]
             </ul>
         </td>
+        <td>
+            <ul>
+            [% FOREACH ccode IN hold_info.collections %]
+                <li>[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => ccode ) | html %]</li>
+            [% END %]
+            </ul>
+        </td>
         <td data-order="[% hold.reservedate | html %]">
             [% hold.reservedate | $KohaDates %] in [% Branches.GetName ( hold.branchcode ) | html %]
         </td>
@@ -189,7 +204,7 @@
                 <input type="hidden" name="reserve_id" value="[% hold.reserve_id | html %]" />
 
                 [% SET hold_cancellation = AuthorisedValues.GetAuthValueDropbox('HOLD_CANCELLATION') %]
-                [% IF hold_cancellation %]
+                [% IF hold_cancellation.count %]
                     <div class="form-group">
                         <label for="cancellation-reason">Cancellation reason:</label>
                         <select class="cancellation-reason" name="cancellation-reason" id="cancellation-reason">
@@ -214,10 +229,10 @@
                     <input type="hidden" name="reserve_id" value="[% hold.reserve_id | html %]" />
                     [% IF Koha.Preference('CanMarkHoldsToPullAsLost') == 'allow' %]
                         <input type="hidden" name="op" value="mark_as_lost" />
-                        <input type="submit" value="Mark item as lost" />
+                        <input type="submit" class="btn btn-primary" value="Mark item as lost" />
                     [% ELSIF Koha.Preference('CanMarkHoldsToPullAsLost') == 'allow_and_notify' %]
                         <input type="hidden" name="op" value="mark_as_lost_and_notify" />
-                        <input type="submit" value="Mark lost and notify patron" />
+                        <input type="submit" class="btn btn-primary" value="Mark lost and notify patron" />
                     [% END %]
                 </form>
             [% ELSE %]
@@ -242,6 +257,7 @@
         <td><input type="text" class="filter" data-column_num="9" placeholder="Available enumeration" style="width:95%"/></td>
         <td id="itemtype-filter"></td>
         <td id="locationfilter"></td>
+        <td></td>
         <td></td>
         <td></td>
         <td id="pickup-location"></td>
@@ -271,12 +287,12 @@
 <label for="from">
     Start date:
 </label>
-<input type="text" size="10" id="from" name="from" value="[% from | $KohaDates %]" class="datepickerfrom" />
+<input type="text" size="10" id="from" name="from" value="[% from | html %]" class="flatpickr" data-date_to="to" />
 </li>
 <li><label for="to">
     End date:
 </label>
-<input type="text" size="10" id="to" name="to" value="[% to | $KohaDates %]" class="datepickerto" />
+<input type="text" size="10" id="to" name="to" value="[% to | html %]" class="flatpickr" />
 </li>
 </ol>
 
@@ -285,9 +301,11 @@
 [% ELSE %]
     <p><em>(Inclusive, default is [% HoldsToPullStartDate | html %] days ago to today. Set other date ranges as needed.)</em></p>
 [% END %]
-
-<fieldset class="action"><input type="submit" name="run_report" value="Submit" class="submit"/></fieldset>
 </fieldset>
+
+    <fieldset class="action">
+        <input type="submit" name="run_report" value="Submit" class="btn btn-primary" />
+    </fieldset>
 </form>
 
 </div>
@@ -301,10 +319,10 @@
     [% INCLUDE 'columns_settings.inc' %]
     <script>
         $(document).ready(function() {
-          var columns_settings = [% TablesSettings.GetColumns('circ', 'holds', 'holds-to-pull', 'json') | $raw %];
+          var table_settings = [% TablesSettings.GetTableSettings('circ', 'holds', 'holds-to-pull', 'json') | $raw %];
           var holdst = KohaTable("holdst", {
             "sPaginationType": "full_numbers"
-          }, columns_settings);
+          }, table_settings);
           holdst.fnAddFilters("filter");
           [%# add separateData function to cleanse jQuery select lists by breaking apart strings glued with BR tags and then de-duplicating any repeated library codes %]
           function separateData ( ColumnData ){

@@ -24,19 +24,20 @@ biblioitems.collectiontitle
 
 use Modern::Perl;
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use CGI qw( -utf8 );
 use C4::Context;
 
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 
 sub plugin_javascript {
-    my ( $dbh, $record, $tagslib, $field_number, $tabloop ) = @_;
+    my ( $dbh, $record, $tagslib, $field_number ) = @_;
     my $function_name = $field_number;
     my $res           = "
     <script>
-        function Clic$function_name(index) {
-            window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_225a_bis.pl&index=\"+index,\"unimarc225a\",'width=500,height=400,toolbar=false,scrollbars=no');
+        function Clic$function_name(event) {
+            event.preventDefault();
+            window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_225a_bis.pl&index=\"+event.data.id,\"unimarc225a\",'width=500,height=400,toolbar=false,scrollbars=no');
         }
     </script>
 ";
@@ -53,7 +54,6 @@ sub plugin {
         query           => $input,
         type            => "intranet",
         flagsrequired   => { editcatalogue => '*' },
-        debug           => 1,
     });
 
     $template->param(index => $index);

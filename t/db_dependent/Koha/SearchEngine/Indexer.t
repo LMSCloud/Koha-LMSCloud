@@ -15,12 +15,11 @@ use Test::MockObject;
 use t::lib::Mocks;
 
 #use C4::Biblio qw//;
-use C4::AuthoritiesMarc;
-use C4::Biblio;
-use C4::Circulation;
-use C4::Items;
+use C4::AuthoritiesMarc qw( AddAuthority DelAuthority merge );
+use C4::Biblio qw( ModZebra ModBiblio ModBiblioMarc DelBiblio );
+use C4::Circulation qw( MarkIssueReturned AddReturn LostItem );
+use C4::Items qw( ModDateLastSeen ModItemTransfer );
 use Koha::Database;
-use Koha::DateUtils;
 use Koha::SearchEngine::Elasticsearch;
 use Koha::SearchEngine::Indexer;
 
@@ -61,7 +60,7 @@ subtest 'Test indexer object creation' => sub {
 };
 
 subtest 'Test indexer calls' => sub {
-    plan tests => 40;
+    plan tests => 48;
 
     my @engines = ('Zebra');
     eval { Koha::SearchEngine::Elasticsearch->get_elasticsearch_params; };
@@ -70,6 +69,8 @@ subtest 'Test indexer calls' => sub {
     skip 'Elasticsearch configuration not available', 20
             if scalar @engines == 1;
     }
+
+    t::lib::Mocks::mock_preference( 'AutoLinkBiblios', 0 );
 
     for my $engine ( @engines ){
         t::lib::Mocks::mock_preference( 'SearchEngine', $engine );
@@ -103,14 +104,19 @@ subtest 'Test indexer calls' => sub {
 
         my $biblio;
         my $biblio2;
+        my $biblio3;
         warnings_are{
             $biblio = $builder->build_sample_biblio();
             $biblio2 = $builder->build_sample_biblio();
-        } [$engine,'C4::Biblio',$engine,'C4::Biblio'], "index_records is called for $engine when adding a biblio (ModBiblioMarc)";
-
+            $biblio3 = $builder->build_sample_biblio();
+        } [$engine,'C4::Biblio',$engine,'C4::Biblio',$engine,'C4::Biblio'], "index_records is called for $engine when adding a biblio (ModBiblioMarc)";
 
         my $item;
         my $item2;
+        my $item3;
+        my $item4;
+        my $item5;
+        my $item6;
         warnings_are{
             $item = $builder->build_sample_item({
                 biblionumber => $biblio->biblionumber,
@@ -124,7 +130,16 @@ subtest 'Test indexer calls' => sub {
                 datelastseen => '2020-11-11',
                 replacementprice => 0
             });
-        } [$engine,"Koha::Item",$engine,"Koha::Item"], "index_records is called for $engine when adding an item (Item->store)";
+            $item3 = $builder->build_sample_item({biblionumber => $biblio->biblionumber});
+            $item4 = $builder->build_sample_item({biblionumber => $biblio->biblionumber});
+            $item5 = $builder->build_sample_item({biblionumber => $biblio3->biblionumber});
+            $item6 = $builder->build_sample_item({biblionumber => $biblio3->biblionumber});
+        } [$engine,"Koha::Item",
+           $engine,"Koha::Item",
+           $engine,"Koha::Item",
+           $engine,"Koha::Item",
+           $engine,"Koha::Item",
+           $engine,"Koha::Item"], "index_records is called for $engine when adding an item (Item->store)";
         warnings_are{
             $item->store({ skip_record_index => 1 });
         } undef, "index_records is not called for $engine when adding an item (Item->store) if skip_record_index passed";
@@ -160,6 +175,23 @@ subtest 'Test indexer calls' => sub {
         warnings_are{
             AddReturn($item->barcode, $item->homebranch, 0, undef);
         } [$engine,'C4::Circulation'], "index_records is called once for $engine when calling AddReturn if item not issued";
+
+        warnings_are{
+            $item3->move_to_biblio($biblio2);
+        } [$engine,"Koha::Item",$engine,"Koha::Item"], "index_records is called twice for $engine when moving an item to another biblio (Item->move_to_biblio)";
+        warnings_are{
+            $item4->move_to_biblio($biblio2, { skip_record_index => 1 });
+        } undef, "index_records is not called for $engine when moving an item to another biblio (Item->move_to_biblio) if skip_record_index passed";
+
+        warnings_are{
+            $biblio->items->move_to_biblio($biblio2);
+        } [$engine,"Koha::Items",$engine,"Koha::Items"], "index_records is called for from and to biblios for $engine when adopting items (Biblio->items->move_to_biblio(Biblio)";
+
+        my $items = Koha::Items->search({ itemnumber => [ $item2->itemnumber, $item5->itemnumber, $item6->itemnumber ] });
+        warnings_are{
+            $items->move_to_biblio($biblio);
+        } [$engine,"Koha::Items",$engine,"Koha::Items",$engine,"Koha::Items"], "index_records is called for all from and to biblios for $engine when adopting items (Items->move_to_biblio(Biblio)";
+
         $builder->build({
             source => 'Issue',
             value  => {
@@ -204,10 +236,10 @@ subtest 'Test indexer calls' => sub {
         } undef, "index_records is not called for $engine when adding an item (Item->store) if skip_record_index passed";
 
         warnings_are{
-            DelBiblio( $biblio->biblionumber );
+            DelBiblio( $biblio3->biblionumber );
         } [$engine, "C4::Biblio"], "index_records is called for $engine when calling DelBiblio";
         warnings_are{
-            DelBiblio( $biblio->biblionumber, { skip_record_index =>1 });
+            DelBiblio( $biblio3->biblionumber, { skip_record_index =>1 });
         } undef, "index_records is not called for $engine when calling DelBiblio if skip_record_index passed";
 
     }

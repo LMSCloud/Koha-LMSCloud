@@ -20,24 +20,21 @@
 
 use Modern::Perl;
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use CGI qw ( -utf8 );
 use Text::CSV::Encoded;
 use C4::Context;
-use C4::Koha;
-use C4::Output;
-use C4::Items;
-use C4::Serials;
-use C4::Debug;
-use C4::Search;    # enabled_staff_search_views
+use C4::Output qw( output_html_with_http_headers );
+use C4::Serials qw( CountSubscriptionFromBiblionumber );
+use C4::Search qw( enabled_staff_search_views );
 
 use Koha::ActionLogs;
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Items;
 use Koha::Patrons;
+use Koha::Recalls;
 
-use vars qw($debug $cgi_debug);
 
 =head1 viewlog.pl
 
@@ -47,7 +44,6 @@ plugin that shows stats
 
 my $input = CGI->new;
 
-$debug or $debug = $cgi_debug;
 my $do_it    = $input->param('do_it');
 my @modules  = $input->multi_param("modules");
 my $user     = $input->param("user") // '';
@@ -68,7 +64,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { tools => 'view_system_logs' },
-        debug           => 1,
     }
 );
 
@@ -88,7 +83,6 @@ if ( $src eq 'circ' ) {
 }
 
 $template->param(
-    debug => $debug,
     C4::Search::enabled_staff_search_views,
     subscriptionsnumber => ( $object ? CountSubscriptionFromBiblionumber($object) : 0 ),
     object => $object,
@@ -146,7 +140,7 @@ if ($do_it) {
         $search_params{object} = $object if $object;
     }
 
-    my @logs = Koha::ActionLogs->search(\%search_params);
+    my @logs = Koha::ActionLogs->search(\%search_params)->as_list;
 
     my @data;
     foreach my $log (@logs) {
@@ -163,6 +157,7 @@ if ($do_it) {
             $itemnumber = $log->info if ( $log->module eq "CIRCULATION" );
             my $item = Koha::Items->find($itemnumber);
             if ($item) {
+                $result->{'object_found'}     = 1;
                 $result->{'biblionumber'}     = $item->biblionumber;
                 $result->{'biblioitemnumber'} = $item->biblionumber;
                 $result->{'barcode'}          = $item->barcode;
@@ -196,6 +191,15 @@ if ($do_it) {
             }
         }
 
+        # get recall information
+        if ( $log->module eq "RECALLS" ) {
+            if ( $log->object ) {
+                my $recall = Koha::Recalls->find( $log->object );
+                if ( $recall && $output eq 'screen' ) {
+                    $result->{recall} = $recall;
+                }
+            }
+        }
         push @data, $result;
     }
     if ( $output eq "screen" ) {
@@ -226,8 +230,8 @@ if ($do_it) {
 
         # Printing to a csv file
         my $content = q{};
-        my $delimiter = C4::Context->preference('CSVDelimiter') || ',';
         if (@data) {
+            my $delimiter = C4::Context->csv_delimiter;
             my $csv = Text::CSV::Encoded->new( { encoding_out => 'utf8', sep_char => $delimiter } );
             $csv or die "Text::CSV::Encoded->new FAILED: " . Text::CSV::Encoded->error_diag();
 

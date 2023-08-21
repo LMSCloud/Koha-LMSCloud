@@ -6,29 +6,25 @@
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Update due-dates &rsaquo; Tools &rsaquo; Koha</title>
-<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+[% Asset.css("css/datatables.css") %]
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
 <body id="tools_change_due_date" class="tools">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Update due-dates
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Update due-dates</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 [% BLOCK translate_errorcode %]
 [%    SWITCH errorcode %]
@@ -79,7 +75,7 @@
                             </select>
                         </p>
                         <p>
-                            <button type="submit" class="btn btn-default btn-xs" name="op" value="select"><i class="fa fa-edit"></i> Select</button>
+                            <button type="submit" class="btn btn-default btn-xs btn-primary" name="op" value="select"><i class="fa fa-edit"></i> Select</button>
                         </p>
                     </form>
                     </p>
@@ -126,7 +122,7 @@
                                             [% FOREACH duedate IN duedates %]
                                             <tr>
                                                 <td>
-                                                    <label><input type="checkbox" name="selected_dates" value="[% duedate.0 %]"></label>
+                                                    <label><input type="checkbox" name="selected_dates" value="[% duedate.0 | $KohaDates %]" data-date="[% duedate.0 %]"></label>
                                                 </td>
                                                 <td>[% duedate.0 %]</td>
                                                 <td>[% duedate.1.count %]</td>
@@ -152,11 +148,11 @@
                                             </li>
                                             <li>
                                                  <label for="new-duedate">New due date:</label>
-                                                 <input type="text" id="new-duedate" name="newduedate" maxlength="10" size="10" class="datepickernew-duedate" />
+                                                 <input type="text" id="new-duedate" name="newduedate" maxlength="10" size="10" class="flatpickr" data-flatpickr-futureinclusive="true"/>
                                            </li>
                                            <li>
                                                 <label>&nbsp;</label>
-                                                <button type="submit" class="btn btn-default btn-xs" name="op" value="update"><i class="fa fa-edit"></i> Update</button>
+                                                <button type="submit" class="btn btn-default btn-xs btn-primary" name="op" value="update"><i class="fa fa-edit"></i> Update</button>
                                            </li>
                                         </ol>
                                     </fieldset>
@@ -263,20 +259,20 @@
         function get_local_dateformat_str(dateformat) {
             var dateformat_str;
             if ( dateformat == 'us' ) {
-                dateformat_str = 'mm/dd/yy';
+                dateformat_str = 'm/d/Y';
             } else if ( dateformat == 'metric' ) {
-                dateformat_str = 'dd/mm/yy';
+                dateformat_str = 'd/m/Y';
             } else if (dateformat == 'iso' ) {
-                dateformat_str = 'yy-mm-dd';
+                dateformat_str = 'Y-m-d';
             } else if ( dateformat == 'dmydot' ) {
-                dateformat_str = 'dd.mm.yy';
+                dateformat_str = 'd.m.Y';
             }
             return dateformat_str;
         }
 
         function formatIsoAsLocalDate(datestr) {
-            var date = $.datepicker.parseDate(get_local_dateformat_str('iso'), datestr);
-            var ret = $.datepicker.formatDate(get_local_dateformat_str('dmydot'), date);
+            var date = flatpickr.parseDate(datestr,get_local_dateformat_str('iso'));
+            var ret = flatpickr.formatDate(date,get_local_dateformat_str('dmydot'));
             return (ret);
         }
      
@@ -285,35 +281,7 @@
             
             var selectedgroup = "[% selectedgroup %]";
             var selectedbranch = "[% selectedbranch %]";
-            
-            $.datepicker.setDefaults({
-                showOn: "both",
-                changeMonth: true,
-                changeYear: true,
-                buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-                buttonImageOnly: true,
-                showButtonPanel: true,
-                showOtherMonths: true,
-                selectOtherMonths: true
-            });
 
-            $(".datepickernew-duedate" ).datepicker({
-                changeMonth: true,
-                numberOfMonths: 1,
-                minDate: 0,
-                onSelect: function( selectedDate ) {
-                    var instance = $( this ).data( "datepicker" );
-                        date = $.datepicker.parseDate(
-                            instance.settings.dateFormat ||
-                            $.datepicker._defaults.dateFormat,
-                            selectedDate, instance.settings );
-                },
-                onClose: function(dateText, inst) {
-                    validate_date(dateText, inst);
-                },
-            }).on("change", function(e, value) {
-                if ( ! is_valid_date( $(this).val() ) ) {$(this).val("");}
-            });
             
             $("#changeDate-actions").css("visibility", "hidden");
             
@@ -340,10 +308,10 @@
             
             $('#changeDate').on('change', 'input[type=checkbox]', function() {
                 if ( this.checked ) {
-                    addChangeDate(this.value);
+                    addChangeDate($(this).data('date'));
                 }
                 else {
-                    removeChangeDate(this.value);
+                    removeChangeDate($(this).data('date'));
                 }
                 setChangeDateDisplay();
             });

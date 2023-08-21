@@ -62,12 +62,12 @@ package C4::Ris;
 
 use Modern::Perl;
 
-use List::MoreUtils qw/uniq/;
+use List::MoreUtils qw( uniq );
 use YAML::XS;
 use Encode;
 use vars qw(@ISA @EXPORT);
 
-use Koha::SimpleMARC qw(read_field);
+use Koha::SimpleMARC qw( read_field );
 
 
 @ISA = qw(Exporter);
@@ -75,7 +75,7 @@ use Koha::SimpleMARC qw(read_field);
 # only export API methods
 
 @EXPORT = qw(
-  &marc2ris
+  marc2ris
 );
 
 our $marcprint = 0; # Debug flag;
@@ -97,7 +97,7 @@ sub marc2ris {
     my $intype = lc($marcflavour);
 
     # Let's redirect stdout
-    open my $oldout, ">&STDOUT";
+    open my $oldout, qw{>}, "&STDOUT";
     my $outvar;
     close STDOUT;
     open STDOUT,'>:encoding(utf8)', \$outvar;
@@ -831,7 +831,7 @@ sub get_keywords {
 
     ## loop over all 6XX fields
     foreach my $kwfield (@keywords) {
-        if ($kwfield) {
+        if( defined $kwfield ) {
             ## authornames get special treatment
             if ($fieldname eq "600") {
                 my $val = normalize_author($kwfield->subfield('a'), $kwfield->subfield('b'), $kwfield->subfield('c'), $kwfield->indicator('1'));

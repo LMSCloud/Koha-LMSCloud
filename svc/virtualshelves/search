@@ -22,8 +22,9 @@ my ($template, $user, $cookie) = get_template_and_user({
 my $shelfname = $input->param('shelfname');
 my $count = $input->param('count');
 my $owner = $input->param('owner');
-my $type = $input->param('type');
+my $public = $input->param('public');
 my $sortby = $input->param('sortby');
+my $allow_transfer = $input->param('allow_transfer');
 
 # variable information for DataTables (id)
 my $sEcho = $input->param('sEcho');
@@ -36,10 +37,10 @@ foreach (grep {$_ =~ /^mDataProp/} keys %dt_params) {
 my $results = C4::Utils::DataTables::VirtualShelves::search(
     {
         shelfname => $shelfname,
-        count => $count,
-        owner => $owner,
-        type => $type,
-        sortby => $sortby,
+        count     => $count,
+        owner     => $owner,
+        public    => $public,
+        sortby    => $sortby,
         dt_params => \%dt_params,
     }
 );
@@ -48,7 +49,9 @@ $template->param(
     sEcho => $sEcho,
     iTotalRecords => $results->{iTotalRecords},
     iTotalDisplayRecords => $results->{iTotalDisplayRecords},
-    aaData => $results->{shelves}
+    aaData => $results->{shelves},
+    public => $public,
+    allow_transfer => $allow_transfer,
 );
 
 output_with_http_headers $input, $cookie, $template->output, 'json';
@@ -62,10 +65,6 @@ search - a search script for finding virtual shelves
 =head1 SYNOPSIS
 
 This script provides a service for template for virtual shelves search using DataTables
-
-=cut
-
-=back
 
 =head1 LICENSE
 

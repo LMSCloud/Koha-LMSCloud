@@ -8,6 +8,7 @@
 [% PROCESS 'member-main-address-style.inc' %]
 [% PROCESS 'member-alt-address-style.inc' %]
 [% PROCESS 'member-alt-contact-style.inc' %]
+[% PROCESS 'restriction-types.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 [% SET IsFamilyCard = patron.is_family_card %][% FOREACH gr IN patron.guarantor_relationships %][% SET IsFamilyCard = (IsFamilyCard || gr.guarantor.is_family_card) %][% END %]
@@ -15,13 +16,11 @@
         [% UNLESS blocking_error %]
             [% IF ( opadd ) %]
                 Add patron
-            [% ELSIF ( opduplicate ) %]
-                Duplicate patron
             [% ELSE %]
                 Modify patron
             [% END %]
             [% INCLUDE 'patron-title.inc' no_html = 1 %]
-            [%IF IsFamilyCard %](Family card member, [% IF categoryname %]([% categoryname | html %])[% END %])[% ELSE %][% IF categoryname %]([% categoryname | html %])[% END %][% END %]
+            [%IF IsFamilyCard %](Family card member, [% IF patron_category %]([% patron_category.description | html %])[% END %])[% ELSE %][% IF patron_category %]([% patron_category.description | html %])[% END %][% END %]
         [% END %] &rsaquo; Patrons &rsaquo; Koha
     </title>
 <style>
@@ -33,58 +32,49 @@ legend:hover {
 </head>
 
 <body id="pat_memberentrygen" class="pat">
-    [% INCLUDE 'header.inc' %]
-    [% INCLUDE 'patron-search.inc' %]
+    [% WRAPPER 'header.inc' %]
+        [% INCLUDE 'patron-search-header.inc' %]
+    [% END %]
 
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-        <ol>
-            <li>
-                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-            </li>
-
-            [% IF blocking_error %]
-                <li>
+    [% WRAPPER 'sub-header.inc' %]
+        [% WRAPPER breadcrumbs %]
+            [% WRAPPER breadcrumb_item %]
                     <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
-                </li>
-            [% ELSE %]
-                <li>
-                    <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
-                </li>
-                [% IF (firstname || surname ) %]
-                    <li>
-                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% borrowernumber | uri %]">
-                            [% INCLUDE 'patron-title.inc' %]
-                        </a>
-                    </li>
-                [% END %]
-                <li>
-                    <a href="#" aria-current="page">
-                        [% IF ( opadd ) %]
-                            Add patron
-                        [% ELSIF ( opduplicate ) %]
-                            Duplicate patron
-                        [% ELSE %]
-                            Modify patron
-                        [% END %]
-                        [% IF categoryname %]
-                            ([% categoryname | html %])
-                        [% END %]
-                    </a>
-                </li>
             [% END %]
-        </ol>
-    </nav> <!-- /#breadcrumbs -->
+            [% UNLESS blocking_error %]
+                [% UNLESS opadd %]
+                    [% IF (borrower_data.firstname || borrower_data.surname ) %]
+                        [% WRAPPER breadcrumb_item %]
+                            <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% borrowernumber | uri %]">
+                                [% INCLUDE 'patron-title.inc' %]
+                            </a>
+                        [% END %]
+                    [% END %]
+                [% END %]
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% IF ( opadd ) %]
+                    <span>Add patron</span>
+                [% ELSE %]
+                    <span>Modify patron</span>
+                [% END %]
+                [% IF patron_category %]
+                    ([% patron_category.description | html %])
+                [% END %]
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
+    [% END #/ WRAPPER sub-header.inc %]
 
     <div class="main container-fluid">
         <div class="row">
-            [% IF messages %]
-                [% FOR message IN messages %]
+            [% IF borrower_data.messages %]
+                [% FOR message IN borrower_data.messages %]
                     [% SWITCH message.error %]
                         [% CASE 'error_on_insert_patron' %]
                             <div class="dialog alert">Something went wrong when creating the patron. Check the logs.</div>
                         [% CASE 'error_on_update_patron' %]
                             <div class="dialog alert">Something went wrong when updating the patron. Check the logs.</div>
-                        [% CASE %]Unhandled error: [% message.error | html %]
+                        [% CASE %]<div class="dialog alert">Unhandled error: [% message.error | html %]</div>
                     [% END %]
                 [% END %]
             [% END %]
@@ -112,14 +102,14 @@ legend:hover {
                     [% UNLESS ( no_add ) %]
                         <h1>
                             [% IF ( opadd ) %]
-                                Add patron
+                                <span>Add patron</span>
                             [% ELSIF ( opduplicate ) %]
-                                Duplicate patron
+                                <span>Duplicate patron</span>
                             [% ELSE %]
-                                Modify patron
+                                <span>Modify patron</span>
                             [% END %]
                             [% INCLUDE 'patron-title.inc' %]
-                            [% IF categoryname %]([% categoryname | html %])[% END %]
+                            [% IF patron_category %]([% patron_category.description | html %])[% END %]
                         </h1>
 
                         [% IF quickadd && opadd && !check_member %]
@@ -177,6 +167,9 @@ legend:hover {
                                     [% IF ( ERROR_password_mismatch ) %]
                                         <li id="ERROR_password_mismatch">Passwords do not match.</li>
                                     [% END %]
+                                    [% IF ( ERROR_password_expiration_date ) %]
+                                        <li id="ERROR_dateexpiry">Password expiration date is invalid.</li>
+                                    [% END %]
                                     [% IF ( ERROR_extended_unique_id_failed ) %]
                                         <li id="ERROR_extended_unique_id_failed"><strong>[% ERROR_extended_unique_id_failed_description | html %]:</strong> Attribute value "[% ERROR_extended_unique_id_failed_value | html %]" is already in use by another patron record.</li>
                                     [% END %]
@@ -199,20 +192,20 @@ legend:hover {
                                 <input type="checkbox" id="toggle_hidden_fields" title="These fields are collapsed by default by the CollapseFieldsPatronAddForm system preference"><strong>Show collapsed fields:</strong>
                                 [% FOREACH field IN fieldstohide.split(',') %]
                                     [% SWITCH field %]
-                                        [% CASE 'identity' %] Patron identity |
-                                        [% CASE 'guarantor' %] Guarantor information |
-                                        [% CASE 'primary_address' %] Main address |
-                                        [% CASE 'primary_contact' %] Contact information |
-                                        [% CASE 'alt_address' %] Alternate address |
-                                        [% CASE 'alt_contact' %] Alternate contact |
-                                        [% CASE 'lib_mgmt' %] Library management |
-                                        [% CASE 'lib_setup' %] Library setup |
-                                        [% CASE 'login' %] OPAC/Staff interface login |
-                                        [% CASE 'flags' %] Patron account flags |
-                                        [% CASE 'debarments' %] Patron restrictions |
-                                        [% CASE 'housebound' %] Housebound roles |
-                                        [% CASE 'additional' %] Additional attributes and identifiers |
-                                        [% CASE 'messaging' %] Patron messaging preferences |
+                                        [% CASE 'identity' %] <span>Patron identity</span> |
+                                        [% CASE 'guarantor' %] <span>Guarantor information</span> |
+                                        [% CASE 'primary_address' %] <span>Main address</span> |
+                                        [% CASE 'primary_contact' %] <span>Contact information</span> |
+                                        [% CASE 'alt_address' %] <span>Alternate address</span> |
+                                        [% CASE 'alt_contact' %] <span>Alternate contact</span> |
+                                        [% CASE 'lib_mgmt' %] <span>Library management</span> |
+                                        [% CASE 'lib_setup' %] <span>Library setup</span> |
+                                        [% CASE 'login' %] <span>OPAC/Staff interface login</span> |
+                                        [% CASE 'flags' %] <span>Patron account flags</span> |
+                                        [% CASE 'debarments' %] <span>Patron restrictions</span> |
+                                        [% CASE 'housebound' %] <span>Housebound roles</span> |
+                                        [% CASE 'additional' %] <span>Additional attributes and identifiers</span> |
+                                        [% CASE 'messaging' %] <span>Patron messaging preferences</span> |
                                     [% END %]
                                 [% END %]
                             </p>
@@ -221,13 +214,13 @@ legend:hover {
                         [% UNLESS ( check_member ) %]
                             <div id="toolbar" class="btn-toolbar">
                                 [% IF quickadd && opadd %]
-                                    <button class="btn btn-default toggler" id="save_quick_add" name="save"><i class="fa fa-save"></i> Save</button>
+                                    <button class="btn btn-primary toggler" id="save_quick_add" name="save"><i class="fa fa-save"></i> Save</button>
                                 [% END %]
-                                <button class="btn btn-default toggler" id="saverecord" name="save" ><i class="fa fa-save"></i> Save</button>
+                                <button class="btn btn-primary toggler" id="saverecord" name="save" ><i class="fa fa-save"></i> Save</button>
                                 [% IF opadd %]
-                                    <a class="btn btn-default" href="/cgi-bin/koha/members/member.pl" class="toggler save_entryform">
+                                    <a class="btn btn-link" href="/cgi-bin/koha/members/member.pl" class="toggler save_entryform">
                                 [% ELSE %]
-                                    <a class="btn btn-default" href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% borrowernumber | html %]">
+                                    <a class="btn btn-link" href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% borrowernumber | html %]">
                                 [% END %]
                                     <i class="fa fa-times"></i> Cancel
                                 </a>
@@ -240,7 +233,6 @@ legend:hover {
                             [% END %]
                             <!--    field always hidden in different form (1,2,3) -->
                             <input type="hidden" name="BorrowerMandatoryField" value="[% BorrowerMandatoryField | html %]" />
-                            <input type="hidden" name="category_type" value="[% category_type | html %]" />
                             <input type="hidden" name="updtype" value="[% updtype | html %]" />
                             <input type="hidden" name="destination" value="[% destination | html %]" />
                             <input type="hidden" name="check_member" value="[% check_member | html %]" />
@@ -257,19 +249,19 @@ legend:hover {
                             [% ELSE %]
                                 <input type="hidden" name="op" value="save" />
                                 [% IF step == 4 || step == 5 || step == 6 || step == 2 || step == 1 || step == 7 %]
-                                    [%# Only put the cardnumber if we arent showing it in the form later %]
-                                    [% IF cardnumber %]
-                                        <input type="hidden" name="cardnumber" value="[% cardnumber | html %]" />
+                                    [%# Only put the card number if we arent showing it in the form later %]
+                                    [% IF borrower_data.cardnumber %]
+                                        <input type="hidden" name="cardnumber" value="[% borrower_data.cardnumber | html %]" />
                                     [% END %]
                                 [% END %]
                             [% END %]
 
                             [% IF ( step_1 ) %]
-                                [% UNLESS notitle && nosurname && nofirstname && nodateofbirth && noinitials && noothernames &&nosex %]
+                                [% UNLESS notitle && nosurname && nofirstname && nomiddle_name && nodateofbirth && noinitials && noothernames &&nosex && nopronouns %]
                                     <fieldset class="rows" id="memberentry_identity">
-                                        <legend id="identity_lgd">[% IF ( I ) %]Organization [% ELSE %]Patron [% END %]identity</legend>
+                                        <legend id="identity_lgd">[% IF ( patron_category.category_type == 'I' ) %]<span>Organization [% ELSE %]Patron [% END %]identity</span></legend>
                                         <ol>
-                                            [% UNLESS ( I ) %]
+                                            [% UNLESS ( patron_category.category_type == 'I' ) %]
                                                 [% UNLESS notitle %]
                                                     [% IF Koha.Preference('BorrowersTitles') %]
                                                         <li>
@@ -299,7 +291,7 @@ legend:hover {
 
                                             [% UNLESS nosurname %]
                                                 <li>
-                                                    [% IF ( I ) %]
+                                                    [% IF ( patron_category.category_type == 'I' ) %]
                                                         <label for="surname" class="required">
                                                             Name:
                                                         </label>
@@ -313,9 +305,9 @@ legend:hover {
                                                     [% END %]
 
                                                     [% IF ( uppercasesurnames ) %]
-                                                        <input style="text-transform:uppercase;" type="text" id="surname" name="surname" size="20"  value="[% surname | html %]" />
+                                                        <input style="text-transform:uppercase;" type="text" id="surname" name="surname" size="20"  value="[% patron.surname | html %]" />
                                                     [% ELSE %]
-                                                        <input type="text" id="surname" name="surname" size="20"  value="[% surname | html %]" />
+                                                        <input type="text" id="surname" name="surname" size="20"  value="[% patron.surname | html %]" />
                                                     [% END %]
                                                     [% IF ( mandatorysurname ) %]
                                                         <span class="required">Required</span>
@@ -323,7 +315,7 @@ legend:hover {
                                                 </li>
                                             [% END # /UNLESS nosurname %]
 
-                                            [% UNLESS ( I ) %]
+                                            [% UNLESS ( patron_category.category_type == 'I' ) %]
                                                 [% UNLESS nofirstname %]
                                                     <li>
                                                         [% IF ( mandatoryfirstname ) %]
@@ -333,12 +325,27 @@ legend:hover {
                                                         [% END %]
                                                             First name:
                                                         </label>
-                                                        <input type="text" id="firstname" name="firstname" size="20"  value="[% firstname | html UNLESS opduplicate %]" />
+                                                        <input type="text" id="firstname" name="firstname" size="20"  value="[% borrower_data.firstname | html UNLESS opduplicate %]" />
                                                         [% IF ( mandatoryfirstname ) %]
                                                             <span class="required">Required</span>
                                                         [% END %]
                                                     </li>
                                                 [% END #/UNLESS nofirstname %]
+                                                [% UNLESS nomiddle_name %]
+                                                    <li>
+                                                        [% IF ( mandatorymiddle_name ) %]
+                                                            <label for="middle_name" class="required">
+                                                        [% ELSE %]
+                                                            <label for="middle_name">
+                                                        [% END %]
+                                                            Middle name:
+                                                        </label>
+                                                        <input type="text" id="middle_name" name="middle_name" size="20"  value="[% borrower_data.middle_name | html UNLESS opduplicate %]" />
+                                                        [% IF ( mandatorymiddle_name ) %]
+                                                            <span class="required">Required</span>
+                                                        [% END %]
+                                                    </li>
+                                                [% END #/UNLESS nomiddle_name %]
                                                 [% UNLESS nodateofbirth %]
                                                     <li>
                                                         [% IF ( mandatorydateofbirth ) %]
@@ -348,14 +355,14 @@ legend:hover {
                                                         [% END %]
                                                         Date of birth:
                                                         </label>
-                                                        <input type="text" id="dateofbirth" name="dateofbirth" size="20" value="[% dateofbirth | html UNLESS opduplicate %]" class="datepicker" />
+                                                        <input type="text" id="dateofbirth" name="dateofbirth" size="20" value="[% borrower_data.dateofbirth | html UNLESS opduplicate %]" class="flatpickr" data-flatpickr-pastinclusive="true" />
                                                          [% IF ( mandatorydateofbirth ) %]
                                                             <span class="required">Required</span>
                                                         [% END %]
                                                         [% IF ( ERROR_dateofbirth ) %]
                                                             <span class="required">(Error)</span>
                                                         [% END %]
-                                                        <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
+                                                        <div id="dateofbirth_hint" class="hint">[% INCLUDE 'date-format.inc' %]</div>
                                                     </li>
                                                 [% END # /UNLESS nodateofbirth %]
                                                 [% UNLESS noinitials %]
@@ -367,12 +374,27 @@ legend:hover {
                                                         [% END %]
                                                             Initials:
                                                         </label>
-                                                        <input type="text" id="initials" name="initials" size="20"  value="[% initials | html UNLESS opduplicate %]" />
+                                                        <input type="text" id="initials" name="initials" size="20"  value="[% borrower_data.initials | html UNLESS opduplicate %]" />
                                                         [% IF ( mandatoryinitials ) %]
                                                             <span class="required">Required</span>
                                                         [% END %]
                                                     </li>
                                                 [% END # /UNLESS noinitials %]
+                                                [% UNLESS nopronouns %]
+                                                    <li>
+                                                        [% IF ( mandatorypronouns ) %]
+                                                            <label for="pronouns" class="required">
+                                                        [% ELSE %]
+                                                            <label for="pronouns">
+                                                        [% END %]
+                                                            Pronouns:
+                                                        </label>
+                                                        <input type="text" id="pronouns" name="pronouns" size="20"  value="[% borrower_data.pronouns | html UNLESS opduplicate %]" />
+                                                        [% IF ( mandatorypronouns ) %]
+                                                            <span class="required">Required</span>
+                                                        [% END %]
+                                                    </li>
+                                                [% END # /UNLESS nopronouns %]
                                             [% END #/UNLESS ( I ) %]
                                             [% UNLESS noothernames %]
                                                 <li>
@@ -383,15 +405,15 @@ legend:hover {
                                                     [% END %]
                                                         Other name:
                                                     </label>
-                                                    <input type="text" id="othernames" name="othernames" size="20"  value="[% othernames | html UNLESS opduplicate %]" />
+                                                    <input type="text" id="othernames" name="othernames" size="20"  value="[% borrower_data.othernames | html UNLESS opduplicate %]" />
                                                     [% IF ( mandatoryothernames ) %]
                                                         <span class="required">Required</span>
                                                     [% END %]
-                                                    [% IF ( I ) %]<input type="hidden" name="sex" value="N" />[% END %]
+                                                    [% IF ( patron_category.category_type == 'I' ) %]<input type="hidden" name="sex" value="N" />[% END %]
                                                 </li>
                                             [% END #/UNLESS noothernames %]
 
-                                            [% UNLESS ( I ) %]
+                                            [% UNLESS ( patron_category.category_type == 'I' ) %]
                                                 [% UNLESS nosex %]
                                                     <li class="radio">
                                                         [% UNLESS ( opduplicate ) %]
@@ -438,7 +460,7 @@ legend:hover {
                                                 [% FOREACH r IN relationships %]
                                                     <fieldset>
                                                         <ol>
-                                                            [% IF category_type == 'I' %]
+                                                            [% IF patron_category.category_type == 'I' %]
                                                                 <li class="guarantor-details" data-borrowernumber="[% r.guarantor_id | $raw %]">
                                                                     <span class="label">Organization:</span>
                                                                     [% INCLUDE 'patron-title.inc' patron=r.guarantor hide_patron_infos_if_needed=1 %]
@@ -562,7 +584,7 @@ legend:hover {
                                                     <li>
                                                         <label for="privacy_guarantor_checkouts">Show checkouts to guarantors</label>
                                                         <select name="privacy_guarantor_checkouts" id="privacy_guarantor_checkouts">
-                                                            [% IF privacy_guarantor_checkouts %]
+                                                            [% IF borrower_data.privacy_guarantor_checkouts %]
                                                                 <option value="0">No</option>
                                                                 <option value="1" selected>Yes</option>
                                                             [% ELSE %]
@@ -575,9 +597,9 @@ legend:hover {
                                                 [% END %]
                                                 [% IF Koha.Preference('AllowStaffToSetFinesVisibilityForGuarantor') %]
                                                     <li>
-                                                        <label for="privacy_guarantor_fines">Show fines to guarantors</label>
+                                                        <label for="privacy_guarantor_fines">Show charges to guarantors</label>
                                                         <select name="privacy_guarantor_fines" id="privacy_guarantor_fines">
-                                                            [% IF privacy_guarantor_fines %]
+                                                            [% IF borrower_data.privacy_guarantor_fines %]
                                                                 <option value="0">No</option>
                                                                 <option value="1" selected>Yes</option>
                                                             [% ELSE %]
@@ -585,7 +607,7 @@ legend:hover {
                                                                 <option value="1">Yes</option>
                                                             [% END %]
                                                         </select>
-                                                        <div class="hint">Allow guarantors of this patron to view this patron's fines from the OPAC</div>
+                                                        <div class="hint">Allow guarantors of this patron to view this patron's charges from the OPAC</div>
                                                     </li>
                                                 [% END %]
                                             </ol>
@@ -637,7 +659,7 @@ legend:hover {
                                                             <select class="relationship" name="relationship">
                                                                 <option value=""></option>
                                                                 [% FOREACH pr IN possible_relationships.split('\|') %]
-                                                                    [% IF pr == relationship %]
+                                                                    [% IF pr == borrower_data.relationship %]
                                                                         <option value="[% pr | html %]" selected="selected">[% pr | html %]</option>
                                                                     [% ELSE %]
                                                                         <option value="[% pr | html %]">[% pr | html %]</option>
@@ -765,6 +787,66 @@ legend:hover {
                                                     [% END %]
                                                 </li>
                                             [% END #/UNLESS nofax %]
+
+                                            [% UNLESS noprimary_contact_method %]
+                                                <li>
+                                                    [% IF mandatoryprimary_contact_method %]
+                                                        <label for="primary_contact_method" class="required">
+                                                    [% ELSE %]
+                                                        <label for="primary_contact_method">
+                                                    [% END %]
+                                                    Main contact method: </label>
+
+                                                    <select id="primary_contact_method" name="primary_contact_method">
+                                                        <option value=""></option>
+                                                        [% UNLESS nophone %]
+                                                            [% IF ( borrower_data.primary_contact_method == 'phone' ) %]
+                                                                <option value="phone" selected="selected">Primary phone</option>
+                                                            [% ELSE %]
+                                                                <option value="phone">Primary phone</option>
+                                                            [% END %]
+                                                        [% END %]
+                                                        [% UNLESS nophonepro %]
+                                                            [% IF ( borrower_data.primary_contact_method == 'phonepro' ) %]
+                                                                <option value="phonepro" selected="selected">Secondary phone</option>
+                                                            [% ELSE %]
+                                                                <option value="phonepro">Secondary phone</option>
+                                                            [% END %]
+                                                        [% END %]
+                                                        [% UNLESS nomobile %]
+                                                            [% IF ( borrower_data.primary_contact_method == 'mobile' ) %]
+                                                                <option value="mobile" selected="selected">Other phone</option>
+                                                            [% ELSE %]
+                                                                <option value="mobile">Other phone</option>
+                                                            [% END %]
+                                                        [% END %]
+                                                        [% UNLESS noemail %]
+                                                            [% IF ( borrower_data.primary_contact_method == 'email' ) %]
+                                                                <option value="email" selected="selected">Primary email</option>
+                                                            [% ELSE %]
+                                                                <option value="email">Primary email</option>
+                                                            [% END %]
+                                                        [% END %]
+                                                        [% UNLESS noemailpro %]
+                                                            [% IF ( borrower_data.primary_contact_method == 'emailpro' ) %]
+                                                                <option value="emailpro" selected="selected">Secondary email</option>
+                                                            [% ELSE %]
+                                                                <option value="emailpro">Secondary email</option>
+                                                            [% END %]
+                                                        [% END %]
+                                                        [% UNLESS nofax %]
+                                                            [% IF ( borrower_data.primary_contact_method == 'fax' ) %]
+                                                                <option value="fax" selected="selected">Fax</option>
+                                                            [% ELSE %]
+                                                                <option value="fax">Fax</option>
+                                                            [% END %]
+                                                        [% END %]
+                                                    </select>
+                                                    [% IF mandatoryprimary_contact_method %]
+                                                        <span class="required">Required</span>
+                                                    [% END %]
+                                                </li>
+                                            [% END %]
                                         </ol>
                                     </fieldset> <!-- /#memberentry_contact -->
                                 [% END # hide fieldset %]
@@ -801,28 +883,28 @@ legend:hover {
 
                                                 <!-- NOTE: div.hint closing tag isn't on the same line -->
                                                 [% IF minlength_cardnumber == maxlength_cardnumber %]
-                                                    <input type="text" id="cardnumber" name="cardnumber" size="20" value="[% cardnumber | html %]" minlength="[% minlength_cardnumber | html %]" maxlength="[% maxlength_cardnumber | html %]" />
+                                                    <input type="text" id="cardnumber" name="cardnumber" size="20" value="[% borrower_data.cardnumber | html %]" minlength="[% minlength_cardnumber | html %]" maxlength="[% maxlength_cardnumber | html %]" />
                                                     [% IF mandatorycardnumber %]
                                                         <span class="required">Required</span>
                                                     [% END %]
                                                     <span id="cn_max" class="required">Card number must not be more than [% maxlength_cardnumber | html %] characters.</span>
                                                     <div class="hint">Card number must be exactly [% minlength_cardnumber | html %] characters.
                                                 [% ELSIF minlength_cardnumber && maxlength_cardnumber %]
-                                                    <input type="text" id="cardnumber" name="cardnumber" size="20" value="[% cardnumber | html %]" minlength="[% minlength_cardnumber | html %]" maxlength="[% maxlength_cardnumber | html %]" />
+                                                    <input type="text" id="cardnumber" name="cardnumber" size="20" value="[% borrower_data.cardnumber | html %]" minlength="[% minlength_cardnumber | html %]" maxlength="[% maxlength_cardnumber | html %]" />
                                                     [% IF mandatorycardnumber %]
                                                         <span class="required">Required</span>
                                                     [% END %]
                                                     <span id="cn_max" class="required">Card number must not be more than [% maxlength_cardnumber | html %] characters.</span>
                                                     <div class="hint">Card number must be between [% minlength_cardnumber | html %] and [% maxlength_cardnumber | html %] characters.
                                                 [% ELSIF maxlength_cardnumber %]
-                                                    <input type="text" id="cardnumber" name="cardnumber" size="20" value="[% cardnumber | html %]" maxlength="[% maxlength_cardnumber | html %]" />
+                                                    <input type="text" id="cardnumber" name="cardnumber" size="20" value="[% borrower_data.cardnumber | html %]" maxlength="[% maxlength_cardnumber | html %]" />
                                                     [% IF mandatorycardnumber %]
                                                         <span class="required">Required</span>
                                                     [% END %]
                                                     <span id="cn_max" class="required">Card number must not be more than [% maxlength_cardnumber | html %] characters.</span>
                                                     <div class="hint">Card number can be up to [% maxlength_cardnumber | html %] characters.
                                                 [% ELSE %]
-                                                    <input type="text" id="cardnumber" name="cardnumber" size="20" value="[% cardnumber | html %]" />
+                                                    <input type="text" id="cardnumber" name="cardnumber" size="20" value="[% borrower_data.cardnumber | html %]" />
                                                     [% IF mandatorycardnumber %]
                                                         <span class="required">Required</span>
                                                     [% END %]
@@ -830,7 +912,7 @@ legend:hover {
                                                 [% END %]
                                                 [% IF autoMemberNum %]
                                                     [% IF mandatorycardnumber %]
-                                                        <br/><span class="error">AutoMemberNum is set to enabled, but cardnumber is marked as mandatory in BorrowerMandatoryField: auto calc has been disabled.</span>
+                                                        <br/><span class="error">AutoMemberNum is set to enabled, but card number is marked as mandatory in BorrowerMandatoryField: auto calc has been disabled.</span>
                                                     [% ELSE %]
                                                         <br/>Leave blank for auto calc during registration
                                                     [% END %]
@@ -852,27 +934,36 @@ legend:hover {
                                         <li>
                                             <label for="categorycode_entry" class="required">Category: </label>
                                             <select id="categorycode_entry" name="categorycode">
-                                                [% FOREACH typeloo IN typeloop %]
-                                                    [% FOREACH categoryloo IN typeloo.categoryloop %]
-                                                        [% IF ( loop.first ) %]
-                                                            [% IF ( typeloo.typename_C ) %]<optgroup label="Child">[% END %]
-                                                            [% IF ( typeloo.typename_A ) %]<optgroup label="Adult">[% END %]
-                                                            [% IF ( typeloo.typename_S ) %]<optgroup label="Staff">[% END %]
-                                                            [% IF ( typeloo.typename_I ) %]<optgroup label="Organization">[% END %]
-                                                            [% IF ( typeloo.typename_P ) %]<optgroup label="Professional">[% END %]
-                                                            [% IF ( typeloo.typename_X ) %]<optgroup label="Statistical">[% END %]
-                                                        [% END %]
-                                                        [% IF ( categoryloo.categorycodeselected ) %]
-                                                            <option value="[% categoryloo.categorycode | html %]" selected="selected" data-pwd-length="[% categoryloo.effective_min_password_length | html %]" data-pwd-strong="[% categoryloo.effective_require_strong_password | html %]" data-typename="[% typeloo.typename | html %]">[% categoryloo.categoryname | html %]</option>
+                                                [% FOREACH category_type IN patron_categories.keys %]
+                                                    [% SWITCH category_type %]
+                                                    [% CASE 'C' %]
+                                                        <optgroup label="Child">
+                                                    [% CASE 'A' %]
+                                                        <optgroup label="Adult">
+                                                    [% CASE 'S' %]
+                                                        <optgroup label="Staff">
+                                                    [% CASE 'I' %]
+                                                        <optgroup label="Organization">
+                                                    [% CASE 'P' %]
+                                                        <optgroup label="Professional">
+                                                    [% CASE 'X' %]
+                                                        <optgroup label="Statistical">
+                                                    [% CASE %]
+                                                        <optgroup label="Unknown">
+                                                    [% END %]
+                                                    [% FOREACH category IN patron_categories.$category_type %]
+                                                        [% IF category.categorycode == patron_category.categorycode %]
+                                                            <option value="[% category.categorycode | html %]" selected="selected" data-pwd-length="[% category.effective_min_password_length | html %]" data-pwd-strong="[% category.effective_require_strong_password | html %]" data-typename="[% category_type | html %]">[% category.description | html %]</option>
                                                         [% ELSE %]
-                                                            <option value="[% categoryloo.categorycode | html %]" data-pwd-length="[% categoryloo.effective_min_password_length | html %]" data-pwd-strong="[% categoryloo.effective_require_strong_password | html %]" data-typename="[% typeloo.typename | html %]">[% categoryloo.categoryname | html %]</option>
+                                                            <option value="[% category.categorycode | html %]" data-pwd-length="[% category.effective_min_password_length | html %]" data-pwd-strong="[% category.effective_require_strong_password | html %]" data-typename="[% category_type | html %]">[% category.description | html %]</option>
                                                         [% END %]
-                                                        [% IF ( loop.last ) %]
-                                                            </optgroup>
-                                                        [% END %]
-                                                    [% END # /FOREACH categoryloo %]
-                                                [% END # /FOREACH typeloo %]
+                                                    [% END %]
+                                                        </optgroup>
+                                                [% END %]
                                             </select>
+                                            [% IF limited_category %]
+                                                <span style="float:right;" title="The patron's current category ([% patron_category.description | html %]) is limited to other libraries"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></span>
+                                            [% END %]
                                             <span class="required">Required</span>
                                         </li>
 
@@ -885,7 +976,7 @@ legend:hover {
                                                 [% END %]
                                                     Sort 1:
                                                 </label>
-                                                [% PROCESS 'av-build-dropbox.inc' name="sort1", category="Bsort1", default=sort1, empty=1, size = 20 %]
+                                                [% PROCESS 'av-build-dropbox.inc' name="sort1", category="Bsort1", default=borrower_data.sort1, empty=1, size = 20 %]
                                                 [% IF ( mandatorysort1 ) %]
                                                     <span class="required">Required</span>
                                                 [% END %]
@@ -901,7 +992,7 @@ legend:hover {
                                                 [% END %]
                                                     Sort 2:
                                                 </label>
-                                                [% PROCESS 'av-build-dropbox.inc' name="sort2", category="Bsort2", default=sort2, empty=1, size = 20 %]
+                                                [% PROCESS 'av-build-dropbox.inc' name="sort2", category="Bsort2", default=borrower_data.sort2, empty=1, size = 20 %]
                                                 [% IF ( mandatorysort2 ) %]
                                                     <span class="required">Required</span>
                                                 [% END %]
@@ -913,7 +1004,7 @@ legend:hover {
                                                 <label for="yes-autorenew_checkouts">
                                                     Allow auto-renewal of items:
                                                 </label>
-                                                    [% IF ( autorenew_checkouts || opadd ) %]
+                                                    [% IF ( borrower_data.autorenew_checkouts || opadd ) %]
                                                         <label for="yes-autorenew_checkouts">
                                                             Yes
                                                             <input type="radio" id="yes-autorenew_checkouts" name="autorenew_checkouts" value="1" checked="checked" />
@@ -939,11 +1030,11 @@ legend:hover {
                                             <li>
                                                 <label for="checkprevcheckout">Check for previous checkouts: </label>
                                                 <select name="checkprevcheckout" id="checkprevcheckout">
-                                                    [% IF ( checkprevcheckout == 'yes' ) %]
+                                                    [% IF ( borrower_data.checkprevcheckout == 'yes' ) %]
                                                         <option value="yes" selected="selected">Yes if settings allow it</option>
                                                         <option value="no">No if settings allow it</option>
                                                         <option value="inherit">Inherit from settings</option>
-                                                    [% ELSIF ( checkprevcheckout == 'no' ) %]
+                                                    [% ELSIF ( borrower_data.checkprevcheckout == 'no' ) %]
                                                         <option value="yes">Yes if settings allow it</option>
                                                         <option value="no" selected="selected">No if settings allow it</option>
                                                         <option value="inherit">Inherit from settings</option>
@@ -964,13 +1055,13 @@ legend:hover {
                                                     [% FOR language IN languages %]
                                                         [% FOR sublanguage IN language.sublanguages_loop %]
                                                             [% IF language.plural %]
-                                                                [% IF sublanguage.rfc4646_subtag == lang %]
+                                                                [% IF sublanguage.rfc4646_subtag == borrower_data.lang %]
                                                                     <option value="[% sublanguage.rfc4646_subtag | html %]" selected="selected">[% sublanguage.native_description | html %] [% sublanguage.region_description | html %] ([% sublanguage.rfc4646_subtag | html %])</option>
                                                                 [% ELSE %]
                                                                     <option value="[% sublanguage.rfc4646_subtag | html %]">[% sublanguage.native_description | html %] [% sublanguage.region_description | html %] ([% sublanguage.rfc4646_subtag | html %])</option>
                                                                 [% END %]
                                                             [% ELSE %]
-                                                                [% IF sublanguage.rfc4646_subtag == lang %]
+                                                                [% IF sublanguage.rfc4646_subtag == borrower_data.lang %]
                                                                     <option value="[% sublanguage.rfc4646_subtag | html %]" selected="selected">[% sublanguage.native_description | html %] ([% sublanguage.rfc4646_subtag | html %])</option>
                                                                 [% ELSE %]
                                                                     <option value="[% sublanguage.rfc4646_subtag | html %]">[% sublanguage.native_description | html %] ([% sublanguage.rfc4646_subtag | html %])</option>
@@ -996,7 +1087,7 @@ legend:hover {
                                                 [% END %]
                                                     Registration date:
                                                 </label>
-                                                <input type="text" id="from" name="dateenrolled"  maxlength="10" size="10" value="[% dateenrolled | html %]" class="datepickerfrom" />
+                                                <input type="text" id="from" name="dateenrolled"  maxlength="10" size="10" value="[% borrower_data.dateenrolled | html %]" class="flatpickr" data-date_to="to" />
                                                 [% IF ( mandatorydateenrolled ) %]
                                                     <span class="required">Required</span>
                                                 [% END %]
@@ -1020,9 +1111,9 @@ legend:hover {
                                                     Expiry date (leave blank for auto calc):
                                                 </label>
                                                 [% UNLESS ( opadd ) %]
-                                                    <input type="text" id="to" name="dateexpiry" maxlength="10"  size="10" value="[% dateexpiry | html UNLESS opduplicate %]" class="datepickerto" />
+                                                    <input type="text" id="to" name="dateexpiry" maxlength="10"  size="10" value="[% borrower_data.dateexpiry | html UNLESS opduplicate %]" class="flatpickr" />
                                                 [% ELSE %]
-                                                    <input type="text" id="to" name="dateexpiry" maxlength="10"  size="10" value="[% dateexpiry | html %]" class="datepickerto" />
+                                                    <input type="text" id="to" name="dateexpiry" maxlength="10"  size="10" value="[% borrower_data.dateexpiry | html %]" class="flatpickr" />
                                                 [% END %]
                                                 [% IF ( mandatorydateexpiry ) %]
                                                     <span class="required">Required</span>
@@ -1042,7 +1133,7 @@ legend:hover {
                                                     [% END %]
                                                         OPAC note:
                                                     </label>
-                                                    <textarea id="opacnote" name="opacnote" cols="55" rows="5">[% opacnote | html UNLESS opduplicate %]</textarea>
+                                                    <textarea id="opacnote" name="opacnote" cols="55" rows="5">[% borrower_data.opacnote | html UNLESS opduplicate %]</textarea>
                                                     <div class="hint">This message appears on this patron's user page in the OPAC</div>
                                                     [% IF ( mandatoryopacnote ) %]
                                                         <span class="required">Required</span>
@@ -1059,7 +1150,7 @@ legend:hover {
                                                     [% END %]
                                                         Circulation note:
                                                     </label>
-                                                    <textarea id="borrowernotes" name="borrowernotes" cols="55" rows="5">[% borrowernotes | html UNLESS opduplicate %]</textarea>
+                                                    <textarea id="borrowernotes" name="borrowernotes" cols="55" rows="5">[% borrower_data.borrowernotes | $raw UNLESS opduplicate %]</textarea>
                                                     <div class="hint">This message displays when checking out to this patron</div>
                                                     [% IF ( mandatoryborrowernotes ) %]
                                                         <span class="required">Required</span>
@@ -1070,7 +1161,7 @@ legend:hover {
                                     </fieldset> <!-- /#memberentry_subscription -->
                                 [% END # hide fieldset %]
 
-                                [% UNLESS nouserid && nopassword %]
+                                [% UNLESS nouserid && nopassword && !CanUpdatePasswordExpiration %]
                                     <fieldset class="rows" id="memberentry_userid">
                                         <legend id="opac_staff_login_lgd">OPAC/Staff interface login</legend>
                                         <ol>
@@ -1088,13 +1179,13 @@ legend:hover {
                                                         [% IF ( opduplicate ) %]
                                                             <input type="text" id="userid" name="userid" size="20" disabled="disabled" />
                                                         [% ELSE %]
-                                                            <input type="text" id="userid" name="userid" size="20" disabled="disabled" value="[% userid | html %]" />
+                                                            <input type="text" id="userid" name="userid" size="20" disabled="disabled" value="[% borrower_data.userid | html %]" />
                                                         [% END %]
                                                     [% ELSE %]
                                                         [% IF ( opduplicate ) %]
                                                             <input type="text" id="userid" name="userid" size="20" value="" />
                                                         [% ELSE %]
-                                                            <input type="text" id="userid" name="userid" size="20" value="[% userid | html %]" />
+                                                            <input type="text" id="userid" name="userid" size="20" value="[% borrower_data.userid | html %]" />
                                                         [% END %]
                                                     [% END # /IF ( NoUpdateLogin ) %]
 
@@ -1121,18 +1212,18 @@ legend:hover {
                                                             [% IF ( opduplicate ) %]
                                                                 <input type="password" id="password" name="password" size="20"  disabled="disabled" />
                                                             [% ELSE %]
-                                                                <input type="password" id="password" name="password" size="20"  disabled="disabled" value="[% password | html %]" />
+                                                                <input type="password" id="password" name="password" size="20"  disabled="disabled" value="[% borrower_data.password | html %]" />
                                                             [% END %]
                                                         [% ELSE %]
                                                             [% IF ( opduplicate ) %]
                                                                 <input type="password" id="password" name="password" size="20" autocomplete="new-password" />
                                                             [% ELSE %]
-                                                                <input type="password" id="password" name="password" size="20" autocomplete="new-password" value="[% password | html %]" />
+                                                                <input type="password" id="password" name="password" size="20" autocomplete="new-password" value="[% borrower_data.password | html %]" />
                                                             [% END %]
                                                         [% END # /IF ( NoUpdateLogin ) %]
                                                     [% ELSE # IF ( opadd ) %]
 
-                                                        [% IF ( password ) %]
+                                                        [% IF ( borrower_data.password ) %]
                                                             [% IF ( NoUpdateLogin ) %]
                                                                 <input type="password" id="password" name="password" size="20"  disabled="disabled" value="****" />
                                                             [% ELSE %]
@@ -1178,17 +1269,17 @@ legend:hover {
                                                             [% IF ( opduplicate ) %]
                                                                 <input type="password" id="password2" name="password2" size="20"  disabled="disabled" />
                                                             [% ELSE %]
-                                                                <input type="password" id="password2" name="password2" size="20"  disabled="disabled" value="[% password | html %]" />
+                                                                <input type="password" id="password2" name="password2" size="20"  disabled="disabled" value="[% borrower_data.password | html %]" />
                                                             [% END %]
                                                         [% ELSE %]
                                                             [% IF ( opduplicate ) %]
                                                                 <input type="password" id="password2" name="password2" size="20" />
                                                             [% ELSE %]
-                                                                <input type="password" id="password2" name="password2" size="20" value="[% password | html %]" />
+                                                                <input type="password" id="password2" name="password2" size="20" value="[% borrower_data.password | html %]" />
                                                             [% END %]
                                                         [% END %]
                                                     [% ELSE # IF ( opadd ) %]
-                                                        [% IF ( password ) %]
+                                                        [% IF ( borrower_data.password ) %]
                                                             [% IF ( NoUpdateLogin ) %]
                                                                 <input type="password" id="password2" name="password2" size="20"  disabled="disabled" value="****" />
                                                             [% ELSE %]
@@ -1215,49 +1306,97 @@ legend:hover {
                                                     [% END %]
                                                 </li>
                                             [% END # /UNLESS nopassword %]
+                                            [% UNLESS ( !CanUpdatePasswordExpiration ) %]
+                                                <li>
+                                                    <label for="password_expiration_date">Password expiration date:</label>
+                                                    <input type="text" id="password_expiration_date" name="password_expiration_date" maxlength="10" size="10" value="[% password_expiration_date | html %]" class="flatpickr" />
+                                                </li>
+                                            [% END %]
                                         </ol>
                                     </fieldset> <!-- /#memberentry_userid -->
-                                [% END # UNLESS nouserid && nopassword %]
+                                [% END # UNLESS nouserid && nopassword && !CanUpdatePasswordExpiration %]
 
                                 <!--this zones are not necessary in modif mode -->
-                                [% UNLESS ( opadd || opduplicate ) %]
+                                [% UNLESS ( opadd || opduplicate || ( nogonenoaddress && nolost ) ) %]
                                     <fieldset class="rows" id="memberentry_account_flags">
                                         <legend id="account_flags_lgd">Patron account flags</legend>
+                                        <p>Setting a value here will prevent patron from circulating materials and placing holds on the OPAC</p>
                                         <ol class="radio">
-                                            [% FOREACH flagloo IN flagloop %]
+                                            [% UNLESS nogonenoaddress %]
                                                 <li>
-                                                    <label class="radio" for="yes[% flagloo.name | html %]">
-                                                        [% IF ( flagloo.key == 'gonenoaddress' ) %]Gone no address:[% END %]
-                                                        [% IF ( flagloo.key == 'lost' ) %]Lost card:[% END %]
+                                                    [% IF mandatorygonenoaddress %]
+                                                        <label class="radio required" for="yesgonenoaddress">
+                                                    [% ELSE %]
+                                                        <label class="radio" for="yesgonenoaddress">
+                                                    [% END %]
+                                                        Gone no address:
                                                     </label>
                                                     [% IF CAN_user_circulate_manage_restrictions %]
-                                                        <label for="yes[% flagloo.name | html %]">
-                                                            [% IF ( flagloo.yes ) %]
-                                                                <input type="radio" id="yes[% flagloo.name | html %]" name="[% flagloo.name | html %]" value="1" checked="checked" />
+                                                        <label for="yesgonenoaddress">
+                                                            [% IF ( borrower_data.gonenoaddress ) %]
+                                                                <input type="radio" id="yesgonenoaddress" name="gonenoaddress" value="1" checked="checked" />
                                                             [% ELSE %]
-                                                                <input type="radio" id="yes[% flagloo.name | html %]" name="[% flagloo.name | html %]" value="1" />
+                                                                <input type="radio" id="yesgonenoaddress" name="gonenoaddress" value="1" />
                                                             [% END %]
                                                                 Yes
                                                         </label>
-                                                        <label for="no[% flagloo.name | html %]">
-                                                            [% IF ( flagloo.no ) %]
-                                                                <input type="radio" id="no[% flagloo.name | html %]" name="[% flagloo.name | html %]" value="0" checked="checked"/>
+                                                        <label for="nogonenoaddress">
+                                                            [% IF ( borrower_data.gonenoaddress ) %]
+                                                                <input type="radio" id="nogonenoaddress" name="gonenoaddress" value="0" />
                                                             [% ELSE %]
-                                                                <input type="radio" id="no[% flagloo.name | html %]" name="[% flagloo.name | html %]" value="0" />
+                                                                <input type="radio" id="nogonenoaddress" name="gonenoaddress" value="0" checked="checked"/>
                                                             [% END %]
                                                                 No
                                                         </label>
                                                     [% ELSE %]
-                                                        [% IF flagloo.yes %]Yes[% ELSE %]No[% END %]
+                                                        [% IF borrower_data.gonenoaddress %]<span>Yes</span>[% ELSE %]<span>No</span>[% END %]
                                                     [% END # /IF CAN_user_circulate_manage_restrictions %]
+                                                    [% IF mandatorygonenoaddress %]
+                                                        <span class="required">Required</span>
+                                                    [% END %]
                                                 </li>
-                                            [% END # /FOREACH flagloo %]
+
+                                            [% END # /UNLESS nogonenoaddress %]
+                                            [% UNLESS nolost %]
+                                                <li>
+                                                    [% IF mandatorylost %]
+                                                        <label class="radio required" for="yeslost">
+                                                    [% ELSE %]
+                                                        <label class="radio" for="yeslost">
+                                                    [% END %]
+                                                        Lost card:
+                                                    </label>
+                                                    [% IF CAN_user_circulate_manage_restrictions %]
+                                                        <label for="yeslost">
+                                                            [% IF ( borrower_data.lost ) %]
+                                                                <input type="radio" id="yeslost" name="lost" value="1" checked="checked" />
+                                                            [% ELSE %]
+                                                                <input type="radio" id="yeslost" name="lost" value="1" />
+                                                            [% END %]
+                                                                Yes
+                                                        </label>
+                                                        <label for="nolost">
+                                                            [% IF ( borrower_data.lost ) %]
+                                                                <input type="radio" id="nolost" name="lost" value="0" />
+                                                            [% ELSE %]
+                                                                <input type="radio" id="nolost" name="lost" value="0" checked="checked"/>
+                                                            [% END %]
+                                                                No
+                                                        </label>
+                                                    [% ELSE %]
+                                                        [% IF borrower_data.lost %]<span>Yes</span>[% ELSE %]<span>No</span>[% END %]
+                                                    [% END # /IF CAN_user_circulate_manage_restrictions %]
+                                                    [% IF mandatorylost %]
+                                                        <span class="required">Required</span>
+                                                    [% END %]
+                                                </li>
+                                            [% END # /UNLESS nogonenoaddress %]
                                         </ol>
                                     </fieldset> <!-- /#memberentry_account_flags -->
 
                                     <fieldset class="rows" id="memberentry_restrictions">
                                         <legend id="restrictions_lgd">Patron restrictions</legend>
-                                        [% IF ( debarments ) %]
+                                        [% IF ( patron.restrictions.count ) %]
                                             <table>
                                                 <thead>
                                                     <tr>
@@ -1271,27 +1410,27 @@ legend:hover {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    [% FOREACH d IN debarments %]
+                                                    [% FOREACH restriction IN patron.restrictions %]
                                                         <tr>
-                                                            <td>[% d.type | html %]</td>
+                                                            <td>[% PROCESS restriction_type_description restriction_type=restriction.type %]</td>
                                                             <td>
-                                                                [% IF d.comment.search('OVERDUES_PROCESS') %]
-                                                                    Restriction added by overdues process [% d.comment.remove('OVERDUES_PROCESS ') | $raw %]
+                                                                [% IF restriction.comment.search('OVERDUES_PROCESS') %]
+                                                                    Restriction added by overdues process [% restriction.comment.remove('OVERDUES_PROCESS ') | $raw %]
                                                                 [% ELSE %]
-                                                                    [% d.comment | $raw %]
+                                                                    [% restriction.comment | $raw %]
                                                                 [% END %]
                                                             </td>
                                                             <td>
-                                                                [% IF d.expiration %]
-                                                                    [% d.expiration | $KohaDates %]
+                                                                [% IF restriction.expiration %]
+                                                                    [% restriction.expiration | $KohaDates %]
                                                                 [% ELSE %]
                                                                     <em>Indefinite</em>
                                                                 [% END %]
                                                             </td>
-                                                            <td>[% d.created | $KohaDates %]</td>
+                                                            <td>[% restriction.created | $KohaDates %]</td>
                                                             [% IF CAN_user_borrowers_edit_borrowers && CAN_user_circulate_manage_restrictions %]
                                                                 <td>
-                                                                    <input type="checkbox" id="debarment_[% d.borrower_debarment_id | html %]" name="remove_debarment" value="[% d.borrower_debarment_id | html %]" />
+                                                                    <input type="checkbox" id="debarment_[% restriction.borrower_debarment_id | html %]" name="remove_debarment" value="[% restriction.borrower_debarment_id | html %]" />
                                                                 </td>
                                                             [% END %]
                                                         </tr>
@@ -1300,21 +1439,37 @@ legend:hover {
                                             </table>
                                         [% ELSE %]
                                             <p>Patron is currently unrestricted.</p>
-                                        [% END # /IF ( debarments ) %]
+                                        [% END # /IF ( patron.restrictions.count ) %]
 
                                         [% IF CAN_user_borrowers_edit_borrowers && CAN_user_circulate_manage_restrictions %]
-                                            <p><a href="#" id="add_manual_restriction">Add manual restriction</a></p>
+                                        <p><a href="#" id="add_manual_restriction"><i class="fa fa-plus"></i> Add manual restriction</a></p>
                                             <fieldset id="manual_restriction_form">
                                                 <input type="hidden" id="add_debarment" name="add_debarment" value="0" />
                                                 <legend id="manual_restriction_lgd">Add manual restriction</legend>
                                                 <ol>
+                                                    [% IF Koha.Preference('PatronRestrictionTypes') %]
+                                                    <li>
+                                                        <label for="debarred_type">Type:</label>
+                                                        <select name="debarred_type">
+                                                            [% FOREACH restriction_type IN restriction_types %]
+                                                                [% IF !restriction_type.is_system %]
+                                                                    [% IF restriction_type.is_default %]
+                                                                    <option value="[% restriction_type.code | html %]" selected>[% PROCESS restriction_type_description %]</option>
+                                                                    [% ELSE %]
+                                                                    <option value="[% restriction_type.code | html %]">[% PROCESS restriction_type_description %]</option>
+                                                                    [% END %]
+                                                                [% END %]
+                                                            [% END %]
+                                                        </select>
+                                                    </li>
+                                                    [% END %]
                                                     <li>
                                                         <label for="debarred_comment">Comment: </label>
                                                         <input type="text" id="debarred_comment" name="debarred_comment" />
                                                     </li>
                                                     <li>
                                                         <label for="debarred_expiration">Expiration: </label>
-                                                        <input name="debarred_expiration" id="debarred_expiration" size="10" value="" class="datepicker" type="text" />
+                                                        <input name="debarred_expiration" id="debarred_expiration" size="10" value="" class="flatpickr" type="text" />
                                                         <a href="#" id="clear_debarred_expiration">Clear date</a>
                                                     </li>
                                                 </ol>
@@ -1441,15 +1596,15 @@ legend:hover {
                                             <p>
                                                 <label for="SMSnumber">SMS number:</label>
                                                 <input type="text" id="SMSnumber" name="SMSnumber" value="[% SMSnumber | html %]" />
-                                                <span class="hint sms_number_help">Please enter numbers only. Prefix the number with + if including the country code.</span>
+                                                <span class="hint sms_number_help">Please enter numbers only. Prefix the number with + or 00 if including the country code.</span>
                                             </p>
-                                            [% UNLESS nosms_provider_id %]
+                                            [% IF SMSSendDriver == 'Email' && !nosms_provider_id %]
                                                 <p>
                                                     <label for="sms_provider_id">SMS provider:</label>
                                                     <select id="sms_provider_id" name="sms_provider_id">
                                                         <option value="">Unknown</option>
                                                         [% FOREACH s IN sms_providers %]
-                                                            [% IF s.id == sms_provider_id %]
+                                                            [% IF s.id == borrower_data.sms_provider_id %]
                                                                 <option value="[% s.id | html %]" selected="selected">[% s.name | html %]</option>
                                                             [% ELSE %]
                                                                 <option value="[% s.id | html %]">[% s.name | html %]</option>
@@ -1596,8 +1751,8 @@ legend:hover {
                 stickyClass: "floating"
             });
 
-            [% IF categorycode %]
-                update_category_code( "[% categorycode | html %]" );
+            [% IF borrower_data.categorycode %]
+                update_category_code( "[% borrower_data.categorycode | html %]" );
             [% ELSE %]
                 if ( $("#categorycode_entry").length > 0 ){
                     var category_code = $("#categorycode_entry").find("option:selected").val();
@@ -1718,24 +1873,6 @@ legend:hover {
             });
         });
 
-        var MSG_SEPARATOR = _("Separator must be / in field %s");
-        var MSG_INCORRECT_DAY = _("Invalid day entered in field %s");
-        var MSG_INCORRECT_MONTH = _("Invalid month entered in field %s");
-        var MSG_INCORRECT_YEAR = _("Invalid year entered in field %s");
-        var MSG_DUPLICATE_PATRON = _("Warning: Duplicate patron");
-        var MSG_DUPLICATE_ORGANIZATION = _("Warning: Duplicate organization");
-        var MSG_LATE_EXPIRY = _("Warning: Expiration date falls before enrollment date");
-        var MSG_DUPLICATE_SUSPICION = _("Please confirm whether this is a duplicate patron");
-        var MSG_MONTH = _("%s month")
-        var MSG_MONTHS = _("%s months")
-        var MSG_YEAR = _("%s year")
-        var MSG_YEARS = _("%s years")
-        var LABEL_CHANGE = _("Change");
-        var LABEL_SET_TO_PATRON = _("Set to patron");
-        var LABEL_AGE = _("Age");
-        var MSG_MESSAGING_DEFAULTS = _("Change messaging preferences to default for this category?");
-        var MSG_PASSWORD_LENGTH = _("Minimum password length: %s");
-
         [% IF quickadd && opadd  && !check_member %]
             $(document).ready(function () {
 
@@ -1751,21 +1888,27 @@ legend:hover {
                         input_label='title';
                     }
                     if( qaddfields.indexOf( input_label ) != -1 || $(this).attr('class') == 'required' ){
-                       var newelem = $(this).parent().clone();
-                       if ( input_label == 'dateofbirth' ) {
-                            var datelem = newelem.find('input');
-                            datelem.removeClass('hasDatepicker');
-                            datelem.removeClass('datepicker');
-                            datelem.removeAttr("id");
-                            datelem.datepicker();
-                            datelem.nextAll('.ui-datepicker-trigger').nextAll('.ui-datepicker-trigger').remove();
-                       }
-                       newelem.appendTo("#quick_add_list");
-                       [% UNLESS mandatorypassword %]
-                             if( input_label == 'password' ) $("#entryform label[for='password2']").parent().clone().appendTo("#quick_add_list");
-                       [% END %]
-                       if( input_label == 'dateofbirth' ) {
-                           newelem.datepicker();
+                       let orig_li = $(this).parent();
+                       if( orig_li.attr('class') == 'radio' ){
+                           let new_field = orig_li.clone();
+                           new_field.children('label').each(function(){
+                                let child_input = $(this).children('input');
+                                child_input.attr("id",child_input.attr("id") + "_quick_add");
+                            });
+                           new_field.appendTo("#quick_add_list");
+                       } else {
+                           let orig_input_id = orig_li.children("input,textarea,select").attr("id");
+                           let new_field = orig_li.clone();
+                           new_field.children("#"+orig_input_id).attr("id",orig_input_id + "_quick_add");
+                           new_field.appendTo("#quick_add_list");
+                           [% UNLESS mandatorypassword %]
+                                 if( input_label == 'password' ){
+                                     let orig_p2 = $("#entryform label[for='password2']").parent();
+                                     let new_p2  = orig_p2.clone();
+                                     new_p2.find('input[id="password2"]').attr("id","password2_quick_add");
+                                     new_p2.appendTo("#quick_add_list");
+                                 }
+                           [% END %]
                        }
                     }
                 });
@@ -1773,9 +1916,16 @@ legend:hover {
                     $("#memberentry_guarantor").appendTo("#quick_add_form");
                 }
                 $("#quick_add_form").show();
+                $("#quick_add_form").find(".flatpickr:hidden").each( (i, input) => {
+                    $(input).siblings(".flatpickr_wrapper").remove(); // Remove leftover from the previous flatpickr that has been cloned
+                    apply_flatpickr(input);
+                } );
             });
         [% END %]
         $("#guarantor_template").hide();
+
+        var TalkingTechItivaPhoneNotification = [% Koha.Preference('TalkingTechItivaPhoneNotification') || 0 | html %];
+        var PhoneNotification = [% Koha.Preference('PhoneNotification') || 0 | html %];
 
     </script>
     [% Asset.js("js/members.js") | $raw %]

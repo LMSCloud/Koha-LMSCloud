@@ -1,9 +1,9 @@
 [% USE raw %]
 [% USE Koha %]
-[% USE KohaNews %]
+[% USE AdditionalContents %]
 [%- USE KohaPlugins -%]
 [% USE Asset %]
-[% SET opaccredits = KohaNews.get( location => "opaccredits", lang => lang, library => branchcode ) %]
+[% SET opaccredits = AdditionalContents.get( location => "opaccredits", lang => lang, library => logged_in_user.branchcode || default_branch ) %]
 [% PROCESS 'html_helpers.inc' %]
 [% UNLESS ( is_popup ) %]
         [% SET OpacLangSelectorMode = Koha.Preference('OpacLangSelectorMode') %]
@@ -118,37 +118,18 @@
 [% END # / UNLESS is_popup %]
 
 <!-- JavaScript includes -->
-[% Asset.js("lib/jquery/jquery-3.4.1.min.js") | $raw %]
-[% Asset.js("lib/jquery/jquery-migrate-3.1.0.min.js") | $raw %]
-[% Asset.js("lib/jquery/jquery-ui-1.12.1.min.js") | $raw %]
-<script>
-// Resolve name collision between jQuery UI and Twitter Bootstrap
-$.widget.bridge('uitooltip', $.ui.tooltip);
-</script>
+[% Asset.js("lib/jquery/jquery-3.6.0.min.js") | $raw %]
+[% Asset.js("lib/jquery/jquery-migrate-3.3.2.min.js") | $raw %]
+[% Asset.js("lib/jquery/jquery-ui-1.13.1.min.js") | $raw %]
 [% Asset.js("lib/bootstrap/js/bootstrap.bundle.min.js") | $raw %]
 [% Asset.js("lib/fontfaceobserver.min.js") | $raw %]
+[% Asset.js("lib/enquire.min.js") | $raw %]
 [% Asset.js("js/global.js") | $raw %]
-<script>
-    Modernizr.load([
-        // Test need for polyfill
-        {
-            test: window.matchMedia,
-            nope: "[% Asset.url('lib/media.match.min.js') | $raw %]"
-        },
-        // and then load enquire
-        "[% Asset.url('lib/enquire.min.js') | $raw %]",
-        "[% Asset.url('js/script.js') | $raw %]",
-    ]);
-
-    // Fix for datepicker in a modal
-    $.fn.modal.Constructor.prototype.enforceFocus = function () {};
-</script>
 [% IF ( OPACAmazonCoverImages || SyndeticsCoverImages ) %]
-<script>
+    <script>
         var NO_AMAZON_IMAGE = _("No cover image available");
-
-</script>
-[% Asset.js("js/amazonimages.js") | $raw %]
+    </script>
+    [% Asset.js("js/amazonimages.js") | $raw %]
 [% END %]
 
 <script>
@@ -195,15 +176,6 @@ $.widget.bridge('uitooltip', $.ui.tooltip);
         var MSG_TAGS_ERRORS = _("Errors: ");
         var MSG_MULTI_ADD_TAG_FAILED = _("Unable to add one or more tags.");
         var MSG_NO_TAG_SPECIFIED = _("No tag was specified.");
-    [% END %]
-    [% IF ( Koha.Preference('OverDriveClientKey') && Koha.Preference('OverDriveClientSecret') ) %]
-        var MSG_OVERDRIVE_LOGIN = _("Log in to your OverDrive account");
-        var MSG_OVERDRIVE_LINK = _( "OverDrive account page" );
-        var MSG_OVERDRIVE_LOGOUT = _("Log out from your OverDrive account");
-        var MSG_OVERDRIVE_CHECKEDOUT_UNTIL = _( "Checked out until: " );
-        var MSG_OVERDRIVE_ACCESS_ONLINE = _("Access online");
-        var MSG_OVERDRIVE_DOWNLOAD_AS = _( "Download as: " );
-        var MSG_OVERDRIVE_CANNOT_CHECKOUT = _("Item cannot be checked out. There are no available formats");
     [% END %]
     [% IF OpenLibraryCovers || OpenLibrarySearch %]
         var NO_OL_JACKET = _("No cover image available");
@@ -253,7 +225,7 @@ $.widget.bridge('uitooltip', $.ui.tooltip);
     <script>var readCookie;</script>
 [% END %]
 
-[% IF Koha.Preference( 'opacuserlogin' ) == 1 %][% IF Koha.Preference( 'TagsEnabled' ) == 1 %][% Asset.js("js/tags.js") | $raw %][% END %][% ELSE %][% END %]
+[% IF Koha.Preference( 'opacuserlogin' ) == 1 %][% IF Koha.Preference( 'TagsEnabled' ) == 1 %][% Asset.js("js/tags.js") | $raw %][% END %][% END %]
 [% IF ( GoogleJackets ) %]
     [% Asset.js("js/google-jackets.js") | $raw %]
     <script>
@@ -300,20 +272,14 @@ $.widget.bridge('uitooltip', $.ui.tooltip);
 </script>
 [% END %]
 
-[% IF Koha.Preference('RecordedBooksClientSecret') && Koha.Preference('RecordedBooksLibraryID') %]
-<script>
-  var SPINNER_THROBBER = "[% interface | html %]/lib/jquery/plugins/themes/classic/throbber.gif";
-</script>
-[% END %]
-
-[% Asset.js("lib/jquery/plugins/jquery.cookie.min.js") | $raw %]
+[% Asset.js("lib/js-cookie/js.cookie-3.0.1.min.js") | $raw %]
 <script>
 $(document).ready(function() {
     if($('#searchsubmit').length) {
         $(document).on("click", '#searchsubmit', function(e) {
-            jQuery.removeCookie("form_serialized", { path: '/'});
-            jQuery.removeCookie("form_serialized_limits", { path: '/'});
-            jQuery.removeCookie("search_path_code", { path: '/'});
+            Cookies.remove("form_serialized", { path: '/'});
+            Cookies.remove("form_serialized_limits", { path: '/'});
+            Cookies.remove("search_path_code", { path: '/'});
         });
     }
     

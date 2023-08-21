@@ -4,18 +4,12 @@
 #  Revised by Joshua Ferraro on 03/31/2006
 use strict;
 #use warnings; FIXME - Bug 2505
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../../kohalib.pl" };
-}
 
 # Koha modules used
 
 use C4::Context;
-use C4::Biblio;
-use MARC::Record;
+use C4::Biblio qw( ModBiblioMarc );
+use Koha::Biblios;
 use MARC::File::USMARC;
 
 
@@ -29,7 +23,8 @@ print "Creating/updating field 100 if needed\n";
 while (my ($biblionumber,$time)=$sth->fetchrow ){
 #   my $record;
 # print "record : $biblionumber \n";
-    my $record = GetMarcBiblio({ biblionumber => $biblionumber });
+    my $biblio = Koha::Biblios->find($biblionumber);
+    my $record = $biblio ? $biblio->metadata->record : undef;
 # print "=> ".$record->as_formatted;
     MARCmodrecord($biblionumber,$record,$time) if ($record);
 #

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
-use Test::More tests => 17;
+use Test::More tests => 16;
 use Try::Tiny;
 
 use t::lib::TestBuilder;
@@ -111,7 +111,7 @@ $av3->lib_opac('');
 is( $av3->opac_description, 'display value 3', 'Got correction opac description if lib_opac is *not* set' );
 
 my @authorised_values =
-  Koha::AuthorisedValues->new()->search( { category => 'av_for_testing' } );
+  Koha::AuthorisedValues->new()->search( { category => 'av_for_testing' } )->as_list;
 is( @authorised_values, 3, "Get correct number of values" );
 
 my $branchcode1 = $builder->build({ source => 'Branch' })->{branchcode};
@@ -119,14 +119,14 @@ my $branchcode2 = $builder->build({ source => 'Branch' })->{branchcode};
 
 $av1->add_library_limit( $branchcode1 );
 
-@authorised_values = Koha::AuthorisedValues->search_with_library_limits( { category => 'av_for_testing' }, {}, $branchcode1 );
+@authorised_values = Koha::AuthorisedValues->search_with_library_limits( { category => 'av_for_testing' }, {}, $branchcode1 )->as_list;
 is( @authorised_values, 3, "Search including value with a branch limit ( branch can use the limited value ) gives correct number of results" );
 
-@authorised_values = Koha::AuthorisedValues->search_with_library_limits( { category => 'av_for_testing' }, {}, $branchcode2 );
+@authorised_values = Koha::AuthorisedValues->search_with_library_limits( { category => 'av_for_testing' }, {}, $branchcode2 )->as_list;
 is( @authorised_values, 2, "Search including value with a branch limit ( branch *cannot* use the limited value ) gives correct number of results" );
 
 $av1->del_library_limit( $branchcode1 );
-@authorised_values = Koha::AuthorisedValues->search_with_library_limits( { category => 'av_for_testing' }, {}, $branchcode2 );
+@authorised_values = Koha::AuthorisedValues->search_with_library_limits( { category => 'av_for_testing' }, {}, $branchcode2 )->as_list;
 is( @authorised_values, 3, "Branch limitation deleted successfully" );
 
 $av1->add_library_limit( $branchcode1 );
@@ -137,11 +137,14 @@ is( @$limits, 2, 'library_limits functions correctly both as setter and getter' 
 
 my @categories = Koha::AuthorisedValues->new->categories;
 is( @categories, @existing_categories+3, 'There should have 3 categories inserted' );
-is( $categories[0], $av4->category, 'The first category should be correct (ordered by category name)' );
-is( $categories[1], $av1->category, 'The second category should be correct (ordered by category name)' );
+is_deeply(
+    \@categories,
+    [ sort { uc $a cmp uc $b } @categories ],
+    'categories must be ordered by category names'
+);
 
-subtest 'search_by_*_field + find_by_koha_field + get_description' => sub {
-    plan tests => 5;
+subtest 'search_by_*_field + find_by_koha_field + get_description + authorised_values' => sub {
+    plan tests => 6;
 
     my $test_cat = Koha::AuthorisedValueCategories->find('TEST');
     $test_cat->delete if $test_cat;
@@ -248,6 +251,37 @@ subtest 'search_by_*_field + find_by_koha_field + get_description' => sub {
                 }
             ],
         );
+    };
+    subtest 'authorised_values' => sub {
+
+        plan tests => 2;
+
+        $schema->storage->txn_begin;
+
+        my $authorised_value_category =
+        $builder->build_object(
+            {
+                class => 'Koha::AuthorisedValueCategories',
+                value => {
+                    category_name => 'test_avs'
+                }
+            }
+        );
+
+        is( $authorised_value_category->authorised_values->count, 0, "no authorised values yet" );
+
+        my $av1 = Koha::AuthorisedValue->new(
+            {
+                category         => 'test_avs',
+                authorised_value => 'value 1',
+                lib              => 'display value 1',
+                lib_opac         => 'opac display value 1',
+                imageurl         => 'image1.png',
+            }
+        )->store();
+        is( $authorised_value_category->authorised_values->count, 1, "one authorised value" );
+
+        $schema->storage->txn_rollback;
     };
 };
 

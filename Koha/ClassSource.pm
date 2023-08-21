@@ -17,11 +17,12 @@ package Koha::ClassSource;
 
 use Modern::Perl;
 
-use Carp;
-
+use Koha::Caches;
 use Koha::Database;
 
 use base qw(Koha::Object);
+
+my $cache = Koha::Caches->get_instance();
 
 =head1 NAME
 
@@ -31,7 +32,45 @@ Koha::ClassSource - Koha Classfication Source Object class
 
 =head2 Class Methods
 
+=head3 store
+
+ClassSource specific store to ensure relevant caches are flushed on change
+
 =cut
+
+sub store {
+    my ($self) = @_;
+
+    my $flush = 0;
+
+    if ( !$self->in_storage ) {
+        $flush = 1;
+    }
+    else {
+        my $self_from_storage = $self->get_from_storage;
+        $flush = 1 if ( $self_from_storage->description ne $self->description );
+    }
+
+    $self = $self->SUPER::store;
+
+    if ($flush) {
+        $cache->clear_from_cache('cn_sources:description');
+    }
+
+    return $self;
+}
+
+=head2 delete
+
+ClassSource specific C<delete> to clear relevant caches on delete.
+
+=cut
+
+sub delete {
+    my $self = shift @_;
+    $cache->clear_from_cache('cn_sources:description');
+    $self->SUPER::delete(@_);
+}
 
 =head3 _type
 

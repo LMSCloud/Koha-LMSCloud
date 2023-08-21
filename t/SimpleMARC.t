@@ -1,10 +1,12 @@
+#!/usr/bin/perl
+
 use Modern::Perl;
 
 use Test::More tests => 11;
 
 use_ok("MARC::Field");
 use_ok("MARC::Record");
-use_ok("Koha::SimpleMARC");
+use_ok("Koha::SimpleMARC", qw( field_exists read_field update_field copy_field copy_and_replace_field move_field delete_field field_equals ));
 
 sub new_record {
     my $record = MARC::Record->new;
@@ -326,7 +328,7 @@ subtest 'update_field' => sub {
 subtest 'copy_field' => sub {
     plan tests              => 2;
     subtest 'copy subfield' => sub {
-        plan tests => 20;
+        plan tests => 21;
         my $record = new_record;
         $record->append_fields(
             MARC::Field->new(
@@ -677,6 +679,27 @@ subtest 'copy_field' => sub {
             {
                 record        => $record,
                 from_field    => 245,
+                from_subfield => 'a',
+                to_field      => 245,
+                to_subfield   => 'a',
+                regex         => { search => '(art)', replace => 'sm$1 $1' }
+            }
+        );
+        is_deeply(
+            [
+                read_field(
+                    { record => $record, field => '245', subfield => 'a' }
+                )
+            ],
+            ['The art of computer programming', 'The smart art of computer programming'],
+            'Update a subfield: use capture groups'
+        );
+
+        $record = new_record;
+        copy_field(
+            {
+                record        => $record,
+                from_field    => 245,
                 from_subfield => 'c',
                 to_field      => 650,
                 to_subfield   => 'c',
@@ -900,7 +923,7 @@ subtest 'copy_field' => sub {
 subtest 'copy_and_replace_field' => sub {
     plan tests              => 2;
     subtest 'copy and replace subfield' => sub {
-        plan tests => 19;
+        plan tests => 20;
         my $record = new_record;
         $record->append_fields(
             MARC::Field->new(
@@ -1244,6 +1267,28 @@ subtest 'copy_and_replace_field' => sub {
             ],
             ['The art of computer programming END'],
             'Copy and replace - Update a subfield: add a string at the end'
+        );
+
+        $record = new_record;
+        copy_and_replace_field(
+            {
+                record        => $record,
+                from_field    => 245,
+                from_subfield => 'a',
+                to_field      => 245,
+                to_subfield   => 'a',
+                regex         => { search => '(art)', replace => 'sm$1 $1' }
+            }
+        );
+        # This is the same as update the subfield
+        is_deeply(
+            [
+                read_field(
+                    { record => $record, field => '245', subfield => 'a' }
+                )
+            ],
+            ['The smart art of computer programming'],
+            'Copy and replace - Update a subfield: use capture groups'
         );
 
         $record = new_record;

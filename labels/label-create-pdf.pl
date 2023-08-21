@@ -21,8 +21,7 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Debug;
+use C4::Auth qw( get_template_and_user );
 use C4::Creators;
 use C4::Labels;
 
@@ -33,7 +32,6 @@ my ( undef, $loggedinuser, $cookie ) = get_template_and_user({
 								     query           => $cgi,
 								     type            => "intranet",
 								     flagsrequired   => { tools => 'label_creator' },
-								     debug           => 1,
 								     });
 
 my $batch_id;
@@ -47,6 +45,7 @@ my $start_label = $cgi->param('start_label') || 1;
 @item_numbers  = $cgi->multi_param('item_number') if $cgi->param('item_number');
 my $from = $cgi->param('from') || undef;
 my $to = $cgi->param('to') || undef;
+my $barcode_length = $cgi->param('barcode_length');
 
 my $items = undef;
 
@@ -118,8 +117,9 @@ elsif (@item_numbers) {
     } @item_numbers;
 }
 elsif ($from and $to) {
-    for (my $i = $from; $i <= $to; $i++) {
-        push @{$items}, {'item_number' => $i};
+    for my $i ( $from .. $to ) {
+        my $padding = '0' x ( $barcode_length - length($i) );
+        push @$items, { item_number => $padding . $i };
     }
 }
 else {

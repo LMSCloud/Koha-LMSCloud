@@ -1,33 +1,43 @@
 [% USE Koha %]
-<div class="gradient">
-<h1 id="logo"><a href="/cgi-bin/koha/mainpage.pl">[% LibraryName | html %]</a></h1><!-- Begin Currencies Resident Search Box -->
-<div id="header_search">
-	<div id="currency_search" class="residentsearch">
-        <form action="[% script_name | html %]" method="post">
-            <label class="tip" for="description">Currencies search:</label>
-                <input class="head-searchbox" type="text" name="description" id="description" size="40" value="[% searchfield | html %]" />
-                <input type="submit" class="submit" name="search" value="Search" />
-        </form>	
-	</div>
-    [% INCLUDE 'patron-search-box.inc' %]
-	[% IF ( CAN_user_catalogue ) %]
-    <div id="catalog_search" class="residentsearch">
-		<form action="/cgi-bin/koha/catalogue/search.pl"  method="get" id="cat-search-block">
-            [% IF ( Koha.Preference('IntranetCatalogSearchPulldown') ) %]
-                <label class="tip" for="search-form">Enter search keywords:</label>
-                [% INCLUDE 'search_indexes.inc' %]
-            [% ELSE %]
-                <label class="tip" for="search-form">Enter search keywords:</label>
-            [% END %]
-             <input type="text" name="q" id="search-form" size="40" value="" title="Enter the terms you wish to search for." class="head-searchbox form-text" />
-				<input type="submit" value="Submit"  class="submit" />
-		</form>
-	</div>[% END %]
-			<ul>
-            <li><a class="keep_text" href="#currency_search">Search currencies</a></li>
-            [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]<li><a class="keep_text" href="#circ_search">Check out</a></li>[% END %]
-            [% IF ( CAN_user_catalogue ) %]<li><a class="keep_text" href="#catalog_search">Search the catalog</a></li>[% END %]
-			</ul>	
-</div>
-</div><!-- /gradient -->
-<!-- End Currencies Resident Search Box -->
+<!-- currencies-admin-search.inc -->
+<div id="header_search" role="tablist">
+    <div class="tab-content">
+        <div id="currency_search" role="tabpanel" class="tab-pane active">
+            <form action="[% script_name | html %]" method="post">
+                <div class="form-title">
+                    <label class="control-label">Search currencies</label>
+                </div>
+
+                <div class="form-content">
+                    <input class="head-searchbox form-control" type="text" name="description" id="description" value="[% searchfield | html %]" placeholder="Currencies search" />
+                </div>
+
+                <button type="submit"><i class="fa fa-arrow-right"></i></button>
+            </form>
+        </div>
+
+        [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
+            [% INCLUDE 'patron-search-box.inc' %]
+        [% END %]
+        [% IF ( CAN_user_catalogue ) %]
+            [% INCLUDE 'catalogue-search-box.inc' %]
+        [% END %]
+
+    </div><!-- /.tab-content -->
+    <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="active">
+            <a title="Search currencies" href="#currency_search" aria-controls="currency_search" role="tab" aria-expanded="true" data-toggle="tab" class="keep_text"><i class="fa fa-dollar"></i> <span class="tab-title">Search currencies</span></a>
+        </li>
+        [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
+            <li role="presentation">
+                <a title="Check out" href="#circ_search" aria-controls="circ_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-upload"></i> <span class="tab-title">Check out</span></a>
+            </li>
+        [% END %]
+        [% IF ( CAN_user_catalogue ) %]
+            <li role="presentation">
+                <a title="Search catalog" href="#catalog_search" aria-controls="catalog_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-fw fa-search"></i> <span class="tab-title">Search catalog</span></a>
+            </li>
+        [% END %]
+    </ul>
+</div><!-- /#header_search -->
+<!-- /currencies-admin-search.inc -->

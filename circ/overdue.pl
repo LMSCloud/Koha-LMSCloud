@@ -21,12 +21,11 @@
 
 use Modern::Perl;
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use CGI qw(-oldstyle_urls -utf8);
-use C4::Auth;
-use C4::Debug;
+use C4::Auth qw( get_template_and_user );
 use Text::CSV_XS;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Patron::Attribute::Types;
 use DateTime;
 use DateTime::Format::MySQL;
@@ -74,7 +73,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { circulate => "overdues_report" },
-        debug           => 1,
     }
 );
 
@@ -115,7 +113,6 @@ for my $attrcode (grep { /^patron_attr_filter_/ } $input->multi_param) {
     if (my @attrvalues = grep { length($_) > 0 } $input->multi_param($attrcode)) {
         $attrcode =~ s/^patron_attr_filter_//;
         $cgi_attrcode_to_attrvalues{$attrcode} = \@attrvalues;
-        print STDERR ">>>param($attrcode)[@{[scalar @attrvalues]}] = '@attrvalues'\n" if $debug;
     }
 }
 my $have_pattr_filter_data = keys(%cgi_attrcode_to_attrvalues) > 0;
@@ -160,17 +157,19 @@ if (@patron_attr_filter_loop) {
     #              too resource intensive, MySQL can be used to do the filtering, i.e. rewire the
     #              SQL below to select only those attribute values that match the filters.
 
-    my $sql = q(SELECT borrowernumber AS bn, b.code, attribute AS val, category AS avcategory, lib AS avdescription
+    my $sql = q{
+        SELECT b.borrowernumber AS bn, b.code AS attrcode, b.attribute AS attrval, a.lib AS avdescription
         FROM borrower_attributes b
         JOIN borrower_attribute_types bt ON (b.code = bt.code)
-        LEFT JOIN authorised_values a ON (a.category = bt.authorised_value_category AND a.authorised_value = b.attribute));
+        LEFT JOIN authorised_values a ON (a.category = bt.authorised_value_category AND a.authorised_value = b.attribute)
+    };
     my $sth = $dbh->prepare($sql);
     $sth->execute();
     while (my $row = $sth->fetchrow_hashref) {
         my $pattrs = $borrowernumber_to_attributes{$row->{bn}} ||= { };
-        push @{ $pattrs->{$row->{code}} }, [
-            $row->{val},
-            defined $row->{avdescription} ? $row->{avdescription} : $row->{val},
+        push @{ $pattrs->{$row->{attrcode}} }, [
+            $row->{attrval},
+            defined $row->{avdescription} ? $row->{avdescription} : $row->{attrval},
         ];
     }
 
@@ -181,8 +180,7 @@ if (@patron_attr_filter_loop) {
             # discard patrons that do not match (case insensitive) at least one of each attribute filter value
             my $discard = 1;
             for my $attrval (map { lc $_ } @{ $cgi_attrcode_to_attrvalues{$code} }) {
-                ## if (grep { $attrval eq lc($_->[0]) } @{ $pattrs->{$code} })
-                if (grep { $attrval eq lc($_->[1]) } @{ $pattrs->{$code} }) {
+                if (grep { $attrval eq lc($_->[0]) } @{ $pattrs->{$code} }) {
                     $discard = 0;
                     last;
                 }
@@ -191,12 +189,6 @@ if (@patron_attr_filter_loop) {
                 $keep = 0;
                 last;
             }
-        }
-        if ($debug) {
-            my $showkeep = $keep ? 'keep' : 'do NOT keep';
-            print STDERR ">>> patron $bn: $showkeep attributes: ";
-            for (sort keys %$pattrs) { my @a=map { "$_->[0]/$_->[1]  " } @{$pattrs->{$_}}; print STDERR "attrcode $_ = [@a] " }
-            print STDERR "\n";
         }
         delete $borrowernumber_to_attributes{$bn} if !$keep;
     }
@@ -252,19 +244,26 @@ if ($noreport) {
         items.barcode,
         items.homebranch,
         items.holdingbranch,
+        items.location,
         biblio.title,
+        biblio.subtitle,
+        biblio.part_number,
+        biblio.part_name,
         biblio.author,
         biblio.biblionumber,
         items.itemcallnumber,
         items.replacementprice,
         items.enumchron,
         items.itemnotes_nonpublic,
-        items.itype
+        items.itype,
+        return_claims.created_on AS return_claim_created_on,
+        return_claims.id AS return_claim_id
       FROM issues
     LEFT JOIN borrowers   ON (issues.borrowernumber=borrowers.borrowernumber )
     LEFT JOIN items       ON (issues.itemnumber=items.itemnumber)
     LEFT JOIN biblioitems ON (biblioitems.biblioitemnumber=items.biblioitemnumber)
     LEFT JOIN biblio      ON (biblio.biblionumber=items.biblionumber )
+    LEFT JOIN return_claims ON (return_claims.borrowernumber=borrowers.borrowernumber AND return_claims.itemnumber=items.itemnumber)
     WHERE 1=1 "; # placeholder, since it is possible that none of the additional
                  # conditions will be selected by user
     $strsth.=" AND date_due               < '" . $todaysdate     . "' " unless ($showall or $datedueto);
@@ -338,15 +337,21 @@ if ($noreport) {
             branchcode             => $data->{branchcode},
             barcode                => $data->{barcode},
             itemnum                => $data->{itemnumber},
-            issuedate              => output_pref({ dt => dt_from_string( $data->{issuedate} ), dateonly => 1 }),
+            issuedate              => $data->{issuedate},
             biblionumber           => $data->{biblionumber},
             title                  => $data->{title},
+            subtitle               => $data->{subtitle},
+            part_number            => $data->{part_number},
+            part_name              => $data->{part_name},
             author                 => $data->{author},
             homebranchcode         => $data->{homebranch},
             holdingbranchcode      => $data->{holdingbranch},
+            location               => $data->{location},
             itemcallnumber         => $data->{itemcallnumber},
             replacementprice       => $data->{replacementprice},
             itemnotes_nonpublic    => $data->{itemnotes_nonpublic},
+            return_claim_created_on => $data->{return_claim_created_on},
+            return_claim_id        => $data->{return_claim_id},
             enumchron              => $data->{enumchron},
             itemtype               => $data->{itype},
             patron_attr_value_loop => \@patron_attr_value_loop,
@@ -369,7 +374,7 @@ if ($noreport) {
     $new_cgi->delete('op');
 
     $template->param(
-        todaysdate              => output_pref($today_dt),
+        todaysdate              => $today_dt,
         overdueloop             => \@overduedata,
         nnoverdue               => scalar(@overduedata),
         noverdue_is_plural      => scalar(@overduedata) != 1,

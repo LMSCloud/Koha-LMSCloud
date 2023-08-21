@@ -20,16 +20,17 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use Encode qw(encode);
-use Carp;
-use Try::Tiny;
+use Encode;
+use Carp qw( carp );
+use Try::Tiny qw( catch try );
 
-use C4::Biblio;
-use C4::Items;
-use C4::Auth;
-use C4::Output;
-use C4::Members;
-use C4::Templates ();
+use C4::Biblio qw(
+    GetMarcSubjects
+);
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Templates;
+use Koha::Biblios;
 use Koha::Email;
 use Koha::Patrons;
 use Koha::Token;
@@ -47,15 +48,12 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user (
 my $bib_list     = $query->param('bib_list') || '';
 my $email_add    = $query->param('email_add');
 
-my $dbh          = C4::Context->dbh;
-
 if ( $email_add ) {
     die "Wrong CSRF token" unless Koha::Token->new->check_csrf({
         session_id => scalar $query->cookie('CGISESSID'),
         token  => scalar $query->param('csrf_token'),
     });
     my $patron = Koha::Patrons->find( $borrowernumber );
-    my $borcat = $patron ? $patron->categorycode : q{};
     my $user_email = $patron->first_valid_email_address
     || C4::Context->preference('KohaAdminEmailAddress');
 
@@ -75,29 +73,33 @@ if ( $email_add ) {
     foreach my $biblionumber (@bibs) {
         $template2->param( biblionumber => $biblionumber );
 
-        my $dat              = GetBiblioData($biblionumber);
-        next unless $dat;
-        my $record           = GetMarcBiblio({
-            biblionumber => $biblionumber,
-            embed_items  => 1,
-            opac         => 1,
-            borcat       => $borcat });
-        my $marcauthorsarray = GetMarcAuthors( $record, $marcflavour );
+        my $biblio           = Koha::Biblios->find( $biblionumber ) or next;
+        my $dat              = $biblio->unblessed;
+        my $record = $biblio->metadata->record(
+            {
+                embed_items => 1,
+                opac        => 1,
+                patron      => $patron,
+            }
+        );
+        my $marcauthorsarray = $biblio->get_marc_contributors;
         my $marcsubjctsarray = GetMarcSubjects( $record, $marcflavour );
 
-        my @items = GetItemsInfo( $biblionumber );
+        my $items = $biblio->items->search_ordered->filter_by_visible_in_opac({ patron => $patron });
 
         my $hasauthors = 0;
         if($dat->{'author'} || @$marcauthorsarray) {
           $hasauthors = 1;
         }
-	
 
         $dat->{MARCSUBJCTS}    = $marcsubjctsarray;
         $dat->{MARCAUTHORS}    = $marcauthorsarray;
         $dat->{HASAUTHORS}     = $hasauthors;
         $dat->{'biblionumber'} = $biblionumber;
-        $dat->{ITEM_RESULTS}   = \@items;
+        $dat->{ITEM_RESULTS}   = $items;
+        my ( $host, $relatedparts ) = $biblio->get_marc_host;
+        $dat->{HOSTITEMENTRIES} = $host;
+        $dat->{RELATEDPARTS} = $relatedparts;
 
         $iso2709 .= $record->as_usmarc();
 
@@ -178,7 +180,7 @@ END_OF_BODY
     output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
 }
 else {
-    my $new_session_id = $cookie->value;
+    my $new_session_id = $query->cookie('CGISESSID');
     $template->param(
         bib_list       => $bib_list,
         url            => "/cgi-bin/koha/opac-sendbasket.pl",

@@ -19,14 +19,15 @@ package Koha::ArticleRequest;
 
 use Modern::Perl;
 
-use Carp;
-
+use Koha::Account::Lines;
 use Koha::Database;
 use Koha::Patrons;
 use Koha::Biblios;
 use Koha::Items;
 use Koha::Libraries;
-use Koha::DateUtils qw(dt_from_string);
+use Koha::DateUtils qw( dt_from_string );
+use Koha::ArticleRequest::Status;
+use Koha::Exceptions::ArticleRequest;
 
 use base qw(Koha::Object);
 
@@ -36,24 +37,59 @@ Koha::ArticleRequest - Koha Article Request Object class
 
 =head1 API
 
-=head2 Class Methods
+=head2 Class methods
 
 =cut
 
-=head3 open
+=head3 request
+
+    $article_request->request;
+
+Marks the article as requested. Send a notification if appropriate.
 
 =cut
 
-sub open {
+sub request {
+    my ($self) = @_;
+
+    Koha::Exceptions::ArticleRequest::LimitReached->throw(
+        error => 'Patron cannot request more articles for today'
+    ) unless $self->borrower->can_request_article;
+
+    $self->status(Koha::ArticleRequest::Status::Requested);
+
+    # Handle possible fees
+    my $debit = $self->borrower->add_article_request_fee_if_needed({ item_id => $self->itemnumber });
+    $self->debit_id( $debit->id )
+        if $debit;
+
+    $self->store();
+    $self->notify();
+    return $self;
+}
+
+=head3 set_pending
+
+    $article_request->set_pending;
+
+Marks the article as pending. Send a notification if appropriate.
+
+=cut
+
+sub set_pending {
     my ($self) = @_;
 
     $self->status(Koha::ArticleRequest::Status::Pending);
-    $self->SUPER::store();
+    $self->store();
     $self->notify();
     return $self;
 }
 
 =head3 process
+
+    $article_request->process;
+
+Marks the article as in process. Send a notification if appropriate.
 
 =cut
 
@@ -68,6 +104,10 @@ sub process {
 
 =head3 complete
 
+    $article_request->complete;
+
+Marks the article as completed. Send a notification if appropriate.
+
 =cut
 
 sub complete {
@@ -81,54 +121,52 @@ sub complete {
 
 =head3 cancel
 
+    $article_request->cancel;
+
+Marks the article as cancelled. Send a notification if appropriate.
+
 =cut
 
 sub cancel {
-    my ( $self, $notes ) = @_;
+    my ( $self, $params ) = @_;
+
+    my $cancellation_reason = $params->{cancellation_reason};
+    my $notes = $params->{notes};
 
     $self->status(Koha::ArticleRequest::Status::Canceled);
+    $self->cancellation_reason($cancellation_reason) if $cancellation_reason;
     $self->notes($notes) if $notes;
     $self->store();
     $self->notify();
-    return $self;
-}
 
-=head3 notify
+    my $debit = $self->debit;
 
-=cut
+    if ( $debit ) {
+        # fees found, refund
+        my $account = $self->borrower->account;
 
-sub notify {
-    my ($self) = @_;
+        my $total_reversible = $debit->debit_offsets->filter_by_reversible->total;
+        if ( $total_reversible ) {
 
-    my $status = $self->status;
+            $account->add_credit(
+                {
+                    amount       => abs $total_reversible,
+                    interface    => C4::Context->interface,
+                    type         => 'REFUND',
+                }
+            );
+        }
 
-    require C4::Letters;
-    if (
-        my $letter = C4::Letters::GetPreparedLetter(
-            module                 => 'circulation',
-            letter_code            => "AR_$status", # AR_PENDING, AR_PROCESSING, AR_COMPLETED, AR_CANCELED
-            message_transport_type => 'email',
-            lang                   => $self->borrower->lang,
-            tables                 => {
-                article_requests => $self->id,
-                borrowers        => $self->borrowernumber,
-                biblio           => $self->biblionumber,
-                biblioitems      => $self->biblionumber,
-                items            => $self->itemnumber,
-                branches         => $self->branchcode,
-            },
-        )
-      )
-    {
-        C4::Letters::EnqueueLetter(
-            {
-                letter                 => $letter,
-                borrowernumber         => $self->borrowernumber,
-                message_transport_type => 'email',
-                branchcode             => $self->branchcode,
-            }
-        ) or warn "can't enqueue letter ". $letter->{code};
+        if ( $debit->amountoutstanding ) {
+            $debit->reduce({
+                reduction_type => 'REFUND',
+                amount         => $debit->amountoutstanding,
+                interface      => C4::Context->interface,
+            })->discard_changes;
+        }
     }
+
+    return $self;
 }
 
 =head3 biblio
@@ -143,6 +181,23 @@ sub biblio {
     $self->{_biblio} ||= Koha::Biblios->find( $self->biblionumber() );
 
     return $self->{_biblio};
+}
+
+=head3 debit
+
+    my $debit = $article_request->debit;
+
+Returns the related Koha::Account::Line object for this article request
+
+=cut
+
+sub debit {
+    my ($self) = @_;
+
+    my $debit_rs = $self->_result->debit;
+    return unless $debit_rs;
+
+    return Koha::Account::Line->_new_from_dbic( $debit_rs );
 }
 
 =head3 item
@@ -196,11 +251,69 @@ will have notifications sent.
 
 sub store {
     my ($self) = @_;
-    if ( $self->in_storage ) {
-        return $self->SUPER::store;
-    } else {
+
+    if ( !$self->in_storage ) {
         $self->created_on( dt_from_string() );
-        return $self->open;
+    }
+
+    return $self->SUPER::store;
+}
+
+=head2 Internal methods
+
+=head3 notify
+
+    $self->notify();
+
+internal method to be called when changing an article request status.
+If a letter exists for the new status, it enqueues it.
+
+=cut
+
+sub notify {
+    my ($self) = @_;
+
+    my $status = $self->status;
+    my $reason = $self->notes;
+    if ( !defined $reason && $self->cancellation_reason ) {
+        my $av = Koha::AuthorisedValues->search(
+            {
+                category            => 'AR_CANCELLATION',
+                authorised_value    => $self->cancellation_reason
+            }
+        )->next;
+        $reason = $av->lib_opac ? $av->lib_opac : $av->lib if $av;
+    }
+
+    require C4::Letters;
+    if (
+        my $letter = C4::Letters::GetPreparedLetter(
+            module                 => 'circulation',
+            letter_code            => "AR_$status", # AR_REQUESTED, AR_PENDING, AR_PROCESSING, AR_COMPLETED, AR_CANCELED
+            message_transport_type => 'email',
+            lang                   => $self->borrower->lang,
+            tables                 => {
+                article_requests => $self->id,
+                borrowers        => $self->borrowernumber,
+                biblio           => $self->biblionumber,
+                biblioitems      => $self->biblionumber,
+                items            => $self->itemnumber,
+                branches         => $self->branchcode,
+            },
+            substitute => {
+                reason => $reason,
+            },
+        )
+      )
+    {
+        C4::Letters::EnqueueLetter(
+            {
+                letter                 => $letter,
+                borrowernumber         => $self->borrowernumber,
+                message_transport_type => 'email',
+                branchcode             => $self->branchcode,
+            }
+        ) or warn "can't enqueue letter " . $letter->{code};
     }
 }
 

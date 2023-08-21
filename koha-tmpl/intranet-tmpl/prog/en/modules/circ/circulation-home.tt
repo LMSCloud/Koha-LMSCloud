@@ -6,23 +6,21 @@
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="circ_circulation-home" class="circ">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'circ-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Circulation
-            </a>
-        </li>
-    </ol>
-</nav>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Circulation</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
     <div class="main container-fluid">
+
+        <h1>Circulation</h1>
 
         <div class="row">
 
@@ -81,10 +79,27 @@
                     <li>
                         <a class="circ-button" href="/cgi-bin/koha/circ/waitingreserves.pl"><i class="fa fa-calendar"></i> Holds awaiting pickup</a>
                     </li>
+                    [% IF ( Koha.Preference('CurbsidePickup') && CAN_user_circulate_manage_curbside_pickups ) %]
+                    <li>
+                        <a class="circ-button" href="/cgi-bin/koha/circ/curbside_pickups.pl"><i class="fa fa-refresh"></i> Curbside pickups</a>
+                    </li>
+                    [% END %]
                     <li>
                         <a class="circ-button" href="/cgi-bin/koha/circ/reserveratios.pl"><i class="fa fa-line-chart"></i> Hold ratios</a>
                     </li>
                 </ul>
+
+                [% IF Koha.Preference('UseRecalls') and CAN_user_recalls %]
+                    <h3>Recalls</h3>
+
+                    <ul class="buttons-list">
+                        <li><a class="circ-button" href="/cgi-bin/koha/recalls/recalls_queue.pl" title="All active recalls"><i class="fa fa-tasks"></i> Recalls queue</a></li>
+                        <li><a class="circ-button" href="/cgi-bin/koha/recalls/recalls_to_pull.pl" title="Recalls that could be filled but have not been set waiting"><i class="fa fa-hand-grab-o"></i> Recalls to pull</a></li>
+                        <li><a class="circ-button" href="/cgi-bin/koha/recalls/recalls_overdue.pl" title="Recalled items that are overdue to be returned"><i class="fa fa-clock-o"></i> Overdue recalls</a></li>
+                        <li><a class="circ-button" href="/cgi-bin/koha/recalls/recalls_waiting.pl" title="Recalled items awaiting pickup"><i class="fa fa-calendar"></i> Recalls awaiting pickup</a></li>
+                        <li><a class="circ-button" href="/cgi-bin/koha/recalls/recalls_old_queue.pl" title="Inactive recalls"><i class="fa fa-tasks"></i> Old recalls</a></li>
+                    </ul>
+                [% END %]
             </div>
 
             <!-- Add the extra clearfix for only the required viewport -->

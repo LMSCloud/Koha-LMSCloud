@@ -1,10 +1,10 @@
 # Compendium of es.
 msgid ""
 msgstr ""
-"Project-Id-Version: Koha 21.05\n"
+"Project-Id-Version: Koha 22.11\n"
 "POT-Creation-Date: 2013-05-02 01:13-0300\n"
-"PO-Revision-Date: 2021-12-13 12:54+0000\n"
-"Last-Translator: Tomás Cohen Arazi <tomascohen@gmail.com>\n"
+"PO-Revision-Date: 2023-04-27 13:21+0000\n"
+"Last-Translator: Rocio Sol Lopez <rociolopez@theke.io>\n"
 "Language-Team: Koha Translation Team\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -12,9 +12,9 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Pootle 2.8\n"
-"X-Pootle-Path: /es/21.05/es-ES-installer-MARC21.po\n"
+"X-Pootle-Path: /es/22.11/es-ES-installer-MARC21.po\n"
 "X-Pootle-Revision: 1\n"
-"X-POOTLE-MTIME: 1639400054.628161\n"
+"X-POOTLE-MTIME: 1682601706.063760\n"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1080
 msgid " Linkage"
@@ -849,7 +849,7 @@ msgstr "INFORMACIÓN NIVEL-COPIA (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:15
 msgid "COPYRIGHT ARTICLE-FEE CODE"
-msgstr "DERECHOS DE AUTOR DEL ARTÍCULO-CÓDIGO DE TARIFA"
+msgstr "DERECHOS DE AUTOR DEL ARTÍCULO-CÓDIGO DE CARGO"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_tag_structure:7:row:14
 msgid "COPYRIGHT OR LEGAL DEPOSIT NUMBER"
@@ -1168,8 +1168,8 @@ msgid "Codeset name and source"
 msgstr "Nombre y fuente del conjunto de códigos"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:9
-msgid "Collection code"
-msgstr "Código de colección"
+msgid "Collection"
+msgstr "Colección"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:439
 msgid "Collective title"
@@ -1381,7 +1381,7 @@ msgstr "Copy status--for earlier dates, CST (RLIN)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:42
 msgid "Copyright article-fee code"
-msgstr "Derechos de autor del artículo-código de tarifa"
+msgstr "Derechos de autor del artículo-código de cargo"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1413
 msgid "Copyright date"
@@ -4193,7 +4193,7 @@ msgstr "Nombre"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:2862
 msgid "Name (custodian or owner)"
-msgstr "Nombre (conservador o dueño)"
+msgstr "Nombre (custodio o propietario)"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:481
 msgid "Name following place as an entry element {OBSOLETE]"
@@ -5893,7 +5893,7 @@ msgid "Serial"
 msgstr "Publicación periódica"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:18
-msgid "Serial Enumeration / chronology"
+msgid "Serial enumeration / chronology"
 msgstr "Enumeración/cronología de publicación seriada"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:660
@@ -6699,16 +6699,12 @@ msgid "Topical term or geographic name entry element"
 msgstr "Término de materia o nombre geográfico como elemento de entrada"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:21
-msgid "Total Checkouts"
+msgid "Total checkouts"
 msgstr "Total de préstamos"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:23
-msgid "Total Holds"
-msgstr "Fondos totales"
-
-#: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:22
-msgid "Total Renewals"
-msgstr "Renovaciones totales"
+msgid "Total holds"
+msgstr "Total de reservas"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:710
 msgid "Total number of ensembles"
@@ -6721,6 +6717,10 @@ msgstr "Número total de individuos que interpretan junto a los conjuntos"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:709
 msgid "Total number of performers"
 msgstr "Número total de intérpretes"
+
+#: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:22
+msgid "Total renewals"
+msgstr "Total de renovaciones"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:857
 msgid "Track configuration"
@@ -6837,6 +6837,10 @@ msgstr "Identificador Uniforme del Recurso [LOCAL, KOHA]"
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_types:1:row:9
 msgid "Uniform Title"
 msgstr "Título uniforme"
+
+#: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:30
+msgid "Uniform resource identifier"
+msgstr "Identificador uniforme de recursos"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:406
 msgid "Uniform title"
@@ -7060,7 +7064,7 @@ msgstr "Ancho"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1171
 msgid "With note"
-msgstr "Nota de “Con”"
+msgstr "Nota de \"Con\""
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:1
 msgid "Withdrawn status"

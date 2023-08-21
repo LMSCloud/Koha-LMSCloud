@@ -1,0 +1,51 @@
+/public/coverflow_data_query:
+  get:
+    x-mojo-to: CoverflowDataQuery#get
+    operationId: getCoverflowDataQuery
+    description: Get coverflow data based on a catalog query
+    summary: Get coverflow data based on a catalog query
+    tags:
+      - coverflow_data_query
+    summary: Get coverflow data by query string
+    parameters:
+      - name: query
+        in: query
+        description: Query string used as search term
+        required: false
+        type: string
+      - name: offset
+        in: query
+        description: Query offset of biblio index
+        required: false
+        type: integer
+      - name: maxcount
+        in: query
+        description: The number of items to be returned from query
+        required: false
+        type: integer
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      '200':
+        description: An object that contains coverflow data in a list of biblios by query string
+        schema:
+          type: object
+          items:
+            $ref: "../swagger.yaml#/definitions/coverflow_data_query"
+      '403':
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '500':
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '503':
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"

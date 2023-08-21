@@ -21,24 +21,17 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Output;
-use C4::Auth;
-use C4::Circulation;
-use C4::Members;
-use C4::Biblio;
-use C4::Items;
-use Date::Calc qw(
-  Today
-  Add_Delta_Days
-  Date_to_Days
-);
-use C4::Reserves;
-use C4::Koha;
-use Koha::DateUtils;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
+use C4::Items qw( ModItemTransfer );
+use Date::Calc qw( Date_to_Days Today );
+use C4::Reserves qw( ModReserve ModReserveCancelAll );
+use Koha::DateUtils qw( dt_from_string );
 use Koha::BiblioFrameworks;
 use Koha::Items;
 use Koha::ItemTypes;
 use Koha::Patrons;
+use Koha::BackgroundJob::BatchCancelHold;
 
 my $input = CGI->new;
 
@@ -49,6 +42,7 @@ my $tbr            = $input->param('tbr') || '';
 my $all_branches   = $input->param('allbranches') || '';
 my $cancelall      = $input->param('cancelall');
 my $tab            = $input->param('tab');
+my $cancelBulk     = $input->param('cancelBulk');
 
 my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
     {
@@ -56,7 +50,6 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { circulate => "circulate_remaining_permissions" },
-        debug           => 1,
     }
 );
 
@@ -79,6 +72,21 @@ if ( C4::Context->preference('IndependentBranches') ) {
       unless $all_branches;
 }
 $template->param( all_branches => 1 ) if $all_branches;
+
+if ($cancelBulk) {
+    my $reason   = $input->param("cancellation-reason");
+    my @hold_ids = split( ',', scalar $input->param("ids") );
+    my $params   = {
+        reason   => $reason,
+        hold_ids => \@hold_ids,
+    };
+    my $job_id = Koha::BackgroundJob::BatchCancelHold->new->enqueue($params);
+
+    $template->param(
+        enqueued => 1,
+        job_id   => $job_id
+    );
+}
 
 my (@reserve_loop, @over_loop);
 # FIXME - Is priority => 0 useful? If yes it must be moved to waiting, otherwise we need to remove it from here.
@@ -111,6 +119,8 @@ while ( my $hold = $holds->next ) {
     
 }
 
+my $holds_with_cancellation_requests = Koha::Holds->waiting->filter_by_has_cancellation_requests;
+
 $template->param(cancel_result => \@cancel_result) if @cancel_result;
 
 $template->param(
@@ -118,7 +128,9 @@ $template->param(
     reservecount => scalar @reserve_loop,
     overloop    => \@over_loop,
     overcount   => scalar @over_loop,
-    show_date   => output_pref({ dt => dt_from_string, dateformat => 'iso', dateonly => 1 }),
+    cancel_reqs_count => $holds_with_cancellation_requests->count,
+    cancel_reqs => $holds_with_cancellation_requests,
+    show_date   => dt_from_string,
     tab => $tab,
 );
 

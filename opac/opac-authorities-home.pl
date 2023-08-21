@@ -1,5 +1,4 @@
 #!/usr/bin/perl
-# WARNING: 4-character tab stops here
 
 # Copyright 2000-2002 Katipo Communications
 #
@@ -21,15 +20,15 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use URI::Escape;
-use C4::Auth;
+use URI::Escape qw( uri_escape_utf8 );
+use C4::Auth qw( get_template_and_user );
 
 use C4::Context;
-use C4::Auth;
-use C4::Output;
-use C4::AuthoritiesMarc;
+use C4::Output qw( pagination_bar output_html_with_http_headers );
 use C4::Koha;
 use C4::Search::History;
+use C4::Languages;
+use Koha::XSLT::Base;
 
 use Koha::Authority::Types;
 use Koha::SearchEngine::Search;
@@ -71,7 +70,6 @@ if ( $op eq "do_search" ) {
             query           => $query,
             type            => 'opac',
             authnotrequired => 1,
-            debug           => 1,
         }
     );
     $template->param( search_query => $search_query ) if C4::Context->preference('DumpSearchQueryTemplate');
@@ -101,6 +99,27 @@ if ( $op eq "do_search" ) {
     }
     else {
         $to = $startfrom * $resultsperpage;
+    }
+
+    my $AuthorityXSLTOpacResultsDisplay = C4::Context->preference('AuthorityXSLTOpacResultsDisplay');
+    if ($results && $AuthorityXSLTOpacResultsDisplay) {
+        my $lang = C4::Languages::getlanguage();
+        foreach my $result (@$results) {
+            my $authority = Koha::Authorities->find($result->{authid});
+            next unless $authority;
+            my $authtypecode = $authority->authtypecode;
+            my $xsl = $AuthorityXSLTOpacResultsDisplay;
+
+            $xsl =~ s/\{langcode\}/$lang/g;
+            $xsl =~ s/\{authtypecode\}/$authtypecode/g;
+            my $xslt_engine = Koha::XSLT::Base->new;
+            my $output = $xslt_engine->transform({ xml => $authority->marcxml, file => $xsl });
+            if ($xslt_engine->err) {
+                warn "XSL transformation failed ($xsl): " . $xslt_engine->err;
+                next;
+            }
+            $result->{html} = $output;
+        }
     }
 
     $template->param( result => $results ) if $results;
@@ -170,7 +189,6 @@ else {
             query           => $query,
             type            => 'opac',
             authnotrequired => ( C4::Context->preference("OpacPublic") ? 1 : 0 ),
-            debug           => 1,
         }
     );
 
@@ -183,7 +201,3 @@ $template->param(
 
 # Print the page
 output_html_with_http_headers $query, $cookie, $template->output;
-
-# Local Variables:
-# tab-width: 4
-# End:

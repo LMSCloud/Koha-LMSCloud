@@ -27,27 +27,16 @@
 
 use Modern::Perl;
 
-BEGIN {
-
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/kohalib.pl" };
-}
-
-use Date::Calc qw/Date_to_Days/;
+use Date::Calc qw( Date_to_Days );
 
 use Koha::Script -cron;
 use C4::Context;
-use C4::Circulation;
-use C4::Overdues;
+use C4::Overdues qw( CalcFine checkoverdues GetFine Getoverdues );
 use C4::Calendar qw();    # don't need any exports from Calendar
-use C4::Biblio;
-use C4::Debug;            # supplying $debug and $cgi_debug
-use C4::Log;
-use Getopt::Long;
-use List::MoreUtils qw/none/;
-use Koha::DateUtils;
+use C4::Log qw( cronlogaction );
+use Getopt::Long qw( GetOptions );
+use List::MoreUtils qw( none );
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Patrons;
 
 my $help    = 0;
@@ -60,8 +49,10 @@ my $delay;
 my $useborrowerlibrary;
 my $borrowernumberlimit;
 my $borrowersalreadyapplied; # hashref of borrowers for whom we already applied the fine, so it's only applied once
-my $debug = $ENV{'DEBUG'} || 0;
+my $debug = 0;
 my $bigdebug = 0;
+
+my $command_line_options = join(" ",@ARGV);
 
 GetOptions(
     'h|help'      => \$help,
@@ -92,7 +83,7 @@ This script has the following parameters :
 ENDUSAGE
 die $usage if $help;
 
-cronlogaction();
+cronlogaction({ info => $command_line_options });
 
 my $dbh = C4::Context->dbh;
 
@@ -104,7 +95,7 @@ foreach (@pcategories) {
 }
 
 use vars qw(@borrower_fields @item_fields @other_fields);
-use vars qw($fldir $libname $control $mode $delim $dbname $today $today_iso $today_days);
+use vars qw($fldir $libname $control $branch_type $mode $delim $dbname $today $today_iso $today_days);
 use vars qw($filename);
 
 CHECK {
@@ -113,6 +104,7 @@ CHECK {
     @other_fields    = qw(type days_overdue fine);
     $libname         = C4::Context->preference('LibraryName');
     $control         = C4::Context->preference('CircControl');
+    $branch_type     = C4::Context->preference('HomeOrHoldingBranch') || 'homebranch';
     $mode            = C4::Context->preference('finesMode');
     $dbname          = C4::Context->config('database');
     $delim           = "\t";                                                                          # ?  C4::Context->preference('delimiter') || "\t";
@@ -137,7 +129,7 @@ if (defined $borrowernumberlimit) {
 my $overdueItemsCounted = 0;
 my %calendars           = ();
 $today      = dt_from_string;
-$today_iso  = output_pref( { dt => $today, dateonly => 1, dateformat => 'iso' } );
+$today_iso  = $today->ymd;
 my ($tyear, $tmonth, $tday) = split( /-/, $today_iso );
 $today_days = Date_to_Days( $tyear, $tmonth, $tday );
 
@@ -166,7 +158,7 @@ for ( my $i = 0 ; $i < scalar(@$data) ; $i++ ) {
 
     my $branchcode =
         ( $useborrowerlibrary )           ? $patron->branchcode
-      : ( $control eq 'ItemHomeLibrary' ) ? $data->[$i]->{homebranch}
+      : ( $control eq 'ItemHomeLibrary' ) ? $data->[$i]->{$branch_type}
       : ( $control eq 'PatronLibrary' )   ? $patron->branchcode
       :                                     $data->[$i]->{branchcode};
     # In final case, CircControl must be PickupLibrary. (branchcode comes from issues table here).
@@ -249,3 +241,4 @@ Number of Overdue Items:
 EOM
 }
 
+cronlogaction({ action => 'End', info => "COMPLETED" });

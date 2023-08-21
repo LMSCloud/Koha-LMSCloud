@@ -25,7 +25,8 @@ use Koha::BiblioFrameworks;
 use Koha::Biblioitems;
 use Koha::Items;
 use Koha::ItemTypes;
-use C4::Biblio;
+use Koha::Patrons;
+use C4::Biblio qw( GetMarcFromKohaField );
 
 {
     my $items = Koha::Items->search({ -or => { homebranch => undef, holdingbranch => undef }});
@@ -117,16 +118,77 @@ use C4::Biblio;
             new_hint("The biblioitems must have a itemtype value that is defined in the item types of Koha (Home › Administration › Item types administration)");
         }
     }
-    my @decoding_errors;
+
+    my ( @decoding_errors, @ids_not_in_marc );
     my $biblios = Koha::Biblios->search;
+    my ( $biblio_tag,     $biblio_subfield )     = C4::Biblio::GetMarcFromKohaField( "biblio.biblionumber" );
+    my ( $biblioitem_tag, $biblioitem_subfield ) = C4::Biblio::GetMarcFromKohaField( "biblioitems.biblioitemnumber" );
     while ( my $biblio = $biblios->next ) {
-        eval{$biblio->metadata->record;};
-        push @decoding_errors, $@ if $@;
+        my $record = eval{$biblio->metadata->record;};
+        if ($@) {
+            push @decoding_errors, $@;
+            next;
+        }
+        my ( $biblionumber, $biblioitemnumber );
+        if ( $biblio_tag < 10 ) {
+            my $biblio_control_field = $record->field($biblio_tag);
+            $biblionumber = $biblio_control_field->data if $biblio_control_field;
+        } else {
+            $biblionumber = $record->subfield( $biblio_tag, $biblio_subfield );
+        }
+        if ( $biblioitem_tag < 10 ) {
+            my $biblioitem_control_field = $record->field($biblioitem_tag);
+            $biblioitemnumber = $biblioitem_control_field->data if $biblioitem_control_field;
+        } else {
+            $biblioitemnumber = $record->subfield( $biblioitem_tag, $biblioitem_subfield );
+        }
+        if ( $biblionumber != $biblio->biblionumber ) {
+            push @ids_not_in_marc,
+              {
+                biblionumber         => $biblio->biblionumber,
+                biblionumber_in_marc => $biblionumber,
+              };
+        }
+        if ( $biblioitemnumber != $biblio->biblioitem->biblioitemnumber ) {
+            push @ids_not_in_marc,
+            {
+                biblionumber     => $biblio->biblionumber,
+                biblioitemnumber => $biblio->biblioitem->biblioitemnumber,
+                biblioitemnumber_in_marc => $biblionumber,
+            };
+        }
     }
     if ( @decoding_errors ) {
         new_section("Bibliographic records have invalid MARCXML");
         new_item($_) for @decoding_errors;
         new_hint("The bibliographic records must have a valid MARCXML or you will face encoding issues or wrong displays");
+    }
+    if (@ids_not_in_marc) {
+        new_section("Bibliographic records have MARCXML without biblionumber or biblioitemnumber");
+        for my $id (@ids_not_in_marc) {
+            if ( exists $id->{biblioitemnumber} ) {
+                new_item(
+                    sprintf(q{Biblionumber %s has biblioitemnumber '%s' but should be '%s' in %s$%s},
+                        $id->{biblionumber},
+                        $id->{biblioitemnumber},
+                        $id->{biblioitemnumber_in_marc},
+                        $biblioitem_tag,
+                        $biblioitem_subfield,
+                    )
+                );
+            }
+            else {
+                new_item(
+                    sprintf(q{Biblionumber %s has '%s' in %s$%s},
+                        $id->{biblionumber},
+                        $id->{biblionumber_in_marc},
+                        $biblio_tag,
+                        $biblio_subfield,
+                    )
+                );
+            }
+        }
+        new_hint("The bibliographic records must have the biblionumber and biblioitemnumber in MARCXML");
     }
 }
 
@@ -186,14 +248,18 @@ use C4::Biblio;
     if (%$invalid_av_per_framework) {
         new_section('Wrong values linked to authorised values');
         for my $frameworkcode ( keys %$invalid_av_per_framework ) {
-            my $output;
             while ( my ( $av_category, $v ) = each %{$invalid_av_per_framework->{$frameworkcode}} ) {
                 my $items     = $v->{items};
                 my $kohafield = $v->{kohafield};
                 my ( $table, $column ) = split '\.', $kohafield;
+                my $output;
                 while ( my $i = $items->next ) {
-                    my $value = $table eq 'items' ? $i->$column : $i->biblioitem->$column;
-                    $output .= " {" . $i->itemnumber . " => " . $value . "}";
+                    my $value = $table eq 'items'
+                        ? $i->$column
+                        : $table eq 'biblio'
+                        ? $i->biblio->$column
+                        : $i->biblioitem->$column;
+                    $output .= " {" . $i->itemnumber . " => " . $value . "}\n";
                 }
                 new_item(
                     sprintf(
@@ -222,7 +288,41 @@ use C4::Biblio;
         while ( my $biblio = $biblios->next ) {
             new_item(sprintf "Biblio with biblionumber=%s does not have title defined", $biblio->biblionumber);
         }
-        new_hint("Edit these biblio records to defined a title");
+        new_hint("Edit these bibliographic records to define a title");
+    }
+}
+
+{
+    my $aging_patrons = Koha::Patrons->search(
+        {
+            -not => {
+                -or => {
+                    'me.dateofbirth' => undef,
+                    -and => {
+                        'categorycode.dateofbirthrequired' => undef,
+                        'categorycode.upperagelimit'       => undef,
+                    }
+                }
+            }
+        },
+        { prefetch => ['categorycode'] },
+        { order_by => [ 'me.categorycode', 'me.borrowernumber' ] },
+    );
+    my @invalid_patrons;
+    while ( my $aging_patron = $aging_patrons->next ) {
+        push @invalid_patrons, $aging_patron unless $aging_patron->is_valid_age;
+    }
+    if (@invalid_patrons) {
+        new_section("Patrons with invalid age for category");
+        foreach my $invalid_patron (@invalid_patrons) {
+            my $category = $invalid_patron->category;
+            new_item(
+                sprintf "Patron borrowernumber=%s has an invalid age of %s for their category '%s' (%s to %s)",
+                $invalid_patron->borrowernumber, $invalid_patron->get_age, $category->categorycode,
+                $category->dateofbirthrequired // '0',  $category->upperagelimit // 'unlimited'
+            );
+        }
+        new_hint("You may change the patron's category automatically with misc/cronjobs/update_patrons_category.pl");
     }
 }
 
@@ -259,5 +359,6 @@ Catch data inconsistencies in Koha database
     then items.itype must be set else biblioitems.itemtype must be set
   * Item types defined in items or biblioitems must be defined in the itemtypes table
 * Invalid MARCXML in bibliographic records
+* Patrons with invalid category types due to lower and upper age limits
 
 =cut

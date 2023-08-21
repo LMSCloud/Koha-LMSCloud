@@ -7,7 +7,7 @@
             [% ELSE %]
                 <li>
             [% END %]
-                <a href="/cgi-bin/koha/opac-user.pl">your summary</a></li>
+                <a href="/cgi-bin/koha/opac-user.pl">Summary</a></li>
 
             [% IF ( Koha.Preference('BibtipPatronSpecificRecommendations') && Koha.Preference('opacreadinghistory') ) %]
                 [% IF ( recommendationview ) %]
@@ -15,16 +15,16 @@
                 [% ELSE %]
                     <li>
                 [% END %]
-                <a href="/cgi-bin/koha/opac-user-recommendations.pl">your recommendations</a></li>
+                <a href="/cgi-bin/koha/opac-user-recommendations.pl">Recommendations</a></li>
             [% END %]
-            
+
             [% IF ( OPACFinesTab ) %]
                 [% IF ( accountview ) %]
                     <li class="active">
                 [% ELSE %]
                     <li>
                 [% END %]
-                <a href="/cgi-bin/koha/opac-account.pl">your charges</a></li>
+                <a href="/cgi-bin/koha/opac-account.pl">Charges</a></li>
             [% END %]
 
             [% IF ( userupdateview ) %]
@@ -32,11 +32,11 @@
             [% ELSE %]
                 <li>
             [% END %]
-                <a href="/cgi-bin/koha/opac-memberentry.pl">your personal details</a></li>
+                <a href="/cgi-bin/koha/opac-memberentry.pl">Personal details</a></li>
 
-            [% IF Koha.Preference('GDPR_Policy') # remove when extending %]
+            [% IF Koha.Preference('PrivacyPolicyConsent') # remove when extending %]
                 [% IF consentview %]<li class="active">[% ELSE %]<li>[% END %]
-                    <a href="/cgi-bin/koha/opac-patron-consent.pl">your consents</a>
+                    <a href="/cgi-bin/koha/opac-patron-consent.pl">Consents</a>
                 </li>
             [% END %]
 
@@ -46,7 +46,7 @@
                 [% ELSE %]
                     <li>
                 [% END %]
-                <a href="/cgi-bin/koha/opac-tags.pl?mine=1">your tags</a></li>
+                <a href="/cgi-bin/koha/opac-tags.pl?mine=1">Tags</a></li>
             [% END %]
 
             [% IF logged_in_user.category.effective_change_password %]
@@ -55,7 +55,7 @@
                 [% ELSE %]
                     <li>
                 [% END %]
-                <a href="/cgi-bin/koha/opac-passwd.pl">change your password</a></li>
+                <a href="/cgi-bin/koha/opac-passwd.pl">Change password</a></li>
             [% END %]
 
             [% IF ( OpacRenewCard ) %]
@@ -73,7 +73,7 @@
                 [% ELSE %]
                     <li>
                 [% END %]
-                <a href="/cgi-bin/koha/opac-search-history.pl">your search history</a></li>
+                <a href="/cgi-bin/koha/opac-search-history.pl">Search history</a></li>
             [% END %]
 
             [% IF ( opacreadinghistory ) %]
@@ -82,14 +82,14 @@
                 [% ELSE %]
                     <li>
                 [% END %]
-                <a href="/cgi-bin/koha/opac-readingrecord.pl">your checkout history</a></li>
+                <a href="/cgi-bin/koha/opac-readingrecord.pl">Checkout history</a></li>
                 [% IF ( OPACPrivacy ) %]
                     [% IF ( privacyview ) %]
                         <li class="active">
                     [% ELSE %]
                         <li>
                     [% END %]
-                    <a href="/cgi-bin/koha/opac-privacy.pl">your privacy</a></li>
+                    <a href="/cgi-bin/koha/opac-privacy.pl">Privacy</a></li>
                 [% END %]
             [% END # / opacreadinghistory %]
 
@@ -99,26 +99,35 @@
                 [% ELSE %]
                     <li>
                 [% END %]
-                <a href="/cgi-bin/koha/opac-holdshistory.pl">your holds history</a></li>
+                <a href="/cgi-bin/koha/opac-holdshistory.pl">Holds history</a></li>
             [% END %]
 
-            [% IF Koha.Preference( 'suggestion' ) == 1 %]
+            [% IF Koha.Preference('UseRecalls') %]
+                [% IF ( recallsview ) %]
+                    <li class="active">
+                [% ELSE %]
+                    <li>
+                [% END %]
+                <a href="/cgi-bin/koha/opac-recalls.pl">Recalls history</a>
+            [% END %]
+
+            [% IF ( suggestion ) %]
                 [% IF ( suggestionsview ) %]
                     <li class="active">
                 [% ELSE %]
                     <li>
                 [% END %]
-                <a href="/cgi-bin/koha/opac-suggestions.pl">your purchase suggestions</a></li>
+                <a href="/cgi-bin/koha/opac-suggestions.pl">Purchase suggestions</a></li>
             [% END %]
 
             [% IF ( EnhancedMessagingPreferences ) %]
-                [% IF Koha.Preference( 'EnhancedMessagingPreferencesOPAC' ) %]
+                [% IF Koha.Preference( 'EnhancedMessagingPreferencesOPAC' ) || Koha.Preference('TranslateNotices') %]
                     [% IF ( messagingview ) %]
                         <li class="active">
                     [% ELSE %]
                         <li>
                     [% END %]
-                    <a href="/cgi-bin/koha/opac-messaging.pl">your messaging</a></li>
+                    <a href="/cgi-bin/koha/opac-messaging.pl">Messaging</a></li>
                  [% END %]
             [% END %]
 
@@ -128,7 +137,7 @@
                 [% ELSE %]
                     <li>
                 [% END %]
-                <a href="/cgi-bin/koha/opac-shelves.pl?op=list&amp;category=1">your lists</a></li>
+                <a href="/cgi-bin/koha/opac-shelves.pl?op=list">Lists</a></li>
             [% END %]
 
             [% IF Koha.Preference( 'RoutingSerials' ) && logged_in_user && logged_in_user.get_routing_lists.count %]
@@ -137,7 +146,7 @@
                 [% ELSE %]
                     <li>
                 [% END %]
-                <a href="/cgi-bin/koha/opac-routing-lists.pl">your routing lists</a></li>
+                <a href="/cgi-bin/koha/opac-routing-lists.pl">Routing lists</a></li>
             [% END %]
 
             [% IF Koha.Preference( 'useDischarge' ) == 1 %]
@@ -146,7 +155,7 @@
                 [% ELSE %]
                     <li>
                 [% END %]
-                <a href="/cgi-bin/koha/opac-discharge.pl">ask for a discharge</a></li>
+                <a href="/cgi-bin/koha/opac-discharge.pl">Ask for discharge</a></li>
             [% END %]
 
             [% IF Koha.Preference( 'ILLModule' ) == 1 %]
@@ -155,7 +164,16 @@
                 [% ELSE %]
                     <li>
                 [% END %]
-                <a href="/cgi-bin/koha/opac-illrequests.pl">your interlibrary loan requests</a></li>
+                <a href="/cgi-bin/koha/opac-illrequests.pl">Interlibrary loan requests</a></li>
+            [% END %]
+
+            [% IF Koha.Preference( 'CurbsidePickup' ) %]
+                [% IF ( ermview ) %]
+                    <li class="active">
+                [% ELSE %]
+                    <li>
+                [% END %]
+                <a href="/cgi-bin/koha/opac-curbside-pickups.pl">Curbside pickups</a></li>
             [% END %]
 
         </ul>

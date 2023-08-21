@@ -19,7 +19,6 @@ use Modern::Perl;
 
 use utf8;
 
-use C4::Debug;
 use C4::AuthoritiesMarc qw( SearchAuthorities );
 use C4::XSLT;
 require C4::Context;
@@ -31,6 +30,8 @@ use Test::More tests => 3;
 use Test::MockModule;
 use Test::Warn;
 use t::lib::Mocks;
+use t::lib::Mocks::Zebra;
+use t::lib::TestBuilder;
 
 use Koha::Caches;
 
@@ -42,56 +43,9 @@ use File::Find;
 use File::Temp qw/ tempdir /;
 use File::Path;
 
-our $child;
-our $datadir;
-
-sub index_sample_records_and_launch_zebra {
-    my ($datadir, $marc_type) = @_;
-
-    my $sourcedir = dirname(__FILE__) . "/data";
-    unlink("$datadir/zebra.log");
-    if (-f "$sourcedir/${marc_type}/zebraexport/biblio/exported_records") {
-        my $zebra_bib_cfg = 'zebra-biblios-dom.cfg';
-        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_bib_cfg  -v none,fatal -g iso2709 -d biblios init");
-        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_bib_cfg  -v none,fatal -g iso2709 -d biblios update $sourcedir/${marc_type}/zebraexport/biblio");
-        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_bib_cfg  -v none,fatal -g iso2709 -d biblios commit");
-    }
-    # ... and add large bib records, if present
-    if (-f "$sourcedir/${marc_type}/zebraexport/large_biblio/exported_records.xml") {
-        my $zebra_bib_cfg = 'zebra-biblios-dom.cfg';
-        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_bib_cfg  -v none,fatal -g marcxml -d biblios update $sourcedir/${marc_type}/zebraexport/large_biblio");
-        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_bib_cfg  -v none,fatal -g marcxml -d biblios commit");
-    }
-    if (-f "$sourcedir/${marc_type}/zebraexport/authority/exported_records") {
-        my $zebra_auth_cfg = 'zebra-authorities-dom.cfg';
-        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_auth_cfg  -v none,fatal -g iso2709 -d authorities init");
-        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_auth_cfg  -v none,fatal -g iso2709 -d authorities update $sourcedir/${marc_type}/zebraexport/authority");
-        system("zebraidx -c $datadir/etc/koha/zebradb/$zebra_auth_cfg  -v none,fatal -g iso2709 -d authorities commit");
-    }
-
-    $child = fork();
-    if ($child == 0) {
-        exec("zebrasrv -f $datadir/etc/koha-conf.xml -v none,request -l $datadir/zebra.log");
-        exit;
-    }
-
-    sleep(1);
-}
-
-sub cleanup {
-    if ($child) {
-        kill 9, $child;
-
-        # Clean up the Zebra files since the child process was just shot
-        rmtree $datadir;
-    }
-}
-
 # Fall back to make sure that the Zebra process
 # and files get cleaned up
-END {
-    cleanup();
-}
+our @cleanup;
 
 sub matchesExplodedTerms {
     my ($message, $query, @terms) = @_;
@@ -201,6 +155,10 @@ $contextmodule->mock('preference', sub {
         return 'branch';
     } elsif ($pref eq 'SearchLimitLibrary') {
         return 'both';
+    } elsif ($pref eq 'UseRecalls') {
+        return '0';
+    } elsif ( $pref eq 'ContentWarningField' ) {
+        return q{};
     } else {
         warn "The syspref $pref was requested but I don't know what to say; this indicates that the test requires updating"
             unless $pref =~ m/(XSLT|item|branch|holding|image)/i;
@@ -212,7 +170,7 @@ our $bibliomodule = Test::MockModule->new('C4::Biblio');
 
 sub mock_GetMarcSubfieldStructure {
     my $marc_type = shift;
-    if ($marc_type eq 'marc21') {
+    if ($marc_type eq 'MARC21') {
         $bibliomodule->mock('GetMarcSubfieldStructure', sub {
             return {
                     'biblio.biblionumber' => [{ tagfield =>  '999', tagsubfield => 'c' }],
@@ -260,23 +218,20 @@ sub mock_GetMarcSubfieldStructure {
 }
 
 sub run_marc21_search_tests {
-    $datadir = tempdir();
-    system(dirname(__FILE__) . "/zebra_config.pl $datadir marc21");
 
-    Koha::Caches->get_instance('config')->flush_all;
+    $marcflavour = 'MARC21';
+    my $mock_zebra = t::lib::Mocks::Zebra->new({marcflavour => $marcflavour});
+    push @cleanup, $mock_zebra;
 
-    mock_GetMarcSubfieldStructure('marc21');
-    my $context = C4::Context->new("$datadir/etc/koha-conf.xml");
-    $context->set_context();
+    mock_GetMarcSubfieldStructure($marcflavour);
 
-    use_ok('C4::Search');
+    use_ok('C4::Search', qw( getIndexes FindDuplicate SimpleSearch getRecords buildQuery searchResults ));
 
     # set search syspreferences to a known starting point
     $QueryStemming = 0;
     $QueryAutoTruncate = 0;
     $QueryWeightFields = 0;
     $QueryFuzzy = 0;
-    $marcflavour = 'MARC21';
 
     my $indexes = C4::Search::getIndexes();
     is(scalar(grep(/^ti$/, @$indexes)), 1, "Title index supported");
@@ -311,7 +266,23 @@ sub run_marc21_search_tests {
         'VM' => { 'imageurl' => 'bridge/dvd.png', 'summary' => '', 'itemtype' => 'VM', 'description' => 'Visual Materials' },
     );
 
-    index_sample_records_and_launch_zebra($datadir, 'marc21');
+    my $sourcedir = dirname(__FILE__) . "/data";
+    $mock_zebra->load_records(
+        sprintf( "%s/%s/zebraexport/biblio", $sourcedir, lc($marcflavour) ),
+        'iso2709', 'biblios', 1 );
+    $mock_zebra->load_records(
+        sprintf(
+            "%s/%s/zebraexport/large_biblio",
+            $sourcedir, lc($marcflavour)
+        ),
+        'marcxml', 'biblios', 0
+    );
+    $mock_zebra->load_records(
+        sprintf( "%s/%s/zebraexport/authority", $sourcedir, lc($marcflavour) ),
+        'iso2709', 'authorities', 1
+    );
+
+    $mock_zebra->launch_zebra;
 
     my ($biblionumber, $title);
     my $record = MARC::Record->new;
@@ -322,6 +293,15 @@ sub run_marc21_search_tests {
             );
     ($biblionumber,undef,$title) = FindDuplicate($record);
     is($biblionumber, 51, 'Found duplicate with ISBN');
+
+    $record = MARC::Record->new;
+    $record->add_fields(
+            [ '020', ' ', ' ', a => '0465039146' ],
+            [ '020', ' ', ' ', a => '9780465039142' ],
+            [ '245', '0', '0', a => 'Doesnt matter, searching isbn /' ]
+            );
+    ($biblionumber,undef,$title) = FindDuplicate($record);
+    is($biblionumber, 48, 'Found duplicate with ISBN when two ISBNs in record');
 
     $record = MARC::Record->new;
 
@@ -437,16 +417,16 @@ ok(MARC::Record::new_from_xml($results_hashref->{biblioserver}->{RECORDS}->[0],'
 
     ( $error, $query, $simple_query, $query_cgi,
     $query_desc, $limit, $limit_cgi, $limit_desc,
-    $query_type ) = buildQuery([ 'and' ], [ 'salud', 'higiene' ], [], [], [], 0, 'en');
-    like($query, qr/kw\W.*salud\W.*and.*kw\W.*higiene/, "Built composed explicit-and CCL keyword query");
+    $query_type ) = buildQuery([ 'AND' ], [ 'salud', 'higiene' ], [], [], [], 0, 'en');
+    like($query, qr/kw\W.*salud\W.*AND.*kw\W.*higiene/, "Built composed explicit-and CCL keyword query");
 
     ($error, $results_hashref, $facets_loop) = getRecords($query,$simple_query,[ ], [ 'biblioserver' ],20,0,\%branches,\%itemtypes,$query_type,0);
     is($results_hashref->{biblioserver}->{hits}, 3, "getRecords generated composed keyword search for 'salud' explicit-and 'higiene' matched right number of records");
 
     ( $error, $query, $simple_query, $query_cgi,
     $query_desc, $limit, $limit_cgi, $limit_desc,
-    $query_type ) = buildQuery([ 'or' ], [ 'salud', 'higiene' ], [], [], [], 0, 'en');
-    like($query, qr/kw\W.*salud\W.*or.*kw\W.*higiene/, "Built composed explicit-or CCL keyword query");
+    $query_type ) = buildQuery([ 'OR' ], [ 'salud', 'higiene' ], [], [], [], 0, 'en');
+    like($query, qr/kw\W.*salud\W.*OR.*kw\W.*higiene/, "Built composed explicit-or CCL keyword query");
 
     ($error, $results_hashref, $facets_loop) = getRecords($query,$simple_query,[ ], [ 'biblioserver' ],20,0,\%branches,\%itemtypes,$query_type,0);
     is($results_hashref->{biblioserver}->{hits}, 20, "getRecords generated composed keyword search for 'salud' explicit-or 'higiene' matched right number of records");
@@ -454,7 +434,7 @@ ok(MARC::Record::new_from_xml($results_hashref->{biblioserver}->{RECORDS}->[0],'
     ( $error, $query, $simple_query, $query_cgi,
     $query_desc, $limit, $limit_cgi, $limit_desc,
     $query_type ) = buildQuery([], [ 'salud', 'higiene' ], [], [], [], 0, 'en');
-    like($query, qr/kw\W.*salud\W.*and.*kw\W.*higiene/, "Built composed implicit-and CCL keyword query");
+    like($query, qr/kw\W.*salud\W.*AND.*kw\W.*higiene/, "Built composed implicit-and CCL keyword query");
 
     ($error, $results_hashref, $facets_loop) = getRecords($query,$simple_query,[ ], [ 'biblioserver' ],20,0,\%branches,\%itemtypes,$query_type,0);
     is($results_hashref->{biblioserver}->{hits}, 3, "getRecords generated composed keyword search for 'salud' implicit-and 'higiene' matched right number of records");
@@ -498,13 +478,17 @@ ok(MARC::Record::new_from_xml($results_hashref->{biblioserver}->{RECORDS}->[0],'
     ($error, $results_hashref, $facets_loop) = getRecords($query,$simple_query,[ ], [ 'biblioserver' ],20,0,\%branches,\%itemtypes,$query_type,0);
     is($results_hashref->{biblioserver}->{hits}, 2, "getRecords generated availability-limited search matched right number of records");
 
-    @newresults = searchResults({'interface'=>'opac'}, $query_desc, $results_hashref->{'biblioserver'}->{'hits'}, 17, 0, 0,
-        $results_hashref->{'biblioserver'}->{"RECORDS"});
-    my $allavailable = 'true';
-    foreach my $result (@newresults) {
-        $allavailable = 'false' unless $result->{availablecount} > 0;
+    {
+        my $mock_items = Test::MockModule->new('Koha::Items');
+        $mock_items->mock( 'count', 1 );
+        @newresults = searchResults({'interface'=>'opac'}, $query_desc, $results_hashref->{'biblioserver'}->{'hits'}, 17, 0, 0,
+            $results_hashref->{'biblioserver'}->{"RECORDS"});
+        my $allavailable = 'true';
+        foreach my $result (@newresults) {
+            $allavailable = 'false' unless $result->{availablecount} > 0;
+        }
+        is ($allavailable, 'true', 'All records have at least one item available');
     }
-    is ($allavailable, 'true', 'All records have at least one item available');
 
     my $mocked_xslt = Test::MockModule->new('Koha::XSLT::Base');
     $mocked_xslt->mock( 'transform', sub {
@@ -518,7 +502,7 @@ ok(MARC::Record::new_from_xml($results_hashref->{biblioserver}->{RECORDS}->[0],'
     like( $newresults[0]->{XSLTResultsRecord}, qr/<variable name="anonymous_session">1<\/variable>/, "Variable injected correctly" );
 
     my $biblio_id = $newresults[0]->{biblionumber};
-    my $fw = C4::Biblio::GetFrameworkCode($biblio_id);
+    my $fw = C4::Biblio::GetFrameworkCode($biblio_id) // '';
 
     my $dbh = C4::Context->dbh;
     # FIXME This change is revert in END
@@ -669,8 +653,14 @@ ok(MARC::Record::new_from_xml($results_hashref->{biblioserver}->{RECORDS}->[0],'
     ( $error, $query, $simple_query, $query_cgi,
     $query_desc, $limit, $limit_cgi, $limit_desc,
     $query_type ) = buildQuery([], [ 'ccl=an:42' ], [], ['available'], [], 0, 'en');
-    is( $query, "an:42 and ( (allrecords,AlwaysMatches='') and (not-onloan-count,st-numeric >= 1) and (lost,st-numeric=0) )", 'buildQuery should add the available part to the query if requested with ccl' );
+    is( $query, "an:42 and (( (allrecords,AlwaysMatches='') and (not-onloan-count,st-numeric >= 1) and (lost,st-numeric=0) ))", 'buildQuery should add the available part to the query if requested with ccl' );
     is( $query_desc, 'an:42', 'buildQuery should remove the available part from the query' );
+
+    ( $error, $query, $simple_query, $query_cgi,
+    $query_desc, $limit, $limit_cgi, $limit_desc,
+    $query_type ) = buildQuery([], [ 'ccl=an:42' ], [], ['branch:CPL'], [], 0, 'en');
+    is( $query, "an:42 and (homebranch: CPL or holdingbranch: CPL)", 'buildQuery should expand the limit as necessary for ccl queries' );
+    is( $query_desc, 'an:42', 'buildQuery should not add limit to limit desc for ccl queries' );
 
     ( $error, $query, $simple_query, $query_cgi,
     $query_desc, $limit, $limit_cgi, $limit_desc,
@@ -705,21 +695,25 @@ ok(MARC::Record::new_from_xml($results_hashref->{biblioserver}->{RECORDS}->[0],'
     ($error, $results_hashref, $facets_loop) = getRecords("Godzina pąsowej róży","Godzina pąsowej róży",[ ], [ 'biblioserver' ],20,0,\%branches,\%itemtypes,$query_type,0);
     @newresults = searchResults({'interface'=>'intranet'}, $query_desc, $results_hashref->{'biblioserver'}->{'hits'}, 17, 0, 0,
         $results_hashref->{'biblioserver'}->{"RECORDS"});
-    is($newresults[0]->{'alternateholdings_count'}, 1, 'Alternate holdings filled in correctly');
+    is(scalar(@{$newresults[0]->{'ALTERNATEHOLDINGS'}}), 1, 'Alternate holdings filled in correctly');
 
 
     ## Regression test for Bug 10741
 
     # make one of the test items appear to be in transit
     my $circ_module = Test::MockModule->new('C4::Circulation');
-    $circ_module->mock('GetTransfers', sub {
-        my $itemnumber = shift // -1;
-        if ($itemnumber == 11) {
-            return ('2013-07-19', 'MPL', 'CPL');
-        } else {
-            return;
+    my $builder = t::lib::TestBuilder->new;
+    my $transfer = $builder->build(
+        {
+            source => 'Branchtransfer',
+            value => {
+                itemnumber => 11,
+                frombranch => 'MPL',
+                tobranch => 'CPL',
+                datesent => \'NOW()'
+            }
         }
-    });
+    );
 
     ($error, $results_hashref, $facets_loop) = getRecords("TEST12121212","TEST12121212",[ ], [ 'biblioserver' ],20,0,\%branches,\%itemtypes,$query_type,0);
     @newresults = searchResults({'interface'=>'intranet'}, $query_desc, $results_hashref->{'biblioserver'}->{'hits'}, 17, 0, 0,
@@ -768,15 +762,27 @@ ok(MARC::Record::new_from_xml($results_hashref->{biblioserver}->{RECORDS}->[0],'
     );
     is($count, 1, 'MARC21 authorities: one hit on "all" (entire record) contains "professional wrestler"');
 
+    #NOTE: the 2nd parameter is unused in SearchAuthorities...
+    ($auths, $count) = SearchAuthorities(
+        ['Any','Any'], [''], [''], ['contains'],
+        ['professional wrestler','shakespeare'], 0, 10, '', '', 1
+    );
+    is($count, 2, 'MARC21 authorities: multiple values create operands implicitly joined by OR');
+
     # retrieve records that are larger than the MARC limit of 99,999 octets
     ( undef, $results_hashref, $facets_loop ) =
         getRecords('ti:marc the large record', '', [], [ 'biblioserver' ], '20', 0, \%branches, \%itemtypes, 'ccl', undef);
     is($results_hashref->{biblioserver}->{hits}, 1, "Can do a search that retrieves an over-large bib record (bug 11096)");
-    @newresults = searchResults({'interface' =>'opac'}, $query_desc, $results_hashref->{'biblioserver'}->{'hits'}, 10, 0, 0,
-        $results_hashref->{'biblioserver'}->{"RECORDS"});
-    is($newresults[0]->{title}, 'Marc the Large Record', 'Able to render the title for over-large bib record (bug 11096)');
-    is($newresults[0]->{biblionumber}, '300', 'Over-large bib record has the correct biblionumber (bug 11096)');
-    like($newresults[0]->{notes}, qr/This is large note #550/, 'Able to render the notes field for over-large bib record (bug 11096)');
+
+    {
+        my $mock_items = Test::MockModule->new('Koha::Items');
+        $mock_items->mock( 'count', 1 );
+        @newresults = searchResults({'interface' =>'opac'}, $query_desc, $results_hashref->{'biblioserver'}->{'hits'}, 10, 0, 0,
+            $results_hashref->{'biblioserver'}->{"RECORDS"});
+        is($newresults[0]->{title}, 'Marc the Large Record', 'Able to render the title for over-large bib record (bug 11096)');
+        is($newresults[0]->{biblionumber}, '300', 'Over-large bib record has the correct biblionumber (bug 11096)');
+        like($newresults[0]->{notes}, qr/This is large note #550/, 'Able to render the notes field for over-large bib record (bug 11096)');
+    }
 
     # notforloancount should be returned as part of searchResults output
     ok( defined $newresults[0]->{notforloancount},
@@ -833,29 +839,41 @@ ok(MARC::Record::new_from_xml($results_hashref->{biblioserver}->{RECORDS}->[0],'
     is_deeply( $facets_info, $expected_facets_info_marc21,
         "_get_facets_info returns the correct data");
 
-    cleanup();
+    $mock_zebra->cleanup;
 }
 
 sub run_unimarc_search_tests {
-    $datadir = tempdir();
-    system(dirname(__FILE__) . "/zebra_config.pl $datadir unimarc");
 
-    Koha::Caches->get_instance('config')->flush_all;
+    $marcflavour = 'UNIMARC';
+    my $mock_zebra = t::lib::Mocks::Zebra->new({marcflavour => $marcflavour});
+    push @cleanup, $mock_zebra;
 
-    mock_GetMarcSubfieldStructure('unimarc');
-    my $context = C4::Context->new("$datadir/etc/koha-conf.xml");
-    $context->set_context();
+    mock_GetMarcSubfieldStructure($marcflavour);
 
-    use_ok('C4::Search');
+    use_ok('C4::Search', qw( getIndexes FindDuplicate SimpleSearch getRecords buildQuery searchResults ));
 
     # set search syspreferences to a known starting point
     $QueryStemming = 0;
     $QueryAutoTruncate = 0;
     $QueryWeightFields = 0;
     $QueryFuzzy = 0;
-    $marcflavour = 'UNIMARC';
 
-    index_sample_records_and_launch_zebra($datadir, 'unimarc');
+    my $sourcedir = dirname(__FILE__) . "/data";
+    $mock_zebra->load_records(
+        sprintf( "%s/%s/zebraexport/biblio", $sourcedir, lc($marcflavour) ),
+        'iso2709', 'biblios', 1 );
+    $mock_zebra->load_records(
+        sprintf(
+            "%s/%s/zebraexport/large_biblio",
+            $sourcedir, lc($marcflavour)
+        ),
+        'marcxml', 'biblios', 0
+    );
+    $mock_zebra->load_records(
+        sprintf( "%s/%s/zebraexport/authority", $sourcedir, lc($marcflavour) ),
+        'iso2709', 'authorities', 1
+    );
+    $mock_zebra->launch_zebra;
 
     my ( $error, $marcresults, $total_hits ) = SimpleSearch("ti=Järnvägarnas efterfrågan och den svenska industrin", 0, 10);
     is($total_hits, 1, 'UNIMARC title search');
@@ -869,7 +887,7 @@ sub run_unimarc_search_tests {
     is($total_hits, 1, 'UNIMARC generic item index (bug 10037)');
 
     # authority records
-    use_ok('C4::AuthoritiesMarc');
+    use_ok('C4::AuthoritiesMarc', qw( SearchAuthorities ));
 
     my ($auths, $count) = SearchAuthorities(
         ['mainentry'], ['and'], [''], ['contains'],
@@ -919,11 +937,11 @@ sub run_unimarc_search_tests {
     is_deeply( $facets_info, $expected_facets_info_unimarc,
         "_get_facets_info returns the correct data");
 
-    cleanup();
+    $mock_zebra->cleanup;
 }
 
 subtest 'MARC21 + DOM' => sub {
-    plan tests => 90;
+    plan tests => 94;
     run_marc21_search_tests();
 };
 
@@ -934,10 +952,10 @@ subtest 'UNIMARC + DOM' => sub {
 
 
 subtest 'FindDuplicate' => sub {
-    plan tests => 6;
+    plan tests => 8;
     Koha::Caches->get_instance('config')->flush_all;
-    t::lib::Mocks::mock_preference('marcflavour', 'marc21' );
-    mock_GetMarcSubfieldStructure('marc21');
+    t::lib::Mocks::mock_preference('marcflavour', 'MARC21' );
+    mock_GetMarcSubfieldStructure('MARC21');
     my $z_searcher = Test::MockModule->new('C4::Search');
     $z_searcher->mock('SimpleSearch', sub {
         warn shift @_;
@@ -963,6 +981,13 @@ subtest 'FindDuplicate' => sub {
     $record_3->add_fields(
             [ '245', '0', '0', a => 'Frog and toad all year /' ]
     );
+    my $record_4 = MARC::Record->new;
+    $record_4 ->add_fields(
+            [ '020', ' ', ' ', a => '9780307744432' ],
+            [ '020', ' ', ' ', a => '0307744434' ],
+            [ '100', '0', '0', a => 'Morgenstern, Erin' ],
+            [ '245', '0', '0', a => 'The night circus /' ]
+    );
 
     foreach my $engine ('Zebra','Elasticsearch'){
         t::lib::Mocks::mock_preference('searchEngine', $engine );
@@ -975,6 +1000,9 @@ subtest 'FindDuplicate' => sub {
 
         warning_is { C4::Search::FindDuplicate($record_3);}
             q/ti,ext:"Frog and toad all year \/"/,"Term correctly formed and passed to $engine";
+
+        warning_is { C4::Search::FindDuplicate($record_4);}
+            q/isbn:9780307744432 OR 0307744434/,"Term correctly formed and passed to $engine";
     }
 
 };
@@ -983,6 +1011,8 @@ subtest 'FindDuplicate' => sub {
 Koha::Caches->get_instance('config')->flush_all;
 
 END {
+
+    $_->cleanup for @cleanup;
     my $dbh = C4::Context->dbh;
     # Restore visibility of subfields in OPAC
     $dbh->do(q{

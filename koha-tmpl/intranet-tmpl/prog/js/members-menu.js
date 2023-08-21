@@ -1,22 +1,6 @@
-/* global borrowernumber advsearch dateformat __ CAN_user_borrowers_edit_borrowers number_of_adult_categories destination Sticky Cookies */
+/* global borrowernumber advsearch dateformat __ CAN_user_borrowers_delete_borrowers CAN_user_borrowers_edit_borrowers number_of_adult_categories destination Sticky Cookies*/
 
 $(document).ready(function(){
-
-    $("#filteraction_off, #filteraction_on").on('click', function(e) {
-        e.preventDefault();
-        $('#filters').toggle();
-        $('.filteraction').toggle();
-        if (typeof Sticky !== "undefined" && typeof hcSticky === "function") {
-            Sticky.hcSticky('update');
-        }
-    });
-    if( advsearch ){
-        $("#filteraction_on").toggle();
-        $("#filters").show();
-    } else {
-        $("#filteraction_off").toggle();
-    }
-
     searchfield_date_tooltip("");
     searchfield_date_tooltip('_filter');
     $("#searchfieldstype").change(function() {
@@ -26,10 +10,12 @@ $(document).ready(function(){
         searchfield_date_tooltip('_filter');
     });
 
-    if( CAN_user_borrowers_edit_borrowers ){
+    if( CAN_user_borrowers_delete_borrowers ){
         $("#deletepatron").click(function(){
             window.location='/cgi-bin/koha/members/deletemem.pl?member=' + borrowernumber;
         });
+    }
+    if( CAN_user_borrowers_edit_borrowers ){
         $("#renewpatron").click(function(){
             confirm_reregistration();
             $(".btn-group").removeClass("open");
@@ -123,6 +109,10 @@ $(document).ready(function(){
         }
     }
 
+    $(".delete_message").click(function(){
+        return window.confirm( __("Are you sure you want to delete this message? This cannot be undone.") );
+    });
+
     $("#updatechild, #patronflags, #renewpatron, #deletepatron, #exportbarcodes").tooltip();
     $("#exportcheckins").click(function(){
         export_barcodes();
@@ -158,6 +148,10 @@ $(document).ready(function(){
         printx_window("slip");
         window.location.replace("/cgi-bin/koha/circ/circulation.pl");
     });
+    $("#printclearscreenq").click(function(){
+        printx_window("qslip");
+        window.location.replace("/cgi-bin/koha/circ/circulation.pl");
+    });
     $("#searchtohold").click(function(){
         searchToHold();
         return false;
@@ -166,22 +160,30 @@ $(document).ready(function(){
         $("#borrower_message").val( $(this).val() );
     });
 
+    $("#patronImageEdit").on("shown.bs.modal", function(){
+        startup();
+    });
+
     $(".edit-patronimage").on("click", function(e){
         e.preventDefault();
         var borrowernumber = $(this).data("borrowernumber");
-        $.get("/cgi-bin/koha/members/moremember.pl", { borrowernumber : borrowernumber }, function( data ){
-            var image_form = $(data).find("#picture-upload");
-            image_form.show().find(".cancel").remove();
-            $("#patronImageEdit .modal-body").html( image_form );
-        });
+        var cardnumber = $(this).data("cardnumber");
         var modalTitle = $(this).attr("title");
         $("#patronImageEdit .modal-title").text(modalTitle);
         $("#patronImageEdit").modal("show");
+        $("#patronImageEdit").on("hidden.bs.modal", function(){
+            /* Stop using the user's camera when modal is closed */
+            let viewfinder = document.getElementById("viewfinder");
+            if( viewfinder.srcObject ){
+                viewfinder.srcObject.getTracks().forEach( track => {
+                    if( track.readyState == 'live' && track.kind === 'video'){
+                        track.stop();
+                    }
+                });
+            }
+        });
     });
-
 });
-
-
 
 function searchfield_date_tooltip(filter) {
     var field = "#searchmember" + filter;
@@ -236,6 +238,6 @@ function printx_window(print_type) {
 function searchToHold(){
     var date = new Date();
     date.setTime(date.getTime() + (10 * 60 * 1000));
-    Cookies.set("holdfor", borrowernumber, { path: "/", expires: date });
+    Cookies.set("holdfor", borrowernumber, { path: "/", expires: date, sameSite: 'Lax'  });
     location.href="/cgi-bin/koha/catalogue/search.pl";
 }

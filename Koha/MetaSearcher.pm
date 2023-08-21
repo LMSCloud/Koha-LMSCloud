@@ -21,15 +21,16 @@ use Modern::Perl;
 
 use base 'Class::Accessor';
 
+use C4::Biblio qw(TransformMarcToKoha);
 use C4::Charset qw( MarcToUTF8Record SetUTF8Flag );
-use C4::Search qw(); # Purely for new_record_from_zebra
+use C4::Search qw( new_record_from_zebra );
 use DBIx::Class::ResultClass::HashRefInflator;
 use IO::Select;
 use Koha::Caches;
 use Koha::Database;
 use Koha::MetadataRecord;
 use MARC::File::XML;
-use Storable qw( store_fd fd_retrieve );
+use Storable qw( fd_retrieve store_fd );
 use Time::HiRes qw( clock_gettime CLOCK_MONOTONIC );
 use UUID;
 use ZOOM;
@@ -58,26 +59,13 @@ sub new {
 sub handle_hit {
     my ( $self, $index, $server, $marcrecord ) = @_;
 
-    my $record = Koha::MetadataRecord->new( { schema => 'marc', record => $marcrecord } );
-
-    my %fetch = (
-        title => 'biblio.title',
-        subtitle => 'biblio.subtitle',
-        seriestitle => 'biblio.seriestitle',
-        author => 'biblio.author',
-        isbn =>'biblioitems.isbn',
-        issn =>'biblioitems.issn',
-        lccn =>'biblioitems.lccn', #LC control number (not call number)
-        edition =>'biblioitems.editionstatement',
-        date => 'biblio.copyrightdate', #MARC21
-        date2 => 'biblioitems.publicationyear', #UNIMARC
-    );
-
-    my $metadata = {};
-    while ( my ( $key, $kohafield ) = each %fetch ) {
-        $metadata->{$key} = $record->getKohaField($kohafield);
-    }
-    $metadata->{date} //= $metadata->{date2};
+    my @kohafields = ('biblio.title','biblio.subtitle','biblio.seriestitle','biblio.author',
+            'biblioitems.isbn','biblioitems.issn','biblioitems.lccn','biblioitems.editionstatement',
+            'biblio.copyrightdate','biblioitems.publicationyear');
+    my $metadata =  C4::Biblio::TransformMarcToKoha({ kohafields => \@kohafields, record => $marcrecord});
+    $metadata->{edition} = delete $metadata->{editionstatement};
+    $metadata->{date} = delete $metadata->{copyrightdate};
+    $metadata->{date} //= delete $metadata->{publicationyear};
 
     push @{ $self->{results} }, {
         server => $server,

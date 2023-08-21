@@ -21,10 +21,10 @@ use strict;
 use warnings;
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Output;
-use C4::Auth;
+use C4::Output qw( output_html_with_http_headers output_with_http_headers );
+use C4::Auth qw( get_template_and_user );
 use C4::Koha;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use POSIX qw( strftime );
 use File::stat;
 use File::Spec;
@@ -71,9 +71,9 @@ if ( $op eq 'download' ) {
     if ( $charset =~ /charset=([^\s]+)/ ) {
 	$charset = $1;
         if ( $charset !~ /utf-8/i ) {
-	    # $extraoptions->{encoding} = $charset;
-	    $encoding = $charset;
-	}
+            # $extraoptions->{encoding} = $charset;
+            $encoding = $charset;
+        }
     }
     
     {
@@ -83,12 +83,12 @@ if ( $op eq 'download' ) {
             $extraoptions->{encoding} = 'binary';
             $enc = ':raw';
         }
-	open(my $fh, "<$enc", $fullname);
-	$content = <$fh>;
-	close $fh;
+        open(my $fh, "<$enc", $fullname);
+        $content = <$fh>;
+        close $fh;
     }
     if ( $content eq '') {
-	$content = "<html><head><title>No content</title></head><body>The requested file $filename has no content.</body></html>";
+        $content = "<html><head><title>No content</title></head><body>The requested file $filename has no content.</body></html>";
     }
     my $content_type = 'html';
     $content_type = 'csv' if ( $filename =~ /\.csv$/i );
@@ -113,11 +113,11 @@ if ( -e "$outputdir") {
 		if ( -f $fullname && -r $fullname ) {
 			my $stat_epoch = stat($fullname)->mtime;
 			my $sortdate = strftime('%Y-%m-%d', localtime( $stat_epoch ) );
-                        my $formatdate = output_pref({dt => dt_from_string( $sortdate ), dateonly => 1 });
-                        if (! exists($files->{$formatdate}) ) {
-                            $files->{$formatdate} = { sortdate => $sortdate, files => []};
-                        }
-                        push @{$files->{$formatdate}->{files}}, $filename;
+            my $formatdate = output_pref({dt => dt_from_string( $sortdate ), dateonly => 1 });
+            if (! exists($files->{$formatdate}) ) {
+                $files->{$formatdate} = { sortdate => $sortdate, files => []};
+            }
+            push @{$files->{$formatdate}->{files}}, $filename;
 		}
 	}
 	closedir $dh;

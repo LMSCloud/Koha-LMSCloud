@@ -3,52 +3,37 @@
 [% USE ItemTypes %]
 [% SET footerjs = 1 %]
     [% INCLUDE 'doc-head-open.inc' %]
-    <title>[% IF batch_id %]Edit label batch ([% batch_id | html %])[% ELSE %]New label batch[% END %]&rsaquo; Batches &rsaquo; Label creator &rsaquo; Tools &rsaquo; Koha</title>
+    <title>[% IF batch_id %]Edit label batch ([% batch_id | html %])[% ELSE %]New label batch[% END %]&rsaquo; Batches &rsaquo; Label creator &rsaquo; Cataloging &rsaquo; Koha</title>
     [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
 <body id="labels_label-edit-batch" class="tools labels" onload="dofocus();">
-    [% INCLUDE 'header.inc' %]
+    [% WRAPPER 'header.inc' %]
     [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-        <ol>
-            <li>
-                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-            </li>
-            <li>
-                <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
-            </li>
-            <li>
-                <a href="/cgi-bin/koha/labels/label-home.pl">Label creator</a>
-            </li>
-            <li>
-                <a href="/cgi-bin/koha/labels/label-manage.pl?label_element=batch">Batches</a>
-            </li>
-
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/cataloguing/cataloging-home.pl">Cataloging</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/labels/label-home.pl">Label creator</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/labels/label-manage.pl?label_element=batch">Batches</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
             [% IF description %]
-                <li>
-                    <a href="#" aria-current="page">
-                        Edit [% description | html %]
-                    </a>
-                </li>
-
+                <span>Edit [% description | html %]</span>
             [% ELSIF batch_id %]
-                <li>
-                    <a href="#" aria-current="page">
-                        Edit label batch [% batch_id | html %]
-                    </a>
-                </li>
-
+                <span>Edit label batch [% batch_id | html %]</span>
             [% ELSE %]
-                <li>
-                    <a href="#" aria-current="page">
-                        New label batch
-                    </a>
-                </li>
+                <span>New label batch</span>
             [% END %]
-        </ol>
-    </nav>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
     <div class="main container-fluid">
         <div class="row">
@@ -134,56 +119,59 @@
                             [% IF ( table_loop ) %]
                                 <form name="items">
                                     <h2>Items in batch number [% batch_id | html %]</h2>
-                                    <table id="batcht">
-                                        [% FOREACH table_loo IN table_loop %]
-                                            [% IF ( table_loo.header_fields ) %]
-                                                <thead>
-                                                    <tr>
-                                                        [% FOREACH header_field IN table_loo.header_fields %]
-                                                            [% SWITCH header_field.field_label -%]
-                                                                [% CASE "Label number" -%]
-                                                                    <th>Label number</th>
-                                                                [% CASE "Summary" -%]
-                                                                    <th class="anti-the">Summary</th>
-                                                                [% CASE "Item type" %]
-                                                                    <th>Item type</th>
-                                                                [% CASE "Call number" %]
-                                                                    <th>Call number</th>
-                                                                [% CASE "Barcode" %]
-                                                                    <th>Barcode</th>
-                                                                [% CASE "Select" -%]
-                                                                    <th>Select</th>
-                                                                [% CASE %]
-                                                                    <th>[% header_field.field_label | html %]</th>
-                                                            [% END -%]
-                                                        [% END %]
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                            [% ELSE %]
-                                                    <tr>
-                                                        [% FOREACH text_field IN table_loo.text_fields %]
-                                                            [% IF ( text_field.select_field ) %]
-                                                                <td>
-                                                                    <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/labels/label-edit-batch.pl?op=remove&amp;batch_id=[% batch_id |url %]&amp;label_id=[% text_field.field_value |url %]"><i class="fa fa-trash"></i> Delete</a>
-                                                                    <a class="btn btn-default btn-xs export" href="#" data-batch-id="[% batch_id | html %]" data-label-id="[% text_field.field_value | html %]"><i class="fa fa-share-square-o"></i> Export</a>
-                                                                </td>
-                                                                <td><input type="checkbox" name="action" value="[% text_field.field_value | html %]"></td>
-                                                            [% ELSE %]
-                                                                <td>
-                                                                    [% IF ( text_field.field_name == '_item_type_tbl' ) %]
-                                                                        [% ItemTypes.GetDescription( text_field.field_value ) | html %]
-                                                                    [% ELSE %]
-                                                                        [% text_field.field_value | $raw %]
-                                                                    [% END %]
-                                                                </td>
+
+                                    <div class="page-section">
+                                        <table id="batcht">
+                                            [% FOREACH table_loo IN table_loop %]
+                                                [% IF ( table_loo.header_fields ) %]
+                                                    <thead>
+                                                        <tr>
+                                                            [% FOREACH header_field IN table_loo.header_fields %]
+                                                                [% SWITCH header_field.field_label -%]
+                                                                    [% CASE "Label number" -%]
+                                                                        <th>Label number</th>
+                                                                    [% CASE "Summary" -%]
+                                                                        <th class="anti-the">Summary</th>
+                                                                    [% CASE "Item type" %]
+                                                                        <th>Item type</th>
+                                                                    [% CASE "Call number" %]
+                                                                        <th>Call number</th>
+                                                                    [% CASE "Barcode" %]
+                                                                        <th>Barcode</th>
+                                                                    [% CASE "Select" -%]
+                                                                        <th>Select</th>
+                                                                    [% CASE %]
+                                                                        <th>[% header_field.field_label | html %]</th>
+                                                                [% END -%]
                                                             [% END %]
-                                                        [% END %]
-                                                    </tr>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                [% ELSE %]
+                                                        <tr>
+                                                            [% FOREACH text_field IN table_loo.text_fields %]
+                                                                [% IF ( text_field.select_field ) %]
+                                                                    <td>
+                                                                        <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/labels/label-edit-batch.pl?op=remove&amp;batch_id=[% batch_id |url %]&amp;label_id=[% text_field.field_value |url %]"><i class="fa fa-trash"></i> Delete</a>
+                                                                        <a class="btn btn-default btn-xs export" href="#" data-batch-id="[% batch_id | html %]" data-label-id="[% text_field.field_value | html %]"><i class="fa fa-share-square-o"></i> Export</a>
+                                                                    </td>
+                                                                    <td><input type="checkbox" name="action" value="[% text_field.field_value | html %]"></td>
+                                                                [% ELSE %]
+                                                                    <td>
+                                                                        [% IF ( text_field.field_name == '_item_type_tbl' ) %]
+                                                                            [% ItemTypes.GetDescription( text_field.field_value ) | html %]
+                                                                        [% ELSE %]
+                                                                            [% text_field.field_value | $raw %]
+                                                                        [% END %]
+                                                                    </td>
+                                                                [% END %]
+                                                            [% END %]
+                                                        </tr>
+                                                [% END %]
                                             [% END %]
-                                        [% END %]
-                                        </tbody>
-                                    </table>
+                                            </tbody>
+                                        </table>
+                                    </div> <!-- /.page-section -->
                                 </form>
                                 [% ELSE %]
                                     <div class="dialog message">
@@ -197,13 +185,12 @@
 
         <div class="col-sm-2 col-sm-pull-10">
             <aside>
-                [% INCLUDE 'tools-menu.inc' %]
+                [% INCLUDE 'cat-menu.inc' %]
             </aside>
         </div> <!-- /.col-sm-2.col-sm-pull-10 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/tools-menu.js") | $raw %]
     [% INCLUDE 'greybox.inc' %]
     [% INCLUDE 'datatables.inc' %]
     <script>
@@ -319,7 +306,8 @@
             return (-1);
         }
 
-         $(document).ready(function() {
+        $(document).ready(function() {
+            $('#navmenulist a[href$="/cgi-bin/koha/labels/label-home.pl"]').addClass("current");
             [% IF table_loop %]
                 $("#description").show();
             [% ELSE %]

@@ -25,13 +25,24 @@ use base qw( Template::Plugin );
 
 use C4::Koha;
 use C4::Context;
+use Koha::Cache::Memory::Lite;
 use Koha::Libraries;
 
 sub GetName {
     my ( $self, $branchcode ) = @_;
+    return q{} unless defined $branchcode;
+    return q{} if $branchcode eq q{};
+
+    my $memory_cache = Koha::Cache::Memory::Lite->get_instance;
+    my $cache_key    = "Library_branchname:" . $branchcode;
+    my $cached       = $memory_cache->get_from_cache($cache_key);
+    return $cached if $cached;
 
     my $l = Koha::Libraries->find($branchcode);
-    return $l ? $l->branchname : q{};
+
+    my $branchname = $l ? $l->branchname : q{};
+    $memory_cache->set_in_cache( $cache_key, $branchname );
+    return $branchname;
 }
 
 sub GetLoggedInBranchcode {
@@ -49,11 +60,11 @@ sub GetLoggedInBranchname {
 sub GetURL {
     my ( $self, $branchcode ) = @_;
 
-    my $query = "SELECT branchurl FROM branches WHERE branchcode = ?";
-    my $sth   = C4::Context->dbh->prepare($query);
-    $sth->execute($branchcode);
-    my $b = $sth->fetchrow_hashref();
-    return $b->{branchurl};
+    unless (exists $self->{libraries}->{$branchcode} ){
+        my $l = Koha::Libraries->find($branchcode);
+        $self->{libraries}->{$branchcode} = $l if $l;
+    }
+    return $self->{libraries}->{$branchcode} ? $self->{libraries}->{$branchcode}->branchurl : q{};
 }
 
 sub all {
@@ -125,7 +136,7 @@ sub pickup_locations {
               if defined $biblio;
         }
     } else {
-        @libraries = Koha::Libraries->search( { pickup_location => 1 }, { order_by => ['branchname'] } )
+        @libraries = Koha::Libraries->search( { pickup_location => 1 }, { order_by => ['branchname'] } )->as_list
           unless @libraries;
     }
 

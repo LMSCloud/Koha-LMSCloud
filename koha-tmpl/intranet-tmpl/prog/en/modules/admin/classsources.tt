@@ -33,70 +33,56 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
 </head>
 
 <body id="admin_classsources" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
-
-        [% IF op == 'add_source' %]
-            <li>
-                <a href="/cgi-bin/koha/admin/classsources.pl">Classification sources</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    [% IF class_source %]
-                        Modify classification source
-                    [% ELSE %]
-                        Add classification source
-                    [% END %]
-                </a>
-            </li>
-
-        [% ELSIF op == 'add_sort_rule' %]
-            <li>
-                <a href="/cgi-bin/koha/admin/classsources.pl">Classification sources</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    [% IF sort_rule %]
-                        Modify filing rule
-                    [% ELSE %]
-                        Add filing rule
-                    [% END %]
-                </a>
-            </li>
-
-        [% ELSIF op == 'add_split_rule' %]
-            <li>
-                <a href="/cgi-bin/koha/admin/classsources.pl">Classification sources</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    [% IF split_rule %]
-                        Modify splitting rule
-                    [% ELSE %]
-                        Add splitting rule
-                    [% END %]
-                </a>
-            </li>
-
-        [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Classification sources
-                </a>
-            </li>
         [% END %]
 
-    </ol>
-</nav>
+        [% IF op == 'add_source' || op == 'add_sort_rule' || op == 'add_split_rule' %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/admin/classsources.pl">Classification configuration</a>
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Classification configuration</span>
+            [% END %]
+        [% END %]
+
+        [% IF op == 'add_source' %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% IF class_source %]
+                    <span>Modify classification source</span>
+                [% ELSE %]
+                    <span>Add classification source</span>
+                [% END %]
+            [% END %]
+
+        [% ELSIF op == 'add_sort_rule' %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% IF sort_rule %]
+                    <span>Modify filing rule</span>
+                [% ELSE %]
+                    <span>Add filing rule</span>
+                [% END %]
+            [% END %]
+
+        [% ELSIF op == 'add_split_rule' %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% IF split_rule %]
+                    <span>Modify splitting rule</span>
+                [% ELSE %]
+                    <span>Add splitting rule</span>
+                [% END %]
+            [% END %]
+
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -107,43 +93,43 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
     <div class="dialog [% m.type | html %]">
         [% SWITCH m.code %]
         [% CASE 'error_on_update_source' %]
-            An error occurred when updating this classification source.
+            <span>An error occurred when updating this classification source.</span>
         [% CASE 'success_on_update_source' %]
-            Classification source updated successfully.
+            <span>Classification source updated successfully.</span>
         [% CASE 'error_on_insert_source' %]
-            An error occurred when adding this classification source. Perhaps the code already exists?
+            <span>An error occurred when adding this classification source. Perhaps the code already exists?</span>
         [% CASE 'success_on_insert_source' %]
-            Classification source added successfully.
+            <span>Classification source added successfully.</span>
         [% CASE 'error_on_delete_source' %]
-            An error occurred when deleting this classification source.
+            <span>An error occurred when deleting this classification source.</span>
         [% CASE 'success_on_delete_source' %]
-            Classification source deleted successfully.
+            <span>Classification source deleted successfully.</span>
         [% CASE 'error_on_update_sort_rule' %]
-            An error occurred when updating this filing rule.
+            <span>An error occurred when updating this filing rule.</span>
         [% CASE 'success_on_update_sort_rule' %]
-            Filing rule updated successfully.
+            <span>Filing rule updated successfully.</span>
         [% CASE 'error_on_insert_sort_rule' %]
-            An error occurred when adding this filing rule. Perhaps the code already exists?
+            <span>An error occurred when adding this filing rule. Perhaps the code already exists?</span>
         [% CASE 'success_on_insert_sort_rule' %]
-            Filing rule added successfully.
+            <span>Filing rule added successfully.</span>
         [% CASE 'error_on_delete_sort_rule' %]
-            An error occurred when deleting this filing rule. Perhaps it is used by at least one classification source?
+            <span>An error occurred when deleting this filing rule. Perhaps it is used by at least one classification source?</span>
         [% CASE 'success_on_delete_sort_rule' %]
-            Filing rule deleted successfully.
+            <span>Filing rule deleted successfully.</span>
         [% CASE 'error_on_update_split_rule' %]
-            An error occurred when updating this splitting rule.
+            <span>An error occurred when updating this splitting rule.</span>
         [% CASE 'success_on_update_split_rule' %]
-            Splitting rule updated successfully.
+            <span>Splitting rule updated successfully.</span>
         [% CASE 'error_on_insert_split_rule' %]
-            An error occurred when adding this splitting rule. Perhaps the code already exists?
+            <span>An error occurred when adding this splitting rule. Perhaps the code already exists?</span>
         [% CASE 'success_on_insert_split_rule' %]
-            Splitting rule added successfully.
+            <span>Splitting rule added successfully.</span>
         [% CASE 'error_on_delete_split_rule' %]
-            An error occurred when deleting this splitting rule. Perhaps it is used by at least one classification source?
+            <span>An error occurred when deleting this splitting rule. Perhaps it is used by at least one classification source?</span>
         [% CASE 'success_on_delete_split_rule' %]
-            Splitting rule deleted successfully.
+            <span>Splitting rule deleted successfully.</span>
         [% CASE %]
-            [% m.code | html %]
+            <span>[% m.code | html %]</span>
         [% END %]
     </div>
 [% END %]
@@ -151,9 +137,9 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
 
 [% IF op == 'add_source' %]
   [% IF class_source %]
-<h2>Modify classification source</h2>
+<h1>Modify classification source</h1>
   [% ELSE %]
-<h2>Add classification source</h2>
+<h1>Add classification source</h1>
   [% END %]
 <form action="[% script_name | html %]" name="Aform" class="validated" method="post">
   <input type="hidden" name="op" value="add_source_validate" />
@@ -161,12 +147,12 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
     <ol>
       <li>
           [% IF class_source %]
-		  <span class="label">Classification source code: </span>
+            <span class="label">Classification source code: </span>
             <input type="hidden" name="cn_source" value="[% class_source.cn_source | html %]" />
             [% class_source.cn_source | html %]
           [% ELSE %]
               <label class="required" for="class_source">Classification source code: </label>
-              <input class="required" required="required" type="text" id="class_source" name="cn_source"  size="10" maxlength="10" />
+              <input class="required focus" required="required" type="text" id="class_source" name="cn_source"  size="10" maxlength="10" />
               <span class="required">Required</span>
           [% END %]
        </li>
@@ -176,7 +162,7 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
        </li>
        <li><label for="used">Source in use?</label>
            [% IF ( class_source.used ) %]<input type="checkbox" id="used" name="used" value="used" checked="checked" />[% ELSE %]
-		  <input type="checkbox" id="used" name="used" value="used" />[% END %]
+           <input type="checkbox" id="used" name="used" value="used" />[% END %]
        </li>
         <li>
             <label class="required" for="class_sort_rule">Filing rule: </label>
@@ -207,7 +193,7 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
     </ol>
   </fieldset>
   <fieldset class="action">
-    <input type="submit" value="Save" />
+    <input type="submit" class="btn btn-primary" value="Save" />
     <a class="cancel" href="/cgi-bin/koha/admin/classsources.pl">Cancel</a>
   </fieldset>
 </form>
@@ -215,9 +201,9 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
 
 [% IF op == 'add_sort_rule' %]
   [% IF sort_rule %]
-<h2>Modify filing rule</h2>
+<h1>Modify filing rule</h1>
   [% ELSE %]
-<h2>Add filing rule</h2>
+<h1>Add filing rule</h1>
   [% END %]
 <form action="[% script_name | html %]" name="Aform" class="validated" method="post">
   <input type="hidden" name="op" value="add_sort_rule_validate" />
@@ -225,12 +211,12 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
     <ol>
       <li>
           [% IF sort_rule %]
-		  <span class="label">Filing rule code: </span>
+          <span class="label">Filing rule code: </span>
             <input type="hidden" name="class_sort_rule" value="[% sort_rule.class_sort_rule | html %]" />
             [% sort_rule.class_sort_rule | html %]
           [% ELSE %]
               <label for="class_sort_rule" class="required">Filing rule code: </label>
-              <input class="required" required="required" type="text" id="class_sort_rule" name="class_sort_rule"  size="10" maxlength="10" />
+              <input class="required focus" required="required" type="text" id="class_sort_rule" name="class_sort_rule"  size="10" maxlength="10" />
               <span class="required">Required</span>
           [% END %]
        </li>
@@ -253,7 +239,7 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
     </ol>
   </fieldset>
     <fieldset class="action">
-        <input type="submit" value="Save" />
+        <input type="submit" class="btn btn-primary" value="Save" />
         <a class="cancel" href="/cgi-bin/koha/admin/classsources.pl">Cancel</a>
     </fieldset>
 </form>
@@ -261,9 +247,9 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
 
 [% IF op == 'add_split_rule' %]
   [% IF split_rule %]
-<h2>Modify splitting rule</h2>
+<h1>Modify splitting rule</h1>
   [% ELSE %]
-<h2>Add splitting rule</h2>
+<h1>Add splitting rule</h1>
   [% END %]
 <form action="[% script_name | html %]" name="Aform" class="validated" method="post">
   <input type="hidden" name="op" value="add_split_rule_validate" />
@@ -276,7 +262,7 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
             [% split_rule.class_split_rule | html %]
           [% ELSE %]
               <label for="class_split_rule" class="required">Splitting rule code: </label>
-              <input class="required" required="required" type="text" id="class_split_rule" name="class_split_rule"  size="10" maxlength="10" />
+              <input class="required focus" required="required" type="text" id="class_split_rule" name="class_split_rule"  size="10" maxlength="10" />
               <span class="required">Required</span>
           [% END %]
        </li>
@@ -327,7 +313,7 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
     </ol>
   </fieldset>
     <fieldset class="action">
-        <input type="submit" value="Save" />
+        <input type="submit" class="btn btn-primary" value="Save" />
         <a class="cancel" href="/cgi-bin/koha/admin/classsources.pl">Cancel</a>
     </fieldset>
 </form>
@@ -340,7 +326,8 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
     <a class="btn btn-default" id="newrule" href="[% script_name | url %]?op=add_sort_rule"><i class="fa fa-plus"></i> New filing rule</a>
     <a class="btn btn-default" id="newrule" href="[% script_name | url %]?op=add_split_rule"><i class="fa fa-plus"></i> New splitting rule</a>
 </div>
-
+<h1>Classification configuration</h1>
+<div class="page-section">
 <h2>Classification sources</h2>
 <table>
   <tr>
@@ -365,7 +352,9 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
   </tr>
   [% END %]
 </table>
+</div> <!-- /.page-section -->
 
+<div class="page-section">
 <h2>Classification filing rules</h2>
 <table>
   <tr>
@@ -386,7 +375,9 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
   </tr>
   [% END %]
 </table>
+</div> <!-- /.page-section -->
 
+<div class="page-section">
 <h2>Classification splitting rules</h2>
 <table>
   <tr>
@@ -407,6 +398,7 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
   </tr>
   [% END %]
 </table>
+</div> <!-- /.page-section -->
 
 
 [% END %]

@@ -3,23 +3,23 @@
 use strict;
 use warnings;
 
-BEGIN {
-
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/kohalib.pl" };
-}
-
 use Koha::Script;
 use C4::Context;
-use C4::Biblio;
-use Getopt::Long;
-use Pod::Usage;
-use Data::Dumper;
-use Time::HiRes qw/time/;
-use POSIX qw/strftime ceil/;
-use Module::Load::Conditional qw(can_load);
+use C4::Biblio qw(
+    GetFrameworkCode
+    LinkBibHeadingsToAuthorities
+    ModBiblio
+);
+use Koha::Biblios;
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
+use Time::HiRes qw( time );
+use POSIX qw( ceil strftime );
+use Module::Load::Conditional qw( can_load );
+
+use Koha::Database;
+use Koha::SearchEngine;
+use Koha::SearchEngine::Indexer;
 
 sub usage {
     pod2usage( -verbose => 2 );
@@ -79,9 +79,12 @@ my %unlinked_headings;
 my %linked_headings;
 my %fuzzy_headings;
 my $dbh = C4::Context->dbh;
-$dbh->{AutoCommit} = 0;
+my @updated_biblios = ();
+my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
+
+my $schema = Koha::Database->schema;
+$schema->txn_begin;
 process_bibs( $linker, $bib_limit, $auth_limit, $commit, { tagtolink => $tagtolink, allowrelink => $allowrelink });
-$dbh->commit();
 
 exit 0;
 
@@ -109,7 +112,8 @@ sub process_bibs {
     }
 
     if ( not $test_only ) {
-        $dbh->commit;
+        $schema->txn_commit;
+        $indexer->index_records( \@updated_biblios, "specialUpdate", "biblioserver" );
     }
 
     my $headings_linked   = 0;
@@ -196,8 +200,9 @@ sub process_bib {
     my $args = shift;
     my $tagtolink    = $args->{tagtolink};
     my $allowrelink = $args->{allowrelink};
-    my $bib = GetMarcBiblio({ biblionumber => $biblionumber });
-    unless ( defined $bib ) {
+    my $biblio = Koha::Biblios->find($biblionumber);
+    my $record = $biblio->metadata->record;
+    unless ( defined $record ) {
         print
 "\nCould not retrieve bib $biblionumber from the database - record is corrupt.\n";
         $num_bad_bibs++;
@@ -207,7 +212,7 @@ sub process_bib {
     my $frameworkcode = GetFrameworkCode($biblionumber);
 
     my ( $headings_changed, $results ) =
-      LinkBibHeadingsToAuthorities( $linker, $bib, $frameworkcode, $allowrelink, $tagtolink );
+      LinkBibHeadingsToAuthorities( $linker, $record, $frameworkcode, $allowrelink, $tagtolink );
     foreach my $key ( keys %{ $results->{'unlinked'} } ) {
         $unlinked_headings{$key} += $results->{'unlinked'}->{$key};
     }
@@ -220,7 +225,7 @@ sub process_bib {
 
     if ($headings_changed) {
         if ($verbose) {
-            my $title = substr( $bib->title, 0, 20 );
+            my $title = substr( $record->title, 0, 20 );
             printf(
                 "Bib %12d (%-20s): %3d headings changed\n",
                 $biblionumber,
@@ -229,7 +234,12 @@ sub process_bib {
             );
         }
         if ( not $test_only ) {
-            ModBiblio( $bib, $biblionumber, $frameworkcode, 1 );
+            ModBiblio( $record, $biblionumber, $frameworkcode, {
+                disable_autolink => 1,
+                skip_holds_queue => 1,
+                skip_record_index =>1
+            });
+            push @updated_biblios, $biblionumber;
             #Last param is to note ModBiblio was called from linking script and bib should not be linked again
             $num_bibs_modified++;
         }
@@ -238,7 +248,10 @@ sub process_bib {
 
 sub print_progress_and_commit {
     my $recs = shift;
-    $dbh->commit();
+    $schema->txn_commit();
+    $indexer->index_records( \@updated_biblios, "specialUpdate", "biblioserver" );
+    @updated_biblios = ();
+    $schema->txn_begin();
     print "... processed $recs records\n";
 }
 

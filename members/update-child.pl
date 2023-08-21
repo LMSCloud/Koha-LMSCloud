@@ -29,13 +29,11 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers output_and_exit_if_error output_and_exit );
 use Koha::Patrons;
 use Koha::Patron::Categories;
 use Koha::Patrons;
-
-# use Smart::Comments;
 
 my $dbh   = C4::Context->dbh;
 my $input = CGI->new;
@@ -46,7 +44,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { borrowers => 'edit_borrowers' },
-        debug           => 1,
     }
 );
 
@@ -83,7 +80,7 @@ elsif ( $op eq 'update' ) {
     # But we should not hit that with a normal use of the interface
     die "You are doing something wrong updating this child" unless $adult_category;
 
-    $_->delete() for $patron->guarantor_relationships();
+    $_->delete() for $patron->guarantor_relationships->as_list;
 
     $patron->categorycode($adult_category->categorycode);
     $patron->store;

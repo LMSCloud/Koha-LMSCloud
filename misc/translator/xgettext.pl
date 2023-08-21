@@ -26,7 +26,7 @@ use lib $FindBin::Bin;
 
 use strict;
 use warnings;
-use Getopt::Long;
+use Getopt::Long qw( GetOptions );
 use POSIX;
 use Locale::PO;
 use TmplTokenizer;
@@ -387,7 +387,7 @@ if (defined $output && $output ne '-') {
     open($OUTPUT, '>:encoding(utf-8)', $output) || die "$output: $!\n";
 } else {
     print STDERR "$0: Outputting to STDOUT...\n" if $verbose_p;
-    open($OUTPUT, ">&STDOUT");
+    open($OUTPUT, q{>}, "&STDOUT");
 }
 
 if (defined $files_from) {

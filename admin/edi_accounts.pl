@@ -18,10 +18,13 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
+
 use CGI;
-use C4::Auth;
-use C4::Output;
+
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use Koha::Database;
+use Koha::Encryption;
 use Koha::Plugins;
 
 our $input = CGI->new();
@@ -36,11 +39,13 @@ our ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
+my $crypt = Koha::Encryption->new;
+
 my $op = $input->param('op');
 $op ||= 'display';
 
 if ( $op eq 'acct_form' ) {
-    show_account();
+    show_account($crypt);
     $template->param( acct_form => 1 );
     my @vendors = $schema->resultset('Aqbookseller')->search(
         undef,
@@ -67,15 +72,18 @@ else {
 
         # validate & display
         my $id     = $input->param('id');
+        my $password = scalar $input->param('password');
+        $password = $crypt->encrypt_hex($password);
         my $fields = {
             description        => scalar $input->param('description'),
             host               => scalar $input->param('host'),
             username           => scalar $input->param('username'),
-            password           => scalar $input->param('password'),
+            password           => $password,
             vendor_id          => scalar $input->param('vendor_id'),
             upload_directory   => scalar $input->param('upload_directory'),
             download_directory => scalar $input->param('download_directory'),
             san                => scalar $input->param('san'),
+            standard           => scalar $input->param('standard'),
             transport          => scalar $input->param('transport'),
             quotes_enabled     => $input->param('quotes_enabled') ? 1 : 0,
             invoices_enabled   => $input->param('invoices_enabled') ? 1 : 0,
@@ -133,7 +141,8 @@ $template->param(
             code        => '92',
             description => 'Assigned by buyer',
         },
-    ]
+    ],
+    standards => [ 'BIC', 'EUR' ]
 );
 
 output_html_with_http_headers( $input, $cookie, $template->output );
@@ -151,9 +160,11 @@ sub get_account {
 }
 
 sub show_account {
+    my $crypt = shift;
     my $acct_id = $input->param('id');
     if ($acct_id) {
         my $acct = $schema->resultset('VendorEdiAccount')->find($acct_id);
+        $acct->password( $crypt->decrypt_hex($acct->password) );
         if ($acct) {
             $template->param( account => $acct );
         }

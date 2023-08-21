@@ -20,12 +20,12 @@
 use Modern::Perl;
 
 use Koha::Script;
-use C4::Charset qw( SanitizeRecord );
+use C4::Charset;
 use C4::Context;
-use DBI;
 use C4::Biblio;
-use Getopt::Long;
-use Pod::Usage;
+use Koha::Biblios;
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 
 my ( $help, $verbose, $confirm, $biblionumbers, $reindex, $filename,
     $auto_search, $fix_ampersand );
@@ -110,7 +110,12 @@ for my $biblionumber (@biblionumbers) {
         say " skipping. ERROR: Invalid biblionumber." if $verbose;
         next;
     }
-    my $record = C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber });
+    my $biblio = Koha::Biblios->find($biblionumber);
+    unless ( $biblio ) {
+        say " skipping. ERROR: biblionumber not found." if $verbose;
+        next;
+    }
+    my $record = $biblio->metadata->record;
     unless ($record) {
         say " skipping. ERROR: Invalid record." if $verbose;
         next;

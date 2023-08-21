@@ -22,18 +22,24 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use List::Util qw/min/;
-use Date::Calc qw/Delta_YMD Easter_Sunday Today Decode_Date_EU/;
-use Date::Manip qw/ ParseDate UnixDate DateCalc/;
+use Date::Calc qw( Delta_YMD );
+use Date::Manip qw( DateCalc UnixDate );
 use Text::CSV_XS;
 
-use C4::Acquisition;
-use C4::Budgets;
+use C4::Budgets qw(
+    CanUserUseBudget
+    GetBudgetAuthCats
+    GetBudgetHierarchy
+    GetBudgetPeriod
+    GetBudgetsPlanCell
+    GetCols
+    GetPeriodsCount
+    HideCols
+    ModBudgetPlan
+);
 use C4::Context;
-use C4::Output;
-use C4::Koha;
-use C4::Auth;
-use C4::Debug;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
 use Koha::Acquisition::Currencies;
 
 our $input = CGI->new;
@@ -46,7 +52,6 @@ my ( $template, $borrowernumber, $cookie, $staff_flags ) = get_template_and_user
         query           => $input,
         type            => "intranet",
         flagsrequired   => { acquisition => 'planning_manage' },
-        debug           => 0,
     }
 );
 
@@ -92,7 +97,7 @@ my $show_actual  = $input->param('show_actual');
 my $show_percent = $input->param('show_percent');
 my $output       = $input->param("output") // q{};
 our $basename     = $input->param("basename");
-our $del          = $input->param("sep");
+our $del          = C4::Context->csv_delimiter(scalar $input->param("sep"));
 
 my $show_mine       = $input->param('show_mine') ;
 
@@ -302,7 +307,7 @@ foreach my $n (@names) {
 #         DEFAULT DISPLAY BEGINS
 
 my $CGIextChoice = ( 'CSV' ); # FIXME translation
-my $CGIsepChoice = ( C4::Context->preference("CSVDelimiter") );
+my $CGIsepChoice = ( C4::Context->csv_delimiter );
 
 my ( @budget_lines, %cell_hash );
 

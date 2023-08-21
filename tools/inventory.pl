@@ -26,22 +26,23 @@ my $input = CGI->new;
 my $uploadbarcodes = $input->param('uploadbarcodes');
 my $barcodelist = $input->param('barcodelist');
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
-use C4::Biblio;
-use C4::Items;
-use C4::Koha;
-use C4::Circulation;
-use C4::Reports::Guided;    #_get_column_defs
-use C4::Charset;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Items qw( GetItemsForInventory );
+use C4::Koha qw( GetAuthorisedValues );
+use C4::Circulation qw( barcodedecode AddReturn );
+use C4::Reports::Guided qw( );
+use C4::Charset qw( NormalizeString );
 
 use Koha::Biblios;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
+use Koha::Database::Columns;
 use Koha::AuthorisedValues;
 use Koha::BiblioFrameworks;
 use Koha::ClassSources;
 use Koha::Items;
+
 use List::MoreUtils qw( none );
 
 my $minlocation=$input->param('minlocation') || '';
@@ -58,13 +59,13 @@ my $op         = $input->param('op');
 my $compareinv2barcd = $input->param('compareinv2barcd');
 my $dont_checkin = $input->param('dont_checkin');
 my $out_of_order = $input->param('out_of_order');
+my $ccode = $input->param('ccode');
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {   template_name   => "tools/inventory.tt",
         query           => $input,
         type            => "intranet",
         flagsrequired   => { tools => 'inventory' },
-        debug           => 1,
     }
 );
 
@@ -73,6 +74,9 @@ my $authorisedvalue_categories = '';
 
 my $frameworks = Koha::BiblioFrameworks->search({}, { order_by => ['frameworktext'] })->unblessed;
 unshift @$frameworks, { frameworkcode => '' };
+
+my @collections = ();
+my @collection_codes = ();
 
 for my $fwk ( @$frameworks ){
   my $fwkcode = $fwk->{frameworkcode};
@@ -123,10 +127,10 @@ for my $authvfield (@$statuses) {
 # the full set.
 @notforloans = @{$staton->{'items.notforloan'}} if defined $staton->{'items.notforloan'} and scalar @{$staton->{'items.notforloan'}} > 0;
 
-my @class_sources = Koha::ClassSources->search({ used => 1 });
+my @class_sources = Koha::ClassSources->search({ used => 1 })->as_list;
 my $pref_class = C4::Context->preference("DefaultClassificationSource");
 
-my @itemtypes = Koha::ItemTypes->search;
+my @itemtypes = Koha::ItemTypes->search->as_list;
 my @selected_itemtypes;
 foreach my $itemtype ( @itemtypes ) {
     if ( defined $input->param('itemtype-' . $itemtype->itemtype) ) {
@@ -150,6 +154,7 @@ $template->param(
     class_sources            => \@class_sources,
     pref_class               => $pref_class,
     itemtypes                => \@itemtypes,
+    ccode                    => $ccode,
 );
 
 # Walk through uploaded barcodes, report errors, mark as seen, check in
@@ -188,6 +193,9 @@ if ( ($uploadbarcodes && length($uploadbarcodes) > 0) || ($barcodelist && length
     }
     for my $barcode (@uploadedbarcodes) {
         next unless $barcode;
+
+        $barcode = barcodedecode($barcode);
+
         ++$lines_read;
         if (length($barcode)>$barcode_size) {
             $err_length += 1;
@@ -239,7 +247,7 @@ if ( ($uploadbarcodes && length($uploadbarcodes) > 0) || ($barcodelist && length
             }
         }
     }
-    $template->param( date => output_pref ( { str => $date, dateformat => 'iso' } ) );
+    $template->param( date => $date );
     $template->param( errorloop => \@errorloop ) if (@errorloop);
 }
 
@@ -258,12 +266,14 @@ if ( $op && ( !$uploadbarcodes || $compareinv2barcd )) {
       branch       => $branch,
       offset       => 0,
       statushash   => $staton,
+      ccode        => $ccode,
       ignore_waiting_holds => $ignore_waiting_holds,
       itemtypes    => \@selected_itemtypes,
     });
 }
 # Build rightplacelist used to check if a scanned item is in the right place.
 if( @scanned_items ) {
+    # For the items that may be marked as "wrong place", we only check the location (callnumbers, location, ccode and branch)
     ( $rightplacelist ) = GetItemsForInventory({
       minlocation  => $minlocation,
       maxlocation  => $maxlocation,
@@ -277,11 +287,13 @@ if( @scanned_items ) {
       statushash   => undef,
       ignore_waiting_holds => $ignore_waiting_holds,
       itemtypes    => \@selected_itemtypes,
+      ccode        => $ccode,
     });
     # Convert the structure to a hash on barcode
     $rightplacelist = {
         map { $_->{barcode} ? ( $_->{barcode}, $_ ) : (); } @$rightplacelist
     };
+
 }
 
 # Report scanned items that are on the wrong place, or have a wrong notforloan
@@ -372,7 +384,7 @@ $template->param(
 
 # Export to csv
 if (defined $input->param('CSVexport') && $input->param('CSVexport') eq 'on'){
-    eval {use Text::CSV};
+    eval {use Text::CSV ();};
     my $csv = Text::CSV->new or
             die Text::CSV->error_diag ();
     binmode STDOUT, ":encoding(UTF-8)";
@@ -381,30 +393,24 @@ if (defined $input->param('CSVexport') && $input->param('CSVexport') eq 'on'){
         -attachment => 'inventory.csv',
     );
 
-    my $columns_def_hashref = C4::Reports::Guided::_get_column_defs($input);
-    foreach my $key ( keys %$columns_def_hashref ) {
-        my $initkey = $key;
-        $key =~ s/[^\.]*\.//;
-        $columns_def_hashref->{$initkey}=NormalizeString($columns_def_hashref->{$initkey} // '');
-        $columns_def_hashref->{$key} = $columns_def_hashref->{$initkey};
-    }
-
+    my $columns = Koha::Database::Columns->columns;
     my @translated_keys;
     for my $key (qw / biblioitems.title    biblio.author
                       items.barcode        items.itemnumber
-                      items.homebranch     items.location
+                      items.homebranch     items.location   items.ccode
                       items.itemcallnumber items.notforloan
                       items.itemlost       items.damaged
                       items.withdrawn      items.stocknumber
                       / ) {
-       push @translated_keys, $columns_def_hashref->{$key};
+        my ( $table, $column ) = split '\.', $key;
+        push @translated_keys, NormalizeString($columns->{$table}->{$column} // '');
     }
     push @translated_keys, 'problem' if $uploadbarcodes;
 
     $csv->combine(@translated_keys);
     print $csv->string, "\n";
 
-    my @keys = qw/ title author barcode itemnumber homebranch location itemcallnumber notforloan itemlost damaged withdrawn stocknumber /;
+    my @keys = qw/ title author barcode itemnumber homebranch location ccode itemcallnumber notforloan itemlost damaged withdrawn stocknumber /;
     for my $item ( @$loop ) {
         my @line;
         for my $key (@keys) {

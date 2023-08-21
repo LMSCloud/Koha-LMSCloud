@@ -25,7 +25,7 @@ use Koha::Acquisition::BasketGroups;
 use Koha::Acquisition::Orders;
 use Koha::Exceptions::Acquisition::Basket;
 use Koha::Patrons;
-use C4::Log qw(logaction);
+use C4::Log qw( logaction );
 
 use base qw( Koha::Object Koha::Object::Mixin::AdditionalFields );
 
@@ -94,6 +94,30 @@ sub orders {
 
     my $orders_rs = $self->_result->orders;
     return Koha::Acquisition::Orders->_new_from_dbic( $orders_rs );
+}
+
+=head3 edi_order
+
+  my $edi_order = $basket->edi_order;
+
+Returns the most recently attached EDI order object if one exists for the basket.
+
+NOTE: This currently returns a bare DBIx::Class result or undefined. This is consistent with the rest of EDI;
+However it would be beneficial to convert these to full fledge Koha::Objects in the future.
+
+=cut
+
+sub edi_order {
+    my ($self) = @_;
+
+    my $order_rs = $self->_result->edifact_messages(
+        {
+            message_type => 'ORDERS',
+            deleted      => 0
+        },
+        { order_by => { '-desc' => 'transfer_date' }, rows => 1 }
+    );
+    return $order_rs->single;
 }
 
 =head3 effective_create_items

@@ -1,4 +1,4 @@
-/* global MSG_OVERDRIVE_LOGIN MSG_OVERDRIVE_LINK MSG_OVERDRIVE_LOGOUT MSG_OVERDRIVE_CHECKEDOUT_UNTIL MSG_DOWNLOAD MSG_OVERDRIVE_ACCESS_ONLINE MSG_OVERDRIVE_DOWNLOAD_AS MSG_CHECK_IN MSG_CHECK_OUT MSG_CHECKOUTS MSG_HOLDS MSG_ON_HOLD MSG_PLACE_HOLD MSG_CANCEL_HOLD MSG_OVERDRIVE_CANNOT_CHECKOUT MSG_CANCEL_HOLD_CONFIRM MSG_CHECK_IN_CONFIRM MSG_CHECK_OUT_CONFIRM OD_password_required */
+/* global OD_password_required __ */
 
 if ( typeof KOHA == "undefined" || !KOHA ) {
     var KOHA = {};
@@ -70,13 +70,13 @@ KOHA.OverDriveCirculation = new function() {
         error_div.text(error);
     }
 
-    var login_link = $('<a href="#">')
+    var login_link = $('<a class="btn btn-primary" href="#">')
         .click(function(e) {
             e.preventDefault();
             if( OD_password_required ) { $("#overdrive-login").modal('show'); }
             else { login(""); }
         })
-        .text( MSG_OVERDRIVE_LOGIN );
+        .text( __("Log in to your OverDrive account") );
 
     var login_div = $('<div class="overdrive-login">').append(login_link);
 
@@ -120,24 +120,30 @@ KOHA.OverDriveCirculation = new function() {
             return;
         }
 
-        var overdrive_link = $('<a href="https://www.overdrive.com/account/" target="overdrive-account" class="overdrive-link" style="float:right">')
-            .text( MSG_OVERDRIVE_LINK );
-        $(container).append(overdrive_link);
+        var button_toolbar = $("<div/>").addClass("btn-toolbar").attr("role","toolbar");
 
-        var logout_link = $('<a href="#logout" class="overdrive-logout" style="float:left">')
-            .click(function(e) {
-                e.preventDefault();
-                $(container).empty().append(error_div);
-                logout(function(data) {
-                    display_account(container, data);
-                });
-            }).text( MSG_OVERDRIVE_LOGOUT );
-        $(container).append(logout_link);
-        $(container).append('<br style="clear:both;"/>');
+        var overdrive_link = $("<div/>").addClass("btn-group mr-2").attr("role", "group")
+            .append( $('<a href="https://www.overdrive.com/account/" target="overdrive-account" class="btn btn-sm btn-primary overdrive-link">')
+                .text( __( "OverDrive account page" ) ) );
+        button_toolbar.append(overdrive_link);
+
+        var logout_link = $("<div/>").addClass("btn-group mr-2").attr("role", "group")
+            .append( $('<a href="#logout" class="btn btn-sm btn-primary overdrive-logout">')
+                .click(function(e) {
+                    e.preventDefault();
+                    $(container).empty().append(error_div);
+                    logout(function(data) {
+                        display_account(container, data);
+                    });
+                }).text( __("Log out of your OverDrive account") ) );
+
+        button_toolbar.append(logout_link);
+
+        $(container).append( button_toolbar );
 
         if (data.checkouts) {
-            var checkouts_div = $('<div class="overdrive-div">').html('<h3>' + MSG_CHECKOUTS + '</h3>');
-            var checkouts_list = $('<ul class="overdrive-list">');
+            var checkouts_div = $('<div class="overdrive-div">').html('<h3>' + __("Checkouts") + '</h3>');
+            var checkouts_list = $('<div class="overdrive-list">');
             data.checkouts.items.forEach(function(item) {
                 item_line(checkouts_list, item);
             });
@@ -146,8 +152,8 @@ KOHA.OverDriveCirculation = new function() {
         }
 
         if (data.holds) {
-            var holds_div = $('<div class="overdrive-div">').html('<h3>' + MSG_HOLDS + '</h3>');
-            var holds_list = $('<ul class="overdrive-list">');
+            var holds_div = $('<div class="overdrive-div">').html('<h3>' + __("Holds") + '</h3>');
+            var holds_list = $('<div class="overdrive-list">');
             data.holds.items.forEach(function(item) {
                 item_line(holds_list, item);
             });
@@ -157,30 +163,32 @@ KOHA.OverDriveCirculation = new function() {
     }
 
     function item_line(ul_el, item) {
-        var line = $('<li class="overdrive-item">');
+        var line = $('<div class="overdrive-item">');
+        var image_container = $('<div class="overdrive-item-thumbnail">');
         if (item.images) {
             var thumb_url = item.images.thumbnail;
             if (thumb_url) {
-                $('<img class="overdrive-item-thumbnail">')
+                $('<img class="overdrive-thumbnail">')
                     .attr("src", thumb_url)
-                    .appendTo(line);
+                    .appendTo( image_container );
             }
         }
-        $('<div class="overdrive-item-title">')
-            .text(item.title)
+        image_container.appendTo( line );
+        var item_details = $('<div class="overdrive-item-details">')
+            .append(
+                $('<h4 class="overdrive-item-title">')
+                    .text(item.title) )
+            .append( $('<div class="overdrive-item-author">')
+                .text(item.author) )
+            .append(
+                $('<div class="overdrive-item-subtitle">')
+                    .html(item.subtitle) )
             .appendTo(line);
-        $('<div class="overdrive-item-subtitle">')
-            .html(item.subtitle)
-            .appendTo(line);
-        $('<div class="overdrive-item-author">')
-            .text(item.author)
-            .appendTo(line);
-        var actions = $('<span class="actions">');
+        var actions = $('<div class="actions">');
         display_actions(actions, item.id);
-        $('<div id="action_'+item.id+'" class="actions-menu">')
-            .append(actions)
+        item_details.append( $('<div id="action_' + item.id + '" class="actions-menu">')
+            .append(actions) )
             .appendTo(line);
-
         $(ul_el).append(line);
     }
 
@@ -278,8 +286,8 @@ KOHA.OverDriveCirculation = new function() {
             var item = item_is_checked_out(id);
             if (item) {
                 var expires = new Date(item.expires);
-                $('<span class="overdrive-item-status">')
-                    .text( MSG_OVERDRIVE_CHECKEDOUT_UNTIL  + " " + expires.toLocaleString())
+                $('<div class="overdrive-item-status">')
+                    .text( __( "Checked out until: " )  + " " + expires.toLocaleString())
                     .appendTo(el);
                 $(el).append(" ");
 
@@ -290,26 +298,26 @@ KOHA.OverDriveCirculation = new function() {
                 });
                 $(el).append(" ");
 
-                $(el).append( ajax_button( MSG_CHECK_IN, function() {
-                    if( confirm( MSG_CHECK_IN_CONFIRM ) ) {
+                $(el).append( ajax_button( __("Check in"), function() {
+                    if( confirm( __("Are you sure you want to return this item?") ) ) {
                         item_action({action: "return", id: id}, el, copies_available + 1);
                     }
-                }) );
+                }, "checkin") );
 
                 return item;
             }
 
             item = item_is_on_hold(id);
             if (item) {
-                $('<span class="overdrive-status">')
-                    .text( MSG_ON_HOLD )
+                $('<span class="overdrive-item-status">')
+                    .text(__("On hold"))
                     .appendTo(el);
                 $(el).append(" ");
             }
 
             if(copies_available && checkout_popup) {
-                $(el).append( ajax_button( MSG_CHECK_OUT , function() {
-                    if( confirm( MSG_CHECK_OUT_CONFIRM ) ) {
+                $(el).append( ajax_button( __("Check out") , function() {
+                    if( confirm( __("Are you sure you want to check out this item?") ) ) {
                         svc_ajax('post', {action: "checkout", id: id}, function(data) {
                             if (data.checkouts) {
                                 details.checkouts = data.checkouts;
@@ -335,55 +343,57 @@ KOHA.OverDriveCirculation = new function() {
                             }
                         });
                     }
-                }) );
+                }, "checkout") );
             }
             else if (!item) {
-                $(el).append( ajax_button( MSG_PLACE_HOLD, function() {
+                $(el).append( ajax_button( __("Place hold"), function() {
                     item_action({action: "place-hold", id: id}, el, copies_available);
-                }) );
+                }, "placehold") );
             }
 
             if (item) {
-                $(el).append( ajax_button( MSG_CANCEL_HOLD, function() {
-                    if( confirm( MSG_CANCEL_HOLD_CONFIRM ) ) {
+                $(el).append( ajax_button( __("Cancel hold"), function() {
+                    if( confirm( __("Are you sure you want to cancel this hold?") ) ) {
                         item_action({action: "remove-hold", id: id}, el, copies_available);
                     }
-                }) );
+                }, "cancelhold") );
             }
             return item;
         }
     }
 
-    function ajax_button(label, on_click) {
+    function ajax_button(label, on_click, uniqueName) {
         var button = $('<a href="#">')
             .click(function(e) {
                 e.preventDefault();
                 on_click();
             });
-        decorate_button(button, label);
+        decorate_button(button, label, uniqueName);
         return button;
     }
 
-    function decorate_button(button, label) {
+    function decorate_button(button, label, uniqueName) {
         $(button)
-            .addClass("btn btn-primary btn-mini")
+            .addClass("btn btn-primary btn-sm")
             .css("color","white")
-            .text(label);
+            .text(label)
+            .addClass(uniqueName);
     }
 
     function checkout_format(el, id, formats, copies_available) {
         if (formats.length == 0) {
-            alert( MSG_OVERDRIVE_CANNOT_CHECKOUT );
+            alert( __("Item cannot be checked out. There are no available formats") );
             return false;
         }
 
-        var checkout_format_list = checkout_popup.find("ul.overdrive-format-list").empty();
+        var checkout_format_list = checkout_popup.find("#overdrive-format-list").empty();
         formats.forEach(function (item) {
-            var li = $('<li>').appendTo(checkout_format_list);
-            $('<input name="checkout-format" type="radio">')
-                .val(item)
-                .appendTo(li);
-            li.append(item);
+            var line = $("<div/>").addClass("form-check");
+            var input = '<input id="' + item + '" class="form-check-input" value="' + item + '" name="checkout-format" type="radio" /> ';
+            var label = '<label for="' + item + '">' + item + '</label>"';
+            $(input).appendTo( line );
+            $(label).appendTo( line );
+            line.appendTo( checkout_format_list );
         });
         checkout_popup.modal("show");
         checkout_popup.find(".overdrive-checkout-submit").click(function(e) {

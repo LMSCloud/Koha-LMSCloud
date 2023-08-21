@@ -17,17 +17,17 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Context;
+use C4::Output qw( output_html_with_http_headers );
 use Koha::Libraries;
 
 my $query = CGI->new();
 
-my $branchcode   = $query->param('branchcode');
+my $branchcode = $query->param('branchcode');
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
@@ -38,15 +38,21 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     }
 );
 
-if( $branchcode ){
-    my $library = Koha::Libraries->find( $branchcode );
-    $template->param( library => $library );
+my $library;
+if( $template->{VARS}->{singleBranchMode} ) {
+    $library = Koha::Libraries->search({ public => 1 })->next;
+} elsif( $branchcode ) {
+    $library = Koha::Libraries->search({ branchcode => $branchcode, public => 1 })->next;
 }
 
-my $libraries = Koha::Libraries->search( {}, { order_by => ['branchname'] }, );
-$template->param(
-    libraries => $libraries,
-    branchcode => $branchcode,
-);
+if( $library ) {
+    $template->param( library => $library );
+} else {
+    my $libraries = Koha::Libraries->search( { public => 1 }, { order_by => ['branchname'] } );
+    $template->param(
+        libraries  => $libraries,
+        branchcode => C4::Context->userenv ? C4::Context->userenv->{branch} : q{},
+    );
+}
 
 output_html_with_http_headers $query, $cookie, $template->output;

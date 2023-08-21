@@ -25,11 +25,10 @@ use Encode;
 
 # Koha modules used
 use C4::Context;
-use C4::Output;
-use C4::Auth;
-use C4::Biblio;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
 use C4::ImportBatch;
-use C4::XSLT ();
+use C4::XSLT;
 use C4::Templates;
 use Koha::RecordProcessor;
 
@@ -39,7 +38,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user({
     query           => $input,
     type            => "opac",
     authnotrequired => ( C4::Context->preference("OpacPublic") ? 1 : 0 ),
-    debug           => 1,
 });
 
 my $biblionumber = $input->param('id');

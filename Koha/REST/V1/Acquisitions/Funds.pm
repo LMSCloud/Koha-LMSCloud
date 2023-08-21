@@ -21,7 +21,7 @@ use Mojo::Base 'Mojolicious::Controller';
 
 use Koha::Acquisition::Funds;
 
-use Try::Tiny;
+use Try::Tiny qw( catch try );
 
 =head1 NAME
 
@@ -48,6 +48,54 @@ sub list {
         return $c->render(
             status  => 200,
             openapi => $funds
+        );
+    }
+    catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 list_owners
+
+Return the list of possible funds' owners
+
+=cut
+
+sub list_owners {
+    my $c = shift->openapi->valid_input or return;
+
+    return try {
+
+        my $patrons_rs = Koha::Patrons->search->filter_by_have_permission('acquisition.budget_modify');
+        my $patrons    = $c->objects->search( $patrons_rs );
+
+        return $c->render(
+            status  => 200,
+            openapi => $patrons
+        );
+    }
+    catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 list_users
+
+Return the list of possible funds' users
+
+=cut
+
+sub list_users {
+    my $c = shift->openapi->valid_input or return;
+
+    return try {
+
+        my $patrons_rs = Koha::Patrons->search->filter_by_have_permission('acquisition.budget_modify');
+        my $patrons    = $c->objects->search( $patrons_rs );
+
+        return $c->render(
+            status  => 200,
+            openapi => $patrons
         );
     }
     catch {

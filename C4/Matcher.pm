@@ -19,12 +19,17 @@ package C4::Matcher;
 
 use Modern::Perl;
 
-use MARC::Record;
 
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
 use Koha::SearchEngine::QueryBuilder;
-use Koha::Util::Normalize qw/legacy_default remove_spaces upper_case lower_case ISBN/;
+use Koha::Util::Normalize qw(
+    ISBN
+    legacy_default
+    lower_case
+    remove_spaces
+    upper_case
+);
 
 =head1 NAME
 
@@ -337,7 +342,7 @@ sub _store_matchpoint {
     foreach my $component (@{ $matchpoint->{'components'} }) {
         $seqnum++;
         $sth = $dbh->prepare_cached("INSERT INTO matchpoint_components 
-                                     (matchpoint_id, sequence, tag, subfields, offset, length)
+                                     (matchpoint_id, sequence, tag, subfields, `offset`, length)
                                      VALUES (?, ?, ?, ?, ?, ?)");
         $sth->bind_param(1, $matchpoint_id);
         $sth->bind_param(2, $seqnum);
@@ -695,8 +700,9 @@ sub get_matches {
 
             foreach my $result (@$authresults) {
                 my $id = $result->{authid};
+                my $target_record = Koha::Authorities->find( $id )->record;
                 $matches->{$id}->{score} += $matchpoint->{'score'};
-                $matches->{$id}->{record} = $id;
+                $matches->{$id}->{record} = $target_record;
             }
         }
     }
@@ -724,6 +730,15 @@ sub get_matches {
         }
     } elsif ($self->{'record_type'} eq 'authority') {
         require C4::AuthoritiesMarc;
+        # get rid of any that don't meet the required checks
+        $matches = {
+            map {
+                _passes_required_checks( $source_record, $matches->{$_}->{'record'}, $self->{'required_checks'} )
+                  ? ( $_ => $matches->{$_} )
+                  : ()
+            } keys %$matches
+        };
+
         foreach my $id (keys %$matches) {
             push @results, {
                 record_id => $id,
@@ -833,10 +848,12 @@ sub _get_match_keys {
             }
             elsif ( $field->is_control_field() ) {
                 $string = $field->data();
-            } else {
+            } elsif ( defined $component->{subfields} && keys %{$component->{subfields}} ){
                 $string = $field->as_string(
                     join('', keys %{ $component->{ subfields } }), ' ' # ' ' as separator
                 );
+            } else {
+                $string = $field->as_string();
             }
 
             if ($component->{'length'}>0) {

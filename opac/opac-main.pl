@@ -20,19 +20,15 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-
 use DateTime;
-
-use C4::Auth;    # get_template_and_user
-use C4::Output;
-use C4::NewsChannels;    # GetNewsToDisplay
-use C4::Languages qw(getTranslatedLanguages accept_language);
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use Koha::Quotes;
 use C4::Members;
-use C4::Overdues;
+use C4::Overdues qw( checkoverdues );
 use Koha::Checkouts;
 use Koha::Holds;
-use Koha::News;
+use Koha::AdditionalContents;
 use Koha::Patron::Messages;
 
 my $input = CGI->new;
@@ -63,7 +59,7 @@ $template->param(
     first_date_of_new   => $firstDateOfNew,
 );
 
-my $homebranch;
+my $homebranch = $ENV{OPAC_BRANCH_DEFAULT};
 if (C4::Context->userenv) {
     $homebranch = C4::Context->userenv->{'branch'};
 }
@@ -75,17 +71,24 @@ elsif (C4::Context->userenv and defined $input->param('branch') and length $inpu
 }
 
 my $news_id = $input->param('news_id');
-my $all_koha_news;
+my $koha_news;
 
 if (defined $news_id){
-    $all_koha_news = Koha::News->search({ idnew => $news_id, lang => { '!=', 'koha' } }); # get news that is not staff-only news
-    if( $all_koha_news->count ) { # we only expect one btw
-        $template->param( news_item => $all_koha_news->next );
+    $koha_news = Koha::AdditionalContents->search({ idnew => $news_id, location => ['opac_only', 'staff_and_opac'] }); # get news that is not staff-only news
+    if ( $koha_news->count > 0){
+        $template->param( news_item => $koha_news->next );
     } else {
         $template->param( single_news_error => 1 );
     }
 } else {
-    $all_koha_news   = &GetNewsToDisplay( $template->lang, $homebranch);
+    $koha_news = Koha::AdditionalContents->search_for_display(
+        {
+            category   => 'news',
+            location   => ['opac_only', 'staff_and_opac'],
+            lang       => $template->lang,
+            library_id => $homebranch,
+        }
+    );
 }
 
 # For dashboard
@@ -118,7 +121,7 @@ if ( $patron ) {
 }
 
 $template->param(
-    koha_news           => $all_koha_news,
+    koha_news           => $koha_news,
     branchcode          => $homebranch,
     daily_quote         => Koha::Quotes->get_daily_quote(),
 );

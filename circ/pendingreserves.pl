@@ -25,15 +25,13 @@ use YAML::XS;
 use Encode;
 
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use CGI qw ( -utf8 );
-use C4::Auth;
-use Koha::Biblios;
-use C4::Debug;
-use C4::Items qw( ModItemTransfer );
+use C4::Auth qw( get_template_and_user );
+use C4::Items;
 use C4::Reserves qw( ModReserveCancelAll );
 use Koha::Biblios;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Holds;
 use DateTime::Duration;
 
@@ -51,7 +49,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { circulate => "circulate_remaining_permissions" },
-        debug           => 1,
     }
 );
 
@@ -160,12 +157,12 @@ unless ( $enddate ) {
 # building query parameters
 my %where = (
     'me.found' => undef,
-    'me.priority' => 1,
+    'me.priority' => { '!=' => 0 },
     'me.suspend' => 0,
     'itembib.itemlost' => 0,
     'itembib.withdrawn' => 0,
     'itembib.notforloan' => 0,
-    'itembib.itemnumber' => { -not_in => \'SELECT itemnumber FROM branchtransfers WHERE datearrived IS NULL' }
+    'itembib.itemnumber' => { -not_in => \'SELECT itemnumber FROM branchtransfers WHERE datearrived IS NULL AND datecancelled IS NULL' }
 );
 
 # date boundaries
@@ -185,26 +182,29 @@ if ( !C4::Context->preference('AllowHoldsOnDamagedItems') ){
     $where{'itembib.damaged'} = 0;
 }
 
-if ( C4::Context->preference('IndependentBranches') ){
-    $where{'itembib.holdingbranch'} = C4::Context->userenv->{'branch'};
+if ( C4::Context->only_my_library() ){
+    $where{'me.branchcode'} = C4::Context->userenv->{'branch'};
 }
 
 # get all distinct unfulfilled reserves
 my $holds = Koha::Holds->search(
     { %where },
-    { join => 'itembib', distinct  => 1, columns => qw[me.biblionumber] }
+    { join => 'itembib', distinct => 1, columns => qw[me.biblionumber] }
 );
+
 my @biblionumbers = $holds->get_column('biblionumber');
 
 my $all_items;
-foreach my $item ( $holds->get_items_that_can_fill ) {
-    push @{$all_items->{$item->biblionumber}}, $item;
+if ( $holds->count ) {
+    foreach my $item ( $holds->get_items_that_can_fill->as_list ) {
+        push @{ $all_items->{ $item->biblionumber } }, $item;
+    }
 }
 
 # patrons count per biblio
 my $patrons_count = {
     map { $_->{biblionumber} => $_->{patrons_count} } @{ Koha::Holds->search(
-            {},
+            { 'suspend' => 0 },
             {
                 select   => [ 'biblionumber', { count => { distinct => 'borrowernumber' } } ],
                 as       => [qw( biblionumber patrons_count )],
@@ -220,6 +220,7 @@ my $holds_biblios_map = {
             {
                 join    => ['itembib', 'biblio'],
                 select  => ['me.biblionumber', 'me.reserve_id'],
+                order_by => { -desc => 'priority' }
             }
         )->unblessed
     }
@@ -229,7 +230,7 @@ my $all_holds = {
     map { $_->biblionumber => $_ } @{ Koha::Holds->search(
             { reserve_id => [ values %$holds_biblios_map ]},
             {
-                prefetch => [ 'borrowernumber', 'itembib', 'biblio' ],
+                prefetch => [ 'borrowernumber', 'itembib', 'biblio', 'item_group' ],
             }
         )->as_list
     }
@@ -237,7 +238,11 @@ my $all_holds = {
 
 # make final holds_info array and fill with info
 my @holds_info;
+my $seen = {};
 foreach my $bibnum ( @biblionumbers ){
+    # Skip this record if it's already been handled
+    next if $seen->{$bibnum};
+    $seen->{$bibnum} = 1;
 
     my $hold_info;
     my $items = $all_items->{$bibnum};
@@ -261,8 +266,11 @@ foreach my $bibnum ( @biblionumbers ){
     }
     $hold_info->{itemtypes} = \@res_itemtypes;
 
+    my $res_info = $all_holds->{$bibnum};
+
     # get available values for each biblio
     my $fields = {
+        collections     => 'ccode',
         locations       => 'location',
         callnumbers     => 'itemcallnumber',
         enumchrons      => 'enumchron',
@@ -278,6 +286,10 @@ foreach my $bibnum ( @biblionumbers ){
           [ uniq map { defined $_->$field ? $_->$field : () } @$items ];
     }
 
+    if ( $res_info->item_group ) {
+       $hold_info->{barcodes} = [ uniq map { defined $_->barcode && $_->item_group && ( $_->item_group->id == $res_info->item_group_id )  ? $_->barcode : () } @$items ];
+    }
+
     # items available
     $hold_info->{items_count} = $items_count;
 
@@ -288,11 +300,11 @@ foreach my $bibnum ( @biblionumbers ){
     $hold_info->{pull_count} = $pull_count;
 
     # get other relevant information
-    my $res_info = $all_holds->{$bibnum};
     $hold_info->{patron} = $res_info->patron;
     $hold_info->{item}   = $res_info->item;
     $hold_info->{biblio} = $res_info->biblio;
     $hold_info->{hold}   = $res_info;
+    $hold_info->{item_group} = $res_info->item_group;
 
     push @holds_info, $hold_info;
 }
@@ -302,7 +314,6 @@ $template->param(
     from                => $startdate,
     to                  => $enddate,
     holds_info          => \@holds_info,
-    "BiblioDefaultView".C4::Context->preference("BiblioDefaultView") => 1,
     HoldsToPullStartDate => C4::Context->preference('HoldsToPullStartDate') || PULL_INTERVAL,
     HoldsToPullEndDate  => C4::Context->preference('ConfirmFutureHolds') || 0,
     messages            => \@messages,

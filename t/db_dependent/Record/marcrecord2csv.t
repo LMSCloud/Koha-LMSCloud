@@ -9,10 +9,11 @@ use Text::CSV::Encoded;
 
 use C4::Biblio qw( AddBiblio );
 use C4::Context;
-use C4::Record;
+use C4::Record qw( marcrecord2csv );
 use Koha::Database;
+use Koha::Biblios;
 
-use C4::Items;
+use C4::Items qw( AddItemFromMarc );
 
 use t::lib::TestBuilder;
 
@@ -26,7 +27,6 @@ my $module_biblio = Test::MockModule->new('C4::Biblio');
 my $record = new_record();
 my $frameworkcode = q||;
 my ( $biblionumber, $biblioitemnumber ) = AddBiblio( $record, $frameworkcode );
-$module_biblio->mock( 'GetMarcBiblio', sub{ $record } );
 
 my $csv_content = q(Title=245$a|Author=245$c|Subject=650$a);
 my $csv_profile_id_1 = insert_csv_profile({ csv_content => $csv_content });

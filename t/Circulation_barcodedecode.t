@@ -17,31 +17,32 @@
 
 use Modern::Perl;
 
-use Test::More tests => 26;
+use Test::More tests => 29;
+use Test::Warn;
 
 use C4::Context;
 use t::lib::Mocks;
 
-use_ok( 'C4::Circulation' );
+use_ok('C4::Circulation', qw( barcodedecode ));
 
 t::lib::Mocks::mock_userenv({ branchcode => 'IMS' });
 
 our %inputs = (
     cuecat     => ["26002315", '.C3nZC3nZC3nYD3b6ENnZCNnY.fHmc.C3D1Dxr2C3nZE3n7.', ".C3nZC3nZC3nYD3b6ENnZCNnY.fHmc.C3D1Dxr2C3nZE3n7.\r\n",
                     'q.C3nZC3nZC3nWDNzYDxf2CNnY.fHmc.C3DWC3nZCNjXD3nW.', '.C3nZC3nZC3nWCxjWE3D1C3nX.cGf2.ENr7C3v7D3T3ENj3C3zYDNnZ.' ],
-    whitespace => [" 26002315", "26002315 ", "\n\t26002315\n"],
+    whitespace => [" 26002315", "26002315 ", "\n\t26002315\n", "whitespace removed"],
     'T-prefix' => [qw(T0031472 T32)],
     'libsuite8' => ['b000126', 'b12', 'B0126', 'IMS-B-126', 'ims-b-126','CD0000024','00123','11998'],
     EAN13      => [qw(892685001928 695152)],
-    other      => [qw(26002315 T0031472 T32 Alphanum123), "Alpha Num 345"],
+    other      => [qw(26002315 T0031472 T32 Alphanum123), "Alpha Num 345", " side spaces removed \n"],
 );
 our %outputs = (
     cuecat     => ["26002315", "046675000808", "046675000808", "043000112403", "978068484914051500"],
-    whitespace => [qw(26002315 26002315 26002315)],
+    whitespace => [qw(26002315 26002315 26002315 whitespaceremoved)],
     'T-prefix' => [qw(T0031472 T0000002         )],
     'libsuite8' => ['IMS-b-126', 'IMS-b-12', 'IMS-B-126', 'IMS-B-126', 'ims-b-126','IMS-CD-24','IMS-b-123','IMS-b-11998'],
     EAN13      => [qw(0892685001928 0000000695152)],
-    other      => [qw(26002315 T0031472 T32 Alphanum123), "Alpha Num 345"],
+    other      => [qw(26002315 T0031472 T32 Alphanum123), "Alpha Num 345", "side spaces removed"],
 );
 
 my @filters = sort keys %inputs;
@@ -54,6 +55,11 @@ foreach my $filter (@filters) {
         ($output eq $expect) or diag  "Bad output: '$output'";
     }
 }
+
+warnings_are
+    { C4::Circulation::barcodedecode(undef); }
+    [],
+    'No warnings with undef barcode';
 
 # T-prefix style is derived from zero-padded "Follett Classic Code 3 of 9".  From:
 #     www.fsc.follett.com/_file/File/pdf/Barcode%20Symbology%20Q%20%20A%203_05.pdf

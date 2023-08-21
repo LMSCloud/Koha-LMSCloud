@@ -1,0 +1,78 @@
+---
+type: object
+properties:
+  agreement_id:
+    type: integer
+    description: internally assigned agreement identifier
+    readOnly: true
+  vendor_id:
+    description: foreign key to aqbooksellers
+    type:
+      - integer
+      - "null"
+  name:
+    description: name of the agreement
+    type: string
+  description:
+    description: description of the agreement
+    type:
+      - string
+      - "null"
+  status:
+    description: current status of the agreement
+    type: string
+  closure_reason:
+    description: reason of the closure
+    type:
+      - string
+      - "null"
+  is_perpetual:
+    description: is the agreement perpetual
+    type: boolean
+  renewal_priority:
+    description: priority of the renewal
+    type:
+      - string
+      - "null"
+  license_info:
+    description: info about the license
+    type:
+      - string
+      - "null"
+  periods:
+    type: array
+    description: periods defined for this agreement
+    items:
+      $ref: erm_agreement_period.yaml
+  user_roles:
+    type: array
+    description: role for users
+    items:
+      $ref: erm_user_role.yaml
+  agreement_relationships:
+    type: array
+    description: agreement relationships
+    items:
+      $ref: erm_agreement_relationship.yaml
+  agreement_licenses:
+    type: array
+    description: agreement licenses
+    items:
+      $ref: erm_agreement_license.yaml
+  documents:
+    type: array
+    description: documents
+    items:
+      $ref: erm_document.yaml
+  vendor:
+    description: Information about the vendor
+    type:
+      - object
+      - "null"
+
+additionalProperties: false
+required:
+  - agreement_id
+  - name
+  - status
+  - is_perpetual

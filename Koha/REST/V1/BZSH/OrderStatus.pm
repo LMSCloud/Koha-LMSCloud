@@ -26,7 +26,6 @@ use Data::Dumper;
 use Scalar::Util qw(blessed);
 use Try::Tiny;
 
-use C4::Biblio qw(GetMarcBiblio);
 use C4::Context;
 
 use LWP::UserAgent;

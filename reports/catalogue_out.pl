@@ -20,12 +20,10 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Debug;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 # use Date::Manip;  # TODO: add not borrowed since date X criteria
-use Data::Dumper;
 
 =head1 catalogue_out
 
@@ -45,7 +43,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { reports => 'execute_reports' },
-        debug           => 1,
     }
 );
 
@@ -79,8 +76,8 @@ sub calculate {
             if ( ( $i == 1 ) and ( @$filters[ $i - 1 ] ) ) {
                 $cell{err} = 1 if ( @$filters[$i] < @$filters[ $i - 1 ] );
             }
-            $cell{crit} = "Branch"   if ( $i == 0 );
-            $cell{crit} = "Doc Type" if ( $i == 1 );
+            $cell{crit} = "homelibrary"   if ( $i == 0 );
+            $cell{crit} = "itemtype" if ( $i == 1 );
             push @loopfilter, \%cell;
         }
     }
@@ -103,7 +100,6 @@ sub calculate {
         }
         $strsth2 .= " GROUP BY $column ORDER BY $column ";    # needed for count
         push @loopfilter, { crit => 'SQL', sql => 1, filter => $strsth2 };
-        $debug and warn "catalogue_out SQL: " . $strsth2;
         my $sth2 = $dbh->prepare($strsth2);
         $sth2->execute;
 
@@ -152,9 +148,7 @@ sub calculate {
     }
     $query .= " ORDER BY items.itemcallnumber DESC, barcode";
     $query .= " LIMIT 0,$limit" if ($limit);
-    $debug and warn "SQL : $query";
 
-    # warn "SQL : $query";
     push @loopfilter, { crit => 'SQL', sql => 1, filter => $query };
     my $dbcalc = $dbh->prepare($query);
 
@@ -186,12 +180,6 @@ sub calculate {
         my (@temptable);
         my $i = 0;
         foreach my $cell ( @{ $tables{$tablename} } ) {
-            if ( 0 == $i++ and $debug ) {
-                my $dump = Dumper($cell);
-                $dump =~ s/\n/ /gs;
-                $dump =~ s/\s+/ /gs;
-                print STDERR "first cell for $tablename: $dump";
-            }
             push @temptable, $cell;
         }
         my $count    = scalar(@temptable);

@@ -6,9 +6,10 @@
 [% END %]
 [% IF payment_types.size > 0 %]
     <li>
-        [% IF Koha.Preference('UseCashRegisters') %]
-            <label for="[% type | html %]_type" class="required">[% IF type == 'payment' %]Payment[% ELSE %]Transaction[% END %] type: </label>
+        [% IF Koha.Preference('UseCashRegisters') || Koha.Preference('RequirePaymentType') %]
+            <label for="[% type | html %]_type" class="required">[% IF type == 'payment' %]<span>Payment type:</span>[% ELSE %]<span>Transaction type:</span>[% END %] </label>
             <select name="[% type | html %]_type" id="[% type | html %]_type" class="required" required="required">
+                <option value="">None selected</option>
                 [% IF type == 'refund' %]
                 <option value="AC">Account credit</option>
                 [% END %]
@@ -18,10 +19,10 @@
             </select>
             <span class="required">Required</span>
         [%- ELSE -%]
-            <label for="[% type | html %]_type">[% IF type == 'payment' %]Payment[% ELSE %]Transaction[% END %] type: </label>
+            <label for="[% type | html %]_type">[% IF type == 'payment' %]<span>Payment type:</span>[% ELSE %]<span>Transaction type:</span>[% END %] </label>
             <select name="[% type | html %]_type" id="[% type | html %]_type">
                 [% IF type != 'payout' %]
-                <option value=""></option>
+                <option value="">None selected</option>
                 [% END %]
                 [% IF type == 'refund' %]
                 <option value="AC">Account credit</option>

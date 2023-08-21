@@ -20,12 +20,17 @@ use Modern::Perl;
 use Template::Plugin;
 use base qw( Template::Plugin );
 
-use List::Util qw(any);
+use List::Util qw( any );
 use Koha::Patron::Categories;
 
 sub all {
     my ( $self, $params ) = @_;
-    return Koha::Patron::Categories->search_with_library_limits($params, { order_by => ['description'] });
+    return Koha::Patron::Categories->search($params, { order_by => [ 'description' ] } );
+}
+
+sub limited {
+    my ( $self, $params ) = @_;
+    return Koha::Patron::Categories->search_with_library_limits($params, { order_by => [ 'description' ] } );
 }
 
 sub GetName {
@@ -56,8 +61,13 @@ Koha::Template::Plugin::Categories - TT Plugin for categories
 
 =head2 all
 
-In a template, you can get the all categories with
+In a template, you can get all the categories with
 the following TT code: [% Categories.all() %]
+
+=head2 limited
+
+In a template, you can get the categories with library limits applied with
+the following TT code: [% Categories.limited() %]
 
 =head2 GetName
 

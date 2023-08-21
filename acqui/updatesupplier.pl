@@ -47,11 +47,9 @@ contact_serialsprimary.
 =cut
 
 use Modern::Perl;
-use List::Util;
 use C4::Context;
-use C4::Auth;
+use C4::Auth qw( checkauth );
 
-use C4::Biblio;
 use C4::Output;
 
 use Koha::Acquisition::Bookseller::Contacts;
@@ -78,6 +76,7 @@ $data{'address3'}=$addresses[2];
 $data{'address4'}=$addresses[3];
 $data{'phone'}=$input->param('company_phone');
 $data{'accountnumber'}=$input->param('accountnumber');
+$data{'type'}=$input->param('vendor_type');
 $data{'fax'}=$input->param('company_fax');
 $data{'url'}=$input->param('website');
 # warn "".$data{'contnotes'};

@@ -21,7 +21,7 @@
 
 use Modern::Perl;
 use Text::CSV;
-use Getopt::Long qw(:config no_ignore_case);
+use Getopt::Long qw( GetOptions :config no_ignore_case );
 
 use Koha::Script;
 use C4::Context;
@@ -91,8 +91,7 @@ my $sth   = $dbh->prepare($query);
 $sth->execute;
 
 unless ( $separator ) {
-    $separator = C4::Context->preference('CSVDelimiter') || ',';
-    $separator = "\t" if ($separator eq 'tabulation');
+    $separator = C4::Context->csv_delimiter;
 }
 
 my $csv = Text::CSV->new( { sep_char => $separator, binary => 1 } );

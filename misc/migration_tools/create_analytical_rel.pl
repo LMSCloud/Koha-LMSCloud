@@ -2,19 +2,13 @@
 
 use strict;
 #use warnings; FIXME - Bug 2505
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
 
 use Koha::Script;
 use C4::Context;
-use C4::Biblio;
-use C4::Items;
+use C4::Biblio qw( ModBiblio );
 use Koha::Items;
-use Getopt::Long;
+use Koha::Biblios;
+use Getopt::Long qw( GetOptions );
 
 $| = 1;
 
@@ -82,15 +76,16 @@ _SUMMARY_
 sub process_bib {
     my $biblionumber = shift;
 
-    my $bib = GetMarcBiblio({ biblionumber => $biblionumber });
-    unless (defined $bib) {
+    my $biblio = Koha::Biblios->find($biblionumber);
+    my $record = $biblio->metadata->record;
+    unless (defined $record) {
         print "\nCould not retrieve bib $biblionumber from the database - record is corrupt.\n";
         $num_bad_bibs++;
         return;
     }
 	#loop through each host field and populate subfield 0 and 9
     my $analyticfield = '773';
-	foreach my $hostfield ( $bib->field($analyticfield) ) {
+    foreach my $hostfield ( $record->field($analyticfield) ) {
 		if(my $barcode = $hostfield->subfield('o')){
             my $item = Koha::Items->find({ barcode => $barcode });
             if ($item) {
@@ -105,7 +100,7 @@ sub process_bib {
                 }
                 if ($modif) {
                     $num_bibs_modified++;
-                    my $modresult = ModBiblio( $bib, $biblionumber, '' );
+                    my $modresult = ModBiblio( $record, $biblionumber, '' );
                     warn "Modifying biblio $biblionumber";
                     if ( !$modresult ) {
                         warn "Unable to modify biblio $biblionumber with update host field";

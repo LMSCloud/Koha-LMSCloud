@@ -1,0 +1,78 @@
+/bzsh/order_status:
+  get:
+    x-mojo-to: BZSH::OrderStatus#getOrderItemStatus
+    operationId: getBZSHOrderItemStatus
+    description: Retrieve the status of external ordered items
+    summary: Retrieve the status of external ordered items
+    tags:
+      - bzsh_order_status
+    produces:
+      - application/json
+    parameters:
+      - name: biblionumber
+        in: query
+        description: Search by biblionumber
+        required: false
+        type: array
+        collectionFormat: pipes
+        items:
+          type: integer
+      - name: external_order_id
+        in: query
+        description: Search by external order number
+        required: false
+        type: array
+        collectionFormat: pipes
+        items:
+          type: string
+      - name: library_id
+        in: query
+        description: Search by library id
+        required: false
+        type: array
+        collectionFormat: pipes
+        items:
+          type: string
+      - name: order_status_code
+        in: query
+        description: Search by order status code
+        required: false
+        type: array
+        collectionFormat: pipes
+        items:
+          type: integer
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+    responses:
+      '200':
+        description: Returns a JSON object that contains an array of order item object information.
+        schema:
+          $ref: "../swagger.yaml#/definitions/bzsh_order_items_status"
+      '400':
+        description: Bad parameter
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '401':
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '403':
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '404':
+        description: Resource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '500':
+        description: Internal server error
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '503':
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        parameters: edit_catalogue

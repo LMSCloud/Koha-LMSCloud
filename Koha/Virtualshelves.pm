@@ -17,11 +17,12 @@ package Koha::Virtualshelves;
 
 use Modern::Perl;
 
-use Carp;
 
 use Koha::Database;
 
+use Koha::Patrons;
 use Koha::Virtualshelf;
+
 
 use base qw(Koha::Objects);
 
@@ -31,11 +32,50 @@ Koha::Virtualshelf - Koha Virtualshelf Object class
 
 =head1 API
 
-=head2 Class Methods
+=head2 Class methods
+
+=head3 disown_or_delete
+
+    $lists->disown_or_delete;
+
+This method will transfer public/shared lists to the appropriate patron or
+just delete them if not possible.
 
 =cut
 
-=head3 type
+sub disown_or_delete {
+    my ($self) = @_;
+
+    $self->_resultset->result_source->schema->txn_do(
+        sub {
+            if ( C4::Context->preference('ListOwnershipUponPatronDeletion') eq 'transfer' ) {
+                my $new_owner;
+
+                $new_owner = C4::Context->preference('ListOwnerDesignated')
+                  if C4::Context->preference('ListOwnerDesignated')
+                  and Koha::Patrons->find( C4::Context->preference('ListOwnerDesignated') );
+
+                if( !$new_owner && C4::Context->userenv ) {
+                    $new_owner = C4::Context->userenv->{number};
+                }
+
+                while ( my $list = $self->next ) {
+                    if ( $new_owner && ( $list->is_public or $list->is_shared ) ) {
+                        $list->transfer_ownership($new_owner);
+                    } else {
+                        $list->delete;
+                    }
+                }
+            } else {    # 'delete'
+                $_->delete for $self->as_list;
+            }
+        }
+    );
+
+    return $self;
+}
+
+=head3 get_private_shelves
 
 =cut
 
@@ -47,7 +87,7 @@ sub get_private_shelves {
 
     $self->search(
         {
-            category => 1,
+            public => 0,
             -or => {
                 'virtualshelfshares.borrowernumber' => $borrowernumber,
                 'me.owner' => $borrowernumber,
@@ -62,6 +102,9 @@ sub get_private_shelves {
     );
 }
 
+=head3 get_public_shelves
+
+=cut
 
 sub get_public_shelves {
     my ( $self, $params ) = @_;
@@ -70,7 +113,7 @@ sub get_public_shelves {
 
     $self->search(
         {
-            category => 2,
+            public => 1,
         },
         {
             distinct => 'shelfnumber',
@@ -80,26 +123,50 @@ sub get_public_shelves {
     );
 }
 
+=head3 get_some_shelves
+
+=cut
+
 sub get_some_shelves {
     my ( $self, $params ) = @_;
     my $borrowernumber = $params->{borrowernumber} || 0;
-    my $category = $params->{category} || 1;
+    my $public = $params->{public} || 0;
     my $add_allowed = $params->{add_allowed};
 
     my @conditions;
-    if ( $add_allowed ) {
-        push @conditions, {
-            -or =>
-            [
-                {
-                    "me.owner" => $borrowernumber,
-                    "me.allow_change_from_owner" => 1,
-                },
-                "me.allow_change_from_others" => 1,
-            ]
-        };
+    my $patron;
+    my $staffuser = 0;
+    if ( $borrowernumber != 0 ) {
+        $patron = Koha::Patrons->find( $borrowernumber );
+        $staffuser = $patron->can_patron_change_staff_only_lists;
     }
-    if ( $category == 1 ) {
+    if ( $add_allowed ) {
+        if ( $staffuser ) {
+            push @conditions, {
+                -or =>
+                [
+                    {
+                        "me.owner" => $borrowernumber,
+                        "me.allow_change_from_owner" => 1,
+                    },
+                    "me.allow_change_from_others" => 1,
+                    "me.allow_change_from_staff"  => 1
+                ]
+            };
+        } else {
+            push @conditions, {
+                -or =>
+                [
+                    {
+                        "me.owner" => $borrowernumber,
+                        "me.allow_change_from_owner" => 1,
+                    },
+                    "me.allow_change_from_others" => 1,
+                ]
+            };
+        }
+    }
+    if ( !$public ) {
         push @conditions, {
             -or =>
             {
@@ -111,7 +178,7 @@ sub get_some_shelves {
 
     $self->search(
         {
-            category => $category,
+            public => $public,
             ( @conditions ? ( -and => \@conditions ) : () ),
         },
         {
@@ -121,6 +188,10 @@ sub get_some_shelves {
         }
     );
 }
+
+=head3 get_shelves_containing_record
+
+=cut
 
 sub get_shelves_containing_record {
     my ( $self, $params ) = @_;
@@ -133,7 +204,7 @@ sub get_shelves_containing_record {
           {
               -or => [
                 {
-                    category => 1,
+                    public => 0,
                     -or      => {
                         'me.owner' => $borrowernumber,
                         -or        => {
@@ -141,11 +212,11 @@ sub get_shelves_containing_record {
                         },
                     }
                 },
-                { category => 2 },
+                { public => 1 },
             ]
           };
     } else {
-        push @conditions, { category => 2 };
+        push @conditions, { public => 1 };
     }
 
     return Koha::Virtualshelves->search(
@@ -160,9 +231,17 @@ sub get_shelves_containing_record {
     );
 }
 
+=head3 _type
+
+=cut
+
 sub _type {
     return 'Virtualshelve';
 }
+
+=head3 object_class
+
+=cut
 
 sub object_class {
     return 'Koha::Virtualshelf';

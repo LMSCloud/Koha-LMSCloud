@@ -20,19 +20,18 @@ package C4::Acquisition;
 
 
 use Modern::Perl;
-use Carp;
+use Carp qw( carp croak );
 use Text::CSV_XS;
 use C4::Context;
-use C4::Debug;
-use C4::Suggestions;
-use C4::Biblio;
-use C4::Contract;
-use C4::Debug;
-use C4::Log qw(logaction);
+use C4::Suggestions qw( GetSuggestion GetSuggestionFromBiblionumber ModSuggestion );
+use C4::Biblio qw( GetMarcFromKohaField GetMarcStructure IsMarcStructureInternal );
+use C4::Contract qw( GetContract );
+use C4::Log qw( logaction );
 use C4::Templates qw(gettemplate);
-use Koha::DateUtils qw( dt_from_string output_pref );
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Acquisition::Baskets;
 use Koha::Acquisition::Booksellers;
+use Koha::Acquisition::Invoices;
 use Koha::Acquisition::Orders;
 use Koha::Biblios;
 use Koha::Exceptions;
@@ -45,60 +44,57 @@ use Koha::Patrons;
 use C4::Koha;
 
 use MARC::Field;
-use MARC::Record;
-use JSON qw(to_json);
+use JSON qw( to_json );
 
-use Time::localtime;
 
-use vars qw(@ISA @EXPORT);
-
+our (@ISA, @EXPORT_OK);
 BEGIN {
     require Exporter;
-    @ISA    = qw(Exporter);
-    @EXPORT = qw(
-        &GetBasket &NewBasket &ReopenBasket &ModBasket
-        &GetBasketAsCSV &GetBasketGroupAsCSV
-        &GetBasketsByBookseller &GetBasketsByBasketgroup
-        &GetBasketsInfosByBookseller  &GetBaskets
+    @ISA       = qw(Exporter);
+    @EXPORT_OK = qw(
+      GetBasket NewBasket ReopenBasket ModBasket
+      GetBasketAsCSV GetBasketGroupAsCSV
+      GetBasketsByBookseller GetBasketsByBasketgroup
+      GetBasketsInfosByBookseller GetBaskets
 
-        &GetBasketUsers &ModBasketUsers
-        &CanUserManageBasket
+      GetBasketUsers ModBasketUsers
+      CanUserManageBasket
 
-        &ModBasketHeader
+      ModBasketHeader
 
-        &ModBasketgroup &NewBasketgroup &DelBasketgroup &GetBasketgroup &CloseBasketgroup
-        &GetBasketgroups &GetBasketgroupsGeneric &ReOpenBasketgroup
+      ModBasketgroup NewBasketgroup DelBasketgroup GetBasketgroup CloseBasketgroup
+      GetBasketgroups GetBasketgroupsGeneric ReOpenBasketgroup
 
-        &ModOrder &GetOrder &GetOrders &GetOrdersByBiblionumber
-        &GetOrderFromItemnumber
-        &SearchOrders &GetHistory &GetRecentAcqui
-        &ModReceiveOrder &CancelReceipt &ModOrderDeliveryNote
-        &TransferOrder
-        &ModItemOrder
+      ModOrder GetOrder GetOrders GetOrdersByBiblionumber
+      GetOrderFromItemnumber
+      SearchOrders GetHistory GetRecentAcqui
+      ModReceiveOrder CancelReceipt ModOrderDeliveryNote
+      TransferOrder
+      ModItemOrder
 
-        &GetParcels
+      GetParcels
 
-        &GetInvoices
-        &GetInvoice
-        &GetInvoiceDetails
-        &AddInvoice
-        &ModInvoice
-        &CloseInvoice
-        &ReopenInvoice
-        &DelInvoice
-        &MergeInvoices
+      GetInvoices
+      GetInvoice
+      GetInvoiceDetails
+      AddInvoice
+      ModInvoice
+      CloseInvoice
+      ReopenInvoice
+      DelInvoice
+      MergeInvoices
 
-        &AddClaim
-        &GetBiblioCountByBasketno
+      AddClaim
+      GetBiblioCountByBasketno
 
-        &GetOrderUsers
-        &ModOrderUsers
-        &NotifyOrderUsers
+      GetOrderUsers
+      ModOrderUsers
+      NotifyOrderUsers
 
-        &FillWithDefaultValues
+      FillWithDefaultValues
 
-        &get_rounded_price
-        &get_rounding_sql
+      get_rounded_price
+      get_rounding_sql
     );
 }
 
@@ -204,8 +200,6 @@ sub NewBasket {
     $basketname           ||= q{}; # default to empty strings
     $basketnote           ||= q{};
     $basketbooksellernote ||= q{};
-    ModBasketHeader( $basket, $basketname, $basketnote, $basketbooksellernote,
-        $basketcontractnumber, $booksellerid, $deliveryplace, $billingplace, $is_standing, $create_items );
 
     # Log the basket creation
     if (C4::Context->preference("AcquisitionLog")) {
@@ -217,6 +211,9 @@ sub NewBasket {
             to_json($created->unblessed)
         );
     }
+
+    ModBasketHeader( $basket, $basketname, $basketnote, $basketbooksellernote,
+        $basketcontractnumber, $booksellerid, $deliveryplace, $billingplace, $is_standing, $create_items );
 
     return $basket;
 }
@@ -280,7 +277,9 @@ sub GetBasketAsCSV {
         my $csv_profile = Koha::CsvProfiles->find( $csv_profile_id );
         Koha::Exceptions::ObjectNotFound->throw( 'There is no valid csv profile given') unless $csv_profile;
 
-        my $csv = Text::CSV_XS->new({'quote_char'=>'"','escape_char'=>'"','sep_char'=>$csv_profile->csv_separator,'binary'=>1});
+        my $delimiter = $csv_profile->csv_separator;
+        $delimiter = "\t" if $delimiter eq "\\t";
+        my $csv = Text::CSV_XS->new({'quote_char'=>'"','escape_char'=>'"','sep_char'=>$delimiter,'binary'=>1});
         my $csv_profile_content = $csv_profile->content;
         my ( @headers, @fields );
         while ( $csv_profile_content =~ /
@@ -313,7 +312,7 @@ sub GetBasketAsCSV {
             }
             push @rows, \@row;
         }
-        my $content = join( $csv_profile->csv_separator, @headers ) . "\n";
+        my $content = join( $delimiter, @headers ) . "\n";
         for my $row ( @rows ) {
             $csv->combine(@$row);
             my $string = $csv->string;
@@ -324,20 +323,23 @@ sub GetBasketAsCSV {
     else {
         foreach my $order (@orders) {
             my $biblio = Koha::Biblios->find( $order->{biblionumber} );
-            my $biblioitem = $biblio->biblioitem;
+            my $biblioitem;
+            if ($biblio) {
+                $biblioitem = $biblio->biblioitem;
+            }
             my $row = {
-                contractname => $contract->{'contractname'},
-                ordernumber => $order->{'ordernumber'},
-                entrydate => $order->{'entrydate'},
-                isbn => $order->{'isbn'},
-                author => $biblio->author,
-                title => $biblio->title,
-                publicationyear => $biblioitem->publicationyear,
-                publishercode => $biblioitem->publishercode,
-                collectiontitle => $biblioitem->collectiontitle,
-                notes => $order->{'order_vendornote'},
-                quantity => $order->{'quantity'},
-                rrp => $order->{'rrp'},
+                contractname    => $contract->{'contractname'},
+                ordernumber     => $order->{'ordernumber'},
+                entrydate       => $order->{'entrydate'},
+                isbn            => $order->{'isbn'},
+                author          => $biblio     ? $biblio->author              : q{},
+                title           => $biblio     ? $biblio->title               : q{},
+                publicationyear => $biblioitem ? $biblioitem->publicationyear : q{},
+                publishercode   => $biblioitem ? $biblioitem->publishercode   : q{},
+                collectiontitle => $biblioitem ? $biblioitem->collectiontitle : q{},
+                notes           => $order->{'order_vendornote'},
+                quantity        => $order->{'quantity'},
+                rrp             => $order->{'rrp'},
             };
             for my $place ( qw( deliveryplace billingplace ) ) {
                 if ( my $library = Koha::Libraries->find( $row->{deliveryplace} ) ) {
@@ -394,30 +396,33 @@ sub GetBasketGroupAsCSV {
 
         foreach my $order (@orders) {
             my $biblio = Koha::Biblios->find( $order->{biblionumber} );
-            my $biblioitem = $biblio->biblioitem;
+            my $biblioitem;
+            if ($biblio) {
+                $biblioitem = $biblio->biblioitem;
+            }
             my $row = {
-                clientnumber => $bookseller->accountnumber,
-                basketname => $basket->{basketname},
-                ordernumber => $order->{ordernumber},
-                author => $biblio->author,
-                title => $biblio->title,
-                publishercode => $biblioitem->publishercode,
-                publicationyear => $biblioitem->publicationyear,
-                collectiontitle => $biblioitem->collectiontitle,
-                isbn => $order->{isbn},
-                quantity => $order->{quantity},
-                rrp_tax_included => $order->{rrp_tax_included},
-                rrp_tax_excluded => $order->{rrp_tax_excluded},
-                discount => $bookseller->discount,
+                clientnumber       => $bookseller->accountnumber,
+                basketname         => $basket->{basketname},
+                ordernumber        => $order->{ordernumber},
+                author             => $biblio     ? $biblio->author              : q{},
+                title              => $biblio     ? $biblio->title               : q{},
+                publishercode      => $biblioitem ? $biblioitem->publishercode   : q{},
+                publicationyear    => $biblioitem ? $biblioitem->publicationyear : q{},
+                collectiontitle    => $biblioitem ? $biblioitem->collectiontitle : q{},
+                isbn               => $order->{isbn},
+                quantity           => $order->{quantity},
+                rrp_tax_included   => $order->{rrp_tax_included},
+                rrp_tax_excluded   => $order->{rrp_tax_excluded},
+                discount           => $bookseller->discount,
                 ecost_tax_included => $order->{ecost_tax_included},
                 ecost_tax_excluded => $order->{ecost_tax_excluded},
-                notes => $order->{order_vendornote},
-                entrydate => $order->{entrydate},
-                booksellername => $bookseller->name,
-                bookselleraddress => $bookseller->address1,
-                booksellerpostal => $bookseller->postal,
-                contractnumber => $contract->{contractnumber},
-                contractname => $contract->{contractname},
+                notes              => $order->{order_vendornote},
+                entrydate          => $order->{entrydate},
+                booksellername     => $bookseller->name,
+                bookselleraddress  => $bookseller->address1,
+                booksellerpostal   => $bookseller->postal,
+                contractnumber     => $contract->{contractnumber},
+                contractname       => $contract->{contractname},
             };
             my $temp = {
                 basketgroupdeliveryplace => $basketgroup->{deliveryplace},
@@ -1350,7 +1355,7 @@ sub GetOrder {
                 aqbooksellers.name        AS supplier,
                 aqbooksellers.id          AS supplierid,
                 biblioitems.publishercode AS publisher,
-                ADDDATE(aqbasket.closedate, INTERVAL aqbooksellers.deliverytime DAY) AS estimateddeliverydate,
+                ADDDATE(aqbasket.closedate, INTERVAL aqbooksellers.deliverytime DAY) AS calculateddeliverydate,
                 DATE(aqbasket.closedate)  AS orderdate,
                 aqorders.quantity - COALESCE(aqorders.quantityreceived,0)                 AS quantity_to_receive,
                 (aqorders.quantity - COALESCE(aqorders.quantityreceived,0)) * aqorders.rrp AS subtotal,
@@ -1481,13 +1486,8 @@ sub ModReceiveOrder {
     my $received_items = $params->{received_items};
 
     my $dbh = C4::Context->dbh;
-    $datereceived = output_pref(
-        {
-            dt => ( $datereceived ? dt_from_string( $datereceived ) : dt_from_string ),
-            dateformat => 'iso',
-            dateonly => 1,
-        }
-    );
+    $datereceived = $datereceived ? dt_from_string( $datereceived ) : dt_from_string;
+    $datereceived = $datereceived->ymd;
 
     my $suggestionid = GetSuggestionFromBiblionumber( $biblionumber );
     if ($suggestionid) {
@@ -2307,8 +2307,11 @@ sub GetHistory {
     my $title = $params{title};
     my $author = $params{author};
     my $isbn   = $params{isbn};
+    my $issn   = $params{issn};
     my $ean    = $params{ean};
     my $name = $params{name};
+    my $internalnote = $params{internalnote};
+    my $vendornote = $params{vendornote};
     my $from_placed_on = $params{from_placed_on};
     my $to_placed_on = $params{to_placed_on};
     my $basket = $params{basket};
@@ -2346,6 +2349,20 @@ sub GetHistory {
         }
     }
 
+    #get variation of issn
+    my @issn_params;
+    my @issns;
+    if ($issn){
+        if ( C4::Context->preference("SearchWithISSNVariations") ){
+            @issns = C4::Koha::GetVariationsOfISSN( $issn );
+            push @issn_params, ('?') x @issns;
+        }
+        unless (@issns){
+            push @issns, $issn;
+            push @issn_params, '?';
+        }
+    }
+
     my $dbh   = C4::Context->dbh;
     my $query ="
         SELECT
@@ -2374,6 +2391,8 @@ sub GetHistory {
             aqorders.biblionumber,
             aqorders.orderstatus,
             aqorders.parent_ordernumber,
+            aqorders.order_internalnote,
+            aqorders.order_vendornote,
             aqbudgets.budget_name
             ";
     $query .= ", aqbudgets.budget_id AS budget" if defined $budget;
@@ -2422,6 +2441,13 @@ sub GetHistory {
         }
     }
 
+    if ( @issns ) {
+        $query .= " AND ( biblioitems.issn LIKE " . join (" OR biblioitems.issn LIKE ", @issn_params ) . ")";
+        foreach my $isn (@issns){
+            push @query_params, "%$isn%";
+        }
+    }
+
     if ( $ean ) {
         $query .= " AND biblioitems.ean = ? ";
         push @query_params, "$ean";
@@ -2466,6 +2492,16 @@ sub GetHistory {
         }
     }
 
+    if ( $internalnote ) {
+        $query .= " AND aqorders.order_internalnote LIKE ? ";
+        push @query_params, "%$internalnote%";
+    }
+
+    if ( $vendornote ) {
+        $query .= " AND aqorders.order_vendornote LIKE ?";
+        push @query_params, "%$vendornote%";
+    }
+
     if ($booksellerinvoicenumber) {
         $query .= " AND aqinvoices.invoicenumber LIKE ? ";
         push @query_params, "%$booksellerinvoicenumber%";
@@ -2501,7 +2537,7 @@ sub GetHistory {
         push @query_params, @$ordernumbers;
     }
     if ( @$additional_fields ) {
-        my @baskets = Koha::Acquisition::Baskets->filter_by_additional_fields($additional_fields);
+        my @baskets = Koha::Acquisition::Baskets->filter_by_additional_fields($additional_fields)->as_list;
 
         return [] unless @baskets;
 
@@ -2597,6 +2633,18 @@ asc is the default if omitted
 
 sub GetInvoices {
     my %args = @_;
+
+    my $additional_fields = $args{additional_fields} // [];
+    my $matching_invoice_ids_for_additional_fields = [];
+    if ( @$additional_fields ) {
+        my @invoices = Koha::Acquisition::Invoices->filter_by_additional_fields($additional_fields)->as_list;
+
+        return () unless @invoices;
+
+        $matching_invoice_ids_for_additional_fields = [ map {
+            $_->id
+        } @invoices ];
+    }
 
     my @columns = qw(invoicenumber booksellerid shipmentdate billingdate
         closedate shipmentcost shipmentcost_budgetid);
@@ -2694,6 +2742,18 @@ sub GetInvoices {
     }
 
     $query .= " WHERE " . join(" AND ", @bind_strs) if @bind_strs;
+
+    # Handle additional fields filtering
+    if ( @$additional_fields ) {
+        my $operator = ' WHERE';
+        if ( @bind_strs ) { # there's a WHERE already
+            $operator = ' AND';
+        }
+        $query .= "$operator aqinvoices.invoiceid IN ("
+            . join( ', ', @$matching_invoice_ids_for_additional_fields )
+        . ')';
+    }
+
     $query .= " GROUP BY aqinvoices.invoiceid, aqinvoices.invoicenumber, aqinvoices.booksellerid, aqinvoices.shipmentdate, aqinvoices.billingdate, aqinvoices.closedate, aqinvoices.shipmentcost, aqinvoices.shipmentcost_budgetid, aqinvoices.message_id, aqbooksellers.name";
 
     if($args{order_by}) {
@@ -2919,7 +2979,7 @@ sub CloseInvoice {
 
 Reopen an invoice
 
-Equivalent to ModInvoice(invoiceid => $invoiceid, closedate => output_pref({ dt=>dt_from_string, dateonly=>1, otputpref=>'iso' }))
+Equivalent to ModInvoice(invoiceid => $invoiceid, closedate => $closedate );
 
 =cut
 
@@ -3019,139 +3079,6 @@ sub GetBiblioCountByBasketno {
     my $sth = $dbh->prepare($query);
     $sth->execute($basketno);
     return $sth->fetchrow;
-}
-
-=head3 populate_order_with_prices
-
-$order = populate_order_with_prices({
-    order        => $order #a hashref with the order values
-    booksellerid => $booksellerid #FIXME - should obtain from order basket
-    receiving    => 1 # boolean representing order stage, should pass only this or ordering
-    ordering     => 1 # boolean representing order stage
-});
-
-
-Sets calculated values for an order - all values are stored with full precision
-regardless of rounding preference except for tax value which is calculated
-on rounded values if requested
-
-For ordering the values set are:
-    rrp_tax_included
-    rrp_tax_excluded
-    ecost_tax_included
-    ecost_tax_excluded
-    tax_value_on_ordering
-For receiving the value set are:
-    unitprice_tax_included
-    unitprice_tax_excluded
-    tax_value_on_receiving
-
-Note: When receiving, if the rounded value of the unitprice matches the rounded
-value of the ecost then then ecost (full precision) is used.
-
-Returns a hashref of the order
-
-FIXME: Move this to Koha::Acquisition::Order.pm
-
-=cut
-
-sub populate_order_with_prices {
-    my ($params) = @_;
-
-    my $order        = $params->{order};
-    my $booksellerid = $params->{booksellerid};
-    return unless $booksellerid;
-
-    my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
-
-    my $receiving = $params->{receiving};
-    my $ordering  = $params->{ordering};
-    my $discount  = $order->{discount};
-    $discount /= 100 if $discount > 1;
-
-    if ($ordering) {
-        $order->{tax_rate_on_ordering} //= $order->{tax_rate};
-        if ( $bookseller->listincgst ) {
-
-            # The user entered the prices tax included
-            $order->{unitprice} += 0;
-            $order->{unitprice_tax_included} = $order->{unitprice};
-            $order->{rrp_tax_included} = $order->{rrp};
-
-            # price tax excluded = price tax included / ( 1 + tax rate )
-            $order->{unitprice_tax_excluded} = $order->{unitprice_tax_included} / ( 1 + $order->{tax_rate_on_ordering} );
-            $order->{rrp_tax_excluded} = $order->{rrp_tax_included} / ( 1 + $order->{tax_rate_on_ordering} );
-
-            # ecost tax included = rrp tax included  ( 1 - discount )
-            $order->{ecost_tax_included} = $order->{rrp_tax_included} * ( 1 - $discount );
-
-            # ecost tax excluded = rrp tax excluded * ( 1 - discount )
-            $order->{ecost_tax_excluded} = $order->{rrp_tax_excluded} * ( 1 - $discount );
-
-            # tax value = quantity * ecost tax excluded * tax rate
-            # we should use the unitprice if included
-            my $cost_tax_included = $order->{unitprice_tax_included} == 0 ? $order->{ecost_tax_included} : $order->{unitprice_tax_included};
-            my $cost_tax_excluded = $order->{unitprice_tax_excluded} == 0 ? $order->{ecost_tax_excluded} : $order->{unitprice_tax_excluded};
-            $order->{tax_value_on_ordering} = ( get_rounded_price($cost_tax_included) - get_rounded_price($cost_tax_excluded) ) * $order->{quantity};
-
-        }
-        else {
-            # The user entered the prices tax excluded
-            $order->{unitprice_tax_excluded} = $order->{unitprice};
-            $order->{rrp_tax_excluded} = $order->{rrp};
-
-            # price tax included = price tax excluded * ( 1 - tax rate )
-            $order->{unitprice_tax_included} = $order->{unitprice_tax_excluded} * ( 1 + $order->{tax_rate_on_ordering} );
-            $order->{rrp_tax_included} = $order->{rrp_tax_excluded} * ( 1 + $order->{tax_rate_on_ordering} );
-
-            # ecost tax excluded = rrp tax excluded * ( 1 - discount )
-            $order->{ecost_tax_excluded} = $order->{rrp_tax_excluded} * ( 1 - $discount );
-
-            # ecost tax included = rrp tax excluded * ( 1 + tax rate ) * ( 1 - discount ) = ecost tax excluded * ( 1 + tax rate )
-            $order->{ecost_tax_included} = $order->{ecost_tax_excluded} * ( 1 + $order->{tax_rate_on_ordering} );
-
-            # tax value = quantity * ecost tax included * tax rate
-            # we should use the unitprice if included
-            my $cost_tax_excluded = $order->{unitprice_tax_excluded} == 0 ?  $order->{ecost_tax_excluded} : $order->{unitprice_tax_excluded};
-            $order->{tax_value_on_ordering} = $order->{quantity} * get_rounded_price($cost_tax_excluded) * $order->{tax_rate_on_ordering};
-        }
-    }
-
-    if ($receiving) {
-        $order->{tax_rate_on_receiving} //= $order->{tax_rate};
-        if ( $bookseller->invoiceincgst ) {
-            # Trick for unitprice. If the unit price rounded value is the same as the ecost rounded value
-            # we need to keep the exact ecost value
-            if ( Koha::Number::Price->new( $order->{unitprice} )->round == Koha::Number::Price->new( $order->{ecost_tax_included} )->round ) {
-                $order->{unitprice} = $order->{ecost_tax_included};
-            }
-
-            # The user entered the unit price tax included
-            $order->{unitprice_tax_included} = $order->{unitprice};
-
-            # unit price tax excluded = unit price tax included / ( 1 + tax rate )
-            $order->{unitprice_tax_excluded} = $order->{unitprice_tax_included} / ( 1 + $order->{tax_rate_on_receiving} );
-        }
-        else {
-            # Trick for unitprice. If the unit price rounded value is the same as the ecost rounded value
-            # we need to keep the exact ecost value
-            if ( Koha::Number::Price->new( $order->{unitprice} )->round == Koha::Number::Price->new( $order->{ecost_tax_excluded} )->round ) {
-                $order->{unitprice} = $order->{ecost_tax_excluded};
-            }
-
-            # The user entered the unit price tax excluded
-            $order->{unitprice_tax_excluded} = $order->{unitprice};
-
-
-            # unit price tax included = unit price tax included * ( 1 + tax rate )
-            $order->{unitprice_tax_included} = $order->{unitprice_tax_excluded} * ( 1 + $order->{tax_rate_on_receiving} );
-        }
-
-        # tax value = quantity * unit price tax excluded * tax rate
-        $order->{tax_value_on_receiving} = $order->{quantity} * get_rounded_price($order->{unitprice_tax_excluded}) * $order->{tax_rate_on_receiving};
-    }
-
-    return $order;
 }
 
 =head3 GetOrderUsers

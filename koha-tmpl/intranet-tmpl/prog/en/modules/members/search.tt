@@ -1,0 +1,35 @@
+[% USE raw %]
+[% USE Asset %]
+[% USE Koha %]
+[% USE Branches %]
+[% USE Categories %]
+[% SET footerjs = 1 %]
+[% INCLUDE 'doc-head-open.inc' %]
+[% SET libraries = Branches.all %]
+[% SET categories = Categories.all.unblessed %]
+[% PROCESS 'patron-search.inc' %]
+<title>Patron search &rsaquo; Koha</title>
+[% INCLUDE 'doc-head-close.inc' %]
+<style> .modal-body .close { display: none; } </style>[%# FIXME This is not great, we should make members/memberentrygen.tt use a modal as well and we won't need that here %]
+</head>
+
+<body id="common_patron_search" class="common">
+<div id="patron_search">
+    <div class="container-fluid">
+
+        [% PROCESS patron_search_filters categories => categories, libraries => libraries, filters => ['branch', 'category'], search_filter => searchmember %]
+        </form>
+
+        [% PROCESS patron_search_table table_id => 'memberresultst' columns => columns %]
+
+        <div id="closewindow"><a href="#" class="btn btn-default btn-default close">Close</a></div>
+
+    </div>
+</div>
+
+[% MACRO jsinclude BLOCK %]
+    [% PROCESS patron_search_js table_id => 'memberresultst', categories => categories, libraries => libraries, extended_attribute_types => attribute_type_codes, columns => columns, filter => filter, actions => [selection_type], preview_on_name_click => 1, callback => callback %]
+[% END %]
+
+[% SET popup_window = 1 %]
+[% INCLUDE 'intranet-bottom.inc' %]

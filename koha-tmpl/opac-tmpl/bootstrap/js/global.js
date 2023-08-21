@@ -1,3 +1,4 @@
+/* global enquire readCookie updateBasket delCookie __ */
 (function( w ){
     // if the class is already set, the font has already been loaded
     if( w.document.documentElement.className.indexOf( "fonts-loaded" ) > -1 ){
@@ -84,7 +85,7 @@ function confirmModal(message, title, yes_label, no_label, callback) {
                     <div class="modal-header" style="min-height:40px;">\
                         <h4 class="modal-title"></h4>\
                         <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close">\
-                        <span aria-hidden="true">×</span>\
+                        <span aria-hidden="true">&times;</span>\
                     </button>\
                     </div>\
                     <div class="modal-body"><p></p></div>\
@@ -115,6 +116,18 @@ function confirmModal(message, title, yes_label, no_label, callback) {
     $("#bootstrap-confirm-box-modal-cancel").text( no_label || 'Cancel' );
     $("#bootstrap-confirm-box-modal").modal('show');
 }
+
+
+// Function to check errors from AJAX requests
+const checkError = function(response) {
+    if (response.status >= 200 && response.status <= 299) {
+        return response.json();
+    } else {
+        console.log("Server returned an error:");
+        console.log(response);
+        alert("%s (%s)".format(response.statusText, response.status));
+    }
+};
 
 //Add jQuery :focusable selector
 (function($) {
@@ -151,13 +164,136 @@ function confirmModal(message, title, yes_label, no_label, callback) {
     });
 })(jQuery);
 
-$("#scrolltocontent").click(function() {
-    var content = $(".maincontent");
-    if (content.length > 0) {
-        $('html,body').animate({
+enquire.register("screen and (max-width:608px)", {
+    match : function() {
+        if($("body.scrollto").length > 0){
+            window.scrollTo( 0, $(".maincontent").offset().top );
+        }
+    }
+});
+
+enquire.register("screen and (min-width:992px)", {
+    match : function() {
+        facetMenu( "show" );
+        furtherOfferingsMenu( "show" );
+    },
+    unmatch : function() {
+        facetMenu( "hide" );
+        furtherOfferingsMenu( "hide" );
+    }
+});
+
+function furtherOfferingsMenu( action ){
+    if( action == "show" ){
+        $(".further-offerings-menu-collapse-toggle").unbind("click", furtherOfferingsHandler )
+        $(".further-offerings-menu-collapse").show();
+    } else {
+        $(".further-offerings-menu-collapse-toggle").bind("click", furtherOfferingsHandler ).removeClass("further-offerings-menu-open");
+        $(".further-offerings-menu-collapse").hide();
+    }
+}
+
+var furtherOfferingsHandler = function(e){
+    e.preventDefault();
+    $(this).toggleClass("further-offerings-menu-open");
+    $(".further-offerings-menu-collapse").toggle();
+};
+
+function facetMenu( action ){
+    if( action == "show" ){
+        $(".menu-collapse-toggle").off("click", facetHandler );
+        $(".menu-collapse").show();
+    } else {
+        $(".menu-collapse-toggle").on("click", facetHandler ).removeClass("menu-open");
+        $(".menu-collapse").hide();
+    }
+}
+
+var facetHandler = function(e){
+    e.preventDefault();
+    $(this).toggleClass("menu-open");
+    $(".menu-collapse").toggle();
+};
+
+$(document).ready(function(){
+    $("html").removeClass("no-js").addClass("js");
+    $(".close").click(function(){
+        window.close();
+    });
+    $(".focus").focus();
+    $(".js-show").show();
+    $(".js-hide").hide();
+
+    if( $(window).width() < 991 ){
+        facetMenu("hide");
+        furtherOfferingsMenu("hide");
+    }
+
+    // clear the basket when user logs out
+    $("#logout").click(function(){
+        var nameCookie = "bib_list";
+        var valCookie = readCookie(nameCookie);
+        if (valCookie) { // basket has contents
+            updateBasket(0,null);
+            delCookie(nameCookie);
+            return true;
+        } else {
+            return true;
+        }
+    });
+
+    $(".loginModal-trigger").on("click",function(e){
+        e.preventDefault();
+        var button = $(this);
+        var context = button.data('return');
+        if ( context ) {
+            let return_url = window.location.pathname;
+            let params = window.location.search;
+            var tab = button.data('tab');
+            if ( tab ) {
+                params = params ? params + '&tab=' + tab : '?tab=' + tab;
+            }
+            return_url += params;
+            $('#modalAuth').append('<input type="hidden" name="return" value="'+return_url+'" />');
+        }
+        $("#loginModal").modal("show");
+    });
+    $("#loginModal").on("shown.bs.modal", function(){
+        $("#muserid").focus();
+    });
+    
+    $(".link-collection-collapse-toggle").unbind("click");
+    $(".link-collection-collapse-toggle").on("click",function(e){
+        e.preventDefault();
+        $(this).toggleClass("menu-open");
+        $($(this).attr("href")).toggle();
+    });
+
+    $("#scrolltocontent").click(function() {
+        var content = $(".maincontent");
+        if (content.length > 0) {
+            $('html,body').animate({
                 scrollTop: content.first().offset().top
             },
-        'slow');
-        content.first().find(':focusable').eq(0).focus();
-    }
+            'slow');
+            content.first().find(':focusable').eq(0).focus();
+        }
+    });
+
+    $('[data-toggle="tooltip"]').tooltip();
+
+    /* Scroll back to top button */
+    $("body").append('<button id="backtotop" class="btn btn-primary" aria-label="' + __("Back to top") + '"><i class="fa fa-arrow-up" aria-hidden="true" title="' + __("Scroll to the top of the page") + '"></i></button>');
+    $("#backtotop").hide();
+    $(window).on("scroll", function(){
+        if ( $(window).scrollTop() < 300 ) {
+            $("#backtotop").fadeOut();
+        } else {
+            $("#backtotop").fadeIn();
+        }
+    });
+    $("#backtotop").on("click", function(e) {
+        e.preventDefault();
+        $("html,body").animate({scrollTop: 0}, "slow");
+    });
 });

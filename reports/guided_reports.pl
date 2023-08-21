@@ -23,22 +23,21 @@ use Text::CSV::Encoded;
 use Encode qw( decode );
 use URI::Escape;
 use File::Temp;
-use C4::Reports::Guided;
+use C4::Reports::Guided qw( delete_report get_report_areas convert_sql update_sql get_saved_reports get_results ValidateSQLParameters format_results get_report_types get_columns get_from_dictionary get_criteria build_query save_report execute_query nb_rows get_report_groups );
 use Koha::Reports;
-use C4::Auth qw/:DEFAULT get_session/;
-use C4::Output;
-use C4::Debug;
+use C4::Auth qw( get_template_and_user get_session );
+use C4::Output qw( pagination_bar output_html_with_http_headers );
 use C4::Context;
 use Koha::Caches;
-use C4::Log;
-use Koha::DateUtils qw/dt_from_string output_pref/;
+use C4::Log qw( logaction );
 use Koha::AuthorisedValue;
 use Koha::AuthorisedValues;
 use Koha::BiblioFrameworks;
 use Koha::Libraries;
 use Koha::Patron::Categories;
 use Koha::SharedContent;
-use Koha::Util::OpenDocument;
+use Koha::Util::OpenDocument qw( generate_ods );
+use C4::ClassSource qw( GetClassSources );
 
 =head1 NAME
 
@@ -75,10 +74,10 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { reports => $flagsrequired },
-        debug           => 1,
     }
 );
-my $session = $cookie ? get_session($cookie->value) : undef;
+my $session_id = $input->cookie('CGISESSID');
+my $session = $session_id ? get_session($session_id) : undef;
 
 my $filter;
 if ( $input->param("filter_set") or $input->param('clear_filters') ) {
@@ -182,7 +181,6 @@ elsif ( $phase eq 'Show SQL'){
         'notes'      => $report->notes,
         'sql'     => $report->savedsql,
         'showsql' => 1,
-        'mana_success' => $input->param('mana_success'),
         'mana_success' => scalar $input->param('mana_success'),
         'mana_id' => $report->{mana_id},
         'mana_comments' => $report->{comments}
@@ -402,32 +400,13 @@ elsif ( $phase eq 'Choose these criteria' ) {
 
         # If value is not defined, then it may be range values
         if (!defined $value) {
-
             my $fromvalue = $input->param( "from_" . $crit . "_value" );
             my $tovalue   = $input->param( "to_"   . $crit . "_value" );
-
-            # If the range values are dates
-            my $fromvalue_dt;
-            $fromvalue_dt = eval { dt_from_string( $fromvalue ); } if ( $fromvalue );
-            my $tovalue_dt;
-            $tovalue_dt = eval { dt_from_string( $tovalue ); } if ($tovalue);
-            if ( $fromvalue_dt && $tovalue_dt ) {
-                $fromvalue = output_pref( { dt => dt_from_string( $fromvalue_dt ), dateonly => 1, dateformat => 'iso' } );
-                $tovalue   = output_pref( { dt => dt_from_string( $tovalue_dt ), dateonly => 1, dateformat => 'iso' } );
-            }
 
             if ($fromvalue && $tovalue) {
                 $query_criteria .= " AND $crit >= '$fromvalue' AND $crit <= '$tovalue'";
             }
-
         } else {
-
-            # If value is a date
-            my $value_dt;
-            $value_dt  =  eval { dt_from_string( $value ); } if ( $value );
-            if ( $value_dt ) {
-                $value = output_pref( { dt => dt_from_string( $value_dt ), dateonly => 1, dateformat => 'iso' } );
-            }
             # don't escape runtime parameters, they'll be at runtime
             if ($value =~ /<<.*>>/) {
                 $query_criteria .= " AND $crit=$value";
@@ -756,7 +735,7 @@ elsif ($phase eq 'Run this report'){
                         }
                     }
                     elsif ( $authorised_value eq "biblio_framework" ) {
-                        my @frameworks = Koha::BiblioFrameworks->search({}, { order_by => ['frameworktext'] });
+                        my @frameworks = Koha::BiblioFrameworks->search({}, { order_by => ['frameworktext'] })->as_list;
                         my $default_source = '';
                         push @authorised_values,$default_source;
                         $authorised_lib{$default_source} = 'Default';
@@ -776,9 +755,33 @@ elsif ($phase eq 'Run this report'){
                         }
                     }
                     elsif ( $authorised_value eq "categorycode" ) {
-                        my @patron_categories = Koha::Patron::Categories->search({}, { order_by => ['description']});
+                        my @patron_categories = Koha::Patron::Categories->search({}, { order_by => ['description']})->as_list;
                         %authorised_lib = map { $_->categorycode => $_->description } @patron_categories;
                         push @authorised_values, $_->categorycode for @patron_categories;
+                    }
+                    elsif ( $authorised_value eq "cash_registers" ) {
+                        my $sth = $dbh->prepare("SELECT id, name FROM cash_registers ORDER BY description");
+                        $sth->execute;
+                        while ( my ( $id, $name ) = $sth->fetchrow_array ) {
+                            push @authorised_values, $id;
+                            $authorised_lib{$id} = $name;
+                        }
+                    }
+                    elsif ( $authorised_value eq "debit_types" ) {
+                        my $sth = $dbh->prepare("SELECT code, description FROM account_debit_types ORDER BY code");
+                        $sth->execute;
+                        while ( my ( $code, $description ) = $sth->fetchrow_array ) {
+                           push @authorised_values, $code;
+                           $authorised_lib{$code} = $description;
+                        }
+                    }
+                    elsif ( $authorised_value eq "credit_types" ) {
+                        my $sth = $dbh->prepare("SELECT code, description FROM account_credit_types ORDER BY code");
+                        $sth->execute;
+                        while ( my ( $code, $description ) = $sth->fetchrow_array ) {
+                           push @authorised_values, $code;
+                           $authorised_lib{$code} = $description;
+                        }
                     }
                     else {
                         if ( Koha::AuthorisedValues->search({ category => $authorised_value })->count ) {
@@ -821,6 +824,7 @@ elsif ($phase eq 'Run this report'){
             }
             $template->param('sql'         => $sql,
                             'name'         => $name,
+                            'notes'         => $notes,
                             'sql_params'   => \@tmpl_parameters,
                             'auth_val_errors'  => \@authval_errors,
                             'enter_params' => 1,
@@ -829,7 +833,14 @@ elsif ($phase eq 'Run this report'){
         } else {
             my ($sql,$header_types) = $report->prep_report( \@param_names, \@sql_params );
             $template->param(header_types => $header_types);
-            my ( $sth, $errors ) = execute_query( $sql, $offset, $limit, undef, $report_id );
+            my ( $sth, $errors ) = execute_query(
+                {
+                    sql        => $sql,
+                    offset     => $offset,
+                    limit      => $limit,
+                    report_id  => $report_id,
+                }
+            );
             my $total;
             if (!$sth) {
                 die "execute_query failed to return sth for report $report_id: $sql";
@@ -842,7 +853,7 @@ elsif ($phase eq 'Run this report'){
                     push @rows, { cells => \@cells };
                 }
                 if( $want_full_chart ){
-                    my ($sth2, $errors2) = execute_query($sql);
+                    my ( $sth2, $errors2 ) = execute_query( { sql => $sql, report_id => $report_id } );
                     while (my $row = $sth2->fetchrow_arrayref()) {
                         my @cells = map { +{ cell => $_ } } @$row;
                         push @allrows, { cells => \@cells };
@@ -896,7 +907,7 @@ elsif ($phase eq 'Export'){
     my $reportfilename = $reportname ? "$reportname-reportresults.$format" : "reportresults.$format" ;
 
     ($sql, undef) = $report->prep_report( \@param_names, \@sql_params );
-	my ($sth, $q_errors) = execute_query($sql);
+    my ( $sth, $q_errors ) = execute_query( { sql => $sql, report_id => $report_id } );
     unless ($q_errors and @$q_errors) {
         my ( $type, $content );
         if ($format eq 'tab') {
@@ -907,9 +918,8 @@ elsif ($phase eq 'Export'){
                 $content .= join("\t", map { $_ // '' } @$row) . "\n";
             }
         } else {
-            my $delimiter = C4::Context->preference('CSVDelimiter') || ',';
             if ( $format eq 'csv' ) {
-                $delimiter = "\t" if $delimiter eq 'tabulation';
+                my $delimiter = C4::Context->csv_delimiter;
                 $type = 'application/csv';
                 my $csv = Text::CSV::Encoded->new({ encoding_out => 'UTF-8', sep_char => $delimiter});
                 $csv or die "Text::CSV::Encoded->new({binary => 1}) FAILED: " . Text::CSV::Encoded->error_diag();

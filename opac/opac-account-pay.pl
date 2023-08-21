@@ -24,11 +24,8 @@ use utf8;
 use Data::Dumper;
 
 use CGI;
-use HTTP::Request::Common;
-use LWP::UserAgent;
-use URI;
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Output;
 use C4::Context;
 use Koha::Acquisition::Currencies;
@@ -57,7 +54,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         template_name   => "opac-account-pay-error.tt",
         query           => $cgi,
         type            => "opac",
-        debug           => 1,
     }
 );
 

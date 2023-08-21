@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 93;
+use Test::More tests => 99;
 use Test::MockModule;
 use Test::Mojo;
 use t::lib::Mocks;
@@ -26,10 +26,10 @@ use t::lib::TestBuilder;
 use DateTime;
 
 use C4::Context;
-use C4::Circulation;
+use C4::Circulation qw( AddIssue AddReturn );
 
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 
 my $schema = Koha::Database->schema;
 my $builder = t::lib::TestBuilder->new;
@@ -59,8 +59,6 @@ my $unauth_userid = $patron->userid;
 my $patron_id = $patron->borrowernumber;
 
 my $branchcode = $builder->build({ source => 'Branch' })->{ branchcode };
-my $module = Test::MockModule->new('C4::Context');
-$module->mock('userenv', sub { { branch => $branchcode } });
 
 $t->get_ok( "//$userid:$password@/api/v1/checkouts?patron_id=$patron_id" )
   ->status_is(200)
@@ -184,10 +182,20 @@ my $expected_datedue = $date_due
     ->set_time_zone('local')
     ->add(days => 7)
     ->set(hour => 23, minute => 59, second => 0);
+
 $t->post_ok ( "//$userid:$password@/api/v1/checkouts/" . $issue1->issue_id . "/renewal" )
   ->status_is(201)
   ->json_is('/due_date' => output_pref( { dateformat => "rfc3339", dt => $expected_datedue }) )
   ->header_is(Location => "/api/v1/checkouts/" . $issue1->issue_id . "/renewal");
+
+my $renewal = $issue1->renewals->last;
+is( $renewal->renewal_type, 'Manual', 'Manual renewal recorded' );
+
+$t->get_ok ( "//$userid:$password@/api/v1/checkouts/" . $issue1->issue_id . "/renewals" )
+  ->status_is(200)
+  ->json_is('/0/checkout_id' => $issue1->issue_id)
+  ->json_is('/0/interface'   => 'api')
+  ->json_is('/0/renewer_id'  => $librarian->borrowernumber );
 
 $t->post_ok( "//$unauth_userid:$unauth_password@/api/v1/checkouts/" . $issue3->issue_id . "/renewal" )
   ->status_is(403)

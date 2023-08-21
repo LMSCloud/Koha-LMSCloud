@@ -1,6 +1,7 @@
 [% USE raw %]
 [% USE HtmlToText %]
 [% USE Koha %]
+[% USE Branches %]
 
 <SUBJECT>
 Your cart
@@ -38,7 +39,7 @@ Your cart
 
             <p>
             [% IF ( BIBLIO_RESULT.HASAUTHORS ) %]
-            <span>Author(s): [% IF ( BIBLIO_RESULT.author ) %][% BIBLIO_RESULT.author | $raw %][% END %]
+            <span><span>Author(s):</span> [% IF ( BIBLIO_RESULT.author ) %][% BIBLIO_RESULT.author | $raw %][% END %]
 
             [% IF ( BIBLIO_RESULT.MARCAUTHORS ) %]
                 [% IF ( BIBLIO_RESULT.author ) %]; [% END %]
@@ -126,6 +127,18 @@ Your cart
                 LCCN: [% BIBLIO_RESULT.lccn | $raw %]
             </span><br/>
             [% END %]
+
+            [% IF BIBLIO_RESULT.HOSTITEMENTRIES %]
+            <span>In:
+                [% IF BIBLIO_RESULT.HOSTITEMENTRIES.biblionumber %]
+                    [% INCLUDE 'biblio-title.inc' biblio=BIBLIO_RESULT.HOSTITEMENTRIES %] [% BIBLIO_RESULT.RELATEDPARTS | $raw %]
+                [% ELSE %]
+                    [% BIBLIO_RESULT.HOSTITEMENTRIES | html %]
+                [% END %]
+            </span>
+            <br/>
+            [% END %]
+
             [% IF ( BIBLIO_RESULT.url ) %]
             <span>
                 URL: [% BIBLIO_RESULT.url | html %]
@@ -139,11 +152,11 @@ Your cart
                 In online catalog: [% OPACBaseURL | $raw %]/cgi-bin/koha/opac-detail.pl?biblionumber=[% BIBLIO_RESULT.biblionumber | html %]
             </p>
             [% END %]
-            [% IF ( BIBLIO_RESULT.ITEM_RESULTS.size ) %]
+            [% IF ( BIBLIO_RESULT.ITEM_RESULTS.count ) %]
             <p>Items:
             <ul>
                 [% FOREACH ITEM_RESULT IN BIBLIO_RESULT.ITEM_RESULTS %]<li>
-                    [% ITEM_RESULT.branchname | $raw %]
+                    [% Branches.GetName(ITEM_RESULT.holdingbranch) | $raw %]
                     [% ITEM_RESULT.location | $raw %]
                     [% IF ITEM_RESULT.itemcallnumber %]([% ITEM_RESULT.itemcallnumber | $raw %])[% END %]
                     [% ITEM_RESULT.barcode | $raw %]

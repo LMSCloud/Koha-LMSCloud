@@ -5,22 +5,21 @@
 
 use Modern::Perl;
 
-use C4::Serials;
+use C4::Serials qw( updateClaim NewSubscription GetSubscription GetSubscriptionHistoryFromSubscriptionId SearchSubscriptions ModSubscription GetExpirationDate GetSerials GetSerialInformation NewIssue AddItem2Serial DelSubscription GetFullSubscription PrepareSerialsData GetSubscriptionsFromBiblionumber ModSubscriptionHistory GetSerials2 GetLatestSerials GetNextSeq GetSeq CountSubscriptionFromBiblionumber ModSerialStatus findSerialsByStatus HasSubscriptionStrictlyExpired HasSubscriptionExpired GetLateOrMissingIssues check_routing addroutingmember GetNextDate );
 use C4::Serials::Frequency;
 use C4::Serials::Numberpattern;
-use C4::Debug;
-use C4::Biblio;
-use C4::Budgets;
-use C4::Items;
+use C4::Biblio qw( AddBiblio GetMarcFromKohaField );
+use C4::Budgets qw( AddBudgetPeriod AddBudget );
+use C4::Items qw( AddItemFromMarc );
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Acquisition::Booksellers;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
-use Test::More tests => 50;
+use Test::More tests => 52;
 
 BEGIN {
-    use_ok('C4::Serials');
+    use_ok('C4::Serials', qw( updateClaim NewSubscription GetSubscription GetSubscriptionHistoryFromSubscriptionId SearchSubscriptions ModSubscription GetExpirationDate GetSerials GetSerialInformation NewIssue AddItem2Serial DelSubscription GetFullSubscription PrepareSerialsData GetSubscriptionsFromBiblionumber ModSubscriptionHistory GetSerials2 GetLatestSerials GetNextSeq GetSeq CountSubscriptionFromBiblionumber ModSerialStatus findSerialsByStatus HasSubscriptionStrictlyExpired HasSubscriptionExpired GetLateOrMissingIssues check_routing addroutingmember GetNextDate ));
 }
 
 my $schema = Koha::Database->new->schema;
@@ -75,19 +74,23 @@ my $pattern_id = AddSubscriptionNumberpattern({
 
 my $notes = "a\nnote\non\nseveral\nlines";
 my $internalnotes = 'intnotes';
+my $ccode = 'FIC';
 my $subscriptionid = NewSubscription(
     undef,      "",     undef, undef, $budget_id, $biblionumber,
     '2013-01-01', $frequency_id, undef, undef,  undef,
     undef,      undef,  undef, undef, undef, undef,
     1,          $notes, ,undef, '2013-01-01', undef, $pattern_id,
     undef,       undef,  0,    $internalnotes,  0,
-    undef, undef, 0,          undef,         '2013-12-31', 0
+    undef, undef, 0,          undef,         '2013-12-31', 0,
+    undef, undef, undef, $ccode
+
 );
 
 my $subscriptioninformation = GetSubscription( $subscriptionid );
 
 is( $subscriptioninformation->{notes}, $notes, 'NewSubscription should set notes' );
 is( $subscriptioninformation->{internalnotes}, $internalnotes, 'NewSubscription should set internalnotes' );
+is( $subscriptioninformation->{ccode}, $ccode, 'NewSubscription should set ccode' );
 
 my $subscription_history = C4::Serials::GetSubscriptionHistoryFromSubscriptionId($subscriptionid);
 is( $subscription_history->{opacnote}, undef, 'NewSubscription should not set subscriptionhistory opacnotes' );
@@ -115,6 +118,7 @@ if (not $frequency->{unit}) {
     $frequency->{description} = "Frequency created by t/db_dependant/Serials.t";
     $subscriptioninformation->{periodicity} = AddSubscriptionFrequency($frequency);
     $subscriptioninformation->{serialsadditems} = 1;
+    $subscriptioninformation->{ccode} = 'NFIC';
 
     ModSubscription( @$subscriptioninformation{qw(
         librarian branchcode aqbooksellerid cost aqbudgetid startdate
@@ -123,11 +127,15 @@ if (not $frequency->{unit}) {
         innerloop2 lastvalue3 innerloop3 status biblionumber callnumber notes
         letter manualhistory internalnotes serialsadditems staffdisplaycount
         opacdisplaycount graceperiod location enddate subscriptionid
-        skip_serialseq
+        skip_serialseq itemtype previousitemtype mana_id ccode
     )} );
 }
 my $expirationdate = GetExpirationDate($subscriptionid) ;
 ok( $expirationdate, "expiration date is not NULL" );
+
+# Check ModSubscription has updated the ccode
+my $subscriptioninformation2 = GetSubscription($subscriptionid);
+is( $subscriptioninformation2->{ccode}, 'NFIC', 'ModSubscription should update ccode' );
 
 ok(C4::Serials::GetSubscriptionHistoryFromSubscriptionId($subscriptionid), 'test getting history from sub-scription');
 
@@ -298,17 +306,17 @@ subtest 'test_updateClaim' => sub {
     is($result_1, 2, 'Got the expected 2 from update claim with 2 serial ids');
 
     my @late_or_missing_issues_1_0 = C4::Serials::GetLateOrMissingIssues(undef, $serial1->serialid);
-    is($late_or_missing_issues_1_0[0]->{claimdate}, $today, 'Got the expected first different claim date from update claim');
+    is(output_pref({str => $late_or_missing_issues_1_0[0]->{claimdate}, dateonly => 1}), $today, 'Got the expected first different claim date from update claim');
     is($late_or_missing_issues_1_0[0]->{claims_count}, $claim_count_1+1, 'Got the expected first claim count from update claim');
     is($late_or_missing_issues_1_0[0]->{status}, 7, 'Got the expected first claim status from update claim');
 
     my @late_or_missing_issues_1_1 = C4::Serials::GetLateOrMissingIssues(undef, $serial2->serialid);
-    is($late_or_missing_issues_1_1[0]->{claimdate}, $today, 'Got the expected second different claim date from update claim');
+    is(output_pref({str => $late_or_missing_issues_1_1[0]->{claimdate}, dateonly => 1}), $today, 'Got the expected second different claim date from update claim');
     is($late_or_missing_issues_1_1[0]->{claims_count}, $claim_count_1+1, 'Got the expected second claim count from update claim');
     is($late_or_missing_issues_1_1[0]->{status}, 7, 'Got the expected second claim status from update claim');
 
     my @late_or_missing_issues_1_2 = C4::Serials::GetLateOrMissingIssues(undef, $serial3->serialid);
-    is($late_or_missing_issues_1_2[0]->{claimdate}, output_pref({ dt => $claimdate_1, dateonly => 1}), 'Got the expected unchanged claim date from update claim');
+    is(output_pref({str => $late_or_missing_issues_1_2[0]->{claimdate}, dateonly => 1}), output_pref({ dt => $claimdate_1, dateonly => 1}), 'Got the expected unchanged claim date from update claim');
     is($late_or_missing_issues_1_2[0]->{claims_count}, $claim_count_1, 'Got the expected unchanged claim count from update claim');
     is($late_or_missing_issues_1_2[0]->{status}, 3, 'Got the expected unchanged claim status from update claim');
 };

@@ -1,8 +1,8 @@
-$.ajaxSetup({
+review_ajax_params = {
     url: "/cgi-bin/koha/tags/review.pl",
     type: "POST",
     dataType: "script"
-});
+};
 
 var ok_count  = 0;
 var nok_count = 0;
@@ -32,13 +32,13 @@ function count_reject () {
 }
 
 var success_approve = function(tag){
-    // window.alert(_("AJAX approved tag: ") + tag);
+    // window.alert(__("AJAX approved tag: ") + tag);
 };
 var failure_approve = function(tag){
     window.alert( __("AJAX failed to approve tag: %s").format(decodeURIComponent(tag)) );
 };
 var success_reject  = function(tag){
-    // window.alert(_("AJAX rejected tag: ") + tag);
+    // window.alert(__("AJAX rejected tag: ") + tag);
 };
 var failure_reject  = function(tag){
     window.alert( __("AJAX failed to reject tag: %s").format(decodeURIComponent(tag)) );
@@ -55,7 +55,7 @@ var indeterminate_test = function(tag){
 
 var success_test_call = function() {
     $('#test_button').prop('disabled', false);
-    $('#test_button').html("<i class='fa fa-check-square-o' aria-hidden='true'></i>" +_(" Test"));
+    $('#test_button').html("<i class='fa fa-check-square-o' aria-hidden='true'></i>" +__(" Test"));
 };
 
 $(document).ready(function() {
@@ -100,14 +100,14 @@ $(document).ready(function() {
         pull_counts();
         var getelement;
         var gettitle;
-        // window.alert(_("Click detected on ") + event.target + ": " + $(event.target).html);
+        // window.alert(__("Click detected on ") + event.target + ": " + $(event.target).html);
         if ($(event.target).is('.ok')) {
-            $.ajax({
+            $.ajax(Object.assign({}, review_ajax_params, {
                 data: {
                     ok: $(event.target).attr("title")
                 },
                 success: count_approve // success_approve
-            });
+            }));
             $(event.target).next(".rej").prop('disabled', false).css("color","#000");
             $(event.target).next(".rej").html("<i class='fa fa-remove' aria-hidden='false'></i> " + __("Reject"));
             $(event.target).prop('disabled', true).css("color","#666");
@@ -123,12 +123,12 @@ $(document).ready(function() {
             }
         }
         if ($(event.target).is('.rej')) {
-            $.ajax({
+            $.ajax(Object.assign({}, review_ajax_params, {
                 data: {
                     rej: $(event.target).attr("title")
                 },
                 success: count_reject // success_reject
-            });
+            }));
             $(event.target).prev(".ok").prop('disabled', false).css("color","#000");
             $(event.target).prev(".ok").html("<i class='fa fa-check' aria-hidden='false'></i> " + __("Approve"));
             $(event.target).prop('disabled', true).css("color","#666");
@@ -146,12 +146,12 @@ $(document).ready(function() {
         }
         if ($(event.target).is('#test_button')) {
             $(event.target).text( __("Testing...") ).prop('disabled', true);
-            $.ajax({
+            $.ajax(Object.assign({}, review_ajax_params, {
                 data: {
-                    test: $('#test').attr("value")
+                    test: $('#test').val()
                 },
                 success: success_test_call // success_reject
-            });
+            }));
             return false;   // cancel submit
         }
     });
@@ -159,19 +159,9 @@ $(document).ready(function() {
         if ((alerted +=1) <= 1){ window.alert( __("AJAX error (%s alert)").format(alerted) ); }
     });
 
-    var reviewerField = $("#approver");
-    reviewerField.autocomplete({
-        source: "/cgi-bin/koha/circ/ysearch.pl",
-        minLength: 3,
-        select: function( event, ui ) {
-            reviewerField.val( ui.item.borrowernumber );
+    patron_autocomplete($("#approver"), { 'on-select-callback': function( event, ui ) {
+            $("#approver").val( ui.item.patron_id );
             return false;
         }
-    })
-    .data( "ui-autocomplete" )._renderItem = function( ul, item ) {
-        return $( "<li></li>" )
-        .data( "ui-autocomplete-item", item )
-        .append( "<a>" + item.surname + ", " + item.firstname + " (" + item.cardnumber + ") <small>" + item.address + " " + item.city + " " + item.zipcode + " " + item.country + "</small></a>" )
-        .appendTo( ul );
-    };
+    });
 });

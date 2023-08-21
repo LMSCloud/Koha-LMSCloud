@@ -12,27 +12,23 @@
 
 <body id="catalog_issuehistory" class="catalog">
 
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/catalogue/search.pl">Catalog</a>
-        </li>
-        <li>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
             [% INCLUDE 'biblio-title.inc' link = 1 %]
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Checkout history
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Checkout history</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -44,9 +40,9 @@
 
 [% SET show_patron_column = Koha.Preference('intranetreadinghistory') AND CAN_user_circulate_circulate_remaining_permissions %]
 
-<div class="searchresults">
+<div class="searchresults page-section">
     [% IF checkouts %]
-        <h4>Checked out [% checkouts.size | html %] times</h4>
+        <h2>Checked out [% checkouts.size | html %] times</h2>
         <table id="table_issues">
             <thead><tr>
             [% IF show_patron_column %]
@@ -56,6 +52,8 @@
             <th>Checked out from</th>
             [% IF Koha.Preference('RecordStaffUserOnCheckout') %]
             <th>Checked out by</th>
+            [% ELSE %]
+            <th class="NoVisible">Checked out by</th>
             [% END %]
             <th>Renewed</th>
             <th>Checkout on</th>
@@ -83,14 +81,12 @@
                     [% ELSE %]
                         &nbsp;
                     [% END %]</td>
-                [% IF Koha.Preference('RecordStaffUserOnCheckout') %]
                 <td>[% IF checkout.issuer_id %]
                     <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% checkout.issuer_id | uri %]">
-                    [% INCLUDE 'patron-title.inc' patron=checkout.issuer_id %]
+                    [% INCLUDE 'patron-title.inc' patron=checkout.issuer %]
                     </a>
                     [% END %]</td>
-                [% END %]
-                <td>[% IF checkout.renewals %]
+                <td>[% IF checkout.renewals_count %]
                         Yes[% IF checkout.lastreneweddate %], <small>last on: [% checkout.lastreneweddate |$KohaDates  with_hours => 1 %]</small>
                             [% END %]
                     [% ELSE %]
@@ -100,7 +96,7 @@
                     [% checkout.issuedate |$KohaDates  with_hours => 1 %]
                 </td>
                 <td data-order="[% checkout.date_due | html %]">
-                    [% checkout.date_due |$KohaDates  with_hours => 1 %]
+                    [% checkout.date_due | $KohaDates as_due_date => 1 %]
                 </td>
                 <td data-order="[% checkout.returndate | html %]">
                     [% checkout.returndate |$KohaDates  with_hours => 1 %]
@@ -131,20 +127,16 @@
 [% INCLUDE 'columns_settings.inc' %]
     <script id="js">
         $(document).ready(function() {
-            var columns_settings = [% TablesSettings.GetColumns('catalogue', 'detail', 'checkoutshistory-table', 'json') %];
+            var table_settings = [% TablesSettings.GetTableSettings('catalogue', 'detail', 'checkoutshistory-table', 'json') | $raw %];
             [% UNLESS show_patron_column %]
-            // Remove the patron column definition
-            columns_settings.splice(0,1);
+                // Remove the patron column definition
+                table_settings['columns'].splice(0,1);
             [% END %]
             var table = KohaTable("table_issues", {
                 "sDom": 'C<"top pager"ilpfB><"#filter_c">tr<"bottom pager"ip>',
-            [% IF Koha.Preference('RecordStaffUserOnCheckout') %]
                 "aaSorting": [[ 5, "desc" ]],
-            [% ELSE %]
-                "aaSorting": [[ 4, "desc" ]],
-            [% END %]
                 "sPaginationType": "full_numbers"
-            }, columns_settings);
+            }, table_settings);
         });
     </script>
 [% END %]

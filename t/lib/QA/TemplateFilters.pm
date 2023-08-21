@@ -26,6 +26,7 @@ our @tt_directives = (
     qr{^\s*STOP},
     qr{^\s*NEXT},
     qr{^\s*LAST},
+    qr{^\s*WRAPPER},
 );
 
 our @tt_methods = (
@@ -155,6 +156,9 @@ sub process_tt_block {
 
         # Already has url or uri filter
         or $tt_block =~ m{\|\s?ur(l|i)}
+
+        # Already has trim filter
+        or $tt_block =~ m{\|\s?trim}
 
         # Specific for [% foo UNLESS bar %]
         or $tt_block =~ m{^(?<before>\S+)\s+UNLESS\s+(?<after>\S+)}

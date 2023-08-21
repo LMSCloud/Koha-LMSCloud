@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 13;
+use Test::More tests => 14;
 use t::lib::Mocks;
 
 use Koha::SearchEngine::Elasticsearch::QueryBuilder;
@@ -31,26 +31,24 @@ $se->mock( 'get_elasticsearch_mappings', sub {
     my %all_mappings;
 
     my $mappings = {
-        data => {
-            properties => {
-                title => {
-                    type => 'text'
-                },
-                title__sort => {
-                    type => 'text'
-                },
-                subject => {
-                    type => 'text'
-                },
-                itemnumber => {
-                    type => 'integer'
-                },
-                sortablenumber => {
-                    type => 'integer'
-                },
-                sortablenumber__sort => {
-                    type => 'integer'
-                }
+        properties => {
+            title => {
+                type => 'text'
+            },
+            title__sort => {
+                type => 'text'
+            },
+            subject => {
+                type => 'text'
+            },
+            itemnumber => {
+                type => 'integer'
+            },
+            sortablenumber => {
+                type => 'integer'
+            },
+            sortablenumber__sort => {
+                type => 'integer'
             }
         }
     };
@@ -88,7 +86,7 @@ SKIP: {
 
     eval { $builder->get_elasticsearch_params; };
 
-    skip 'Elasticsearch configuration not available', 8
+    skip 'Elasticsearch configuration not available', 9
         if $@;
 
     Koha::SearchEngine::Elasticsearch::Indexer->new({ index => 'mydb' })->drop_index;
@@ -114,7 +112,7 @@ SKIP: {
 
     is ( $count = $searcher->count_auth_use($searcher,1), 0, 'Testing count_auth_use');
 
-    is ($searcher->max_result_window, 10000, 'By default, max_result_window is 10000');
+    is ($searcher->max_result_window, 1000000, 'By default, max_result_window is 1000000');
 
     $searcher->get_elasticsearch()->indices->put_settings(
         index => $searcher->index_name,
@@ -125,4 +123,33 @@ SKIP: {
         }
     );
     is ($searcher->max_result_window, 12000, 'max_result_window returns the correct value');
+
+    subtest "_convert_facets" => sub {
+        plan tests => 2;
+
+        my $es_facets = {
+            'ln' => {
+                    'sum_other_doc_count' => 0,
+                    'buckets' => [
+                        {
+                            'doc_count' => 2,
+                            'key' => 'eng'
+                        },
+                        {
+                            'doc_count' => 12,
+                            'key' => ''
+                        }
+                    ],
+                    'doc_count_error_upper_bound' => 0
+            }
+        };
+
+        my $koha_facets = $searcher->_convert_facets($es_facets);
+        is(@{$koha_facets->[0]->{facets}},1,"We only get one facet, blank is removed");
+
+        $es_facets->{ln}->{buckets}->[1]->{key} = '0';
+        $koha_facets = $searcher->_convert_facets($es_facets);
+        is(@{$koha_facets->[0]->{facets}},2,"We get two facets, '0' is not removed");
+
+    };
 }

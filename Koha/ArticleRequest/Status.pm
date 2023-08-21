@@ -19,21 +19,11 @@ package Koha::ArticleRequest::Status;
 
 use Modern::Perl;
 
-sub Pending {
-    return 'PENDING';
-}
-
-sub Processing {
-    return 'PROCESSING';
-}
-
-sub Completed {
-    return 'COMPLETED';
-}
-
-sub Canceled {
-    return 'CANCELED';
-}
+use constant Requested  => 'REQUESTED';
+use constant Pending    => 'PENDING';
+use constant Processing => 'PROCESSING';
+use constant Completed  => 'COMPLETED';
+use constant Canceled   => 'CANCELED';
 
 =head1 AUTHOR
 

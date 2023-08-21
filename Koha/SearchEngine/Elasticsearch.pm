@@ -29,23 +29,23 @@ use Koha::SearchFields;
 use Koha::SearchMarcMaps;
 use Koha::Caches;
 use C4::Heading;
-use C4::AuthoritiesMarc;
+use C4::AuthoritiesMarc qw( GuessAuthTypeCode );
+use C4::Biblio;
 
-use Carp;
-use Clone qw(clone);
-use JSON;
+use Carp qw( carp croak );
+use Clone qw( clone );
 use Modern::Perl;
-use Readonly;
+use Readonly qw( Readonly );
 use Search::Elasticsearch;
-use Try::Tiny;
+use Try::Tiny qw( catch try );
 use YAML::XS;
 
-use List::Util qw( sum0 reduce all );
+use List::Util qw( sum0 );
 use MARC::File::XML;
-use MIME::Base64;
-use Encode qw(encode);
+use MIME::Base64 qw( encode_base64 );
+use Encode qw( encode );
 use Business::ISBN;
-use Scalar::Util qw(looks_like_number);
+use Scalar::Util qw( looks_like_number );
 
 __PACKAGE__->mk_ro_accessors(qw( index index_name ));
 __PACKAGE__->mk_accessors(qw( sort_fields ));
@@ -190,9 +190,7 @@ sub get_elasticsearch_mappings {
     if (!defined $all_mappings{$self->index}) {
         $sort_fields{$self->index} = {};
         # Clone the general mapping to break ties with the original hash
-        my $mappings = {
-            data => clone(_get_elasticsearch_field_config('general', ''))
-        };
+        my $mappings = clone(_get_elasticsearch_field_config('general', ''));
         my $marcflavour = lc C4::Context->preference('marcflavour');
         $self->_foreach_mapping(
             sub {
@@ -218,28 +216,33 @@ sub get_elasticsearch_mappings {
                     $es_type = 'date';
                 } elsif ($type eq 'string_plus') {
                     $es_type = 'string_plus';
+                } elsif ($type eq 'callnumber') {
+                    $es_type = 'cn_sort';
                 }
 
                 if ($search) {
-                    $mappings->{data}{properties}{$name} = _get_elasticsearch_field_config('search', $es_type);
+                    $mappings->{properties}{$name} = _get_elasticsearch_field_config('search', $es_type);
                 }
 
                 if ($facet) {
-                    $mappings->{data}{properties}{ $name . '__facet' } = _get_elasticsearch_field_config('facet', $es_type);
+                    $mappings->{properties}{ $name . '__facet' } = _get_elasticsearch_field_config('facet', $es_type);
                 }
                 if ($suggestible) {
-                    $mappings->{data}{properties}{ $name . '__suggestion' } = _get_elasticsearch_field_config('suggestible', $es_type);
+                    $mappings->{properties}{ $name . '__suggestion' } = _get_elasticsearch_field_config('suggestible', $es_type);
                 }
                 # Sort is a bit special as it can be true, false, undef.
                 # We care about "true" or "undef",
                 # "undef" means to do the default thing, which is make it sortable.
                 if (!defined $sort || $sort) {
-                    $mappings->{data}{properties}{ $name . '__sort' } = _get_elasticsearch_field_config('sort', $es_type);
+                    $mappings->{properties}{ $name . '__sort' } = _get_elasticsearch_field_config('sort', $es_type);
                     $sort_fields{$self->index}{$name} = 1;
                 }
             }
         );
-        $mappings->{data}{properties}{ 'match-heading' } = _get_elasticsearch_field_config('search', 'text') if $self->index eq 'authorities';
+        if( $self->index eq 'authorities' ){
+            $mappings->{properties}{ 'match-heading' } = _get_elasticsearch_field_config('search', 'text');
+            $mappings->{properties}{ 'subject-heading-thesaurus' } = _get_elasticsearch_field_config('search', 'text');
+        }
         $all_mappings{$self->index} = $mappings;
     }
     $self->sort_fields(\%{$sort_fields{$self->index}});
@@ -249,7 +252,7 @@ sub get_elasticsearch_mappings {
 =head2 raw_elasticsearch_mappings
 
 Return elasticsearch mapping as it is in database.
-marc_type: marc21|unimarc|normarc
+marc_type: marc21|unimarc
 
 $raw_mappings = raw_elasticsearch_mappings( $marc_type )
 
@@ -581,7 +584,7 @@ sub marc_records_to_documents {
 
     my %auth_match_headings;
     if( $self->index eq 'authorities' ){
-        my @auth_types = Koha::Authority::Types->search();
+        my @auth_types = Koha::Authority::Types->search->as_list;
         %auth_match_headings = map { $_->authtypecode => $_->auth_tag_to_report } @auth_types;
     }
 
@@ -816,6 +819,23 @@ sub marc_records_to_documents {
                 $record_document->{'marc_format'} = 'base64ISO2709';
             }
         }
+
+        # Check if there is at least one available item
+        if ($self->index eq $BIBLIOS_INDEX) {
+            my ($tag, $code) = C4::Biblio::GetMarcFromKohaField('biblio.biblionumber');
+            my $field = $record->field($tag);
+            if ($field) {
+                my $biblionumber = $field->is_control_field ? $field->data : $field->subfield($code);
+                my $avail_items = Koha::Items->search({
+                    biblionumber => $biblionumber,
+                    onloan       => undef,
+                    itemlost     => 0,
+                })->count;
+
+                $record_document->{available} = $avail_items ? \1 : \0;
+            }
+        }
+
         push @record_documents, $record_document;
     }
     return \@record_documents;
@@ -1174,24 +1194,24 @@ sub _get_marc_mapping_rules {
             my @mappings = $self->_field_mappings($facet, $suggestible, $sort, $search, $name, $type, $range, $indicator1, $indicator2);
             if ($field_tag < 10) {
                 $rules->{control_fields}->{$field_tag} //= [];
-                push @{$rules->{control_fields}->{$field_tag}}, @mappings;
+                push @{$rules->{control_fields}->{$field_tag}}, @{clone(\@mappings)};
             }
             else {
                 $rules->{data_fields}->{$field_tag} //= {};
                 foreach my $subfield (@subfields) {
                     $rules->{data_fields}->{$field_tag}->{subfields}->{$subfield} //= [];
-                    push @{$rules->{data_fields}->{$field_tag}->{subfields}->{$subfield}}, @mappings;
+                    push @{$rules->{data_fields}->{$field_tag}->{subfields}->{$subfield}}, @{clone(\@mappings)};
                 }
                 foreach my $subfield_group (@subfield_groups) {
                     $rules->{data_fields}->{$field_tag}->{subfields_join}->{$subfield_group} //= [];
-                    push @{$rules->{data_fields}->{$field_tag}->{subfields_join}->{$subfield_group}}, @mappings;
+                    push @{$rules->{data_fields}->{$field_tag}->{subfields_join}->{$subfield_group}}, @{clone(\@mappings)};
                 }
             }
         }
         elsif ($marc_field =~ $leader_regexp) {
             my $range = defined $1 ? $1 : undef;
             my @mappings = $self->_field_mappings($facet, $suggestible, $sort, $search, $name, $type, $range);
-            push @{$rules->{leader}}, @mappings;
+            push @{$rules->{leader}}, @{clone(\@mappings)};
         }
         else {
             Koha::Exceptions::Elasticsearch::MARCFieldExprParseError->throw(
@@ -1229,6 +1249,11 @@ sub _get_marc_mapping_rules {
                 }
             }
         }
+    }
+
+    if( $self->index eq 'authorities' ){
+        push @{$rules->{control_fields}->{'008'}}, ['subject-heading-thesaurus', { 'substr' => [ 11, 1 ] } ];
+        push @{$rules->{data_fields}->{'040'}->{subfields}->{f}}, ['subject-heading-thesaurus', { } ];
     }
 
     return $rules;
@@ -1277,7 +1302,7 @@ to be included in that sort.
 =item C<$marc_type>
 
 A string that indicates the MARC type that this mapping is for, e.g. 'marc21',
-'unimarc', 'normarc'.
+'unimarc'.
 
 =item C<$marc_field>
 
@@ -1350,7 +1375,7 @@ sub process_error {
     warn $msg; # simple logging
 
     # This is super-primitive
-    return "Unable to understand your search query, please rephrase and try again.\n" if $msg =~ /ParseException/;
+    return "Unable to understand your search query, please rephrase and try again.\n" if $msg =~ /ParseException|parse_exception/;
 
     return "Unable to perform your search. Please try again.\n";
 }
@@ -1391,33 +1416,32 @@ sub _read_configuration {
         );
     }
 
-    if ( $conf && $conf->{server} ) {
-        my $nodes = $conf->{server};
-        if ( ref($nodes) eq 'ARRAY' ) {
-            $configuration->{nodes} = $nodes;
-        }
-        else {
-            $configuration->{nodes} = [$nodes];
-        }
-    }
-    else {
+    unless ( exists $conf->{server} ) {
         Koha::Exceptions::Config::MissingEntry->throw(
             "Missing <elasticsearch>/<server> entry in koha-conf.xml"
         );
     }
 
-    if ( defined $conf->{index_name} ) {
-        $configuration->{index_name} = $conf->{index_name};
-    }
-    else {
+    unless ( exists $conf->{index_name} ) {
         Koha::Exceptions::Config::MissingEntry->throw(
             "Missing <elasticsearch>/<index_name> entry in koha-conf.xml",
         );
     }
 
-    $configuration->{cxn_pool} = $conf->{cxn_pool} // 'Static';
+    while ( my ( $var, $val ) = each %$conf ) {
+        if ( $var eq 'server' ) {
+            if ( ref($val) eq 'ARRAY' ) {
+                $configuration->{nodes} = $val;
+            }
+            else {
+                $configuration->{nodes} = [$val];
+            }
+        } else {
+            $configuration->{$var} = $val;
+        }
+    }
 
-    $configuration->{trace_to} = $conf->{trace_to} if defined $conf->{trace_to};
+    $configuration->{cxn_pool} //= 'Static';
 
     return $configuration;
 }
@@ -1438,10 +1462,10 @@ sub get_facetable_fields {
     my @search_field_names = qw( author itype location su-geo title-series subject ccode holdingbranch homebranch ln subject-genre-form publyear);
     my @faceted_fields = Koha::SearchFields->search(
         { name => { -in => \@search_field_names }, facet_order => { '!=' => undef } }, { order_by => ['facet_order'] }
-    );
+    )->as_list;
     my @not_faceted_fields = Koha::SearchFields->search(
         { name => { -in => \@search_field_names }, facet_order => undef }, { order_by => ['facet_order'] }
-    );
+    )->as_list;
     # This could certainly be improved
     return ( @faceted_fields, @not_faceted_fields );
 }

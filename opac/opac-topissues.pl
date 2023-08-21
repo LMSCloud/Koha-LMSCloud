@@ -22,14 +22,11 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Languages;
 use C4::Search;
-use C4::Output;
-use C4::Koha;
-use C4::Circulation;
-use Date::Manip;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Circulation qw( GetTopIssues );
 
 =head1 NAME
 
@@ -53,7 +50,6 @@ my ($template, $borrowernumber, $cookie) = get_template_and_user(
         query           => $input,
         type            => "opac",
         authnotrequired => ( C4::Context->preference("OpacPublic") ? 1 : 0 ),
-        debug           => 1,
     }
 );
 my $dbh = C4::Context->dbh;
@@ -68,7 +64,7 @@ if (!$do_it && C4::Context->userenv && C4::Context->userenv->{'branch'} ) {
 }
 my $itemtype = $input->param('itemtype') || '';
 my $timeLimit = $input->param('timeLimit') || 3;
-my $advanced_search_types = C4::Context->preference('AdvancedSearchTypes');
+my $advanced_search_types = C4::Context->preference('OpacAdvancedSearchTypes');
 my @advanced_search_types = split /\|/, $advanced_search_types;
 
 my $params = {

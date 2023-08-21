@@ -1,6 +1,6 @@
   $(document).ready(function() {
       var path = location.pathname.substring(1);
-      if (path.indexOf("labels") >= 0 && path.indexOf("spine") < 0 ) {
+      if (path.indexOf("labels") >= 0 && path.indexOf("spine") < 0 && path.indexOf("barcode") < 0 ) {
         $('#navmenulist a[href$="/cgi-bin/koha/labels/label-home.pl"]').addClass("current");
       } else if (path.indexOf("patroncards") >= 0 ) {
         $('#navmenulist a[href$="/cgi-bin/koha/patroncards/home.pl"]').addClass("current");
@@ -18,5 +18,7 @@
           $('#navmenulist a[href$="/cgi-bin/koha/tools/stockrotation.pl"]').addClass("current");
       } else if (path.indexOf("plugins") >= 0 ) {
           $('#navmenulist a[href$="/cgi-bin/koha/plugins/plugins-home.pl?method=tool"]').addClass("current");
+      } else if (path.indexOf("page.pl") >= 0 ) {
+          $('#navmenulist a[href$="/cgi-bin/koha/tools/additional-contents.pl?category=pages"]').addClass("current");
       }
   });

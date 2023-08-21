@@ -1,0 +1,56 @@
+/alv_illrequests:
+  post:
+    x-mojo-to: ALV_illrequests#add
+    operationId: addalv_illrequest
+    description: Active ILL request of the ALV ILL backend
+    summary: Active ILL request of the ALV ILL backend
+    tags:
+      - alv_illrequests
+    parameters:
+      - name: body
+        in: body
+        description: A JSON object containing information about the new ILLALV request
+        required: true
+        schema:
+          $ref: "../swagger.yaml#/definitions/alv_illrequest"
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      '201':
+        description: A successfully created ILLALV request
+        schema:
+          items:
+            $ref: "../swagger.yaml#/definitions/alv_illrequest"
+      '400':
+        description: Bad parameter
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '401':
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '403':
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '404':
+        description: Resource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '409':
+        description: Conflict in creating resource
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '500':
+        description: Internal server error
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '503':
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        parameters: ill

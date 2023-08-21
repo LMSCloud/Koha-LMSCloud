@@ -56,7 +56,7 @@ use base qw( Template::Plugin );
 
 use JSON qw( to_json );
 
-use C4::Context qw( config );
+use C4::Context;
 use C4::Utils::DataTables::TablesSettings;
 
 =head1 FUNCTIONS
@@ -132,6 +132,15 @@ sub GetTableSettings {
     $format //= q{};
 
     my $settings = C4::Utils::DataTables::TablesSettings::get_table_settings( $module, $page, $table );
+    my $columns = C4::Utils::DataTables::TablesSettings::get_columns( $module, $page, $table );
+
+    $settings = {
+        %$settings,
+        columns => $columns,
+        module  => $module,
+        page    => $page,
+        table   => $table,
+    };
 
     return $format eq 'json'
         ? to_json( $settings || {} )

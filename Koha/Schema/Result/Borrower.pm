@@ -53,6 +53,13 @@ patron/borrower's last name (surname)
 
 patron/borrower's first name
 
+=head2 middle_name
+
+  data_type: 'longtext'
+  is_nullable: 1
+
+patron/borrower's middle name
+
 =head2 title
 
   data_type: 'longtext'
@@ -73,6 +80,13 @@ any other names associated with the patron/borrower
   is_nullable: 1
 
 initials for your patron/borrower
+
+=head2 pronouns
+
+  data_type: 'longtext'
+  is_nullable: 1
+
+patron/borrower pronouns
 
 =head2 streetnumber
 
@@ -296,6 +310,14 @@ date the patron was added to Koha (YYYY-MM-DD)
 
 date the patron/borrower's card is set to expire (YYYY-MM-DD)
 
+=head2 password_expiration_date
+
+  data_type: 'date'
+  datetime_undef_if_invalid: 1
+  is_nullable: 1
+
+date the patron/borrower's password is set to expire (YYYY-MM-DD)
+
 =head2 date_renewed
 
   data_type: 'date'
@@ -386,9 +408,25 @@ patron/borrower's gender
 
 patron/borrower's Bcrypt encrypted password
 
+=head2 secret
+
+  data_type: 'mediumtext'
+  is_nullable: 1
+
+Secret for 2FA
+
+=head2 auth_method
+
+  data_type: 'enum'
+  default_value: 'password'
+  extra: {list => ["password","two-factor"]}
+  is_nullable: 0
+
+Authentication method
+
 =head2 flags
 
-  data_type: 'integer'
+  data_type: 'bigint'
   is_nullable: 1
 
 will include a number associated with the staff member's permissions
@@ -606,6 +644,14 @@ flag for data anonymization
 
 flag for allowing auto-renewal
 
+=head2 primary_contact_method
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 45
+
+useful for reporting purposes
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -617,12 +663,16 @@ __PACKAGE__->add_columns(
   { data_type => "longtext", is_nullable => 1 },
   "firstname",
   { data_type => "mediumtext", is_nullable => 1 },
+  "middle_name",
+  { data_type => "longtext", is_nullable => 1 },
   "title",
   { data_type => "longtext", is_nullable => 1 },
   "othernames",
   { data_type => "longtext", is_nullable => 1 },
   "initials",
   { data_type => "mediumtext", is_nullable => 1 },
+  "pronouns",
+  { data_type => "longtext", is_nullable => 1 },
   "streetnumber",
   { data_type => "tinytext", is_nullable => 1 },
   "streettype",
@@ -693,6 +743,8 @@ __PACKAGE__->add_columns(
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "dateexpiry",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
+  "password_expiration_date",
+  { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "date_renewed",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "gonenoaddress",
@@ -717,8 +769,17 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 1 },
   "password",
   { data_type => "varchar", is_nullable => 1, size => 60 },
+  "secret",
+  { data_type => "mediumtext", is_nullable => 1 },
+  "auth_method",
+  {
+    data_type => "enum",
+    default_value => "password",
+    extra => { list => ["password", "two-factor"] },
+    is_nullable => 0,
+  },
   "flags",
-  { data_type => "integer", is_nullable => 1 },
+  { data_type => "bigint", is_nullable => 1 },
   "userid",
   { data_type => "varchar", is_nullable => 1, size => 75 },
   "opacnote",
@@ -794,6 +855,8 @@ __PACKAGE__->add_columns(
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "autorenew_checkouts",
   { data_type => "tinyint", default_value => 1, is_nullable => 0 },
+  "primary_contact_method",
+  { data_type => "varchar", is_nullable => 1, size => 45 },
 );
 
 =head1 PRIMARY KEY
@@ -863,6 +926,21 @@ __PACKAGE__->has_many(
   "accountlines_managers",
   "Koha::Schema::Result::Accountline",
   { "foreign.manager_id" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 additional_contents
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::AdditionalContent>
+
+=cut
+
+__PACKAGE__->has_many(
+  "additional_contents",
+  "Koha::Schema::Result::AdditionalContent",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -1152,6 +1230,21 @@ __PACKAGE__->belongs_to(
   { is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT" },
 );
 
+=head2 checkout_renewals
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::CheckoutRenewal>
+
+=cut
+
+__PACKAGE__->has_many(
+  "checkout_renewals",
+  "Koha::Schema::Result::CheckoutRenewal",
+  { "foreign.renewer_id" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 club_enrollments
 
 Type: has_many
@@ -1212,6 +1305,36 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 curbside_pickups_borrowernumbers
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::CurbsidePickup>
+
+=cut
+
+__PACKAGE__->has_many(
+  "curbside_pickups_borrowernumbers",
+  "Koha::Schema::Result::CurbsidePickup",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 curbside_pickups_staged_by
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::CurbsidePickup>
+
+=cut
+
+__PACKAGE__->has_many(
+  "curbside_pickups_staged_by",
+  "Koha::Schema::Result::CurbsidePickup",
+  { "foreign.staged_by" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 discharges
 
 Type: has_many
@@ -1224,6 +1347,21 @@ __PACKAGE__->has_many(
   "discharges",
   "Koha::Schema::Result::Discharge",
   { "foreign.borrower" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 erm_user_roles
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::ErmUserRole>
+
+=cut
+
+__PACKAGE__->has_many(
+  "erm_user_roles",
+  "Koha::Schema::Result::ErmUserRole",
+  { "foreign.user_id" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -1362,6 +1500,21 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 item_editor_templates
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::ItemEditorTemplate>
+
+=cut
+
+__PACKAGE__->has_many(
+  "item_editor_templates",
+  "Koha::Schema::Result::ItemEditorTemplate",
+  { "foreign.patron_id" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 items_last_borrowers
 
 Type: has_many
@@ -1373,6 +1526,21 @@ Related object: L<Koha::Schema::Result::ItemsLastBorrower>
 __PACKAGE__->has_many(
   "items_last_borrowers",
   "Koha::Schema::Result::ItemsLastBorrower",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 linktrackers
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Linktracker>
+
+=cut
+
+__PACKAGE__->has_many(
+  "linktrackers",
+  "Koha::Schema::Result::Linktracker",
   { "foreign.borrowernumber" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
@@ -1467,21 +1635,6 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
-=head2 opac_news
-
-Type: has_many
-
-Related object: L<Koha::Schema::Result::OpacNews>
-
-=cut
-
-__PACKAGE__->has_many(
-  "opac_news",
-  "Koha::Schema::Result::OpacNews",
-  { "foreign.borrowernumber" => "self.borrowernumber" },
-  { cascade_copy => 0, cascade_delete => 0 },
-);
-
 =head2 patron_consents
 
 Type: has_many
@@ -1569,6 +1722,21 @@ __PACKAGE__->has_many(
   "ratings",
   "Koha::Schema::Result::Rating",
   { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 recalls
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Recall>
+
+=cut
+
+__PACKAGE__->has_many(
+  "recalls",
+  "Koha::Schema::Result::Recall",
+  { "foreign.patron_id" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -1802,6 +1970,21 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 tmp_holdsqueues
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::TmpHoldsqueue>
+
+=cut
+
+__PACKAGE__->has_many(
+  "tmp_holdsqueues",
+  "Koha::Schema::Result::TmpHoldsqueue",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 user_permissions
 
 Type: has_many
@@ -1902,9 +2085,33 @@ Composing rels: L</aqorder_users> -> ordernumber
 
 __PACKAGE__->many_to_many("ordernumbers", "aqorder_users", "ordernumber");
 
+=head2 permissions
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-06-07 05:28:03
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:CgLzd4URQdNSXTgd7QnFFg
+Type: many_to_many
+
+Composing rels: L</user_permissions> -> permission
+
+=cut
+
+__PACKAGE__->many_to_many("permissions", "user_permissions", "permission");
+
+
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-05-12 07:24:19
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:q+ykAzV16DQlg/wdmihsmQ
+
+__PACKAGE__->has_many(
+  "restrictions",
+  "Koha::Schema::Result::BorrowerDebarment",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+__PACKAGE__->has_many(
+  "extended_attributes",
+  "Koha::Schema::Result::BorrowerAttribute",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
 
 __PACKAGE__->add_columns(
     '+anonymized'    => { is_boolean => 1 },

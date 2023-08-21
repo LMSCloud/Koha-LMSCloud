@@ -19,51 +19,43 @@
 </head>
 
 <body id="admin_desks" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'desks-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'desks-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
+        [% END %]
+
+        [% IF op == 'add_form' || op == 'delete_confirm' %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/admin/desks.pl">Desks</a>
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active = 1 %]
+                <span>Desks</span>
+            [% END %]
+        [% END %]
 
         [% IF op == 'add_form' %]
-            <li>
-                <a href="/cgi-bin/koha/admin/desks.pl">Desks</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    [% IF desk.desk_id %]
-                        Modify desk
-                    [% ELSE %]
-                        New desk
-                    [% END %]
-                </a>
-            </li>
+            [% WRAPPER breadcrumb_item bc_active = 1 %]
+                [% IF desk.desk_id %]
+                    <span>Modify desk</span>
+                [% ELSE %]
+                    <span>New desk</span>
+                [% END %]
+            [% END %]
 
         [% ELSIF op == 'delete_confirm' %]
-        <li>
-            <a href="/cgi-bin/koha/admin/desks.pl">Desks</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Confirm deletion of desk
-            </a>
-        </li>
+            [% WRAPPER breadcrumb_item bc_active = 1 %]
+                <span>Confirm deletion of desk</span>
+            [% END %]
 
-        [% ELSE %]
-        <li>
-            <a href="#" aria-current="page">
-                Desks
-            </a>
-        </li>
         [% END %]
-    </ol>
-</nav>
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -74,21 +66,21 @@
     <div class="dialog [% m.type | html %]">
         [% SWITCH m.code %]
         [% CASE 'error_on_update' %]
-            An error occurred when updating this desk. Perhaps it already exists.
+            <span>An error occurred when updating this desk. Perhaps it already exists</span>
         [% CASE 'error_on_insert' %]
-            An error occurred when adding this desk. The desk ID might already exist.
+            <span>An error occurred when adding this desk. The desk ID might already exist</span>
         [% CASE 'error_on_delete' %]
-            An error occurred when deleting this desk. Check the logs.
+            <span>An error occurred when deleting this desk. Check the logs</span>
         [% CASE 'success_on_update' %]
-            Desk updated successfully.
+            <span>Desk updated successfully</span>
         [% CASE 'success_on_insert' %]
-            Desk added successfully.
+            <span>Desk added successfully</span>
         [% CASE 'success_on_delete' %]
-            Desk deleted successfully.
+            <span>Desk deleted successfully</span>
         [% CASE 'already_exists' %]
-            This desk already exists.
+            <span>This desk already exists</span>
         [% CASE %]
-            [% m.code | html %]
+            <span>[% m.code | html %]</span>
         [% END %]
     </div>
 [% END %]
@@ -118,10 +110,15 @@
                     <select id="branchcode" name="branchcode" required="required">
                       <option value=""></option>
                       [% FOREACH branch IN branches %]
-                        [% IF (Branches.GetLoggedInBranchcode == branch.branchcode) %]
-                        <option value="[% branch.branchcode|html %]" selected="selected">[% branch.branchname|html %]</option>
+                        [% IF desk %]
+                            [% IF (desk.branchcode == branch.branchcode) %]
+                                <option value="[% branch.branchcode|html %]" selected="selected">[% branch.branchname|html %]</option>
+                            [% END%]
                         [% ELSE %]
-                        <option value="[% branch.branchcode|html %]">[% branch.branchname|html %]</option>
+                            [% IF (Branches.GetLoggedInBranchcode == branch.branchcode) %]
+                                <option value="[% branch.branchcode|html %]" selected="selected">[% branch.branchname|html %]</option>
+                            [% END%]
+                                <option value="[% branch.branchcode|html %]">[% branch.branchname|html %]</option>
                         [% END %]
                       [% END %]
                      </select>
@@ -131,7 +128,7 @@
         </fieldset>
 
         <fieldset class="action">
-            <input type="submit" value="Submit" />
+            <input type="submit" class="btn btn-primary" value="Submit" />
             <a class="cancel" href="/cgi-bin/koha/admin/desks.pl">Cancel</a>
         </fieldset>
     </form>
@@ -139,7 +136,7 @@
 
 [% IF op == 'delete_confirm' %]
     <div class="dialog alert">
-        <h3>Delete desk "[% desk.desk_name | html %]"?</h3>
+        <h1>Delete desk "[% desk.desk_name | html %]"?</h1>
         <table>
             <tr><th>Desk ID</th>
                 <td>[% desk.desk_id | html %]</td>
@@ -168,35 +165,37 @@
         <a class="btn btn-default" id="newdesk" href="/cgi-bin/koha/admin/desks.pl?op=add_form"><i class="fa fa-plus"></i> New desk</a>
     </div>
 
-    <h2>Desks</h2>
+    <h1>Desks</h1>
     [% IF searchfield %]
-        Searching: [% searchfield | html %]
+        <span>Searching: [% searchfield | html %]</span>
     [% END %]
 
     [% IF desks.count %]
-        <table id="table_desks">
-            <thead>
-                <tr>
-                    <th>Desk ID</th>
-                    <th>Desk</th>
-                    <th>Library</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                [% FOREACH desk IN desks %]
-                <tr>
-                    <td>[% desk.desk_id | html %]</td>
-                    <td>[% desk.desk_name | html %]</td>
-                    <td>[% Branches.GetName( desk.branchcode ) | html %]</td>
-                    <td class="actions">
-                        <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/desks.pl?op=add_form&amp;desk_id=[% desk.desk_id | html %]"><i class="fa fa-pencil"></i> Edit</a>
-                        <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/desks.pl?op=delete_confirm&amp;desk_id=[% desk.desk_id | html %]"><i class="fa fa-trash"></i> Delete</a>
-                    </td>
-                </tr>
-                [% END %]
-            </tbody>
-        </table>
+        <div class="page-section">
+            <table id="table_desks">
+                <thead>
+                    <tr>
+                        <th>Desk ID</th>
+                        <th>Desk</th>
+                        <th>Library</th>
+                        <th class="NoSort noExport">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    [% FOREACH desk IN desks %]
+                    <tr>
+                        <td>[% desk.desk_id | html %]</td>
+                        <td>[% desk.desk_name | html %]</td>
+                        <td>[% Branches.GetName( desk.branchcode ) | html %]</td>
+                        <td class="actions">
+                            <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/desks.pl?op=add_form&amp;desk_id=[% desk.desk_id | html %]"><i class="fa fa-pencil"></i> Edit</a>
+                            <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/desks.pl?op=delete_confirm&amp;desk_id=[% desk.desk_id | html %]"><i class="fa fa-trash"></i> Delete</a>
+                        </td>
+                    </tr>
+                    [% END %]
+                </tbody>
+            </table>
+        </div> <!-- /.page-section -->
     [% ELSE %]
         <div class="dialog message">
             There are no desks defined. <a href="/cgi-bin/koha/admin/desks.pl?op=add_form">Create a new desk</a>.
@@ -217,16 +216,12 @@
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/admin-menu.js") | $raw %]
     [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'columns_settings.inc' %]
     <script>
         $(document).ready(function() {
-            $("#table_desks").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "aTargets": [ -1, -2 ], "bSortable": false, "bSearchable": false },
-                ],
-                "aaSorting": [[ 1, "asc" ]],
-                "iDisplayLength": 10,
-                "sPaginationType": "full_numbers"
-            }));
+            KohaTable("table_desks", {
+                "order": [[ 1, "asc" ]]
+            });
         });
     </script>
 [% END %]

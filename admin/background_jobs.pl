@@ -1,4 +1,4 @@
-#! /usr/bin/perl
+#!/usr/bin/perl
 
 # This file is part of Koha.
 #
@@ -17,12 +17,11 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use JSON qw( decode_json );
-use Try::Tiny;
 
 use C4::Context;
-use C4::Auth;
-use C4::Output;
+use Koha::DateUtils qw( dt_from_string );
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 
 use Koha::BackgroundJobs;
 use Koha::Virtualshelves;
@@ -37,7 +36,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { catalogue => 1 },
-        debug           => 1,
     }
 );
 
@@ -55,14 +53,10 @@ if ( $op eq 'view' ) {
         }
         else {
             $template->param( job => $job, );
-            $template->param(
-                lists => scalar Koha::Virtualshelves->search(
-                    [
-                        { category => 1, owner => $loggedinuser },
-                        { category => 2 }
-                    ]
-                )
-            ) if $job->type eq 'batch_biblio_record_modification';
+            if ( $job->status ne 'new' ) {
+                my $report = $job->additional_report() || {};
+                $template->param( %$report );
+            }
         }
     } else {
         $op = 'list';
@@ -81,19 +75,6 @@ if ( $op eq 'cancel' ) {
         push @messages, { code => 'cannot_cancel_job' };
     }
     $op = 'list';
-}
-
-
-if ( $op eq 'list' ) {
-    my $jobs =
-      $can_manage_background_jobs
-      ? Koha::BackgroundJobs->search( {},
-        { order_by => { -desc => 'enqueued_on' } } )
-      : Koha::BackgroundJobs->search(
-        { borrowernumber => $logged_in_user->borrowernumber },
-        { order_by       => { -desc => 'enqueued_on' } }
-      );
-    $template->param( jobs => $jobs );
 }
 
 $template->param(

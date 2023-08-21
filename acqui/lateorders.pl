@@ -45,13 +45,11 @@ To know on which branch this script have to display late order.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Koha;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
-use C4::Acquisition;
-use C4::Letters;
-use Koha::DateUtils;
+use C4::Letters qw( SendAlerts GetLetters );
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Acquisition::Orders;
 use Koha::CsvProfiles;
 
@@ -62,7 +60,6 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { acquisition => 'order_receive' },
-        debug           => 1,
     }
 );
 
@@ -73,25 +70,11 @@ my $delay        = $input->param('delay') // 0;
 my $estimateddeliverydatefrom = $input->param('estimateddeliverydatefrom');
 my $estimateddeliverydateto   = $input->param('estimateddeliverydateto');
 
-my $estimateddeliverydatefrom_dt =
-  $estimateddeliverydatefrom
-  ? dt_from_string($estimateddeliverydatefrom)
-  : undef;
-
 # Get the "date to" param. If it is not defined and $delay is not defined too, it is the today's date.
-my $estimateddeliverydateto_dt = $estimateddeliverydateto
-    ? dt_from_string($estimateddeliverydateto)
-    : ( not defined $delay and not defined $estimateddeliverydatefrom)
-        ? dt_from_string()
-        : undef;
-
-# Format the output of "date from" and "date to"
-if ($estimateddeliverydatefrom_dt) {
-    $estimateddeliverydatefrom = output_pref({dt => $estimateddeliverydatefrom_dt, dateonly => 1});
-}
-if ($estimateddeliverydateto_dt) {
-    $estimateddeliverydateto = output_pref({dt => $estimateddeliverydateto_dt, dateonly => 1});
-}
+$estimateddeliverydateto ||=
+  ( not defined $delay and not defined $estimateddeliverydatefrom )
+  ? dt_from_string()
+  : undef;
 
 my $branch     = $input->param('branch');
 my $op         = $input->param('op');
@@ -126,13 +109,13 @@ my @lateorders = Koha::Acquisition::Orders->filter_by_lates(
     {
         delay        => $delay,
         (
-            $estimateddeliverydatefrom_dt
-            ? ( estimated_from => $estimateddeliverydatefrom_dt )
+            $estimateddeliverydatefrom
+            ? ( estimated_from => dt_from_string($estimateddeliverydatefrom, 'iso') )
             : ()
         ),
         (
-            $estimateddeliverydateto_dt
-            ? ( estimated_to => $estimateddeliverydateto_dt )
+            $estimateddeliverydateto
+            ? ( estimated_to => dt_from_string($estimateddeliverydateto, 'iso') )
             : ()
         )
     },
@@ -160,6 +143,6 @@ $template->param(
     estimateddeliverydatefrom => $estimateddeliverydatefrom,
     estimateddeliverydateto   => $estimateddeliverydateto,
 	intranetcolorstylesheet => C4::Context->preference("intranetcolorstylesheet"),
-    csv_profiles         => [ Koha::CsvProfiles->search({ type => 'sql', used_for => 'late_orders' }) ],
+    csv_profiles         => Koha::CsvProfiles->search({ type => 'sql', used_for => 'late_orders' }),
 );
 output_html_with_http_headers $input, $cookie, $template->output;

@@ -6,14 +6,27 @@
 [% USE Branches %]
 [% USE KohaDates %]
 [% USE Math %]
+[% USE AdditionalContents %]
+[% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET userupdateview = 1 %]
 [% BLOCK streetnumber %]
     [% UNLESS hidden.defined('streetnumber') %]
         <li>
             <label for="borrower_streetnumber" class="[% required.streetnumber | html %]">Street number:</label>
 
-            <input type="text" id="borrower_streetnumber" name="borrower_streetnumber" value="[% borrower.streetnumber | html %]" class="[% required.streetnumber | html %]" />
+            <input type="text" id="borrower_streetnumber" name="borrower_streetnumber" value="[% borrower.streetnumber | html %]" class="[% required.streetnumber | html %]" size="5" maxlength="10" />
             <div class="required_label [% required.streetnumber | html %]">Required</div>
+        </li>
+    [% END %]
+[% END %]
+[% BLOCK B_streetnumber %]
+    [% UNLESS hidden.defined('B_streetnumber') %]
+        <li>
+            <label for="borrower_B_streetnumber" class="[% required.B_streetnumber | html %]">Street number:</label>
+
+            <input type="text" id="borrower_B_streetnumber" name="borrower_B_streetnumber" value="[% borrower.B_streetnumber | html %]" class="[% required.B_streetnumber | html %]" size="5" maxlength="10" />
+            <div class="required_label [% required.B_streetnumber | html %]">Required</div>
         </li>
     [% END %]
 [% END %]
@@ -32,8 +45,8 @@
 [% INCLUDE 'masthead.inc' %]
 
 <div class="main">
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
+    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
+        <ol class="breadcrumb">
             <li class="breadcrumb-item">
                 <a href="/cgi-bin/koha/opac-main.pl">Home</a>
             </li>
@@ -46,11 +59,11 @@
                 </li>
             [% ELSE %]
                 <li class="breadcrumb-item active">
-                    <a href="#">Register a new account</a>
+                    <a href="#" aria-current="page">Register a new account</a>
                 </li>
             [% END %]
-        </ul>
-    </nav>
+        </ol>
+    </nav> <!-- /#breadcrumbs -->
 
     <div class="container-fluid">
         <div class="row">
@@ -173,7 +186,7 @@
                                             Guaranteed by
                                             [% FOREACH gr IN patron.guarantor_relationships %]
                                                 [% SET g = gr.guarantor %]
-                                                [% g.firstname | html %] [% g.surname | html %]
+                                                [% g.firstname | html %] [% g.middle_name | html %] [% g.surname | html %]
                                                 [%- IF ! loop.last %], [% END %]
                                             [% END %]
                                         </span>
@@ -190,7 +203,7 @@
 
                 <form method="post" action="/cgi-bin/koha/opac-memberentry.pl" id="memberentry-form" autocomplete="off">
 
-                [% FOREACH field = ['streetnumber' 'streettype'  'cardnumber' 'branchcode' 'categorycode' 'title' 'surname' 'firstname' 'dateofbirth' 'initials' 'othernames' 'address' 'address2' 'city' 'state' 'zipcode' 'country' 'phone' 'phonepro' 'mobile' 'email' 'emailpro' 'fax' 'B_streettype' 'B_address' 'B_address2' 'B_city' 'B_state' 'B_zipcode' 'B_country' 'B_phone' 'B_email' 'contactnote' 'altcontacttitle' 'altcontactsurname' 'altcontactfirstname' 'altcontactaddress1' 'altcontactaddress2' 'altcontactaddress3' 'altcontactstate' 'altcontactzipcode' 'altcontactcountry' 'altcontactphone' 'password' ] %]
+                [% FOREACH field = ['streetnumber' 'streettype'  'cardnumber' 'branchcode' 'categorycode' 'title' 'surname' 'firstname' 'middle_name' 'dateofbirth' 'initials' 'pronouns' 'othernames' 'address' 'address2' 'city' 'state' 'zipcode' 'country' 'phone' 'phonepro' 'mobile' 'email' 'emailpro' 'fax' 'B_streettype' 'B_streetnumber' 'B_address' 'B_address2' 'B_city' 'B_state' 'B_zipcode' 'B_country' 'B_phone' 'B_email' 'contactnote' 'altcontacttitle' 'altcontactsurname' 'altcontactfirstname' 'altcontactaddress1' 'altcontactaddress2' 'altcontactaddress3' 'altcontactstate' 'altcontactzipcode' 'altcontactcountry' 'altcontactphone' 'password' ] %]
                     [% IF mandatory.defined( field ) %]
                         [% SET required.$field = 'required' %]
                     [% END %]
@@ -242,7 +255,7 @@
 
                                             [% UNLESS hidden.defined('branchcode') %]
                                                 <li>
-                                                    [% IF ( libraries.size > 1 ) %]
+                                                    [% IF libraries.count %]
                                                         <label for="borrower_branchcode" class="[% required.branchcode | html %]">Home library:</label>
 
                                                         <select id="borrower_branchcode" name="borrower_branchcode" class="[% required.branchcode | html %]">
@@ -297,7 +310,7 @@
                     [% END # / defined 'branchcode' %]
 
                     [%# Following on one line for translatability %]
-                    [% UNLESS hidden.defined('title') && hidden.defined('surname') && hidden.defined('firstname') && hidden.defined('dateofbirth') && hidden.defined('initials') && hidden.defined('othernames') && hidden.defined('sex') %]
+                    [% UNLESS hidden.defined('title') && hidden.defined('surname') && hidden.defined('firstname') && hidden.defined('middle_name') && hidden.defined('dateofbirth') && hidden.defined('initials') && hidden.defined('pronouns') && hidden.defined('othernames') && hidden.defined('sex') %]
                         <div class="row">
                             <div class="col">
                                 <fieldset class="rows" id="memberentry_identity">
@@ -340,17 +353,20 @@
                                             </li>
                                         [% END %]
 
+                                        [% UNLESS hidden.defined('middle_name') %]
+                                            <li>
+                                                <label for="borrower_middle_name" class="[% required.middle_name | html %]">Middle name:</label>
+
+                                                <input type="text" id="borrower_middle_name" name="borrower_middle_name" value="[% borrower.middle_name | html %]" class="[% required.middle_name | html %]" />
+                                                <div class="required_label [% required.middle_name | html %]">Required</div>
+                                            </li>
+                                        [% END %]
+
                                         [% UNLESS hidden.defined('dateofbirth') %]
                                             <li>
                                                 <label for="borrower_dateofbirth" class="[% required.dateofbirth | html %]">Date of birth:</label>
 
-                                                <input type="text" id="borrower_dateofbirth" name="borrower_dateofbirth" value="[% borrower.dateofbirth | $KohaDates %]" size="10" class="[% required.dateofbirth | html %]" />
-
-                                                [% UNLESS action == 'edit' && !OPACPatronDetails %]
-                                                    [% UNLESS ( mandatory.defined('dateofbirth') ) %]
-                                                        <a href="#" style="font-size:85%;text-decoration:none;" class="cleardate">Clear date</a>
-                                                    [% END %]
-                                                [% END %]
+                                                <input type="text" id="borrower_dateofbirth" name="borrower_dateofbirth" value="[% borrower.dateofbirth | html %]" size="10" class="[% required.dateofbirth | html %] flatpickr pastdate" />
 
                                                 <div class="required_label [% required.dateofbirth | html %]">Required</div>
                                             </li>
@@ -365,12 +381,21 @@
                                             </li>
                                         [% END %]
 
+                                        [% UNLESS hidden.defined('pronouns') %]
+                                            <li>
+                                                <label for="borrower_pronouns" class="[% required.pronouns | html %]">Pronouns:</label>
+
+                                                <input type="text" id="borrower_pronouns" name="borrower_pronouns" value="[% borrower.pronouns | html %]" class="[% required.prnouns | html %]" />
+                                                <div class="required_label [% required.pronouns | html %]">Required</div>
+                                            </li>
+                                        [% END %]
+
                                         [% UNLESS hidden.defined('othernames') %]
                                             <li>
                                                 <label for="borrower_othernames" class="[% required.othernames | html %]">Other names:</label>
 
                                                 <input type="text" id="borrower_othernames" name="borrower_othernames" value="[% borrower.othernames | html %]" class="[% required.othernames | html %]" />
-                                                <div class="required_label [% required.initials | html %]">Required</div>
+                                                <div class="required_label [% required.othernames | html %]">Required</div>
                                             </li>
                                         [% END %]
 
@@ -430,7 +455,7 @@
                                         [% IF Koha.Preference('AddressFormat') != 'de' %][% INCLUDE streetnumber %][% END %]
 
                                         [% SET roadtypes = AuthorisedValues.GetAuthValueDropbox('ROADTYPE') %]
-                                        [% IF roadtypes %]
+                                        [% IF roadtypes.count %]
                                             [% UNLESS hidden.defined('streettype') %]
                                                 <li>
                                                     <label for="borrower_streettype" class="[% required.streettype | html %]">Street type:</label>
@@ -582,6 +607,63 @@
                                                 <div class="required_label [% required.fax | html %]">Required</div>
                                             </li>
                                         [% END %]
+
+                                        [% UNLESS hidden.defined('primary_contact_method') %]
+                                            <li>
+                                                [% IF ( mandatory.defined('primary_contact_method') ) %]
+                                                    <label for="borrower_primary_contact_method" class="required">Main contact method:</label>
+                                                [% ELSE %]
+                                                    <label for="borrower_primary_contact_method">Main contact method:</label>
+                                                [% END %]
+
+                                                <select id="borrower_primary_contact_method" name="borrower_primary_contact_method">
+                                                    <option value=""></option>
+                                                    [% UNLESS hidden.defined('phone') %]
+                                                        [% IF ( borrower.primary_contact_method == 'phone' ) %]
+                                                            <option value="phone" selected="selected">Primary phone</option>
+                                                        [% ELSE %]
+                                                            <option value="phone">Primary phone</option>
+                                                        [% END %]
+                                                    [% END %]
+                                                    [% UNLESS hidden.defined('phonepro') %]
+                                                        [% IF ( borrower.primary_contact_method == 'phonepro' ) %]
+                                                            <option value="phonepro" selected="selected">Secondary phone</option>
+                                                        [% ELSE %]
+                                                            <option value="phonepro">Secondary phone</option>
+                                                        [% END %]
+                                                    [% END %]
+                                                    [% UNLESS hidden.defined('mobile') %]
+                                                        [% IF ( borrower.primary_contact_method == 'mobile' ) %]
+                                                            <option value="mobile" selected="selected">Other phone</option>
+                                                        [% ELSE %]
+                                                            <option value="mobile">Other phone</option>
+                                                        [% END %]
+                                                    [% END %]
+                                                    [% UNLESS hidden.defined('email') %]
+                                                        [% IF ( borrower.primary_contact_method == 'email' ) %]
+                                                            <option value="email" selected="selected">Primary email</option>
+                                                        [% ELSE %]
+                                                            <option value="email">Primary email</option>
+                                                        [% END %]
+                                                    [% END %]
+                                                    [% UNLESS hidden.defined('emailpro') %]
+                                                        [% IF ( borrower.primary_contact_method == 'emailpro' ) %]
+                                                            <option value="emailpro" selected="selected">Secondary email</option>
+                                                        [% ELSE %]
+                                                            <option value="emailpro">Secondary email</option>
+                                                        [% END %]
+                                                    [% END %]
+                                                    [% UNLESS hidden.defined('fax') %]
+                                                        [% IF ( borrower.primary_contact_method == 'fax' ) %]
+                                                            <option value="fax" selected="selected">Fax</option>
+                                                        [% ELSE %]
+                                                            <option value="fax">Fax</option>
+                                                        [% END %]
+                                                    [% END %]
+                                                </select>
+                                                [% IF ( mandatory.defined('primary_contact_method') ) %]<span class="required">Required</span>[% END %]
+                                            </li>
+                                        [% END %]
                                     </ol>
                                 </fieldset>
                             </div> <!-- /.col -->
@@ -589,15 +671,17 @@
                     [% END %]
 
                     [%# Following on one line for translatability %]
-                    [% UNLESS hidden.defined('B_address') && hidden.defined('B_address2') && hidden.defined('B_city') && hidden.defined('B_state') && hidden.defined('B_zipcode') && hidden.defined('B_country') && hidden.defined('B_phone') && hidden.defined('B_email') && hidden.defined('contactnote') %]
+                    [% UNLESS hidden.defined('B_streetnumber') && hidden.defined('B_address') && hidden.defined('B_address2') && hidden.defined('B_city') && hidden.defined('B_state') && hidden.defined('B_zipcode') && hidden.defined('B_country') && hidden.defined('B_phone') && hidden.defined('B_email') && hidden.defined('contactnote') %]
                         <div class="row">
                             <div class="col">
                                 <fieldset class="rows" id="memberentry_alternateaddress">
                                     <legend id="alternateaddress_legend">Alternate address</legend>
 
                                     <ol>
+                                        [% IF Koha.Preference('AddressFormat') != 'de' %][% INCLUDE B_streetnumber %][% END %]
+
                                         [% SET roadtypes = AuthorisedValues.GetAuthValueDropbox('ROADTYPE') %]
-                                        [% IF roadtypes %]
+                                        [% IF roadtypes.count %]
                                             [% UNLESS hidden.defined('B_streettype') %]
                                                 <li>
                                                     <label for="borrower_B_streettype" class="[% required.B_streettype | html %]">Street type:</label>
@@ -624,6 +708,8 @@
                                                 <div class="required_label [% required.B_address | html %]">Required</div>
                                             </li>
                                         [% END %]
+
+                                        [% IF Koha.Preference('AddressFormat') == 'de' %][% INCLUDE streetnumber %][% END %]
 
                                         [% UNLESS hidden.defined('B_address2') %]
                                             <li>
@@ -851,7 +937,7 @@
                         </div> <!-- /.row -->
                    [% END %]
 
-                    [% IF ( Koha.Preference('ExtendedPatronAttributes') && patron_attribute_classes.size && ! ( action == 'new' && Koha.Preference('PatronSelfRegistrationVerifyByEmail') ) ) %]
+                    [% IF ( Koha.Preference('ExtendedPatronAttributes') && patron_attribute_classes.size ) %]
                         <div class="row">
                             <div class="col">
                                 [% FOREACH pa_class IN patron_attribute_classes %]
@@ -917,11 +1003,11 @@
                         </div> <!-- /.row -->
                     [% END %]
 
-                    [% IF Koha.Preference('GDPR_Policy') && action != 'edit' %]
+                    [% IF Koha.Preference('PrivacyPolicyConsent') && action != 'edit' %]
                         <div class="row">
                             <div class="col">
                                 <fieldset class="rows" id="memberentry_gdpr_consent">
-                                    <legend>GDPR consent</legend>
+                                    <legend>Data privacy policy consent</legend>
                                     <ol>
                                     <li>
                                         <div class="label"></div>
@@ -1041,9 +1127,21 @@
                 }
             });
 
-            $("input.required,select.required,textarea.required").rules("add", {
-                required: true
-            });
+            if ( $("input.required").length ) {
+                $("input.required").rules("add", {
+                    required: true
+                });
+            }
+            if ( $("select.required").length ) {
+                $("select.required").rules("add", {
+                    required: true
+                });
+            }
+            if ( $("textarea.required").length ) {
+                $("textarea.required").rules("add", {
+                    required: true
+                });
+            }
 
             [% IF patron.guarantor_relationships && !Koha.Preference('OPACPrivacy') %]
 
@@ -1122,11 +1220,6 @@
                 return false;
             } );
         });
-
-    $(".cleardate").on("click", function(){
-        $('#borrower_dateofbirth').val('');
-        return false;
-    });
 
     [% IF action != 'edit' and Koha.Preference('PatronSelfRegistrationConfirmEmail') %]
         $("#borrower_email").bind("cut copy paste", function(e){

@@ -25,7 +25,7 @@ use Test::Exception;
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
-use C4::Circulation;
+use C4::Circulation qw( AddIssue AddReturn );
 
 use Koha::Biblios;
 use Koha::Database;
@@ -389,7 +389,7 @@ subtest 'claim*' => sub {
 };
 
 subtest 'filter_by_late' => sub {
-    plan tests => 16;
+    plan tests => 17;
 
     $schema->storage->txn_begin;
     my $now        = dt_from_string;
@@ -415,6 +415,8 @@ subtest 'filter_by_late' => sub {
                 basketno                => $basket_1->basketno,
                 datereceived            => undef,
                 datecancellationprinted => undef,
+                estimated_delivery_date => undef,
+                orderstatus             => 'ordered',
             }
         }
     );
@@ -434,6 +436,8 @@ subtest 'filter_by_late' => sub {
                 basketno                => $basket_2->basketno,
                 datereceived            => undef,
                 datecancellationprinted => undef,
+                estimated_delivery_date => undef,
+                orderstatus             => 'ordered',
             }
         }
     );
@@ -453,6 +457,8 @@ subtest 'filter_by_late' => sub {
                 basketno                => $basket_3->basketno,
                 datereceived            => undef,
                 datecancellationprinted => undef,
+                estimated_delivery_date => undef,
+                orderstatus             => 'ordered',
             }
         }
     );
@@ -472,6 +478,20 @@ subtest 'filter_by_late' => sub {
                 basketno                => $basket_4->basketno,
                 datereceived            => undef,
                 datecancellationprinted => undef,
+                estimated_delivery_date => undef,
+                orderstatus             => 'ordered',
+            }
+        }
+    );
+    my $order_42 = $builder->build_object(
+        {
+            class => 'Koha::Acquisition::Orders',
+            value => {
+                basketno                => $basket_4->basketno,
+                datereceived            => undef,
+                datecancellationprinted => undef,
+                estimated_delivery_date => undef,
+                orderstatus             => 'complete',
             }
         }
     );
@@ -539,6 +559,34 @@ subtest 'filter_by_late' => sub {
     );
     is( $late_orders->count, 1 );
 
+    my $basket_5 = $builder->build_object(    # closed today
+        {
+            class => 'Koha::Acquisition::Baskets',
+            value => {
+                booksellerid => $bookseller->id,
+                closedate    => $now,
+            }
+        }
+    );
+    my $order_5 = $builder->build_object(
+        {
+            class => 'Koha::Acquisition::Orders',
+            value => {
+                basketno                => $basket_4->basketno,
+                datereceived            => undef,
+                datecancellationprinted => undef,
+                estimated_delivery_date => $now->clone->subtract( days => 2 ),
+            }
+        }
+    );
+    $late_orders = $orders->filter_by_lates(
+        {
+            estimated_from => $now->clone->subtract( days => 3 ),
+            estimated_to   => $now->clone->subtract( days => 2 )
+        }
+    );
+    is( $late_orders->count, 1 );
+
     $schema->storage->txn_rollback;
 };
 
@@ -592,7 +640,7 @@ subtest 'filter_by_current & filter_by_cancelled' => sub {
 
 subtest 'cancel() tests' => sub {
 
-    plan tests => 52;
+    plan tests => 54;
 
     $schema->storage->txn_begin;
 
@@ -622,7 +670,12 @@ subtest 'cancel() tests' => sub {
     );
     $order->add_item( $item->id );
 
-    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { branchcode => $item->homebranch, flags => 1 }
+        }
+    );
     t::lib::Mocks::mock_userenv({ patron => $patron });
 
     # Add a checkout so deleting the item fails because od 'book_on_loan'
@@ -882,6 +935,27 @@ subtest 'cancel() tests' => sub {
     is( $messages[1]->payload->{reason}, 'book_reserved', 'Item reserved notified' );
     is( $messages[2]->message, 'error_delbiblio_items', 'Cannot delete on loan item' );
     is( $messages[2]->payload->{biblio}->id, $biblio_id, 'The right biblio is attached' );
+
+    # Call ->store with biblionumber NULL (as ->cancel does)
+    $item_1 = $builder->build_sample_item;
+    $biblio_id = $item_1->biblionumber;
+    $order= $builder->build_object({
+        class => 'Koha::Acquisition::Orders',
+        value => {
+            orderstatus             => 'new',
+            biblionumber            => $biblio_id,
+            datecancellationprinted => undef,
+            cancellationreason      => undef,
+        }
+    });
+    my $columns = {
+        biblionumber            => undef,
+        cancellationreason      => $reason,
+        datecancellationprinted => \'NOW()',
+        orderstatus             => 'cancelled',
+    };
+    lives_ok { $order->set($columns)->store; } 'No croak on missing biblionumber when cancelling an order';
+    throws_ok { $order->orderstatus('new')->store; } qr/Cannot insert order: Mandatory parameter biblionumber is missing/, 'Expected croak';
 
     $schema->storage->txn_rollback;
 };

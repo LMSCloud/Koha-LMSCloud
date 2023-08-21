@@ -20,9 +20,8 @@ package Koha::Account;
 use Modern::Perl;
 
 use Carp;
-use Data::Dumper;
-use List::MoreUtils qw( uniq );
-use Try::Tiny;
+use Data::Dumper qw( Dumper );
+use Try::Tiny qw( catch try );
 
 use C4::Circulation qw( ReturnLostItem CanBookBeRenewed AddRenewal );
 use C4::Letters;
@@ -35,9 +34,9 @@ use Koha::Patrons;
 use Koha::Account::Lines;
 use Koha::Account::Offsets;
 use Koha::Account::DebitTypes;
-use Koha::DateUtils qw( dt_from_string );
 use Koha::Exceptions;
 use Koha::Exceptions::Account;
+use Koha::Plugins;
 
 =head1 NAME
 Koha::Accounts - Module for managing payments and fees for patrons
@@ -63,7 +62,6 @@ Koha::Account->new( { patron_id => $borrowernumber } )->pay(
         library_id  => $branchcode,
         lines       => $lines, # Arrayref of Koha::Account::Line objects to pay
         credit_type => $type,  # credit_type_code code
-        offset_type => $offset_type,    # offset type code
         item_id     => $itemnumber,     # pass the itemnumber if this is a credit pertianing to a specific item (i.e LOST_FOUND)
     }
 );
@@ -118,11 +116,10 @@ sub pay {
             { debits => [ $self->outstanding_debits->as_list ] } );
     }
 
-    if ( C4::Context->preference('UseEmailReceipts') ) {
-        
-        my $patron = Koha::Patrons->find( $self->{patron_id} );
-        my @account_offsets = $payment->credit_offsets({ type => 'APPLY' })->as_list;
-        
+    my $patron = Koha::Patrons->find( $self->{patron_id} );
+    my @account_offsets = $payment->credit_offsets({ type => 'APPLY' })->as_list;
+
+    if ( C4::Context->preference('UseEmailReceipts') ) {        
         if (
             my $letter = C4::Letters::GetPreparedLetter(
                 module                 => 'circulation',
@@ -184,6 +181,7 @@ $credit_type can be any of:
   - 'OVERPAYMENT'
   - 'PAYMENT'
   - 'WRITEOFF'
+  - 'PROCESSING_FOUND'
 
 =cut
 
@@ -220,7 +218,7 @@ sub add_credit {
     Koha::Exceptions::Account::RegisterRequired->throw()
       if ( C4::Context->preference("UseCashRegisters")
         && defined($payment_type)
-        && ( $payment_type eq 'CASH' )
+        && ( $payment_type eq 'CASH' || $payment_type eq 'SIP00' )
         && !defined($cash_register) );
 
     my $line;
@@ -252,8 +250,8 @@ sub add_credit {
                 my $account_offset = Koha::Account::Offset->new(
                     {
                         credit_id => $line->id,
-                        type   => $Koha::Account::offset_type->{$credit_type} // $Koha::Account::offset_type->{CREDIT},
-                        amount => $amount
+                        type      => 'CREATE',
+                        amount    => $amount * -1
                     }
                 )->store();
 
@@ -265,6 +263,17 @@ sub add_credit {
                         borrowernumber => $self->{patron_id},
                     }
                 ) if grep { $credit_type eq $_ } ( 'PAYMENT', 'WRITEOFF' );
+
+                Koha::Plugins->call(
+                    'after_account_action',
+                    {
+                        action  => "add_credit",
+                        payload => {
+                            type => lc($credit_type),
+                            line => $line->get_from_storage, #TODO Seems unneeded
+                        }
+                    }
+                );
 
                 if ( C4::Context->preference("FinesLog") ) {
                     logaction(
@@ -349,7 +358,7 @@ sub payin_amount {
     Koha::Exceptions::Account::RegisterRequired->throw()
       if ( C4::Context->preference("UseCashRegisters")
         && defined( $params->{payment_type} )
-        && ( $params->{payment_type} eq 'CASH' )
+        && ( $params->{payment_type} eq 'CASH' || $params->{payment_type} eq 'SIP00' )
         && !defined($params->{cash_register}) );
 
     # amount should always be passed as a positive value
@@ -382,8 +391,7 @@ sub payin_amount {
             if ( exists( $params->{debits} ) ) {
                 $credit = $credit->apply(
                     {
-                        debits      => $params->{debits},
-                        offset_type => $Koha::Account::offset_type->{$params->{type}}
+                        debits => $params->{debits}
                     }
                 );
             }
@@ -394,8 +402,7 @@ sub payin_amount {
             {
                 $credit = $credit->apply(
                     {
-                        debits      => [ $self->outstanding_debits->as_list ],
-                        offset_type => $Koha::Account::offset_type->{$params->{type}}
+                        debits => [ $self->outstanding_debits->as_list ]
                     }
                 );
             }
@@ -465,7 +472,7 @@ sub add_debit {
     Koha::Exceptions::Account::RegisterRequired->throw()
       if ( C4::Context->preference("UseCashRegisters")
         && defined( $params->{transaction_type} )
-        && ( $params->{transaction_type} eq 'CASH' )
+        && ( $params->{transaction_type} eq 'CASH' || $params->{payment_type} eq 'SIP00' )
         && !defined( $params->{cash_register} ) );
 
     # amount should always be a positive value
@@ -485,7 +492,6 @@ sub add_debit {
     my $transaction_type = $params->{transaction_type};
     my $item_id          = $params->{item_id};
     my $issue_id         = $params->{issue_id};
-    my $offset_type      = $Koha::Account::offset_type->{$debit_type} // 'Manual Debit';
 
     my $line;
     my $schema = Koha::Database->new->schema;
@@ -522,7 +528,7 @@ sub add_debit {
                 my $account_offset = Koha::Account::Offset->new(
                     {
                         debit_id => $line->id,
-                        type     => $offset_type,
+                        type     => 'CREATE',
                         amount   => $amount
                     }
                 )->store();
@@ -599,7 +605,7 @@ sub payout_amount {
     # Check for mandatory register
     Koha::Exceptions::Account::RegisterRequired->throw()
       if ( C4::Context->preference("UseCashRegisters")
-        && ( $params->{payout_type} eq 'CASH' )
+        && ( $params->{payout_type} eq 'CASH' || $params->{payout_type} eq 'SIP00' )
         && !defined($params->{cash_register}) );
 
     # Amount should always be passed as a positive value
@@ -646,7 +652,7 @@ sub payout_amount {
                     type              => 'PAYOUT',
                     transaction_type  => $params->{payout_type},
                     amountoutstanding => $params->{amount},
-                    manager_id        => $params->{staff_id},
+                    user_id           => $params->{staff_id},
                     interface         => $params->{interface},
                     branchcode        => $params->{branch},
                     cash_register     => $params->{cash_register}
@@ -655,8 +661,7 @@ sub payout_amount {
 
             # Offset against credits
             for my $credit ( @{$outstanding_credits} ) {
-                $credit->apply(
-                    { debits => [$payout], offset_type => 'PAYOUT' } );
+                $credit->apply( { debits => [$payout] } );
                 $payout->discard_changes;
                 last if $payout->amountoutstanding == 0;
             }
@@ -694,8 +699,7 @@ my $lines = Koha::Account->new({ patron_id => $patron_id })->outstanding_debits;
 
 It returns the debit lines with outstanding amounts for the patron.
 
-In scalar context, it returns a Koha::Account::Lines iterator. In list context, it will
-return a list of Koha::Account::Line objects.
+It returns a Koha::Account::Lines iterator.
 
 =cut
 
@@ -715,8 +719,7 @@ my $lines = Koha::Account->new({ patron_id => $patron_id })->outstanding_credits
 
 It returns the credit lines with outstanding amounts for the patron.
 
-In scalar context, it returns a Koha::Account::Lines iterator. In list context, it will
-return a list of Koha::Account::Line objects.
+It returns a Koha::Account::Lines iterator.
 
 =cut
 
@@ -811,37 +814,6 @@ sub reconcile_balance {
 }
 
 1;
-
-=head2 Name mappings
-=head3 $offset_type
-=cut
-
-our $offset_type = {
-    'CREDIT'           => 'Manual Credit',
-    'FORGIVEN'         => 'Writeoff',
-    'LOST_FOUND'       => 'Lost Item Found',
-    'OVERPAYMENT'      => 'Overpayment',
-    'PAYMENT'          => 'Payment',
-    'WRITEOFF'         => 'Writeoff',
-    'ACCOUNT'          => 'Account Fee',
-    'ACCOUNT_RENEW'    => 'Account Fee',
-    'RESERVE'          => 'Reserve Fee',
-    'PROCESSING'       => 'Processing Fee',
-    'LOST'             => 'Lost Item',
-    'RENT'             => 'Rental Fee',
-    'RENT_DAILY'       => 'Rental Fee',
-    'RENT_RENEW'       => 'Rental Fee',
-    'RENT_DAILY_RENEW' => 'Rental Fee',
-    'OVERDUE'          => 'Overdue Fee',
-    'RESERVE_EXPIRED'  => 'Hold Expired',
-    'PAYOUT'           => 'Payout',
-    'CLAIM_LEVEL1'     => 'Overdue Fee',
-    'CLAIM_LEVEL2'     => 'Overdue Fee',
-    'CLAIM_LEVEL3'     => 'Overdue Fee',
-    'CLAIM_LEVEL4'     => 'Overdue Fee',
-    'CLAIM_LEVEL5'     => 'Overdue Fee',
-    'CANCELLATION'     => 'Cancel Fee'
-};
 
 =head1 AUTHORS
 =encoding utf8

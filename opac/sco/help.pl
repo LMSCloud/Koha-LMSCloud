@@ -24,8 +24,8 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 
-use C4::Auth   qw(get_template_and_user in_iprange);
-use C4::Output qw(output_html_with_http_headers);
+use C4::Auth qw( in_iprange get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 
 my $query = CGI->new;
 unless ( in_iprange(C4::Context->preference('SelfCheckAllowByIPRanges')) ) {
@@ -38,7 +38,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         template_name   => "sco/help.tt",
         query           => $query,
         type            => "opac",
-        debug           => 1,
         authnotrequired => 1,
     }
 );

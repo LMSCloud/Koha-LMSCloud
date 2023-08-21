@@ -24,10 +24,12 @@ package C4::Log;
 use strict;
 use warnings;
 
+use Data::Dumper qw( Dumper );
 use JSON qw( to_json );
+use Scalar::Util qw( blessed );
+use File::Basename qw( basename );
 
 use C4::Context;
-use Koha::DateUtils;
 use Koha::Logger;
 
 use vars qw(@ISA @EXPORT);
@@ -35,7 +37,7 @@ use vars qw(@ISA @EXPORT);
 BEGIN {
         require Exporter;
         @ISA = qw(Exporter);
-        @EXPORT = qw(&logaction &cronlogaction);
+        @EXPORT = qw(logaction cronlogaction);
 }
 
 =head1 NAME
@@ -77,9 +79,24 @@ sub logaction {
     $usernumber ||= 0;
     $interface //= C4::Context->interface;
 
+    if( blessed($infos) && $infos->isa('Koha::Object') ) {
+        $infos = $infos->get_from_storage if $infos->in_storage;
+        local $Data::Dumper::Sortkeys = 1;
+
+        if ( $infos->isa('Koha::Item') && $modulename eq 'CATALOGUING' && $actionname eq 'MODIFY' ) {
+            $infos = "item " . Dumper( $infos->unblessed );
+        } else {
+            $infos = Dumper( $infos->unblessed );
+        }
+    }
+
+    my $script = ( $interface eq 'cron' or $interface eq 'commandline' )
+        ? basename($0)
+        : undef;
+
     my $dbh = C4::Context->dbh;
-    my $sth=$dbh->prepare("Insert into action_logs (timestamp,user,module,action,object,info,interface) values (now(),?,?,?,?,?,?)");
-    $sth->execute($usernumber,$modulename,$actionname,$objectnumber,$infos,$interface);
+    my $sth=$dbh->prepare("Insert into action_logs (timestamp,user,module,action,object,info,interface,script) values (now(),?,?,?,?,?,?,?)");
+    $sth->execute($usernumber,$modulename,$actionname,$objectnumber,$infos,$interface,$script);
     $sth->finish;
 
     my $logger = Koha::Logger->get(
@@ -114,10 +131,13 @@ Logs the path and name of the calling script plus the information privided by pa
 
 #'
 sub cronlogaction {
-    my ($infos)=@_;
+    my $params = shift;
+    my $info = $params->{info};
+    my $action = $params->{action};
+    $action ||= "Run";
     my $loginfo = (caller(0))[1];
-    $loginfo .= ' ' . $infos if $infos;
-    logaction( 'CRONJOBS', 'Run', undef, $loginfo ) if C4::Context->preference('CronjobLog');
+    $loginfo .= ' ' . $info if $info;
+    logaction( 'CRONJOBS', $action, $$, $loginfo ) if C4::Context->preference('CronjobLog');
 }
 
 1;

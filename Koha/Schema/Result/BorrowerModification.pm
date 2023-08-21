@@ -64,6 +64,13 @@ __PACKAGE__->table("borrower_modifications");
   data_type: 'mediumtext'
   is_nullable: 1
 
+=head2 middle_name
+
+  data_type: 'longtext'
+  is_nullable: 1
+
+patron/borrower's middle name
+
 =head2 title
 
   data_type: 'longtext'
@@ -77,6 +84,11 @@ __PACKAGE__->table("borrower_modifications");
 =head2 initials
 
   data_type: 'mediumtext'
+  is_nullable: 1
+
+=head2 pronouns
+
+  data_type: 'longtext'
   is_nullable: 1
 
 =head2 streetnumber
@@ -315,7 +327,7 @@ __PACKAGE__->table("borrower_modifications");
 
 =head2 flags
 
-  data_type: 'integer'
+  data_type: 'bigint'
   is_nullable: 1
 
 =head2 userid
@@ -429,6 +441,14 @@ __PACKAGE__->table("borrower_modifications");
 
 data processing consent
 
+=head2 primary_contact_method
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 45
+
+useful for reporting purposes
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -451,12 +471,16 @@ __PACKAGE__->add_columns(
   { data_type => "longtext", is_nullable => 1 },
   "firstname",
   { data_type => "mediumtext", is_nullable => 1 },
+  "middle_name",
+  { data_type => "longtext", is_nullable => 1 },
   "title",
   { data_type => "longtext", is_nullable => 1 },
   "othernames",
   { data_type => "longtext", is_nullable => 1 },
   "initials",
   { data_type => "mediumtext", is_nullable => 1 },
+  "pronouns",
+  { data_type => "longtext", is_nullable => 1 },
   "streetnumber",
   { data_type => "varchar", is_nullable => 1, size => 10 },
   "streettype",
@@ -560,7 +584,7 @@ __PACKAGE__->add_columns(
   "password",
   { data_type => "varchar", is_nullable => 1, size => 30 },
   "flags",
-  { data_type => "integer", is_nullable => 1 },
+  { data_type => "bigint", is_nullable => 1 },
   "userid",
   { data_type => "varchar", is_nullable => 1, size => 75 },
   "opacnote",
@@ -603,6 +627,8 @@ __PACKAGE__->add_columns(
     datetime_undef_if_invalid => 1,
     is_nullable => 1,
   },
+  "primary_contact_method",
+  { data_type => "varchar", is_nullable => 1, size => 45 },
 );
 
 =head1 PRIMARY KEY
@@ -620,8 +646,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("verification_token", "borrowernumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-06-07 05:28:03
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:JZ6vS5nH8EPc0OL3LQRG+Q
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-04-06 15:46:57
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:TzG6Q5PymhBXCVxJi3C/sA
 
 sub koha_object_class {
     'Koha::Patron::Modification';

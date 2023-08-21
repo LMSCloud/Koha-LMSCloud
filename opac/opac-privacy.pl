@@ -19,9 +19,9 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 
-use C4::Auth;    # checkauth, getborrowernumber.
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use Koha::Patrons;
 
 my $query = CGI->new;
@@ -32,14 +32,11 @@ if ( ! C4::Context->preference('OPACPrivacy') || ! C4::Context->preference('opac
     exit;
 }
 
-my $dbh   = C4::Context->dbh;
-
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
         template_name   => "opac-privacy.tt",
         query           => $query,
         type            => "opac",
-        debug           => 1,
     }
 );
 
@@ -48,8 +45,9 @@ my $privacy                    = $query->param("privacy");
 my $privacy_guarantor_checkouts = $query->param("privacy_guarantor_checkouts");
 my $privacy_guarantor_fines     = $query->param("privacy_guarantor_fines");
 
+my $patron = Koha::Patrons->find( $borrowernumber );
+
 if ( $op eq "update_privacy" ) {
-    my $patron = Koha::Patrons->find( $borrowernumber );
     if ( $patron ) {
         $patron->set({
             privacy                    => $privacy,
@@ -61,30 +59,51 @@ if ( $op eq "update_privacy" ) {
 }
 elsif ( $op eq "delete_record" ) {
 
-    # delete all reading records for items returned
-    my $rows = eval {
-        Koha::Patrons->search({ 'me.borrowernumber' => $borrowernumber })->anonymise_issue_history;
-    };
-    $template->param(
-        (
-              $@    ? ( history_not_deleted => 1 )
-            : $rows ? ( deleted             => int($rows) )
-            :         ( nothing_to_delete => 1 )
-        )
-    );
+    my $holds     = $query->param('holds');
+    my $checkouts = $query->param('checkouts');
+    my $all       = $query->param('all');
+
+    $template->param( delete_all_quested => 1 )
+      if $all;
+
+    if ( $all or $checkouts ) {
+
+        # delete all reading records for items returned
+        my $rows = eval { $patron->old_checkouts->anonymize + 0 };
+
+        $template->param(
+            (
+                  $@    ? ( error_deleting_checkouts_history => 1 )
+                : $rows ? ( deleted_checkouts => int($rows) )
+                :         ( no_checkouts_to_delete => 1 )
+            ),
+            delete_checkouts_requested => 1,
+        );
+    }
+
+    if ( $all or $holds ) {
+
+        my $rows = eval { $patron->old_holds->anonymize + 0 };
+
+        $template->param(
+            (
+                  $@    ? ( error_deleting_holds_history => 1 )
+                : $rows ? ( deleted_holds => int($rows) )
+                :         ( no_holds_to_delete => 1 )
+            ),
+            delete_holds_requested => 1,
+        );
+    }
 }
 
-# get borrower privacy ....
-my $borrower = Koha::Patrons->find( $borrowernumber );
-
 $template->param(
-    'Ask_data'                       => 1,
-    'privacy' . $borrower->privacy() => 1,
-    'privacyview'                    => 1,
-    'borrower'                       => $borrower,
-    'surname'                        => $borrower->surname,
-    'firstname'                      => $borrower->firstname,
-    'has_guarantor_flag'             => $borrower->guarantor_relationships->guarantors->_resultset->count
+    'Ask_data'                     => 1,
+    'privacy' . $patron->privacy() => 1,
+    'privacyview'                  => 1,
+    'borrower'                     => $patron,
+    'surname'                      => $patron->surname,
+    'firstname'                    => $patron->firstname,
+    'has_guarantor_flag'           => $patron->guarantor_relationships->guarantors->_resultset->count
 );
 
 output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };

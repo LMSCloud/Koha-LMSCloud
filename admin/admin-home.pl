@@ -18,13 +18,12 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use Koha::Plugins;
 
 my $query = CGI->new;
 
-my $plugins_enabled = C4::Context->config("enable_plugins");
 my $mana_url        = C4::Context->config('mana_config');
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -32,12 +31,10 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "admin/admin-home.tt",
         query           => $query,
         type            => "intranet",
-        flagsrequired   => [ parameters => '*', plugins => '*' ],
-        debug           => 1,
+        flagsrequired   => { parameters => '*' },
     }
 );
 
-$template->param( plugins_enabled => $plugins_enabled, );
 $template->param( mana_url        => $mana_url, );
 
 output_html_with_http_headers $query, $cookie, $template->output;

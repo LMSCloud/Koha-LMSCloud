@@ -23,13 +23,13 @@ package Koha::pdfformat::layout3pagesfr;
 
 use vars qw(@ISA @EXPORT);
 use MIME::Base64;
-use List::MoreUtils qw/uniq/;
+use List::MoreUtils qw( uniq );
 use Modern::Perl;
 use utf8;
 
 use C4::Acquisition;
 use Koha::Number::Price;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Libraries;
 
 BEGIN {
@@ -104,7 +104,7 @@ sub printorders {
                     ( $line->{publishercode} ? ' publié par '. $line->{publishercode} : '') .
                     ( $line->{publicationyear} ? ', '. $line->{publicationyear} : '');
             }
-            else { # MARC21, NORMARC
+            else { # MARC21
                 $titleinfo =  $line->{title} . " " . $line->{author} .
                     ( $line->{isbn} ? " ISBN : " . $line->{isbn} : '' ) .
                     ( $line->{en} ? " EN : " . $line->{en} : '' ) .

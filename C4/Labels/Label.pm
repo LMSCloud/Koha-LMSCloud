@@ -3,15 +3,14 @@ package C4::Labels::Label;
 use strict;
 use warnings;
 
-use Text::Wrap;
-use Algorithm::CheckDigits;
+use Text::Wrap qw( wrap );
+use Algorithm::CheckDigits qw( CheckDigits );
 use Text::CSV_XS;
-use Data::Dumper;
 use Text::Bidi qw( log2vis );
 
 use C4::Context;
-use C4::Debug;
-use C4::Biblio;
+use C4::Biblio qw( GetMarcFromKohaField );
+use Koha::Biblios;
 use Koha::ClassSources;
 use Koha::ClassSortRules;
 use Koha::ClassSplitRules;
@@ -211,8 +210,20 @@ sub _get_barcode_data {
                 }
                 $datastring .= $value if ($value);
             } else {
-                $debug and warn sprintf("The '%s' field contains no data.", $field);
+                warn sprintf("The '%s' field contains no data.", $field);
             }
+            next FIELD_LIST;
+        }
+        elsif ( $f =~ /^($match_kohatable).*/ ) {
+            my @fields = split ' ', $f;
+            my @data;
+            for my $field ( @fields ) {
+                if ($item->{$field}) {
+                    push @data, $item->{$field};
+                }
+            }
+            $datastring .= join ' ', @data;
+            $f = $';
             next FIELD_LIST;
         }
         elsif ( $f =~ /^([0-9a-z]{3})(\(..\))?(\w)(\.(split)\('([^']+)'(,([0-9]+))?\)\[([0-9]+)\])?(\.pre\('([^']+)'\))?(\.post\('([^']+)'\))?(\W?)/ ) {
@@ -329,7 +340,6 @@ sub _BIBBAR {
     my $barcode_y_scale_factor = $self->{'barcode_y_scale'} * $self->{'height'};              # this scales the barcode height to 10% of the label height
     my $line_spacer = ($self->{'font_size'} * $self->{'line_height'});       # number of pixels between text rows (This is actually leading: baseline to baseline minus font size. Recommended starting point is 20% of font size.).
     my $text_lly = ($self->{'lly'} + ($self->{'height'} - $self->{'top_text_margin'}));
-    $debug and warn  "Label: llx $self->{'llx'}, lly $self->{'lly'}, Text: lly $text_lly, $line_spacer, Barcode: llx $barcode_llx, lly $barcode_lly, $barcode_width, $barcode_y_scale_factor\n";
     return $self->{'llx'}, $text_lly, $line_spacer, $barcode_llx, $barcode_lly, $barcode_width, $barcode_y_scale_factor;
 }
 
@@ -447,7 +457,8 @@ sub draw_label_text {
     my $size = $self->{'font_size'};
     my $item = _get_label_item($self->{'item_number'});
     my $label_fields = _get_text_fields($self->{'format_string'});
-    my $record = GetMarcBiblio({ biblionumber => $item->{'biblionumber'} });
+    my $biblio = Koha::Biblios->find($item->{biblionumber});
+    my $record = $biblio->metadata->record;
     # FIXME - returns all items, so you can't get data from an embedded holdings field.
     # TODO - add a GetMarcBiblio1item(bibnum,itemnum) or a GetMarcItem(itemnum).
     my $cn_source = ($item->{'cn_source'} ? $item->{'cn_source'} : C4::Context->preference('DefaultClassificationSource'));
@@ -686,8 +697,8 @@ sub csv_data {
     my $self = shift;
     my $label_fields = _get_text_fields($self->{'format_string'});
     my $item = _get_label_item($self->{'item_number'});
-
-    my $bib_record = GetMarcBiblio({ biblionumber => $item->{biblionumber} });
+    my $biblio = Koha::Biblios->find($item->{biblionumber});
+    my $bib_record = $biblio->metadata->record;
     my @csv_data = (map { _get_barcode_data($_->{'code'},$item,$bib_record) } @$label_fields);
     return \@csv_data;
 }

@@ -17,20 +17,20 @@
 
 use Modern::Perl;
 
-use Test::More tests => 48;
+use Test::More tests => 49;
 use DateTime::Duration;
 
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
-use C4::Biblio;
-use C4::Circulation;
+use C4::Biblio qw( AddBiblio );
+use C4::Circulation qw( AddIssue AddIssuingCharge AddRenewal AddReturn GetIssuingCharges GetRenewCount GetUpcomingDueIssues );
 use C4::Context;
 use C4::Items;
-use C4::Reserves;
+use C4::Reserves qw( AddReserve );
 use Koha::Checkouts;
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Holds;
 use Koha::Items;
 use Koha::Library;
@@ -49,7 +49,6 @@ can_ok(
       AddRenewal
       AddReturn
       GetIssuingCharges
-      GetOpenIssue
       GetRenewCount
       GetUpcomingDueIssues
       )
@@ -296,11 +295,6 @@ subtest 'Show that AddRenewal respects OpacRenewalBranch and interface' => sub {
     }
 };
 
-#Test GetOpenIssue
-is( GetOpenIssue(), undef, "Without parameter GetOpenIssue returns undef" );
-is( GetOpenIssue(-1), undef,
-    "With wrong parameter GetOpenIssue returns undef" );
-my $openissue = GetOpenIssue($borrower_id1, $item_id1);
 
 my @renewcount;
 #Test GetRenewCount
@@ -396,6 +390,9 @@ my $itemnumber = Koha::Item->new(
 )->store->itemnumber;
 
 t::lib::Mocks::mock_preference( 'UpdateNotForLoanStatusOnCheckin', q{} );
+t::lib::Mocks::mock_preference( 'CataloguingLog', 1 );
+my $log_count_before = $schema->resultset('ActionLog')->search({module => 'CATALOGUING'})->count();
+
 AddReturn( 'barcode_3', $branchcode_1 );
 my $item = Koha::Items->find( $itemnumber );
 ok( $item->notforloan eq 1, 'UpdateNotForLoanStatusOnCheckin does not modify value when not enabled' );
@@ -404,10 +401,18 @@ t::lib::Mocks::mock_preference( 'UpdateNotForLoanStatusOnCheckin', '1: 9' );
 AddReturn( 'barcode_3', $branchcode_1 );
 $item = Koha::Items->find( $itemnumber );
 ok( $item->notforloan eq 9, q{UpdateNotForLoanStatusOnCheckin updates notforloan value from 1 to 9 with setting "1: 9"} );
+my $log_count_after = $schema->resultset('ActionLog')->search({module => 'CATALOGUING'})->count();
+is($log_count_before, $log_count_after, "Change from UpdateNotForLoanStatusOnCheckin is not logged");
 
 AddReturn( 'barcode_3', $branchcode_1 );
 $item = Koha::Items->find( $itemnumber );
 ok( $item->notforloan eq 9, q{UpdateNotForLoanStatusOnCheckin does not update notforloan value from 9 with setting "1: 9"} );
+
+t::lib::Mocks::mock_preference( 'UpdateNotForLoanStatusOnCheckin', '1: ONLYMESSAGE' );
+$item->notforloan(1)->store;
+AddReturn( 'barcode_3', $branchcode_1 );
+$item = Koha::Items->find( $itemnumber );
+ok( $item->notforloan eq 1, q{UpdateNotForLoanStatusOnCheckin does not update notforloan value from 1 with setting "1: ONLYMESSAGE"} );
 
 my $itemnumber2 = Koha::Item->new(
     {
@@ -427,10 +432,13 @@ my $item2 = Koha::Items->find( $itemnumber2 );
 ok( $item2->location eq 'FIC', 'UpdateItemLocationOnCheckin does not modify value when not enabled' );
 
 t::lib::Mocks::mock_preference( 'UpdateItemLocationOnCheckin', 'FIC: GEN' );
+$log_count_before = $schema->resultset('ActionLog')->search({module => 'CATALOGUING'})->count();
 AddReturn( 'barcode_4', $branchcode_1 );
 $item2 = Koha::Items->find( $itemnumber2 );
 is( $item2->location, 'GEN', q{UpdateItemLocationOnCheckin updates location value from 'FIC' to 'GEN' with setting "FIC: GEN"} );
 is( $item2->permanent_location, 'GEN', q{UpdateItemLocationOnCheckin updates permanent_location value from 'FIC' to 'GEN' with setting "FIC: GEN"} );
+$log_count_after = $schema->resultset('ActionLog')->search({module => 'CATALOGUING'})->count();
+is($log_count_before, $log_count_after, "Change from UpdateNotForLoanStatusOnCheckin is not logged");
 AddReturn( 'barcode_4', $branchcode_1 );
 $item2 = Koha::Items->find( $itemnumber2 );
 ok( $item2->location eq 'GEN', q{UpdateItemLocationOnCheckin does not update location value from 'GEN' with setting "FIC: GEN"} );

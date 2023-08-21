@@ -35,16 +35,15 @@ BEGIN {
     }
 };
 
-use Carp;
+use Carp qw( carp );
 use DateTime::TimeZone;
 use Encode;
 use File::Spec;
-use Module::Load::Conditional qw(can_load);
-use POSIX ();
+use POSIX;
 use YAML::XS;
 use ZOOM;
+use List::MoreUtils qw(any);
 
-use C4::Debug;
 use Koha::Caches;
 use Koha::Config::SysPref;
 use Koha::Config::SysPrefs;
@@ -119,22 +118,6 @@ environment variable to the pathname of a configuration file to use.
 $context = undef;        # Initially, no context is set
 @context_stack = ();        # Initially, no saved contexts
 
-=head2 db_scheme2dbi
-
-    my $dbd_driver_name = C4::Context::db_schema2dbi($scheme);
-
-This routines translates a database type to part of the name
-of the appropriate DBD driver to use when establishing a new
-database connection.  It recognizes 'mysql' and 'Pg'; if any
-other scheme is supplied it defaults to 'mysql'.
-
-=cut
-
-sub db_scheme2dbi {
-    my $scheme = shift // '';
-    return $scheme eq 'Pg' ? $scheme : 'mysql';
-}
-
 sub import {
     # Create the default context ($C4::Context::Context)
     # the first time the module is called
@@ -190,8 +173,9 @@ sub new {
         }
     }
 
-    my $self = Koha::Config->read_from_file($conf_fname);
-    unless ( exists $self->{config} or defined $self->{config} ) {
+    my $self = {};
+    $self->{config} = Koha::Config->get_instance($conf_fname);
+    unless ( defined $self->{config} ) {
         warn "The config file ($conf_fname) has not been parsed correctly";
         return;
     }
@@ -203,7 +187,6 @@ sub new {
     $self->{tz} = undef; # local timezone object
 
     bless $self, $class;
-    $self->{db_driver} = db_scheme2dbi($self->config('db_scheme'));  # cache database driver
     return $self;
 }
 
@@ -285,28 +268,17 @@ sub restore_context
 
   $value = C4::Context->config("config_variable");
 
-  $value = C4::Context->config_variable;
-
 Returns the value of a variable specified in the configuration file
 from which the current context was created.
-
-The second form is more compact, but of course may conflict with
-method names. If there is a configuration variable called "new", then
-C<C4::Config-E<gt>new> will not return it.
 
 =cut
 
 sub _common_config {
-	my $var = shift;
-	my $term = shift;
-    return unless defined $context and defined $context->{$term};
-       # Presumably $self->{$term} might be
-       # undefined if the config file given to &new
-       # didn't exist, and the caller didn't bother
-       # to check the return value.
+    my ($var, $term) = @_;
 
-    # Return the value of the requested config variable
-    return $context->{$term}->{$var};
+    return unless defined $context and defined $context->{config};
+
+    return $context->{config}->get($var, $term);
 }
 
 sub config {
@@ -507,6 +479,58 @@ sub delete_preference {
     return 0;
 }
 
+=head2 csv_delimiter
+
+    $delimiter = C4::Context->csv_delimiter;
+
+    Returns preferred CSV delimiter, using system preference 'CSVDelimiter'.
+    If this preference is missing or empty, comma will be returned.
+    This method is needed because of special behavior for tabulation.
+
+    You can, optionally, pass a value parameter to this routine
+    in the case of existing delimiter.
+
+=cut
+
+sub csv_delimiter {
+    my ( $self, $value ) = @_;
+    my $delimiter = $value || $self->preference('CSVDelimiter') || ',';
+    $delimiter = "\t" if $delimiter eq 'tabulation';
+    return $delimiter;
+}
+
+=head2 default_catalog_sort_by
+
+    $delimiter = C4::Context->default_catalog_sort_by;
+
+    Returns default sort by for catalog search.
+    For relevance no sort order is used.
+
+    For staff interface, depends on system preferences 'defaultSortField' and 'defaultSortOrder'.
+    For OPAC interface, depends on system preferences 'OPACdefaultSortField' and 'OPACdefaultSortOrder'.
+
+=cut
+
+sub default_catalog_sort_by {
+    my $self = shift;
+    my ( $sort_by, $sort_field, $sort_order );
+    if ( C4::Context->interface eq 'opac' ) {
+        $sort_field = C4::Context->preference('OPACdefaultSortField');
+        $sort_order = C4::Context->preference('OPACdefaultSortOrder');
+    } else {
+        $sort_field = C4::Context->preference('defaultSortField');
+        $sort_order = C4::Context->preference('defaultSortOrder');
+    }
+    if ( $sort_field && $sort_order ) {
+        if ( $sort_field eq 'relevance' ) {
+            $sort_by = $sort_field;
+        } else {
+            $sort_by = $sort_field . '_' . $sort_order;
+        }
+    }
+    return $sort_by;
+}
+
 =head2 Zconn
 
   $Zconn = C4::Context->Zconn
@@ -560,20 +584,23 @@ sub _new_Zconn {
     $syntax = 'xml';
     $elementSetName = 'marcxml';
 
-    my $host = $context->{'listen'}->{$server}->{'content'};
-    my $user = $context->{"serverinfo"}->{$server}->{"user"};
-    my $password = $context->{"serverinfo"}->{$server}->{"password"};
+    my $host = _common_config($server, 'listen')->{content};
+    my $serverinfo = _common_config($server, 'serverinfo');
+    my $user = $serverinfo->{user};
+    my $password = $serverinfo->{password};
     eval {
         # set options
         my $o = ZOOM::Options->new();
         $o->option(user => $user) if $user && $password;
         $o->option(password => $password) if $user && $password;
         $o->option(async => 1) if $async;
-        $o->option(cqlfile=> $context->{"server"}->{$server}->{"cql2rpn"});
-        $o->option(cclfile=> $context->{"serverinfo"}->{$server}->{"ccl2rpn"});
+        $o->option(cqlfile=> _common_config($server, 'server')->{cql2rpn});
+        $o->option(cclfile=> $serverinfo->{ccl2rpn});
         $o->option(preferredRecordSyntax => $syntax);
         $o->option(elementSetName => $elementSetName) if $elementSetName;
-        $o->option(databaseName => $context->{"config"}->{$server}||"biblios");
+        $o->option(databaseName => _common_config($server, 'config') || 'biblios');
+        my $timeout = C4::Context->config('zebra_connection_timeout') || 30;
+        $o->option(timeout => $timeout);
 
         # create a new connection object
         $Zconn= create ZOOM::Connection($o);
@@ -776,26 +803,6 @@ sub set_userenv {
     return $cell;
 }
 
-sub set_shelves_userenv {
-	my ($type, $shelves) = @_ or return;
-	my $activeuser = $context->{activeuser} or return;
-	$context->{userenv}->{$activeuser}->{barshelves} = $shelves if $type eq 'bar';
-	$context->{userenv}->{$activeuser}->{pubshelves} = $shelves if $type eq 'pub';
-	$context->{userenv}->{$activeuser}->{totshelves} = $shelves if $type eq 'tot';
-}
-
-sub get_shelves_userenv {
-	my $active;
-	unless ($active = $context->{userenv}->{$context->{activeuser}}) {
-		$debug and warn "get_shelves_userenv cannot retrieve context->{userenv}->{context->{activeuser}}";
-		return;
-	}
-	my $totshelves = $active->{totshelves} or undef;
-	my $pubshelves = $active->{pubshelves} or undef;
-	my $barshelves = $active->{barshelves} or undef;
-	return ($totshelves, $pubshelves, $barshelves);
-}
-
 =head2 _new_userenv
 
   C4::Context->_new_userenv($session);  # FIXME: This calling style is wrong for what looks like an _internal function
@@ -830,7 +837,7 @@ Destroys the hash for activeuser user environment variables.
 sub _unset_userenv
 {
     my ($sessionID)= @_;
-    undef $context->{"activeuser"} if ($context->{"activeuser"} eq $sessionID);
+    undef $context->{activeuser} if $sessionID && $context->{activeuser} && $context->{activeuser} eq $sessionID;
 }
 
 
@@ -846,41 +853,26 @@ Gets various version info, for core Koha packages, Currently called from carp ha
 
 # A little example sub to show more debugging info for CGI::Carp
 sub get_versions {
-    my %versions;
+    my ( %versions, $mysqlVersion );
     $versions{kohaVersion}  = Koha::version();
     $versions{kohaDbVersion} = C4::Context->preference('version');
     $versions{osVersion} = join(" ", POSIX::uname());
     $versions{perlVersion} = $];
+
+    my $dbh = C4::Context->dbh;
+    $mysqlVersion = $dbh->get_info(18) if $dbh; # SQL_DBMS_VER
+
     {
         no warnings qw(exec); # suppress warnings if unable to find a program in $PATH
-        $versions{mysqlVersion}  = `mysql -V`;
+        $mysqlVersion          ||= `mysql -V`; # fallback to sql client version?
         $versions{apacheVersion} = (`apache2ctl -v`)[0];
         $versions{apacheVersion} = `httpd -v`             unless  $versions{apacheVersion} ;
         $versions{apacheVersion} = `httpd2 -v`            unless  $versions{apacheVersion} ;
         $versions{apacheVersion} = `apache2 -v`           unless  $versions{apacheVersion} ;
         $versions{apacheVersion} = `/usr/sbin/apache2 -v` unless  $versions{apacheVersion} ;
     }
+    $versions{mysqlVersion} = $mysqlVersion;
     return %versions;
-}
-
-=head2 timezone
-
-  my $C4::Context->timzone
-
-  Returns a timezone code for the instance of Koha
-
-=cut
-
-sub timezone {
-    my $self = shift;
-
-    my $timezone = C4::Context->config('timezone') || $ENV{TZ} || 'local';
-    if ( !DateTime::TimeZone->is_valid_name( $timezone ) ) {
-        warn "Invalid timezone in koha-conf.xml ($timezone)";
-        $timezone = 'local';
-    }
-
-    return $timezone;
 }
 
 =head2 tz
@@ -894,7 +886,7 @@ sub timezone {
 sub tz {
     my $self = shift;
     if (!defined $context->{tz}) {
-        my $timezone = $self->timezone;
+        my $timezone = $context->{config}->timezone;
         $context->{tz} = DateTime::TimeZone->new(name => $timezone);
     }
     return $context->{tz};
@@ -1045,6 +1037,37 @@ This method returns a boolean representing the install status of the Koha instan
 sub needs_install {
     my ($self) = @_;
     return ($self->preference('Version')) ? 0 : 1;
+}
+
+=head3 psgi_env
+
+psgi_env returns true if there is an environmental variable
+prefixed with "psgi" or "plack". This is useful for detecting whether
+this is a PSGI app or a CGI app, and implementing code as appropriate.
+
+=cut
+
+sub psgi_env {
+    my ( $self ) = @_;
+    return any { /^(psgi\.|plack\.|PLACK_ENV$)/i } keys %ENV;
+}
+
+=head3 is_internal_PSGI_request
+
+is_internal_PSGI_request is used to detect if this request was made
+from within the individual PSGI app or externally from the mounted PSGI
+app
+
+=cut
+
+#NOTE: This is not a very robust method but it's the best we have so far
+sub is_internal_PSGI_request {
+    my ( $self ) = @_;
+    my $is_internal = 0;
+    if( $self->psgi_env && ( $ENV{REQUEST_URI} !~ /^(\/intranet|\/opac)/ ) ) {
+        $is_internal = 1;
+    }
+    return $is_internal;
 }
 
 __END__

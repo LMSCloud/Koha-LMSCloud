@@ -29,7 +29,8 @@ use Koha::ClaimingRules;
 use Koha::Account::Line;
 use Koha::Account::Lines;
 use Koha::Account::Offset;
-use Koha::DateUtils;
+use Koha::DateUtils qw( output_pref dt_from_string );
+use Koha::Notice::Templates;
 use C4::Log; # logaction
 use C4::Letters;
 use C4::Overdues;
@@ -337,10 +338,27 @@ sub GetClaimingFeeDescription {
     # Let's check whether the library has configured a letter template 
     # to format a fancy fines description that we add with the claim fee
     my $letter_code = 'FINESMSG_ODUE_CLAIM'.$params->{'claimlevel'};
-    my $letter_exists = C4::Letters::getletter( 'fines', $letter_code, $branchcode, 'email' ) ? 1 : 0;
+    my $template = Koha::Notice::Templates->find_effective_template(
+            {
+                module                 => 'fines',
+                code                   => $letter_code,
+                branchcode             => $branchcode,
+                message_transport_type => 'email'
+            }
+    );
+    my $letter_exists = ($template) ? 1 : 0;
+    
     if ( $letter_exists == 0 ) {
         $letter_code = 'FINESMSG_ODUE_CLAIM';
-        $letter_exists = C4::Letters::getletter( 'fines', $letter_code, $branchcode, 'email' ) ? 1 : 0;
+        $template = Koha::Notice::Templates->find_effective_template(
+				{
+					module                 => 'fines',
+					code                   => $letter_code,
+					branchcode             => $branchcode,
+					message_transport_type => 'email'
+				}
+		);
+		$letter_exists = ($template) ? 1 : 0;
     }
 
     if ( $letter_exists ) {

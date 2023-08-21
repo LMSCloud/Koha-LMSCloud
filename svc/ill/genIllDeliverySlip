@@ -31,11 +31,11 @@ use C4::Context;
 use Koha::Acquisition::Currencies;
 use Koha::Libraries;
 use Koha::DateUtils qw( output_pref dt_from_string );
+use Koha::Notice::Templates;
 use C4::NoticeFees;
 use Locale::Currency::Format 1.28;
 use Koha::DateUtils;
 use File::Spec;
-use C4::NewsChannels; #get slip news
 
 print STDERR "svc/ill/genIllSlipSLNP START\n";
 my $input = new CGI;
@@ -119,7 +119,16 @@ print STDERR "svc/ill/genIllSlipSLNP::genIllDeliverySlip START biblionumber:$bib
         
         my @transferTypes = ('print');
         for my $transfer (@transferTypes) {
-            my $letter = C4::Letters::getletter($module, $lettercode, $branchcode, $transfer );
+			my $template = Koha::Notice::Templates->find_effective_template(
+				{
+					module                 => $module,
+					code                   => $lettercode,
+					branchcode             => $branchcode,
+					message_transport_type => $transfer
+				}
+			);
+			my $letter;
+			$letter = $template->unblessed if ($template);
             if ( $letter && $letter->{'content'} ) {
                 $lettertemplates->{$transfer}->{'letter'} = $letter;
                 $lettertemplates->{$transfer}->{'transportType'}  = $transfer;

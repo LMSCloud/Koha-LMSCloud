@@ -29,10 +29,10 @@ It is called from sco-main.pl
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Auth qw/:DEFAULT get_session in_iprange/;
-use C4::Output;
-use C4::Members;
-use C4::Koha;
+use C4::Auth qw( in_iprange get_session get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Members qw( IssueSlip );
+
 
 
 my $input = CGI->new;
@@ -81,7 +81,7 @@ my $print = $input->param('print');
 my $error = $input->param('error');
 
 my ($slip, $is_html);
-if (my $letter = IssueSlip ($patron->branchcode, $patron->borrowernumber, $print eq "qslip")) {
+if (my $letter = IssueSlip (Koha::Patrons->find( $loggedinuser )->branchcode, $patron->borrowernumber, $print eq "qslip")) {
     $slip = $letter->{content};
     $is_html = $letter->{is_html};
 }

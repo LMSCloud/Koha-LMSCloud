@@ -21,23 +21,17 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Output;
-use C4::Auth;
-use C4::Biblio;
-use C4::Circulation;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
+use C4::Circulation qw( GetTransfersFromTo );
 use C4::Members;
-use Date::Calc qw(
-  Today
-  Add_Delta_Days
-  Date_to_Days
-);
+use Date::Calc qw( Add_Delta_Days Date_to_Days Today );
 
-use C4::Koha;
 use C4::Reserves;
 use Koha::Items;
 use Koha::ItemTypes;
 use Koha::Libraries;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::BiblioFrameworks;
 use Koha::Patrons;
 
@@ -50,7 +44,6 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { circulate => "circulate_remaining_permissions" },
-        debug           => 1,
     }
 );
 
@@ -116,6 +109,15 @@ while ( my $library = $libraries->next ) {
             if ( my $first_hold = $holds->next ) {
                 $getransf{patron} = Koha::Patrons->find( $first_hold->borrowernumber );
             }
+
+            # check for a recall for this transfer
+            if ( C4::Context->preference('UseRecalls') ) {
+                my $recall = $item->recall;
+                if ( defined $recall ) {
+                    $getransf{recall} = $recall;
+                }
+            }
+
             push( @transferloop, \%getransf );
         }
 
@@ -127,7 +129,7 @@ while ( my $library = $libraries->next ) {
 
 $template->param(
     branchesloop => \@branchesloop,
-    show_date    => output_pref({ dt => dt_from_string, dateformat => 'iso', dateonly => 1 }),
+    show_date    => dt_from_string,
     TransfersMaxDaysWarning => C4::Context->preference('TransfersMaxDaysWarning'),
     latetransfers => $latetransfers ? 1 : 0,
 );

@@ -34,23 +34,21 @@ use feature 'say';
 # CPAN modules
 use DBI;
 use Getopt::Long;
+use Encode qw( encode_utf8 );
 # Koha modules
 use C4::Context;
 use C4::Installer;
 use Koha::Database;
 use Koha;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 
 use MARC::Record;
 use MARC::File::XML ( BinaryEncoding => 'utf8' );
 
 use File::Path qw[remove_tree]; # perl core module
-use File::Slurp;
 
 # FIXME - The user might be installing a new database, so can't rely
 # on /etc/koha.conf anyway.
-
-my $debug = 0;
 
 my (
     $sth,
@@ -61,10 +59,11 @@ my (
 
 my $schema = Koha::Database->new()->schema();
 
-my $silent;
+my ( $silent, $force );
 GetOptions(
-    's' =>\$silent
-    );
+    's'     => \$silent,
+    'force' => \$force,
+);
 my $dbh = C4::Context->dbh;
 $|=1; # flushes output
 
@@ -23620,8 +23619,8 @@ if( CheckVersion( $DBversion ) ) {
 
         for my $order ( @$orders ) {
             for my $claim (1..$order->{claims_count}) {
-                if ( $order->{ordernumber} && $order->{claimed_on} ) {
-                    $insert_claim_sth->execute($order->{ordernumber}, $order->{claimed_on});
+                if ( $order->{ordernumber} && $order->{claimed_date} ) {
+                    $insert_claim_sth->execute($order->{ordernumber}, $order->{claimed_date});
                 }
             }
         }
@@ -23668,7 +23667,7 @@ if( CheckVersion( $DBversion ) ) {
         UPDATE letter SET
         name = REPLACE(name, "notification on auto renewing", "Notification of automatic renewal"),
         title = REPLACE(title, "Auto renewals", "Automatic renewal notice"),
-        content = REPLACE(content, "You have reach the maximum of checkouts possible.", "You have reached the maximum number of checkouts possible.")
+        content = REPLACE(content, "You have reach the maximum of checkouts possible.", "You have reached the maximum number of renewals possible.")
         WHERE code = 'AUTO_RENEWALS';
     });
     $dbh->do(q{
@@ -24750,6 +24749,11 @@ if( CheckVersion( $DBversion ) ) {
 
     $dbh->do( q{
         ALTER TABLE letter ADD CONSTRAINT message_transport_type_fk FOREIGN KEY (message_transport_type) REFERENCES message_transport_types(message_transport_type) ON DELETE CASCADE ON UPDATE CASCADE
+    } );
+    
+    # Foreign keys should prevent this, however, it has been found in many production databases
+    $dbh->do( q{
+        DELETE borrower_message_transport_preferences FROM borrower_message_transport_preferences LEFT JOIN borrower_message_preferences USING (borrower_message_preference_id) WHERE borrower_message_preferences.borrower_message_preference_id IS NULL
     } );
 
     $dbh->do(q{
@@ -26740,171 +26744,34 @@ if ( CheckVersion($DBversion) ) {
     NewVersion( $DBversion, "", "Set systempreference CreateAVFromCataloguing by default to 0.");
 }
 
-# SEE bug 13068
-# if there is anything in the atomicupdate, read and execute it.
-my $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';
-opendir( my $dirh, $update_dir );
-foreach my $file ( sort readdir $dirh ) {
-    next if $file !~ /\.(sql|perl)$/;  #skip other files
-    next if $file eq 'skeleton.perl'; # skip the skeleton file
-    print "DEV atomic update: $file\n";
-    if ( $file =~ /\.sql$/ ) {
-        my $installer = C4::Installer->new();
-        my $rv = $installer->load_sql( $update_dir . $file ) ? 0 : 1;
-    } elsif ( $file =~ /\.perl$/ ) {
-        my $code = read_file( $update_dir . $file );
-        eval $code; ## no critic (StringyEval)
-        say "Atomic update generated errors: $@" if $@;
-    }
+$DBversion = "21.06.00.003";
+if ( CheckVersion($DBversion) ) {    
+    NewVersion( $DBversion, "", "Skip 21.06.00.001 to 21.06.00.003.");
 }
 
-=head1 FUNCTIONS
+unless ( $ENV{HTTP_HOST} ) { # Is that correct?
+    my $files = get_db_entries;
+    my $report = update( $files, { force => $force } );
 
-=head2 DropAllForeignKeys($table)
-
-Drop all foreign keys of the table $table
-
-=cut
-
-sub DropAllForeignKeys {
-    my ($table) = @_;
-    # get the table description
-    my $sth = $dbh->prepare("SHOW CREATE TABLE $table");
-    $sth->execute;
-    my $vsc_structure = $sth->fetchrow;
-    # split on CONSTRAINT keyword
-    my @fks = split /CONSTRAINT /,$vsc_structure;
-    # parse each entry
-    foreach (@fks) {
-        # isolate what is before FOREIGN KEY, if there is something, it's a foreign key to drop
-        $_ = /(.*) FOREIGN KEY.*/;
-        my $id = $1;
-        if ($id) {
-            # we have found 1 foreign, drop it
-            $dbh->do("ALTER TABLE $table DROP FOREIGN KEY $id");
-            $id="";
-        }
+    for my $s ( @{ $report->{success} } ) {
+        say Encode::encode_utf8(join "\n", @{$s->{output}});
     }
-}
-
-
-=head2 TransformToNum
-
-Transform the Koha version from a 4 parts string
-to a number, with just 1 .
-
-=cut
-
-sub TransformToNum {
-    my $version = shift;
-    # remove the 3 last . to have a Perl number
-    $version =~ s/(.*\..*)\.(.*)\.(.*)/$1$2$3/;
-    # three X's at the end indicate that you are testing patch with dbrev
-    # change it into 999
-    # prevents error on a < comparison between strings (should be: lt)
-    $version =~ s/XXX$/999/;
-    return $version;
-}
-
-=head2 SetVersion
-
-set the DBversion in the systempreferences
-
-=cut
-
-sub SetVersion {
-    return if $_[0]=~ /XXX$/;
-      #you are testing a patch with a db revision; do not change version
-    my $kohaversion = TransformToNum($_[0]);
-    if (C4::Context->preference('Version')) {
-      my $finish=$dbh->prepare("UPDATE systempreferences SET value=? WHERE variable='Version'");
-      $finish->execute($kohaversion);
-    } else {
-      my $finish=$dbh->prepare("INSERT into systempreferences (variable,value,explanation) values ('Version',?,'The Koha database version. WARNING: Do not change this value manually, it is maintained by the webinstaller')");
-      $finish->execute($kohaversion);
+    for my $e ( @{ $report->{error} } ) {
+        say Encode::encode_utf8(join "\n", @{$e->{output}});
+        say Encode::encode_utf8("ERROR - " . $e->{error});
     }
-    C4::Context::clear_syspref_cache(); # invalidate cached preferences
-}
 
-sub NewVersion {
-    my ( $DBversion, $bug_number, $descriptions ) = @_;
-
-    SetVersion($DBversion);
-
-    unless ( ref($descriptions) ) {
-        $descriptions = [ $descriptions ];
+    my $atomic_update_files = get_atomic_updates;
+    $report = run_atomic_updates($atomic_update_files);
+    for my $s ( @{ $report->{success} } ) {
+        say Encode::encode_utf8(join "\n", @{$s->{output}});
     }
-    my $first = 1;
-    my $time = POSIX::strftime("%H:%M:%S",localtime);
-    for my $description ( @$descriptions ) {
-        if ( @$descriptions > 1 ) {
-            if ( $first ) {
-                unless ( $bug_number ) {
-                    say sprintf "Upgrade to %s done [%s]: %s", $DBversion, $time, $description;
-                } else {
-                    say sprintf "Upgrade to %s done [%s]: Bug %5s - %s", $DBversion, $time, $bug_number, $description;
-                }
-            } else {
-                say sprintf "\t\t\t\t\t\t   - %s", $description;
-            }
-        } else {
-            unless ( $bug_number ) {
-                say sprintf "Upgrade to %s done [%s]: %s", $DBversion, $time, $description;
-            } else {
-                say sprintf "Upgrade to %s done [%s]: Bug %5s - %s", $DBversion, $time, $bug_number, $description;
-            }
-        }
-        $first = 0;
+    for my $e ( @{ $report->{error} } ) {
+        say Encode::encode_utf8(join "\n", @{$e->{output}});
+        say Encode::encode_utf8("ERROR - " . $e->{error});
     }
-}
 
-=head2 CheckVersion
 
-Check whether a given update should be run when passed the proposed version
-number. The update will always be run if the proposed version is greater
-than the current database version and less than or equal to the version in
-kohaversion.pl. The update is also run if the version contains XXX, though
-this behavior will be changed following the adoption of non-linear updates
-as implemented in bug 7167.
-
-=cut
-
-sub CheckVersion {
-    my ($proposed_version) = @_;
-    my $version_number = TransformToNum($proposed_version);
-
-    # The following line should be deleted when bug 7167 is pushed
-    return 1 if ( $proposed_version =~ m/XXX/ );
-
-    if ( C4::Context->preference("Version") < $version_number
-        && $version_number <= TransformToNum( $Koha::VERSION ) )
-    {
-        return 1;
-    }
-    else {
-        return 0;
-    }
-}
-
-sub sanitize_zero_date {
-    my ( $table_name, $column_name ) = @_;
-
-    my (undef, $datatype) = $dbh->selectrow_array(qq|
-        SHOW COLUMNS FROM $table_name WHERE Field = ?|, undef, $column_name);
-
-    if ( $datatype eq 'date' ) {
-        $dbh->do(qq|
-            UPDATE $table_name
-            SET $column_name = NULL
-            WHERE CAST($column_name AS CHAR(10)) = '0000-00-00';
-        |);
-    } else {
-        $dbh->do(qq|
-            UPDATE $table_name
-            SET $column_name = NULL
-            WHERE CAST($column_name AS CHAR(19)) = '0000-00-00 00:00:00';
-        |);
-    }
 }
 
 exit;

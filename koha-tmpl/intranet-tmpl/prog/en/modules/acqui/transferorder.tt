@@ -8,6 +8,7 @@
 
 <body id="acq_transferorder" class="acq">
     <div class="container-fluid">
+        <h1>Transfer order</h1>
         [% IF ( bookselleridfrom ) %]
             <h3>Search for a vendor to transfer to</h3>
               <div class="transferinfo">
@@ -31,7 +32,7 @@
             [% END %]
             <label for="query">Vendor:</label>
             <input type="text" id="query" name="query" />
-            <input type="submit" value="Search" />
+            <input type="submit" class="btn btn-primary" value="Search" />
             </fieldset>
         </form>
         [% IF ( show_baskets ) %]
@@ -80,7 +81,7 @@
                             [% IF ( ordersloo.author ) %] by [% ordersloo.author | html %][% END %]
                             [% IF ( ordersloo.isbn ) %] &ndash; [% ordersloo.isbn | html %][% END %]
                             [% IF ( ordersloo.publishercode ) %]
-                                <br />Publisher: [% ordersloo.publishercode | html %]
+                                <br /><span>Publisher: [% ordersloo.publishercode | html %]</span>
                                 [%- IF    ( ordersloo.publicationyear > 0) -%], [% ordersloo.publicationyear | html %]
                                 [%- ELSIF ( ordersloo.copyrightdate   > 0) -%] [% ordersloo.copyrightdate | html %]
                                 [% END %]
@@ -98,7 +99,7 @@
             [% ELSE %]
                 <h3>Choose a vendor to transfer from</h3>
             [% END %]
-            [% IF ( booksellersloop ) %]
+            [% IF booksellers.count %]
                 <table>
                     <thead>
                         <tr>
@@ -107,7 +108,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        [% FOREACH bookseller IN booksellersloop %]
+                        [% FOREACH bookseller IN booksellers %]
                           <tr>
                             <td>[% bookseller.name | html %]</td>
                             <td><a class="btn btn-default btn-xs" href="transferorder.pl?[% IF (bookselleridfrom) %]bookselleridto[% ELSE %]bookselleridfrom[% END %]=[% bookseller.id | html %][% IF (ordernumber) %]&ordernumber=[% ordernumber | html %][% END %]">Choose</a></td>

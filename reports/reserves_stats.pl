@@ -21,19 +21,17 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use C4::Auth;
-use C4::Debug;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Koha;
-use C4::Output;
-use C4::Reports;
+use C4::Koha qw( GetAuthorisedValues );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Reports qw( GetDelimiterChoices );
 use C4::Members;
 use Koha::AuthorisedValues;
-use Koha::DateUtils;
 use Koha::ItemTypes;
 use Koha::Libraries;
 use Koha::Patron::Categories;
-use List::MoreUtils qw/any/;
+use List::MoreUtils qw( any );
 
 =head1 NAME
 
@@ -45,7 +43,6 @@ Plugin that shows reserve stats
 
 =cut
 
-# my $debug = 1;	# override for now.
 my $input = CGI->new;
 my $fullreportname = "reports/reserves_stats.tt";
 my $do_it    = $input->param('do_it');
@@ -66,14 +63,12 @@ my ($template, $borrowernumber, $cookie) = get_template_and_user({
 	query => $input,
 	type => "intranet",
 	flagsrequired => {reports => '*'},
-	debug => 0,
 });
-our $sep     = $input->param("sep") || '';
-$sep = "\t" if ($sep eq 'tabulation');
+our $sep = C4::Context->csv_delimiter(scalar $input->param("sep"));
 $template->param(do_it => $do_it,
 );
 
-my @patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']});
+my @patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']})->as_list;
 
 my $locations = { map { ( $_->{authorised_value} => $_->{lib} ) } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => '', kohafield => 'items.location' }, { order_by => ['description'] } ) };
 my $ccodes = { map { ( $_->{authorised_value} => $_->{lib} ) } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => '', kohafield => 'items.ccode' }, { order_by => ['description'] } ) };
@@ -173,21 +168,13 @@ sub calculate {
     my @loopfilter;
     foreach my $filter ( keys %$filters_hashref ) {
         $filters_hashref->{$filter} =~ s/\*/%/;
-        if ( $filter =~ /date/ ) {
-            $filters_hashref->{$filter} =
-                eval { output_pref( { dt => dt_from_string( $filters_hashref->{$filter} ), dateonly => 1, dateformat => 'iso' }); };
-        }
     }
 
     #display
     @loopfilter = map {
         {
             crit   => $_,
-            filter => (
-                $_ =~ /date/
-                ? eval { output_pref( { dt => dt_from_string( $filters_hashref->{$_} ), dateonly => 1 }); }
-                : $filters_hashref->{$_}
-            )
+            filter => $filters_hashref->{$_},
         }
     } sort keys %$filters_hashref;
 
@@ -249,7 +236,6 @@ sub calculate {
 	$strcalc .= " WHERE ".join(" AND ",@sqlwhere) if (@sqlwhere);
 	$strcalc .= " AND (".join(" OR ",@sqlor).")" if (@sqlor);
 	$strcalc .= " GROUP BY line, col )";
-	($debug) and print STDERR $strcalc;
 	my $dbcalc = $dbh->prepare($strcalc);
 	push @loopfilter, {crit=>'SQL =', sql=>1, filter=>$strcalc};
 	@sqlparams=(@sqlparams,@sqlorparams);
@@ -285,7 +271,6 @@ sub calculate {
 		my $total = 0;
 		foreach my $row (@loopline) {
 			$total += $data->{$row}{$col}{calculation} if $data->{$row}{$col}{calculation};
-			$debug and warn "value added ".$$data{$row}{$col}{calculation}. "for line ".$row;
 		}
 		push @loopfooter, {'totalcol' => $total};
 		push @loopcol, {'coltitle' => $col,
@@ -330,7 +315,7 @@ sub display_value {
         }
     }
     elsif ( $crit =~ /category/ ) {
-        my @patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']});
+        my @patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']})->as_list;
         foreach my $patron_category ( @patron_categories ) {
             ( $value eq $patron_category->categorycode ) or next;
             $display_value = $patron_category->description and last;

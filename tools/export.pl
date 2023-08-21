@@ -19,15 +19,15 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use MARC::File::XML;
-use List::MoreUtils qw(uniq);
-use C4::Auth;
-use C4::Output;
+use List::MoreUtils qw( uniq );
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 
 use Koha::Authority::Types;
 use Koha::Biblioitems;
 use Koha::CsvProfiles;
 use Koha::Database;
-use Koha::DateUtils qw( dt_from_string output_pref );
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Exporter::Record;
 use Koha::ItemTypes;
 use Koha::Libraries;
@@ -40,7 +40,7 @@ my $op                = $query->param("op") || '';
 my $output_format     = $query->param("format") || $query->param("output_format") || 'iso2709';
 my $backupdir         = C4::Context->config('backupdir');
 my $filename;
-if ( $record_type eq 'auths' ) {
+if ( $record_type && $record_type eq 'auths' ) {
     $filename = $query->param("filename_auth") || ( $output_format eq 'xml' ? 'koha.xml' : 'koha.mrc' );
 } else {
     $filename = $query->param("filename") || ( $output_format eq 'csv' ? 'koha.csv' : 'koha.mrc' );
@@ -67,7 +67,6 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
         query           => $query,
         type            => "intranet",
         flagsrequired   => { tools => 'export_catalog' },
-        debug           => 1,
     }
 );
 
@@ -106,9 +105,12 @@ if ( $op eq "export" ) {
         # No need to retrieve the record_ids if we already get them
         unless ( @record_ids ) {
             if ( $record_type eq 'bibs' ) {
+
+                my %it_map = map { $_->itemtype => 1 } Koha::ItemTypes->search->as_list;
+                my @itemtypes = map { $it_map{$_} ? $_ : () } $query->multi_param('itemtype'); #Validate inputs against map
+
                 my $starting_biblionumber = $query->param("StartingBiblionumber");
                 my $ending_biblionumber   = $query->param("EndingBiblionumber");
-                my $itemtype             = $query->param("itemtype");
                 my $start_callnumber     = $query->param("start_callnumber");
                 my $end_callnumber       = $query->param("end_callnumber");
                 my $start_accession =
@@ -149,11 +151,11 @@ if ( $op eq "export" ) {
                         )
                         : (),
                     ( @branchcodes ? ( 'items.homebranch' => { in => \@branchcodes } ) : () ),
-                    ( $itemtype
+                    ( @itemtypes
                         ?
                           C4::Context->preference('item-level_itypes')
-                            ? ( 'items.itype' => $itemtype )
-                            : ( 'me.itemtype' => $itemtype )
+                            ? ( 'items.itype' => { in => \@itemtypes } )
+                            : ( 'me.itemtype' => { in => \@itemtypes } )
                         : ()
                     ),
 
@@ -302,7 +304,7 @@ else {
         itemtypes                => $itemtypes,
         authority_types          => $authority_types,
         export_remove_fields     => C4::Context->preference("ExportRemoveFields"),
-        csv_profiles             => [ Koha::CsvProfiles->search({ type => 'marc', used_for => 'export_records' }) ],
+        csv_profiles             => [ Koha::CsvProfiles->search({ type => 'marc', used_for => 'export_records' })->as_list ],
         messages                 => \@messages,
     );
 

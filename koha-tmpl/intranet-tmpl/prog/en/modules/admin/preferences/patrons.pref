@@ -28,6 +28,17 @@ Patrons:
                0: "Don't allow"
          - "staff to access a patron's checkout and hold history (checkout history is still stored, regardless of staff being allowed access or not)."
      -
+         - "When deleting a patron who owns public or shared lists,"
+         - pref: ListOwnershipUponPatronDeletion
+           choices:
+            delete: "delete these lists."
+            transfer: "change owner of these lists."
+         - All public or shared lists of this patron are either deleted or transferred to a new owner according to your choice; other private lists (not shared) are deleted.
+         - "<br/>When changing owner at patron deletion, use borrowernumber "
+         - pref: ListOwnerDesignated
+           class: integer
+         - as new list owner, or leave this field empty in order to change owner to the active staff member who deletes the patron.
+     -
          - The late fine for all checkouts will only go up to
          - pref: MaxFine
            class: currency
@@ -45,10 +56,10 @@ Patrons:
            class: integer
          - results per page in the staff interface.
      -
-         - "Comma separated list defining the default fields to be used during a patron search using the \"standard\" option:"
+         - "Comma separated list defining the default fields to be used during a patron search using the \"standard\" option in the patrons or circulation module:"
          - pref: DefaultPatronSearchFields
            class: multi
-         - "If empty Koha will default to \"surname,firstname,othernames,cardnumber,userid\". Additional fields added to this preference will be added as search options in the dropdown menu on the patron search page."
+         - "If empty Koha will default to \"firstname,middle_name,surname,othernames,cardnumber,userid\". Additional fields added to this preference will be added as search options in the dropdown menu on the patron search page."
      -
          - "Show the following fields from the items database table as columns on the statistics tab on the patron record: "
          - pref: StatisticsFields
@@ -143,11 +154,18 @@ Patrons:
          - "patron messaging setting on the OPAC."
          - '<br><strong>NOTE:</strong> <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=EnhancedMessagingPreferences">EnhancedMessagingPreferences</a> must be enabled.'
      -
-         - pref: AutoEmailOpacUser
+         - pref: AutoEmailNewUser
            choices:
                1: Send
                0: "Don't send"
-         - an email to newly created patrons with their account details.
+         - an email to newly created patrons.
+         - '<br><strong>NOTE:</strong> This uses the WELCOME notice.'
+     -
+         - pref: NotifyPasswordChange
+           choices:
+               1: Notify
+               0: "Don't notify"
+         - patrons whenever their password is changed.
      -
          - pref: UseEmailReceipts
            choices:
@@ -184,6 +202,7 @@ Patrons:
          - pref: SMSSendDriver
          - driver to send SMS messages.
          - "<br>If you would prefer to send SMS via E-mail, set SMSSendDriver to: Email"
+         - "<br><strong>NOTE:</strong> Many mobile providers have deprecated support for this feature and it is not recommended for use unless you have a dedicated SMS to Email gateway."
      -
          - "Define a username/login"
          - pref: SMSSendUsername
@@ -217,13 +236,14 @@ Patrons:
          - pref: BorrowerMandatoryField
            type: modalselect
            source: borrowers
+           exclusions: flags
          - '<strong>NOTE:</strong> If <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=autoMemberNum">autoMemberNum</a> is enabled, the system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=BorrowerMandatoryField">BorrowerMandatoryField</a> must not contain the field <code>cardnumber</code>.'
      -
          - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron entry screen:"
          - pref: BorrowerUnwantedField
            type: modalselect
            source: borrowers
-           exclusions: branchcode
+           exclusions: branchcode|categorycode|flags
      -
          - "Borrowers can have the following titles:"
          - pref: BorrowersTitles
@@ -287,6 +307,8 @@ Patrons:
          - "When adding a guarantee to a guarantor patron fill the following fields in the guarantee's member entry form from the guarantors record:"
          - pref: PrefillGuaranteeField
            multiple:
+               surname: "Surname"
+               B_streettype: "Alternate address - Street type"
                B_address: "Alternate address - Address"
                B_address2: "Alternate address - Address 2"
                B_city: "Alternate address - City"
@@ -312,6 +334,7 @@ Patrons:
                phone: "Contact - Primary phone"
                emailpro: "Contact - Secondary email"
                phonepro: "Contact - Secondary phone"
+               streettype: "Main address - Street type"
                address: "Main address - Address"
                address2: "Main address - Address 2"
                city: "Main address - City"
@@ -330,21 +353,23 @@ Patrons:
            choices:
                1: Allow
                0: "Don't allow"
-         - staff to set the ability for a patron's fines to be viewed by linked patrons in the OPAC.
+         - staff to set the ability for a patron's charges to be viewed by linked patrons in the OPAC.
+
     Privacy:
      -
          - Use the following URL
          - pref: PrivacyPolicyURL
-         - to refer to your local privacy policy in messages about privacy and data protection. (If you enforce GDPR policy, make sure that this page is not blocked.)
-         - '<br><strong>NOTE:</strong> The URL will only be displayed if <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=GDPR_Policy">GDPR_Policy</a> is set.'
+           class: url
+         - to refer to your local privacy policy in messages about privacy and data protection. (If you enforce a data privacy policy, make sure that this page is not blocked.)
+         - '<br><strong>NOTE:</strong> The URL will only be displayed if <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PrivacyPolicyConsent">PrivacyPolicyConsent</a> is set.'
      -
-         - "Set GDPR policy to:"
-         - pref: GDPR_Policy
+         - "Set data privacy policy consent to:"
+         - pref: PrivacyPolicyConsent
            choices:
                '': 'disabled'
                Enforced: 'enforced'
                Permissive: 'permissive'
-         - ". GDPR is the EU General Data Protection Regulation. When you enforce, patrons need to give consent before using the OPAC. If you set to permissive, Koha will warn but not enforce."
+         - ". When you enforce a data privacy policy, patrons need to give consent before using the OPAC. If you set to permissive, Koha will warn but not enforce."
          - '<br><strong>NOTE:</strong> If you enable this you will also have to set the URL of your public privacy policy with the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PrivacyPolicyURL">PrivacyPolicyURL</a> setting.'
      -
          - Lock/expire patrons that submitted an unsubscribe request (refused consent) after
@@ -368,6 +393,14 @@ Patrons:
          - a strong password for staff and patrons
          - (must contain at least one digit, one lowercase and one uppercase).
      -
+         - pref: EnableExpiredPasswordReset
+           choices:
+               1: "Enable"
+               0: "Don't enable"
+         - the ability for patrons to directly reset their password when it is expired.
+         - If not enabled patrons must either use the 'Forgot your password' feature or have staff
+         - reset their password.
+     -
          - Block a patron's account if it reaches
          - pref: FailedLoginAttempts
            class: integer
@@ -377,22 +410,22 @@ Patrons:
            choices:
                1: Enable
                0: Disable
-         - "pseudonymization to comply with GDPR for personal information."
-         - "Patrons and transactions will be copied to a separate table for statistics purpose."
+         - "pseudonymization to comply with data privacy policies and regulations like GDPR for managing personal information."
+         - "Patrons and transactions will be copied to a separate table for statistical purposes."
          - "<br/>Use the following fields for patrons:"
          - pref: PseudonymizationPatronFields
            multiple:
              title: "Patron's title"
              city: "City"
              state: "State"
-             zipcode: "Zipcode"
+             zipcode: "ZIP/Postal code"
              country: "Country"
              branchcode: "Patron's library"
-             categorycode: "Patron's category"
+             categorycode: "Patron category"
              dateenrolled: "Date the patron was added to Koha"
              sex: "Patron's gender"
-             sort1: "Sort1"
-             sort2: "Sort2"
+             sort1: "Sort 1"
+             sort2: "Sort 2"
          - "<br/> And the following fields for the transactions:"
          - pref: PseudonymizationTransactionFields
            multiple:
@@ -401,8 +434,8 @@ Patrons:
              transaction_type: "Transaction type"
              itemnumber: "Itemnumber"
              itemtype: "Item type"
-             holdingbranch: "Holding branch"
-             homebranch: "Home branch"
+             holdingbranch: "Holding library"
+             homebranch: "Home library"
              location: "Location"
              itemcallnumber: "Item's callnumber"
-             ccode: "Collection code"
+             ccode: "Collection"

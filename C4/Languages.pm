@@ -22,25 +22,24 @@ package C4::Languages;
 use strict;
 use warnings;
 
-use Carp;
+use Carp qw( carp );
 use CGI;
 use List::MoreUtils qw( any );
 use C4::Context;
 use Koha::Caches;
 use Koha::Cache::Memory::Lite;
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $DEBUG);
 
+our (@ISA, @EXPORT_OK);
 BEGIN {
     require Exporter;
     @ISA    = qw(Exporter);
-    @EXPORT = qw(
-        &getFrameworkLanguages
-        &getTranslatedLanguages
-        &getLanguages
-        &getAllLanguages
+    @EXPORT_OK = qw(
+        getFrameworkLanguages
+        getTranslatedLanguages
+        getLanguages
+        getAllLanguages
     );
-    @EXPORT_OK = qw(getFrameworkLanguages getTranslatedLanguages getAllLanguages getLanguages get_bidi regex_lang_subtags language_get_description accept_language getlanguage);
-    $DEBUG = 0;
+    push @EXPORT_OK, qw(getFrameworkLanguages getTranslatedLanguages getAllLanguages getLanguages get_bidi regex_lang_subtags language_get_description accept_language getlanguage get_rfc4646_from_iso639);
 }
 
 =head1 NAME
@@ -77,9 +76,10 @@ sub getFrameworkLanguages {
     
     # find the available directory names
     my $dir=C4::Context->config('intranetdir')."/installer/data/";
-    opendir (MYDIR,$dir);
-    my @listdir= grep { !/^\.|CVS/ && -d "$dir/$_"} readdir(MYDIR);    
-    closedir MYDIR;
+    my $dir_h;
+    opendir ($dir_h,$dir);
+    my @listdir= grep { !/^\.|CVS/ && -d "$dir/$_"} readdir($dir_h);
+    closedir $dir_h;
 
     # pull out all data for the dir names that exist
     for my $dirname (@listdir) {
@@ -199,7 +199,7 @@ sub getLanguages {
     if ($lang) {
         $current_language = regex_lang_subtags($lang)->{'language'};
     }
-    my $sth = $dbh->prepare('SELECT * FROM language_subtag_registry WHERE type=\'language\'');
+    my $sth = $dbh->prepare('SELECT * FROM language_subtag_registry WHERE type=\'language\' ORDER BY description');
     $sth->execute();
     while (my $language_subtag_registry = $sth->fetchrow_hashref) {
         my $desc;
@@ -294,12 +294,14 @@ sub _get_themes {
     else {
         $htdocs = C4::Context->config('opachtdocs');
     }
-    opendir D, "$htdocs";
-    my @dirlist = readdir D;
+    my $dir_h;
+    opendir $dir_h, "$htdocs";
+    my @dirlist = readdir $dir_h;
     foreach my $directory (@dirlist) {
         # if there's an en dir, it's a valid theme
         -d "$htdocs/$directory/en" and push @themes, $directory;
     }
+    close $dir_h;
     return @themes;
 }
 
@@ -314,8 +316,9 @@ sub _get_language_dirs {
     $htdocs //= '';
     $theme //= '';
     my @lang_strings;
-    opendir D, "$htdocs/$theme";
-    for my $lang_string ( readdir D ) {
+    my $dir_h;
+    opendir $dir_h, "$htdocs/$theme";
+    for my $lang_string ( sort readdir $dir_h ) {
         next if $lang_string =~/^\./;
         next if $lang_string eq 'all';
         next if $lang_string =~/png$/;
@@ -326,7 +329,8 @@ sub _get_language_dirs {
         next if $lang_string =~/img|images|famfam|js|less|lib|sound|pdf|webfonts/;
         push @lang_strings, $lang_string;
     }
-        return (@lang_strings);
+    close $dir_h;
+    return (@lang_strings);
 }
 
 =head2 _build_languages_arrayref 
@@ -372,11 +376,37 @@ sub _build_languages_arrayref {
 
         my %idx = map { $enabled_languages->[$_] => $_ } reverse 0 .. @$enabled_languages-1;
         my @ordered_keys = sort {
-            my $aa = $language_groups->{$a}->[0]->{rfc4646_subtag};
-            my $bb = $language_groups->{$b}->[0]->{rfc4646_subtag};
-            ( exists $idx{$aa} and exists $idx{$bb} and ( $idx{$aa} cmp $idx{$bb} ) )
-            || ( exists $idx{$aa} and exists $idx{$bb} )
-            || exists $idx{$bb}
+            my $aa     = '';
+            my $bb     = '';
+            my $acount = @{ $language_groups->{$a} };
+            my $bcount = @{ $language_groups->{$b} };
+            if ( $language_groups->{$a}->[0]->{enabled} ) {
+                $aa = $language_groups->{$a}->[0]->{rfc4646_subtag};
+            }
+            elsif ( $acount > 1 ) {
+                for ( my $i = 1 ; $i < $acount ; $i++ ) {
+                    if ( $language_groups->{$a}->[$i]->{enabled} ) {
+                        $aa = $language_groups->{$a}->[$i]->{rfc4646_subtag};
+                        last;
+                    }
+                }
+            }
+            if ( $language_groups->{$b}->[0]->{enabled} ) {
+                $bb = $language_groups->{$b}->[0]->{rfc4646_subtag};
+            }
+            elsif ( $bcount > 1 ) {
+                for ( my $i = 1 ; $i < $bcount ; $i++ ) {
+                    if ( $language_groups->{$b}->[$i]->{enabled} ) {
+                        $bb = $language_groups->{$b}->[$i]->{rfc4646_subtag};
+                        last;
+                    }
+                }
+            }
+            (         exists $idx{$aa}
+                  and exists $idx{$bb}
+                  and ( $idx{$aa} cmp $idx{$bb} ) )
+              || ( exists $idx{$aa} and exists $idx{$bb} )
+              || exists $idx{$bb}
         } keys %$language_groups;
 
         for my $key ( @ordered_keys ) {

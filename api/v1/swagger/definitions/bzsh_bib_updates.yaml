@@ -1,0 +1,20 @@
+---
+type: object
+properties:
+  updated:
+    type: array
+    items:
+      $ref: bzsh_bib.yaml
+  created:
+    type: array
+    items:
+      $ref: bzsh_bib.yaml
+  deleted:
+    type: array
+    items:
+      $ref: bzsh_bib.yaml
+additionalProperties: false
+required:
+  - updated
+  - created
+  - deleted

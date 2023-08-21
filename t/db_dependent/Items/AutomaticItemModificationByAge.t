@@ -1,16 +1,16 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
-use Test::More tests => 17;
+use Test::More tests => 19;
 use MARC::Record;
 use MARC::Field;
 use DateTime;
 use DateTime::Duration;
 
-use C4::Items;
-use C4::Biblio;
+use C4::Items qw( GetMarcItem ToggleNewStatus );
+use C4::Biblio qw( AddBiblio GetMarcFromKohaField );
 use C4::Context;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Items;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
@@ -42,7 +42,6 @@ $dbh->do(qq|
 my $cache = Koha::Caches->get_instance();
 $cache->clear_from_cache("MarcStructure-0-$frameworkcode");
 $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
-$cache->clear_from_cache("default_value_for_mod_marc-");
 $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
 
 my $record = MARC::Record->new();
@@ -140,7 +139,7 @@ $modified_item->dateaccessioned($days5ago)->store;
                 value => 'new_updated_value',
              },
         ],
-        age => '10',
+        age => '10', # Confirm not defining agefield, will default to using items.dateaccessioned
     },
 );
 C4::Items::ToggleNewStatus( { rules => \@rules } );
@@ -275,6 +274,7 @@ is( $modified_item->new_status, 'new_updated_value', q|ToggleNewStatus: conditio
 
 @rules = (
     {
+        # does not exist
         conditions => [
             {
                 field => 'biblioitems.itemtype',
@@ -296,6 +296,40 @@ C4::Items::ToggleNewStatus( { rules => \@rules } );
 $modified_item = Koha::Items->find( $itemnumber );
 is( $modified_item->new_status, 'another_new_updated_value', q|ToggleNewStatus: conditions on biblioitems|);
 
+# Play with the 'Age field'
+my $days2ago = $dt_today->add_duration( DateTime::Duration->new( days => -10 ) );
+my $days20ago = $dt_today->add_duration( DateTime::Duration->new( days => -20 ) );
+$modified_item->datelastseen($days2ago)->store;
+$modified_item->dateaccessioned($days20ago)->store;
+
+# When agefield='items.datelastseen'
+@rules = (
+    {
+        conditions => [
+            {
+                field => 'biblioitems.itemtype',
+                value => 'ITEMTYPE_T',
+            },
+        ],
+        substitutions => [
+            {
+                field => 'items.new_status',
+                value => 'agefield_new_value',
+             },
+        ],
+        age => '5',
+        agefield => 'items.datelastseen' # Confirm defining agefield => 'items.datelastseen' will use items.datelastseen
+    },
+);
+C4::Items::ToggleNewStatus( { rules => \@rules } );
+$modified_item = Koha::Items->find( $itemnumber );
+is( $modified_item->new_status, 'agefield_new_value', q|ToggleNewStatus: Age = 5, agefield = 'items.datelastseen' : The new_status value is not updated|);
+
+$rules[0]->{age} = 2;
+C4::Items::ToggleNewStatus( { rules => \@rules } );
+$modified_item = Koha::Items->find( $itemnumber );
+is( $modified_item->new_status, 'agefield_new_value', q|ToggleNewStatus: Age = 2, agefield = 'items.datelastseen' : The new_status value is updated|);
+
 # Run twice
 t::lib::Mocks::mock_preference('CataloguingLog', 1);
 my $actions_nb = $schema->resultset('ActionLog')->count();
@@ -306,6 +340,5 @@ is( $schema->resultset('ActionLog')->count(), $actions_nb, q|ToggleNewStatus: no
 $cache = Koha::Caches->get_instance();
 $cache->clear_from_cache("MarcStructure-0-$frameworkcode");
 $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
-$cache->clear_from_cache("default_value_for_mod_marc-");
 $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
 $schema->storage->txn_rollback;

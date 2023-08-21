@@ -2,9 +2,11 @@ package Koha::Exceptions::Checkout;
 
 use Modern::Perl;
 
+use Koha::Exception;
+
 use Exception::Class (
     'Koha::Exceptions::Checkout' => {
-        description => "Something went wrong!"
+        isa => 'Koha::Exception',
     },
     'Koha::Exceptions::Checkout::FailedRenewal' => {
         isa         => 'Koha::Exceptions::Checkout',

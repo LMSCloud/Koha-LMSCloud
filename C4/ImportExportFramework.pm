@@ -21,24 +21,22 @@ use strict;
 use warnings;
 use XML::LibXML;
 use XML::LibXML::XPathContext;
-use Digest::MD5 qw();
-use POSIX qw(strftime);
+use Digest::MD5;
+use POSIX qw( strftime );
 use Text::CSV_XS;
-use List::MoreUtils qw(indexes);
+use List::MoreUtils qw( indexes );
 
 use C4::Context;
-use C4::Debug;
+use Koha::Logger;
 
-
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-
+our (@ISA, @EXPORT_OK);
 BEGIN {
     require Exporter;
     @ISA    = qw(Exporter);
-    @EXPORT = qw(
-        &ExportFramework
-        &ImportFramework
-        &createODS
+    @EXPORT_OK = qw(
+        ExportFramework
+        ImportFramework
+        createODS
     );
 }
 
@@ -195,7 +193,7 @@ Functions for handling import/export.
 
 =head2 ExportFramework
 
-Export all the information of a Framework to an excel "xml" file or OpenDocument SpreadSheet "ods" file.
+Export all information of a bibliographic or authority MARC framework to an Excel "xml" file, comma separated values "csv" or OpenDocument SpreadSheet "ods".
 
 return :
 succes
@@ -204,7 +202,7 @@ succes
 
 sub ExportFramework
 {
-    my ($frameworkcode, $xmlStrRef, $mode) = @_;
+    my ($frameworkcode, $xmlStrRef, $mode, $frameworktype) = @_;
 
     my $dbh = C4::Context->dbh;
     if ($dbh) {
@@ -226,13 +224,20 @@ sub ExportFramework
                 }
             };
             if ($@) {
-                $debug and warn "Error ExportFramework $@\n";
+                Koha::Logger->get->warn("Error ExportFramework $@");
                 return 0;
             }
         }
 
-        if (_export_table('marc_tag_structure', $dbh, ($mode eq 'csv')?$xmlStrRef:$dom, ($mode eq 'ods')?$elementSS:$root, $frameworkcode, $mode)) {
-            if (_export_table('marc_subfield_structure', $dbh, ($mode eq 'csv')?$xmlStrRef:$dom, ($mode eq 'ods')?$elementSS:$root, $frameworkcode, $mode)) {
+        my $table = 'marc_tag_structure';
+        my $subtable = 'marc_subfield_structure';
+        if ($frameworktype eq "authority") {
+            $table = 'auth_tag_structure';
+            $subtable = 'auth_subfield_structure';
+        }
+
+        if (_export_table($table, $dbh, ($mode eq 'csv')?$xmlStrRef:$dom, ($mode eq 'ods')?$elementSS:$root, $frameworkcode, $mode, $frameworktype)) {
+            if (_export_table($subtable, $dbh, ($mode eq 'csv')?$xmlStrRef:$dom, ($mode eq 'ods')?$elementSS:$root, $frameworkcode, $mode, $frameworktype)) {
                 $$xmlStrRef = $dom->toString(1) if ($mode eq 'ods' || $mode eq 'excel');
                 return 1;
             }
@@ -247,20 +252,20 @@ sub ExportFramework
 # Export all the data from a mysql table to an spreadsheet.
 sub _export_table
 {
-    my ($table, $dbh, $dom, $root, $frameworkcode, $mode) = @_;
+    my ($table, $dbh, $dom, $root, $frameworkcode, $mode, $frameworktype) = @_;
     if ($mode eq 'csv') {
-        _export_table_csv($table, $dbh, $dom, $root, $frameworkcode);
+        _export_table_csv($table, $dbh, $dom, $root, $frameworkcode, $frameworktype);
     } elsif ($mode eq 'ods') {
-        _export_table_ods($table, $dbh, $dom, $root, $frameworkcode);
+        _export_table_ods($table, $dbh, $dom, $root, $frameworkcode, $frameworktype);
     } else {
-        _export_table_excel($table, $dbh, $dom, $root, $frameworkcode);
+        _export_table_excel($table, $dbh, $dom, $root, $frameworkcode, $frameworktype);
     }
 }
 
 # Export the mysql table to an csv file
 sub _export_table_csv
 {
-    my ($table, $dbh, $strCSV, $root, $frameworkcode) = @_;
+    my ($table, $dbh, $strCSV, $root, $frameworkcode, $frameworktype) = @_;
 
     eval {
         # First row with the name of the columns
@@ -276,6 +281,9 @@ sub _export_table_csv
         $$strCSV .= chr(10);
         # Populate rows with the data from mysql
         $query = 'SELECT * FROM ' . $table . ' WHERE frameworkcode=?';
+        if ($frameworktype eq "authority") {
+            $query = 'SELECT * FROM ' . $table . ' WHERE authtypecode=?';
+        }
         $sth = $dbh->prepare($query);
         $sth->execute($frameworkcode);
         my $data;
@@ -298,7 +306,7 @@ sub _export_table_csv
         $$strCSV .= chr(10);
     };
     if ($@) {
-        $debug and warn "Error _export_table_csv $@\n";
+        Koha::Logger->get->warn("Error _export_table_csv $@");
         return 0;
     }
     return 1;
@@ -308,7 +316,7 @@ sub _export_table_csv
 # Export the mysql table to an ods file
 sub _export_table_ods
 {
-    my ($table, $dbh, $dom, $root, $frameworkcode) = @_;
+    my ($table, $dbh, $dom, $root, $frameworkcode, $frameworktype) = @_;
 
     eval {
         my $elementTable = $dom->createElement('table:table');
@@ -337,6 +345,9 @@ sub _export_table_ods
         }
         # Populate rows with the data from mysql
         $query = 'SELECT * FROM ' . $table . ' WHERE frameworkcode=?';
+        if ($frameworktype eq "authority") {
+            $query = 'SELECT * FROM ' . $table . ' WHERE authtypecode=?';
+        }
         $sth = $dbh->prepare($query);
         $sth->execute($frameworkcode);
         my $data;
@@ -364,7 +375,7 @@ sub _export_table_ods
         }
     };
     if ($@) {
-        $debug and warn "Error _export_table_ods $@\n";
+        Koha::Logger->get->warn("Error _export_table_ods $@");
         return 0;
     }
     return 1;
@@ -374,7 +385,7 @@ sub _export_table_ods
 # Export the mysql table to an excel-xml (openoffice/libreoffice compatible) file
 sub _export_table_excel
 {
-    my ($table, $dbh, $dom, $root, $frameworkcode) = @_;
+    my ($table, $dbh, $dom, $root, $frameworkcode, $frameworktype) = @_;
 
     eval {
         my $elementWS = $dom->createElement('Worksheet');
@@ -404,6 +415,9 @@ sub _export_table_excel
         }
         # Populate rows with the data from mysql
         $query = 'SELECT * FROM ' . $table . ' WHERE frameworkcode=?';
+        if ($frameworktype eq "authority") {
+            $query = 'SELECT * FROM ' . $table . ' WHERE authtypecode=?';
+        }
         $sth = $dbh->prepare($query);
         $sth->execute($frameworkcode);
         my $data;
@@ -429,17 +443,11 @@ sub _export_table_excel
         }
     };
     if ($@) {
-        $debug and warn "Error _export_table_excel $@\n";
+        Koha::Logger->get->warn("Error _export_table_excel $@");
         return 0;
     }
     return 1;
 }#_export_table_excel
-
-
-
-
-
-
 
 # Format chars problematics to a correct format for xml.
 sub _parseContent2Xml
@@ -551,7 +559,7 @@ sub createODS
             }
         };
         if ($@) {
-            $debug and warn "Error createODS $@\n";
+            Koha::Logger->get->warn("Error createODS $@");
         } else {
             # create ods file from tempdir directory
             eval {
@@ -625,7 +633,7 @@ sub _getMeta
 
 =head2 ImportFramework
 
-Import all the information of a Framework from a excel-xml/ods file.
+Import all the information of a MARC or Authority Type Framework from a excel-xml/ods file.
 
 return :
 success
@@ -634,11 +642,12 @@ success
 
 sub ImportFramework
 {
-    my ($filename, $frameworkcode, $deleteFilename) = @_;
+    my ($filename, $frameworkcode, $deleteFilename, $frameworktype) = @_;
 
     my $tempdir;
     my $ok = -1;
     my $dbh = C4::Context->dbh;
+    $frameworktype ||= '';
     if (-r $filename && $dbh) {
         my $extension = '';
         if ($filename =~ /\.(csv|ods|xml)$/i) {
@@ -664,23 +673,41 @@ sub ImportFramework
                     # They are text files, so open it to read
                     open($dom, '<', $filename);
                 }
+
+                my $table = 'marc_tag_structure';
+                my $subtable = 'marc_subfield_structure';
+                if ($frameworktype eq "authority") {
+                    $table = 'auth_tag_structure';
+                    $subtable = 'auth_subfield_structure';
+                }
+
                 if ($dom) {
                     # Process both tables
                     my $numDeleted = 0;
                     my $numDeletedAux = 0;
-                    if (($numDeletedAux = _import_table($dbh, 'marc_tag_structure', $frameworkcode, $dom, ['frameworkcode', 'tagfield'], $extension)) >= 0) {
-                        $numDeleted += $numDeletedAux if ($numDeletedAux > 0);
-                        if (($numDeletedAux = _import_table($dbh, 'marc_subfield_structure', $frameworkcode, $dom, ['frameworkcode', 'tagfield', 'tagsubfield'], $extension)) >= 0) {
+                    if ($frameworktype eq "authority"){
+                        if (($numDeletedAux = _import_table($dbh, $table, $frameworkcode, $dom, ['authtypecode', 'tagfield'], $extension, $frameworktype)) >= 0) {
                             $numDeleted += $numDeletedAux if ($numDeletedAux > 0);
-                            $ok = ($numDeleted > 0)?$numDeleted:0;
+                            if (($numDeletedAux = _import_table($dbh, $subtable, $frameworkcode, $dom, ['authtypecode', 'tagfield', 'tagsubfield'], $extension, $frameworktype)) >= 0) {
+                                $numDeleted += $numDeletedAux if ($numDeletedAux > 0);
+                                $ok = ($numDeleted > 0)?$numDeleted:0;
+                            }
+                        }
+                    } else {
+                        if (($numDeletedAux = _import_table($dbh, $table, $frameworkcode, $dom, ['frameworkcode', 'tagfield'], $extension, $frameworktype)) >= 0) {
+                            $numDeleted += $numDeletedAux if ($numDeletedAux > 0);
+                            if (($numDeletedAux = _import_table($dbh, $subtable, $frameworkcode, $dom, ['frameworkcode', 'tagfield', 'tagsubfield'], $extension, $frameworktype)) >= 0) {
+                                $numDeleted += $numDeletedAux if ($numDeletedAux > 0);
+                                $ok = ($numDeleted > 0)?$numDeleted:0;
+                            }
                         }
                     }
                 } else {
-                    $debug and warn "Error ImportFramework couldn't create dom\n";
+                    Koha::Logger->get->warn("Error ImportFramework couldn't create dom");
                 }
             };
             if ($@) {
-                $debug and warn "Error ImportFramework $@\n";
+                Koha::Logger->get->warn("Error ImportFramework $@");
             } else {
                 if ($extension eq 'csv') {
                     close($dom) if ($dom);
@@ -689,7 +716,7 @@ sub ImportFramework
         }
         unlink ($filename) if ($deleteFilename); # remove temporary file
     } else {
-        $debug and warn "Error ImportFramework no conex to database or not readeable $filename\n";
+        Koha::Logger->get->warn("Error ImportFramework no conex to database or not readeable $filename");
     }
     if ($deleteFilename && $tempdir && -d $tempdir && -w $tempdir) {
         eval {
@@ -791,15 +818,19 @@ sub _check_validity_worksheet
 # Import the data from an excel-xml/ods to mysql tables.
 sub _import_table
 {
-    my ($dbh, $table, $frameworkcode, $dom, $PKArray, $format) = @_;
+    my ($dbh, $table, $frameworkcode, $dom, $PKArray, $format, $frameworktype) = @_;
     my %fields2Delete;
     my $query;
     my @fields;
+    $frameworktype ||= '';
     # Create hash with all elements defined by primary key to know which ones to delete after parsing the spreadsheet
     eval {
         @fields = @$PKArray;
         shift @fields;
         $query = 'SELECT ' . join(',', @fields) . ' FROM ' . $table . ' WHERE frameworkcode=?';
+        if ($frameworktype eq "authority") {
+            $query = 'SELECT ' . join(',', @fields) . ' FROM ' . $table . ' WHERE authtypecode=?';
+        }
         my $sth = $dbh->prepare($query);
         $sth->execute($frameworkcode);
         my $field;
@@ -822,11 +853,11 @@ sub _import_table
                 push @fieldsName, $hashRef->{Field};
             }
         };
-        $ok = _import_table_csv($dbh, $table, $frameworkcode, $dom, $PKArray, \%fields2Delete, \@fieldsName);
+        $ok = _import_table_csv($dbh, $table, $frameworkcode, $dom, $PKArray, \%fields2Delete, \@fieldsName, $frameworktype);
     } elsif ($format eq 'ods') {
-        $ok = _import_table_ods($dbh, $table, $frameworkcode, $dom, $PKArray, \%fields2Delete);
+        $ok = _import_table_ods($dbh, $table, $frameworkcode, $dom, $PKArray, \%fields2Delete, $frameworktype);
     } else {
-        $ok = _import_table_excel($dbh, $table, $frameworkcode, $dom, $PKArray, \%fields2Delete);
+        $ok = _import_table_excel($dbh, $table, $frameworkcode, $dom, $PKArray, \%fields2Delete, $frameworktype);
     }
     if ($ok) {
         if (($ok = scalar(keys %fields2Delete)) > 0) {
@@ -860,8 +891,7 @@ sub _processRow_DB
         $sth->execute((@$dataFields, @$dataFields));
     };
     if ($@) {
-        warn $@;
-        $debug and warn "Error _processRow_DB $@\n";
+        Koha::Logger->get->warn("Error _processRow_DB $@");
     } else {
         $ok = 1;
     }
@@ -878,7 +908,7 @@ sub _processRow_DB
 # Process the rows of a worksheet and insert/update them in a mysql table.
 sub _processRows_Table
 {
-    my ($dbh, $frameworkcode, $nodeR, $table, $PKArray, $format, $fields2Delete) = @_;
+    my ($dbh, $frameworkcode, $nodeR, $table, $PKArray, $format, $fields2Delete, $frameworktype) = @_;
 
     my $query;
     my @fields = ();
@@ -904,7 +934,7 @@ sub _processRows_Table
                 chop($updateStr) if ($updateStr);
             } else {
                 # Get data from row
-                my ($dataFields, $dataFieldsR) = _getDataFields($frameworkcode, $nodeR, \@fields, $format);
+                my ($dataFields, $dataFieldsR) = _getDataFields($frameworkcode, $nodeR, \@fields, $format, $frameworktype);
                 if (scalar(@fields) == scalar(@$dataFieldsR)) {
                     $ok = _processRow_DB($dbh, $table, $fields, $dataStr, $updateStr, $dataFieldsR, $dataFields, $PKArray, \@fieldsPK, $fields2Delete);
                 } else {
@@ -924,8 +954,7 @@ sub _processRows_Table
 # Import worksheet from the csv file to the mysql table
 sub _import_table_csv
 {
-    my ($dbh, $table, $frameworkcode, $dom, $PKArray, $fields2Delete, $fields) = @_;
-
+    my ($dbh, $table, $frameworkcode, $dom, $PKArray, $fields2Delete, $fields, $frameworktype) = @_;
     my $row = '';
     my $partialRow = '';
     my $numFields = @$fields;
@@ -974,17 +1003,31 @@ sub _import_table_csv
                 for my $value (@arrData) {
                     if ( grep { $_ == $j } @empty_indexes ) {
                         # empty field
-                    } elsif ($fields->[$j] eq 'frameworkcode' && $value ne $frameworkcode) {
-                        $dataFields{$fields->[$j]} = $frameworkcode;
-                        push @values, $frameworkcode;
-                    } elsif ($fields->[$j] eq 'isurl' && defined $value && $value eq q{}) {
-                        $dataFields{$fields->[$j]} = undef;
-                        push @values, undef;
+                    } elsif ($frameworktype eq "authority"){
+                        if ($fields->[$j] eq 'authtypecode' && $value ne $frameworkcode) {
+                            $dataFields{$fields->[$j]} = $frameworkcode;
+                            push @values, $frameworkcode;
+                        } elsif ($fields->[$j] eq 'isurl' && defined $value && $value eq q{}) {
+                            $dataFields{$fields->[$j]} = undef;
+                            push @values, undef;
+                        } else {
+                            $dataFields{$fields->[$j]} = $value;
+                            push @values, $value;
+                        }
+                        $j++
                     } else {
-                        $dataFields{$fields->[$j]} = $value;
-                        push @values, $value;
+                        if ($fields->[$j] eq 'frameworkcode' && $value ne $frameworkcode) {
+                            $dataFields{$fields->[$j]} = $frameworkcode;
+                            push @values, $frameworkcode;
+                        } elsif ($fields->[$j] eq 'isurl' && defined $value && $value eq q{}) {
+                            $dataFields{$fields->[$j]} = undef;
+                            push @values, undef;
+                        } else {
+                            $dataFields{$fields->[$j]} = $value;
+                            push @values, $value;
+                        }
+                        $j++
                     }
-                    $j++
                 }
                 $ok = _processRow_DB($dbh, $table, $fieldsStr, $dataStr, $updateStr, \@values, \%dataFields, $PKArray, \@fieldsPK, $fields2Delete);
             }
@@ -999,7 +1042,7 @@ sub _import_table_csv
 # Import worksheet from the ods content.xml file to the mysql table
 sub _import_table_ods
 {
-    my ($dbh, $table, $frameworkcode, $dom, $PKArray, $fields2Delete) = @_;
+    my ($dbh, $table, $frameworkcode, $dom, $PKArray, $fields2Delete, $frameworktype) = @_;
 
     my $xc = XML::LibXML::XPathContext->new($dom);
     $xc->registerNs('xmlns:office','urn:oasis:names:tc:opendocument:xmlns:office:1.0');
@@ -1009,9 +1052,9 @@ sub _import_table_ods
     @nodes = $xc->findnodes('//table:table[@table:name="' . $table . '"]');
     if (@nodes == 1 && $nodes[0]->hasChildNodes()) {
         my $nodeR = $nodes[0]->firstChild;
-        return _processRows_Table($dbh, $frameworkcode, $nodeR, $table, $PKArray, 'ods', $fields2Delete);
+        return _processRows_Table($dbh, $frameworkcode, $nodeR, $table, $PKArray, 'ods', $fields2Delete, $frameworktype);
     } else {
-        $debug and warn "Error _import_table_ods there's not worksheet for $table\n";
+        Koha::Logger->get->warn("Error _import_table_ods there's not worksheet for $table");
     }
     return 0;
 }#_import_table_ods
@@ -1020,7 +1063,7 @@ sub _import_table_ods
 # Import worksheet from the excel-xml file to the mysql table
 sub _import_table_excel
 {
-    my ($dbh, $table, $frameworkcode, $dom, $PKArray, $fields2Delete) = @_;
+    my ($dbh, $table, $frameworkcode, $dom, $PKArray, $fields2Delete, $frameworktype) = @_;
 
     my $xc = XML::LibXML::XPathContext->new($dom);
     $xc->registerNs('xmlns','urn:schemas-microsoft-com:office:spreadsheet');
@@ -1033,11 +1076,11 @@ sub _import_table_excel
             my @nodesT = $nodes[$i]->getElementsByTagNameNS('urn:schemas-microsoft-com:office:spreadsheet', 'Table');
             if (@nodesT == 1 && $nodesT[0]->hasChildNodes()) {
                 my $nodeR = $nodesT[0]->firstChild;
-                return _processRows_Table($dbh, $frameworkcode, $nodeR, $table, $PKArray, undef, $fields2Delete);
+                return _processRows_Table($dbh, $frameworkcode, $nodeR, $table, $PKArray, undef, $fields2Delete, $frameworktype);
             }
         }
     } else {
-        $debug and warn "Error _import_table_excel there's not worksheet for $table\n";
+        Koha::Logger->get->warn("Error _import_table_excel there's not worksheet for $table");
     }
     return 0;
 }#_import_table_excel
@@ -1070,10 +1113,11 @@ sub _getDataNodeODS
 # Get the data from a row of a spreadsheet
 sub _getDataFields
 {
-    my ($frameworkcode, $node, $fields, $format) = @_;
+    my ($frameworkcode, $node, $fields, $format, $frameworktype) = @_;
 
     my $dataFields = {};
     my @dataFieldsA = ();
+    $frameworktype ||= '';
     if ($node && $node->hasChildNodes()) {
         my $node2 = $node->firstChild;
         my ($data, $repeated);
@@ -1097,11 +1141,20 @@ sub _getDataFields
             if ($ok) {
                 $data //= '';
                 $data = '' if ($data eq '#');
-                if ( $fields->[$i] eq 'frameworkcode' ) {
-                    $data = $frameworkcode;
-                }
-                elsif ( $fields->[$i] eq 'isurl' ) {
-                    $data = undef if defined $data && $data eq q{};
+                if ($frameworktype eq "authority") {
+                    if ( $fields->[$i] eq 'authtypecode' ) {
+                        $data = $frameworkcode;
+                    }
+                    elsif ( $fields->[$i] eq 'isurl' ) {
+                        $data = undef if defined $data && $data eq q{};
+                    }
+                } else {
+                    if ( $fields->[$i] eq 'frameworkcode' ) {
+                        $data = $frameworkcode;
+                    }
+                    elsif ( $fields->[$i] eq 'isurl' ) {
+                        $data = undef if defined $data && $data eq q{};
+                    }
                 }
                 $dataFields->{$fields->[$i]} = $data;
                 push @dataFieldsA, $data;

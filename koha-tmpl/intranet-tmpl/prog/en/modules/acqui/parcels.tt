@@ -8,27 +8,23 @@
 </head>
 
 <body id="acq_parcels" class="acq">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'acquisitions-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'acquisitions-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a>
-        </li>
-        <li>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% name | html %]</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Receive shipment from vendor [% name | html %]
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Receive shipment from vendor [% name | html %]</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -38,19 +34,19 @@
             <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
         [% END %]
             <main>
+<h1>Receive shipment from vendor <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% name | html %]</a></h1>
 
 [% IF ( error_failed_to_create_invoice ) %]
     <div id="error" class="dialog alert">
         <p>An error has occurred. Invoice cannot be created.</p>
     </div>
 [% END %]
-<h1>Receive shipment from vendor <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% name | html %]</a></h1>
 
     [% IF duplicate_invoices %]
     <div id="parcels_duplicate_invoice" class="dialog alert">
         <p>This invoice number has already been used. Would you like to receive on an existing invoice?</p>
         <table>
-            <thead><tr><th>Invoice no.</th><th>Shipment date</th><th></th></tr></thead>
+            <thead><tr><th>Invoice number</th><th>Shipment date</th><th></th></tr></thead>
             <tbody>
                 [% FOREACH invoice IN duplicate_invoices %]
                     <tr>
@@ -65,10 +61,10 @@
             <input type="hidden" name="booksellerid" value="[% booksellerid | html %]" />
             <input type="hidden" name="op" value="confirm" />
             <input type="hidden" name="invoice" value="[% invoicenumber | html %]" />
-            <input type="hidden" name="shipmentdate" value="[% shipmentdate | $KohaDates %]" />
+            <input type="hidden" name="shipmentdate" value="[% shipmentdate | $KohaDates dateformat => 'iso' %]" />
             <input type="hidden" name="shipmentcost" value="[% shipmentcost | html %]" />
             <input type="hidden" name="shipmentcost_budgetid" value="[% shipmentcost_budgetid | html %]" />
-            <input type="submit" class="button" value="Create new invoice anyway" />
+            <input type="submit" class="btn btn-primary" value="Create new invoice anyway" />
         </form>
     </div>
     [% END %]
@@ -76,7 +72,7 @@
 
 [% IF ( count ) %]
 <p> [% count | html %] shipments</p>
-<div id="resultlist">
+<div id="resultlist" class="page-section">
 <!-- Search Results Table -->
 
 <table class="small" id="parcelst">
@@ -163,7 +159,7 @@
         </li> -->
          <li>
             <label for="shipmentdate">Shipment date: </label>
-            <input type="text" id="shipmentdate" name="shipmentdate" maxlength="10" size="10" value="[% shipmentdate_today | $KohaDates %]" class="datepicker" />
+            <input type="text" id="shipmentdate" name="shipmentdate" maxlength="10" size="10" value="[% shipmentdate_today | html %]" class="flatpickr" />
             <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
         </li>
         <li>
@@ -188,7 +184,10 @@
         </li>
 		</ol>
     </fieldset>
-            <fieldset class="action"><input type="submit" class="button" value="Next" /> <a class="cancel" href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | html %]">Cancel</a></fieldset>
+            [% IF available_additional_fields %]
+                [% INCLUDE 'additional-fields-entry.inc' available=available_additional_fields values=additional_field_values %]
+            [% END %]
+            <fieldset class="action"><input type="submit" class="btn btn-default" value="Next" /> <a class="cancel" href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | html %]">Cancel</a></fieldset>
         </form>
     </div>
 </main>
@@ -203,8 +202,16 @@
         <ol>
             <li> <input type="hidden" name="booksellerid" value="[% booksellerid | html %]" /></li>
             <li><label for="filter">Invoice number:</label><input type="text" size="20" name="filter" value="[% filter | html %]" id="filter" /></li>
-            <li><label for="datefrom">From:</label><input type="text" size="9" id="datefrom" name="datefrom" value="[% datefrom | html %]" class="datepicker" /><br />
-                <label for="dateto">To:</label><input type="text" size="9" id="dateto" name="dateto" value="[% dateto | html %]" class="datepicker" /></li>
+            <li>
+                <label for="datefrom">From:</label>
+                <input type="text" size="9" id="datefrom" name="datefrom" value="[% datefrom | html %]" class="flatpickr" />
+                <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
+            </li>
+            <li>
+                <label for="dateto">To:</label>
+                <input type="text" size="9" id="dateto" name="dateto" value="[% dateto | html %]" class="flatpickr" />
+                <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
+            </li>
             <li><label for="orderby">Sort by :</label><select name="orderby" id="orderby">
                 <option value="invoicenumber">Invoice number</option>
                 <option value="shipmentdate">Shipment date</option>
@@ -218,8 +225,8 @@
                 <option value="100">100</option>
                 </select></li>
         </ol>
-    <fieldset class="action"><input type="submit" class="button" value="Filter" /> <a href="/cgi-bin/koha/acqui/parcels.pl?booksellerid=[% booksellerid | uri %]">Clear</a></fieldset>
-	</fieldset>
+        <fieldset class="action"><input type="submit" class="btn btn-default" value="Filter" /> <a href="/cgi-bin/koha/acqui/parcels.pl?booksellerid=[% booksellerid | uri %]">Clear</a></fieldset>
+    </fieldset>
 </form>
 </aside>
 </div>  <!-- /.col-sm-2.col-sm-pull-10 -->

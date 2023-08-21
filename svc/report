@@ -20,10 +20,10 @@
 
 use Modern::Perl;
 
-use C4::Auth;
-use C4::Reports::Guided;
+use C4::Auth qw( get_template_and_user );
+use C4::Reports::Guided qw( execute_query );
 use Koha::Reports;
-use JSON;
+use JSON qw( encode_json decode_json );
 use CGI qw ( -utf8 );
 
 use Koha::Caches;
@@ -35,8 +35,11 @@ my $report_name = $query->param('name');
 my $report_annotation = $query->param('annotated');
 
 my $report_recs = Koha::Reports->search( $report_name ? { 'report_name' => $report_name } : { 'id' => $report_id } );
+
 if (!$report_recs || $report_recs->count == 0 ) { die "There is no such report.\n"; }
 my $report_rec = $report_recs->next();
+
+$report_id = $report_rec->id;
 
 my @sql_params  = $query->multi_param('sql_params');
 my @param_names  = $query->multi_param('param_names');
@@ -61,12 +64,18 @@ if ($cache_active) {
 }
 
 unless ($json_text) {
-    my $offset = 0;
     my $limit  = C4::Context->preference("SvcMaxReportRows") || 10;
 
     my ( $sql, undef ) = $report_rec->prep_report( \@param_names, \@sql_params );
 
-    my ( $sth, $errors ) = execute_query( $sql, $offset, $limit, undef, $report_id );
+    my ( $sth, $errors ) = execute_query(
+        {
+            sql        => $sql,
+            offset     => 0,
+            limit      => $limit,
+            report_id  => $report_id,
+        }
+    );
     if ($sth) {
         my $lines;
         if ($report_annotation) {

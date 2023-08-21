@@ -1,0 +1,37 @@
+/public/coverflow_data_biblionumber/{biblio_ids}:
+  get:
+    x-mojo-to: CoverflowDataBiblionumber#get
+    operationId: getCoverflowDataBiblionumber
+    description: Get coverflow data of a biblio record
+    summary: Get coverflow data of a biblio record
+    tags:
+      - coverflow_data_biblionumber
+    summary: Get coverflow data by biblionumber
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/biblio_ids_pp"
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      '200':
+        description: An object that contains coverflow data in a list of biblios by biblionumber
+        schema:
+          type: object
+          items:
+            $ref: "../swagger.yaml#/definitions/coverflow_data_biblionumber"
+      '403':
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '500':
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '503':
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"

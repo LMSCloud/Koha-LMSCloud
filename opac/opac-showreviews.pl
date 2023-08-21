@@ -21,15 +21,19 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Koha;
-use C4::Output;
-use C4::Circulation;
-use C4::Biblio;
-use Koha::DateUtils;
+use C4::Auth qw( get_template_and_user );
+use C4::Koha qw(
+    GetNormalizedEAN
+    GetNormalizedISBN
+    GetNormalizedOCLCNumber
+    GetNormalizedUPC
+);
+use C4::Output qw( output_html_with_http_headers );
+use Koha::DateUtils qw( dt_from_string );
+use Koha::Biblios;
 use Koha::Patrons;
 use Koha::Reviews;
-use POSIX qw(ceil floor strftime);
+use POSIX qw( ceil floor );
 
 my $template_name;
 my $query = CGI->new;
@@ -89,7 +93,7 @@ for my $result (@$reviews){
     my $biblionumber = $result->{biblionumber};
     my $biblio = Koha::Biblios->find( $biblionumber );
     my $biblioitem = $biblio->biblioitem;
-    my $record = GetMarcBiblio({ biblionumber => $biblionumber });
+    my $record = $biblio->metadata->record;
 	$result->{normalized_upc} = GetNormalizedUPC($record,$marcflavour);
 	$result->{normalized_ean} = GetNormalizedEAN($record,$marcflavour);
 	$result->{normalized_oclc} = GetNormalizedOCLCNumber($record,$marcflavour);

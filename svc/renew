@@ -23,7 +23,7 @@ use CGI;
 use JSON qw(to_json);
 use Try::Tiny;
 
-use C4::Circulation;
+use C4::Circulation qw( AddRenewal CanBookBeRenewed );
 use C4::Context;
 use C4::Auth qw(check_cookie_auth);
 
@@ -31,7 +31,7 @@ use Koha::DateUtils qw(output_pref dt_from_string);
 
 my $input = CGI->new;
 
-my ( $auth_status, $sessionID ) =
+my ( $auth_status ) =
   check_cookie_auth( $input->cookie('CGISESSID'),
     { circulate => 'circulate_remaining_permissions' } );
 
@@ -67,10 +67,12 @@ if ( $data->{error} && $data->{error} eq 'on_reserve' && C4::Context->preference
     $data->{error} = undef;
 }
 
-if ( $data->{renew_okay} ) {
+if ( $data->{renew_okay} || ( $seen && $data->{error} eq 'too_unseen') ) {
     try{
         $date_due = AddRenewal( $borrowernumber, $itemnumber, $branchcode, $date_due, undef, undef, $seen );
         $data->{date_due} = output_pref( { dt => $date_due, as_due_date => 1 } );
+        $data->{renew_okay} = 1;
+        $data->{error} = undef;
     } catch {
         if ( ref($_) eq 'Koha::Exceptions::Checkout::FailedRenewal' ) {
             $data->{error} = 'renewal_failed';

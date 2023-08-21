@@ -2,17 +2,17 @@ package t::lib::TestBuilder;
 
 use Modern::Perl;
 
-use Koha::Database;
-use C4::Biblio;
-use C4::Items;
-use Koha::Biblios;
-use Koha::Items;
+use Koha::Database qw( schema );
+use C4::Biblio qw( AddBiblio );
+use Koha::Biblios qw( _type );
+use Koha::Items qw( _type );
 use Koha::DateUtils qw( dt_from_string );
 
 use Bytes::Random::Secure;
-use Carp;
-use Module::Load;
+use Carp qw( carp );
+use Module::Load qw( load );
 use String::Random;
+use Array::Utils qw( array_minus );
 
 use constant {
     SIZE_BARCODE => 20, # Not perfect but avoid to fetch the value when creating a new item
@@ -124,9 +124,16 @@ sub build {
     # loop thru all fk and create linked records if needed
     # fills remaining entries in $col_values
     my $foreign_keys = $self->_getForeignKeys( { source => $source } );
+    my $col_names = {};
     for my $fk ( @$foreign_keys ) {
         # skip when FK points to itself: e.g. borrowers:guarantorid
         next if $fk->{source} eq $source;
+
+        # If we have more than one FK on the same column, we only generate values for the first one
+        next
+          if scalar @{ $fk->{keys} } == 1
+          && exists $col_names->{ $fk->{keys}->[0]->{col_name} };
+
         my $keys = $fk->{keys};
         my $tbl = $fk->{source};
         my $res = $self->_create_links( $tbl, $keys, $col_values, $value );
@@ -134,6 +141,9 @@ sub build {
         foreach( keys %$res ) { # save new values
             $col_values->{$_} = $res->{$_};
         }
+
+        $col_names->{ $fk->{keys}->[0]->{col_name} } = 1
+          if scalar @{ $fk->{keys} } == 1
     }
 
     # store this record and return hashref
@@ -271,6 +281,10 @@ sub _buildColumnValues {
     my @columns = $self->schema->source($source)->columns;
     my %unique_constraints = $self->schema->source($source)->unique_constraints();
 
+    my @passed_keys = grep { ref($original_value->{$_}) ne 'HASH' } keys %$original_value;
+    my @minus = array_minus( @passed_keys, @columns );
+    die "Error: value hash contains unrecognized columns: ". (join ',', @minus) if @minus;
+
     my $build_value = 5;
     # we try max $build_value times if there are unique constraints
     BUILD_VALUE: while ( $build_value ) {
@@ -389,6 +403,11 @@ sub _buildColumnValue {
             return;
         }
         # otherwise: no need to assign a value
+    } elsif( !exists $value->{$col_name}
+           && exists $self->{default_values}{$source}{$col_name} ) {
+        my $v = $self->{default_values}{$source}{$col_name};
+        $v = &$v() if ref($v) eq 'CODE';
+        push @$retvalue, $v;
     } elsif( $col_info->{is_foreign_key} || _should_be_fk($source,$col_name) ) {
         if( exists $value->{$col_name} ) {
             if( !defined $value->{$col_name} && !$col_info->{is_nullable} ) {
@@ -412,10 +431,6 @@ sub _buildColumnValue {
             return;
         }
         push @$retvalue, $value->{$col_name};
-    } elsif( exists $self->{default_values}{$source}{$col_name} ) {
-        my $v = $self->{default_values}{$source}{$col_name};
-        $v = &$v() if ref($v) eq 'CODE';
-        push @$retvalue, $v;
     } else {
         my $data_type = $col_info->{data_type};
         $data_type =~ s| |_|;
@@ -434,14 +449,15 @@ sub _should_be_fk {
 # A column is not marked as FK, but a belongs_to relation is defined
     my ( $source, $column ) = @_;
     my $inconsistencies = {
-        'Item.biblionumber' => 1, #FIXME: Please remove me when I become FK
+        'Item.biblionumber'           => 1, #FIXME: Please remove me when I become FK
+        'CheckoutRenewal.checkout_id' => 1, #FIXME: Please remove when issues and old_issues are merged
     };
     return $inconsistencies->{ "$source.$column" };
 }
 
 sub _gen_type {
     return {
-        tinyint   => \&_gen_int,
+        tinyint   => \&_gen_bool,
         smallint  => \&_gen_int,
         mediumint => \&_gen_int,
         integer   => \&_gen_int,
@@ -471,6 +487,11 @@ sub _gen_type {
         longblob   => \&_gen_blob,
     };
 };
+
+sub _gen_bool {
+    my ($self, $params) = @_;
+    return int( rand(2) );
+}
 
 sub _gen_int {
     my ($self, $params) = @_;
@@ -548,16 +569,33 @@ sub _gen_blob {
 sub _gen_default_values {
     my ($self) = @_;
     return {
+        BackgroundJob => {
+            context => '{}'
+        },
         Borrower => {
             login_attempts => 0,
             gonenoaddress  => undef,
             lost           => undef,
             debarred       => undef,
             borrowernotes  => '',
+            secret         => undef,
+            password_expiration_date => undef,
         },
         Item => {
             notforloan         => 0,
             itemlost           => 0,
+            withdrawn          => 0,
+            restricted         => 0,
+            damaged            => 0,
+            materials          => undef,
+            more_subfields_xml => undef,
+        },
+        Branchtransfer => {
+            daterequested      => dt_from_string(),
+            datesent           => undef,
+            datearrived        => undef,
+            datecancelled      => undef,
+            reason             => undef,
             withdrawn          => 0,
             restricted         => 0,
             damaged            => 0,
@@ -576,7 +614,8 @@ sub _gen_default_values {
             pickup_location => 0,
         },
         Reserve => {
-            non_priority => 0,
+            non_priority  => 0,
+            item_group_id => undef,
         },
         Itemtype => {
             rentalcharge => 0,
@@ -589,6 +628,11 @@ sub _gen_default_values {
         Aqbookseller => {
             tax_rate => 0,
             discount => 0,
+            url  => undef,
+        },
+        Aqbudget => {
+            sort1_authcat => undef,
+            sort2_authcat => undef,
         },
         AuthHeader => {
             marcxml => '',
@@ -604,6 +648,20 @@ sub _gen_default_values {
             issue_id => undef, # It should be a FK but we removed it
                                # We don't want to generate a random value
         },
+        ImportItem => {
+            status => 'staged',
+            import_error => undef
+        },
+        SearchFilter => {
+            opac => 1,
+            staff_client => 1
+        },
+        ErmAgreement => {
+            status           => 'active',
+            closure_reason   => undef,
+            renewal_priority => undef,
+            vendor_id        => undef,
+          },
     };
 }
 

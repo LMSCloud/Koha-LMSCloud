@@ -52,13 +52,12 @@ The id of the supplier whose baskets we will display
 =cut
 
 use Modern::Perl;
-use C4::Auth;
-use C4::Biblio;
-use C4::Budgets;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Budgets qw( GetBudgetHierarchy GetBudget CanUserUseBudget );
+use C4::Output qw( output_html_with_http_headers );
 use CGI qw ( -utf8 );
 
-use C4::Acquisition qw/ GetBasketsInfosByBookseller CanUserManageBasket /;
+use C4::Acquisition qw( GetBasket GetBasketsInfosByBookseller CanUserManageBasket GetBasketgroup );
 use C4::Context;
 
 use Koha::Acquisition::Booksellers;
@@ -70,7 +69,6 @@ my ( $template, $loggedinuser, $cookie, $userflags ) = get_template_and_user(
         query           => $query,
         type            => 'intranet',
         flagsrequired   => { acquisition => '*' },
-        debug           => 1,
     }
 );
 
@@ -85,7 +83,7 @@ if ($booksellerid) {
 } else {
     @suppliers = Koha::Acquisition::Booksellers->search(
                         { name => { -like => "%$supplier%" } },
-                        { order_by => { -asc => 'name' } } );
+                        { order_by => { -asc => 'name' } } )->as_list;
 }
 
 my $supplier_count = @suppliers;
@@ -94,6 +92,7 @@ if ( $supplier_count == 1 ) {
         supplier_name => $suppliers[0]->name,
         booksellerid  => $suppliers[0]->id,
         basketcount   => $suppliers[0]->baskets->count,
+        subscriptionscount => $suppliers[0]->subscriptions->count,
         active        => $suppliers[0]->active,
     );
 }
@@ -151,6 +150,9 @@ for my $vendor (@suppliers) {
         booksellerid  => $vendor->id,
         name        => $vendor->name,
         active      => $vendor->active,
+        vendor_type => $vendor->type,
+        basketcount   => $vendor->baskets->count,
+        subscriptioncount => $vendor->subscriptions->count,
       };
 
 }

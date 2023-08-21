@@ -28,26 +28,18 @@ use utf8;
 
 use Modern::Perl;
 
-use Getopt::Long;
+use Getopt::Long qw( GetOptions );
 use Text::CSV;
 
 use Koha::Script;
 use C4::Context;
-use C4::Biblio;
+use C4::Biblio qw( ModBiblio );
 use C4::Koha qw( GetVariationsOfISBN );
 
 use Koha::Biblios;
 use Koha::Database;
 
 binmode STDOUT, ':encoding(UTF-8)';
-
-BEGIN {
-
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
 
 my $help;
 my $confirm;
@@ -153,7 +145,8 @@ while ( my $row = $csv->getline_hr($fh) ) {
 
     foreach my $biblionumber (@biblionumbers) {
         $counter++;
-        my $record = GetMarcBiblio({ biblionumber => $biblionumber });
+        my $biblio = Koha::Biblios->find($biblionumber);
+        my $record = $biblio->metadata->record;
 
         if ($verbose) {
             say "Found matching record! Biblionumber: $biblionumber";
@@ -203,7 +196,7 @@ while ( my $row = $csv->getline_hr($fh) ) {
             $record->append_fields($field);
         }
 
-        ModBiblio( $record, $biblionumber ) unless ( $test );
+        ModBiblio( $record, $biblionumber, undef, { overlay_context => { source => 'import_lexile' } } ) unless ( $test );
     }
 
 }

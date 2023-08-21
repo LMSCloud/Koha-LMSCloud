@@ -27,22 +27,18 @@ use constant DEFAULT_MESSAGES_PURGEDAYS           => 365;
 use constant DEFAULT_SEARCHHISTORY_PURGEDAYS      => 30;
 use constant DEFAULT_SHARE_INVITATION_EXPIRY_DAYS => 14;
 use constant DEFAULT_DEBARMENTS_PURGEDAYS         => 30;
-
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
+use constant DEFAULT_JOBS_PURGEDAYS               => 1;
+use constant DEFAULT_JOBS_PURGETYPES              => qw{ update_elastic_index };
 
 use Koha::Script -cron;
 use C4::Context;
 use C4::Search;
 use C4::Search::History;
-use Getopt::Long;
-use C4::Log;
-use C4::Accounts;
+use Getopt::Long qw( GetOptions );
+use C4::Log qw( cronlogaction );
+use C4::Accounts qw( purge_zero_balance_fees );
 use Koha::UploadedFiles;
+use Koha::BackgroundJobs;
 use Koha::Old::Biblios;
 use Koha::Old::Items;
 use Koha::Old::Biblioitems;
@@ -52,10 +48,11 @@ use Koha::Old::Patrons;
 use Koha::Item::Transfers;
 use Koha::PseudonymizedTransactions;
 use Koha::Patron::Messages;
+use Koha::Patron::Debarments qw( DelDebarment );
 
 sub usage {
     print STDERR <<USAGE;
-Usage: $0 [-h|--help] [--confirm] [--sessions] [--sessdays DAYS] [-v|--verbose] [--zebraqueue DAYS] [-m|--mail] [--merged] [--import DAYS] [--logs DAYS] [--searchhistory DAYS] [--restrictions DAYS] [--all-restrictions] [--fees DAYS] [--temp-uploads] [--temp-uploads-days DAYS] [--uploads-missing 0|1 ] [--statistics DAYS] [--deleted-catalog DAYS] [--deleted-patrons DAYS] [--old-issues DAYS] [--old-reserves DAYS] [--transfers DAYS] [--labels DAYS] [--cards DAYS]
+Usage: $0 [-h|--help] [--confirm] [--sessions] [--sessdays DAYS] [-v|--verbose] [--zebraqueue DAYS] [-m|--mail] [--merged] [--import DAYS] [--logs DAYS] [--searchhistory DAYS] [--restrictions DAYS] [--all-restrictions] [--fees DAYS] [--temp-uploads] [--temp-uploads-days DAYS] [--uploads-missing 0|1 ] [--statistics DAYS] [--deleted-catalog DAYS] [--deleted-patrons DAYS] [--old-issues DAYS] [--old-reserves DAYS] [--transfers DAYS] [--labels DAYS] [--cards DAYS] [--bg-days DAYS [--bg-type TYPE] ]
 
    -h --help          prints this help message, and exits, ignoring all
                       other options
@@ -80,6 +77,8 @@ Usage: $0 [-h|--help] [--confirm] [--sessions] [--sessdays DAYS] [-v|--verbose] 
                       amountoutstanding is 0 or NULL.
                       In the case of --fees, DAYS must be greater than
                       or equal to 1.
+   --log-modules      Specify which action log modules to trim. Repeatable.
+   --preserve-log     Specify which action logs to exclude. Repeatable.
    --logs DAYS        purge entries from action_logs older than DAYS days.
                       Defaults to 180 days if no days specified.
    --searchhistory DAYS  purge entries from search_history older than DAYS days.
@@ -88,7 +87,7 @@ Usage: $0 [-h|--help] [--confirm] [--sessions] [--sessdays DAYS] [-v|--verbose] 
                          days.  Defaults to 14 days if no days specified.
    --restrictions DAYS   purge patrons restrictions expired since more than DAYS days.
                          Defaults to 30 days if no days specified.
-    --all-restrictions   purge all expired patrons restrictions.
+   --all-restrictions   purge all expired patrons restrictions.
    --del-exp-selfreg  Delete expired self registration accounts
    --del-unv-selfreg  DAYS  Delete unverified self registrations older than DAYS
    --unique-holidays DAYS  Delete all unique holidays older than DAYS
@@ -109,7 +108,11 @@ Usage: $0 [-h|--help] [--confirm] [--sessions] [--sessdays DAYS] [-v|--verbose] 
                                     --pseudo-transactions-from YYYY-MM-DD and/or --pseudo-transactions-to YYYY-MM-DD
    --labels DAYS           Purge item label batches last added to more than DAYS days ago.
    --cards DAY             Purge card creator batches last added to more than DAYS days ago.
-
+   --return-claims         Purge all resolved return claims older than the number of days specified in
+                           the system preference CleanUpDatabaseReturnClaims.
+   --jobs-days DAYS        Purge all finished background jobs this many days old. Defaults to 1 if no DAYS provided.
+   --jobs-type TYPES       What type of background job to purge. Defaults to "update_elastic_index" if omitted
+                           Specifying "all" will purge all types. Repeatable.
 USAGE
     exit $_[0];
 }
@@ -129,6 +132,7 @@ my $pZ3950;
 my $pListShareInvites;
 my $pDebarments;
 my $allDebarments;
+my $return_claims;
 my $pExpSelfReg;
 my $pUnvSelfReg;
 my $fees_days;
@@ -148,6 +152,12 @@ my $pMessages;
 my $lock_days = C4::Context->preference('LockExpiredDelay');
 my $labels;
 my $cards;
+my @log_modules;
+my @preserve_logs;
+my $jobs_days;
+my @jobs_types;
+
+my $command_line_options = join(" ",@ARGV);
 
 GetOptions(
     'h|help'            => \$help,
@@ -161,6 +171,8 @@ GetOptions(
     'import:i'          => \$pImport,
     'z3950'             => \$pZ3950,
     'logs:i'            => \$pLogs,
+    'log-module:s'      => \@log_modules,
+    'preserve-log:s'    => \@preserve_logs,
     'messages:i'        => \$pMessages,
     'fees:i'            => \$fees_days,
     'searchhistory:i'   => \$pSearchhistory,
@@ -168,7 +180,7 @@ GetOptions(
     'restrictions:i'    => \$pDebarments,
     'all-restrictions'  => \$allDebarments,
     'del-exp-selfreg'   => \$pExpSelfReg,
-    'del-unv-selfreg'   => \$pUnvSelfReg,
+    'del-unv-selfreg:i' => \$pUnvSelfReg,
     'unique-holidays:i' => \$special_holidays_days,
     'temp-uploads'      => \$temp_uploads,
     'temp-uploads-days:i' => \$temp_uploads_days,
@@ -185,6 +197,9 @@ GetOptions(
     'pseudo-transactions-to:s'   => \$pPseudoTransactionsTo,
     'labels'            => \$labels,
     'cards'             => \$cards,
+    'return-claims'     => \$return_claims,
+    'jobs-type:s'       => \@jobs_types,
+    'jobs-days:i'       => \$jobs_days,
 ) || usage(1);
 
 # Use default values
@@ -197,6 +212,8 @@ $pSearchhistory    = DEFAULT_SEARCHHISTORY_PURGEDAYS      if defined($pSearchhis
 $pListShareInvites = DEFAULT_SHARE_INVITATION_EXPIRY_DAYS if defined($pListShareInvites) && $pListShareInvites == 0;
 $pDebarments       = DEFAULT_DEBARMENTS_PURGEDAYS         if defined($pDebarments)       && $pDebarments == 0;
 $pMessages         = DEFAULT_MESSAGES_PURGEDAYS           if defined($pMessages)         && $pMessages == 0;
+$jobs_days         = DEFAULT_JOBS_PURGEDAYS               if defined($jobs_days)         && $jobs_days == 0;
+@jobs_types        = (DEFAULT_JOBS_PURGETYPES)            if $jobs_days                  && @jobs_types == 0;
 
 if ($help) {
     usage(0);
@@ -233,6 +250,8 @@ unless ( $sessions
     || defined $lock_days && $lock_days ne q{}
     || $labels
     || $cards
+    || $return_claims
+    || $jobs_days
 ) {
     print "You did not specify any cleanup work for the script to do.\n\n";
     usage(1);
@@ -245,7 +264,7 @@ if ($pDebarments && $allDebarments) {
 
 say "Confirm flag not passed, running in dry-run mode..." unless $confirm;
 
-cronlogaction() unless $confirm;
+cronlogaction({ info => $command_line_options });
 
 my $dbh = C4::Context->dbh();
 my $sth;
@@ -339,14 +358,22 @@ if ($pZ3950) {
 
 if ($pLogs) {
     print "Purging records from action_logs.\n" if $verbose;
-    $sth = $dbh->prepare(
-        q{
+    my $log_query = q{
             DELETE FROM action_logs
             WHERE timestamp < date_sub(curdate(), INTERVAL ? DAY)
-        }
-    );
+    };
+    my @query_params = ();
+    if( @preserve_logs ){
+        $log_query .= " AND module NOT IN (" . join(',',('?') x @preserve_logs ) . ")";
+        push @query_params, @preserve_logs;
+    }
+    if( @log_modules ){
+        $log_query .= " AND module IN (" . join(',',('?') x @log_modules ) . ")";
+        push @query_params, @log_modules;
+    }
+    $sth = $dbh->prepare( $log_query );
     if ( $confirm ) {
-        $sth->execute($pLogs) or die $dbh->errstr;
+        $sth->execute($pLogs, @query_params) or die $dbh->errstr;
     }
     print "Done with purging action_logs.\n" if $verbose;
 }
@@ -526,6 +553,26 @@ if ($pStatistics) {
     }
 }
 
+if( $return_claims && ( my $days = C4::Context->preference('CleanUpDatabaseReturnClaims') )) {
+    print "Purging return claims older than $days days.\n" if $verbose;
+
+    $return_claims = Koha::Checkouts::ReturnClaims->filter_by_last_update(
+        {
+            timestamp_column_name => 'resolved_on',
+            days => $days,
+        }
+    );
+
+    my $count = $return_claims->count;
+    $return_claims->delete if $confirm;
+
+    if ($verbose) {
+        say $confirm
+            ? sprintf "Done with purging %d resolved return claims.", $count
+            : sprintf "%d resolved return claims would have been purged.", $count;
+    }
+}
+
 if ($pDeletedCatalog) {
     print "Purging deleted catalog older than $pDeletedCatalog days.\n"
       if $verbose;
@@ -577,7 +624,7 @@ if ($pOldReserves) {
     print "Purging old reserves older than $pOldReserves days.\n" if $verbose;
     my $old_reserves = Koha::Old::Holds->filter_by_last_update( { days => $pOldReserves } );
     my $count = $old_reserves->count;
-    $old_reserves->delete if $verbose;
+    $old_reserves->delete if $confirm;
     if ($verbose) {
         say $confirm
           ? sprintf "Done with purging %d old reserves.", $count
@@ -594,7 +641,7 @@ if ($pTransfers) {
         }
     );
     my $count = $transfers->count;
-    $transfers->delete if $verbose;
+    $transfers->delete if $confirm;
     if ($verbose) {
         say $confirm
           ? sprintf "Done with purging %d transfers.", $count
@@ -640,6 +687,33 @@ if ($cards) {
           : sprintf "%d card creator batches would have been purged.", $count;
     }
 }
+
+if ($jobs_days) {
+    print "Purging background jobs more than $jobs_days days ago.\n"
+      if $verbose;
+    my $jobs = Koha::BackgroundJobs->search(
+        {
+            status => 'finished',
+            ( $jobs_types[0] eq 'all' ? () : ( type => \@jobs_types ) )
+        }
+    )->filter_by_last_update(
+        {
+            timestamp_column_name => 'ended_on',
+            days => $jobs_days,
+        }
+    );
+    my $count = $jobs->count;
+    $jobs->delete if $confirm;
+    if ($verbose) {
+        say $confirm
+          ? sprintf "Done with purging %d background jobs of type(s): %s added more than %d days ago.\n",
+          $count, join( ',', @jobs_types ), $jobs_days
+          : sprintf "%d background jobs of type(s): %s added more than %d days ago would have been purged.",
+          $count, join( ',', @jobs_types ), $jobs_days;
+    }
+}
+
+cronlogaction({ action => 'End', info => "COMPLETED" });
 
 exit(0);
 
@@ -776,3 +850,4 @@ sub DeleteSpecialHolidays {
     my $count = $sth->execute( $days ) + 0;
     print "Removed $count unique holidays\n" if $verbose;
 }
+

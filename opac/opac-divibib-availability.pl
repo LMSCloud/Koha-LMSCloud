@@ -32,8 +32,7 @@ use warnings;
 use CGI qw ( -utf8 );
 
 use C4::Context;
-use C4::Debug;
-use C4::Output qw(:html :ajax pagination_bar);
+use C4::Output qw(output_ajax_with_http_headers);
 use C4::Divibib::NCIPService;
 
 use JSON;

@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE AuthorisedValues %]
 [% USE Branches %]
 [% USE ItemTypes %]
@@ -8,24 +9,20 @@
     [% INCLUDE 'calendar.inc' %]
 </head>
 <body id="ser_subscription-batchedit" class="ser">
-    [% INCLUDE 'header.inc' %]
+    [% WRAPPER 'header.inc' %]
     [% INCLUDE 'serials-search.inc' %]
+[% END %]
 
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-        <ol>
-            <li>
-                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-            </li>
-            <li>
+    [% WRAPPER 'sub-header.inc' %]
+        [% WRAPPER breadcrumbs %]
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/serials/serials-home.pl">Serials</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Batch edit
-                </a>
-            </li>
-        </ol>
-    </nav>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Batch edit</span>
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
+    [% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -34,7 +31,7 @@
 
                     <h1>Subscription batch edit</h1>
 
-                    <div>
+                    <div class="page-section">
                         <p>You are about to edit the following subscriptions:</p>
                         <table>
                             <thead>
@@ -142,7 +139,7 @@
                                 </li>
                                 <li>
                                     <label for="enddate">Expiration date: </label>
-                                    <input type="text" class="datepicker" id="enddate" name="enddate" placeholder="No change"/>
+                                    <input type="text" class="flatpickr" id="enddate" name="enddate" placeholder="No change"/>
                                 </li>
                                 [% FOREACH field IN additional_fields %]
                                     <li>
@@ -163,7 +160,7 @@
                         </fieldset>
 
                         <fieldset class="action">
-                            <button type="submit" name="batchedit" value="1">Save</button>
+                            <button type="submit" name="batchedit" class="btn btn-primary" value="1">Save</button>
                             <a class="cancel" href="[% referrer | url %]">Cancel</a>
                         </fieldset>
                     </form>

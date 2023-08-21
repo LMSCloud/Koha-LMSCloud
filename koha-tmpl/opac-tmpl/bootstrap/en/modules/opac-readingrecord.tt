@@ -2,17 +2,17 @@
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE TablesSettings %]
+[% USE AdditionalContents %]
+[% USE Asset %]
+[% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Your checkout history &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% BLOCK cssinclude %]
-    <style>ul.ui-tabs-nav li a, ul.ui-tabs-nav li span.a  { padding:0.6em 1em; }</style>
-[% END %]
+[% BLOCK cssinclude %][% END %]
 </head>
 [% INCLUDE 'bodytag.inc' bodyid='opac-readingrecord' %]
 [% INCLUDE 'masthead.inc' %]
-[% SET AdlibrisEnabled = Koha.Preference('AdlibrisCoversEnabled') %]
-[% SET AdlibrisURL = Koha.Preference('AdlibrisCoversURL') %]
 
 [% IF Koha.Preference('AmazonAssocTag') %]
     [% AmazonAssocTag = '?tag=' _ Koha.Preference('AmazonAssocTag') %]
@@ -21,19 +21,19 @@
 [% END %]
 
 <div class="main">
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
+    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
+        <ol class="breadcrumb">
             <li class="breadcrumb-item">
                 <a href="/cgi-bin/koha/opac-main.pl">Home</a>
             </li>
             <li class="breadcrumb-item">
                 <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
             </li>
-            <li class="breadcrumb-item" aria-current="page">
-                <a href="#">Your checkout history</a>
+            <li class="breadcrumb-item active">
+                <a href="#" aria-current="page">Your checkout history</a>
             </li>
-        </ul>
-    </nav>
+        </ol>
+    </nav> <!-- /#breadcrumbs -->
 
     <div class="container-fluid">
         <div class="row">
@@ -75,14 +75,21 @@
                             [% END %]
 
                             [% IF Koha.Preference( 'OnSiteCheckouts' ) == 1 %]
-                            <div id="tabs" class="toptabs">
-                                <ul class="js-show">
-                                    <li id="tab_all"><a href="#tabs-container">All</a></li>
-                                    <li id="tab_checkout"><a href="#tabs-container">Checkouts</a></li>
-                                    <li id="tab_onsite_checkout"><a href="#tabs-container">On-site checkouts</a></li>
-                                </ul>
+                                <div id="tabs" class="toptabs">
+                                    <ul class="nav nav-tabs" role="tablist">
+                                        <li class="nav-item" role="presentation">
+                                            <a id="tab_all" class="nav-link active" data-toggle="tab" role="tab" aria-controls="tabs-container" aria-selected="true"  href="#tabs-container">All</a>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <a id="tab_checkout" class="nav-link" data-toggle="tab" role="tab" aria-controls="tabs-container" aria-selected="false"  href="#tabs-container">Checkouts</a>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <a id="tab_onsite_checkout" class="nav-link" data-toggle="tab" role="tab" aria-controls="tabs-container" aria-selected="false"  href="#tabs-container">On-site checkouts</a>
+                                        </li>
+                                    </ul>
+                                    <div class="tab-content">
                             [% END %]
-                                <div id="tabs-container" style="overflow:hidden">
+                                <div class="tab-pane active" role="tabpanel" id="tabs-container">
                                     <table id="readingrec" class="table table-bordered table-striped">
                                         <caption class="sr-only">Checkout history</caption>
                                         <thead>
@@ -92,6 +99,7 @@
                                                 <th class="anti-the">Title</th>
                                                 <th>Item type</th>
                                                 <th>Call number</th>
+                                                <th>Vol info</th>
                                                 <th>Date</th>
                                                 [% IF ( OPACMySummaryHTML ) %]
                                                     <th class="NoSort noExport">Links</th>
@@ -108,16 +116,6 @@
                                                       [% issuetype | html %]
                                                     </td>
                                                 <td>
-                                                    [% IF ( AdlibrisEnabled && issue.normalized_isbn ) %]
-                                                        [% IF issue.BiblioDefaultViewmarc %]
-                                                            <a href="/cgi-bin/koha/opac-MARCdetail.pl?biblionumber=[% issue.biblionumber |url %]">
-                                                        [% ELSIF issue.BiblioDefaultViewisbd %]
-                                                            <a href="/cgi-bin/koha/opac-ISBDdetail.pl?biblionumber=[% issue.biblionumber |url %]">
-                                                        [% ELSE %]
-                                                            <a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% issue.biblionumber |url %]">
-                                                        [% END %]
-                                                        <img src="[% AdlibrisURL | html %]?isbn=[% issue.normalized_isbn | html %]" class="adlibris-cover" alt="Adlibris cover image" /></a>
-                                                    [% END %]
                                                     [% IF  OPACAmazonCoverImages %]
                                                         [% IF  issue.normalized_isbn %]
                                                             <a href="http://www.amazon.com/gp/reader/[% issue.normalized_isbn | uri %][% AmazonAssocTag | uri %]#reader-link"><img src="https://images-na.ssl-images-amazon.com/images/P/[% issue.normalized_isbn | html %].01.THUMBZZZ.jpg" alt="" class="item-thumbnail" /></a>
@@ -148,17 +146,11 @@
                                                 [% END %]
 
                                                 [% IF SyndeticsEnabled && SyndeticsCoverImages %]
-                                                    <img src="https://secure.syndetics.com/index.aspx?isbn=[% issue.normalized_isbn | html %]/SC.GIF&amp;client=[% SyndeticsClientCode | html %]&amp;type=xw10&amp;upc=[% issue.normalized_upc | html %]&amp;oclc=[% issue.normalized_oclc | html %]" alt="" class="item-thumbnail" />
+                                                    <img src="https://secure.syndetics.com/index.aspx?isbn=[% issue.normalized_isbn | html %]/[% SyndeticsCoverImageSize | uri %].GIF&amp;client=[% SyndeticsClientCode | html %]&amp;type=xw10&amp;upc=[% issue.normalized_upc | html %]&amp;oclc=[% issue.normalized_oclc | html %]" alt="" class="item-thumbnail" />
                                                 [% END %]
                                                 </td>
                                                 <td>
-                                                [% IF  issue.BiblioDefaultViewmarc %]
-                                                     <a class="title" href="/cgi-bin/koha/opac-MARCdetail.pl?biblionumber=[% issue.biblionumber |url %]">[% INCLUDE 'biblio-title.inc' biblio=issue %]</a>
-                                                [% ELSIF issue.BiblioDefaultViewisbd %]
-                                                     <a class="title" href="/cgi-bin/koha/opac-ISBDdetail.pl?biblionumber=[% issue.biblionumber |url %]">[% INCLUDE 'biblio-title.inc' biblio=issue %]</a>
-                                                [% ELSE %]
-                                                     <a class="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% issue.biblionumber |url %]">[% INCLUDE 'biblio-title.inc' biblio=issue %]</a>
-                                                [% END %]
+                                                [% INCLUDE 'biblio-title.inc' biblio=issue, link => 1 %]
                                                 <p class="results-summary item-details">[% issue.author | html %]</p>
 
                                                     [% IF ( Koha.Preference( 'OpacStarRatings' ) == 'all' ) %]
@@ -172,11 +164,16 @@
                                                         <img src="[% issue.imageurl | html %]" alt="" />
                                                     [% END %]
                                                 [% END %]
-                                                <span class="tdlabel">Item type:</span>
-                                                [% issue.translated_description | html %]</td>
+                                                <span class="itypetext"><span class="tdlabel">Item type:</span>
+                                                [% issue.translated_description | html %]</span></td>
                                                 <td>
                                                 <span class="tdlabel">Call number:</span>
                                                 [% issue.itemcallnumber | html %]
+                                                </td>
+                                                <td>
+                                                    [% IF issue.enumchron %]
+                                                        [% issue.enumchron | html %]
+                                                    [% END %]
                                                 </td>
                                                 [% IF issue.returndate %]
                                                     <td data-order="[% issue.returndate | html %]">
@@ -196,6 +193,7 @@
                                     </table>
                                 </div> <!-- / .tabs-container -->
                             [% IF ( Koha.Preference( 'OnSiteCheckouts' ) == 1 ) %]
+                                    </div> <!-- /.tab-content -->
                                 </div> <!-- /#tabs -->
                             [% END %]
                         </div> <!-- / .opac-user-readingrec -->
@@ -227,22 +225,17 @@
             }
         }, columns_settings);
 
-        var tabs = $("#tabs").tabs({
-            activate: function(e, ui) {
-                var id = $(ui.newTab).attr("id");
-                if ( id == "tab_checkout" ) {
-                    table.fnFilter("standard_checkout", 0);
-                } else if ( id == "tab_onsite_checkout" ) {
-                    table.fnFilter("onsite_checkout", 0);
-                } else { // all
-                    table.fnFilter('', 0);
-                }
+        $("#tabs a[data-toggle='tab']").on("shown.bs.tab", function (e) {
+            var id = e.target.id;
+            if ( id == "tab_checkout" ) {
+                table.fnFilter("standard_checkout", 0);
+            } else if ( id == "tab_onsite_checkout" ) {
+                table.fnFilter("onsite_checkout", 0);
+            } else { // all
+                table.fnFilter('', 0);
             }
         });
     });
-    var borrowernumber = "[% logged_in_user.borrowernumber | html %]";
-    var MSG_YOUR_RATING = _("Your rating: %s, ");
-    var MSG_AVERAGE_RATING = _("Average rating: %s (%s votes)");
 </script>
     [% IF ( Koha.Preference('OpacStarRatings') == 'all' ) %]
         [% Asset.js("lib/jquery/plugins/jquery.barrating.min.js") | $raw %]

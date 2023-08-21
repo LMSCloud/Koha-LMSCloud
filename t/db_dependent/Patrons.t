@@ -22,7 +22,7 @@ use Test::Warn;
 
 use C4::Context;
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 
 use t::lib::Dates;
 use t::lib::TestBuilder;
@@ -81,7 +81,7 @@ $b3_new->set({ firstname => 'Some first name for Test 3' })->store();
 $b3_new = Koha::Patrons->find( $b3->borrowernumber() );
 is( t::lib::Dates::compare( $b3_new->updated_on, $now), 0, "borrowers.updated_on should have been set to now on updating" );
 
-my @patrons = Koha::Patrons->search( { branchcode => $branchcode } );
+my @patrons = Koha::Patrons->search( { branchcode => $branchcode } )->as_list;
 is( @patrons, 3, "Found 3 patrons with Search" );
 
 my $unexistent = Koha::Patrons->find( '1234567890' );
@@ -106,19 +106,22 @@ foreach my $b ( $patrons->as_list() ) {
 }
 
 subtest "Update patron categories" => sub {
-    plan tests => 24;
+    plan tests => 26;
     t::lib::Mocks::mock_preference( 'borrowerRelationship', 'test' );
     my $c_categorycode = $builder->build({ source => 'Category', value => {
             category_type=>'C',
             upperagelimit=>17,
             dateofbirthrequired=>5,
+            can_be_guarantee=>1,
         } })->{categorycode};
     my $c_categorycode_2 = $builder->build({ source => 'Category', value => {
             category_type=>'C',
             upperagelimit=>17,
             dateofbirthrequired=>5,
+            can_be_guarantee=>1,
         } })->{categorycode};
-    my $a_categorycode = $builder->build({ source => 'Category', value => {category_type=>'A'} })->{categorycode};
+    my $a_categorycode = $builder->build({ source => 'Category', value => {category_type=>'A', can_be_guarantee=>0} })->{categorycode};
+    my $a_categorycode_2 = $builder->build({ source => 'Category', value => {category_type=>'A', can_be_guarantee=>1} })->{categorycode};
     my $p_categorycode = $builder->build({ source => 'Category', value => {category_type=>'P'} })->{categorycode};
     my $i_categorycode = $builder->build({ source => 'Category', value => {category_type=>'I'} })->{categorycode};
     my $branchcode1 = $builder->build({ source => 'Branch' })->{branchcode};
@@ -202,6 +205,8 @@ subtest "Update patron categories" => sub {
     is( Koha::Patrons->search_patrons_to_update_category({from=>$c_categorycode_2,too_old=>1})->next->borrowernumber, $child3->borrowernumber );
     is( Koha::Patrons->search_patrons_to_update_category({from=>$c_categorycode_2,too_old=>1})->update_category_to({category=>$a_categorycode}),1,'One child patron updated to adult category because too old');
     is( Koha::Patrons->find($adult1->borrowernumber)->guarantee_relationships->guarantees->count,1,'Guarantee was removed when made adult');
+    is( Koha::Patrons->search_patrons_to_update_category({from=>$c_categorycode_2})->update_category_to({category=>$a_categorycode_2}),1,'Two child patrons updated to adult category');
+    is( Koha::Patrons->find($adult1->borrowernumber)->guarantee_relationships->guarantees->count,1,'Guarantees were not removed when made adult which can be guarantee');
 
     is( Koha::Patrons->find($inst->borrowernumber)->guarantee_relationships->guarantees->count,1,'Guarantor has 1 guarantees');
     is( Koha::Patrons->search_patrons_to_update_category({from=>$p_categorycode})->update_category_to({category=>$a_categorycode}),1,'One professional patron updated to adult category');

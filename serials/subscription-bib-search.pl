@@ -1,5 +1,4 @@
 #!/usr/bin/perl
-# WARNING: 4-character tab stops here
 
 # Copyright 2000-2002 Katipo Communications
 # Parts Copyright 2010 Biblibre
@@ -49,13 +48,12 @@ to multipage gestion.
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Koha;
-use C4::Auth;
+use C4::Koha qw( GetAuthorisedValues );
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
-use C4::Search;
-use C4::Biblio;
-use C4::Debug;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Search qw( new_record_from_zebra );
+use C4::Biblio qw( TransformMarcToKoha );
 
 use Koha::ItemTypes;
 use Koha::SearchEngine;
@@ -84,17 +82,15 @@ if ( $op eq "do_search" && $query ) {
             query           => $input,
             type            => "intranet",
             flagsrequired   => { catalogue => 1, serials => '*' },
-            debug           => 1,
         }
     );
 
     # add the limits if applicable
     my $itemtypelimit = $input->param('itemtypelimit');
     my $ccodelimit    = $input->param('ccodelimit');
-    my $op = 'and';
+    my $op = 'AND';
     $query .= " $op $itype_or_itemtype:$itemtypelimit" if $itemtypelimit;
     $query .= " $op ccode:$ccodelimit" if $ccodelimit;
-    $debug && warn $query;
     $resultsperpage = $input->param('resultsperpage');
     $resultsperpage = 20 if ( !defined $resultsperpage );
 
@@ -117,7 +113,7 @@ if ( $op eq "do_search" && $query ) {
     for ( my $i = 0 ; $i < $total ; $i++ ) {
         my %resultsloop;
         my $marcrecord = C4::Search::new_record_from_zebra( 'biblioserver', $marcrecords->[$i] );
-        my $biblio = TransformMarcToKoha( $marcrecord, '' );
+        my $biblio = TransformMarcToKoha({ record => $marcrecord });
 
         #build the hash for the template.
         $resultsloop{highlight}       = ( $i % 2 ) ? (1) : (0);
@@ -192,7 +188,6 @@ else {
             query           => $input,
             type            => "intranet",
             flagsrequired   => { catalogue => 1, serials => '*' },
-            debug           => 1,
         }
     );
 
@@ -236,7 +231,3 @@ else {
 
 # Print the page
 output_html_with_http_headers $input, $cookie, $template->output;
-
-# Local Variables:
-# tab-width: 4
-# End:

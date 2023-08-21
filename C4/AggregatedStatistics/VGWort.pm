@@ -23,8 +23,8 @@ use warnings;
 use CGI qw ( -utf8 );
 use Data::Dumper;
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 
 use Koha::ItemTypes;
 use Koha::Library::Groups;
@@ -263,12 +263,12 @@ sub read_categories_branches_and_itemtypes {
     
     # read library categories into variable @categories
     my @categories = ();
-    for my $category ( Koha::Library::Groups->get_search_groups( { interface => 'staff' } ) ) {    # fields used in template: category.id and category.categoryname
+    for my $category ( Koha::Library::Groups->get_search_groups( { interface => 'staff' } )->as_list ) {    # fields used in template: category.id and category.categoryname
         push @categories, { categorycode => $category->id, categoryname => $category->title };
     }
 
     # read branch information into variable @branchloop
-    my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search };
+    my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search->as_list };
     my @branchloop = ();
     for my $loopbranch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
         push @branchloop, {
@@ -382,7 +382,7 @@ sub eval_form {
     my $fromDate;
     my $toDate;
     my $libraryGroup = undef;
-    my $library = undef;
+    $library = undef;
     my $exportData = [];
 
     my $aggregatedStatisticsId = $self->{id};

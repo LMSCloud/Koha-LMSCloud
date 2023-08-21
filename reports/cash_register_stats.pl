@@ -16,17 +16,15 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use CGI;
 use C4::Context;
-use C4::Reports;
-use C4::Output;
-use C4::Koha;
-use C4::Circulation;
+use C4::Reports qw( GetDelimiterChoices );
+use C4::Output qw( output_html_with_http_headers );
 use DateTime;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Text::CSV::Encoded;
-use List::Util qw/any/;
+use List::Util qw( any );
 
 use Koha::Account::CreditTypes;
 use Koha::Account::DebitTypes;
@@ -39,7 +37,6 @@ my ($template, $borrowernumber, $cookie) = get_template_and_user({
     query => $input,
     type => "intranet",
     flagsrequired => {reports => '*'},
-    debug => 1,
 });
 
 my $do_it            = $input->param('do_it');
@@ -54,8 +51,8 @@ $template->param(
 );
 
 #Initialize date pickers to today
-my $fromDate = dt_from_string;
-my $toDate   = dt_from_string;
+my $fromDate = $input->param("from") || dt_from_string;
+my $toDate   = $input->param("to")   || dt_from_string;
 
 my @debit_types =
   Koha::Account::DebitTypes->search()->as_list;
@@ -65,10 +62,6 @@ my $registerid;
 
 if ($do_it) {
 
-    $fromDate = output_pref({ dt => eval { dt_from_string(scalar $input->param("from")) } || dt_from_string,
-            dateformat => 'sql', dateonly => 1 }); #for sql query
-    $toDate   = output_pref({ dt => eval { dt_from_string(scalar $input->param("to")) } || dt_from_string,
-            dateformat => 'sql', dateonly => 1 }); #for sql query
 
     my $whereTType = q{};
     my @extra_params; # if we add conditions to the select we need extra params
@@ -111,7 +104,8 @@ if ($do_it) {
         FROM accountlines al
         LEFT JOIN borrowers bo ON (al.borrowernumber = bo.borrowernumber)
         LEFT JOIN borrowers m ON (al.manager_id = m.borrowernumber)
-        LEFT JOIN branches br ON (br.branchcode = m.branchcode )
+        LEFT JOIN cash_registers cr ON (al.register_id = cr.id)
+        LEFT JOIN branches br ON (br.branchcode = cr.branch)
         LEFT JOIN items i ON (i.itemnumber = al.itemnumber)
         LEFT JOIN biblio bi ON (bi.biblionumber = i.biblionumber)
         LEFT JOIN account_credit_types act ON (al.credit_type_code = act.code)
@@ -159,7 +153,7 @@ if ($do_it) {
         my $format = 'csv';
         my $reportname = $input->param('basename');
         my $reportfilename = $reportname ? "$reportname.$format" : "reportresults.$format" ;
-        my $delimiter = C4::Context->preference('CSVDelimiter') || ',';
+        my $delimiter = C4::Context->csv_delimiter;
             my @rows;
             foreach my $row (@loopresult) {
                 my @rowValues;

@@ -27,20 +27,13 @@ longoverdue.pl  cron script to set lost statuses on overdue materials.
 
 use strict;
 use warnings;
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
 
-use Getopt::Long;
-use Pod::Usage;
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 
-use C4::Circulation qw/LostItem MarkIssueReturned/;
+use C4::Circulation qw( LostItem MarkIssueReturned );
 use C4::Context;
-use C4::Items;
-use C4::Log;
+use C4::Log qw( cronlogaction );
 use Koha::ItemTypes;
 use Koha::Patron::Categories;
 use Koha::Patrons;
@@ -59,6 +52,8 @@ my $man=0;
 my $list_categories = 0;
 my $list_itemtypes = 0;
 my @skip_lost_values;
+
+my $command_line_options = join(" ",@ARGV);
 
 GetOptions(
     'l|lost=s%'         => \$lost,
@@ -285,7 +280,7 @@ unless ($confirm) {
     print "### TEST MODE -- NO ACTIONS TAKEN ###\n";
 }
 
-cronlogaction();
+cronlogaction({ info => $command_line_options });
 
 # In my opinion, this line is safe SQL to have outside the API. --atz
 our $bounds_sth = C4::Context->dbh->prepare("SELECT DATE_SUB(CURDATE(), INTERVAL ? DAY)");
@@ -450,3 +445,5 @@ if (!$quiet){
     summarize (\@report, 1);
     print "\nTOTAL: $total items\n";
 }
+
+cronlogaction({ action => 'End', info => "COMPLETED" });

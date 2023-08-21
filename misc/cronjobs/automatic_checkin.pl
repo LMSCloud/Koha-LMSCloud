@@ -20,8 +20,12 @@
 use Modern::Perl;
 use Koha::Checkouts;
 use Koha::Script -cron;
-use C4::Log;
+use C4::Log qw( cronlogaction );
 
-cronlogaction();
+my $command_line_options = join(" ",@ARGV);
+cronlogaction({ info => $command_line_options });
 
 Koha::Checkouts->automatic_checkin;
+
+cronlogaction({ action => 'End', info => "COMPLETED" });
+

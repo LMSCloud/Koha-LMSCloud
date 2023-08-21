@@ -43,10 +43,9 @@ __PACKAGE__->table("account_offsets");
 
 =head2 type
 
-  data_type: 'varchar'
-  is_foreign_key: 1
+  data_type: 'enum'
+  extra: {list => ["CREATE","APPLY","VOID","OVERDUE_INCREASE","OVERDUE_DECREASE"]}
   is_nullable: 0
-  size: 16
 
 =head2 amount
 
@@ -71,7 +70,19 @@ __PACKAGE__->add_columns(
   "debit_id",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "type",
-  { data_type => "varchar", is_foreign_key => 1, is_nullable => 0, size => 16 },
+  {
+    data_type => "enum",
+    extra => {
+      list => [
+        "CREATE",
+        "APPLY",
+        "VOID",
+        "OVERDUE_INCREASE",
+        "OVERDUE_DECREASE",
+      ],
+    },
+    is_nullable => 0,
+  },
   "amount",
   { data_type => "decimal", is_nullable => 0, size => [26, 6] },
   "created_on",
@@ -137,24 +148,9 @@ __PACKAGE__->belongs_to(
   },
 );
 
-=head2 type
 
-Type: belongs_to
-
-Related object: L<Koha::Schema::Result::AccountOffsetType>
-
-=cut
-
-__PACKAGE__->belongs_to(
-  "type",
-  "Koha::Schema::Result::AccountOffsetType",
-  { type => "type" },
-  { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
-);
-
-
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-04-19 10:45:36
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:CqaZ4hU5qgexo0JeL6YWaw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-06-21 15:27:32
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:zCeE/SWvdz898zlfcvfRGg
 
 sub koha_object_class {
     'Koha::Account::Offset';

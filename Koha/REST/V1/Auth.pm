@@ -38,10 +38,10 @@ use Koha::Exceptions;
 use Koha::Exceptions::Authentication;
 use Koha::Exceptions::Authorization;
 
-use MIME::Base64;
+use MIME::Base64 qw( decode_base64 );
 use Module::Load::Conditional;
 use Scalar::Util qw( blessed );
-use Try::Tiny;
+use Try::Tiny qw( catch try );
 
 =head1 NAME
 
@@ -81,8 +81,8 @@ sub under {
                 "Configuration prevents the usage of this endpoint by unprivileged users");
         }
 
-        if ( $c->req->url->to_abs->path eq '/api/v1/oauth/token' ) {
-            # Requesting a token shouldn't go through the API authenticaction chain
+        if ( $c->req->url->to_abs->path =~ m#^/api/v1/oauth/# || $c->req->url->to_abs->path =~ m#^/api/v1/public/oauth/#) {
+            # Requesting OAuth endpoints shouldn't go through the API authentication chain
             $status = 1;
         }
         elsif ( $namespace eq '' or $namespace eq '.html' ) {
@@ -149,12 +149,15 @@ sub authenticate_api_request {
 
     my $user;
 
+    $c->stash( 'is_public' => 1 )
+        if $params->{is_public};
+
     # The following supports retrieval of spec with Mojolicious::Plugin::OpenAPI@1.17 and later (first one)
     # and older versions (second one).
     # TODO: remove the latter 'openapi.op_spec' if minimum version is bumped to at least 1.17.
     my $spec = $c->openapi->spec || $c->match->endpoint->pattern->defaults->{'openapi.op_spec'};
 
-    $c->stash_embed({ spec => $spec });
+    $c->stash_embed( { spec => $spec } );
     $c->stash_overrides();
 
     my $cookie_auth = 0;
@@ -216,36 +219,75 @@ sub authenticate_api_request {
         # Mojo doesn't use %ENV the way CGI apps do
         # Manually pass the remote_address to check_auth_cookie
         my $remote_addr = $c->tx->remote_address;
-        my ($status, $sessionID) = check_cookie_auth(
+        my ($status, $session) = check_cookie_auth(
                                                 $cookie, undef,
                                                 { remote_addr => $remote_addr });
-        if ($status eq "ok") {
-            my $session = get_session($sessionID);
-            $user = Koha::Patrons->find( $session->param('number') );
-            $cookie_auth = 1;
+
+        if ( $c->req->url->to_abs->path eq '/api/v1/auth/otp/token_delivery' ) {
+            if ( $status eq 'additional-auth-needed' ) {
+                $user        = Koha::Patrons->find( $session->param('number') );
+                $cookie_auth = 1;
+            }
+            elsif ( $status eq 'ok' ) {
+                Koha::Exceptions::Authentication->throw(
+                    error => 'Cannot request a new token.' );
+            }
+            else {
+                Koha::Exceptions::Authentication::Required->throw(
+                    error => 'Authentication failure.' );
+            }
         }
-        elsif ($status eq "anon") {
-            $cookie_auth = 1;
-        }
-        elsif ($status eq "maintenance") {
-            Koha::Exceptions::UnderMaintenance->throw(
-                error => 'System is under maintenance.'
-            );
-        }
-        elsif ($status eq "expired" and $authorization) {
-            Koha::Exceptions::Authentication::SessionExpired->throw(
-                error => 'Session has been expired.'
-            );
-        }
-        elsif ($status eq "failed" and $authorization) {
-            Koha::Exceptions::Authentication::Required->throw(
-                error => 'Authentication failure.'
-            );
-        }
-        elsif ($authorization) {
-            Koha::Exceptions::Authentication->throw(
-                error => 'Unexpected authentication status.'
-            );
+        elsif (  $c->req->url->to_abs->path eq '/api/v1/auth/two-factor/registration'
+              || $c->req->url->to_abs->path eq '/api/v1/auth/two-factor/registration/verification' ) {
+
+            if ( $status eq 'setup-additional-auth-needed' ) {
+                $user        = Koha::Patrons->find( $session->param('number') );
+                $cookie_auth = 1;
+            }
+            elsif ( $status eq 'ok' ) {
+                $user = Koha::Patrons->find( $session->param('number') );
+                if ( $user->auth_method ne 'password' ) {
+                    # If the user already enabled 2FA they don't need to register again
+                    Koha::Exceptions::Authentication->throw(
+                        error => 'Cannot request this route.' );
+                }
+                $cookie_auth = 1;
+            }
+            else {
+                Koha::Exceptions::Authentication::Required->throw(
+                    error => 'Authentication failure.' );
+            }
+
+        } else {
+            if ($status eq "ok") {
+                $user = Koha::Patrons->find( $session->param('number') );
+                $cookie_auth = 1;
+            }
+            elsif ($status eq "anon") {
+                $cookie_auth = 1;
+            }
+            elsif ($status eq "additional-auth-needed") {
+            }
+            elsif ($status eq "maintenance") {
+                Koha::Exceptions::UnderMaintenance->throw(
+                    error => 'System is under maintenance.'
+                );
+            }
+            elsif ($status eq "expired" and $authorization) {
+                Koha::Exceptions::Authentication::SessionExpired->throw(
+                    error => 'Session has been expired.'
+                );
+            }
+            elsif ($status eq "failed" and $authorization) {
+                Koha::Exceptions::Authentication::Required->throw(
+                    error => 'Authentication failure.'
+                );
+            }
+            elsif ($authorization) {
+                Koha::Exceptions::Authentication->throw(
+                    error => 'Unexpected authentication status.'
+                );
+            }
         }
     }
 
@@ -259,14 +301,15 @@ sub authenticate_api_request {
     if ( !$authorization and
          ( $params->{is_public} and
           ( C4::Context->preference('RESTPublicAnonymousRequests') or
-            $user) or $params->{is_plugin} ) ) {
+            $user) or $params->{is_plugin} )
+    ) {
         # We do not need any authorization
         # Check the parameters
         validate_query_parameters( $c, $spec );
         return 1;
     }
     else {
-        # We are required authorizarion, there needs
+        # We are required authorization, there needs
         # to be an identified user
         Koha::Exceptions::Authentication::Required->throw(
             error => 'Authentication failure.' )
@@ -484,12 +527,16 @@ sub _basic_auth {
     my $decoded_credentials = decode_base64( $credentials );
     my ( $user_id, $password ) = split( /:/, $decoded_credentials, 2 );
 
-    my $dbh = C4::Context->dbh;
-    unless ( checkpw_internal($dbh, $user_id, $password ) ) {
+    unless ( checkpw_internal($user_id, $password ) ) {
         Koha::Exceptions::Authorization::Unauthorized->throw( error => 'Invalid password' );
     }
 
-    return Koha::Patrons->find({ userid => $user_id });
+    my $patron = Koha::Patrons->find({ userid => $user_id });
+    if ( $patron->password_expired ) {
+        Koha::Exceptions::Authorization::Unauthorized->throw( error => 'Password has expired' );
+    }
+
+    return $patron;
 }
 
 =head3 _set_userenv

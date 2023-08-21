@@ -20,37 +20,46 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use HTML::Entities;
-use Try::Tiny;
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Koha;
-use C4::Serials;    #uses getsubscriptionfrom biblionumber
-use C4::Output;
-use C4::Biblio;
-use C4::Items;
-use C4::Circulation;
+use C4::Koha qw(
+    GetAuthorisedValues
+    getitemtypeimagelocation
+    GetNormalizedEAN
+    GetNormalizedISBN
+    GetNormalizedOCLCNumber
+    GetNormalizedUPC
+);
+use C4::Serials qw( CountSubscriptionFromBiblionumber SearchSubscriptions GetLatestSerials );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Biblio qw( GetBiblioData GetFrameworkCode );
+use C4::Items qw( GetAnalyticsCount );
 use C4::Reserves;
-use C4::Serials;
-use C4::XISBN qw(get_xisbns);
-use C4::External::Amazon;
-use C4::Search;        # enabled_staff_search_views
-use C4::Tags qw(get_tags);
-use C4::XSLT;
-use Koha::DateUtils;
+use C4::Serials qw( CountSubscriptionFromBiblionumber SearchSubscriptions GetLatestSerials );
+use C4::XISBN qw( get_xisbns );
+use C4::External::Amazon qw( get_amazon_tld );
+use C4::Search qw( z3950_search_args enabled_staff_search_views new_record_from_zebra );
+use C4::Tags qw( get_tags );
+use C4::XSLT qw( XSLTParse4Display );
+use Koha::DateUtils qw( format_sqldatetime );
 use C4::HTML5Media;
-use C4::CourseReserves qw(GetItemCourseReservesInfo);
-use C4::Acquisition qw(GetOrdersByBiblionumber);
+use C4::CourseReserves qw( GetItemCourseReservesInfo );
 use Koha::AuthorisedValues;
 use Koha::Biblios;
+use Koha::Biblio::ItemGroup::Items;
+use Koha::Biblio::ItemGroups;
 use Koha::CoverImages;
+use Koha::DateUtils;
 use Koha::Illrequests;
 use Koha::Items;
 use Koha::ItemTypes;
 use Koha::Patrons;
 use Koha::Virtualshelves;
 use Koha::Plugins;
+use Koha::Recalls;
 use Koha::SearchEngine::Search;
 use Koha::SearchEngine::QueryBuilder;
+use Koha::Serial::Items;
 
 my $query = CGI->new();
 
@@ -78,11 +87,10 @@ if ( C4::Context->config('enable_plugins') ) {
 
 my $biblionumber = $query->param('biblionumber');
 $biblionumber = HTML::Entities::encode($biblionumber);
-my $record       = GetMarcBiblio({ biblionumber => $biblionumber });
 my $biblio = Koha::Biblios->find( $biblionumber );
 $template->param( 'biblio', $biblio );
 
-if ( not defined $record ) {
+unless ( $biblio ) {
     # biblionumber invalid -> report and exit
     $template->param( unknownbiblionumber => 1,
                       biblionumber => $biblionumber );
@@ -90,18 +98,57 @@ if ( not defined $record ) {
     exit;
 }
 
-eval { $biblio->metadata->record };
-$template->param( decoding_error => $@ );
+my $marc_record = eval { $biblio->metadata->record };
+my $invalid_marc_record = $@ || !$marc_record;
+if ($invalid_marc_record) {
+    $template->param( decoding_error => $@ );
+    my $marc_xml = C4::Charset::StripNonXmlChars( $biblio->metadata->metadata );
+
+    $marc_record = eval {
+        MARC::Record::new_from_xml( $marc_xml, 'UTF-8',
+            C4::Context->preference('marcflavour') );
+    };
+}
+
+my $op = $query->param('op') || q{};
+if ( $op eq 'set_item_group' ) {
+    my $item_group_id = $query->param('item_group_id');
+    my @itemnumbers   = $query->multi_param('itemnumber');
+
+    foreach my $item_id (@itemnumbers) {
+        my $item_group_item = Koha::Biblio::ItemGroup::Items->find( { item_id => $item_id } );
+
+        if ($item_group_item) {
+            $item_group_item->item_group_id($item_group_id);
+        }
+        else {
+            $item_group_item = Koha::Biblio::ItemGroup::Item->new(
+                {
+                    item_id        => $item_id,
+                    item_group_id  => $item_group_id,
+                }
+            );
+        }
+
+        $item_group_item->store();
+    }
+}
+elsif ( $op eq 'unset_item_group' ) {
+    my $item_group_id   = $query->param('item_group_id');
+    my @itemnumbers = $query->multi_param('itemnumber');
+
+    foreach my $item_id (@itemnumbers) {
+        my $item_group_item = Koha::Biblio::ItemGroup::Items->find( { item_id => $item_id } );
+        $item_group_item->delete() if $item_group_item;
+    }
+}
 
 if($query->cookie("holdfor")){
     my $holdfor_patron = Koha::Patrons->find( $query->cookie("holdfor") );
     if ( $holdfor_patron ) {
         $template->param(
-            # FIXME Should pass the patron object
-            holdfor => $query->cookie("holdfor"),
-            holdfor_surname => $holdfor_patron->surname,
-            holdfor_firstname => $holdfor_patron->firstname,
-            holdfor_cardnumber => $holdfor_patron->cardnumber,
+            holdfor        => $query->cookie("holdfor"),
+            holdfor_patron => $holdfor_patron,
         );
     }
 }
@@ -118,100 +165,56 @@ my $fw           = GetFrameworkCode($biblionumber);
 my $showallitems = $query->param('showallitems');
 my $marcflavour  = C4::Context->preference("marcflavour");
 
-# XSLT processing of some stuff
-my $xslfile = C4::Context->preference('XSLTDetailsDisplay') || "default";
-my $lang   = $xslfile ? C4::Languages::getlanguage()  : undef;
-my $sysxml = $xslfile ? C4::XSLT::get_xslt_sysprefs() : undef;
-
-if ( $xslfile ) {
-
-    my $searcher = Koha::SearchEngine::Search->new(
-        { index => $Koha::SearchEngine::BIBLIOS_INDEX }
-    );
-    my $builder = Koha::SearchEngine::QueryBuilder->new(
-        { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
-
-    my $cleaned_title = $biblio->title;
-    $cleaned_title =~ tr|/||;
-    $cleaned_title = $builder->clean_search_term($cleaned_title);
-
-    my $query =
-      ( C4::Context->preference('UseControlNumber') and $record->field('001') )
-      ? 'rcn:'. $record->field('001')->data . ' AND (bib-level:a OR bib-level:b)'
-      : "Host-item:($cleaned_title)";
-    my ( $err, $result, $count );
-    eval {
-        ( $err, $result, $count ) =
-          $searcher->simple_search_compat( $query, 0, 0 );
-
-    };
-    if ($err || $@){
-        my $error = q{};
-        $error .= $err if $err;
-        $error .= $@ if $@;
-        warn "Warning from simple_search_compat: $error";
-        $template->param( analytics_error => 1 );
-    }
-
-    my $variables = {
-        show_analytics_link => defined $count && $count > 0 ? 1 : 0
-    };
-
-    $template->param(
-        XSLTDetailsDisplay => '1',
-        XSLTBloc           => XSLTParse4Display(
-            $biblionumber, $record, "XSLTDetailsDisplay", 1,
-            undef,         $sysxml, $xslfile,             $lang,
-            $variables
-        )
-    );
-}
-
 $template->param( 'SpineLabelShowPrintOnBibDetails' => C4::Context->preference("SpineLabelShowPrintOnBibDetails") );
 
-# Catch the exception as Koha::Biblio::Metadata->record can explode if the MARCXML is invalid
-# Do not propagate it as we already deal with it previously in this script
-my $coins = eval { $biblio->get_coins };
-$template->param( ocoins => $coins );
+$template->param( ocoins => !$invalid_marc_record ? $biblio->get_coins : undef );
 
 # some useful variables for enhanced content;
 # in each case, we're grabbing the first value we find in
 # the record and normalizing it
-my $upc = GetNormalizedUPC($record,$marcflavour);
-my $ean = GetNormalizedEAN($record,$marcflavour);
-my $oclc = GetNormalizedOCLCNumber($record,$marcflavour);
-my $isbn = GetNormalizedISBN(undef,$record,$marcflavour);
+my $upc = GetNormalizedUPC($marc_record,$marcflavour);
+my $ean = GetNormalizedEAN($marc_record,$marcflavour);
+my $oclc = GetNormalizedOCLCNumber($marc_record,$marcflavour);
+my $isbn = GetNormalizedISBN(undef,$marc_record,$marcflavour);
+my $content_identifier_exists;
+if ( $isbn or $ean or $oclc or $upc ) {
+    $content_identifier_exists = 1;
+}
 
 $template->param(
     normalized_upc => $upc,
     normalized_ean => $ean,
     normalized_oclc => $oclc,
     normalized_isbn => $isbn,
+    content_identifier_exists =>  $content_identifier_exists,
 );
 
-my $marcnotesarray   = $biblio->get_marc_notes({ marcflavour => $marcflavour });
-
-my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search->unblessed } };
-
-my $dbh = C4::Context->dbh;
-
-my @all_items = GetItemsInfo( $biblionumber );
+my $itemtypes = { map { $_->itemtype => $_ } @{ Koha::ItemTypes->search_with_localization->as_list } };
+my $all_items = $biblio->items->search_ordered;
 my @items;
 my $patron = Koha::Patrons->find( $borrowernumber );
-for my $itm (@all_items) {
-    push @items, $itm unless ( $itm->{itemlost} && $patron->category->hidelostitems && !$showallitems);
+while ( my $item = $all_items->next ) {
+    push @items, $item
+      unless $item->itemlost
+      && $patron->category->hidelostitems
+      && !$showallitems;
 }
 
 # flag indicating existence of at least one item linked via a host record
 my $hostrecords;
 # adding items linked via host biblios
-my @hostitems = GetHostItemsInfo($record);
-if (@hostitems){
-    $hostrecords =1;
-    push (@items,@hostitems);
+my $hostitems = $biblio->host_items;
+if ( $hostitems->count ) {
+    $hostrecords = 1;
+    push @items, $hostitems->as_list;
 }
 
 my $dat = &GetBiblioData($biblionumber);
+
+#is biblio a collection and are bundles enabled
+my $leader = $marc_record->leader();
+$dat->{bundlesEnabled} = ( ( substr( $leader, 7, 1 ) eq 'c' )
+      && C4::Context->preference('BundleNotLoanValue') ) ? 1 : 0;
 
 #coping with subscriptions
 my $subscriptionsnumber = CountSubscriptionFromBiblionumber($biblionumber);
@@ -238,6 +241,51 @@ foreach my $subscription (@subscriptions) {
       GetLatestSerials( $subscription->{subscriptionid}, $serials_to_display );
     push @subs, \%cell;
 }
+
+# Get component parts details
+my $showcomp = C4::Context->preference('ShowComponentRecords');
+my $show_analytics;
+if ( $showcomp eq 'both' || $showcomp eq 'staff' ) {
+    if ( my $components = !$invalid_marc_record ? $biblio->get_marc_components(C4::Context->preference('MaxComponentRecords')) : undef ) {
+        $show_analytics = 1 if @{$components}; # just show link when having results
+        $template->param( analytics_error => 1 ) if grep { $_->message eq 'component_search' } @{$biblio->object_messages};
+        my $parts;
+        for my $part ( @{$components} ) {
+            $part = C4::Search::new_record_from_zebra( 'biblioserver', $part );
+            my $id = Koha::SearchEngine::Search::extract_biblionumber( $part );
+
+            push @{$parts},
+              XSLTParse4Display(
+                {
+                    biblionumber => $id,
+                    record       => $part,
+                    xsl_syspref  => "XSLTResultsDisplay",
+                    fix_amps     => 1,
+                }
+              );
+        }
+        $template->param( ComponentParts => $parts );
+        my ( $comp_query, $comp_query_str, $comp_sort ) = $biblio->get_components_query;
+        my $cpq = $comp_query_str . "&sort_by=" . $comp_sort;
+        $template->param( ComponentPartsQuery => $cpq );
+    }
+} else { # check if we should show analytics anyway
+    $show_analytics = 1 if !$invalid_marc_record && @{$biblio->get_marc_components(1)}; # count matters here, results does not
+    $template->param( analytics_error => 1 ) if grep { $_->message eq 'component_search' } @{$biblio->object_messages};
+}
+
+# XSLT processing of some stuff
+my $xslt_variables = { show_analytics_link => $show_analytics };
+$template->param(
+    XSLTDetailsDisplay => '1',
+    XSLTBloc => XSLTParse4Display({
+        biblionumber   => $biblionumber,
+        record         => $marc_record,
+        xsl_syspref    => "XSLTDetailsDisplay",
+        fix_amps       => 1,
+        xslt_variables => $xslt_variables,
+    }),
+);
 
 # Get acquisition details
 if ( C4::Context->preference('AcquisitionDetails') ) {
@@ -269,12 +317,12 @@ if ( C4::Context->preference('suggestion') ) {
 }
 
 if ( defined $dat->{'itemtype'} ) {
-    $dat->{imageurl} = getitemtypeimagelocation( 'intranet', $itemtypes->{ $dat->{itemtype} }{imageurl} );
+    $dat->{imageurl} = getitemtypeimagelocation( 'intranet', $itemtypes->{ $dat->{itemtype} }->imageurl );
 }
 
-$dat->{'count'} = scalar @all_items + @hostitems;
-$dat->{'showncount'} = scalar @items + @hostitems;
-$dat->{'hiddencount'} = scalar @all_items + @hostitems - scalar @items;
+$dat->{'count'} = $all_items->count + $hostitems->count;
+$dat->{'showncount'} = scalar @items + $hostitems->count;
+$dat->{'hiddencount'} = $all_items->count + $hostitems->count - scalar @items;
 
 my $shelflocations =
   { map { $_->{authorised_value} => $_->{lib} } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => $fw, kohafield => 'items.location' } ) };
@@ -316,105 +364,126 @@ if ($currentbranch and C4::Context->preference('SeparateHoldings')) {
 }
 my $separatebranch = C4::Context->preference('SeparateHoldingsBranch') || 'homebranch';
 my ( $itemloop_has_images, $otheritemloop_has_images );
+
 foreach my $item (@items) {
-    my $itembranchcode = $item->{$separatebranch};
+    my $itembranchcode = $item->$separatebranch;
 
-    $item->{imageurl} = defined $item->{itype} ? getitemtypeimagelocation('intranet', $itemtypes->{ $item->{itype} }{imageurl})
-                                               : '';
-
-    $item->{datedue} = format_sqldatetime($item->{datedue});
+    my $item_info = $item->unblessed;
+    $item_info->{itemtype} = $itemtypes->{$item->effective_itemtype};
 
     #get shelf location and collection code description if they are authorised value.
     # same thing for copy number
-    my $shelfcode = $item->{'location'};
-    $item->{'location'} = $shelflocations->{$shelfcode} if ( defined( $shelfcode ) && defined($shelflocations) && exists( $shelflocations->{$shelfcode} ) );
-    my $ccode = $item->{'ccode'};
-    $item->{'ccode'} = $collections->{$ccode} if ( defined( $ccode ) && defined($collections) && exists( $collections->{$ccode} ) );
-    my $copynumber = $item->{'copynumber'};
-    $item->{'copynumber'} = $copynumbers->{$copynumber} if ( defined($copynumber) && defined($copynumbers) && exists( $copynumbers->{$copynumber} ) );
-    foreach (qw(ccode enumchron copynumber stocknumber itemnotes itemnotes_nonpublic uri publisheddate)) { # Warning when removing GetItemsInfo - publisheddate (at least) is not part of the items table
-        $itemfields{$_} = 1 if ( $item->{$_} );
+    my $shelfcode = $item->location;
+    $item_info->{'location'} = $shelflocations->{$shelfcode} if ( defined( $shelfcode ) && defined($shelflocations) && exists( $shelflocations->{$shelfcode} ) );
+    my $ccode = $item->ccode;
+    $item_info->{'ccode'} = $collections->{$ccode} if ( defined( $ccode ) && defined($collections) && exists( $collections->{$ccode} ) );
+    my $copynumber = $item->copynumber;
+    $item_info->{'copynumber'} = $copynumbers->{$copynumber} if ( defined($copynumber) && defined($copynumbers) && exists( $copynumbers->{$copynumber} ) );
+    foreach (qw(ccode enumchron copynumber stocknumber itemnotes itemnotes_nonpublic uri )) {
+        $itemfields{$_} = 1 if $item->$_;
     }
+
+    # FIXME The following must be Koha::Item->serial
+    my $serial_item = Koha::Serial::Items->find($item->itemnumber);
+    if ( $serial_item ) {
+        my $serial = Koha::Serials->find($serial_item->serialid);
+        $item_info->{serial} = $serial if $serial;
+        $itemfields{publisheddate} = 1;
+    }
+
+    $item_info->{object} = $item;
 
     # checking for holds
-    my $item_object = Koha::Items->find( $item->{itemnumber} );
-    my $holds = $item_object->current_holds;
+    my $holds = $item->current_holds;
     if ( my $first_hold = $holds->next ) {
-        $item->{first_hold} = $first_hold;
+        $item_info->{first_hold} = $first_hold;
     }
 
-    if ( my $checkout = $item_object->checkout ) {
-        $item->{CheckedOutFor} = $checkout->patron;
-    }
+    $item_info->{checkout} = $item->checkout;
 
     # Check the transit status
-    my ( $transfertwhen, $transfertfrom, $transfertto ) = GetTransfers($item->{itemnumber});
-    if ( defined( $transfertwhen ) && ( $transfertwhen ne '' ) ) {
-        $item->{transfertwhen} = $transfertwhen;
-        $item->{transfertfrom} = $transfertfrom;
-        $item->{transfertto}   = $transfertto;
-        $item->{nocancel} = 1;
+    my $transfer = $item->get_transfer;
+    if ( $transfer ) {
+        $item_info->{transfer} = $transfer;
     }
 
     foreach my $f (qw( itemnotes )) {
-        if ($item->{$f}) {
-            $item->{$f} =~ s|\n|<br />|g;
+        if ($item_info->{$f}) {
+            $item_info->{$f} =~ s|\n|<br />|g;
             $itemfields{$f} = 1;
         }
     }
 
     #item has a host number if its biblio number does not match the current bib
 
-    if ($item->{biblionumber} ne $biblionumber){
-        $item->{hostbiblionumber} = $item->{biblionumber};
-        $item->{hosttitle} = GetBiblioData($item->{biblionumber})->{title};
+    if ($item->biblionumber ne $biblionumber){
+        $item_info->{hostbiblionumber} = $item->biblionumber;
+        $item_info->{hosttitle} = $item->biblio->title;
     }
-	
+
 
     if ( $analyze ) {
         # count if item is used in analytical bibliorecords
         # The 'countanalytics' flag is only used in the templates if analyze is set
-        my $countanalytics = C4::Context->preference('EasyAnalyticalRecords') ? GetAnalyticsCount($item->{itemnumber}) : 0;
+        my $countanalytics = GetAnalyticsCount( $item->itemnumber );
         if ($countanalytics > 0){
             $analytics_flag=1;
-            $item->{countanalytics} = $countanalytics;
+            $item_info->{countanalytics} = $countanalytics;
         }
     }
 
-    if (defined($item->{'materials'}) && $item->{'materials'} =~ /\S/){
+    if (defined($item->materials) && $item->materials =~ /\S/){
         $materials_flag = 1;
-        if (defined $materials_map{ $item->{materials} }) {
-            $item->{materials} = $materials_map{ $item->{materials} };
+        if (defined $materials_map{ $item->materials }) {
+            $item_info->{materials} = $materials_map{ $item->materials };
         }
     }
 
     if ( C4::Context->preference('UseCourseReserves') ) {
-        $item->{'course_reserves'} = GetItemCourseReservesInfo( itemnumber => $item->{'itemnumber'} );
+        $item_info->{'course_reserves'} = GetItemCourseReservesInfo( itemnumber => $item->itemnumber );
+    }
+
+    if ( C4::Context->preference("LocalCoverImages") == 1 ) {
+        $item_info->{cover_images} = $item->cover_images;
+    }
+
+    if ( C4::Context->preference('UseRecalls') ) {
+        $item_info->{recall} = $item->recall;
     }
 
     if ( C4::Context->preference('IndependentBranches') ) {
         my $userenv = C4::Context->userenv();
         if ( not C4::Context->IsSuperLibrarian()
-            and $userenv->{branch} ne $item->{homebranch} ) {
-            $item->{cannot_be_edited} = 1;
+            and $userenv->{branch} ne $item->homebranch ) {
+            $item_info->{cannot_be_edited} = 1;
+            $item_info->{not_same_branch} = 1;
         }
     }
 
-    if ( C4::Context->preference("LocalCoverImages") == 1 ) {
-        $item->{cover_images} = $item_object->cover_images;
+    if ( $item->is_bundle ) {
+        $item_info->{bundled} =
+          $item->bundle_items->search( { itemlost => { '!=' => 0 } } )
+          ->count;
+        $item_info->{bundled_lost} =
+          $item->bundle_items->search( { itemlost => 0 } )->count;
+        $item_info->{is_bundle} = 1;
+    }
+
+    if ($item->in_bundle) {
+        $item_info->{bundle_host} = $item->bundle_host;
     }
 
     if ($currentbranch and C4::Context->preference('SeparateHoldings')) {
         if ($itembranchcode and $itembranchcode eq $currentbranch) {
-            push @itemloop, $item;
-            $itemloop_has_images++ if $item_object->cover_images->count;
+            push @itemloop, $item_info;
+            $itemloop_has_images++ if $item->cover_images->count;
         } else {
-            push @otheritemloop, $item;
-            $otheritemloop_has_images++ if $item_object->cover_images->count;
+            push @otheritemloop, $item_info;
+            $otheritemloop_has_images++ if $item->cover_images->count;
         }
     } else {
-        push @itemloop, $item;
-        $itemloop_has_images++ if $item_object->cover_images->count;
+        push @itemloop, $item_info;
+        $itemloop_has_images++ if $item->cover_images->count;
     }
 }
 
@@ -435,14 +504,14 @@ my $some_private_shelves = Koha::Virtualshelves->get_some_shelves(
     {
         borrowernumber => $borrowernumber,
         add_allowed    => 1,
-        category       => 1,
+        public         => 0,
     }
 );
 my $some_public_shelves = Koha::Virtualshelves->get_some_shelves(
     {
         borrowernumber => $borrowernumber,
         add_allowed    => 1,
-        category       => 2,
+        public         => 1,
     }
 );
 
@@ -453,21 +522,21 @@ $template->param(
 );
 
 $template->param(
-    MARCNOTES   => $marcnotesarray,
-    itemdata_ccode      => $itemfields{ccode},
-    itemdata_enumchron  => $itemfields{enumchron},
-    itemdata_uri        => $itemfields{uri},
-    itemdata_copynumber => $itemfields{copynumber},
-    itemdata_stocknumber => $itemfields{stocknumber},
-    itemdata_publisheddate => $itemfields{publisheddate},
-    volinfo                => $itemfields{enumchron},
-        itemdata_itemnotes  => $itemfields{itemnotes},
-        itemdata_nonpublicnotes => $itemfields{itemnotes_nonpublic},
-    z3950_search_params    => C4::Search::z3950_search_args($dat),
-        hostrecords         => $hostrecords,
-    analytics_flag    => $analytics_flag,
+    MARCNOTES               => !$invalid_marc_record ? $biblio->get_marc_notes() : undef,
+    itemdata_ccode          => $itemfields{ccode},
+    itemdata_enumchron      => $itemfields{enumchron},
+    itemdata_uri            => $itemfields{uri},
+    itemdata_copynumber     => $itemfields{copynumber},
+    itemdata_stocknumber    => $itemfields{stocknumber},
+    itemdata_publisheddate  => $itemfields{publisheddate},
+    volinfo                 => $itemfields{enumchron},
+    itemdata_itemnotes      => $itemfields{itemnotes},
+    itemdata_nonpublicnotes => $itemfields{itemnotes_nonpublic},
+    z3950_search_params     => C4::Search::z3950_search_args($dat),
+    hostrecords             => $hostrecords,
+    analytics_flag          => $analytics_flag,
     C4::Search::enabled_staff_search_views,
-        materials       => $materials_flag,
+    materials => $materials_flag,
 );
 
 if (C4::Context->preference("AlternateHoldingsField") && scalar @items == 0) {
@@ -475,7 +544,7 @@ if (C4::Context->preference("AlternateHoldingsField") && scalar @items == 0) {
     my $subfields = substr $fieldspec, 3;
     my $holdingsep = C4::Context->preference("AlternateHoldingsSeparator") || ' ';
     my @alternateholdingsinfo = ();
-    my @holdingsfields = $record->field(substr $fieldspec, 0, 3);
+    my @holdingsfields = $marc_record->field(substr $fieldspec, 0, 3);
 
     for my $field (@holdingsfields) {
         my %holding = ( holding => '' );
@@ -516,15 +585,13 @@ $template->param(
     searchid            => scalar $query->param('searchid'),
 );
 
-# $debug and $template->param(debug_display => 1);
-
 # Lists
 
 if (C4::Context->preference("virtualshelves") ) {
     my $shelves = Koha::Virtualshelves->search(
         {
             biblionumber => $biblionumber,
-            category => 2,
+            public => 1,
         },
         {
             join => 'virtualshelfcontents',
@@ -545,19 +612,23 @@ if (C4::Context->preference("FRBRizeEditions")==1) {
 
 if ( C4::Context->preference("LocalCoverImages") == 1 ) {
     my $images = $biblio->cover_images;
-    $template->param( localimages => $biblio->cover_images );
+    $template->param(
+        localimages => $biblio->cover_images->search(
+            {}, { order_by => [ \"COALESCE(itemnumber, 0, 1)", 'timestamp' ] }
+        ),
+    );
 }
 
 # HTML5 Media
 if ( (C4::Context->preference("HTML5MediaEnabled") eq 'both') or (C4::Context->preference("HTML5MediaEnabled") eq 'staff') ) {
-    $template->param( C4::HTML5Media->gethtml5media($record));
+    $template->param( C4::HTML5Media->gethtml5media($marc_record));
 }
 
 # EKZ or Divibib Cover
 if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled")) {
     my @titlecoverurls = ();
     my $coverfound = 0;
-    foreach my $tag( $record->field('856') ) {
+    foreach my $tag( $marc_record->field('856') ) {
         if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
             my $link = $tag->subfield('u');
             $link =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
@@ -576,10 +647,10 @@ if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnab
                     ( $tag->subfield('n') && $tag->subfield('n') =~ /content sample/i ) ||
                     ( $tag->subfield('z') && $tag->subfield('z') =~ /content sample/i )
                    )
-                && $record->field('337') 
-                && $record->field('337')->subfield('a') ) 
+                && $marc_record->field('337') 
+                && $marc_record->field('337')->subfield('a') ) 
         {
-            $template->param('contentsample', { 'link' => $tag->subfield('u'), 'type' => $record->field('337')->subfield('a') });
+            $template->param('contentsample', { 'link' => $tag->subfield('u'), 'type' => $marc_record->field('337')->subfield('a') });
         }
     }
     $template->param(titlecoverurls => \@titlecoverurls ); 
@@ -636,6 +707,13 @@ if($query->cookie("intranet_bib_list")){
         $template->param( incart => 1 );
     }
 }
+
+if ( C4::Context->preference('UseCourseReserves') ) {
+    my $course_reserves = GetItemCourseReservesInfo( biblionumber => $biblionumber );
+    $template->param( course_reserves => $course_reserves );
+}
+
+$template->param(found1 => scalar $query->param('found1') );
 
 $template->param(biblio => $biblio);
 

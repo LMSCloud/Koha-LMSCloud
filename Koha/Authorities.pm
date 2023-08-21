@@ -19,13 +19,12 @@ package Koha::Authorities;
 
 use Modern::Perl;
 
-use Carp;
 
 use Koha::Database;
 
 use Koha::Authority;
 
-use base qw(Koha::Objects);
+use base qw(Koha::Objects Koha::Objects::Record::Collections);
 
 =head1 NAME
 

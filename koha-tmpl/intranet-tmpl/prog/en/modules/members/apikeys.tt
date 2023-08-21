@@ -7,24 +7,23 @@
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="pat_apikeys" class="pat">
-[% INCLUDE 'header.inc' %]
-[% PROCESS 'patron-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'patron-search-header.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                API Keys for [% INCLUDE 'patron-title.inc' %]
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber | uri %]">[% INCLUDE 'patron-title.inc' %]</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>API keys</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -37,8 +36,8 @@
 
             [% IF fresh_api_key %]
                 [%# A fresh api key was generated, display the secret, only once %]
-                <div class="rows">
-                    <span class="alert">Make sure to copy your API secret now. You won’t be able to see it again!</span>
+                <div class="dialog message">Make sure to copy your API secret now. You won’t be able to see it again!</div>
+                <div class="page-section rows">
                     <ol>
                         <li>
                             <span class="label">Description: </span>
@@ -66,15 +65,15 @@
                             <li>
                                 <label for="description">Description: </label>
                                 <input type="text" name="description" />
-                                <input type="submit" value="Save" />
+                                <input type="submit" class="btn btn-primary" value="Save" />
                                 <a href="#" class="cancel toggle_element" data-element="#add-api-key">Cancel</a>
                             </li>
                         </ol>
                     </fieldset>
                 </form>
 
-                <div id="keys">
-                    [% IF api_keys && api_keys.size > 0 %]
+                [% IF api_keys.count %]
+                    <div class="page-section" id="keys">
                         <p>
                             <button class="btn btn-default toggle_element" type="submit" id="show-api-form" data-element="#add-api-key"><i class="fa fa-plus"></i> Generate a new client id/key pair</button>
                         </p>
@@ -118,10 +117,18 @@
                                 [% END %]
                             </tbody>
                         </table>
-                    [% ELSE %]
-                        <div class="dialog message">No keys defined for the current patron. <a href="#" class="toggle_element" data-element="#add-api-key" id="show-api-form"><i class="fa fa-plus"></i> Generate a new client id/secret pair</div>
-                    [% END %]
-                </div>
+                    </div> <!-- /#keys.page-section -->
+                [% ELSE %]
+                    <div class="dialog message">
+                        <p>No keys defined for the current patron.</p>
+                        <p>
+                            <a href="#" class="btn btn-default toggle_element" data-element="#add-api-key" id="show-api-form">
+                                <i class="fa fa-plus"></i>
+                                <span>Generate a new client id/secret pair</span>
+                            </a>
+                        <p>
+                    </div>
+                [% END # /IF api_keys.count %]
             </main>
         </div> <!-- /.col-sm-10.col-sm-push-2 -->
 

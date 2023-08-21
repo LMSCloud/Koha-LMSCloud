@@ -25,12 +25,11 @@ use DateTime::TimeZone;
 use t::lib::TestBuilder;
 use C4::Context;
 use Koha::Database;
-use Koha::DateUtils;
-
+use Koha::DateUtils qw( dt_from_string );
 
 BEGIN {
     use_ok('Koha::Calendar');
-    use_ok('C4::Calendar');
+    use_ok('C4::Calendar', qw( insert_exception_holiday insert_week_day_holiday insert_day_month_holiday insert_single_holiday copy_to_branch get_exception_holidays isHoliday ));
 }
 
 my $schema = Koha::Database->new->schema;

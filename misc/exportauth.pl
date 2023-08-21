@@ -5,16 +5,9 @@
 
 use strict;
 #use warnings; FIXME - Bug 2505
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/kohalib.pl" };
-}
 
 use Koha::Script;
 use C4::Context;
-use C4::Biblio;
 use C4::Auth;
 my $outfile = $ARGV[0];
 open(my $fh, '>', $outfile) or die $!;

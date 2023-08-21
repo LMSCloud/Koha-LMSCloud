@@ -37,7 +37,7 @@ use Koha::DateUtils qw( dt_from_string );
 use C4::Circulation qw( MarkIssueReturned );
 
 BEGIN {
-    use_ok('C4::Accounts');
+    use_ok('C4::Accounts', qw( chargelostitem purge_zero_balance_fees ));
     use_ok('Koha::Object');
     use_ok('Koha::Patron');
     use_ok('Data::Dumper');
@@ -329,7 +329,7 @@ subtest "Koha::Account::pay writeoff tests" => sub {
 
 subtest "More Koha::Account::pay tests" => sub {
 
-    plan tests => 8;
+    plan tests => 12;
 
     # Create a borrower
     my $category   = $builder->build({ source => 'Category' })->{ categorycode };
@@ -363,11 +363,24 @@ subtest "More Koha::Account::pay tests" => sub {
     my $account = Koha::Account->new( { patron_id => $borrowernumber } );
     my $line = Koha::Account::Lines->find( $accountline->{ accountlines_id } );
     # make the full payment
-    $account->pay({ lines => [$line], amount => $amount, library_id => $branch, note => 'A payment note' });
+    my $payment = $account->pay(
+        {
+            lines      => [$line],
+            amount     => $amount,
+            library_id => $branch,
+            note       => 'A payment note'
+        }
+    );
 
-    my $offset = Koha::Account::Offsets->search({ debit_id => $accountline->{accountlines_id} })->next();
-    is( $offset->amount+0, -100, 'Offset amount is -100.00' );
-    is( $offset->type(), 'Payment', 'Offset type is Payment' );
+    my $offsets = Koha::Account::Offsets->search({ credit_id => $payment->{payment_id} });
+    is( $offsets->count, 2, 'Two offsets recorded');
+    my $offset = $offsets->next;
+    is( $offset->type(), 'CREATE', 'First offset type is CREATE' );
+    is( $offset->amount+0, 100, 'First offset amount is 100.00' );
+    $offset = $offsets->next;
+    is( $offset->type(), 'APPLY', 'Second offset type is APPLY' );
+    is( $offset->amount+0, -100, 'Second offset amount is -100.00' );
+    is( $offset->debit_id, $accountline->{accountlines_id}, 'Second offset is against the right accountline');
 
     my $stat = $schema->resultset('Statistic')->search({
         branch  => $branch,
@@ -388,7 +401,7 @@ subtest "More Koha::Account::pay tests" => sub {
 
 subtest "Even more Koha::Account::pay tests" => sub {
 
-    plan tests => 8;
+    plan tests => 12;
 
     # Create a borrower
     my $category   = $builder->build({ source => 'Category' })->{ categorycode };
@@ -423,11 +436,24 @@ subtest "Even more Koha::Account::pay tests" => sub {
     my $account = Koha::Account->new( { patron_id => $borrowernumber } );
     my $line = Koha::Account::Lines->find( $accountline->{ accountlines_id } );
     # make the full payment
-    $account->pay({ lines => [$line], amount => $partialamount, library_id => $branch, note => 'A payment note' });
+    my $payment = $account->pay(
+        {
+            lines      => [$line],
+            amount     => $partialamount,
+            library_id => $branch,
+            note       => 'A payment note'
+        }
+    );
 
-    my $offset = Koha::Account::Offsets->search( { debit_id => $accountline->{ accountlines_id } } )->next();
-    is( $offset->amount+0, -60, 'Offset amount is -60.00' );
-    is( $offset->type, 'Payment', 'Offset type is payment' );
+    my $offsets = Koha::Account::Offsets->search({ credit_id => $payment->{payment_id} });
+    is( $offsets->count, 2, 'Two offsets recorded');
+    my $offset = $offsets->next;
+    is( $offset->type(), 'CREATE', 'First offset type is CREATE' );
+    is( $offset->amount+0, 60, 'First offset amount is 60.00' );
+    $offset = $offsets->next;
+    is( $offset->type(), 'APPLY', 'Second offset type is APPLY' );
+    is( $offset->amount+0, -60, 'Second offset amount is -60.00' );
+    is( $offset->debit_id, $accountline->{accountlines_id}, 'Second offset is against the right accountline');
 
     my $stat = $schema->resultset('Statistic')->search({
         branch  => $branch,
@@ -529,18 +555,22 @@ subtest "C4::Accounts::chargelostitem tests" => sub {
     my $cli_itemnumber2 = $builder->build_sample_item({ itype => $itype_replace_no_fee->{itemtype} })->itemnumber;
     my $cli_itemnumber3 = $builder->build_sample_item({ itype => $itype_no_replace_fee->{itemtype} })->itemnumber;
     my $cli_itemnumber4 = $builder->build_sample_item({ itype => $itype_replace_fee->{itemtype} })->itemnumber;
+    my $cli_itemnumber5 = $builder->build_sample_item({ itype => $itype_replace_fee->{itemtype} })->itemnumber;
+    my $cli_bundle1     = $builder->build_sample_item({ itype => $itype_no_replace_no_fee->{itemtype} })->itemnumber;
+    $schema->resultset('ItemBundle')->create( { host => $cli_bundle1, item => $cli_itemnumber5 } );
 
     my $cli_issue_id_1 = $builder->build({ source => 'Issue', value => { borrowernumber => $cli_borrowernumber, itemnumber => $cli_itemnumber1 } })->{issue_id};
     my $cli_issue_id_2 = $builder->build({ source => 'Issue', value => { borrowernumber => $cli_borrowernumber, itemnumber => $cli_itemnumber2 } })->{issue_id};
     my $cli_issue_id_3 = $builder->build({ source => 'Issue', value => { borrowernumber => $cli_borrowernumber, itemnumber => $cli_itemnumber3 } })->{issue_id};
     my $cli_issue_id_4 = $builder->build({ source => 'Issue', value => { borrowernumber => $cli_borrowernumber, itemnumber => $cli_itemnumber4 } })->{issue_id};
     my $cli_issue_id_4X = undef;
+    my $cli_bundle_issue = $builder->build({ source => 'Issue', value => { borrowernumber => $cli_borrowernumber, itemnumber => $cli_bundle1 } })->{issue_id};
 
     my $lostfine;
     my $procfee;
 
     subtest "fee application tests" => sub {
-        plan tests => 44;
+        plan tests => 48;
 
         t::lib::Mocks::mock_preference('item-level_itypes', '1');
         t::lib::Mocks::mock_preference('useDefaultReplacementCost', '0');
@@ -668,6 +698,16 @@ subtest "C4::Accounts::chargelostitem tests" => sub {
         ok( $procfees->count == 2,  "Processing fee can be charged twice for the same item if they are distinct issue_id's");
         $lostfines->delete();
         $procfees->delete();
+
+        C4::Accounts::chargelostitem( $cli_borrowernumber, $cli_itemnumber5, 6.12, "Bundle");
+        $lostfine = Koha::Account::Lines->find({ borrowernumber => $cli_borrowernumber, itemnumber => $cli_itemnumber5, debit_type_code => 'LOST' });
+        $procfee  = Koha::Account::Lines->find({ borrowernumber => $cli_borrowernumber, itemnumber => $cli_itemnumber5, debit_type_code => 'PROCESSING' });
+        is( $lostfine->amount, "6.120000", "Lost fine equals replacementcost when pref on and default set (Bundle)");
+        is( $procfee->amount, "2.040000",  "Processing fee if processing fee (Bundle)");
+        is( $lostfine->issue_id, $cli_bundle_issue, "Lost fine issue id matched to bundle issue");
+        is( $procfee->issue_id, $cli_bundle_issue, "Processing fee issue id matched to bundle issue");
+        $lostfine->delete();
+        $procfee->delete();
     };
 
     subtest "basic fields tests" => sub {
@@ -924,7 +964,7 @@ subtest "Koha::Account::non_issues_charges tests" => sub {
         {
             credit_id => $credit->id,
             debit_id  => $debit->id,
-            type      => 'Payment',
+            type      => 'APPLY',
             amount    => 0
         }
     )->store();
@@ -957,7 +997,7 @@ subtest "Koha::Account::non_issues_charges tests" => sub {
         {
             credit_id => $credit->id,
             debit_id  => $debit->id,
-            type      => 'Payment',
+            type      => 'APPLY',
             amount    => 0
         }
     )->store();
@@ -991,7 +1031,7 @@ subtest "Koha::Account::non_issues_charges tests" => sub {
         {
             credit_id => $credit->id,
             debit_id  => $debit->id,
-            type      => 'Payment',
+            type      => 'APPLY',
             amount    => 0
         }
     )->store();
@@ -1058,7 +1098,7 @@ subtest "Koha::Account::Offset credit & debit tests" => sub {
         {
             credit_id => undef,
             debit_id  => undef,
-            type      => 'Payment',
+            type      => 'CREATE',
             amount    => 0,
         }
     )->store();

@@ -25,8 +25,8 @@ use Data::Dumper;
 use Scalar::Util qw(blessed);
 use Try::Tiny;
 
-use C4::Biblio;
-use C4::Context;
+use Koha::Biblios;
+use C4::Biblio qw( ModBiblio GetFrameworkCode );
 
 =head1 NAME
 
@@ -88,12 +88,6 @@ sub handleBZSHIdMappingRequest {
         
         # print STDERR Dumper($mappings);
         
-        my $dbh = C4::Context->dbh;
-        
-        my $raiseError = $dbh->{RaiseError};
-        $dbh->{AutoCommit} = 0;
-        $dbh->{RaiseError} = 1;
-        
         foreach my $mapping(@$mappings) {
             my ($biblionumber,$bzshid);
             
@@ -109,10 +103,11 @@ sub handleBZSHIdMappingRequest {
                 my $record;
                 
                 eval {
-                    $record = GetMarcBiblio( { biblionumber => $biblionumber } );
+                    my $biblio = Koha::Biblios->find( $biblionumber );
+                    $record = $biblio->metadata->record if ($biblio);
                 };
                 
-                if ( $@ ) {
+                if ( !$record ) {
                      warn 'handleBZSHIdMappingRequest: unable to read biblio record '.$biblionumber.' : '.$@;
                      next;
                 }
@@ -141,16 +136,10 @@ sub handleBZSHIdMappingRequest {
                     if ( $changed ) {
                         $mapcount++;
                         ModBiblio($record, $biblionumber, GetFrameworkCode($biblionumber));
-                        $dbh->commit if ( $mapcount%100 == 0 );
                     }
                 }
             }
         }
-        
-        $dbh->commit if ($mapcount);
-        
-        $dbh->{AutoCommit} = 1;
-        $dbh->{RaiseError} = $raiseError;
         
         $respcode = '201';
         $resptext = "$mapcount BZSH-ID mappings updated.";

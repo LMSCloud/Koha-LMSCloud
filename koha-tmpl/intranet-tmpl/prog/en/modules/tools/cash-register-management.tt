@@ -10,29 +10,26 @@
 </head>
 
 <body id="tools_cash_register_management" class="tools">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Cash register management
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Cash register management</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
         <div class="col-sm-10 col-sm-push-2">
             <main>
+                [% IF (action != 'edit') %]
                 <h1>
                     Manage cash registers
                 </h1>
@@ -40,8 +37,17 @@
                     <p>Define cash registers and staff members who are authorized to perform cash register transactions.</p>
                     <p>Staff members need to have the permission 'cash_management' activated to perform cash register transactions. Add the permission allowance if you miss staff members in the selection.</p>
                 </div><!-- help-->
-            
-                <div  id="manage-label-layouts">
+                <div id="new-cash-register">
+                    <p>
+                    <div>
+                        <form id="new" name="new" action="/cgi-bin/koha/tools/cash-register-management.pl">
+                            <input type="hidden" name="op" value="new" />
+                            <button class="btn btn-default btn-xs" submit=""><i class="fa fa-plus"></i> New cash register</button>
+                        </form>
+                    </div>
+                    </p>
+                </div>
+                <div  id="manage-cash-registers">
                     <p>
                     <table id="cashregt">
                        <thead>
@@ -84,15 +90,13 @@
                        </tbody>
                     </table>
                     </p>
-                    <p>
-                    <div>
-                        <form id="new" name="new" action="/cgi-bin/koha/tools/cash-register-management.pl">
-                            <input type="hidden" name="op" value="new" />
-                            <button class="btn btn-default btn-xs" submit=""><i class="fa fa-plus"></i> New cash register</button>
-                        </form>
-                    </div>
-                    </p>
-                    [% IF (action == 'edit') %]
+                </div>
+                [% END %]
+                [% IF (action == 'edit') %]
+                <h1>
+                    Edit cash register settings
+                </h1>
+                <div  id="edit-cash-register-settings">
                     <p>
                     <form name="input" action="/cgi-bin/koha/tools/cash-register-management.pl?op=save" method="post">
                         <fieldset class="rows">
@@ -159,15 +163,16 @@
                                 <!-- name -->
                                 <li>
                                     <label>&nbsp;</label>
-                                    <button class="btn btn-default btn-xs" name="op" value="save" id="savedata" type="submit"> Save</button>
-                                    <a class="cancel" href="/cgi-bin/koha/tools/cash-register-management.pl" class="clear_edit btn btn-default btn-xs">Cancel</a>
+                                    <button class="btn btn-default btn-xs btn-primary" name="op" value="save" id="savedata" type="submit"><i class="fa fa-save"></i> Save</button>
+                                    <button onclick="window.location.href='/cgi-bin/koha/tools/cash-register-management.p';" class="clear_edit btn btn-default btn-xs" data-dismiss="modal" aria-hidden="true"><i class="fa fa-times"></i> Cancel</button>
+                                    <!-- <a class="cancel" href="/cgi-bin/koha/tools/cash-register-management.pl" class="clear_edit btn btn-default btn-xs">Cancel</a> -->
                                 </li>
                             </ol>
                         </fieldset>
                     </form>
                     <p>
-                    [% END %]
                 </div>
+                [% END %]
             </main>
         </div> <!-- /.col-sm-10.col-sm-push-2 -->
 

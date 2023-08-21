@@ -7,14 +7,22 @@ Abby Robertson:
   commits: 3
   committer: 280
   first_commit: 1421848603
+Adam Styles:
+  commits: 4
+  committer: 455
+  first_commit: 1647419450
 Adam Thick:
   notes: 'Adam worked at Strategic Data, in Australia, one of the first Koha support companies outside of Katipo'
+Adolfo Rodríguez:
+  commits: 1
+  committer: 470
+  first_commit: 1658150550
 Adrien Saurat:
   commits: 61
   committer: 166
   first_commit: 1323195881
 Agustín Moyano:
-  commits: 128
+  commits: 176
   committer: 385
   first_commit: 1547209930
 Ahmed:
@@ -38,7 +46,7 @@ Alberto Martinez:
   committer: 379
   first_commit: 1537980426
 Aleisha Amohia:
-  commits: 349
+  commits: 467
   committer: 244
   first_commit: 1389735467
 Aleksa Vujicic:
@@ -46,11 +54,11 @@ Aleksa Vujicic:
   committer: 180
   first_commit: 1328115371
 Alex Arnaud:
-  commits: 167
+  commits: 170
   committer: 110
   first_commit: 1270653762
 Alex Buckley:
-  commits: 54
+  commits: 101
   committer: 335
   first_commit: 1488563481
 Alex Sassmannshausen:
@@ -66,7 +74,7 @@ Alexandra Horsman:
   committer: 239
   first_commit: 1389717018
 Alexis Ripetti:
-  commits: 1
+  commits: 4
   committer: 427
   first_commit: 1601298459
 Aliki Pavlidou:
@@ -92,11 +100,11 @@ Amy King:
   first_commit: 1611240029
 Andreas Hedström Mace: {}
 Andreas Jonsson:
-  commits: 8
+  commits: 12
   committer: 352
   first_commit: 1511716404
 Andreas Roussos:
-  commits: 36
+  commits: 50
   committer: 317
   first_commit: 1472831458
 Andrei V. Toutoukine:
@@ -111,6 +119,10 @@ Andrew Arensburger:
   history_notes: ', with the neat C4::Context'
   notes: the small and great C4::Context module
   openhub: https://www.openhub.net/p/koha/contributors/6620692124662
+Andrew Auld:
+  commits: 4
+  committer: 479
+  first_commit: 1669206547
 Andrew Chilton:
   commits: 1
   committer: 118
@@ -120,13 +132,13 @@ Andrew Elwell:
   committer: 78
   first_commit: 1234473564
 Andrew Fuerste-Henry:
-  commits: 25
+  commits: 41
   committer: 415
   first_commit: 1583141390
 Andrew Hooper:
   notes: Andrew worked for an ISP in NZ and was part of a team who ported Koha to Windows NT in the early 2000s
 Andrew Isherwood:
-  commits: 189
+  commits: 220
   committer: 372
   first_commit: 1523897974
 Andrew Lockett:
@@ -139,9 +151,13 @@ Andrew Moore:
   first_commit: 1205851483
   openhub: https://www.openhub.net/p/koha/contributors/6618544607803
 Andrew Nugged:
-  commits: 18
+  commits: 29
   committer: 417
   first_commit: 1585129199
+Andrii Veremeienko:
+  commits: 1
+  committer: 471
+  first_commit: 1658167817
 Andy Boze: {}
 Antoine Farnault:
   commits: 244
@@ -157,7 +173,7 @@ Arslan Farooq:
   committer: 304
   first_commit: 1461930076
 Arthur Suzuki:
-  commits: 10
+  commits: 16
   committer: 398
   first_commit: 1555033837
 Attila Kinali:
@@ -165,9 +181,13 @@ Attila Kinali:
   committer: 285
   first_commit: 1428515266
 Ava Li:
-  commits: 6
+  commits: 9
   committer: 439
   first_commit: 1611319610
+Axel Amghar:
+  commits: 1
+  committer: 486
+  first_commit: 1681497583
 Baptiste Wojtkowski:
   commits: 17
   committer: 338
@@ -193,16 +213,16 @@ Benjamin Rokseth:
   committer: 274
   first_commit: 1419810397
 Bernardo González Kriegel:
-  commits: 287
+  commits: 303
   committer: 120
   first_commit: 1287337626
   openhub: https://www.openhub.net/p/koha/contributors/6618544839606
 Bin Wen:
-  commits: 1
+  commits: 2
   committer: 408
   first_commit: 1572766492
 Björn Nylén:
-  commits: 5
+  commits: 13
   committer: 397
   first_commit: 1553332298
 Bob Birchall:
@@ -265,7 +285,7 @@ Caitlin Goodger:
   committer: 331
   first_commit: 1484832978
 Caroline Cyr La Rose:
-  commits: 24
+  commits: 79
   committer: 377
   first_commit: 1537056051
 Catherine Ma:
@@ -295,7 +315,7 @@ Chris Catalfo:
   committer: 49
   first_commit: 1191357512
 Chris Cormack:
-  commits: 2529
+  commits: 2530
   committer: 1
   first_commit: 940540422
   openhub: https://www.openhub.net/p/koha/contributors/6618544609030
@@ -317,9 +337,13 @@ Chris Weeks:
   committer: 355
   first_commit: 1513692792
 Christophe Croullebois:
-  commits: 31
+  commits: 32
   committer: 126
   first_commit: 1292417245
+Christophe Torin:
+  commits: 2
+  committer: 458
+  first_commit: 1654536531
 Christopher Brannon:
   commits: 16
   committer: 339
@@ -352,8 +376,12 @@ Clay Fouts:
   commits: 3
   committer: 71
   first_commit: 1221782533
+Clemens Tubach:
+  commits: 1
+  committer: 484
+  first_commit: 1680189227
 Colin Campbell:
-  commits: 412
+  commits: 415
   committer: 89
   first_commit: 1241180217
 Connor Dewar:
@@ -414,6 +442,10 @@ Danny Bouman:
   commits: 7
   committer: 67
   first_commit: 1217622547
+Danyon Sewell:
+  commits: 2
+  committer: 466
+  first_commit: 1657304362
 Darrell Ulm:
   commits: 11
   committer: 57
@@ -427,7 +459,7 @@ David Bourgault:
   committer: 348
   first_commit: 1507302595
 David Cook:
-  commits: 186
+  commits: 250
   committer: 181
   first_commit: 1331895126
 David Goldfein:
@@ -435,7 +467,7 @@ David Goldfein:
   committer: 86
   first_commit: 1240598176
 David Gustafsson:
-  commits: 47
+  commits: 60
   committer: 337
   first_commit: 1490204418
 David Kuhn:
@@ -443,13 +475,17 @@ David Kuhn:
   committer: 340
   first_commit: 1491213512
 David Nind:
-  commits: 5
+  commits: 25
   committer: 403
   first_commit: 1561019591
 David Roberts:
   commits: 26
   committer: 222
   first_commit: 1379697467
+David Schmidt:
+  commits: 1
+  committer: 454
+  first_commit: 1646210866
 David Schuster:
   commits: 2
   committer: 136
@@ -463,7 +499,7 @@ DeAndre Carroll:
   committer: 66
   first_commit: 1215181349
 Didier Gautheron:
-  commits: 16
+  commits: 26
   committer: 422
   first_commit: 1588173534
 Dimitris Antonakis:
@@ -548,11 +584,11 @@ Emmanuele Somma:
   committer: 275
   first_commit: 1421163806
 Emmi Takkinen:
-  commits: 30
+  commits: 48
   committer: 405
   first_commit: 1563191316
 Ere Maijala:
-  commits: 78
+  commits: 82
   committer: 342
   first_commit: 1494250040
 Eric Olsen:
@@ -572,6 +608,10 @@ Ethan Amohia:
   commits: 4
   committer: 388
   first_commit: 1547691807
+Evan Giles:
+  commits: 1
+  committer: 467
+  first_commit: 1657304425
 Evonne Cheung:
   commits: 2
   committer: 261
@@ -586,6 +626,10 @@ Fernando Canizo:
   commits: 2
   committer: 147
   first_commit: 1305357548
+Filip Vujičić:
+  commits: 1
+  committer: 464
+  first_commit: 1657303987
 Finlay Thompson:
   commits: 118
   committer: 8
@@ -597,6 +641,10 @@ Florent Mara:
   first_commit: 1468591660
 Florian Bischof:
   notes: Drove the adoption of HTML::Template which was used in Koha for 10 years before switching to Template Toolkit
+Florian Bontemps:
+  commits: 9
+  committer: 448
+  first_commit: 1636369904
 Francesca Moore:
   commits: 3
   committer: 246
@@ -617,12 +665,20 @@ Francois Marier:
   commits: 5
   committer: 151
   first_commit: 1309834869
+Frank Hansen:
+  commits: 4
+  committer: 473
+  first_commit: 1664802000
+François Pichenot:
+  commits: 1
+  committer: 461
+  first_commit: 1656705081
 Fred Pierre:
   commits: 1
   committer: 204
   first_commit: 1358474020
 Fridolin Somers:
-  commits: 485
+  commits: 774
   committer: 148
   first_commit: 1306357874
   openhub: https://www.openhub.net/p/koha/contributors/6620692831733
@@ -635,7 +691,7 @@ Frère Sébastien Marie:
   committer: 58
   first_commit: 1209125499
 Frédéric Demians:
-  commits: 309
+  commits: 315
   committer: 51
   first_commit: 1191652682
   openhub: https://www.openhub.net/p/koha/contributors/6620692210484
@@ -656,7 +712,7 @@ Gaetan Boisson:
   committer: 182
   first_commit: 1332253028
 Galen Charlton:
-  commits: 1994
+  commits: 1996
   committer: 52
   first_commit: 1192623007
   openhub: https://www.openhub.net/p/koha/contributors/6618544614260
@@ -673,7 +729,7 @@ Genevieve Plantin:
   committer: 297
   first_commit: 1442588211
 George Veranis:
-  commits: 2
+  commits: 8
   committer: 423
   first_commit: 1588183120
 Glen Stewart:
@@ -694,21 +750,33 @@ Greg Barniskis:
   committer: 164
   first_commit: 1318640424
 Gus Ellerm:
-  commits: 13
+  commits: 14
   committer: 303
   first_commit: 1453335643
 Gynn Lomax:
   commits: 16
   committer: 10
   first_commit: 1018417627
+Géraud Frappier:
+  commits: 2
+  committer: 478
+  first_commit: 1669145201
 H. Passini:
   commits: 7
   committer: 47
   first_commit: 1175010820
+Hammat Wele:
+  commits: 5
+  committer: 481
+  first_commit: 1675431014
 Hayley Mapley:
-  commits: 18
+  commits: 19
   committer: 396
   first_commit: 1551724985
+Hayley Pelham:
+  commits: 3
+  committer: 446
+  first_commit: 1634811844
 Helene Hickey:
   commits: 9
   committer: 387
@@ -719,7 +787,7 @@ Henri-Damien LAURENT:
   first_commit: 1037209979
   openhub: https://www.openhub.net/p/koha/contributors/6618544614275
 Henry Bolshaw:
-  commits: 5
+  commits: 14
   committer: 400
   first_commit: 1558623387
 Holger Meißner:
@@ -754,13 +822,17 @@ Isabel Grubi:
   committer: 359
   first_commit: 1513787650
 Isobel Graham:
-  commits: 2
+  commits: 14
   committer: 382
   first_commit: 1540570366
 Ivan Brown:
   commits: 1
   committer: 195
   first_commit: 1350052306
+Ivan Dziuba:
+  commits: 2
+  committer: 442
+  first_commit: 1624274853
 Ivan Masár:
   commits: 2
   committer: 431
@@ -773,6 +845,14 @@ Jack Kelliher:
   commits: 2
   committer: 389
   first_commit: 1547691808
+Jacob O'Mara:
+  commits: 5
+  committer: 476
+  first_commit: 1669118451
+Jake Deery:
+  commits: 1
+  committer: 456
+  first_commit: 1649082225
 James O'Keeffe:
   commits: 11
   committer: 435
@@ -781,6 +861,10 @@ James Winter:
   commits: 3
   committer: 81
   first_commit: 1236357379
+Jan Kissig:
+  commits: 1
+  committer: 482
+  first_commit: 1675776650
 Jane Sandberg:
   commits: 2
   committer: 378
@@ -795,7 +879,7 @@ Janet McGowan:
   committer: 268
   first_commit: 1409764574
 Janusz Kaczmarek:
-  commits: 27
+  commits: 43
   committer: 141
   first_commit: 1299916134
 Jared Camins-Esakov:
@@ -807,6 +891,10 @@ Jasmine Amohia:
   commits: 14
   committer: 391
   first_commit: 1547691808
+Jason Boyer:
+  commits: 1
+  committer: 443
+  first_commit: 1627653245
 Jason Etheridge:
   commits: 2
   committer: 218
@@ -824,7 +912,7 @@ Jen Zajac:
   committer: 209
   first_commit: 1364645847
 Jenny Way:
-  commits: 7
+  commits: 8
   committer: 365
   first_commit: 1517834746
 Jeremy Crabtree:
@@ -869,6 +957,10 @@ Johan Larsson:
   commits: 2
   committer: 374
   first_commit: 1529698336
+Johanna Raisa:
+  commits: 8
+  committer: 447
+  first_commit: 1635950452
 John Beppu:
   commits: 29
   committer: 74
@@ -899,7 +991,7 @@ Jon Knight:
   committer: 346
   first_commit: 1505228929
 Jonathan Druart:
-  commits: 6131
+  commits: 7662
   committer: 146
   first_commit: 1302221732
   openhub: https://www.openhub.net/p/koha/contributors/6618545125093
@@ -916,7 +1008,7 @@ Jono Mingard:
   committer: 175
   first_commit: 1328026907
 Joonas Kylmälä:
-  commits: 79
+  commits: 172
   committer: 294
   first_commit: 1440692752
 Jorgia Kelsey:
@@ -932,7 +1024,7 @@ Jose-Mario Monteiro-Santos:
   committer: 393
   first_commit: 1549658296
 Josef Moravec:
-  commits: 341
+  commits: 358
   committer: 286
   first_commit: 1428516974
 Joseph Alway:
@@ -961,7 +1053,7 @@ Julian Fiol:
   committer: 284
   first_commit: 1426420636
 Julian Maurice:
-  commits: 500
+  commits: 688
   committer: 140
   first_commit: 1299873221
 Justin Rittenhouse:
@@ -976,6 +1068,10 @@ Jérome Vizcaino:
   commits: 14
   committer: 25
   first_commit: 1056038819
+Jérémy Breuillard:
+  commits: 17
+  committer: 445
+  first_commit: 1633424294
 Jérôme Charaoui:
   commits: 2
   committer: 135
@@ -992,6 +1088,10 @@ Karen Jen:
   commits: 2
   committer: 329
   first_commit: 1484827759
+Karen Turner:
+  commits: 1
+  committer: 469
+  first_commit: 1657304651
 Karl Holten:
   commits: 1
   committer: 312
@@ -1013,7 +1113,7 @@ Kathryn Tyree:
   committer: 192
   first_commit: 1346687644
 Katrin Fischer:
-  commits: 1119
+  commits: 1483
   committer: 97
   first_commit: 1252245711
   openhub: https://www.openhub.net/p/koha/contributors/6618544670742
@@ -1029,6 +1129,10 @@ Ketan Kulkarni:
   commits: 5
   committer: 223
   first_commit: 1380725568
+Kevin Carnes:
+  commits: 9
+  committer: 453
+  first_commit: 1645492547
 Kip DeGraaf:
   notes: 'Early Koha tester from Ann Arbor Library, gave Koha exposure at Think Linux Expo in Toledo 2002'
 Koha SAB CINECA:
@@ -1043,17 +1147,25 @@ Kris Sinnaeve:
   commits: 1
   committer: 399
   first_commit: 1555581403
+Kris Wehipeihana:
+  commits: 2
+  committer: 463
+  first_commit: 1657303942
 Kristina D.C. Hoeppner:
   commits: 2
   committer: 208
   first_commit: 1364436270
 Kyle M Hall:
-  commits: 1839
+  commits: 2085
   committer: 69
   first_commit: 1219269924
   openhub: https://www.openhub.net/p/koha/contributors/6620692261494
+Lari Strand:
+  commits: 1
+  committer: 472
+  first_commit: 1664200362
 Lari Taskula:
-  commits: 91
+  commits: 107
   committer: 296
   first_commit: 1441638945
 Larry Baerveldt:
@@ -1064,6 +1176,10 @@ Lars Wirzenius:
   commits: 130
   committer: 107
   first_commit: 1268785068
+Laura Escamilla:
+  commits: 1
+  committer: 487
+  first_commit: 1683292720
 Lee Jamison:
   commits: 9
   committer: 318
@@ -1081,10 +1197,18 @@ Liz Rea:
   committer: 88
   first_commit: 1241042066
   openhub: https://www.openhub.net/p/koha/contributors/6618544650708
+Logan Symons:
+  commits: 1
+  committer: 468
+  first_commit: 1657304580
 Lucas Gass:
-  commits: 97
+  commits: 300
   committer: 392
   first_commit: 1548675671
+Lucio Moraes:
+  commits: 1
+  committer: 474
+  first_commit: 1665493804
 Lucy Vaux-Harvey: {}
 Luis Moises Rojas: {}
 Luke Honiss:
@@ -1092,11 +1216,11 @@ Luke Honiss:
   committer: 327
   first_commit: 1484826269
 Lyon 3 Team:
-  commits: 29
+  commits: 30
   committer: 174
   first_commit: 1326988165
 MJ Ray:
-  commits: 139
+  commits: 140
   committer: 23
   first_commit: 1053460217
   openhub: https://www.openhub.net/p/koha/contributors/6620692116417
@@ -1105,7 +1229,7 @@ Mackey Johnstone:
   committer: 390
   first_commit: 1547691808
 Magnus Enger:
-  commits: 149
+  commits: 161
   committer: 105
   first_commit: 1265810131
   openhub: https://www.openhub.net/p/koha/contributors/6618544677502
@@ -1127,7 +1251,7 @@ Marc Véron:
   first_commit: 1334323793
   openhub: https://www.openhub.net/p/koha/contributors/6618545408147
 Marcel de Rooy:
-  commits: 1283
+  commits: 1725
   committer: 117
   first_commit: 1274099181
   openhub: https://www.openhub.net/p/koha/contributors/6618544727712
@@ -1138,16 +1262,24 @@ Margaret Hade:
   committer: 381
   first_commit: 1539609523
 Marijana Glavica: {}
+Marion Durand:
+  commits: 13
+  committer: 449
+  first_commit: 1637330830
+Marius Mandrescu:
+  commits: 1
+  committer: 489
+  first_commit: 1683924607
 Mark Gavillet:
   commits: 1
   committer: 145
   first_commit: 1302208674
 Mark Hofstetter:
-  commits: 1
+  commits: 3
   committer: 429
   first_commit: 1603667681
 Mark Tompsett:
-  commits: 358
+  commits: 360
   committer: 188
   first_commit: 1341332315
 Martha Fuerst:
@@ -1159,20 +1291,20 @@ Martin Persson:
   committer: 295
   first_commit: 1440768617
 Martin Renvoize:
-  commits: 1482
+  commits: 2139
   committer: 165
   first_commit: 1323168944
   openhub: https://www.openhub.net/p/koha/contributors/6618544785220
 Martin Stenberg:
-  commits: 3
+  commits: 4
   committer: 293
   first_commit: 1440088924
 Maryse Simard:
-  commits: 19
+  commits: 25
   committer: 376
   first_commit: 1535127806
 Mason James:
-  commits: 302
+  commits: 328
   committer: 38
   first_commit: 1124399720
   openhub: https://www.openhub.net/accounts/kohaaloha
@@ -1180,12 +1312,16 @@ Mathieu Saby:
   commits: 67
   committer: 196
   first_commit: 1350919409
+Matt Blenkinsop:
+  commits: 32
+  committer: 477
+  first_commit: 1669118727
 Matthew Hunt:
   commits: 2
   committer: 116
   first_commit: 1273573366
 Matthias Meusburger:
-  commits: 182
+  commits: 188
   committer: 94
   first_commit: 1243604837
 Maxime Beaulieu:
@@ -1227,7 +1363,7 @@ Michael Andrew Cabus:
   committer: 345
   first_commit: 1503669544
 Michael Hafen:
-  commits: 73
+  commits: 80
   committer: 62
   first_commit: 1212060772
 Michael Kuhn:
@@ -1235,6 +1371,10 @@ Michael Kuhn:
 Michaes Herman:
   notes: Early work on the installer and XHTML
 Michal Denár: {}
+Michal Urban:
+  commits: 2
+  committer: 459
+  first_commit: 1654778609
 Michel Lerenard:
   commits: 1
   committer: 26
@@ -1253,6 +1393,10 @@ Mirko Tietgen:
   commits: 79
   committer: 190
   first_commit: 1341911305
+Mona Panchaud:
+  commits: 1
+  committer: 480
+  first_commit: 1671039845
 Morag Hills:
   commits: 2
   committer: 276
@@ -1298,11 +1442,11 @@ Nicholas Van Oudtshoorn:
   committer: 249
   first_commit: 1394549843
 Nick Clemens:
-  commits: 1491
+  commits: 2153
   committer: 264
   first_commit: 1406732251
 Nicolas Legrand:
-  commits: 22
+  commits: 23
   committer: 251
   first_commit: 1394723920
 Nicolas Morin:
@@ -1314,8 +1458,12 @@ Nicole C. Engard:
   committer: 61
   first_commit: 1210073470
   openhub: https://www.openhub.net/p/koha/contributors/6618544646984
+Nisha Dahya:
+  commits: 1
+  committer: 462
+  first_commit: 1657303782
 Nuño López Ansótegui:
-  commits: 4
+  commits: 5
   committer: 154
   first_commit: 1313023695
 Oleg Vasylenko:
@@ -1338,8 +1486,12 @@ Olivier Crouzet:
   commits: 4
   committer: 321
   first_commit: 1481886412
+Olivier Hubert:
+  commits: 1
+  committer: 485
+  first_commit: 1680786195
 Olli-Antti Kivilahti:
-  commits: 64
+  commits: 66
   committer: 254
   first_commit: 1399062559
 Olwen Williams:
@@ -1349,7 +1501,7 @@ Olwen Williams:
   notes: Database design and data extraction for Koha 1.0
   openhub: https://www.openhub.net/p/koha/contributors/6620692127299
 Owen Leonard:
-  commits: 3644
+  commits: 4256
   committer: 31
   first_commit: 1067627352
   notes: 3.0+ Interface Design
@@ -1359,7 +1511,7 @@ Pablo Bianchi:
   committer: 237
   first_commit: 1388104442
 Pasi Kallinen:
-  commits: 48
+  commits: 52
   committer: 253
   first_commit: 1396884477
 Pat Eyler:
@@ -1370,6 +1522,10 @@ Patricio Marrone:
   commits: 2
   committer: 325
   first_commit: 1484306580
+Paul Derscheid:
+  commits: 3
+  committer: 460
+  first_commit: 1656166837
 Paul Hoffman:
   commits: 1
   committer: 407
@@ -1385,7 +1541,7 @@ Pawel Skuza:
   first_commit: 994936331
   history_notes: 'overall, and the 2nd outside of Katipo. He commits his translation script.'
 Pedro Amorim:
-  commits: 1
+  commits: 79
   committer: 411
   first_commit: 1577102682
 Peggy Thrasher:
@@ -1401,7 +1557,7 @@ Peter Lorimer:
   committer: 179
   first_commit: 1328114842
 Petro Vashchuk:
-  commits: 23
+  commits: 54
   committer: 424
   first_commit: 1589277356
 Petter Goksøyr Åsen:
@@ -1413,15 +1569,19 @@ Petter von Krogh:
   committer: 402
   first_commit: 1560946204
 Phil Ringnalda:
-  commits: 12
+  commits: 14
   committer: 420
   first_commit: 1587544277
+Philip Orr:
+  commits: 5
+  committer: 483
+  first_commit: 1680170979
 Philippe Audet-Fortin:
   commits: 1
   committer: 369
   first_commit: 1522703550
 Philippe Blouin:
-  commits: 37
+  commits: 43
   committer: 224
   first_commit: 1381296323
 Philippe Jaillon:
@@ -1527,7 +1687,7 @@ Robin Sheat:
   first_commit: 1271932683
   openhub: https://www.openhub.net/p/koha/contributors/6618544619438
 Roch D'Amour:
-  commits: 3
+  commits: 4
   committer: 370
   first_commit: 1522703550
 Rochelle Healy:
@@ -1567,7 +1727,7 @@ Ron Wickersham:
 Rosalie Blake:
   notes: Instrumental at Horowhenua Library Trust when commissioning the first version of Koha
 Rudolf Byker:
-  commits: 1
+  commits: 3
   committer: 404
   first_commit: 1561728475
 Russel Garlick:
@@ -1579,6 +1739,10 @@ Ryan Higgins:
   committer: 46
   first_commit: 1173472439
   openhub: https://www.openhub.net/p/koha/contributors/6618544614261
+Salman Ali:
+  commits: 1
+  committer: 451
+  first_commit: 1644910898
 Salvador Zaragoza Rubio:
   commits: 8
   committer: 139
@@ -1630,6 +1794,10 @@ Sherryn Mak:
   commits: 1
   committer: 357
   first_commit: 1513787649
+Shi Yao Wang:
+  commits: 18
+  committer: 457
+  first_commit: 1649756417
 Silvia Simonetti:
   notes: Participate in a Catalyst Academy session
 Simith D'Oliveira:
@@ -1649,9 +1817,13 @@ Simon Story:
   committer: 184
   first_commit: 1338196467
 Slava Shishkin:
-  commits: 6
+  commits: 21
   committer: 425
   first_commit: 1589278508
+Solène Desvaux:
+  commits: 12
+  committer: 475
+  first_commit: 1665601096
 Sonia Lemaire:
   commits: 1
   committer: 217
@@ -1681,7 +1853,7 @@ Stan Brinkerhoff:
   committer: 75
   first_commit: 1230600051
 Stefan Berndtsson:
-  commits: 3
+  commits: 10
   committer: 351
   first_commit: 1511711971
 Stefan Weil:
@@ -1727,7 +1899,7 @@ Sébastien Hinderer:
   committer: 96
   first_commit: 1249134224
 Séverine Queune:
-  commits: 5
+  commits: 6
   committer: 409
   first_commit: 1573650627
 Tal Rogoff:
@@ -1746,14 +1918,26 @@ Thatcher Rea:
   commits: 2
   committer: 163
   first_commit: 1317156582
+The Minh Luong:
+  commits: 5
+  committer: 452
+  first_commit: 1644910898
 Theodoros Theodoropoulos:
   commits: 1
   committer: 418
   first_commit: 1586847551
+Thibaud Guillot:
+  commits: 12
+  committer: 450
+  first_commit: 1642127852
 Thomas Dukleth:
   commits: 38
   committer: 39
   first_commit: 1134397551
+Thomas Klausner:
+  commits: 7
+  committer: 444
+  first_commit: 1632248577
 Thomas Misilo:
   commits: 2
   committer: 283
@@ -1767,11 +1951,11 @@ Tim Hannah:
   committer: 234
   first_commit: 1386259067
 Tim McMahon:
-  commits: 1
+  commits: 2
   committer: 323
   first_commit: 1482492215
 Timothy Alexis Vass:
-  commits: 6
+  commits: 7
   committer: 426
   first_commit: 1597226830
 Tom Houlker:
@@ -1779,10 +1963,14 @@ Tom Houlker:
   committer: 242
   first_commit: 1389732928
 Tomás Cohen Arazi:
-  commits: 2133
+  commits: 3127
   committer: 125
   first_commit: 1290043376
   openhub: https://www.openhub.net/p/koha/contributors/6618544730094
+Tosca Waerea:
+  commits: 1
+  committer: 465
+  first_commit: 1657303995
 Tümer Garip:
   commits: 79
   committer: 42
@@ -1797,11 +1985,11 @@ Vassilis Kanellopoulos:
   committer: 375
   first_commit: 1533896030
 Victor Grousset:
-  commits: 38
+  commits: 56
   committer: 354
   first_commit: 1512652192
 Victoria Faafia:
-  commits: 1
+  commits: 4
   committer: 436
   first_commit: 1611242615
 Viktor Sarge:
@@ -1818,7 +2006,7 @@ Vitor Fernandes:
   committer: 199
   first_commit: 1355763181
 Wainui Witika-Park:
-  commits: 45
+  commits: 66
   committer: 441
   first_commit: 1617295897
 Wajasu:
@@ -1870,11 +2058,15 @@ Zoe Schoeler:
   committer: 326
   first_commit: 1484825348
 _others_:
-  commits: 20
+  commits: 24
 doXulting:
   commits: 163
   committer: 32
   first_commit: 1085400878
+emlam:
+  commits: 1
+  committer: 488
+  first_commit: 1683901344
 'Сергій Дубик {Serhij Dubyk}':
   commits: 6
   committer: 127

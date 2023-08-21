@@ -18,32 +18,21 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use vars qw($debug $cgi_debug);
 
 use CGI qw ( -utf8 );
-use List::Util qw( max min );
-use POSIX qw(ceil);
+use POSIX qw( ceil );
 
-use C4::Auth qw(get_template_and_user);
-use C4::Output qw(output_html_with_http_headers);
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
-use C4::Search qw(SimpleSearch);
-use C4::Biblio qw(TransformMarcToKoha);
-use C4::Creators::Lib qw(html_table);
-use C4::Debug;
+use C4::Search qw( new_record_from_zebra );
+use C4::Biblio qw( TransformMarcToKoha );
+use C4::Creators::Lib qw( html_table );
 
-use Koha::DateUtils;
+use Koha::Logger;
 use Koha::Items;
 use Koha::ItemTypes;
 use Koha::SearchEngine::Search;
-
-BEGIN {
-    $debug = $debug || $cgi_debug;
-    if ($debug) {
-        require Data::Dumper;
-        import Data::Dumper qw(Dumper);
-    }
-}
 
 my $query = CGI->new;
 
@@ -77,21 +66,13 @@ if ( $op eq "do_search" ) {
     $dateto   = $query->param('dateto');
 
     if ($datefrom) {
-        $datefrom = eval { dt_from_string ( $datefrom ) };
-        if ($datefrom) {
-            $datefrom = output_pref( { dt => $datefrom, dateonly => 1, dateformat => 'iso' } );
-            $ccl_query .= ' and ' if $ccl_textbox;
-            $ccl_query .= "acqdate,ge,st-date-normalized=" . $datefrom;
-        }
+        $ccl_query .= ' AND ' if $ccl_textbox;
+        $ccl_query .= "acqdate,ge,st-date-normalized=" . $datefrom;
     }
 
     if ($dateto) {
-        $dateto = eval { dt_from_string ( $dateto ) };
-        if ($dateto) {
-           $dateto = output_pref( { dt => $dateto, dateonly => 1, dateformat => 'iso' } );
-            $ccl_query .= ' and ' if ( $ccl_textbox || $datefrom );
-            $ccl_query .= "acqdate,le,st-date-normalized=" . $dateto;
-        }
+        $ccl_query .= ' AND ' if ( $ccl_textbox || $datefrom );
+        $ccl_query .= "acqdate,le,st-date-normalized=" . $dateto;
     }
 
     my $offset = $startfrom > 1 ? $startfrom - 1 : 0;
@@ -102,7 +83,7 @@ if ( $op eq "do_search" ) {
         $show_results = @{$marcresults};
     }
     else {
-        $debug and warn "ERROR label-item-search: no results from simple_search_compat";
+        Koha::Logger->get->warn("ERROR label-item-search: no results from simple_search_compat");
 
         # leave $show_results undef
     }
@@ -112,14 +93,12 @@ if ($show_results) {
     my $hits = $show_results;
     my @results_set = ();
     my @items =();
-    # This code needs to be refactored using these subs...
-    #my @items = &GetItemsInfo( $biblio->{biblionumber}, 'intra' );
     for ( my $i = 0 ; $i < $hits ; $i++ ) {
         my @row_data= ();
         #DEBUG Notes: Decode the MARC record from each resulting MARC record...
         my $marcrecord = C4::Search::new_record_from_zebra( 'biblioserver', $marcresults->[$i] );
         #DEBUG Notes: Transform it to Koha form...
-        my $biblio = TransformMarcToKoha( $marcrecord, '' );
+        my $biblio = TransformMarcToKoha({ record => $marcrecord });
         #DEBUG Notes: Stuff the bib into @biblio_data...
         push (@results_set, $biblio);
         my $biblionumber = $biblio->{'biblionumber'};
@@ -148,7 +127,6 @@ if ($show_results) {
             type            => "intranet",
             flagsrequired   => { borrowers => 'edit_borrowers' },
             flagsrequired   => { catalogue => 1 },
-            debug           => 1,
         }
     );
 
@@ -226,7 +204,6 @@ else {
             query           => $query,
             type            => "intranet",
             flagsrequired   => { catalogue => 1 },
-            debug           => 1,
         }
     );
     my $itemtypes = Koha::ItemTypes->search;

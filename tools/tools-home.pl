@@ -18,9 +18,9 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Output;
-use C4::Tags qw/get_count_by_tag_status/;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Tags qw( get_count_by_tag_status );
 use Koha::Reviews;
 
 my $query = CGI->new;
@@ -29,8 +29,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "tools/tools-home.tt",
         query           => $query,
         type            => "intranet",
-        flagsrequired   => { tools => '*' },
-        debug           => 1,
+        flagsrequired   => [ { tools => '*' }, { clubs => '*' } ],
     }
 );
 

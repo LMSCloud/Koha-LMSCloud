@@ -11,11 +11,9 @@ use strict;
 
 use C4::SIP::ILS::Transaction;
 
-use C4::Circulation;
-use C4::Debug;
-use Sys::Syslog qw(syslog);
+use C4::Circulation qw( AddReturn LostItem );
 use C4::Items qw( ModItemTransfer );
-use C4::Reserves qw( ModReserveAffect CheckReserves );
+use C4::Reserves qw( ModReserve ModReserveAffect CheckReserves );
 use C4::RotatingCollections;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Items;
@@ -53,9 +51,10 @@ sub do_checkin {
     my $return_date = shift;
     my $account = shift;
 
-    my $checked_in_ok     = $account->{checked_in_ok};
-    my $cv_triggers_alert = $account->{cv_triggers_alert};
-    my $holds_block_checkin  = $account->{holds_block_checkin};
+    my $checked_in_ok       = $account->{checked_in_ok};
+    my $cv_triggers_alert   = $account->{cv_triggers_alert};
+    my $holds_block_checkin = $account->{holds_block_checkin};
+    my $holds_get_captured  = $account->{holds_get_captured} // 1;
 
     if (!$branch) {
         $branch = 'SIP2';
@@ -99,7 +98,6 @@ sub do_checkin {
 
     my $checkin_blocked_by_holds = $holds_block_checkin && $reserved;
 
-    $debug and warn "do_checkin() calling AddReturn($barcode, $branch)";
     ( $return, $messages, $issue, $borrower ) =
       AddReturn( $barcode, $branch, undef, $return_date )
       unless $human_required || $checkin_blocked_by_holds;
@@ -129,11 +127,9 @@ sub do_checkin {
     }
     if ($messages->{BadBarcode}) {
         $self->alert_type('99');
-        syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - bad barcode");
     }
     if ($messages->{withdrawn}) {
         $self->alert_type('99');
-        syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - item withdrawn");
     }
     if ($messages->{WasLost}) {
         $self->alert_type('99') if C4::Context->preference("BlockReturnOfLostItems");
@@ -145,22 +141,18 @@ sub do_checkin {
         $self->alert_type('04');                       
         $self->screen_msg("Return at wrong branch");
         $return = 0;
-        syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - return at wrong branch");  
     }
     if ($messages->{WrongTransfer}) {
         $self->{item}->destination_loc($messages->{WrongTransfer});
         $self->alert_type('04');            # send to other branch
-        syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - wrong transfer");
     }
     if ($messages->{NeedsTransfer}) {
         $self->{item}->destination_loc($messages->{NeedsTransfer});
         $self->alert_type('04');            # send to other branch
-        syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - needs transfer");
     }
     if ($messages->{WasTransfered}) { # set into transit so tell unit
         $self->{item}->destination_loc($item->homebranch);
         $self->alert_type('04');            # send to other branch
-        syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - was transfered");
     }
     if ($messages->{ResFound} || $checkin_blocked_by_holds ) {
         if ($checkin_blocked_by_holds) {
@@ -169,20 +161,22 @@ sub do_checkin {
         } elsif ($branch eq $messages->{ResFound}->{branchcode}) {
             $self->hold($messages->{ResFound});
             $self->alert_type('01');
-            ModReserveAffect( $messages->{ResFound}->{itemnumber},
-                $messages->{ResFound}->{borrowernumber}, 0, $messages->{ResFound}->{reserve_id});
+            ModReserveAffect(
+                $messages->{ResFound}->{itemnumber},
+                $messages->{ResFound}->{borrowernumber},
+                0, $messages->{ResFound}->{reserve_id}
+            ) if $holds_get_captured;
 
         } else {
             $self->hold($messages->{ResFound});
             $self->alert_type('02');
-            ModReserveAffect( $item->itemnumber,
-                $messages->{ResFound}->{borrowernumber}, 1, $messages->{ResFound}->{reserve_id});
-            ModItemTransfer( $item->itemnumber,
-                $branch,
-                $messages->{ResFound}->{branchcode},
-                'Reserve',
-            );
-
+            if ($holds_get_captured) {
+                ModReserveAffect( $item->itemnumber,
+                    $messages->{ResFound}->{borrowernumber},
+                    1, $messages->{ResFound}->{reserve_id} );
+                ModItemTransfer( $item->itemnumber, $branch,
+                    $messages->{ResFound}->{branchcode}, 'Reserve', );
+            }
         }
         $self->{item}->hold_patron_id( $messages->{ResFound}->{borrowernumber} );
         $self->{item}->destination_loc( $messages->{ResFound}->{branchcode} );
@@ -195,6 +189,10 @@ sub do_checkin {
     else {
         $self->alert( !$return || defined $self->alert_type );
     }
+
+    # Set sort bin based on info in the item associated with the issue, and the
+    # mapping from SIP2SortBinMapping
+    $self->sort_bin( _get_sort_bin( $item, $branch, $account ) );
 
     $self->ok($return);
 
@@ -217,6 +215,95 @@ sub patron_id {
 		return;
 	}
 	return $self->{patron}->id;
+}
+
+=head1 _get_sort_bin
+
+Takes a Koha::Item object and the return branch branchcode as arguments.
+
+Uses the contents of the SIP2SortBinMapping syspref to determine the sort_bin
+value that should be returned for an item checked in via SIP2.
+
+The mapping should be:
+
+ <branchcode>:<item field>:<comparator>:<item field value>:<sort bin number>
+
+For example:
+
+ CPL:itype:eq:BOOK:1
+ CPL:location:eq:OFFICE:2
+ CPL:classmark:<:339.6:3
+
+This will give:
+
+=over 4
+
+=item * sort_bin = "1" for items at the CPL branch with an itemtype of BOOK
+
+=item * sort_bin = "2" for items at the CPL branch with a location of OFFICE
+
+=item * sort_bin = "3" for items at the CPL branch with a classmark less than 339.6
+
+=back
+
+Returns the ID of the appropriate sort_bin, if there is one, or undef.
+
+=cut
+
+sub _get_sort_bin {
+
+    # We should get an item represented as a hashref here
+    my ( $item, $branch, $account ) = @_;
+    return unless $item;
+
+    my @lines;
+    # Mapping in SIP config takes precedence over syspref
+    if ( my $mapping = $account->{sort_bin_mapping} ) {
+        @lines = map { $_->{mapping} } @$mapping;
+    }
+    else {
+        # Get the mapping and split on newlines
+        my $raw_map = C4::Context->preference('SIP2SortBinMapping');
+        return unless $raw_map;
+        @lines = split /\r\n/, $raw_map;
+    }
+
+    # Iterate over the mapping. The first hit wins.
+    my $rule = 0;
+    foreach my $line (@lines) {
+
+        # Split the line into fields
+        my ( $branchcode, $item_property, $comparator, $value, $sort_bin ) =
+          split /:/, $line;
+        if ( $value =~ s/^\$// ) {
+            $value = $item->$value;
+        }
+        # Check the fields against values in the item
+        if ( $branch eq $branchcode ) {
+            my $property = $item->$item_property;
+            if ( ( $comparator eq 'eq' || $comparator eq '=' ) && ( $property eq $value ) ) {
+                return $sort_bin;
+            }
+            if ( ( $comparator eq 'ne' || $comparator eq '!=' ) && ( $property ne $value ) ) {
+                return $sort_bin;
+            }
+            if ( ( $comparator eq '<' ) && ( $property < $value ) ) {
+                return $sort_bin;
+            }
+            if ( ( $comparator eq '>' ) && ( $property > $value ) ) {
+                return $sort_bin;
+            }
+            if ( ( $comparator eq '<=' ) && ( $property <= $value ) ) {
+                return $sort_bin;
+            }
+            if ( ( $comparator eq '>=' ) && ( $property >= $value ) ) {
+                return $sort_bin;
+            }
+        }
+    }
+
+    # Return undef if no hits were found
+    return;
 }
 
 1;

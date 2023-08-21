@@ -40,9 +40,13 @@ override_dh_auto_install:
 	mkdir -p $(TMP)/debian/tmp_docbook
 	xt/verify-debian-docbook.t
 	xsltproc --output $(TMP)/debian/tmp_docbook/ \
-	    /usr/share/xml/docbook/stylesheet/docbook-xsl/manpages/docbook.xsl \
+	    /usr/share/xml/docbook/stylesheet/docbook-xsl-ns/manpages/docbook.xsl \
 	    debian/docs/*.xml
 
 override_dh_compress:
 	# exclude history.txt from compression as about.pl needs it uncompressed
 	dh_compress --exclude=history.txt --exclude=contributors.yaml --exclude=teams.yaml
+
+override_dh_installchangelogs:
+	# Debian Buster onwards renames history.txt to changelog which breaks Koha's timeline feature
+	dh_installchangelogs --exclude=history.txt

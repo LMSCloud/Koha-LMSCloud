@@ -18,9 +18,9 @@ package Koha::REST::Plugin::Query;
 use Modern::Perl;
 
 use Mojo::Base 'Mojolicious::Plugin';
-use List::MoreUtils qw(any);
-use Scalar::Util qw(reftype);
-use JSON qw(decode_json);
+use List::MoreUtils qw( any );
+use Scalar::Util qw( reftype );
+use JSON qw( decode_json );
 
 use Koha::Exceptions;
 
@@ -145,7 +145,6 @@ Generates the DBIC prefetch attribute based on embedded relations, and merges in
             my $attributes = $args->{attributes};
             my $result_set = $args->{result_set};
             my $embed = $c->stash('koha.embed');
-
             return unless defined $embed;
 
             my @prefetches;
@@ -229,7 +228,9 @@ Merges parameters from $q_params into $filtered_params.
 
 =head3 stash_embed
 
-    $c->stash_embed( $c->match->endpoint->pattern->defaults->{'openapi.op_spec'} );
+    $c->stash_embed( { spec => $op_spec } );
+
+Unwraps and stashes the x-koha-embed headers for use later query construction
 
 =cut
 
@@ -238,28 +239,32 @@ Merges parameters from $q_params into $filtered_params.
 
             my ( $c, $args ) = @_;
 
-            my $spec = $args->{spec} // {};
-
-            my $embed_spec   = $spec->{'x-koha-embed'};
             my $embed_header = $c->req->headers->header('x-koha-embed');
+            return $c unless $embed_header;
 
-            Koha::Exceptions::BadParameter->throw("Embedding objects is not allowed on this endpoint.")
-                if $embed_header and !defined $embed_spec;
+            my $spec = $args->{spec} // {};
+            my $embed_spec;
+            for my $param ( @{ $spec->{parameters} } ) {
+                next unless $param->{name} eq 'x-koha-embed';
+                $embed_spec = $param->{items}->{enum};
+            }
+            Koha::Exceptions::BadParameter->throw(
+                "Embedding objects is not allowed on this endpoint.")
+              unless defined($embed_spec);
 
-            if ( $embed_header ) {
+            if ($embed_header) {
                 my $THE_embed = {};
                 foreach my $embed_req ( split /\s*,\s*/, $embed_header ) {
-                    my $matches = grep {lc $_ eq lc $embed_req} @{ $embed_spec };
-
-                    Koha::Exceptions::BadParameter->throw(
-                        error => 'Embeding '.$embed_req. ' is not authorised. Check your x-koha-embed headers or remove it.'
-                    ) unless $matches;
-
-                    _merge_embed( _parse_embed($embed_req), $THE_embed);
+                    if ( $embed_req eq '+strings' ) {    # special case
+                        $c->stash( 'koha.strings' => 1 );
+                    }
+                    else {
+                        _merge_embed( _parse_embed($embed_req), $THE_embed );
+                    }
                 }
 
                 $c->stash( 'koha.embed' => $THE_embed )
-                    if $THE_embed;
+                  if $THE_embed;
             }
 
             return $c;
@@ -310,7 +315,7 @@ reference: https://metacpan.org/changes/distribution/JSON-Validator#L14
 
 sub _reserved_words {
 
-    my @reserved_words = qw( _match _order_by _order_by[] _page _per_page q query x-koha-query);
+    my @reserved_words = qw( _match _order_by _order_by[] _page _per_page q query x-koha-query x-koha-request-id x-koha-embed);
     return \@reserved_words;
 }
 
@@ -373,9 +378,13 @@ sub _parse_embed {
         $result->{$curr} = { children => _parse_embed( $next ) };
     }
     else {
-        if ( $curr =~ m/^(?<relation>.*)\+count/ ) {
+        if ( $curr =~ m/^(?<relation>.*)[\+|:]count/ ) {
             my $key = $+{relation} . "_count";
             $result->{$key} = { is_count => 1 };
+        }
+        elsif ( $curr =~ m/^(?<relation>.*)\+strings/ ) {
+            my $key = $+{relation};
+            $result->{$key} = { strings => 1 };
         }
         else {
             $result->{$curr} = {};

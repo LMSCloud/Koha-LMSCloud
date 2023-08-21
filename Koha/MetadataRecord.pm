@@ -34,8 +34,7 @@ and authority) records in Koha.
 
 use Modern::Perl;
 
-use Carp;
-use C4::Biblio;
+use Carp qw( carp );
 use Koha::Util::MARC;
 
 use base qw(Class::Accessor);
@@ -106,19 +105,6 @@ sub createMergeHash {
     my ($self, $tagslib) = @_;
     if ($self->schema =~ m/marc/) {
         return Koha::Util::MARC::createMergeHash($self->record, $tagslib);
-    }
-}
-
-=head2 getKohaField
-
-    $metadata->{$key} = $record->getKohaField($kohafield);
-
-=cut
-
-sub getKohaField {
-    my ($self, $kohafield) = @_;
-    if ($self->schema =~ m/marc/) {
-        return C4::Biblio::TransformMarcToKohaOneField($kohafield, $self->record);
     }
 }
 

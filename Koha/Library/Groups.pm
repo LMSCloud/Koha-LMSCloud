@@ -19,7 +19,6 @@ package Koha::Library::Groups;
 
 use Modern::Perl;
 
-use Carp;
 
 use Koha::Database;
 
@@ -49,7 +48,7 @@ sub get_root_groups {
 
 =head3 get_search_groups
 
-my @search_groups = $self->get_search_groups({[interface => 'staff' || 'opac']}))
+my $search_groups = $self->get_search_groups({[interface => 'staff' || 'opac']}))
 
 Returns search groups for the specified interface.
 Defaults to OPAC if no interface is specified.
@@ -62,7 +61,7 @@ sub get_search_groups {
 
     my $field = $interface eq 'staff' ? 'ft_search_groups_staff' : 'ft_search_groups_opac';
 
-    return $self->search( { $field => 1 } );
+    return $self->search( { $field => 1 }, { order_by => 'title' } );
 }
 
 

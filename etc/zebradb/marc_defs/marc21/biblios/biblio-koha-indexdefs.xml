@@ -12,13 +12,15 @@
   <index_leader offset="7" length="1">
     <target_index>Bib-level:w</target_index>
   </index_leader>
+  <index_leader offset="19" length="1">
+    <target_index>Multipart-resource-level:w</target_index>
+  </index_leader>
   <!--record.abs line 43: melm 001        Control-number-->
   <index_control_field tag="001">
     <target_index>Control-number:w</target_index>
   </index_control_field>
-  <!--record.abs added line by roger:  melm 003  Control-number-agency-->
   <index_control_field tag="003">
-    <target_index>Control-number-agency:w</target_index>
+    <target_index>Control-number-identifier:w</target_index>
   </index_control_field>
   <!--record.abs line 44: melm 005        Date/time-last-modified-->
   <index_control_field tag="005">
@@ -822,7 +824,7 @@
     <target_index>Subject:p</target_index>
   </index_data_field>
   <!--melm 655$a      Index-term-genre    -->
-  <index_subfields tag="655" subfields="a">
+  <index_subfields tag="655" subfields="axvyz">
     <target_index>Index-term-genre:w</target_index>
     <target_index>Index-term-genre:p</target_index>
     <target_index>Subject:w</target_index>
@@ -1288,6 +1290,8 @@
   <index_subfields tag="999" subfields="c">
     <target_index>Local-Number:n</target_index>
     <target_index>Local-Number:w</target_index>
+  </index_subfields>
+  <index_subfields tag="999" subfields="c" zeropad="1">
     <target_index>Local-Number:s</target_index>
   </index_subfields>
   <!--record.abs line 269: melm 999$d      biblioitemnumber:n,biblioitemnumber:w,biblioitemnumber:s-->

@@ -20,11 +20,14 @@ use Modern::Perl;
 use Mojo::Base 'Mojolicious::Controller';
 
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::Exceptions;
 use Koha::Patrons;
 
-use Scalar::Util qw(blessed);
-use Try::Tiny;
+use List::MoreUtils qw(any);
+use Scalar::Util qw( blessed );
+use Try::Tiny qw( catch try );
+use JSON;
+use Data::Dumper;
 
 =head1 NAME
 
@@ -49,6 +52,12 @@ sub list {
         my $restricted = delete $c->validation->output->{restricted};
         $query->{debarred} = { '!=' => undef }
             if $restricted;
+        
+        if ( exists $c->validation->output->{q} ) {
+			my $q_param = $c->validation->output->{q};
+			my $addional_params = _extract_additional_params($q_param);
+			_add_additional_params_to_query($addional_params,$query);
+		}
 
         my $patrons_rs = Koha::Patrons->search($query);
         my $patrons    = $c->objects->search( $patrons_rs );
@@ -63,6 +72,174 @@ sub list {
     };
 }
 
+sub _add_additional_params_to_query {
+	my $addional_params = shift;
+	my $query = shift;
+	
+	if ( $addional_params ) {
+		$query->{'-and'} = [];
+		if ( exists($addional_params->{'age_from'}) && exists($addional_params->{'age_to'}) && $addional_params->{'age_from'} =~ /^\d+$/ && $addional_params->{'age_to'} =~ /^\d+$/ ) {
+			push @{$query->{'-and'}}, \[ 'TIMESTAMPDIFF(YEAR,me.dateofbirth,CURDATE()) BETWEEN ? AND ?', $addional_params->{'age_from'}, $addional_params->{'age_to'} ];
+		}
+		elsif ( exists($addional_params->{'age_from'}) && $addional_params->{'age_from'} =~ /^\d+$/ ) {
+			push @{$query->{'-and'}}, \[ 'TIMESTAMPDIFF(YEAR,me.dateofbirth,CURDATE()) >= ?', $addional_params->{'age_from'} ];
+		}
+		elsif ( exists($addional_params->{'age_to'}) && $addional_params->{'age_to'} =~ /^\d+$/ ) {
+			push @{$query->{'-and'}}, \[ 'TIMESTAMPDIFF(YEAR,me.dateofbirth,CURDATE()) <= ?', $addional_params->{'age_to'} ];
+		}
+		
+		if ( exists($addional_params->{'issue_count_from'}) && exists($addional_params->{'issue_count_to'}) && $addional_params->{'issue_count_from'} =~ /^\d+$/ && $addional_params->{'issue_count_to'} =~ /^\d+$/ ) {
+			push @{$query->{'-and'}}, \[ '(SELECT COUNT(*) FROM issues iss WHERE iss.borrowernumber = me.borrowernumber) BETWEEN ? AND ?', $addional_params->{'issue_count_from'}, $addional_params->{'issue_count_to'} ];
+		}
+		elsif ( exists($addional_params->{'issue_count_from'}) && $addional_params->{'issue_count_from'} =~ /^\d+$/ ) {
+			push @{$query->{'-and'}}, \[ '(SELECT COUNT(*) FROM issues iss WHERE iss.borrowernumber = me.borrowernumber) >= ?', $addional_params->{'issue_count_from'} ];
+		}
+		elsif ( exists($addional_params->{'issue_count_to'}) && $addional_params->{'issue_count_to'} =~ /^\d+$/ ) {
+			push @{$query->{'-and'}}, \[ '(SELECT COUNT(*) FROM issues iss WHERE iss.borrowernumber = me.borrowernumber) <= ?', $addional_params->{'issue_count_to'} ];
+		}
+		
+		if ( exists($addional_params->{'charges_from'}) && $addional_params->{'charges_from'} =~ /^[0-9]+(\.+[0-9]+)?$/ ) {
+			$addional_params->{'charges_from'} += 0.0;
+		} else {
+			delete $addional_params->{'charges_from'};
+		}
+		if ( exists($addional_params->{'charges_to'}) && $addional_params->{'charges_to'} =~ /^[0-9]+(\.+[0-9]+)?$/ ) {
+			$addional_params->{'charges_to'} += 0.0;
+		} else {
+			delete $addional_params->{'charges_to'};
+		}
+		if ( exists($addional_params->{'charges_from'}) && exists($addional_params->{'charges_to'}) && $addional_params->{'charges_from'} =~ /^[0-9]+(\.+[0-9]+)?$/ && $addional_params->{'charges_to'} =~ /^[0-9]+(\.+[0-9]+)?$/ ) {
+			my $add = "( EXISTS (SELECT 1 FROM accountlines a WHERE a.borrowernumber = me.borrowernumber GROUP BY a.borrowernumber HAVING ";
+            if ( $addional_params->{'charges_from'} == 0.0 && $addional_params->{'charges_to'} == 0.0 ) {
+                $add .= "COALESCE(SUM(a.amountoutstanding),0) = 0.0) OR NOT EXISTS (SELECT 1 FROM accountlines aa WHERE aa.borrowernumber = me.borrowernumber) )";
+                push @{$query->{'-and'}}, \[ $add ];
+            } else {
+                $add .= "COALESCE(SUM(a.amountoutstanding),0) BETWEEN ? AND ?) ";
+                $add .= "OR NOT EXISTS ( SELECT 1 FROM accountlines aa WHERE aa.borrowernumber = me.borrowernumber) " if ( ( $addional_params->{'charges_from'} == 0.0 || $addional_params->{'charges_to'} == 0.0 ) && $addional_params->{'charges_to'} >= $addional_params->{'charges_from'} );
+                $add .= " )";
+                push @{$query->{'-and'}}, \[ $add, $addional_params->{'charges_from'}, $addional_params->{'charges_to'} ];
+            }
+		}
+		elsif ( exists($addional_params->{'charges_from'}) && $addional_params->{'charges_from'} =~ /^[0-9]+(\.+[0-9]+)?$/ ) {
+			my $add = "( EXISTS (SELECT 1 FROM accountlines a WHERE a.borrowernumber = me.borrowernumber GROUP BY a.borrowernumber HAVING ";
+			$add .= "SUM(a.amountoutstanding) >= ?) ";
+            $add .= "OR NOT EXISTS (SELECT 1 FROM accountlines aa WHERE aa.borrowernumber = me.borrowernumber) " if ( $addional_params->{'charges_from'} == 0.0 );
+            $add .= " )";
+			push @{$query->{'-and'}}, \[ $add, $addional_params->{'charges_from'} ];
+		}
+		elsif ( exists($addional_params->{'charges_to'}) && $addional_params->{'charges_to'} =~ /^[0-9]+(\.+[0-9]+)?$/ ) {
+			my $add = "( EXISTS (SELECT 1 FROM accountlines a WHERE a.borrowernumber = me.borrowernumber GROUP BY a.borrowernumber HAVING ";
+			$add .= "SUM(a.amountoutstanding) <= ?) ";
+            $add .= "OR NOT EXISTS (SELECT 1 FROM accountlines aa WHERE aa.borrowernumber = me.borrowernumber) " if ( $addional_params->{'charges_to'} == 0.0 );
+            $add .= " )";
+			push @{$query->{'-and'}}, \[ $add, $addional_params->{'charges_to'} ];
+		}
+		if ( exists($addional_params->{'charges_period_from'}) && $addional_params->{'charges_period_from'} =~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ ) {
+			my $add = "EXISTS (SELECT 1 FROM accountlines al WHERE al.borrowernumber = me.borrowernumber AND al.amountoutstanding >= 0.01 and al.date <= ?)";
+			push @{$query->{'-and'}}, \[ $add, $addional_params->{'charges_period_from'} ];
+		}
+		if ( exists($addional_params->{'account_expiry_from'}) && $addional_params->{'account_expiry_from'} =~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ ) {
+			my $add = "me.dateexpiry >= ?";
+			push @{$query->{'-and'}}, \[ $add, $addional_params->{'account_expiry_from'} ];
+		}
+		if ( exists($addional_params->{'account_expiry_to'}) && $addional_params->{'account_expiry_to'} =~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ ) {
+			my $add = "me.dateexpiry <= ?";
+			push @{$query->{'-and'}}, \[ $add, $addional_params->{'account_expiry_to'} ];
+		}
+		if ( exists($addional_params->{'debarred_period_from'}) && $addional_params->{'debarred_period_from'} =~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ ) {
+			my $add = "me.debarred >= ?";
+			push @{$query->{'-and'}}, \[ $add, $addional_params->{'debarred_period_from'} ];
+		}
+		if ( exists($addional_params->{'debarred_period_to'}) && $addional_params->{'debarred_period_to'} =~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ ) {
+			my $add = "me.debarred <= ?";
+			push @{$query->{'-and'}}, \[ $add, $addional_params->{'debarred_period_to'} ];
+		}
+		if ( exists($addional_params->{'inactive_period_from'}) && $addional_params->{'inactive_period_from'} =~ /^([0-9]{4}-[0-9]{2}-[0-9]{2})/ ) {
+			my $activeto = "$1 00:00:00";
+			my $inactivesince = "$1 23:59:59";
+			push @{$query->{'-and'}}, \[ 'NOT EXISTS (SELECT 1 FROM issues iss WHERE iss.borrowernumber = me.borrowernumber AND iss.timestamp > ?)', $inactivesince ];
+			push @{$query->{'-and'}}, \[ 'NOT EXISTS (SELECT 1 FROM old_issues oiss WHERE oiss.borrowernumber = me.borrowernumber AND oiss.timestamp > ?)', $inactivesince ];
+			push @{$query->{'-and'}}, \[ '(me.lastseen < ? OR me.lastseen IS NULL)', $activeto ];
+		}
+		if ( exists($addional_params->{'last_letter'}) && $addional_params->{'last_letter'} !~ /^\s*$/ ) {
+			push @{$query->{'-and'}}, \[ 'EXISTS (SELECT 1 FROM message_queue m WHERE m.borrowernumber = me.borrowernumber AND m.letter_code = ? and m.time_queued = (SELECT MAX(time_queued) FROM message_queue mq WHERE mq.borrowernumber = me.borrowernumber and status = ?))', $addional_params->{'last_letter'}, 'sent'];
+		}
+		if ( exists($addional_params->{'overdue_level'}) && $addional_params->{'overdue_level'} =~ /^\d+$/ ) {
+			push @{$query->{'-and'}}, \[ 'EXISTS (SELECT 1 FROM issues i WHERE i.borrowernumber = me.borrowernumber AND ? IN (SELECT max(claim_level) FROM overdue_issues o WHERE i.issue_id = o.issue_id GROUP BY o.issue_id))', $addional_params->{'overdue_level'} ];
+		}
+		if ( exists($addional_params->{'valid_email'}) && $addional_params->{'valid_email'} eq 'yes' ) {
+			push @{$query->{'-and'}}, \[ '(me.email REGEXP \'^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]\.[a-zA-Z]{2,4}$\' OR '.
+                                         'me.emailpro REGEXP \'^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]\.[a-zA-Z]{2,4}$\')' ];
+		}
+		if ( exists($addional_params->{'valid_email'}) && $addional_params->{'valid_email'} eq 'no' ) {
+			push @{$query->{'-and'}}, \[ '(me.email NOT REGEXP \'^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]\.[a-zA-Z]{2,4}$\' OR me.email IS NULL) AND ' .
+                                         '(me.emailpro NOT REGEXP \'^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]\.[a-zA-Z]{2,4}$\' OR me.emailpro IS NULL)' ];
+		}
+		if ( exists($addional_params->{'patron_list'}) && $addional_params->{'patron_list'} =~ /^\d+$/ ) {
+			push @{$query->{'-and'}}, \[ 'EXISTS (SELECT 1 FROM  patron_list_patrons p WHERE p.patron_list_id = ? AND p.borrowernumber = me.borrowernumber )', $addional_params->{'patron_list'} ];
+		}
+	}
+}
+
+sub _extract_additional_params {
+	my $params = shift;
+	my $additional_params = {};
+	
+	my @reserved_words = qw( age_from age_to issue_count_from issue_count_to charges_from charges_to charges_period_from account_expiry_from account_expiry_to debarred_period_from debarred_period_to inactive_period_from last_letter overdue_level valid_email patron_list);
+	
+	my $json = JSON->new;
+	
+	# print STDERR "Params is a: ", ref($params), "\n";
+	
+	if ( ref($params) eq 'ARRAY' ) {
+		my $newarray = [];
+		my $found = 0;
+		foreach my $param (@$params) {
+			# print STDERR Dumper(\$param);
+			my $q_param = $json->decode( $param );
+			# print STDERR Dumper(\$q_param);
+			# print STDERR "Param q_param is a: ", ref($q_param), "\n";
+			if ( ref($q_param) eq 'HASH' && exists($q_param->{"-and"}) ) {
+				my $newlist = [];
+				foreach my $lparam( @{$q_param->{"-and"}} ) {
+					if ( ref($lparam) eq 'HASH' ) {
+						foreach my $add_param(@reserved_words) {
+							if ( exists($lparam->{$add_param}) ) {
+								$additional_params->{$add_param} = $lparam->{$add_param};
+								delete $lparam->{$add_param};
+								$found = 1;
+							}
+						}
+						if ( scalar(keys %$lparam) ) {
+							push @$newlist, $lparam;
+						}
+					}
+					else {
+						push @$newlist, $lparam;
+					}
+				}
+				if ( $found ) {
+					$q_param->{"-and"} = $newlist;
+				}
+			} 
+			elsif ( ref($q_param) eq 'HASH' )  {
+				foreach my $add_param(@reserved_words) {
+					if ( exists($q_param->{$add_param}) ) {
+						$additional_params->{$add_param} = $q_param->{$add_param};
+						delete $q_param->{$add_param};
+						$found = 1;
+					}
+				}
+			}
+			$param = $json->encode( $q_param ) if ( $found );
+			push @$newarray,$param;
+			# print STDERR Dumper(\$param);
+		}
+	}
+	
+	return $additional_params;
+}
+
 =head3 get
 
 Controller function that handles retrieving a single Koha::Patron object
@@ -74,7 +251,7 @@ sub get {
 
     return try {
         my $patron_id = $c->validation->param('patron_id');
-        my $patron    = $c->objects->find( scalar Koha::Patrons->search_limited, $patron_id );
+        my $patron    = $c->objects->find( Koha::Patrons->search_limited, $patron_id );
 
         unless ($patron) {
             return $c->render(
@@ -339,30 +516,36 @@ sub delete {
 
     return try {
 
-        if ( $patron->checkouts->count > 0 ) {
-            return $c->render(
-                status  => 409,
-                openapi => { error => 'Pending checkouts prevent deletion' }
-            );
+        my $safe_to_delete = $patron->safe_to_delete;
+
+        if ( !$safe_to_delete ) {
+            # Pick the first error, if any
+            my ( $error ) = grep { $_->type eq 'error' } @{ $safe_to_delete->messages };
+            unless ( $error ) {
+                Koha::Exception->throw('Koha::Patron->safe_to_delete returned false but carried no error message');
+            }
+
+            my $error_descriptions = {
+                has_checkouts  => 'Pending checkouts prevent deletion',
+                has_debt       => 'Pending debts prevent deletion',
+                has_guarantees => 'Patron is a guarantor and it prevents deletion',
+                is_anonymous_patron => 'Anonymous patron cannot be deleted',
+            };
+
+            if ( any { $error->message eq $_ } keys %{$error_descriptions} ) {
+                return $c->render(
+                    status  => 409,
+                    openapi => {
+                        error      => $error_descriptions->{ $error->message },
+                        error_code => $error->message,
+                    }
+                );
+            } else {
+                Koha::Exception->throw( 'Koha::Patron->safe_to_delete carried an unexpected message: ' . $error->message );
+            }
         }
 
-        my $account = $patron->account;
-
-        if ( $account->outstanding_debits->total_outstanding > 0 ) {
-            return $c->render(
-                status  => 409,
-                openapi => { error => 'Pending debts prevent deletion' }
-            );
-        }
-
-        if ( $patron->guarantee_relationships->count > 0 ) {
-            return $c->render(
-                status  => 409,
-                openapi => { error => 'Patron is a guarantor and it prevents deletion' }
-            );
-        }
-
-        $patron->_result->result_source->schema->txn_do(
+        return $patron->_result->result_source->schema->txn_do(
             sub {
                 $patron->move_to_deleted;
                 $patron->delete;
@@ -374,12 +557,6 @@ sub delete {
             }
         );
     } catch {
-        if ( blessed $_ && $_->isa('Koha::Exceptions::Patron::FailedDeleteAnonymousPatron') ) {
-            return $c->render(
-                status  => 403,
-                openapi => { error => "Anonymous patron cannot be deleted" }
-            );
-        }
 
         $c->unhandled_exception($_);
     };

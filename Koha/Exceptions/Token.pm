@@ -17,9 +17,11 @@ package Koha::Exceptions::Token;
 
 use Modern::Perl;
 
+use Koha::Exception;
+
 use Exception::Class (
     'Koha::Exceptions::Token' => {
-        description => 'Something went wrong!',
+        isa => 'Koha::Exception',
     },
     'Koha::Exceptions::Token::BadPattern' => {
         isa => 'Koha::Exceptions::Token',

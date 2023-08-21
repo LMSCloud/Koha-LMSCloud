@@ -3,7 +3,6 @@
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Price %]
-[% USE currency = format('%.2f') -%]
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
@@ -19,35 +18,33 @@
 </head>
 
 <body id="acq_parcel" class="acq">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'acquisitions-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'acquisitions-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a>
-        </li>
-        [% IF invoiceclosedate %]
-            <li>
-                Receipt summary for <em>[% name | html %]</em>
-                [% IF ( invoice ) %]
-                    <em>[ [% invoice | html %] ]</em>
-                [% END %]
-            </li>
-        [% ELSE %]
-            <li>
-                <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% name | html %]</a>
-            </li>
-            <li>
-                Receive orders from [% name | html %]
-            </li>
         [% END %]
-    </ol>
-</nav>
-
+        [% IF invoiceclosedate %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% IF ( invoice ) %]
+                    <span>Receipt summary for <em>[% name | html %] [ [% invoice | html %] ]</em></span>
+                [% ELSE %]
+                    <span>Receipt summary for <em>[% name | html %]</em></span>
+                [% END %]
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% name | html %]</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Receive orders from [% name | html %]</span>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -66,9 +63,9 @@
     [% END %]
     <h1>
         [% IF ( invoiceclosedate ) %]
-        Receipt summary for <em>[% name | html %]</em> [% IF ( invoice ) %] <em> [ [% invoice | html %] ] </em>[% END %]
+            <span>Receipt summary for <em>[% name | html %]</em></span> [% IF ( invoice ) %] <em> [ [% invoice | html %] ] </em>[% END %]
         [% ELSE %]
-            Receive orders from [% name | html %]
+            <span>Receive orders from [% name | html %]</span>
         [% END %]
     </h1>
 
@@ -85,7 +82,7 @@
 
     [% IF (error_cancelling_receipt) %]
       <div class="dialog alert">
-      Cannot cancel receipt. Possible reasons :
+      <span>Cannot cancel receipt. Possible reasons:</span>
       <ul>
         <li>
           The order line you are trying to cancel was created from a partial receipt
@@ -112,7 +109,7 @@
 <p><strong>Invoice number:</strong> [% invoice | html %] <strong>Shipment date:</strong> [% shipmentdate | $KohaDates %]</p>
 </div>
 [% UNLESS (invoiceclosedate) %]
-    <div id="acqui_receive_search">
+    <div id="acqui_receive_search" class="page-section">
         <h3>Pending orders</h3>
         <table id="pending_orders" class="table table-bordered table-striped">
             <thead>
@@ -121,7 +118,7 @@
                     <th>Basket group</th>
                     <th>Order line</th>
                     <th>Summary</th>
-                    <th>More</th>
+                    <th>View</th>
                     <th>Replacement price</th>
                     <th>Quantity</th>
                     <th>Unit cost</th>
@@ -135,14 +132,14 @@
     </div>
 [% ELSE %]
     <p>
-        Invoice is closed, so you can't receive orders anymore.
+        <span>Invoice is closed, so you can't receive orders anymore.</span>
         [% IF CAN_user_acquisition_reopen_closed_invoices %]
             <a href="/cgi-bin/koha/acqui/invoice.pl?op=reopen&invoiceid=[% invoiceid | uri %]&referer=/cgi-bin/koha/acqui/parcel.pl%3Finvoiceid=[% invoiceid | uri %]">Reopen it</a>.
         [% END %]
     </p>
 [% END %]
 
-<div id="acqui_receive_receivelist">
+<div id="acqui_receive_receivelist" class="page-section">
     <h3>Already received</h3>
 
    [% IF ( loop_received ) %]
@@ -228,7 +225,8 @@
                     0
                   [% END %]
                 </td>
-                <td><a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% order.biblionumber | uri %]">[% order.title | html %]</a>
+                <td>
+                    [% INCLUDE 'biblio-title.inc' biblio=order link = 1 %]
                 [% IF ( order.author ) %] / [% order.author | html %][% END %]
                 [% IF ( order.isbn ) %] - [% order.isbn | html %][% END %]
                 [% IF ( order.ean ) %] - [% order.ean | html  %][% END %]
@@ -270,17 +268,17 @@
                     [% IF loop_receive.cannot_cancel or ( order.basket.effective_create_items == "receiving" and loop_receive.holds > 0 ) %]
                       [% IF loop_receive.cannot_cancel %]
                         [% span_title = BLOCK %]
-                            Cannot cancel receipt of this order line because it
+                            <span>Cannot cancel receipt of this order line because it
                             was created from a partial receipt of order line no.
                             [% order.parent_ordernumber | html %], which is
                             already received. Try cancelling this one first and
-                            retry.
+                            retry.</span>
                         [% END %]
                       [% ELSE %]
                         [%# FIXME Here we block the cancellation if holds exist. Actually it could be possible if items will be exist after the deletion %]
                         [%# Some additional checks should be added in the pl file %]
                         [% span_title = BLOCK %]
-                          Cannot cancel receipt of this order line because at least one reservation exists on the records.
+                          <span>Cannot cancel receipt of this order line because at least one hold exists on the records.</span>
                         [% END %]
                       [% END %]
                       <span title="[% span_title | collapse | html %]">
@@ -299,22 +297,22 @@
     [% ELSE %]There are no received orders.[% END %]
 </div>
 
-<div id="dataPreview" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dataPreviewLabel" aria-hidden="true">
-    <div class="modal-dialog">
-    <div class="modal-content">
-    <div class="modal-header">
-        <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
-        <h3 id="dataPreviewLabel">MARC preview</h3>
-    </div>
-    <div class="modal-body">
-        <div id="loading"> <img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" alt="" /> Loading </div>
-    </div>
-    <div class="modal-footer">
-        <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
-    </div>
-    </div>
-    </div>
-</div>
+<div class="modal" id="dataPreview" tabindex="-1" role="dialog" aria-labelledby="dataPreviewLabel">
+    <div class="modal-dialog modal-wide" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h3 id="dataPreviewLabel">MARC previews</h3>
+            </div>
+            <div class="modal-body">
+                <div id="loading"> <img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" alt="" /> Loading </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+            </div>
+        </div> <!-- /.modal-content -->
+    </div> <!-- /.modal-dialog -->
+</div> <!-- /.modal -->
 
 [% IF (invoiceclosedate) %]
     <a href="/cgi-bin/koha/acqui/invoice.pl?invoiceid=[% invoiceid | uri %]">View invoice</a>
@@ -322,7 +320,7 @@
     <form action="/cgi-bin/koha/acqui/invoice.pl" method="get">
         <input type="hidden" name="invoiceid" value="[% invoiceid | html %]" />
         <fieldset class="action">
-            <input type="submit" value="Finish receiving" />
+            <input type="submit" class="btn btn-primary" value="Finish receiving" />
         </fieldset>
     </form>
 [% END %]
@@ -344,7 +342,6 @@
     [% Asset.js("js/acquisitions-menu.js") | $raw %]
     [% INCLUDE 'datatables.inc' %]
     [% Asset.js("lib/jquery/plugins/jquery.dataTables.columnFilter.js") | $raw %]
-    <style>#dataPreview { width : 80%; } @media (max-width: 767px) { #dataPreview { margin: 0; width : auto; } }</style>
     <script>
         dt_overwrite_html_sorting_localeCompare();
         var columns_filter = {};
@@ -382,7 +379,6 @@
                 "ajax": {
                     "url": '/api/v1/acquisitions/orders?only_active=1'
                 },
-                "header_filter": true,
                 "embed": [
                     "basket.basket_group",
                     "biblio.active_orders+count",
@@ -439,7 +435,7 @@
                     },
                     {
                         [% SET summary_fields = "biblio.title:biblio.author:biblio.isbn:biblio.publisher:me.internal_note:me.vendor_note" %]
-                        [% SET summary_fields = summary_fields _ ":biblio.ean" %]
+                        [% IF Koha.Preference('marcflavour')=='UNIMARC' %][% SET summary_fields = summary_fields _ ":biblio.ean" %][% END %]
                         "data": "[% summary_fields | html %]",
                         "render": function(data, type, row, meta) {
                             var result = '';
@@ -518,9 +514,17 @@
                     {
                         "data": "",
                         "render": function(data, type, row, meta) {
-                            var result = '<a href="/cgi-bin/koha/acqui/showorder.pl?ordernumber=' + encodeURIComponent(row.order_id) + '" class="previewData">' + _("Order") + '</a><br>'
-                                + '<a href="/cgi-bin/koha/catalogue/showmarc.pl?id=' + encodeURIComponent(row.biblio_id) + '" class="previewData">' + _("MARC") + '</a><br>'
-                                + '<a href="/cgi-bin/koha/catalogue/showmarc.pl?viewas=card&amp;id=' + encodeURIComponent(row.biblio_id) + '" class="previewData">' + _("Card") + '</a>';
+                            var result = '<div class="btn-group dropup">';
+                            result += '<button id="view' + row.order_id + '" type="button" class="btn btn-default btn-xs" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">';
+                                result += ' <i class="fa fa-eye" aria-hidden="true"></i> ' + _("View");
+                                result += ' <span class="caret"></span> ';
+                            result += '</button>';
+                            result += '<ul class="dropdown-menu" aria-labelledby="view' + row.order_id + '">';
+                                result += '<li><a href="/cgi-bin/koha/acqui/showorder.pl?ordernumber=' + encodeURIComponent(row.order_id) + '" class="previewData">' + _("Order") + '</a></li>';
+                                result += '<li><a href="/cgi-bin/koha/catalogue/showmarc.pl?id=' + encodeURIComponent(row.biblio_id) + '" class="previewData">' + _("MARC") + '</a></li>';
+                                result += '<li><a href="/cgi-bin/koha/catalogue/showmarc.pl?viewas=card&amp;id=' + encodeURIComponent(row.biblio_id) + '" class="previewData">' + _("Card") + '</a></li>';
+                            result += '</ul>';
+                            result += '</div>';
                             return result;
                         },
                         "orderable": false,
@@ -633,7 +637,7 @@
                         "searchable": false
                     }
                 ]
-            }, {}, 1, {"basket.vendor_id": [% booksellerid | html %]});
+            }, null, 1, {"basket.vendor_id": [% booksellerid | html %]});
 
             $(".previewData").on("click", function(e){
                 e.preventDefault();
@@ -641,7 +645,7 @@
                 var page = $(this).attr("href");
                 $("#dataPreviewLabel").text(ltitle);
                 $("#dataPreview .modal-body").load(page + " div");
-                $('#dataPreview').modal({show:true});
+                $('#dataPreview').modal("show");
             });
             $("#dataPreview").on("hidden.bs.modal", function(){
                 $("#dataPreviewLabel").html("");

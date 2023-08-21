@@ -30,33 +30,23 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_and_exit_if_error output_and_exit output_html_with_http_headers );
 use C4::Form::MessagingPreferences;
-use List::MoreUtils qw/uniq/;
+use List::MoreUtils qw( uniq );
 use C4::CashRegisterManagement qw(passCashRegisterCheck);
+use Scalar::Util qw( looks_like_number );
 use Koha::Patron::Attribute::Types;
-use Koha::Patron::Debarments qw(GetDebarments);
+use Koha::Patron::Restriction::Types;
 use Koha::Patron::Messages;
-use Koha::DateUtils;
 use Koha::CsvProfiles;
+use Koha::Holds;
 use Koha::Patrons;
 use Koha::Patron::Files;
 use Koha::Token;
 use Koha::Checkouts;
 
-use Koha::Patron::Categories;
-use Koha::Token;
-
-use vars qw($debug);
-
-BEGIN {
-    $debug = $ENV{DEBUG} || 0;
-}
-
 my $input = CGI->new;
-$debug or $debug = $input->param('debug') || 0;
-
 
 my $print = $input->param('print');
 
@@ -74,7 +64,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { borrowers => 'edit_borrowers' },
-        debug           => 1,
     }
 );
 my $borrowernumber = $input->param('borrowernumber');
@@ -91,23 +80,30 @@ for (qw(gonenoaddress lost borrowernotes is_debarred)) {
     $patron->$_ and $template->param(flagged => 1) and last;
 }
 
+$template->param(
+    restriction_types => scalar Koha::Patron::Restriction::Types->search()
+);
+
 if ( $patron->is_debarred ) {
     $template->param(
-        debarments => scalar GetDebarments({ borrowernumber => $borrowernumber }),
+        'userdebarred'    => $patron->debarred,
+        'debarredcomment' => $patron->debarredcomment,
     );
+
     if ( $patron->debarred ne "9999-12-31" ) {
         $template->param( 'userdebarreddate' => $patron->debarred );
     }
 }
+
 $template->param( flagged => 1 ) if $patron->account_locked;
 
 my @relatives;
 my $guarantor_relationships = $patron->guarantor_relationships;
-my @guarantees              = $patron->guarantee_relationships->guarantees;
-my @guarantors              = $guarantor_relationships->guarantors;
+my @guarantees              = $patron->guarantee_relationships->guarantees->as_list;
+my @guarantors              = $guarantor_relationships->guarantors->as_list;
 if (@guarantors) {
     push( @relatives, $_->id ) for @guarantors;
-    push( @relatives, $_->id ) for $patron->siblings();
+    push( @relatives, $_->id ) for $patron->siblings->as_list;
 }
 else {
     push( @relatives, $_->id ) for @guarantees;
@@ -175,7 +171,7 @@ my $branch = C4::Context->userenv->{'branch'};
 my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
 
 if ( C4::Context->preference("ExportCircHistory") ) {
-    $template->param(csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc' }) ]);
+    $template->param(csv_profiles => Koha::CsvProfiles->search({ type => 'marc' }));
 }
 
 my $patron_messages = Koha::Patron::Messages->search(
@@ -205,6 +201,76 @@ if ( $patron->is_expired || $patron->is_going_to_expire ) {
     );
 }
 
+my $holds = Koha::Holds->search( { borrowernumber => $borrowernumber } ); # FIXME must be Koha::Patron->holds
+my $waiting_holds = $holds->waiting;
+$template->param(
+    holds_count  => $holds->count(),
+    WaitingHolds => $waiting_holds,
+);
+
+if ( C4::Context->preference('UseRecalls') ) {
+    my $waiting_recalls = $patron->recalls->search({ status => 'waiting' });
+    $template->param( waiting_recalls => $waiting_recalls );
+}
+
+my $no_issues_charge_guarantees = C4::Context->preference("NoIssuesChargeGuarantees");
+$no_issues_charge_guarantees = undef unless looks_like_number( $no_issues_charge_guarantees );
+if ( defined $no_issues_charge_guarantees ) {
+    my $guarantees_non_issues_charges = 0;
+    my $guarantees = $patron->guarantee_relationships->guarantees;
+    while ( my $g = $guarantees->next ) {
+        $guarantees_non_issues_charges += $g->account->non_issues_charges;
+    }
+    if ( $guarantees_non_issues_charges > $no_issues_charge_guarantees ) {
+        $template->param(
+            charges_guarantees    => 1,
+            chargesamount_guarantees => $guarantees_non_issues_charges,
+        );
+    }
+}
+
+if ( $patron->has_overdues ) {
+    $template->param( odues => 1 );
+}
+my $issues = $patron->checkouts;
+
+my $balance = 0;
+$balance = $patron->account->balance;
+
+my $account = $patron->account;
+if( ( my $owing = $account->non_issues_charges ) > 0 ) {
+    my $noissuescharge = C4::Context->preference("noissuescharge") || 5; # FIXME If noissuescharge == 0 then 5, why??
+    $template->param(
+        charges => 1,
+        chargesamount => $owing,
+    )
+} elsif ( $balance < 0 ) {
+    $template->param(
+        credits => 1,
+        creditsamount => -$balance,
+    );
+}
+
+# if the expiry date is before today ie they have expired
+if ( $patron->is_expired ) {
+    #borrowercard expired, no issues
+    $template->param(
+        expired => "1",
+    );
+}
+# check for NotifyBorrowerDeparture
+elsif ( $patron->is_going_to_expire ) {
+    # borrower card soon to expire warn librarian
+    $template->param( "warndeparture" => $patron->dateexpiry ,
+                    );
+    if (C4::Context->preference('ReturnBeforeExpiry')){
+        $template->param("returnbeforeexpiry" => 1);
+    }
+}
+
+
+my $has_modifications = Koha::Patron::Modifications->search( { borrowernumber => $borrowernumber } )->count;
+
 $template->param(
     patron          => $patron,
     issuecount      => $patron->checkouts->count,
@@ -220,6 +286,14 @@ $template->param(
     checkCashRegisterFailed   => (! $checkCashRegisterOk),
     logged_in_user => $logged_in_user,
     files => Koha::Patron::Files->new( borrowernumber => $borrowernumber ) ->GetFilesInfo(),
+    has_modifications         => $has_modifications,
 );
+
+if ( C4::Context->preference('UseRecalls') ) {
+    $template->param(
+        recalls         => $patron->recalls({},{ order_by => { -asc => 'recalldate' } })->filter_by_current,
+        specific_patron => 1,
+    );
+}
 
 output_html_with_http_headers $input, $cookie, $template->output;

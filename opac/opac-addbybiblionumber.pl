@@ -21,9 +21,8 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Biblio;
-use C4::Output;
-use C4::Auth;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
 
 use Koha::Biblios;
 use Koha::Virtualshelves;
@@ -34,7 +33,7 @@ my $selectedshelf   = $query->param('selectedshelf');
 my $newshelf        = $query->param('newshelf');
 my $shelfnumber     = $query->param('shelfnumber');
 my $newvirtualshelf = $query->param('newvirtualshelf');
-my $category        = $query->param('category');
+my $public          = $query->param('public');
 my ( $errcode, $authorized ) = ( 0, 1 );
 my @biblios;
 
@@ -57,10 +56,10 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 if ($newvirtualshelf) {
     if ($loggedinuser > 0
-        and (  $category == 1
-            or $category == 2 and $loggedinuser > 0 && C4::Context->preference('OpacAllowPublicListCreation') )
+        and (  !$public
+            or $public and $loggedinuser > 0 && C4::Context->preference('OpacAllowPublicListCreation') )
       ) {
-        my $shelf = eval { Koha::Virtualshelf->new( { shelfname => $newvirtualshelf, category => $category, owner => $loggedinuser, } )->store; };
+        my $shelf = eval { Koha::Virtualshelf->new( { shelfname => $newvirtualshelf, public => $public, owner => $loggedinuser, } )->store; };
         if ( $@ or not $shelf ) {
             $errcode    = 1;
             $authorized = 0;
@@ -105,31 +104,64 @@ if ($newvirtualshelf) {
 } else {
     if ( $loggedinuser > 0 ) {
         my $private_shelves = Koha::Virtualshelves->search(
-            {   category => 1,
+            {   public   => 0,
                 owner    => $loggedinuser,
                 allow_change_from_owner => 1,
             },
             { order_by => 'shelfname' }
         );
         my $shelves_shared_with_me = Koha::Virtualshelves->search(
-            {   category                            => 1,
+            {   public                              => 0,
                 'virtualshelfshares.borrowernumber' => $loggedinuser,
                 allow_change_from_others            => 1,
             },
             { join => 'virtualshelfshares', }
         );
-        my $public_shelves = Koha::Virtualshelves->search(
-            {   category => 2,
-                -or      => [
-                    -and => {
-                        allow_change_from_owner => 1,
-                        owner     => $loggedinuser,
+        my $public_shelves;
+        if ( $loggedinuser ) {
+            if ( Koha::Patrons->find( $loggedinuser )->can_patron_change_staff_only_lists ) {
+                $public_shelves = Koha::Virtualshelves->search(
+                    {   public   => 1,
+                        -or      => [
+                            -and => {
+                                allow_change_from_owner => 1,
+                                owner     => $loggedinuser,
+                            },
+                            allow_change_from_others => 1,
+                            allow_change_from_staff  => 1
+                        ],
                     },
-                    allow_change_from_others => 1,
-                ],
-            },
-            { order_by => 'shelfname' }
-        );
+                    { order_by => 'shelfname' }
+                );
+            } else {
+                $public_shelves = Koha::Virtualshelves->search(
+                    {   public   => 1,
+                        -or      => [
+                            -and => {
+                                allow_change_from_owner => 1,
+                                owner => $loggedinuser,
+                            },
+                            allow_change_from_others => 1,
+                        ],
+                    },
+                    {order_by => 'shelfname' }
+                );
+            }
+        } else {
+            $public_shelves = Koha::Virtualshelves->search(
+                {   public   => 1,
+                    -or      => [
+                        -and => {
+                            allow_change_from_owner => 1,
+                            owner => $loggedinuser,
+                        },
+                        allow_change_from_others => 1,
+                    ],
+                },
+                {order_by => 'shelfname' }
+            );
+        }
+
         $template->param(
             private_shelves                => $private_shelves,
             private_shelves_shared_with_me => $shelves_shared_with_me,

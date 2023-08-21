@@ -3,10 +3,23 @@
 /Makefile
 /pm_to_blib
 node_modules/
-koha-tmpl/opac-tmpl/bootstrap/css/maps/
-koha-tmpl/intranet-tmpl/prog/css/maps/
-reset_env.sh
 
-# Local UI testing module
-koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-ui-test.tt
-opac/opac-ui-test.pl
+koha-tmpl/opac-tmpl/bootstrap/css/maps/
+koha-tmpl/opac-tmpl/bootstrap/css/opac.css
+koha-tmpl/opac-tmpl/bootstrap/css/opac-rtl.css
+koha-tmpl/opac-tmpl/bootstrap/css/print.css
+koha-tmpl/opac-tmpl/bootstrap/css/print-rtl.css
+koha-tmpl/opac-tmpl/bootstrap/css/sco.css
+koha-tmpl/opac-tmpl/bootstrap/css/sco-rtl.css
+
+koha-tmpl/intranet-tmpl/prog/css/maps/
+koha-tmpl/intranet-tmpl/prog/css/calendar.css
+koha-tmpl/intranet-tmpl/prog/css/holds.css
+koha-tmpl/intranet-tmpl/prog/css/installer.css
+koha-tmpl/intranet-tmpl/prog/css/mainpage.css
+koha-tmpl/intranet-tmpl/prog/css/staff-global.css
+
+koha-tmpl/intranet-tmpl/prog/js/vue/dist/
+
+how-to.pl
+koha-tmpl/intranet-tmpl/prog/en/modules/how-to.tt

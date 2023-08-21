@@ -20,24 +20,15 @@
 use strict;
 use warnings;
 
-BEGIN {
-
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
-
-use Getopt::Long;
-use Pod::Usage;
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 
 use Koha::Script -cron;
 use C4::Context;
-use C4::Items;
 use C4::Letters;
 use C4::Overdues;
 use Koha::Calendar;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Patrons;
 use Koha::Libraries;
 
@@ -318,7 +309,8 @@ sub GetWaitingHolds {
     my $query = "SELECT borrowers.borrowernumber, borrowers.cardnumber, borrowers.title as patron_title, borrowers.firstname, borrowers.surname, borrowers.categorycode,
                 borrowers.phone, borrowers.email, borrowers.branchcode, biblio.biblionumber, biblio.title, items.barcode, reserves.waitingdate,
                 reserves.branchcode AS site, branches.branchname AS site_name,
-                TO_DAYS(NOW())-TO_DAYS(reserves.waitingdate) AS days_since_waiting
+                TO_DAYS(NOW())-TO_DAYS(reserves.waitingdate) AS days_since_waiting,
+                reserves.expirationdate
                 FROM borrowers JOIN reserves USING (borrowernumber)
                 JOIN items USING (itemnumber)
                 JOIN biblio ON (biblio.biblionumber = items.biblionumber)
@@ -331,7 +323,6 @@ sub GetWaitingHolds {
                 AND message_name = 'Hold_Filled'
                 $patron_branchcode_filter
                 ";
-    my $pickupdelay = C4::Context->preference("ReservesMaxPickUpDelay");
     my $sth         = $dbh->prepare($query);
     $sth->execute();
     my @results;
@@ -348,12 +339,8 @@ sub GetWaitingHolds {
         my $calendar = Koha::Calendar->new( branchcode => $issue->{'site'}, days_mode => $daysmode );
 
         my $waiting_date = dt_from_string( $issue->{waitingdate}, 'sql' );
-        my $pickup_date = $waiting_date->clone->add( days => $pickupdelay );
-        if ( $calendar->is_holiday($pickup_date) ) {
-            $pickup_date = $calendar->next_open_days( $pickup_date, 1 );
-        }
 
-        $issue->{'date_due'} = output_pref({dt => $pickup_date, dateformat => 'iso' });
+        $issue->{'date_due'} = output_pref({dt => dt_from_string($issue->{expirationdate}), dateformat => 'iso' });
         $issue->{'level'} = 1;    # only one level for Hold Waiting notifications
 
         my $days_to_subtract = 0;

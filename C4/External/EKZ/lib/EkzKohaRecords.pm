@@ -34,7 +34,7 @@ use MARC::Record;
 use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'MARC21' );
 
 use C4::Context;
-use C4::Biblio qw( AddBiblio GetFrameworkCode GetMarcBiblio ModBiblio );
+use C4::Biblio qw( AddBiblio GetFrameworkCode ModBiblio );
 use C4::Breeding qw( Z3950SearchGeneral );
 use C4::External::EKZ::EkzAuthentication;
 use C4::External::EKZ::lib::LMSPoolSRU;
@@ -317,7 +317,8 @@ sub addNewRecords {
         } else {
             ($biblionumber,$biblioitemnumber) = C4::Biblio::AddBiblio($record,'');
             if ( $biblionumber ) {
-                $insertedRecord = C4::Biblio::GetMarcBiblio( { biblionumber => $biblionumber } );
+				my $biblio = Koha::Biblios->find( $biblionumber );
+				$insertedRecord = $biblio ? $biblio->metadata->record : undef;
             }
         }
         $self->{'logger'}->trace("addNewRecords() new biblionumber:$biblionumber:");
@@ -498,8 +499,9 @@ sub readTitleInLocalDBByBiblionumber {
     my $result = {'count' => 0, 'records' => []};
     $self->{'logger'}->info("readTitleInLocalDBByBiblionumber() selBiblionumber:" . (defined($selBiblionumber)?$selBiblionumber:'undef') . ":");
 
-    my $marcrecord = C4::Biblio::GetMarcBiblio( { biblionumber => $selBiblionumber, embed_items => 0 } );
-
+    my $biblio = Koha::Biblios->find( $selBiblionumber );
+    my $marcrecord = $biblio ? $biblio->metadata->record : undef;
+    
     if ( $marcrecord && $maxhits > 0 ) {
         push @{$result->{'records'}}, $marcrecord;
         $result->{'count'} += 1;

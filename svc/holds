@@ -24,17 +24,16 @@ use JSON qw(to_json);
 
 use C4::Auth qw(check_cookie_auth);
 use C4::Charset;
-use C4::Circulation qw(GetTransfers);
 use C4::Context;
 
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Holds;
 use Koha::ItemTypes;
 use Koha::Libraries;
 
 my $input = CGI->new;
 
-my ( $auth_status, $sessionID ) =
+my ( $auth_status ) =
   check_cookie_auth( $input->cookie('CGISESSID'),
     { circulate => 'circulate_remaining_permissions' } );
 
@@ -69,6 +68,7 @@ my $holds_rs = Koha::Holds->search(
 my @holds;
 while ( my $h = $holds_rs->next() ) {
     my $item = $h->item();
+    my $item_group = $h->item_group();
 
     my $biblionumber = $h->biblio()->biblionumber();
 
@@ -135,16 +135,16 @@ while ( my $h = $holds_rs->next() ) {
         $hold->{itemnumber}     = $item->itemnumber();
         $hold->{barcode}        = $item->barcode();
         $hold->{itemtype}       = $item->effective_itemtype();
+        $hold->{itemtype_description} = $item->itemtype->description if ($item->itemtype);
         $hold->{enumchron}      = $item->enumchron();
         $hold->{itemcallnumber} = $item->itemcallnumber() || q{};
 
-        my ( $transferred_when, $transferred_from, $transferred_to ) =
-          GetTransfers( $item->itemnumber() );
-        if ($transferred_when) {
+        my $transfer = $item->get_transfer;
+        if ( $transfer && $transfer->in_transit ) {
             $hold->{color}       = 'transferred';
             $hold->{transferred} = 1;
-            $hold->{date_sent} = output_pref( dt_from_string($transferred_when) );
-            $hold->{from_branch} = Koha::Libraries->find($transferred_from)->branchname;
+            $hold->{date_sent} = output_pref({ dt => dt_from_string($transfer->datesent) });
+            $hold->{from_branch} = Koha::Libraries->find($transfer->frombranch)->branchname;
         }
         elsif ( $item->holding_branch() && $item->holding_branch()->branchcode() ne
             $h->branch()->branchcode() )
@@ -152,6 +152,11 @@ while ( my $h = $holds_rs->next() ) {
             $hold->{not_transferred}    = 1;
             $hold->{not_transferred_by} = $h->item()->holding_branch()->branchname();
         }
+    }
+
+    if ($item_group) {
+        $hold->{item_group_id}          = $item_group->id;
+        $hold->{item_group_description} = $item_group->description;
     }
 
     push( @holds, $hold );

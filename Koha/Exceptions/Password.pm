@@ -17,10 +17,12 @@ package Koha::Exceptions::Password;
 
 use Modern::Perl;
 
+use Koha::Exception;
+
 use Exception::Class (
 
     'Koha::Exceptions::Password' => {
-        description => 'Something went wrong!',
+        isa => 'Koha::Exception',
     },
     'Koha::Exceptions::Password::Invalid' => {
         isa => 'Koha::Exceptions::Password',

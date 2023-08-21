@@ -7,28 +7,25 @@
 </head>
 <body id="courses_rm_items" class="course">
 
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/course_reserves/course-reserves.pl">Course reserves</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Batch remove reserves
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Batch remove reserves</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
         <div class="col-md-8 col-md-offset-2">
+            <h1>Batch remove reserves</h1>
         [% IF action == 'display_form' %]
             <form method="post" action="/cgi-bin/koha/course_reserves/batch_rm_items.pl">
                 <input type="hidden" name="action" value="batch_rm" />
@@ -43,14 +40,14 @@
                 </fieldset>
                 <fieldset class="action">
                     <p>All course reserve items will be deleted from all courses to which they are attached.</p>
-                    <input type="submit" value="Submit" class="submit" id="batch_rm_btn" />
+                    <input type="submit" value="Submit" class="btn btn-primary" id="batch_rm_btn" />
                     <a href="/cgi-bin/koha/course_reserves/course-reserves.pl" class="cancel">Cancel</a>
                 </fieldset>
             </form>
         [% END %]
 
         [% IF action == 'display_results' %]
-            <h1>Results</h1>
+            <h2>Results</h2>
 
             <h3>Items removed</h3>
             [% IF item_and_count > 0 %]

@@ -19,18 +19,12 @@
 
 use strict;
 use warnings;
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
 
 use Koha::Script -cron;
-use C4::Letters;
-use C4::Log;
-use Getopt::Long;
-use Try::Tiny;
+use C4::Letters qw( SendQueuedMessages );
+use C4::Log qw( cronlogaction );
+use Getopt::Long qw( GetOptions );
+use Try::Tiny qw( catch try );
 
 my $username = undef;
 my $password = undef;
@@ -38,8 +32,10 @@ my $limit    = undef;
 my $method = 'LOGIN';
 my $help = 0;
 my $verbose = 0;
-my $type = q{};
-my $letter_code;
+my @type;
+my @letter_code;
+
+my $command_line_options = join(" ",@ARGV);
 
 GetOptions(
     'u|username:s'      => \$username,
@@ -48,8 +44,8 @@ GetOptions(
     'm|method:s'        => \$method,
     'h|help|?'          => \$help,
     'v|verbose'         => \$verbose,
-    't|type:s'          => \$type,
-    'c|code:s'          => \$letter_code,
+    't|type:s'          => \@type,
+    'c|code:s'          => \@letter_code,
 );
 my $usage = << 'ENDUSAGE';
 
@@ -62,8 +58,8 @@ advance_notices.pl script.
 This script has the following parameters :
     -u --username: username of mail account
     -p --password: password of mail account
-    -t --type: If supplied, only processes this type of message ( email, sms )
-    -c --code: If supplied, only processes messages with this letter code
+    -t --type: If supplied, only processes this type of message ( email, sms ), repeatable
+    -c --code: If supplied, only processes messages with this letter code, repeatable
     -l --limit: The maximum number of messages to process for this run
     -m --method: authentication method required by SMTP server (See perldoc Sendmail.pm for supported authentication types.)
     -h --help: this message
@@ -72,7 +68,20 @@ ENDUSAGE
 
 die $usage if $help;
 
-cronlogaction();
+my $script_handler = Koha::Script->new({ script => $0 });
+
+try {
+    $script_handler->lock_exec;
+}
+catch {
+    my $message = "Skipping execution of $0 ($_)";
+    print STDERR "$message\n"
+        if $verbose;
+    cronlogaction({ info => $message });
+    exit;
+};
+
+cronlogaction({ info => $command_line_options });
 
 if ( C4::Context->config("enable_plugins") ) {
     my @plugins = Koha::Plugins->new->GetPlugins({
@@ -86,8 +95,8 @@ if ( C4::Context->config("enable_plugins") ) {
                     {
                         verbose     => $verbose,
                         limit       => $limit,
-                        type        => $type,
-                        letter_code => $letter_code,
+                        type        => \@type,
+                        letter_code => \@letter_code,
                     }
                 );
             }
@@ -105,8 +114,9 @@ C4::Letters::SendQueuedMessages(
         password    => $password,
         method      => $method,
         limit       => $limit,
-        type        => $type,
-        letter_code => $letter_code,
+        type        => \@type,
+        letter_code => \@letter_code,
     }
 );
 
+cronlogaction({ action => 'End', info => "COMPLETED" });

@@ -4,18 +4,11 @@
 #  Revised by Joshua Ferraro on 03/31/2006
 use strict;
 #use warnings; FIXME - Bug 2505
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../../kohalib.pl" };
-}
 
 # Koha modules used
 
 use C4::Context;
-use C4::Biblio;
-use MARC::Record;
+use C4::Biblio qw( ModBiblioMarc );
 use MARC::File::USMARC;
 
 

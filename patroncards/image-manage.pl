@@ -4,14 +4,12 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use Graphics::Magick;
-use POSIX qw(ceil);
 
 use C4::Context;
-use C4::Auth;
-use C4::Output;
-use C4::Debug;
-use C4::Creators;
-use C4::Patroncards;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Creators qw( html_table );
+use C4::Patroncards qw( get_image put_image rm_image );
 
 my $cgi = CGI->new;
 
@@ -20,7 +18,6 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user({
                     query               => $cgi,
                     type                => "intranet",
                     flagsrequired       => {tools => 'label_creator'},
-                    debug               => 0,
                     });
 
 my $file_name = $cgi->param('uploadfile') || '';
@@ -28,6 +25,13 @@ my $image_name = $cgi->param('image_name') || $file_name;
 my $upload_file = $cgi->upload('uploadfile') || '';
 my $op = $cgi->param('op') || 'none';
 my @image_ids = $cgi->multi_param('image_id');
+
+my @errors = ( 'pdferr', 'errnocards', 'errba', 'errpl', 'errpt', 'errlo', 'errtpl', );
+foreach my $param (@errors) {
+    my $error = $cgi->param($param) ? 1 : 0;
+    $template->param( 'error_' . $param => $error )
+      if $error;
+}
 
 my $source_file = "$file_name"; # otherwise we end up with what amounts to a pointer to a filehandle rather than a user-friendly filename
 

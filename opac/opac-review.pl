@@ -19,15 +19,12 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Koha;
-use C4::Output;
-use C4::Biblio;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Scrubber;
-use C4::Debug;
 
 use Koha::Biblios;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Review;
 use Koha::Reviews;
 
@@ -93,7 +90,6 @@ if( !@errors && defined $review ) {
 	}
 }
 (@errors   ) and $template->param(   ERRORS=>\@errors);
-($cgi_debug) and $template->param(cgi_debug=>1       );
 $review = $clean;
 $review ||= $savedreview->review if $savedreview;
 $template->param(

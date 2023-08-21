@@ -21,9 +21,9 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Circulation;
-use Koha::DateUtils;
+use C4::Auth qw( check_api_auth check_cookie_auth );
+use C4::Circulation qw( AddOfflineOperation ProcessOfflineOperation );
+use Koha::DateUtils qw( dt_from_string );
 use DateTime::TimeZone;
 
 my $cgi = CGI->new;
@@ -34,7 +34,7 @@ my $nocookie = $cgi->param('nocookie') || 0;
 
 # get the status of the user, this will check his credentials and rights
 my ($status, $cookie, $sessionId) = C4::Auth::check_api_auth($cgi, undef);
-($status, $sessionId) = C4::Auth::check_cookie_auth($cgi, undef) if ($status ne 'ok' && !$nocookie);
+($status) = C4::Auth::check_cookie_auth($cgi, undef) if ($status ne 'ok' && !$nocookie);
 
 my $result;
 

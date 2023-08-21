@@ -6,9 +6,7 @@ use warnings;
 use autouse 'Data::Dumper' => qw(Dumper);
 
 use C4::Context;
-use C4::Debug;
 use C4::Creators::PDF;
-
 
 # FIXME: Consider this style parameter verification instead...
 #  my %param = @_;
@@ -130,7 +128,7 @@ sub delete {
         push @params, $opts{'layout_id'}, $opts{'creator'};
     }
     if (scalar(@params) < 2) {   # If there is no layout id or creator type then we cannot delete it
-        warn sprintf('%s : Cannot delete layout as the profile id is invalid or non-existent.', $call_type) if !$params[0];
+        warn sprintf('%s : Cannot delete layout as the profile ID is invalid or non-existent.', $call_type) if !$params[0];
         warn sprintf('%s : Cannot delete layout as the creator type is invalid or non-existent.', $call_type) if !$params[1];
         return -1;
     }

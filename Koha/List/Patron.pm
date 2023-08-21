@@ -27,13 +27,15 @@ Koha::List::Patron - Management of lists of patrons
 
 use Modern::Perl;
 
-use Carp;
+use Carp qw( carp croak );
 
 use Koha::Database;
 
-use base 'Exporter';
-our @EXPORT = (
-    qw(
+our (@ISA, @EXPORT_OK);
+BEGIN {
+    require Exporter;
+    @ISA    = qw(Exporter);
+    @EXPORT_OK = qw(
       GetPatronLists
 
       DelPatronList
@@ -42,8 +44,8 @@ our @EXPORT = (
 
       AddPatronsToList
       DelPatronsFromList
-      )
-);
+    );
+}
 
 =head2 GetPatronLists
 
@@ -171,16 +173,18 @@ sub AddPatronsToList {
 
     my @borrowernumbers;
 
+    my %search_param;
     if ($cardnumbers) {
-        @borrowernumbers =
-          Koha::Database->new()->schema()->resultset('Borrower')->search(
-            { cardnumber => { 'IN' => $cardnumbers } },
-            { columns    => [qw/ borrowernumber /] }
-          )->get_column('borrowernumber')->all();
+        $search_param{cardnumber} = { 'IN' => $cardnumbers };
+    } else {
+        $search_param{borrowernumber} = { 'IN' => $borrowernumbers };
     }
-    else {
-        @borrowernumbers = @$borrowernumbers;
-    }
+
+    @borrowernumbers =
+      Koha::Database->new()->schema()->resultset('Borrower')->search(
+        \%search_param,
+        { columns    => [qw/ borrowernumber /] }
+      )->get_column('borrowernumber')->all();
 
     my $patron_list_id = $list->patron_list_id();
 

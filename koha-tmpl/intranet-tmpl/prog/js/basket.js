@@ -25,10 +25,10 @@ if(valCookie){
 
 function writeCookie(name, val, wd) {
     if (wd) {
-        parent.opener.document.cookie = name + "=" + val + "; path=/";
+        parent.opener.document.cookie = name + "=" + val + "; SameSite=Lax; path=/";
     }
     else {
-        parent.document.cookie = name + "=" + val + "; path=/";
+        parent.document.cookie = name + "=" + val + "; SameSite=Lax; path=/";
     }
 }
 
@@ -62,9 +62,9 @@ function delCookie(name) {
     var exp = new Date();
     exp.setTime(exp.getTime()-1);
     if(parent.opener){
-        parent.opener.document.cookie = name + "=null; path=/; expires=" + exp.toGMTString();
+        parent.opener.document.cookie = name + "=null; SameSite=Lax; path=/; expires=" + exp.toGMTString();
     } else {
-        document.cookie = name + "=null; path=/; expires=" + exp.toGMTString();
+        document.cookie = name + "=null; SameSite=Lax; path=/; expires=" + exp.toGMTString();
     }
 }
 

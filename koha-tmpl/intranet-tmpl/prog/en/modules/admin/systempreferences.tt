@@ -26,78 +26,60 @@
 </head>
 
 <body id="admin_systempreferences" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
+        [% END %]
+
+        [% IF ( add_form || add_validate || delete_confirm || delete_confirmed ) %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/admin/systempreferences.pl">System preferences</a>
+            [% END %]
+        [% END %]
 
         [% IF ( add_form ) %]
-            <li>
-                <a href="/cgi-bin/koha/admin/systempreferences.pl">System preferences</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    [% IF ( modify ) %]
-                        Modify system preference '[% searchfield | html %]'
-                    [% ELSE %]
-                        Add a system preference
-                    [% END %]
-                </a>
-            </li>
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% IF ( modify ) %]
+                    <span>Modify system preference '[% searchfield | html %]'</span>
+                [% ELSE %]
+                    <span>Add a system preference</span>
+                [% END %]
+            [% END %]
         [% END %]
 
         [% IF ( add_validate ) %]
-            <li>
-                <a href="/cgi-bin/koha/admin/systempreferences.pl">System preferences</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Data added
-                </a>
-            </li>
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Data added</span>
+            [% END %]
         [% END %]
 
         [% IF ( delete_confirm ) %]
-            <li>
-                <a href="/cgi-bin/koha/admin/systempreferences.pl">System preferences</a>
-            </li>
-            <li>
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/admin/systempreferences.pl?op=add_form&amp;searchfield=[% searchfield | uri %]">[% searchfield | html %]</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Confirm deletion of parameter '[% searchfield | html %]'
-                </a>
-            </li>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Confirm deletion of parameter '[% searchfield | html %]'</span>
+            [% END %]
         [% END %]
 
         [% IF ( delete_confirmed ) %]
-            <li>
-                <a href="/cgi-bin/koha/admin/systempreferences.pl">System preferences</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Parameter deleted
-                </a>
-            </li>
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Parameter deleted</span>
+            [% END %]
         [% END %]
 
         [% IF ( else ) %]
-            <li>
-                <a href="#" aria-current="page">
-                    System preferences
-                </a>
-            </li>
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>System preferences</span>
+            [% END %]
         [% END %]
-    </ol>
-</nav>
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -111,9 +93,12 @@
             <form action="[% script_name | html %]" name="Aform" method="post">
         [% END %]
         <fieldset class="rows"><legend>
+        <h1>
         [% IF ( modify ) %]Modify
         [% ELSE %]Add
-        [% END %] a system preference</legend><ol>
+        [% END %] a system preference
+        </h1>
+            </legend><ol>
             <li><label for="explanation">Explanation: </label><input type="text" name="explanation" id="explanation" size="60" value="[% explanation | html %]" /><input type="hidden" name="op" value="add_validate" /></li>
             <li>[% IF ( searchfield ) %]<span class="label">Variable: </span>[% searchfield | html %]<input type="hidden" name="variable" value="[% searchfield | html %]" />
             [% ELSE %]<label for="variable">Variable: </label><input type="text" name="variable" id="variable" size="60" />[% END %]</li>
@@ -205,7 +190,7 @@
                 [% END %]
                 </li>
         </ol></fieldset>
-        <fieldset class="action"><input type="submit" value="Save" /> 
+        <fieldset class="action"><input type="submit" class="btn btn-primary" value="Save" />
           [% IF ( return_tab ) %]
             <a class="cancel" href="/cgi-bin/koha/admin/systempreferences.pl?tab=[% return_tab | html %]">Cancel</a>
           [% ELSE %]
@@ -284,16 +269,16 @@
     [% END %]
     
     [% IF ( add_validate ) %]
-        <h3>Data recorded</h3>
+        <h1>Data recorded</h1>
         
         <form action="[% script_name | html %]" method="post">
-        <input type="submit" value="OK" />
+        <input type="submit" class="btn btn-primary" value="OK" />
         </form>
     [% END %]
     
     [% IF ( delete_confirm ) %]
     <table>
-        <caption>Confirm deletion of [% searchfield | html %]?</caption>
+        <caption><h1>Confirm deletion of [% searchfield | html %]?</h1></caption>
         <tr>
             <th>Variable name:</th>
             <td>[% searchfield | html %]</td>
@@ -310,9 +295,9 @@
     [% END %]
     
     [% IF ( delete_confirmed ) %]
-        <h3>Data deleted</h3>
+        <h1>Data deleted</h1>
         <form action="[% script_name | html %]" method="post">
-            <input type="submit" value="Back to system preferences" />
+            <input type="submit" class="btn btn-primary" value="Back to system preferences" />
         </form>
     [% END %]
    
@@ -327,7 +312,8 @@
         <table>
     [% ELSE %]
         <h1>Local use preferences</h1>
-        <table width="80%" id="sysprefst">
+        <div class="page-section">
+        <table id="sysprefst">
         <thead><tr>
         <th>Preference</th>
         <th>Explanation</th>
@@ -449,9 +435,10 @@
 
         <td class="actions"><a class="btn btn-default btn-xs" href="[% loo.edit | url %]"><i class="fa fa-pencil"></i> Edit</a> <a class="btn btn-default btn-xs" href="[% loo.delete | url %]"><i class="fa fa-trash"></i> Delete</a></td>
     </tr>
-    [% END %]</tbody>
+    [% END %]
+    </tbody>
     </table>
-    
+    [% IF tab == 'local_use' %]</div>[% END %]
     [% END %]
 
             </main>

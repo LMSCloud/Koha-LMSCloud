@@ -5,6 +5,23 @@
     <div id="search-facets">
         <h2><a href="#" class="menu-collapse-toggle">Refine your search</a></h2>
         <ul class="menu-collapse">
+            [% IF Koha.Preference("SavedSearchFilters") && search_filters.size > 0 %]
+            <li id="search-filters">
+            <h3 id="filter_facets">Custom search filters</h3>
+            <ul>
+                [% SET base_url = "/cgi-bin/koha/opac-search.pl?" _ query_cgi _ limit_cgi %]
+                [% FOREACH search_filter IN search_filters %]
+                <li>
+                    [% IF active_filters.${search_filter.id} %]
+                        <span class="filter_label">[% search_filter.name | html %]<a href="[% base_url _ '&nolimit=search_filter:' _ search_filter.id | url %]">[x]</a></span>
+                    [% ELSE %]
+                        <span class="filter_label"><a href="[% base_url _ '&limit=search_filter:' _ search_filter.id | url %]">[% search_filter.name | html %]</a></span>
+                    [% END %]
+                </li>
+                [% END %]
+            </ul>
+            </li>
+            [% END %]
             <li id="availability_facet"><h3 id="facet-availability">Availability</h3>
                 <ul>
                     <li>
@@ -56,6 +73,9 @@
                                   [% IF facet.active %]
                                     [% local_url = BLOCK %][% url | $raw %][% "&nolimit=" _  facet.type_link_value _ ":" _ facet.facet_link_value | url %][% END %]
                                     <span class="facet-label">[% facet.facet_label_value | html %]</span>
+                                    [% IF ( displayFacetCount ) %]
+                                      <span class="facet-count-selected">([% facet.facet_count | html %])</span>
+                                    [% END %]
                                     [<a href="[% local_url | $raw %]" title="Remove facet [% facet.facet_link_value | html %]">x</a>]
                                   [% ELSE %]
                                     [% local_url = BLOCK %][% url | $raw %][% "&limit=" _  facet.type_link_value _ ":" _ facet.facet_link_value | url %][% END %]

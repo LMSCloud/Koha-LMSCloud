@@ -13,24 +13,23 @@
 </head>
 
 <body id="pat_holdshistory" class="pat">
-[% INCLUDE 'header.inc' %]
-[% PROCESS 'patron-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'patron-search-header.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Holds history for [% INCLUDE 'patron-title.inc' %]
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber | uri %]">[% INCLUDE 'patron-title.inc' %]</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Holds history</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -50,7 +49,7 @@
 
 [% SET show_itemtype_column = Koha.Preference('AllowHoldItemTypeSelection') %]
 
-<div id="holdshistory">
+<div id="holdshistory" class="page-section">
   <table id="table_holdshistory">
       <thead>
         <tr>
@@ -96,20 +95,20 @@
           [% END %]
           <td>
           [% IF hold.found == 'F' %]
-              Fulfilled
+              <span>Fulfilled</span>
           [% ELSIF hold.cancellationdate %]
-              Cancelled
+              <span>Cancelled</span>
                 [% IF hold.cancellation_reason %]
                     ([% AuthorisedValues.GetByCode('HOLD_CANCELLATION', hold.cancellation_reason) | html %])
                 [% END %]
           [% ELSIF hold.found == 'W' %]
-              Waiting
+              <span>Waiting</span>
           [% ELSIF hold.found == 'P' %]
-              Processing
+              <span>Processing</span>
           [% ELSIF hold.found == 'T' %]
-              In transit
+              <span>In transit</span>
           [% ELSE %]
-              Pending
+              <span>Pending</span>
           [% END %]
           </td>
         </tr>
@@ -137,15 +136,15 @@
     [% Asset.js("js/members-menu.js") | $raw %]
     <script>
         $(document).ready(function() {
-            var columns_settings = [% TablesSettings.GetColumns('members', 'holdshistory', 'holdshistory-table', 'json') %];
+            var table_settings = [% TablesSettings.GetTableSettings('members', 'holdshistory', 'holdshistory-table', 'json') | $raw %];
             [% UNLESS show_itemtype_column %]
               //Remove item type column settings
-              columns_settings = columns_settings.filter(function(c){return c['columnname'] != 'itemtype';});
+              table_settings['columns'] = table_settings['columns'].filter(function(c){return c['columnname'] != 'itemtype';});
             [% END %]
             var table = KohaTable("table_holdshistory", {
                 "sPaginationType": "full",
                 "aaSorting": [[4, 'desc']]
-            }, columns_settings);
+            }, table_settings);
         });
     </script>
 [% END %]

@@ -4,21 +4,14 @@
 
 use strict;
 #use warnings; FIXME - Bug 2505
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/kohalib.pl" };
-}
 
 # Koha modules used
 use Koha::Script;
 use C4::Context;
 use MARC::File::USMARC;
-use MARC::Record;
 use MARC::Batch;
 
-use Getopt::Long;
+use Getopt::Long qw( GetOptions );
 use IO::File;
 
 my ( $input_marc_file,$number,$nowarning,$frameworkcode) = ('',0);

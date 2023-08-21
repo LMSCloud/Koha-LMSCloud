@@ -26,7 +26,7 @@
         </ul>
     [% END %]
 
-    [% IF ( CAN_user_parameters_manage_patron_categories || CAN_user_parameters_manage_circ_rules || CAN_user_parameters_manage_patron_attributes || CAN_user_parameters_manage_transfers || CAN_user_parameters_manage_item_circ_alerts || CAN_user_parameters_manage_cities ) %]
+    [% IF ( CAN_user_parameters_manage_patron_categories || CAN_user_parameters_manage_circ_rules || CAN_user_parameters_manage_patron_attributes || CAN_user_parameters_manage_transfers || CAN_user_parameters_manage_item_circ_alerts || CAN_user_parameters_manage_cities || CAN_user_parameters_manage_curbside_pickups || CAN_user_parameters_manage_patron_restrictions ) %]
         <h5>Patrons and circulation</h5>
         <ul>
             [% IF ( CAN_user_parameters_manage_patron_categories ) %]
@@ -51,6 +51,12 @@
             [% IF ( CAN_user_parameters_manage_cities ) %]
                 <li><a href="/cgi-bin/koha/admin/cities.pl">Cities and towns</a></li>
             [% END %]
+            [% IF ( CAN_user_parameters_manage_curbside_pickups ) %]
+                <li><a href="/cgi-bin/koha/admin/curbside_pickup.pl">Curbside pickup</a></li>
+            [% END %]
+            [% IF ( CAN_user_parameters_manage_patron_restrictions ) %]
+                <li><a href="/cgi-bin/koha/admin/restrictions.pl">Patron restrictions</a></li>
+            [% END %]
         </ul>
     [% END %]
 
@@ -67,14 +73,21 @@
         </ul>
     [% END %]
 
-    [% IF CAN_user_parameters_manage_background_jobs %]
-        <h5>Background jobs</h5>
+    [% IF CAN_user_plugins && plugins_enabled %]
+      <h5>Plugins</h5>
         <ul>
-            <li><a href="/cgi-bin/koha/admin/background_jobs.pl">Background jobs</a></li>
+            <li><a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a></li>
         </ul>
     [% END %]
 
-    [% IF ( CAN_user_parameters_manage_marc_frameworks || CAN_user_parameters_manage_classifications || CAN_user_parameters_manage_matching_rules || CAN_user_parameters_manage_oai_sets || CAN_user_parameters_manage_item_search_fields || CAN_user_parameters_manage_search_engine_config ) %]
+    [% IF CAN_user_parameters_manage_background_jobs %]
+        <h5>Jobs</h5>
+        <ul>
+            <li><a href="/cgi-bin/koha/admin/background_jobs.pl">Jobs</a></li>
+        </ul>
+    [% END %]
+
+    [% IF ( CAN_user_parameters_manage_marc_frameworks || CAN_user_parameters_manage_classifications || CAN_user_parameters_manage_matching_rules || CAN_user_parameters_manage_oai_sets || CAN_user_parameters_manage_item_search_fields || CAN_user_parameters_manage_search_engine_config || CAN_user_parameters_manage_marc_overlay_rules || ( Koha.Preference('SavedSearchFilters') && CAN_user_parameters_manage_search_filters ) ) %]
         <h5>Catalog</h5>
         <ul>
             [% IF ( CAN_user_parameters_manage_marc_frameworks ) %]
@@ -86,10 +99,13 @@
                 <li><a href="/cgi-bin/koha/admin/authtypes.pl">Authority types</a></li>
             [% END %]
             [% IF ( CAN_user_parameters_manage_classifications ) %]
-                <li><a href="/cgi-bin/koha/admin/classsources.pl">Classification sources</a></li>
+                <li><a href="/cgi-bin/koha/admin/classsources.pl">Classification configuration</a></li>
             [% END %]
             [% IF ( CAN_user_parameters_manage_matching_rules ) %]
                 <li><a href="/cgi-bin/koha/admin/matching-rules.pl">Record matching rules</a></li>
+            [% END %]
+            [% IF ( CAN_user_parameters_manage_marc_overlay_rules ) %]
+                <li><a href="/cgi-bin/koha/admin/marc-overlay-rules.pl">Record overlay rules</a></li>
             [% END %]
             [% IF ( CAN_user_parameters_manage_oai_sets ) %]
                 <li><a href="/cgi-bin/koha/admin/oai_sets.pl">OAI sets configuration</a></li>
@@ -97,15 +113,17 @@
             [% IF ( CAN_user_parameters_manage_item_search_fields ) %]
                 <li><a href="/cgi-bin/koha/admin/items_search_fields.pl">Item search fields</a></li>
             [% END %]
+            [% IF ( Koha.Preference('SavedSearchFilters') && CAN_user_parameters_manage_search_filters ) %]
+                <li><a href="/cgi-bin/koha/admin/search_filters.pl">Search filters</a></li>
+            [% END %]
             [% IF ( CAN_user_parameters_manage_search_engine_config ) %]
                 <li><a href="/cgi-bin/koha/admin/searchengine/elasticsearch/mappings.pl">Search engine configuration (Elasticsearch)</a></li>
             [% END %]
         </ul>
     [% END %]
 
-    [% IF ( CAN_user_acquisition_currencies_manage || CAN_user_acquisition_period_manage || CAN_user_acquisition_budget_manage || CAN_user_acquisition_edi_manage ) %]
+    [% IF ( CAN_user_acquisition_currencies_manage || CAN_user_acquisition_period_manage || CAN_user_acquisition_budget_manage || ( Koha.Preference('EDIFACT') && CAN_user_acquisition_edi_manage ) ) %]
         <h5>Acquisition parameters</h5>
-
         <ul>
             [% IF ( CAN_user_acquisition_currencies_manage ) %]
                 <li><a href="/cgi-bin/koha/admin/currency.pl">Currencies and exchange rates</a></li>
@@ -116,23 +134,19 @@
             [% IF ( CAN_user_acquisition_budget_manage ) %]
                 <li><a href="/cgi-bin/koha/admin/aqbudgets.pl">Funds</a></li>
             [% END %]
-            [% IF ( CAN_user_acquisition_edi_manage ) %]
+            [% IF ( Koha.Preference('EDIFACT') && CAN_user_acquisition_edi_manage ) %]
                 <li><a href="/cgi-bin/koha/admin/edi_accounts.pl">EDI accounts</a></li>
                 <li><a href="/cgi-bin/koha/admin/edi_ean_accounts.pl">Library EANs</a></li>
             [% END %]
         </ul>
     [% END %]
 
-    [% IF CAN_user_plugins && plugins_enabled %]
-        <h5>Plugins</h5>
-        <ul>
-            <li><a href="/cgi-bin/koha/plugins/plugins-home.pl">Manage plugins</a></li>
-        </ul>
-    [% END %]
-
-    [% IF ( CAN_user_parameters_manage_smtp_servers || CAN_user_parameters_manage_search_targets || CAN_user_parameters_manage_didyoumean || CAN_user_parameters_manage_column_config || CAN_user_parameters_manage_audio_alerts || ( CAN_user_parameters_manage_sms_providers && Koha.Preference('SMSSendDriver') == 'Email' ) || CAN_user_parameters_manage_usage_stats || CAN_user_parameters_manage_additional_fields || ( Koha.Preference('EnableAdvancedCatalogingEditor') && CAN_user_parameters_manage_keyboard_shortcuts ) ) %]
+    [% IF ( CAN_user_parameters_manage_identity_providers || CAN_user_parameters_manage_smtp_servers || CAN_user_parameters_manage_search_targets || CAN_user_parameters_manage_didyoumean || CAN_user_parameters_manage_column_config || CAN_user_parameters_manage_audio_alerts || ( CAN_user_parameters_manage_sms_providers && Koha.Preference('SMSSendDriver') == 'Email' ) || CAN_user_parameters_manage_usage_stats || CAN_user_parameters_manage_additional_fields || ( Koha.Preference('EnableAdvancedCatalogingEditor') && CAN_user_parameters_manage_keyboard_shortcuts ) ) %]
         <h5>Additional parameters</h5>
         <ul>
+            [% IF ( CAN_user_parameters_manage_identity_providers) %]
+                <li><a href="/cgi-bin/koha/admin/identity_providers.pl">Identity providers</a></li>
+            [% END %]
             [% IF ( CAN_user_parameters_manage_search_targets ) %]
                 <li><a href="/cgi-bin/koha/admin/z3950servers.pl">Z39.50/SRU servers</a></li>
             [% END %]

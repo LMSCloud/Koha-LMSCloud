@@ -22,8 +22,8 @@ use Modern::Perl;
 use CGI;
 
 use C4::Context;
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 
 use Koha::SMS::Provider;
 use Koha::SMS::Providers;
@@ -36,7 +36,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $cgi,
         type            => "intranet",
         flagsrequired   => { parameters => 'manage_sms_providers' },
-        debug           => 1,
     }
 );
 
@@ -63,8 +62,8 @@ elsif ( $op eq 'delete' ) {
     $provider->delete() if $provider;
 }
 
-my @providers = Koha::SMS::Providers->search();
+my $providers = Koha::SMS::Providers->search;
 
-$template->param( providers => \@providers );
+$template->param( providers => $providers );
 
 output_html_with_http_headers $cgi, $cookie, $template->output;

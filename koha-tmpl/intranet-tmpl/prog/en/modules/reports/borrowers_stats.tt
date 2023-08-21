@@ -1,5 +1,7 @@
+[% USE raw %]
 [% USE Branches %]
 [% USE Koha %]
+[% USE Asset %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>[% IF ( do_it ) %]Patrons statistics &rsaquo; Results[% ELSE %]Patrons statistics[% END %] &rsaquo; Reports &rsaquo; Koha</title>
@@ -12,44 +14,38 @@
 </head>
 
 <body id="rep_borrowers_stats" class="rep">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
-        </li>
-        [% IF ( do_it ) %]
-            <li>
-                <a href="/cgi-bin/koha/reports/borrowers_stats.pl">Patrons statistics</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Results
-                </a>
-            </li>
-        [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Patrons statistics
-                </a>
-            </li>
         [% END %]
-    </ol>
-</nav>
+        [% IF ( do_it ) %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/reports/borrowers_stats.pl">Patrons statistics</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Results</span>
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Patrons statistics</span>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
         <div class="col-sm-10 col-sm-push-2">
             <main>
 
+<h1>Patrons statistics</h1>
 [% IF ( do_it ) %]
 	[% FOREACH mainloo IN mainloop %]
-		<h1>Patrons statistics</h1>
         [% IF ( mainloo.loopfilter.size>0 ) %]
             <p>Filtered on:</p>
 			[% FOREACH loopfilte IN mainloo.loopfilter %]
@@ -176,13 +172,16 @@
 			</td>
 			</tr>
 		    <tr>
-            <td>Date of birth</td>
-            <td colspan="2"></td>
-                <td><label for="from">From</label> <input type="text" size="10" id="from" name="Filter" class="datepickerfrom" />
-                    <label for="to">To</label> <input size="10" id="to" name="Filter" value="" type="text" class="datepickerto" />
+                <td>Date of birth</td>
+                <td colspan="2"></td>
+                <td>
+                    <label for="from">From</label>
+                    <input type="text" size="10" id="from" name="Filter" class="flatpickr"data-date_to="to" />
+                    <label for="to">To</label>
+                    <input size="10" id="to" name="Filter" value="" type="text" class="flatpickr" />
                     <span class="hint">[% INCLUDE 'date-format.inc' %]</span>
-                    </td>
-                </tr>
+                </td>
+            </tr>
             <tr>
                 <td>Gender</td>
                 <td><input type="radio" name="Line" value="sex" /></td>
@@ -307,7 +306,7 @@
 	</fieldset>
 
 	<fieldset class="action">
-	<input type="submit" value="Submit" />
+    <input type="submit" class="btn btn-primary" value="Submit" />
 	<input type="hidden" name="report_name" value="[% report_name | html %]" />
 	<input type="hidden" name="do_it" value="1" />
 	</fieldset>

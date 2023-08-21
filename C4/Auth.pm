@@ -19,69 +19,75 @@ package C4::Auth;
 
 use strict;
 use warnings;
-use Carp qw/croak/;
+use Carp qw( croak );
 
-use Digest::MD5 qw(md5_base64);
-use JSON qw/encode_json/;
+use Digest::MD5 qw( md5_base64 );
+use CGI::Session;
+use CGI::Session::ErrorHandler;
 use URI;
 use URI::QueryParam;
-use URI::Escape;
-use CGI::Session;
 
-require Exporter;
 use C4::Context;
 use C4::Templates;    # to get the template
 use C4::Languages;
 use C4::Search::History;
 use Koha;
+use Koha::Logger;
 use Koha::Caches;
-use Koha::AuthUtils qw(get_script_name hash_password);
+use Koha::AuthUtils qw( get_script_name hash_password );
+use Koha::Auth::TwoFactorAuth;
 use Koha::Checkouts;
-use Koha::DateUtils qw(dt_from_string);
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Library::Groups;
 use Koha::Libraries;
 use Koha::Cash::Registers;
 use Koha::Desks;
 use Koha::Patrons;
 use Koha::Patron::Consents;
-use POSIX qw/strftime/;
-use List::MoreUtils qw/ any /;
-use Encode qw( encode is_utf8);
-use C4::Auth_with_shibboleth;
+use List::MoreUtils qw( any );
+use Encode;
+use C4::Auth_with_shibboleth qw( shib_ok get_login_shib login_shib_url logout_shib checkpw_shib );
 use Net::CIDR;
-use C4::Log qw/logaction/;
+use C4::Log qw( logaction );
+use Koha::CookieManager;
+use Koha::Auth::Permissions;
 
 # use utf8;
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $debug $ldap $cas $caslogout);
+
+use vars qw($ldap $cas $caslogout);
+our (@ISA, @EXPORT_OK);
+
+#NOTE: The utility of keeping the safe_exit function is that it can be easily re-defined in unit tests and plugins
+sub safe_exit {
+    # It's fine for us to "exit" because CGI::Compile (used in Plack::App::WrapCGI) redefines "exit" for us automatically.
+    # Since we only seem to use C4::Auth::safe_exit in a CGI context, we don't actually need PSGI detection at all here.
+    exit;
+}
+
 
 BEGIN {
-    sub psgi_env { any { /^psgi\./ } keys %ENV }
-
-    sub safe_exit {
-        if   (psgi_env) { die 'psgi:exit' }
-        else            { exit }
-    }
-
     C4::Context->set_remote_address;
 
-    $debug     = $ENV{DEBUG};
-    @ISA       = qw(Exporter);
-    @EXPORT    = qw(&checkauth &get_template_and_user &haspermission &get_user_subpermissions);
-    @EXPORT_OK = qw(&check_api_auth &get_session &check_cookie_auth &checkpw &checkpw_internal &checkpw_hash
-      &get_all_subpermissions &get_user_subpermissions track_login_daily &in_iprange
+    require Exporter;
+    @ISA = qw(Exporter);
+
+    @EXPORT_OK = qw(
+      checkauth check_api_auth get_session check_cookie_auth checkpw checkpw_internal checkpw_hash
+      get_all_subpermissions get_user_subpermissions track_login_daily in_iprange
+      get_template_and_user haspermission create_basic_session
     );
-    %EXPORT_TAGS = ( EditPermissions => [qw(get_all_subpermissions get_user_subpermissions)] );
+
     $ldap      = C4::Context->config('useldapserver') || 0;
     $cas       = C4::Context->preference('casAuthentication');
     $caslogout = C4::Context->preference('casLogout');
-    require C4::Auth_with_cas;    # no import
 
     if ($ldap) {
         require C4::Auth_with_ldap;
         import C4::Auth_with_ldap qw(checkpw_ldap);
     }
     if ($cas) {
-        import C4::Auth_with_cas qw(check_api_auth_cas checkpw_cas login_cas logout_cas login_cas_url logout_if_required);
+        require C4::Auth_with_cas;    # no import
+        import C4::Auth_with_cas qw(check_api_auth_cas checkpw_cas login_cas logout_cas login_cas_url logout_if_required multipleAuth getMultipleAuth);
     }
 
 }
@@ -153,6 +159,9 @@ sub get_template_and_user {
 
     my $in = shift;
     my ( $user, $cookie, $sessionID, $flags );
+    $cookie = [];
+
+    my $cookie_mgr = Koha::CookieManager->new;
 
     # Get shibboleth login attribute
     my $shib = C4::Context->config('useshibboleth') && shib_ok();
@@ -183,8 +192,8 @@ sub get_template_and_user {
     # If we enforce GDPR and the user did not consent, redirect
     # Exceptions for consent page itself and SCI/SCO system
     if( $in->{type} eq 'opac' && $user &&
-        $in->{'template_name'} !~ /^(opac-patron-consent|sc[io]\/)/ &&
-        C4::Context->preference('GDPR_Policy') eq 'Enforced' )
+        $in->{'template_name'} !~ /^(opac-page|opac-patron-consent|sc[io]\/)/ &&
+        C4::Context->preference('PrivacyPolicyConsent') eq 'Enforced' )
     {
         my $consent = Koha::Patron::Consents->search({
             borrowernumber => getborrowernumber($user),
@@ -242,17 +251,20 @@ sub get_template_and_user {
         if ($kick_out) {
             $template = C4::Templates::gettemplate( 'opac-auth.tt', 'opac',
                 $in->{query} );
-            $cookie = $in->{query}->cookie(
+            $cookie = $cookie_mgr->replace_in_list( $cookie, $in->{query}->cookie(
                 -name     => 'CGISESSID',
                 -value    => '',
-                -expires  => '',
                 -HttpOnly => 1,
                 -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
-            );
+                -sameSite => 'Lax',
+            ));
+
+            my $auth_error = $in->{query}->param('auth_error');
 
             $template->param(
                 loginprompt => 1,
                 script_name => get_script_name(),
+                auth_error  => $auth_error,
             );
 
             print $in->{query}->header(
@@ -301,12 +313,12 @@ sub get_template_and_user {
             my $some_private_shelves = Koha::Virtualshelves->get_some_shelves(
                 {
                     borrowernumber => $borrowernumber,
-                    category       => 1,
+                    public         => 0,
                 }
             );
             my $some_public_shelves = Koha::Virtualshelves->get_some_shelves(
                 {
-                    category       => 2,
+                    public => 1,
                 }
             );
             $template->param(
@@ -315,66 +327,12 @@ sub get_template_and_user {
             );
         }
 
-        my $all_perms = get_all_subpermissions();
-
-        my @flagroots = qw(circulate catalogue parameters borrowers permissions reserveforothers borrow
-          editcatalogue updatecharges tools editauthorities serials reports acquisition clubs problem_reports);
-
         # We are going to use the $flags returned by checkauth
         # to create the template's parameters that will indicate
         # which menus the user can access.
-        if ( $flags && $flags->{superlibrarian} == 1 ) {
-            $template->param( CAN_user_circulate        => 1 );
-            $template->param( CAN_user_catalogue        => 1 );
-            $template->param( CAN_user_parameters       => 1 );
-            $template->param( CAN_user_borrowers        => 1 );
-            $template->param( CAN_user_permissions      => 1 );
-            $template->param( CAN_user_reserveforothers => 1 );
-            $template->param( CAN_user_editcatalogue    => 1 );
-            $template->param( CAN_user_updatecharges    => 1 );
-            $template->param( CAN_user_acquisition      => 1 );
-            $template->param( CAN_user_suggestions      => 1 );
-            $template->param( CAN_user_tools            => 1 );
-            $template->param( CAN_user_editauthorities  => 1 );
-            $template->param( CAN_user_serials          => 1 );
-            $template->param( CAN_user_reports          => 1 );
-            $template->param( CAN_user_staffaccess      => 1 );
-            $template->param( CAN_user_coursereserves   => 1 );
-            $template->param( CAN_user_plugins          => 1 );
-            $template->param( CAN_user_lists            => 1 );
-            $template->param( CAN_user_clubs            => 1 );
-            $template->param( CAN_user_ill              => 1 );
-            $template->param( CAN_user_stockrotation    => 1 );
-            $template->param( CAN_user_cash_management  => 1 );
-            $template->param( CAN_user_problem_reports  => 1 );
-
-            foreach my $module ( keys %$all_perms ) {
-                foreach my $subperm ( keys %{ $all_perms->{$module} } ) {
-                    $template->param( "CAN_user_${module}_${subperm}" => 1 );
-                }
-            }
-        }
-
-        if ($flags) {
-            foreach my $module ( keys %$all_perms ) {
-                if ( defined($flags->{$module}) && $flags->{$module} == 1 ) {
-                    foreach my $subperm ( keys %{ $all_perms->{$module} } ) {
-                        $template->param( "CAN_user_${module}_${subperm}" => 1 );
-                    }
-                } elsif ( ref( $flags->{$module} ) ) {
-                    foreach my $subperm ( keys %{ $flags->{$module} } ) {
-                        $template->param( "CAN_user_${module}_${subperm}" => 1 );
-                    }
-                }
-            }
-        }
-
-        if ($flags) {
-            foreach my $module ( keys %$flags ) {
-                if ( $flags->{$module} == 1 or ref( $flags->{$module} ) ) {
-                    $template->param( "CAN_user_$module" => 1 );
-                }
-            }
+        my $authz = Koha::Auth::Permissions->get_authz_from_flags({ flags => $flags });
+        foreach my $permission ( keys %{ $authz } ){
+            $template->param( $permission => $authz->{$permission} );
         }
 
         # Logged-in opac search history
@@ -397,7 +355,6 @@ sub get_template_and_user {
                 # we add them to the logged-in search history
                 my @recentSearches = C4::Search::History::get_from_session( { cgi => $in->{'query'} } );
                 if (@recentSearches) {
-                    my $dbh   = C4::Context->dbh;
                     my $query = q{
                         INSERT INTO search_history(userid, sessionid, query_desc, query_cgi, type,  total, time )
                         VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -448,12 +405,15 @@ sub get_template_and_user {
             require Koha::Virtualshelves;
             my $some_public_shelves = Koha::Virtualshelves->get_some_shelves(
                 {
-                    category       => 2,
+                    public => 1,
                 }
             );
             $template->param(
                 some_public_shelves  => $some_public_shelves,
             );
+
+            # Set default branch if one has been passed by the environment.
+            $template->param( default_branch => $ENV{OPAC_BRANCH_DEFAULT} ) if $ENV{OPAC_BRANCH_DEFAULT};
         }
     }
 
@@ -496,7 +456,6 @@ sub get_template_and_user {
     my $minPasswordLength = C4::Context->preference('minPasswordLength');
     $minPasswordLength = 3 if not $minPasswordLength or $minPasswordLength < 3;
     $template->param(
-        "BiblioDefaultView" . C4::Context->preference("BiblioDefaultView") => 1,
         EnhancedMessagingPreferences                                       => C4::Context->preference('EnhancedMessagingPreferences'),
         GoogleJackets                                                      => C4::Context->preference("GoogleJackets"),
         OpenLibraryCovers                                                  => C4::Context->preference("OpenLibraryCovers"),
@@ -509,8 +468,6 @@ sub get_template_and_user {
         item_level_itypes  => C4::Context->preference('item-level_itypes'),
         patronimages       => C4::Context->preference("patronimages"),
         singleBranchMode   => ( Koha::Libraries->search->count == 1 ),
-        XSLTDetailsDisplay => C4::Context->preference("XSLTDetailsDisplay"),
-        XSLTResultsDisplay => C4::Context->preference("XSLTResultsDisplay"),
         noItemTypeImages   => C4::Context->preference("noItemTypeImages"),
         marcflavour        => C4::Context->preference("marcflavour"),
         OPACBaseURL        => C4::Context->preference('OPACBaseURL'),
@@ -520,8 +477,7 @@ sub get_template_and_user {
         $template->param(
             AmazonCoverImages                                                          => C4::Context->preference("AmazonCoverImages"),
             AutoLocation                                                               => C4::Context->preference("AutoLocation"),
-            "BiblioDefaultView" . C4::Context->preference("IntranetBiblioDefaultView") => 1,
-            PatronAutoComplete                                                       => C4::Context->preference("PatronAutoComplete"),
+            PatronAutoComplete                                                         => C4::Context->preference("PatronAutoComplete"),
             FRBRizeEditions                                                            => C4::Context->preference("FRBRizeEditions"),
             IndependentBranches                                                        => C4::Context->preference("IndependentBranches"),
             IntranetNav                                                                => C4::Context->preference("IntranetNav"),
@@ -535,7 +491,6 @@ sub get_template_and_user {
             intranetstylesheet                                                         => C4::Context->preference("intranetstylesheet"),
             IntranetUserCSS                                                            => C4::Context->preference("IntranetUserCSS"),
             IntranetUserJS                                                             => C4::Context->preference("IntranetUserJS"),
-            suggestion                                                                 => C4::Context->preference("suggestion"),
             virtualshelves                                                             => C4::Context->preference("virtualshelves"),
             StaffSerialIssueDisplayCount                                               => C4::Context->preference("StaffSerialIssueDisplayCount"),
             EasyAnalyticalRecords                                                      => C4::Context->preference('EasyAnalyticalRecords'),
@@ -545,7 +500,8 @@ sub get_template_and_user {
             EnableBorrowerFiles                                                        => C4::Context->preference('EnableBorrowerFiles'),
             UseCourseReserves                                                          => C4::Context->preference("UseCourseReserves"),
             useDischarge                                                               => C4::Context->preference('useDischarge'),
-            pending_checkout_notes                                                     => scalar Koha::Checkouts->search({ noteseen => 0 }),
+            pending_checkout_notes                                                     => Koha::Checkouts->search({ noteseen => 0 }),
+            plugins_enabled                                                            => C4::Context->config("enable_plugins"),
         );
     }
     else {
@@ -565,10 +521,11 @@ sub get_template_and_user {
             unless ( $pagename =~ /^(?:MARC|ISBD)?detail$/
                 or $pagename =~ /^showmarc$/
                 or $pagename =~ /^addbybiblionumber$/
-                or $pagename =~ /^review$/ 
-                or $pagename =~ /^basket$/ ) {
-                my $sessionSearch = get_session( $sessionID || $in->{'query'}->cookie("CGISESSID") );
-                $sessionSearch->clear( ["busc"] ) if ( $sessionSearch->param("busc") );
+                or $pagename =~ /^basket$/
+                or $pagename =~ /^review$/ )
+            {
+                my $sessionSearch = get_session( $sessionID );
+                $sessionSearch->clear( ["busc"] ) if $sessionSearch;
             }
         }
 
@@ -601,7 +558,15 @@ sub get_template_and_user {
             }
         }
 
-        my @search_groups = Koha::Library::Groups->get_search_groups({ interface => 'opac' });
+        # Decide if the patron can make suggestions in the OPAC
+        my $can_make_suggestions;
+        if ( C4::Context->preference('Suggestion') && C4::Context->preference('AnonSuggestions') ) {
+            $can_make_suggestions = 1;
+        } elsif ( C4::Context->userenv && C4::Context->userenv->{'number'} ) {
+            $can_make_suggestions = Koha::Patrons->find(C4::Context->userenv->{'number'})->category->can_make_suggestions;
+        }
+
+        my @search_groups = Koha::Library::Groups->get_search_groups({ interface => 'opac' })->as_list;
         $template->param(
             AnonSuggestions                       => "" . C4::Context->preference("AnonSuggestions"),
             LibrarySearchGroups                   => \@search_groups,
@@ -621,15 +586,12 @@ sub get_template_and_user {
             OpacBrowser                           => C4::Context->preference("OpacBrowser"),
             OpacCloud                             => C4::Context->preference("OpacCloud"),
             OpacKohaUrl                           => C4::Context->preference("OpacKohaUrl"),
-            OpacNav                               => "" . C4::Context->preference("OpacNav"),
-            OpacNavBottom                         => "" . C4::Context->preference("OpacNavBottom"),
             OpacPasswordChange                    => C4::Context->preference("OpacPasswordChange"),
             OpacRenewCard                         => $opac_renew_card,
             OPACPatronDetails                     => C4::Context->preference("OPACPatronDetails"),
             OPACPrivacy                           => C4::Context->preference("OPACPrivacy"),
             OPACFinesTab                          => C4::Context->preference("OPACFinesTab"),
             OpacTopissue                          => C4::Context->preference("OpacTopissue"),
-            RequestOnOpac                         => C4::Context->preference("RequestOnOpac"),
             'Version'                             => C4::Context->preference('Version'),
             hidelostitems                         => C4::Context->preference("hidelostitems"),
             mylibraryfirst                        => ( C4::Context->preference("SearchMyLibraryFirst") && C4::Context->userenv ) ? C4::Context->userenv->{'branch'} : '',
@@ -642,11 +604,9 @@ sub get_template_and_user {
             OpenLibrarySearch                     => C4::Context->preference("OpenLibrarySearch"),
             ShowReviewer                          => C4::Context->preference("ShowReviewer"),
             ShowReviewerPhoto                     => C4::Context->preference("ShowReviewerPhoto"),
-            suggestion                            => "" . C4::Context->preference("suggestion"),
+            suggestion                            => $can_make_suggestions,
             virtualshelves                        => "" . C4::Context->preference("virtualshelves"),
             OPACSerialIssueDisplayCount           => C4::Context->preference("OPACSerialIssueDisplayCount"),
-            OPACXSLTDetailsDisplay                => C4::Context->preference("OPACXSLTDetailsDisplay"),
-            OPACXSLTResultsDisplay                => C4::Context->preference("OPACXSLTResultsDisplay"),
             SyndeticsClientCode                   => C4::Context->preference("SyndeticsClientCode"),
             SyndeticsEnabled                      => C4::Context->preference("SyndeticsEnabled"),
             SyndeticsCoverImages                  => C4::Context->preference("SyndeticsCoverImages"),
@@ -675,11 +635,7 @@ sub get_template_and_user {
         # what to do
         my $language = C4::Languages::getlanguage( $in->{'query'} );
         my $languagecookie = C4::Templates::getlanguagecookie( $in->{'query'}, $language );
-        if ( ref $cookie eq 'ARRAY' ) {
-            push @{$cookie}, $languagecookie;
-        } else {
-            $cookie = [ $cookie, $languagecookie ];
-        }
+        $cookie = $cookie_mgr->replace_in_list( $cookie, $languagecookie );
     }
 
     return ( $template, $borrowernumber, $cookie, $flags );
@@ -795,7 +751,7 @@ sub _version_check {
 
     # remove the 3 last . to have a Perl number
     $kohaversion =~ s/(.*\..*)\.(.*)\.(.*)/$1$2$3/;
-    $debug and print STDERR "kohaversion : $kohaversion\n";
+    Koha::Logger->get->debug("kohaversion : $kohaversion");
     if ( $version < $kohaversion ) {
         my $warning = "Database update needed, redirecting to %s. Database is $version and Koha is $kohaversion";
         if ( $type ne 'opac' ) {
@@ -831,7 +787,6 @@ sub _timeout_syspref {
 
 sub checkauth {
     my $query = shift;
-    $debug and warn "Checking Auth";
 
     # Get shibboleth login attribute
     my $shib = C4::Context->config('useshibboleth') && shib_ok();
@@ -845,27 +800,31 @@ sub checkauth {
     my $template_name   = shift;
     $type = 'opac' unless $type;
 
-    unless ( C4::Context->preference("OpacPublic") ) {
+    if ( $type eq 'opac' && !C4::Context->preference("OpacPublic") ) {
         my @allowed_scripts_for_private_opac = qw(
           opac-memberentry.tt
           opac-registration-email-sent.tt
           opac-registration-confirmation.tt
           opac-memberentry-update-submitted.tt
           opac-password-recovery.tt
+          opac-reset-password.tt
         );
         $authnotrequired = 0 unless grep { $_ eq $template_name }
           @allowed_scripts_for_private_opac;
     }
 
-    my $dbh     = C4::Context->dbh;
     my $timeout = _timeout_syspref();
+
+    my $cookie_mgr = Koha::CookieManager->new;
 
     _version_check( $type, $query );
 
     # state variables
     my $loggedin = 0;
+    my $auth_state = 'failed';
     my %info;
     my ( $userid, $cookie, $sessionID, $flags );
+    $cookie = [];
     my $logout = $query->param('logout.x');
 
     my $anon_search_history;
@@ -876,6 +835,11 @@ sub checkauth {
     my $q_userid = $query->param('userid') // '';
 
     my $session;
+    my $invalid_otp_token;
+    my $require_2FA =
+      ( $type ne "opac" # Only available for the staff interface
+          && C4::Context->preference('TwoFactorAuthentication') ne "disabled" ) # If "enabled" or "enforced"
+      ? 1 : 0;
 
     # Basic authentication is incompatible with the use of Shibboleth,
     # as Shibboleth may return REMOTE_USER as a Shibboleth attribute,
@@ -889,128 +853,141 @@ sub checkauth {
     if ( !$shib and defined( $ENV{'REMOTE_USER'} ) and $ENV{'REMOTE_USER'} ne '' and $userid = $ENV{'REMOTE_USER'} ) {
 
         # Using Basic Authentication, no cookies required
-        $cookie = $query->cookie(
+        $cookie = $cookie_mgr->replace_in_list( $cookie, $query->cookie(
             -name     => 'CGISESSID',
             -value    => '',
-            -expires  => '',
             -HttpOnly => 1,
             -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
-        );
+            -sameSite => 'Lax',
+        ));
         $loggedin = 1;
     }
     elsif ( $emailaddress) {
         # the Google OpenID Connect passes an email address
     }
-    elsif ( $sessionID = $query->cookie("CGISESSID") )
-    {    # assignment, not comparison
-        $session = get_session($sessionID);
-        C4::Context->_new_userenv($sessionID);
-        my ( $ip, $lasttime, $sessiontype );
-        my $s_userid = '';
-        if ($session) {
-            $s_userid = $session->param('id') // '';
-            C4::Context->set_userenv(
-                $session->param('number'),       $s_userid,
-                $session->param('cardnumber'),   $session->param('firstname'),
-                $session->param('surname'),      $session->param('branch'),
-                $session->param('branchname'),   $session->param('flags'),
-                $session->param('emailaddress'), $session->param('shibboleth'),
-                $session->param('desk_id'),      $session->param('desk_name'),
-                $session->param('register_id'),  $session->param('register_name'),
-                $session->param('branchcategory')
-            );
-            C4::Context::set_shelves_userenv( 'bar', $session->param('barshelves') );
-            C4::Context::set_shelves_userenv( 'pub', $session->param('pubshelves') );
-            C4::Context::set_shelves_userenv( 'tot', $session->param('totshelves') );
-            $debug and printf STDERR "AUTH_SESSION: (%s)\t%s %s - %s\n", map { $session->param($_) } qw(cardnumber firstname surname branch);
-            $ip          = $session->param('ip');
-            $lasttime    = $session->param('lasttime');
-            $userid      = $s_userid;
-            $sessiontype = $session->param('sessiontype') || '';
+    elsif ( $sessionID = $query->cookie("CGISESSID") ) {    # assignment, not comparison
+        my ( $return, $more_info );
+        # NOTE: $flags in the following call is still undefined !
+        ( $return, $session, $more_info ) = check_cookie_auth( $sessionID, $flags,
+            { remote_addr => $ENV{REMOTE_ADDR}, skip_version_check => 1 }
+        );
+
+        if ( $return eq 'ok' || $return eq 'additional-auth-needed' ) {
+            $userid = $session->param('id');
         }
-        if ( ( $query->param('koha_login_context') && ( $q_userid ne $s_userid ) )
-            || ( $cas && $query->param('ticket') && !C4::Context->userenv->{'id'} )
-            || ( $shib && $shib_login && !$logout && !C4::Context->userenv->{'id'} )
-        ) {
 
-            #if a user enters an id ne to the id in the current session, we need to log them in...
-            #first we need to clear the anonymous session...
-            $debug and warn "query id = $q_userid but session id = $s_userid";
-            $anon_search_history = $session->param('search_history');
-            $session->delete();
-            $session->flush;
-            C4::Context->_unset_userenv($sessionID);
-            $sessionID = undef;
-            $userid    = undef;
-        }
-        elsif ($logout) {
+        $auth_state =
+            $return eq 'ok'                     ? 'completed'
+          : $return eq 'additional-auth-needed' ? 'additional-auth-needed'
+          :                                       'failed';
 
-            # voluntary logout the user
-            # check wether the user was using their shibboleth session or a local one
-            my $shibSuccess = C4::Context->userenv->{'shibboleth'};
-            $session->delete();
-            $session->flush;
-            C4::Context->_unset_userenv($sessionID);
+        # We are at the second screen if the waiting-for-2FA is set in session
+        # and otp_token param has been passed
+        if (   $require_2FA
+            && $auth_state eq 'additional-auth-needed'
+            && ( my $otp_token = $query->param('otp_token') ) )
+        {
+            my $patron    = Koha::Patrons->find( { userid => $userid } );
+            my $auth      = Koha::Auth::TwoFactorAuth->new( { patron => $patron } );
+            my $verified = $auth->verify($otp_token, 1);
+            $auth->clear;
+            if ( $verified ) {
+                # The token is correct, the user is fully logged in!
+                $auth_state = 'completed';
+                $session->param( 'waiting-for-2FA', 0 );
+                $session->param( 'waiting-for-2FA-setup', 0 );
 
-            $sessionID = undef;
-            $userid    = undef;
-
-            if ($cas and $caslogout) {
-                logout_cas($query, $type);
+               # This is an ugly trick to pass the test
+               # $query->param('koha_login_context') && ( $q_userid ne $userid )
+               # few lines later
+                $q_userid = $userid;
             }
-
-            # If we are in a shibboleth session (shibboleth is enabled, a shibboleth match attribute is set and matches koha matchpoint)
-            if ( $shib and $shib_login and $shibSuccess) {
-                logout_shib($query);
+            else {
+                $invalid_otp_token = 1;
             }
         }
-        elsif ( !$lasttime || ( $lasttime < time() - $timeout ) ) {
 
-            # timed logout
-            $info{'timed_out'} = 1;
-            if ($session) {
+        if ( $auth_state eq 'completed' ) {
+            Koha::Logger->get->debug(sprintf "AUTH_SESSION: (%s)\t%s %s - %s", map { $session->param($_) || q{} } qw(cardnumber firstname surname branch));
+
+            if ( ( $query->param('koha_login_context') && ( $q_userid ne $userid ) )
+                || ( $cas && $query->param('ticket') && !C4::Context->userenv->{'id'} )
+                || ( $shib && $shib_login && !$logout && !C4::Context->userenv->{'id'} )
+            ) {
+
+                #if a user enters an id ne to the id in the current session, we need to log them in...
+                #first we need to clear the anonymous session...
+                $anon_search_history = $session->param('search_history');
                 $session->delete();
                 $session->flush;
-            }
-            C4::Context->_unset_userenv($sessionID);
+                $cookie = $cookie_mgr->clear_unless( $query->cookie, @$cookie );
+                C4::Context::_unset_userenv($sessionID);
+                $sessionID = undef;
+                undef $userid; # IMPORTANT: this assures us a new session in code below
+            } elsif (!$logout) {
 
-            $userid    = undef;
-            $sessionID = undef;
-        }
-        elsif ( C4::Context->preference('SessionRestrictionByIP') && $ip ne $ENV{'REMOTE_ADDR'} ) {
+                $cookie = $cookie_mgr->replace_in_list( $cookie, $query->cookie(
+                    -name     => 'CGISESSID',
+                    -value    => $session->id,
+                    -HttpOnly => 1,
+                    -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
+                    -sameSite => 'Lax',
+                ));
 
-            # Different ip than originally logged in from
-            $info{'oldip'}        = $ip;
-            $info{'newip'}        = $ENV{'REMOTE_ADDR'};
-            $info{'different_ip'} = 1;
-            $session->delete();
-            $session->flush;
-            C4::Context->_unset_userenv($sessionID);
-
-            $sessionID = undef;
-            $userid    = undef;
-        }
-        else {
-            $cookie = $query->cookie(
-                -name     => 'CGISESSID',
-                -value    => $session->id,
-                -HttpOnly => 1,
-                -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
-            );
-            $session->param( 'lasttime', time() );
-            unless ( $sessiontype && $sessiontype eq 'anon' ) {    #if this is an anonymous session, we want to update the session, but not behave as if they are logged in...
                 $flags = haspermission( $userid, $flagsrequired );
-                if ($flags) {
-                    $loggedin = 1;
-                } else {
+                unless ( $flags ) {
+                    $auth_state = 'failed';
                     $info{'nopermission'} = 1;
                 }
             }
+        } elsif ( !$logout ) {
+            if ( $return eq 'expired' ) {
+                $info{timed_out} = 1;
+            } elsif ( $return eq 'restricted' ) {
+                $info{oldip}        = $more_info->{old_ip};
+                $info{newip}        = $more_info->{new_ip};
+                $info{different_ip} = 1;
+            } elsif ( $return eq 'password_expired' ) {
+                $info{password_has_expired} = 1;
+            }
         }
     }
-    unless ( $userid || $sessionID ) {
+
+    if ( $auth_state eq 'failed' || $logout ) {
+        $sessionID = undef;
+        $userid    = undef;
+    }
+
+    if ($logout) {
+
+        # voluntary logout the user
+        # check wether the user was using their shibboleth session or a local one
+        my $shibSuccess = C4::Context->userenv ? C4::Context->userenv->{'shibboleth'} : undef;
+        if ( $session ) {
+            $session->delete();
+            $session->flush;
+        }
+        C4::Context::_unset_userenv($sessionID);
+        $cookie = $cookie_mgr->clear_unless( $query->cookie, @$cookie );
+
+        if ($cas and $caslogout) {
+            logout_cas($query, $type);
+        }
+
+        # If we are in a shibboleth session (shibboleth is enabled, a shibboleth match attribute is set and matches koha matchpoint)
+        if ( $shib and $shib_login and $shibSuccess) {
+            logout_shib($query);
+        }
+
+        $session   = undef;
+        $auth_state = 'logout';
+    }
+
+    unless ( $userid ) {
         #we initiate a session prior to checking for a username to allow for anonymous sessions...
-        my $session = get_session("") or die "Auth ERROR: Cannot get_session()";
+        if( !$session or !$sessionID ) { # if we cleared sessionID, we need a new session
+            $session = get_session() or die "Auth ERROR: Cannot get_session()";
+        }
 
         # Save anonymous search history in new session so it can be retrieved
         # by get_template_and_user to store it in user's search history after
@@ -1021,12 +998,13 @@ sub checkauth {
 
         $sessionID = $session->id;
         C4::Context->_new_userenv($sessionID);
-        $cookie = $query->cookie(
+        $cookie = $cookie_mgr->replace_in_list( $cookie, $query->cookie(
             -name     => 'CGISESSID',
-            -value    => $session->id,
+            -value    => $sessionID,
             -HttpOnly => 1,
             -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
-        );
+            -sameSite => 'Lax',
+        ));
         my $pki_field = C4::Context->preference('AllowPKIAuth');
         if ( !defined($pki_field) ) {
             print STDERR "ERROR: Missing system preference AllowPKIAuth.\n";
@@ -1047,7 +1025,7 @@ sub checkauth {
                 my $retuserid;
 
                 # Do not pass password here, else shib will not be checked in checkpw.
-                ( $return, $cardnumber, $retuserid ) = checkpw( $dbh, $q_userid, undef, $query );
+                ( $return, $cardnumber, $retuserid ) = checkpw( $q_userid, undef, $query );
                 $userid      = $retuserid;
                 $shibSuccess = $return;
                 $info{'invalidShibLogin'} = 1 unless ($return);
@@ -1058,7 +1036,7 @@ sub checkauth {
                 if ( $cas && $query->param('ticket') ) {
                     my $retuserid;
                     ( $return, $cardnumber, $retuserid, $cas_ticket ) =
-                      checkpw( $dbh, $userid, $password, $query, $type );
+                      checkpw( $userid, $password, $query, $type );
                     $userid = $retuserid;
                     $info{'invalidCasLogin'} = 1 unless ($return);
                 }
@@ -1117,7 +1095,7 @@ sub checkauth {
                 }
                 else {
                     my $retuserid;
-                    my $request_method = $query->request_method();
+                    my $request_method = $query->request_method // q{};
 
                     if (
                         $request_method eq 'POST'
@@ -1127,7 +1105,7 @@ sub checkauth {
                     {
 
                         ( $return, $cardnumber, $retuserid, $cas_ticket ) =
-                          checkpw( $dbh, $q_userid, $password, $query, $type );
+                          checkpw( $q_userid, $password, $query, $type );
                         $userid = $retuserid if ($retuserid);
                         $info{'invalid_username_or_password'} = 1 unless ($return);
                     }
@@ -1152,14 +1130,19 @@ sub checkauth {
             }
 
             # $return: 1 = valid user
-            if ($return) {
+            if( $return && $return > 0 ) {
 
                 if ( $flags = haspermission( $userid, $flagsrequired ) ) {
-                    $loggedin = 1;
+                    $auth_state = "logged_in";
                 }
                 else {
+                    $auth_state = 'failed';
+                    # FIXME We could add $return = 0; or even delete the session?
+                    # Currently return == 1 and we will fill session info later on,
+                    # although we do present an authorization failure. (Yes, the
+                    # authentication was actually correct.)
                     $info{'nopermission'} = 1;
-                    C4::Context->_unset_userenv($sessionID);
+                    C4::Context::_unset_userenv($sessionID);
                 }
                 my ( $borrowernumber, $firstname, $surname, $userflags,
                     $branchcode, $branchname, $emailaddress, $desk_id,
@@ -1172,28 +1155,20 @@ sub checkauth {
                     FROM borrowers
                     LEFT JOIN branches on borrowers.branchcode=branches.branchcode
                     ";
+                    my $dbh = C4::Context->dbh;
                     my $sth = $dbh->prepare("$select where userid=?");
                     $sth->execute($userid);
                     unless ( $sth->rows ) {
-                        $debug and print STDERR "AUTH_1: no rows for userid='$userid'\n";
                         $sth = $dbh->prepare("$select where cardnumber=?");
                         $sth->execute($cardnumber);
 
                         unless ( $sth->rows ) {
-                            $debug and print STDERR "AUTH_2a: no rows for cardnumber='$cardnumber'\n";
                             $sth->execute($userid);
-                            unless ( $sth->rows ) {
-                                $debug and print STDERR "AUTH_2b: no rows for userid='$userid' AS cardnumber\n";
-                            }
                         }
                     }
                     if ( $sth->rows ) {
                         ( $borrowernumber, $firstname, $surname, $userflags,
                             $branchcode, $branchname, $emailaddress ) = $sth->fetchrow;
-                        $debug and print STDERR "AUTH_3 results: " .
-                          "$cardnumber,$borrowernumber,$userid,$firstname,$surname,$userflags,$branchcode,$emailaddress\n";
-                    } else {
-                        print STDERR "AUTH_3: no results for userid='$userid', cardnumber='$cardnumber'.\n";
                     }
 
                     # launch a sequence to check if we have a ip for the branch, i
@@ -1222,7 +1197,7 @@ sub checkauth {
                         $register_id   = $register->id   if ($register);
                         $register_name = $register->name if ($register);
                     }
-                    my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search };
+                    my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search->as_list };
                     if ( $type ne 'opac' and C4::Context->preference('AutoLocation') ) {
 
                         # we have to check they are coming from the right ip range
@@ -1230,12 +1205,13 @@ sub checkauth {
                         $domain =~ s|\.\*||g;
                         if ( $ip !~ /^$domain/ ) {
                             $loggedin = 0;
-                            $cookie = $query->cookie(
+                            $cookie = $cookie_mgr->replace_in_list( $cookie, $query->cookie(
                                 -name     => 'CGISESSID',
                                 -value    => '',
                                 -HttpOnly => 1,
                                 -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
-                            );
+                                -sameSite => 'Lax',
+                            ));
                             $info{'wrongip'} = 1;
                         }
                     }
@@ -1275,7 +1251,6 @@ sub checkauth {
                     $session->param( 'register_id',  $register_id );
                     $session->param( 'register_name',  $register_name );
                     $session->param( 'sco_user', $is_sco_user );
-                    $debug and printf STDERR "AUTH_4: (%s)\t%s %s - %s\n", map { $session->param($_) } qw(cardnumber firstname surname branch);
                 }
                 $session->param('cas_ticket', $cas_ticket) if $cas_ticket;
                 C4::Context->set_userenv(
@@ -1293,10 +1268,9 @@ sub checkauth {
             # $return: 0 = invalid user
             # reset to anonymous session
             else {
-                $debug and warn "Login failed, resetting anonymous session...";
                 if ($userid) {
                     $info{'invalid_username_or_password'} = 1;
-                    C4::Context->_unset_userenv($sessionID);
+                    C4::Context::_unset_userenv($sessionID);
                 }
                 $session->param( 'lasttime', time() );
                 $session->param( 'ip',       $session->remote_addr() );
@@ -1306,9 +1280,7 @@ sub checkauth {
         }    # END if ( $q_userid
         elsif ( $type eq "opac" ) {
 
-            # if we are here this is an anonymous session; add public lists to it and a few other items...
             # anonymous sessions are created only for the OPAC
-            $debug and warn "Initiating an anonymous session...";
 
             # setting a couple of other session vars...
             $session->param( 'ip',          $session->remote_addr() );
@@ -1316,19 +1288,40 @@ sub checkauth {
             $session->param( 'sessiontype', 'anon' );
             $session->param( 'interface', $type);
         }
+        $session->flush;
     }    # END unless ($userid)
 
+
+    if ( $auth_state eq 'logged_in' ) {
+        $auth_state = 'completed';
+
+        # Auth is completed unless an additional auth is needed
+        if ( $require_2FA ) {
+            my $patron = Koha::Patrons->find({userid => $userid});
+            if ( C4::Context->preference('TwoFactorAuthentication') eq "enforced" && $patron->auth_method eq 'password' ) {
+                $auth_state = 'setup-additional-auth-needed';
+                $session->param('waiting-for-2FA-setup', 1);
+                %info = ();# We remove the warnings/errors we may have set incorrectly before
+            } elsif ( $patron->auth_method eq 'two-factor' ) {
+                # Ask for the OTP token
+                $auth_state = 'additional-auth-needed';
+                $session->param('waiting-for-2FA', 1);
+                %info = ();# We remove the warnings/errors we may have set incorrectly before
+            }
+        }
+    }
+
     # finished authentification, now respond
-    if ( $loggedin || $authnotrequired )
-    {
+    if ( $auth_state eq 'completed' || $authnotrequired ) {
         # successful login
-        unless ($cookie) {
-            $cookie = $query->cookie(
+        unless (@$cookie) {
+            $cookie = $cookie_mgr->replace_in_list( $cookie, $query->cookie(
                 -name     => 'CGISESSID',
                 -value    => '',
                 -HttpOnly => 1,
                 -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
-            );
+                -sameSite => 'Lax',
+            ));
         }
 
         track_login_daily( $userid );
@@ -1342,7 +1335,7 @@ sub checkauth {
             $uri->query_param_delete('password');
             $uri->query_param_delete('koha_login_context');
             print $query->redirect(-uri => $uri->as_string, -cookie => $cookie, -status=>'303 See other');
-            exit;
+            safe_exit;
         }
 
         return ( $userid, $cookie, $sessionID, $flags );
@@ -1354,21 +1347,23 @@ sub checkauth {
     #
     #
 
+    my $patron = Koha::Patrons->find({ userid => $q_userid }); # Not necessary logged in!
+
     # get the inputs from the incoming query
     my @inputs = ();
+    my @inputs_to_clean = qw( userid password ticket logout.x otp_token );
     foreach my $name ( param $query) {
-        (next) if ( $name eq 'userid' || $name eq 'password' || $name eq 'ticket' );
+        next if grep { $name eq $_ } @inputs_to_clean;
         my @value = $query->multi_param($name);
         push @inputs, { name => $name, value => $_ } for @value;
     }
-
-    my $patron = Koha::Patrons->find({ userid => $q_userid }); # Not necessary logged in!
 
     my $LibraryNameTitle = C4::Context->preference("LibraryName");
     $LibraryNameTitle =~ s/<(?:\/?)(?:br|p)\s*(?:\/?)>/ /sgi;
     $LibraryNameTitle =~ s/<(?:[^<>'"]|'(?:[^']*)'|"(?:[^"]*)")*>//sg;
 
     my $auth_template_name = ( $type eq 'opac' ) ? 'opac-auth.tt' : 'auth.tt';
+    my $auth_error = $query->param('auth_error');
     my $template = C4::Templates::gettemplate( $auth_template_name, $type, $query );
     $template->param(
         login                                 => 1,
@@ -1376,24 +1371,15 @@ sub checkauth {
         script_name                           => get_script_name(),
         casAuthentication                     => C4::Context->preference("casAuthentication"),
         shibbolethAuthentication              => $shib,
-        SessionRestrictionByIP                => C4::Context->preference("SessionRestrictionByIP"),
         suggestion                            => C4::Context->preference("suggestion"),
         virtualshelves                        => C4::Context->preference("virtualshelves"),
         LibraryName                           => "" . C4::Context->preference("LibraryName"),
         LibraryNameTitle                      => "" . $LibraryNameTitle,
         opacuserlogin                         => C4::Context->preference("opacuserlogin"),
-        OpacNav                               => C4::Context->preference("OpacNav"),
-        OpacNavBottom                         => C4::Context->preference("OpacNavBottom"),
         OpacFavicon                           => C4::Context->preference("OpacFavicon"),
         opacreadinghistory                    => C4::Context->preference("opacreadinghistory"),
         opaclanguagesdisplay                  => C4::Context->preference("opaclanguagesdisplay"),
         OPACUserJS                            => C4::Context->preference("OPACUserJS"),
-        opacbookbag                           => "" . C4::Context->preference("opacbookbag"),
-        OpacCloud                             => C4::Context->preference("OpacCloud"),
-        OpacTopissue                          => C4::Context->preference("OpacTopissue"),
-        OpacAuthorities                       => C4::Context->preference("OpacAuthorities"),
-        OpacBrowser                           => C4::Context->preference("OpacBrowser"),
-        TagsEnabled                           => C4::Context->preference("TagsEnabled"),
         OPACUserCSS                           => C4::Context->preference("OPACUserCSS"),
         intranetcolorstylesheet               => C4::Context->preference("intranetcolorstylesheet"),
         intranetstylesheet                    => C4::Context->preference("intranetstylesheet"),
@@ -1407,19 +1393,35 @@ sub checkauth {
         PatronSelfRegistration                => C4::Context->preference("PatronSelfRegistration"),
         PatronSelfRegistrationDefaultCategory => C4::Context->preference("PatronSelfRegistrationDefaultCategory"),
         opac_css_override                     => $ENV{'OPAC_CSS_OVERRIDE'},
-        too_many_login_attempts               => ( $patron and $patron->account_locked )
+        too_many_login_attempts               => ( $patron and $patron->account_locked ),
+        password_has_expired                  => ( $patron and $patron->password_expired ),
+        auth_error                            => $auth_error,
     );
 
     $template->param( SCO_login => 1 ) if ( $query->param('sco_user_login') );
     $template->param( SCI_login => 1 ) if ( $query->param('sci_user_login') );
     $template->param( OpacPublic => C4::Context->preference("OpacPublic") );
     $template->param( loginprompt => 1 ) unless $info{'nopermission'};
+    if ( $auth_state eq 'additional-auth-needed' ) {
+        my $patron = Koha::Patrons->find( { userid => $userid } );
+        $template->param(
+            TwoFA_prompt => 1,
+            invalid_otp_token => $invalid_otp_token,
+            notice_email_address => $patron->notice_email_address, # We could also pass logged_in_user if necessary
+        );
+    }
+
+    if ( $auth_state eq 'setup-additional-auth-needed' ) {
+        $template->param(
+            TwoFA_setup => 1,
+        );
+    }
 
     if ( $type eq 'opac' ) {
         require Koha::Virtualshelves;
         my $some_public_shelves = Koha::Virtualshelves->get_some_shelves(
             {
-                category       => 2,
+                public => 1,
             }
         );
         $template->param(
@@ -1430,8 +1432,9 @@ sub checkauth {
     if ($cas) {
 
         # Is authentication against multiple CAS servers enabled?
-        if ( C4::Auth_with_cas::multipleAuth && !$casparam ) {
-            my $casservers = C4::Auth_with_cas::getMultipleAuth();
+        require C4::Auth_with_cas;
+        if ( multipleAuth() && !$casparam ) {
+            my $casservers = getMultipleAuth();
             my @tmplservers;
             foreach my $key ( keys %$casservers ) {
                 push @tmplservers, { name => $key, value => login_cas_url( $query, $key, $type ) . "?cas=$key" };
@@ -1482,7 +1485,8 @@ sub checkauth {
         {   type              => 'text/html',
             charset           => 'utf-8',
             cookie            => $cookie,
-            'X-Frame-Options' => 'SAMEORIGIN'
+            'X-Frame-Options' => 'SAMEORIGIN',
+            -sameSite => 'Lax'
         }
       ),
       $template->output;
@@ -1519,6 +1523,10 @@ Possible return values in C<$status> are:
 
 =item "expired -- session cookie has expired; API user should resubmit userid and password
 
+=item "restricted" -- The IP has changed (if SessionRestrictionByIP)
+
+=item "additional-auth-needed -- User is in an authentication process that is not finished
+
 =back
 
 =cut
@@ -1527,7 +1535,6 @@ sub check_api_auth {
 
     my $query         = shift;
     my $flagsrequired = shift;
-    my $dbh     = C4::Context->dbh;
     my $timeout = _timeout_syspref();
 
     unless ( C4::Context->preference('Version') ) {
@@ -1545,80 +1552,28 @@ sub check_api_auth {
         return ( "maintenance", undef, undef );
     }
 
-    # FIXME -- most of what follows is a copy-and-paste
-    # of code from checkauth.  There is an obvious need
-    # for refactoring to separate the various parts of
-    # the authentication code, but as of 2007-11-19 this
-    # is deferred so as to not introduce bugs into the
-    # regular authentication code for Koha 3.0.
-
-    # see if we have a valid session cookie already
-    # however, if a userid parameter is present (i.e., from
-    # a form submission, assume that any current cookie
-    # is to be ignored
-    my $sessionID = undef;
+    my ( $sessionID, $session );
     unless ( $query->param('userid') ) {
         $sessionID = $query->cookie("CGISESSID");
     }
     if ( $sessionID && not( $cas && $query->param('PT') ) ) {
-        my $session = get_session($sessionID);
-        C4::Context->_new_userenv($sessionID);
-        if ($session) {
-            C4::Context->interface($session->param('interface'));
-            C4::Context->set_userenv(
-                $session->param('number'),       $session->param('id'),
-                $session->param('cardnumber'),   $session->param('firstname'),
-                $session->param('surname'),      $session->param('branch'),
-                $session->param('branchname'),   $session->param('flags'),
-                $session->param('emailaddress'), $session->param('shibboleth'),
-                $session->param('desk_id'),      $session->param('desk_name'),
-                $session->param('register_id'),  $session->param('register_name')
-            );
 
-            my $ip       = $session->param('ip');
-            my $lasttime = $session->param('lasttime');
-            my $userid   = $session->param('id');
-            if ( $lasttime < time() - $timeout ) {
+        my $return;
+        ( $return, $session, undef ) = check_cookie_auth(
+            $sessionID, $flagsrequired, { remote_addr => $ENV{REMOTE_ADDR} } );
 
-                # time out
-                $session->delete();
-                $session->flush;
-                C4::Context->_unset_userenv($sessionID);
-                $userid    = undef;
-                $sessionID = undef;
-                return ( "expired", undef, undef );
-            } elsif ( C4::Context->preference('SessionRestrictionByIP') && $ip ne $ENV{'REMOTE_ADDR'} ) {
+        return ( $return, undef, undef ) # Cookie auth failed
+            if $return ne "ok";
 
-                # IP address changed
-                $session->delete();
-                $session->flush;
-                C4::Context->_unset_userenv($sessionID);
-                $userid    = undef;
-                $sessionID = undef;
-                return ( "expired", undef, undef );
-            } else {
-                my $cookie = $query->cookie(
-                    -name     => 'CGISESSID',
-                    -value    => $session->id,
-                    -HttpOnly => 1,
-                    -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
-                );
-                $session->param( 'lasttime', time() );
-                my $flags = haspermission( $userid, $flagsrequired );
-                if ($flags) {
-                    return ( "ok", $cookie, $sessionID );
-                } else {
-                    $session->delete();
-                    $session->flush;
-                    C4::Context->_unset_userenv($sessionID);
-                    $userid    = undef;
-                    $sessionID = undef;
-                    return ( "failed", undef, undef );
-                }
-            }
-        } else {
-            return ( "expired", undef, undef );
-        }
+        my $cookie = $query->cookie(
+            -name     => 'CGISESSID',
+            -value    => $session->id,
+            -HttpOnly => 1,
+            -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
+            -sameSite => 'Lax'
+        );
+        return ( $return, $cookie, $session ); # return == 'ok' here
+
     } else {
 
         # new login
@@ -1629,11 +1584,10 @@ sub check_api_auth {
         # Proxy CAS auth
         if ( $cas && $query->param('PT') ) {
             my $retuserid;
-            $debug and print STDERR "## check_api_auth - checking CAS\n";
 
             # In case of a CAS authentication, we use the ticket instead of the password
             my $PT = $query->param('PT');
-            ( $return, $cardnumber, $userid, $cas_ticket ) = check_api_auth_cas( $dbh, $PT, $query );    # EXTERNAL AUTH
+            ( $return, $cardnumber, $userid, $cas_ticket ) = check_api_auth_cas( $PT, $query );    # EXTERNAL AUTH
         } else {
 
             # User / password auth
@@ -1643,7 +1597,7 @@ sub check_api_auth {
                 return ( "failed", undef, undef );
             }
             my $newuserid;
-            ( $return, $cardnumber, $newuserid, $cas_ticket ) = checkpw( $dbh, $userid, $password, $query );
+            ( $return, $cardnumber, $newuserid, $cas_ticket ) = checkpw( $userid, $password, $query );
         }
 
         if ( $return and haspermission( $userid, $flagsrequired ) ) {
@@ -1657,6 +1611,7 @@ sub check_api_auth {
                 -value    => $sessionID,
                 -HttpOnly => 1,
                 -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
+                -sameSite => 'Lax'
             );
             if ( $return == 1 ) {
                 my (
@@ -1664,6 +1619,7 @@ sub check_api_auth {
                     $userflags,      $branchcode, $branchname,
                     $emailaddress
                 );
+                my $dbh = C4::Context->dbh;
                 my $sth =
                   $dbh->prepare(
 "select borrowernumber, firstname, surname, flags, borrowers.branchcode, branches.branchname as branchname, email from borrowers left join branches on borrowers.branchcode=branches.branchcode where userid=?"
@@ -1703,7 +1659,7 @@ sub check_api_auth {
                     my $library = Koha::Libraries->find($branchcode);
                     $branchname = $library? $library->branchname: '';
                 }
-                my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search };
+                my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search->as_list };
                 foreach my $br ( keys %$branches ) {
 
                     #     now we work with the treatment of ip
@@ -1748,7 +1704,7 @@ sub check_api_auth {
 
 =head2 check_cookie_auth
 
-  ($status, $sessionId) = check_api_auth($cookie, $userflags);
+  ($status, $sessionId) = check_cookie_auth($cookie, $userflags);
 
 Given a CGISESSID cookie set during a previous login to Koha, determine
 if the user has the privileges specified by C<$userflags>. C<$userflags>
@@ -1775,91 +1731,113 @@ Possible return values in C<$status> are:
 
 =item "expired -- session cookie has expired; API user should resubmit userid and password
 
+=item "restricted" -- The IP has changed (if SessionRestrictionByIP)
+
 =back
 
 =cut
 
 sub check_cookie_auth {
-    my $cookie        = shift;
+    my $sessionID     = shift;
     my $flagsrequired = shift;
     my $params        = shift;
 
     my $remote_addr = $params->{remote_addr} || $ENV{REMOTE_ADDR};
-    my $dbh     = C4::Context->dbh;
-    my $timeout = _timeout_syspref();
 
-    unless ( C4::Context->preference('Version') ) {
+    my $skip_version_check = $params->{skip_version_check}; # Only for checkauth
 
-        # database has not been installed yet
-        return ( "maintenance", undef );
+    unless ( $skip_version_check ) {
+        unless ( C4::Context->preference('Version') ) {
+
+            # database has not been installed yet
+            return ( "maintenance", undef );
+        }
+        my $kohaversion = Koha::version();
+        $kohaversion =~ s/(.*\..*)\.(.*)\.(.*)/$1$2$3/;
+        if ( C4::Context->preference('Version') < $kohaversion ) {
+
+            # database in need of version update; assume that
+            # no API should be called while databsae is in
+            # this condition.
+            return ( "maintenance", undef );
+        }
     }
-    my $kohaversion = Koha::version();
-    $kohaversion =~ s/(.*\..*)\.(.*)\.(.*)/$1$2$3/;
-    if ( C4::Context->preference('Version') < $kohaversion ) {
-
-        # database in need of version update; assume that
-        # no API should be called while databsae is in
-        # this condition.
-        return ( "maintenance", undef );
-    }
-
-    # FIXME -- most of what follows is a copy-and-paste
-    # of code from checkauth.  There is an obvious need
-    # for refactoring to separate the various parts of
-    # the authentication code, but as of 2007-11-23 this
-    # is deferred so as to not introduce bugs into the
-    # regular authentication code for Koha 3.0.
 
     # see if we have a valid session cookie already
     # however, if a userid parameter is present (i.e., from
     # a form submission, assume that any current cookie
     # is to be ignored
-    unless ( defined $cookie and $cookie ) {
+    unless ( $sessionID ) {
         return ( "failed", undef );
     }
-    my $sessionID = $cookie;
+    C4::Context::_unset_userenv($sessionID); # remove old userenv first
     my $session   = get_session($sessionID);
-    C4::Context->_new_userenv($sessionID);
     if ($session) {
-        C4::Context->interface($session->param('interface'));
-        C4::Context->set_userenv(
-            $session->param('number'),       $session->param('id'),
-            $session->param('cardnumber'),   $session->param('firstname'),
-            $session->param('surname'),      $session->param('branch'),
-            $session->param('branchname'),   $session->param('flags'),
-            $session->param('emailaddress'), $session->param('shibboleth'),
-            $session->param('desk_id'),      $session->param('desk_name'),
-            $session->param('register_id'),  $session->param('register_name')
-        );
-
+        my $userid   = $session->param('id');
         my $ip       = $session->param('ip');
         my $lasttime = $session->param('lasttime');
-        my $userid   = $session->param('id');
-        if ( $lasttime < time() - $timeout ) {
+        my $timeout = _timeout_syspref();
 
+        if ( !$lasttime || ( $lasttime < time() - $timeout ) ) {
             # time out
             $session->delete();
             $session->flush;
-            C4::Context->_unset_userenv($sessionID);
-            $userid    = undef;
-            $sessionID = undef;
             return ("expired", undef);
-        } elsif ( C4::Context->preference('SessionRestrictionByIP') && $ip ne $remote_addr ) {
 
+        } elsif ( C4::Context->preference('SessionRestrictionByIP') && $ip ne $remote_addr ) {
             # IP address changed
             $session->delete();
             $session->flush;
-            C4::Context->_unset_userenv($sessionID);
-            $userid    = undef;
-            $sessionID = undef;
-            return ( "expired", undef );
+            return ( "restricted", undef, { old_ip => $ip, new_ip => $remote_addr});
+
         } elsif ( $userid ) {
             $session->param( 'lasttime', time() );
+            my $patron = Koha::Patrons->find({ userid => $userid });
+
+            # If the user modify their own userid
+            # Better than 500 but we could do better
+            unless ( $patron ) {
+                $session->delete();
+                $session->flush;
+                return ("expired", undef);
+            }
+
+            $patron = Koha::Patrons->find({ cardnumber => $userid })
+              unless $patron;
+            return ("password_expired", undef ) if $patron->password_expired;
             my $flags = defined($flagsrequired) ? haspermission( $userid, $flagsrequired ) : 1;
             if ($flags) {
-                return ( "ok", $sessionID );
+                C4::Context->_new_userenv($sessionID);
+                C4::Context->interface($session->param('interface'));
+                C4::Context->set_userenv(
+                    $session->param('number'),       $session->param('id') // '',
+                    $session->param('cardnumber'),   $session->param('firstname'),
+                    $session->param('surname'),      $session->param('branch'),
+                    $session->param('branchname'),   $session->param('flags'),
+                    $session->param('emailaddress'), $session->param('shibboleth'),
+                    $session->param('desk_id'),      $session->param('desk_name'),
+                    $session->param('register_id'),  $session->param('register_name'),
+                    $session->param('branchcategory')
+                );
+                if ( C4::Context->preference('TwoFactorAuthentication') ne 'disabled' ) {
+                    return ( "additional-auth-needed", $session )
+                        if $session->param('waiting-for-2FA');
+
+                    return ( "setup-additional-auth-needed", $session )
+                        if $session->param('waiting-for-2FA-setup');
+                }
+
+                return ( "ok", $session );
+            } else {
+                $session->delete();
+                $session->flush;
+                return ( "failed", undef );
             }
+
         } else {
+            C4::Context->_new_userenv($sessionID);
+            C4::Context->interface($session->param('interface'));
+            C4::Context->set_userenv( undef, q{} );
             return ( "anon", $session );
         }
         # If here user was logged in, but doesn't have correct permissions
@@ -1915,10 +1893,48 @@ sub _get_session_params {
 sub get_session {
     my $sessionID      = shift;
     my $params = _get_session_params();
-    my $session = CGI::Session->new( $params->{dsn}, $sessionID, $params->{dsn_args} );
-    if ( ! $session ){
-        die CGI::Session->errstr();
+    my $session;
+    if( $sessionID ) { # find existing
+        CGI::Session::ErrorHandler->set_error( q{} ); # clear error, cpan issue #111463
+        $session = CGI::Session->load( $params->{dsn}, $sessionID, $params->{dsn_args} );
+    } else {
+        $session = CGI::Session->new( $params->{dsn}, $sessionID, $params->{dsn_args} );
+        # no need to flush here
     }
+    return $session;
+}
+
+=head2 create_basic_session
+
+my $session = create_basic_session({ patron => $patron, interface => $interface });
+
+Creates a session and adds all basic parameters for a session to work
+
+=cut
+
+sub create_basic_session {
+    my $params    = shift;
+    my $patron    = $params->{patron};
+    my $interface = $params->{interface};
+
+    $interface = 'intranet' if $interface eq 'staff';
+
+    my $session = get_session("");
+
+    $session->param( 'number',       $patron->borrowernumber );
+    $session->param( 'id',           $patron->userid );
+    $session->param( 'cardnumber',   $patron->cardnumber );
+    $session->param( 'firstname',    $patron->firstname );
+    $session->param( 'surname',      $patron->surname );
+    $session->param( 'branch',       $patron->branchcode );
+    $session->param( 'branchname',   $patron->library->branchname );
+    $session->param( 'flags',        $patron->flags );
+    $session->param( 'emailaddress', $patron->email );
+    $session->param( 'ip',           $session->remote_addr() );
+    $session->param( 'lasttime',     time() );
+    $session->param( 'interface',    $interface);
+    $session->param( 'branchcategory', '*' );
+    
     return $session;
 }
 
@@ -1928,7 +1944,7 @@ sub get_session {
 # Currently it's only passed from C4::SIP::ILS::Patron::check_password, but
 # not having a userenv defined could cause a crash.
 sub checkpw {
-    my ( $dbh, $userid, $password, $query, $type, $no_set_userenv ) = @_;
+    my ( $userid, $password, $query, $type, $no_set_userenv ) = @_;
     $type = 'opac' unless $type;
 
     # Get shibboleth login attribute
@@ -1948,10 +1964,9 @@ sub checkpw {
     # 0 if auth is nok
     # -1 if user bind failed (LDAP only)
 
-    if ( $patron and $patron->account_locked ) {
+    if ( $patron and ( $patron->account_locked )  ) {
         # Nothing to check, account is locked
     } elsif ($ldap && defined($password)) {
-        $debug and print STDERR "## checkpw - checking LDAP\n";
         my ( $retval, $retcard, $retuserid ) = checkpw_ldap(@_);    # EXTERNAL AUTH
         if ( $retval == 1 ) {
             @return = ( $retval, $retcard, $retuserid );
@@ -1960,12 +1975,11 @@ sub checkpw {
         $check_internal_as_fallback = 1 if $retval == 0;
 
     } elsif ( $cas && $query && $query->param('ticket') ) {
-        $debug and print STDERR "## checkpw - checking CAS\n";
 
         # In case of a CAS authentication, we use the ticket instead of the password
         my $ticket = $query->param('ticket');
         $query->delete('ticket');                                   # remove ticket to come back to original URL
-        my ( $retval, $retcard, $retuserid, $cas_ticket ) = checkpw_cas( $dbh, $ticket, $query, $type );    # EXTERNAL AUTH
+        my ( $retval, $retcard, $retuserid, $cas_ticket ) = checkpw_cas( $ticket, $query, $type );    # EXTERNAL AUTH
         if ( $retval ) {
             @return = ( $retval, $retcard, $retuserid, $cas_ticket );
         } else {
@@ -1978,8 +1992,6 @@ sub checkpw {
     # Check for password to asertain whether we want to be testing against shibboleth or another method this
     # time around.
     elsif ( $shib && $shib_login && !$password ) {
-
-        $debug and print STDERR "## checkpw - checking Shibboleth\n";
 
         # In case of a Shibboleth authentication, we expect a shibboleth user attribute
         # (defined under shibboleth mapping in koha-conf.xml) to contain the login of the
@@ -1999,13 +2011,16 @@ sub checkpw {
 
     # INTERNAL AUTH
     if ( $check_internal_as_fallback ) {
-        @return = checkpw_internal( $dbh, $userid, $password, $no_set_userenv);
+        @return = checkpw_internal( $userid, $password, $no_set_userenv);
         $passwd_ok = 1 if $return[0] > 0; # 1 or 2
     }
 
     if( $patron ) {
         if ( $passwd_ok ) {
             $patron->update({ login_attempts => 0 });
+            if( $patron->password_expired ){
+                @return = (-2);
+            }
         } elsif( !$patron->account_locked ) {
             $patron->update({ login_attempts => $patron->login_attempts + 1 });
         }
@@ -2022,11 +2037,12 @@ sub checkpw {
 }
 
 sub checkpw_internal {
-    my ( $dbh, $userid, $password, $no_set_userenv ) = @_;
+    my ( $userid, $password, $no_set_userenv ) = @_;
 
     $password = Encode::encode( 'UTF-8', $password )
       if Encode::is_utf8($password);
 
+    my $dbh = C4::Context->dbh;
     my $sth =
       $dbh->prepare(
         "select password,cardnumber,borrowernumber,userid,firstname,surname,borrowers.branchcode,branches.branchname,flags from borrowers join branches on borrowers.branchcode=branches.branchcode where userid=?"
@@ -2286,7 +2302,7 @@ sub in_iprange {
     if (scalar @allowedipranges > 0) {
         my @rangelist;
         eval { @rangelist = Net::CIDR::range2cidr(@allowedipranges); }; return 0 if $@;
-        eval { $result = Net::CIDR::cidrlookup($ENV{'REMOTE_ADDR'}, @rangelist) } || ( $ENV{DEBUG} && warn 'cidrlookup failed for ' . join(' ',@rangelist) );
+        eval { $result = Net::CIDR::cidrlookup($ENV{'REMOTE_ADDR'}, @rangelist) } || Koha::Logger->get->warn('cidrlookup failed for ' . join(' ',@rangelist) );
      }
      return $result ? 1 : 0;
 }

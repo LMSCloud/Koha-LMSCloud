@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 13;
+use Test::More tests => 14;
 use Test::MockModule;
 use Test::Mojo;
 use t::lib::TestBuilder;
@@ -28,11 +28,11 @@ use Mojo::JSON qw(encode_json);
 
 use C4::Context;
 use Koha::Patrons;
-use C4::Reserves;
+use C4::Reserves qw( AddReserve CanItemBeReserved CanBookBeReserved );
 use C4::Items;
 
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Biblios;
 use Koha::Biblioitems;
 use Koha::Items;
@@ -159,7 +159,7 @@ my $post_data = {
     biblio_id         => $biblio_1->biblionumber,
     item_id           => $item_1->itemnumber,
     pickup_library_id => $branchcode,
-    expiration_date   => output_pref( { dt => $expiration_date, dateformat => 'rfc3339', dateonly => 1 } ),
+    expiration_date   => output_pref( { dt => $expiration_date, dateformat => 'iso', dateonly => 1 } ),
 };
 my $patch_data = {
     priority        => 2,
@@ -185,7 +185,7 @@ subtest "Test endpoints without permission" => sub {
     $t->get_ok( "//$nopermission_userid:$password@/api/v1/holds?patron_id=" . $patron_1->borrowernumber ) # no permission
       ->status_is(403);
 
-    $t->get_ok( "//$userid_3:$password@/api/v1/holds?patron_id=" . $patron_1->borrowernumber )    # no permission
+    $t->get_ok( "//$userid_2:$password@/api/v1/holds?patron_id=" . $patron_1->borrowernumber )    # no permission
       ->status_is(403);
 
     $t->post_ok( "//$nopermission_userid:$password@/api/v1/holds" => json => $post_data )
@@ -225,7 +225,7 @@ subtest "Test endpoints with permission" => sub {
       ->status_is(404)
       ->json_has('/error');
 
-    $t->get_ok( "//$userid_2:$password@/api/v1/holds?patron_id=" . $patron_1->borrowernumber )
+    $t->get_ok( "//$userid_3:$password@/api/v1/holds?patron_id=" . $patron_1->borrowernumber )
       ->status_is(200)
       ->json_is([]);
 
@@ -254,7 +254,7 @@ subtest "Test endpoints with permission" => sub {
     $t->get_ok( "//$userid_1:$password@/api/v1/holds?patron_id=" . $patron_1->borrowernumber )
       ->status_is(200)
       ->json_is('/0/hold_id', $reserve_id)
-      ->json_is('/0/expiration_date', output_pref({ dt => $expiration_date, dateformat => 'rfc3339', dateonly => 1 }))
+      ->json_is('/0/expiration_date', output_pref({ dt => $expiration_date, dateformat => 'iso', dateonly => 1 }))
       ->json_is('/0/pickup_library_id', $branchcode);
 
     $t->post_ok( "//$userid_3:$password@/api/v1/holds" => json => $post_data )
@@ -329,8 +329,8 @@ subtest 'test AllowHoldDateInFuture' => sub {
         biblio_id         => $biblio_1->biblionumber,
         item_id           => $item_1->itemnumber,
         pickup_library_id => $branchcode,
-        expiration_date   => output_pref( { dt => $expiration_date,  dateformat => 'rfc3339', dateonly => 1 } ),
-        hold_date         => output_pref( { dt => $future_hold_date, dateformat => 'rfc3339', dateonly => 1 } ),
+        expiration_date   => output_pref( { dt => $expiration_date,  dateformat => 'iso', dateonly => 1 } ),
+        hold_date         => output_pref( { dt => $future_hold_date, dateformat => 'iso', dateonly => 1 } ),
     };
 
     t::lib::Mocks::mock_preference( 'AllowHoldDateInFuture', 0 );
@@ -349,7 +349,7 @@ subtest 'test AllowHoldDateInFuture' => sub {
 
     $t->post_ok( "//$userid_3:$password@/api/v1/holds" => json => $post_data )
       ->status_is(201)
-      ->json_is('/hold_date', output_pref({ dt => $future_hold_date, dateformat => 'rfc3339', dateonly => 1 }));
+      ->json_is('/hold_date', output_pref({ dt => $future_hold_date, dateformat => 'iso', dateonly => 1 }));
 };
 
 $schema->storage->txn_rollback;
@@ -461,7 +461,18 @@ subtest 'suspend and resume tests' => sub {
     my $password = 'AbcdEFG123';
 
     my $patron = $builder->build_object(
-        { class => 'Koha::Patrons', value => { userid => 'tomasito', flags => 1 } } );
+        { class => 'Koha::Patrons', value => { userid => 'tomasito', flags => 0 } } );
+    $builder->build(
+        {
+            source => 'UserPermission',
+            value  => {
+                borrowernumber => $patron->borrowernumber,
+                module_bit     => 6,
+                code           => 'place_holds',
+            },
+        }
+    );
+
     $patron->set_password({ password => $password, skip_validation => 1 });
     my $userid = $patron->userid;
 
@@ -486,7 +497,7 @@ subtest 'suspend and resume tests' => sub {
 
     my $end_date = output_pref({
       dt         => dt_from_string( undef ),
-      dateformat => 'rfc3339',
+      dateformat => 'iso',
       dateonly   => 1
     });
 
@@ -499,7 +510,7 @@ subtest 'suspend and resume tests' => sub {
       '/end_date',
       output_pref({
         dt         => dt_from_string( $hold->suspend_until ),
-        dateformat => 'rfc3339',
+        dateformat => 'iso',
         dateonly   => 1
       }),
       'Hold suspension has correct end date'
@@ -516,11 +527,11 @@ subtest 'suspend and resume tests' => sub {
             . $hold->id
             . "/suspension" => json => {
             end_date =>
-                output_pref( { dt => $date, dateformat => 'rfc3339', dateonly => 1 } )
+                output_pref( { dt => $date, dateformat => 'iso', dateonly => 1 } )
             }
     )->status_is( 201, 'Hold suspension created' )
         ->json_is( '/end_date',
-        output_pref( { dt => $date, dateformat => 'rfc3339', dateonly => 1 } ) )
+        output_pref( { dt => $date, dateformat => 'iso', dateonly => 1 } ) )
         ->header_is( Location => "/api/v1/holds/" . $hold->id . "/suspension", 'The Location header is set' );
 
     $t->delete_ok( "//$userid:$password@/api/v1/holds/" . $hold->id . "/suspension" )
@@ -906,7 +917,7 @@ subtest 'pickup_locations() tests' => sub {
 
 subtest 'edit() tests' => sub {
 
-    plan tests => 37;
+    plan tests => 39;
 
     $schema->storage->txn_begin;
 
@@ -1024,6 +1035,8 @@ subtest 'edit() tests' => sub {
                 branchcode   => $library_3->branchcode,
                 itemnumber   => $item->itemnumber,
                 priority     => 1,
+                suspend       => 0,
+                suspend_until => undef,
             }
         }
     );
@@ -1075,12 +1088,16 @@ subtest 'edit() tests' => sub {
     $item_hold->discard_changes;
     is( $item_hold->branchcode, $library_2->id, 'Pickup location changed correctly' );
 
+    is( $item_hold->suspend, 0, 'Location change should not activate suspended status' );
+    is( $item_hold->suspend_until, undef, 'Location change should keep suspended_until be undef' );
+
     $schema->storage->txn_rollback;
+
 };
 
 subtest 'add() tests' => sub {
 
-    plan tests => 16;
+    plan tests => 21;
 
     $schema->storage->txn_begin;
 
@@ -1156,6 +1173,37 @@ subtest 'add() tests' => sub {
     my $biblio_hold_api_data = $biblio_hold->to_api;
     $biblio_hold->delete;
     my $biblio_hold_data = {
+        biblio_id         => $biblio_hold_api_data->{biblio_id},
+        patron_id         => $biblio_hold_api_data->{patron_id},
+        pickup_library_id => $library_1->branchcode,
+    };
+
+    $t->post_ok( "//$userid:$password@/api/v1/holds" => json => $biblio_hold_data )
+      ->status_is(400)
+      ->json_is({ error => 'The supplied pickup location is not valid' });
+
+    $biblio_hold_data->{pickup_library_id} = $library_2->branchcode;
+    $t->post_ok( "//$userid:$password@/api/v1/holds"  => json => $biblio_hold_data )
+      ->status_is(201);
+
+    # Test biblio-level holds
+    my $item_group = Koha::Biblio::ItemGroup->new( { biblio_id => $biblio->id } )->store();
+    $biblio_hold = $builder->build_object(
+        {
+            class => "Koha::Holds",
+            value => {
+                biblionumber  => $biblio->biblionumber,
+                branchcode    => $library_3->branchcode,
+                itemnumber    => undef,
+                priority      => 1,
+                item_group_id => $item_group->id,
+            }
+        }
+    );
+
+    $biblio_hold_api_data = $biblio_hold->to_api;
+    $biblio_hold->delete;
+    $biblio_hold_data = {
         biblio_id         => $biblio_hold_api_data->{biblio_id},
         patron_id         => $biblio_hold_api_data->{patron_id},
         pickup_library_id => $library_1->branchcode,
@@ -1354,6 +1402,61 @@ subtest 'PUT /holds/{hold_id}/pickup_location tests' => sub {
       ->json_is({ error => '[The supplied pickup location is not valid]' });
 
     is( $hold->discard_changes->branchcode->branchcode, $library_2->branchcode, 'invalid pickup library not used, even if x-koha-override is passed' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'delete() tests' => sub {
+
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+
+    my $password = 'AbcdEFG123';
+    my $patron   = $builder->build_object({ class => 'Koha::Patrons', value => { flags => 0 } });
+    $patron->set_password({ password => $password, skip_validation => 1 });
+    my $userid = $patron->userid;
+
+    # Only have 'place_holds' subpermission
+    $builder->build(
+        {
+            source => 'UserPermission',
+            value  => {
+                borrowernumber => $patron->borrowernumber,
+                module_bit     => 6,
+                code           => 'place_holds',
+            },
+        }
+    );
+
+    # Disable logging
+    t::lib::Mocks::mock_preference( 'HoldsLog',      0 );
+    t::lib::Mocks::mock_preference( 'RESTBasicAuth', 1 );
+
+    my $biblio = $builder->build_sample_biblio;
+    my $item   = $builder->build_sample_item(
+        {
+            biblionumber => $biblio->biblionumber,
+            library      => $patron->branchcode
+        }
+    );
+
+    # Add a hold
+    my $hold = Koha::Holds->find(
+        AddReserve(
+            {
+                branchcode     => $patron->branchcode,
+                borrowernumber => $patron->borrowernumber,
+                biblionumber   => $biblio->biblionumber,
+                priority       => 1,
+                itemnumber     => undef,
+            }
+        )
+    );
+
+    $t->delete_ok( "//$userid:$password@/api/v1/holds/" . $hold->id )
+      ->status_is(204, 'SWAGGER3.2.4')
+      ->content_is('', 'SWAGGER3.3.4');
 
     $schema->storage->txn_rollback;
 };

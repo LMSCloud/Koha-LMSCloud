@@ -1,0 +1,47 @@
+/bzsh/external_order_item_biblionumber_updates:
+  get:
+    x-mojo-to: BZSH::ExternalOrderItemBiblionumberUpdates#getExternalOrderItemBiblionumberUpdates
+    operationId: getExternalOrderItemBiblionumberUpdates
+    description: Get all BZSH biblio number changes if items when an item was attached to another biblio after a selected timestamp
+    summary: Get biblionumber changes of BZSH order items after a selected timestamp
+    tags:
+      - BZSH
+    produces:
+      - application/json
+    parameters:
+      - name: changes_since
+        in: query
+        description: 'Provide a timestamp to check items with an updated biblionumber since that time. '
+        required: false
+        type: string
+        format: date-time
+    responses:
+      '200':
+        description: Provide item biblionumber updates in blocks with external order ID and old and new biblionumber.
+        schema:
+          type: object
+          items:
+            $ref: "../swagger.yaml#/definitions/bzsh_external_order_item_biblionumber_updates"
+      '401':
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '403':
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '404':
+        description: No biblio number updates found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '500':
+        description: Internal server error
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '503':
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        parameters: edit_catalogue

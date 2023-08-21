@@ -38,13 +38,11 @@ parameters tables.
 
 use Modern::Perl;
 
-use C4::AuthoritiesMarc;
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
+use C4::AuthoritiesMarc qw( GetAuthority GetTagsLabels );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use CGI qw ( -utf8 );
-use MARC::Record;
-use C4::Koha;
 # use C4::Biblio;
 # use C4::Catalogue;
 
@@ -58,7 +56,7 @@ my $dbh=C4::Context->dbh;
 my $authid = $query->param('authid');
 my $index = $query->param('index');
 my $authtypecode = Koha::Authorities->find($authid)->authtypecode;
-my $tagslib = &GetTagsLabels(1,$authtypecode);
+my $tagslib = GetTagsLabels(1,$authtypecode);
 
 my $record =GetAuthority($authid);
 # open template
@@ -68,7 +66,6 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user(
         query           => $query,
         type            => "intranet",
         flagsrequired   => { catalogue => 1 },
-        debug           => 1,
     }
 );
 

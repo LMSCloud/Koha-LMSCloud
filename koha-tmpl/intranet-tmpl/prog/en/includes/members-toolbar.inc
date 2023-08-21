@@ -20,9 +20,9 @@
     [% IF CAN_user_borrowers_edit_borrowers %]
         [% IF patron.is_adult AND Koha.Preference("borrowerRelationship") %]
             [% IF patron.is_family_card %]
-            <a id="addchild" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=add&amp;guarantor_id=[% patron.borrowernumber | html %]&amp;category_type=C"><i class="fa fa-plus"></i> Add family card member</a>
+            <a id="addchild" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=add&amp;guarantor_id=[% patron.borrowernumber | html %]"><i class="fa fa-plus"></i> Add family card member</a>
             [% ELSE %]
-            <a id="addchild" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=add&amp;guarantor_id=[% patron.borrowernumber | html %]&amp;category_type=C"><i class="fa fa-plus"></i> Add guarantee</a>
+            <a id="addchild" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=add&amp;guarantor_id=[% patron.borrowernumber | html %]"><i class="fa fa-plus"></i> Add guarantee</a>
             [% END %]
         [% END %]
         <a id="changepassword" class="btn btn-default" href="/cgi-bin/koha/members/member-password.pl?member=[% patron.borrowernumber | html %]"><i class="fa fa-lock"></i> Change password</a>
@@ -36,6 +36,9 @@
                 <li><a id="printsummary" href="#">Print summary</a></li>
                 <li><a id="printslip" href="#">Print slip</a></li>
                 <li><a id="printquickslip" href="#">Print quick slip</a></li>
+                [% IF patron.account_balance != 0 %]
+                <li><a id="printfineslip" target="_blank" href="/cgi-bin/koha/members/printnotice.pl?notice=ACCOUNTS_SUMMARY&borrowernumber=[% patron.borrowernumber | uri %]">Print account balance</a></li>
+                [% END %]
                 [% IF patron.has_overdues %]
                     <li><a id="print_overdues" href="#">Print overdues</a></li>
                 [% END %]
@@ -50,6 +53,10 @@
 
     <a id="addnewmessageLabel" href="#add_message_form" data-toggle="modal" class="btn btn-default"><i class="fa fa-comment-o"></i> Add message</a>
 
+    [% IF Koha.Preference('CurbsidePickup') %]
+        <a id="curbsidePickupLabel" href="/cgi-bin/koha/circ/curbside_pickups.pl?op=find-patron&borrowernumber=[% patron.borrowernumber | html %]" class="btn btn-default"><i class="fa fa-refresh"></i> Schedule pickup</a>
+    [% END %]
+
          <div class="btn-group">
         <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">More <span class="caret"></span></button>
             <ul class="dropdown-menu dropdown-menu-right">
@@ -62,6 +69,10 @@
                     <li><a id="patronflags" href="/cgi-bin/koha/members/member-flags.pl?member=[% patron.borrowernumber | html %]">Set permissions</a></li>
                 [% ELSE %]
                     <li class="disabled"><a data-toggle="tooltip" data-placement="left" title="You are not authorized to set permissions" id="patronflags" href="#">Set permissions</a></li>
+                [% END %]
+
+                [% IF ( Koha.Preference('TwoFactorAuthentication') == 'enforced' || Koha.Preference('TwoFactorAuthentication') == 'enabled' ) && logged_in_user.borrowernumber == patron.borrowernumber %]
+                    <li><a id="twofa" href="/cgi-bin/koha/members/two_factor_auth.pl">Manage two-factor authentication</a></li>
                 [% END %]
 
                 [% IF CAN_user_borrowers_edit_borrowers && useDischarge %]
@@ -81,6 +92,14 @@
                 [% END %]
 
                 [% IF CAN_user_borrowers_edit_borrowers %]
+                    <li><a id="sendwelcome" href="/cgi-bin/koha/members/notices.pl?borrowernumber=[% patron.borrowernumber | uri %]&op=send_welcome">Send welcome email</a></li>
+                [% END %]
+
+                [% IF CAN_user_borrowers_edit_borrowers && patron.category.effective_reset_password %]
+                    <li><a id="resetpassword" href="/cgi-bin/koha/members/notices.pl?borrowernumber=[% patron.borrowernumber | uri %]&op=send_password_reset">Send password reset</a></li>
+                [% END %]
+
+                [% IF CAN_user_borrowers_delete_borrowers %]
                     <li><a id="deletepatron" href="#">Delete</a></li>
                 [% ELSE %]
                     <li class="disabled"><a data-toggle="tooltip" data-placement="left" title="You are not authorized to delete patrons" id="deletepatron" href="#">Delete</a></li>

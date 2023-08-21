@@ -39,19 +39,12 @@ This script calls C4::Reserves::CancelExpiredReserves which will find and cancel
 =cut
 
 use Modern::Perl;
-use Getopt::Long;
-use Pod::Usage;
-
-BEGIN {
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 
 use Koha::Script -cron;
 use C4::Reserves;
-use C4::Log;
+use C4::Log qw( cronlogaction );
 
 =head1 OPTIONS
 
@@ -72,12 +65,16 @@ Optionally adds a reason for cancellation (which will trigger a notice to be sen
 my $help = 0;
 my $reason;
 
+my $command_line_options = join(" ",@ARGV);
+
 GetOptions(
     'help|?'   => \$help,
     'reason=s' => \$reason
 ) or pod2usage(1);
 pod2usage(1) if $help;
 
-cronlogaction();
+cronlogaction({ info => $command_line_options });
 
-CancelExpiredReserves($reason);
+C4::Reserves::CancelExpiredReserves($reason);
+
+cronlogaction({ action => 'End', info => "COMPLETED" });

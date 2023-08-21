@@ -1,3 +1,4 @@
+[% USE raw %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Upload plugin &rsaquo; Plugins &rsaquo; Tools &rsaquo; Koha </title>
 [% INCLUDE 'doc-head-close.inc' %]
@@ -5,24 +6,20 @@
 </head>
 
 <body id="plugins_plugins_upload" class="plugins">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'circ-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
-            <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Upload plugins
-            </a>
-        </li>
-    </ol>
-</nav>
+    [% WRAPPER 'sub-header.inc' %]
+        [% WRAPPER breadcrumbs %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <wrap>Upload plugins</wrap>
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
+    [% END #/ WRAPPER sub-header.inc %]
 
     <div class="container-fluid">
         <div class="row">
@@ -46,13 +43,13 @@
                          <div class="hint"><strong>NOTE:</strong> Only KPZ file format is supported.</div>
                         <ol>
                             <li>
-                                <label for="uploadfile">Select the file to upload: </label><input type="file" id="uploadfile" name="uploadfile" />
+                                <label for="uploadfile">Select the file to upload: </label><input type="file" id="uploadfile" name="uploadfile" accept=".kpz" />
                             </li>
                         </ol>
                     </fieldset>
                     <fieldset class="action">
                         <input type="hidden" name="op" value="Upload" />
-                        <input type="submit" value="Upload" class="submit" />
+                        <input type="submit" class="btn btn-primary" value="Upload" />
                     </fieldset>
                 </form>
 

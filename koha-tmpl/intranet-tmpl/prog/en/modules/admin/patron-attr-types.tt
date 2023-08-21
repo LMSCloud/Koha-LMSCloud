@@ -22,51 +22,43 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
 </head>
 
 <body id="admin_patron-attr-types" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
+        [% END %]
+
+        [% IF ( attribute_type_form || delete_attribute_type_form ) %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/admin/patron-attr-types.pl">Patron attribute types</a>
+            [% END %]
+        [% END %]
 
         [% IF ( attribute_type_form ) %]
-            <li>
-                <a href="/cgi-bin/koha/admin/patron-attr-types.pl">Patron attribute types</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    [% IF ( edit_attribute_type ) %]
-                        Modify patron attribute type
-                    [% ELSE %]
-                        Add patron attribute type
-                    [% END %]
-                </a>
-            </li>
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% IF ( edit_attribute_type ) %]
+                    <span>Modify patron attribute type</span>
+                [% ELSE %]
+                    <span>Add patron attribute type</span>
+                [% END %]
+            [% END %]
 
         [% ELSIF ( delete_attribute_type_form ) %]
-            <li>
-                <a href="/cgi-bin/koha/admin/patron-attr-types.pl">Patron attribute types</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Confirm deletion of patron attribute type &quot;[% code | html %]&quot;
-                </a>
-            </li>
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Confirm deletion of patron attribute type '[% code | html %]'</span>
+            [% END %]
 
         [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Patron attribute types
-                </a>
-            </li>
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Patron attribute types</span>
+            [% END %]
         [% END %]
-    </ol>
-</nav>
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -79,9 +71,9 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
 
 [% IF ( attribute_type_form ) %]
   [% IF ( edit_attribute_type ) %]
-<h2>Modify patron attribute type</h2>
+<h1>Modify patron attribute type</h1>
   [% ELSE %]
-<h2>Add patron attribute type</h2>
+<h1>Add patron attribute type</h1>
   [% END %]
 [% IF ( duplicate_code_error ) %]
 <div class="dialog message">Could not add patron attribute type &quot;[% duplicate_code_error | html %]&quot; 
@@ -99,7 +91,7 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
             [% attribute_type.code |html %]
           [% ELSE %]
               <label for="code" class="required">Patron attribute type code: </label>
-              <input type="text" id="code" name="code" required="required" class="required" size="10" maxlength="10" />
+              <input type="text" id="code" name="code" required="required" class="required focus" size="10" maxlength="10" />
               <span class="required">Required</span>
           [% END %]
        </li>
@@ -126,7 +118,7 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
             [% ELSE %]
                 <input type="checkbox" id="repeatable" name="repeatable" />
             [% END %]
-            <span>Check to let a patron record have multiple values of this attribute.</span>
+            <span class="hint">Check to let a patron record have multiple values of this attribute.</span>
         </li>
 
         [% IF attribute_type AND not can_be_set_to_unique %]
@@ -147,7 +139,7 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
             [% ELSE %]
                 <input type="checkbox" id="unique_id" name="unique_id" />
             [% END %]
-            <span>If checked, attribute will be a unique identifier &mdash; if a value is given to a patron record, the same value
+            <span class="hint">If checked, attribute will be a unique identifier. If a value is given to a patron record, the same value
                   cannot be given to a different record.</span>
         </li>
 
@@ -157,7 +149,7 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
           [% ELSE %]
             <input type="checkbox" id="opac_display" name="opac_display" />
           [% END %]
-            <span>Check to display this attribute on a patron's details page in the OPAC.</span>
+            <span class="hint">Check to display this attribute on a patron's details page in the OPAC.</span>
        </li>
        <li><label for="opac_editable">Editable in OPAC: </label>
           [% IF attribute_type AND attribute_type.opac_editable %]
@@ -165,7 +157,7 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
           [% ELSE %]
             <input type="checkbox" id="opac_editable" name="opac_editable" />
           [% END %]
-            <span>Check to allow patrons to edit this attribute from their details page in the OPAC. (Requires above, does not work during <a href="/cgi-bin/koha/admin/preferences.pl?op=search&amp;searchfield=PatronSelfRegistration" target="_blank">self-registration</a> if <a href="/cgi-bin/koha/admin/preferences.pl?op=search&amp;searchfield=PatronSelfRegistrationVerifyByEmail" target="_blank">PatronSelfRegistrationVerifyByEmail</a> is set.)</span>
+            <span class="hint">Check to allow patrons to edit this attribute from their details page in the OPAC. (Requires above)</span>
        </li>
        <li><label for="staff_searchable">Searchable: </label>
           [% IF attribute_type AND attribute_type.staff_searchable %]
@@ -173,7 +165,7 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
           [% ELSE %]
             <input type="checkbox" id="staff_searchable" name="staff_searchable" />
           [% END %]
-            <span>Check to make this attribute staff_searchable in the staff patron search.</span>
+            <span class="hint">Check to make this attribute staff_searchable in the staff patron search.</span>
        </li>
        <li><label for="mandatory">Mandatory: </label>
           [% IF attribute_type AND attribute_type.mandatory %]
@@ -181,7 +173,7 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
           [% ELSE %]
             <input type="checkbox" id="mandatory" name="mandatory" />
           [% END %]
-            <span>Check to make this attribute mandatory when creating or editing a patron.</span>
+            <span class="hint">Check to make this attribute mandatory when creating or editing a patron.</span>
        </li>
        <li><label for="display_checkout">Display in patron's brief information: </label>
             [% IF attribute_type AND attribute_type.display_checkout %]
@@ -189,7 +181,7 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
 	    [% ELSE %]
 	        <input type="checkbox" id="display_checkout" name="display_checkout" />
 	    [% END %]
-            <span>Check to show this attribute in the brief information panel in the patron's record (staff interface).</span>
+            <span class="hint">Check to show this attribute in the brief information panel in the patron's record (staff interface).</span>
        </li>
 
         [% IF Koha.Preference('Pseudonymization') %]
@@ -200,7 +192,7 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
                 [% ELSE %]
                     <input type="checkbox" id="keep_for_pseudonymization" name="keep_for_pseudonymization" />
                 [% END %]
-                <span>Check to make this attribute copied to the patron's pseudonymized attributes.</span>
+                <span class="hint">Check to make this attribute copied to the patron's pseudonymized attributes.</span>
             </li>
         [% END %]
 
@@ -243,7 +235,7 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
     </ol>
   </fieldset>
   <fieldset class="action">
-      <input type="submit" value="Save" />
+      <input type="submit" class="btn btn-primary" value="Save" />
     <a class="cancel" href="/cgi-bin/koha/admin/patron-attr-types.pl">Cancel</a>
   </fieldset>
 </form>
@@ -251,7 +243,7 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
 
 [% IF ( delete_attribute_type_form ) %]
     <div class="dialog alert">
-        <h3>Confirm deletion of patron attribute type <span class="ex">'[% code | html %]' ([% description | html %])</span>?</h3>
+        <h1>Confirm deletion of patron attribute type <span class="ex">'[% code | html %]' ([% description | html %])</span>?</h1>
         <form action="[% script_name | html %]" name="Aform" method="post">
             <input type="hidden" name="op" value="[% confirm_op | html %]" />
             <input type="hidden" name="code" value="[% code | html %]" />
@@ -269,7 +261,7 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
     <a class="btn btn-default" id="newrule" href="[% script_name | url %]?op=add_attribute_type"><i class="fa fa-plus"></i> New patron attribute type</a>
 </div>
 
-<h2>Patron attribute types</h2>
+<h1>Patron attribute types</h1>
 [% IF ( added_attribute_type ) %]
 <div class="dialog message">Added patron attribute type &quot;[% added_attribute_type | html %]&quot;</div>
 [% END %]
@@ -288,50 +280,69 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
     &mdash; it was already absent from the database.</div>
 [% END %]
 [% IF ( available_attribute_types ) %]
-  [% FOREACH attribute IN available_attribute_types %]
+    [% FOREACH attribute IN available_attribute_types %]
+    <div class="page-section">
     [% IF attribute.class %]
-        <h4>[% attribute.lib | html %]</h4>
+        <h2>[% attribute.lib | html %]</h2>
+    [% ELSE %]
+        <h2>Unclassified types</h2>
     [% END %]
-    <table class="patron_attributes_types">
-      <thead>
-        <tr>
-          <th>Code</th>
-          <th>Description</th>
-          <th>Branches limitation</th>
-          <th class="noExport">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        [% FOREACH item IN attribute.items %]
-          <tr>
-            <td>[% item.code | html %]</td>
-            <td>[% item.description | html %]</td>
-            <td>
-                [% SET libraries = item.library_limits %]
-                [% IF ( libraries && libraries.count > 0 ) %]
-                    [% branches_str = "" %]
-                    [% FOREACH branch IN libraries %]
-                        [% branches_str = branches_str _ " " _ branch.branchname _ "(" _ branch.branchcode _ ")" %]
-                    [% END %]
-                    <span title="[% branches_str | html %]">
-                        [% IF libraries.count > 1 %]
-                            [% libraries.count | html %] branches limitations
-                        [% ELSE %]
-                            [% libraries.count | html %] branch limitation
+        <table class="patron_attributes_types" id="patron_attr[% attribute.class | html %]">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Description</th>
+              <th>Library limitation</th>
+              <th>Authorized value category</th>
+              <th>Mandatory</th>
+              <th class="NoSort noExport">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            [% FOREACH item IN attribute.items %]
+              <tr>
+                <td>[% item.code | html %]</td>
+                <td>[% item.description | html %]</td>
+                <td>
+                    [% SET libraries = item.library_limits %]
+                    [% IF ( libraries && libraries.count > 0 ) %]
+                        [% branches_str = "" %]
+                        [% FOREACH branch IN libraries %]
+                            [% branches_str = branches_str _ " " _ branch.branchname _ "(" _ branch.branchcode _ ")" %]
                         [% END %]
-                    </span>
-                [% ELSE %]
-                    No limitation
-                [% END %]
-            </td>
-            <td class="actions">
-              <a class="btn btn-default btn-xs" href="[% script_name | url %]?op=edit_attribute_type&amp;code=[% item.code | uri %]"><i class="fa fa-pencil"></i> Edit</a>
-              <a class="btn btn-default btn-xs" href="[% script_name | url %]?op=delete_attribute_type&amp;code=[% item.code | uri %]"><i class="fa fa-trash"></i> Delete</a>
-            </td>
-          </tr>
-        [% END %]
-      </tbody>
-    </table>
+                        <span title="[% branches_str | html %]">
+                            [% IF libraries.count > 1 %]
+                                <span>[% libraries.count | html %] library limitations</span>
+                            [% ELSE %]
+                                <span>[% libraries.count | html %] library limitation</span>
+                            [% END %]
+                        </span>
+                    [% ELSE %]
+                        No limitation
+                    [% END %]
+                </td>
+                <td>
+                    [% IF ( CAN_user_parameters_manage_auth_values ) %]
+                        <a href="/cgi-bin/koha/admin/authorised_values.pl?searchfield=[% item.authorised_value_category | uri %]">[% item.authorised_value_category | html %]</a></td>
+                    [% ELSE %]
+                        [% item.authorised_value_category | html %]
+                    [% END %]
+                <td>
+                    [% IF ( item.mandatory ) -%]
+                       <span>Yes</span>
+                    [% ELSE -%]
+                       <span>No</span>
+                    [% END %]
+                </td>
+                <td class="actions">
+                  <a class="btn btn-default btn-xs" href="[% script_name | url %]?op=edit_attribute_type&amp;code=[% item.code | uri %]"><i class="fa fa-pencil"></i> Edit</a>
+                  <a class="btn btn-default btn-xs" href="[% script_name | url %]?op=delete_attribute_type&amp;code=[% item.code | uri %]"><i class="fa fa-trash"></i> Delete</a>
+                </td>
+              </tr>
+            [% END %]
+          </tbody>
+        </table>
+    </div><!-- ./page-section -->
   [% END %]
 [% ELSE %]
   <p>There are no saved patron attribute types.</p>
@@ -353,6 +364,8 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
 
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/admin-menu.js") | $raw %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'columns_settings.inc' %]
     <script>
         $(document).ready(function() {
             if ( $("#branches option:selected").length < 1 ) {
@@ -366,6 +379,14 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
                     $("#opac_editable").attr('disabled', true).parent().attr('aria-disabled', 'true');
                 }
             } ).change();
+
+            $(".patron_attributes_types").each(function(){
+                var tableid = $(this).attr("id");
+                KohaTable( tableid, {
+                    "bPaginate": false,
+                    'autoWidth': false,
+                }, null );
+            });
         });
     </script>
 [% END %]

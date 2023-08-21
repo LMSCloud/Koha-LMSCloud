@@ -19,14 +19,14 @@
 
 use Modern::Perl;
 use CGI;
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
 
 use Koha::Account::Lines;
 use Koha::Cash::Registers;
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 
 my $input = CGI->new();
 
@@ -96,10 +96,12 @@ else {
                 }
             }
         );
-        $template->param( past_accountlines => $past_accountlines );
-        $template->param( trange_f => output_pref({dt => $start, dateonly => 1}));
+        $template->param(
+            past_accountlines => $past_accountlines,
+            trange_f          => $start,
+        );
     }
-    $template->param( trange_t => output_pref({dt => $end, dateonly => 1}));
+    $template->param( trange_t => $end, );
 
     my $op = $input->param('op') // '';
     if ( $op eq 'cashup' ) {

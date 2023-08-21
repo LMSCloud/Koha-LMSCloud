@@ -17,15 +17,17 @@ package Koha::ItemType;
 
 use Modern::Perl;
 
-use Carp;
 
-use C4::Koha;
+use C4::Koha qw( getitemtypeimagelocation );
 use C4::Languages;
+use Koha::Caches;
 use Koha::Database;
 use Koha::CirculationRules;
 use Koha::Localizations;
 
 use base qw(Koha::Object Koha::Object::Limit::Library);
+
+my $cache = Koha::Caches->get_instance();
 
 =head1 NAME
 
@@ -37,16 +39,45 @@ Koha::ItemType - Koha Item type Object class
 
 =cut
 
+=head3 store
+
+ItemType specific store to ensure relevant caches are flushed on change
+
+=cut
+
 sub store {
     my ($self) = @_;
 
-    $self->rentalcharge(undef)       if $self->rentalcharge eq '';
-    $self->defaultreplacecost(undef) if $self->defaultreplacecost eq '';
-    $self->processfee(undef)         if $self->processfee eq '';
-    $self->notforloan(0) unless $self->notforloan;
-    $self->hideinopac(0) unless $self->hideinopac;
+    my $flush = 0;
 
-    return $self->SUPER::store;
+    if ( !$self->in_storage ) {
+        $flush = 1;
+    }
+    else {
+        my $self_from_storage = $self->get_from_storage;
+        $flush = 1 if ( $self_from_storage->description ne $self->description );
+    }
+
+    $self = $self->SUPER::store;
+
+    if ($flush) {
+        my $key = "itemtype:description:en";
+        $cache->clear_from_cache($key);
+    }
+
+    return $self;
+}
+
+=head2 delete
+
+ItemType specific C<delete> to clear relevant caches on delete.
+
+=cut
+
+sub delete {
+    my $self = shift @_;
+    $cache->clear_from_cache('itemtype:description:en');
+    $self->SUPER::delete(@_);
 }
 
 =head3 image_location
@@ -93,7 +124,7 @@ sub translated_descriptions {
         {   entity => 'itemtypes',
             code   => $self->itemtype,
         }
-    );
+    )->as_list;
     return [ map {
         {
             lang => $_->lang,

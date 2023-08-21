@@ -38,8 +38,6 @@
             <span class="family-card-member"><i class="fa fa-users" aria-hidden="true"></i> Family card<br />
         [% END %]
     </h5>
-
-
 [% IF Koha.Preference('showLastPatron') %]
     <input type="hidden" id="hiddenborrowernumber" value="[% patron.borrowernumber | html %]">
     <input type="hidden" id="hiddenborrowername" value="[% patron.surname | html %] [% patron.firstname | html %]">
@@ -51,14 +49,18 @@
         <div class="patronimage-container">
             [% IF ( patron.image ) %]
                 <img src="/cgi-bin/koha/members/patronimage.pl?borrowernumber=[% patron.borrowernumber | uri %]" class="patronimage" alt="[% patron.firstname | html %] [% patron.surname | html %] ([% patron.cardnumber | html %])" />
-                <div class="patronimage-controls">
-                    <div class="patronimage-control"><a data-borrowernumber="[% patron.borrowernumber | uri %]" class="btn btn-default edit-patronimage" title="Edit patron image" href="#"><i class="fa fa-pencil"></i> Edit</a></div>
-                </div>
+                [% IF ( CAN_user_tools_batch_upload_patron_images ) %]
+                    <div class="patronimage-controls">
+                        <div class="patronimage-control"><a data-borrowernumber="[% patron.borrowernumber | uri %]" data-cardnumber="[% patron.cardnumber | html %]" class="btn btn-default edit-patronimage" title="Patron photo" href="#"><i class="fa fa-pencil"></i> Edit</a></div>
+                    </div>
+                [% END %]
             [% ELSE %]
                 <div class="patronimage empty"></div>
-                <div class="patronimage-controls">
-                    <div class="patronimage-control"><a data-borrowernumber="[% patron.borrowernumber | uri %]" class="btn btn-default edit-patronimage" title="Add patron image" href="#"><i class="fa fa-plus"></i> Add</a></div>
-                </div>
+                [% IF ( CAN_user_tools_batch_upload_patron_images ) %]
+                    <div class="patronimage-controls">
+                        <div class="patronimage-control"><a data-borrowernumber="[% patron.borrowernumber | uri %]" data-cardnumber="[% patron.cardnumber | html %]" class="btn btn-default edit-patronimage" title="Patron photo" href="#"><i class="fa fa-plus"></i> Add</a></div>
+                    </div>
+                [% END %]
             [% END %]
         </div>
     </div>
@@ -66,6 +68,10 @@
 
 <ul class="patronbriefinfo">
     [% IF !(Koha.Preference('HidePersonalPatronDetailOnCirculation')) %]
+        [% IF patron.pronouns %]
+            <li class="patronpronouns">([% patron.pronouns | html %])</li>
+        [% END %]
+
         [% PROCESS 'display-address-style' %]
 
         [% IF ( patron.phone || patron.mobile || patron.phonepro ) %]<li class="patronphone">
@@ -189,18 +195,98 @@
     [% IF Koha.Preference('ILLModule') && CAN_user_ill %]
         [% IF illview %]<li class="active">[% ELSE %]<li>[% END %]<a href="/cgi-bin/koha/members/ill-requests.pl?borrowernumber=[% patron.borrowernumber | uri %]">ILL requests history</a></li>
     [% END %]
+    [% IF Koha.Preference('UseRecalls') && CAN_user_recalls %]
+        [% IF recallsview %]<li class="active">[% ELSE %]<li>[% END %]<a href="/cgi-bin/koha/members/recallshistory.pl?borrowernumber=[% patron.borrowernumber | uri %]">Recalls history</a></li>
+    [% END %]
 </ul></div>
 
+[% IF patronimages && CAN_user_tools_batch_upload_patron_images %]
 <!-- Modal -->
 <div class="modal" id="patronImageEdit" tabindex="-1" role="dialog" aria-labelledby="patronImageEditLabel">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="patronImageEditLabel">Modal title</h4>
+                <h4 class="modal-title" id="patronImageEditLabel">Patron photo</h4>
             </div>
             <div class="modal-body">
-                <img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" alt="" />
+                <div id="upload-patron-image" class="patroninfo-section">
+                    <h5>Upload patron photo</h5>
+                    <form method="post" id="picture-upload" action="/cgi-bin/koha/tools/picture-upload.pl"
+                        enctype="multipart/form-data">
+                        [% IF ( patron.image ) %]
+                            <div class="hint">
+                                To update the image for [% patron.title | html %] [% patron.firstname | html %] [% patron.surname | html %], select a new image file and click 'Upload.' <br />Click the 'Delete' button to
+                                remove the current image.
+                            </div>
+                        [% ELSE %]
+                            <div class="hint">
+                                [% patron.title | html %] [% patron.firstname | html %] [% patron.surname | html %] does not currently have an image available. To import an image for [% patron.title | html %] [% patron.firstname | html %] [% patron.surname | html %], enter the name of an image file to upload.
+                            </div>
+                        [% END %]
+                        <p>Only PNG, GIF, JPEG, XPM formats are supported.</p>
+                        <label for="uploadfile">Select the file to upload: </label>
+                        <input type="file" id="uploadfile" name="uploadfile" required="required" />
+                        <div class="action">
+                            <input type="hidden" id="csrf_token" name="csrf_token" value="[% csrf_token | html %]" />
+                            <input type="hidden" id="image" name="filetype" value="image" />
+                            <input type="hidden" id="cardnumber" name="cardnumber" value="[% patron.cardnumber | html %]" />
+                            <input type="hidden" id="borrowernumber" name="borrowernumber" value="[% patron.borrowernumber | html %]" />
+                            <button type="submit" class="btn btn-default btn-xs"><i class="fa fa-upload"></i> Upload photo</button>
+                            <input name="op" type="hidden" value="Upload" />
+                            [% IF ( patron.image ) %]
+                                <a id="delpicture"
+                                    href="/cgi-bin/koha/tools/picture-upload.pl?op=Delete&amp;borrowernumber=[% patron.borrowernumber | html %]&amp;csrf_token=[% csrf_token | html %]"
+                                    class="btn btn-default btn-xs delete"><i class="fa fa-trash"></i> Delete</a>
+                            [% END %]
+                        </div>
+                    </form>
+                </div>
+                <div id="capture-patron-image" class="patroninfo-section">
+                    <h5>Take patron photo</h5>
+                    <form method="post" id="camera-upload" action="/cgi-bin/koha/tools/picture-upload.pl">
+                        <div class="btn-toolbar">
+                            <div class="btn-group">
+                                <button class="btn btn-default" id="takebutton"><i class="fa fa-camera"></i> Take photo</button>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-default" id="retakebutton" style="display:none;"><i class="fa fa-refresh"></i> Retake photo</button>
+                            </div>
+                            <div class="btn-group">
+                                <a id="downloadbutton" href="#" class="btn btn-default" style="display:none;"><i class="fa fa-download"></i> Download photo</a>
+                            </div>
+                            <div class="btn-group">
+                                <button id="savebutton" type="submit" class="btn btn-default" style="display:none;"><i class="fa fa-hdd-o"></i> Upload</button>
+                            </div>
+                        </div>
+                        <div id="camera">
+                            <video id="viewfinder">Video stream not available.</video>
+                        </div>
+                        <canvas id="canvas" style="display:none"></canvas>
+                        <div id="output" style="display:none">
+                            <img style="width:100%;height:auto;" id="photo" alt="The screen capture will appear in this box.">
+                        </div>
+                        <input type="hidden" name="uploadfilename" value="patron-photo.jpg" />
+                        <textarea id="uploadfiletext" name="uploadfiletext" style="display:none;"></textarea>
+                        <input type="hidden" name="csrf_token" value="[% csrf_token | html %]" />
+                        <input type="hidden" name="filetype" value="image" />
+                        <input type="hidden" name="cardnumber" value="[% patron.cardnumber | html %]" />
+                        <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber | html %]" />
+                        <input name="op" type="hidden" value="Upload" />
+                    </form>
+                </div>
+                <div class="dialog message" style="display:none" id="camera-error">
+                    <div>
+                        <span class="fa-stack fa-lg">
+                            <i class="fa fa-camera fa-stack-1x"></i>
+                            <i class="fa fa-ban fa-stack-2x text-danger"></i>
+                        </span>
+                    </div>
+                    <div>
+                        <strong>Cannot take patron photo.</strong>
+                        <span id="camera-error-message"></span>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
@@ -208,5 +294,6 @@
         </div>
     </div>
 </div>
+[% END %]
 
 [% END %]

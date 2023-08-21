@@ -1,3 +1,4 @@
+[% USE raw %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Dictionary &rsaquo; Guided reports &rsaquo; Reports &rsaquo; Koha</title>
@@ -6,91 +7,61 @@
 </head>
 
 <body id="rep_dictionary" class="rep">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'circ-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+[% END %]
 
 [%- BLOCK area_name -%]
     [%- SWITCH area -%]
-        [%- CASE 'CIRC' -%]Circulation
-        [%- CASE 'CAT'  -%]Catalog
-        [%- CASE 'PAT'  -%]Patrons
-        [%- CASE 'ACQ'  -%]Acquisitions
-        [%- CASE 'ACC'  -%]Accounts
-        [%- CASE 'SER'  -%]Serials
+        [%- CASE 'CIRC' -%]<span>Circulation</span>
+        [%- CASE 'CAT'  -%]<span>Catalog</span>
+        [%- CASE 'PAT'  -%]<span>Patrons</span>
+        [%- CASE 'ACQ'  -%]<span>Acquisitions</span>
+        [%- CASE 'ACC'  -%]<span>Accounts</span>
+        [%- CASE 'SER'  -%]<span>Serials</span>
     [%- END -%]
 [%- END -%]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
-        </li>
-        <li>
-            <a href="/cgi-bin/koha/reports/guided_reports.pl">Guided reports wizard</a>
-        </li>
-
-        [% IF ( new_dictionary ) %]
-            <li>
-                <a href="/cgi-bin/koha/reports/dictionary.pl">Dictionary</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Name the new definition
-                </a>
-            </li>
-
-        [% ELSIF ( step_2 ) %]
-            <li>
-                <a href="/cgi-bin/koha/reports/dictionary.pl">Dictionary</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Step 2: Choose the area
-                </a>
-            </li>
-
-        [% ELSIF ( step_3 ) %]
-            <li>
-                <a href="/cgi-bin/koha/reports/dictionary.pl">Dictionary</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Step 3: Choose a column
-                </a>
-            </li>
-
-        [% ELSIF ( step_4 ) %]
-            <li>
-                <a href="/cgi-bin/koha/reports/dictionary.pl">Dictionary</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Step 4: Specify a value
-                </a>
-            </li>
-
-        [% ELSIF ( step_5 ) %]
-            <li>
-                <a href="/cgi-bin/koha/reports/dictionary.pl">Dictionary</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Step 5: Confirm definition
-                </a>
-            </li>
-
-        [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Dictionary
-                </a>
-            </li>
         [% END %]
-    </ol>
-</nav>
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/reports/guided_reports.pl">Guided reports wizard</a>
+        [% END %]
+        [% IF ( new_dictionary || step_2 || step_3 || step_4 || step_5 ) %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/reports/dictionary.pl">Dictionary</a>
+            [% END %]
+        [% END %]
+        [% IF ( new_dictionary ) %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Name the new definition</span>
+            [% END %]
+        [% ELSIF ( step_2 ) %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Step 2: Choose the area</span>
+            [% END %]
+        [% ELSIF ( step_3 ) %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Step 3: Choose a column</span>
+            [% END %]
+        [% ELSIF ( step_4 ) %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Step 4: Specify a value</span>
+            [% END %]
+        [% ELSIF ( step_5 ) %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Step 5: Confirm definition</span>
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Dictionary</span>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -107,49 +78,51 @@
 	<p>Use the dictionary to define custom criteria for reporting.</p>
 
 		[% IF ( definitions ) %]
-        <h2>Current terms</h2>
-		<form action="/cgi-bin/koha/reports/dictionary.pl" method="post">
-        <input type="hidden" name="phase" value="View Dictionary" />
-  [% IF ( areas ) %]
-        Filter by area
-        <select name="area">
-          <option value="">All</option>
-        [% FOREACH area IN areas %]
-          [%- IF ( area.selected ) -%]
-          <option value="[% area.id | html %]" selected="selected">[%- PROCESS area_name area=area.id -%]</option>
-          [%- ELSE -%]
-          <option value="[% area.id | html %]">[%- PROCESS area_name area=area.id -%]</option>
-          [%- END -%]
-        [% END %]
-        </select>
-      <input name="submit" value="Go" type="submit" />
-  [% END %]
-      </form>
-      <br />
-        <table>
-            <tr>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Area</th>
-                <th>Definition</th>
-                <th>Action</th>
-            </tr>
-            [% FOREACH definition IN definitions %]
-            <tr>
-                <td>[% definition.name | html %]</td>
-                <td>[% definition.description | html %]</td>
-                <td>[% definition.areaname | html %]</td>
-                <td>[% definition.saved_sql | html %]</td>
-                <td class="actions"><form method="post" action="/cgi-bin/koha/reports/dictionary.pl">
-                    <input type="hidden" name="id" value="[% definition.id | html %]" />
-                    <input type="hidden" name="phase" value="Delete Definition" />
-                    <button type="submit" name="submit" class="btn btn-default btn-xs" id="delete"><i class="fa fa-trash"></i> Delete</button>
-                </form></td>
-            </tr>
-            [% END %]
-        </table>
-                [% ELSE %]
-                <div class="dialog message">There are no saved definitions. <a id="newdictionary" href="/cgi-bin/koha/reports/dictionary.pl?phase=Add%20New%20Definition">Add a definition to the dictionary.</a></div>
+            <div class="page-section">
+                <h2>Current terms</h2>
+                <form action="/cgi-bin/koha/reports/dictionary.pl" method="post">
+                    <input type="hidden" name="phase" value="View Dictionary" />
+                    [% IF ( areas ) %]
+                        Filter by area
+                        <select name="area">
+                            <option value="">All</option>
+                            [% FOREACH area IN areas %]
+                                [%- IF ( area.selected ) -%]
+                                    <option value="[% area.id | html %]" selected="selected">[%- PROCESS area_name area=area.id -%]</option>
+                                [%- ELSE -%]
+                                    <option value="[% area.id | html %]">[%- PROCESS area_name area=area.id -%]</option>
+                                [%- END -%]
+                            [% END %]
+                        </select>
+                        <input type="submit" name="submit" class="btn btn-primary" value="Go" />
+                    [% END %]
+                </form>
+                <br />
+                <table>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Area</th>
+                        <th>Definition</th>
+                        <th>Action</th>
+                    </tr>
+                    [% FOREACH definition IN definitions %]
+                    <tr>
+                        <td>[% definition.name | html %]</td>
+                        <td>[% definition.description | html %]</td>
+                        <td>[% definition.areaname | html %]</td>
+                        <td>[% definition.saved_sql | html %]</td>
+                        <td class="actions"><form method="post" action="/cgi-bin/koha/reports/dictionary.pl">
+                            <input type="hidden" name="id" value="[% definition.id | html %]" />
+                            <input type="hidden" name="phase" value="Delete Definition" />
+                            <button type="submit" name="submit" class="btn btn-default btn-xs" id="delete"><i class="fa fa-trash"></i> Delete</button>
+                        </form></td>
+                    </tr>
+                    [% END %]
+                </table>
+            </div> <!-- /.page-section -->
+        [% ELSE %]
+            <div class="dialog message">There are no saved definitions. <a id="newdictionary" href="/cgi-bin/koha/reports/dictionary.pl?phase=Add%20New%20Definition">Add a definition to the dictionary.</a></div>
 		[% END %]
 [% END %]
 
@@ -168,7 +141,7 @@
 </ol></fieldset>
 
 <fieldset class="action"><input type="hidden" name="phase" value="New Term step 2" />
-<input name="submit" value="Next" type="submit" /></fieldset>
+<input type="submit" name="submit" class="btn btn-primary" value="Next" /></fieldset>
 </form>
 [% END %]
 
@@ -190,7 +163,7 @@
       </li>
     </ol>
   </fieldset>
-  <fieldset class="action"><input name="submit" value="Next" type="submit" /></fieldset>
+  <fieldset class="action"><input type="submit" name="submit" class="btn btn-primary" value="Next" /></fieldset>
 </form>
 [%- END -%]
 
@@ -226,7 +199,7 @@
 
 <input type="hidden" name="phase" value="New Term step 4" />
 </fieldset>
-<fieldset class="action"><input type="submit" name="submit" value="Next" /></fieldset>
+<fieldset class="action"><input type="submit" name="submit" class="btn btn-primary" value="Next" /></fieldset>
 </form>
 [% END %]
 
@@ -259,10 +232,10 @@
     </li>
     <li class="radio">
         Start of date range
-        <input type="text" size="10" id="from" name="[% column.name | html %]_start_value" value="" class="datepickerfrom" />
+        <input type="text" size="10" id="from" name="[% column.name | html %]_start_value" value="" class="flatpickr" data-date_to="to" />
         <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
         End of date range
-        <input type="text" size="10" id="to" name="[% column.name | html %]_end_value" value="" class="datepickerto" />
+        <input type="text" size="10" id="to" name="[% column.name | html %]_end_value" value="" class="flatpickr" />
         <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
     </li>
 [% END %]
@@ -275,7 +248,7 @@
 <input type="hidden" name="phase" value="New Term step 5" />
 </fieldset>
 <fieldset class="action">
-<input type="submit" name="submit" value="Next" />
+<input type="submit" name="submit" class="btn btn-primary" value="Next" />
 </fieldset>
 </form>
 [% END %]
@@ -321,7 +294,7 @@
 
 <fieldset class="action"><input type="hidden" name="sql" value="[% query | html %]" />
 <input type="hidden" name="phase" value="New Term step 6" />
-<input type="submit" name="submit" value="Save" />         </fieldset>
+<input type="submit" name="submit" class="btn btn-primary" value="Save" />         </fieldset>
 
 </form>
 [% END %]

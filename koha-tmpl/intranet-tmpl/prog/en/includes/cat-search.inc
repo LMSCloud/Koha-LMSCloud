@@ -1,50 +1,34 @@
-[% USE Koha %]
-<div class="gradient">
-<h1 id="logo"><a href="/cgi-bin/koha/mainpage.pl">[% LibraryName | html %]</a></h1><!-- Begin Catalogue Resident Search Box -->
-<div id="header_search">
+<!-- cat-search.inc -->
+<div id="header_search" role="tablist">
+    <div class="tab-content">
 
-[% INCLUDE 'patron-search-box.inc' %]
-
-[% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
-<div id="checkin_search" class="residentsearch">
-    <form method="post" action="/cgi-bin/koha/circ/returns.pl" autocomplete="off">
-        <label class="tip" for="ret_barcode">Scan a barcode to check in:</label>
-        <input class="head-searchbox" name="barcode" id="ret_barcode" size="40" type="text" />
-
-        <input value="Submit" class="submit" type="submit" />
-    </form>
-</div>
-<div id="renew_search" class="residentsearch">
-    <form method="post" action="/cgi-bin/koha/circ/renew.pl" autocomplete="off">
-        <label class="tip" for="ren_barcode">Scan a barcode to renew:</label>
-        <input class="head-searchbox" name="barcode" id="ren_barcode" size="40" type="text" />
-        <input value="Submit" class="submit" type="submit" />
-    </form>
-</div>
-[% END %]
-
-[% IF ( CAN_user_catalogue ) %]
-<div id="catalog_search" class="residentsearch">
-    <form action="/cgi-bin/koha/catalogue/search.pl"  method="get" id="cat-search-block">
-        [% IF ( Koha.Preference('IntranetCatalogSearchPulldown') ) %]
-            <label class="tip" for="search-form">Enter search keywords:</label>
-            [% INCLUDE 'search_indexes.inc' %]
-        [% ELSE %]
-            <label class="tip" for="search-form">Enter search keywords:</label>
+        [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
+            [% INCLUDE 'patron-search-box.inc' %]
+            [% INCLUDE 'checkin-search-box.inc' %]
+            [% INCLUDE 'renew-search-box.inc' %]
         [% END %]
-        <input type="text" name="q" id="search-form" size="40" value="[% ms_value | html %]" title="Enter the terms you wish to search for." class="head-searchbox form-text" />
-        <input type="submit" class="submit" value="Submit" />
-    </form>
-</div>
-[% END %]
+        [% IF ( CAN_user_catalogue ) %]
+            [% INCLUDE 'catalogue-search-box.inc' bs_tab_active= 1 %]
+        [% END %]
 
-<ul>
-    [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]<li><a class="keep_text" href="#circ_search">Check out</a></li>[% END %]
-    [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]<li><a class="keep_text" href="#checkin_search">Check in</a></li>[% END %]
-    [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]<li><a class="keep_text" href="#renew_search">Renew</a></li>[% END %]
-    [% IF ( CAN_user_catalogue ) %]<li class="ui-tabs-active"><a class="keep_text" href="#catalog_search">Search the catalog</a></li>[% END %]
-</ul>
-
-</div><!-- /header_search -->
-</div><!-- /gradient -->
-<!-- End Catalogue Resident Search Box -->
+    </div><!-- /.tab-content -->
+    <ul class="nav nav-tabs" role="tablist">
+        [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
+            <li role="presentation">
+                <a title="Check out" href="#circ_search" aria-controls="circ_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-upload"></i> <span class="tab-title">Check out</span></a>
+            </li>
+            <li role="presentation">
+                <a title="Check in" href="#checkin_search" aria-controls="checkin_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-download"></i> <span class="tab-title">Check in</span></a>
+            </li>
+            <li role="presentation">
+                <a title="Renew" href="#renew_search" aria-controls="renew_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-retweet"></i> <span class="tab-title">Renew</span></a>
+            </li>
+        [% END %]
+        [% IF ( CAN_user_catalogue ) %]
+            <li role="presentation" class="active">
+                <a title="Search catalog" href="#catalog_search" aria-controls="catalog_search" role="tab" aria-expanded="true" data-toggle="tab" class="keep_text"><i class="fa fa-fw fa-search"></i> <span class="tab-title">Search catalog</span></a>
+            </li>
+        [% END %]
+    </ul>
+</div><!-- /#header_search -->
+<!-- /cat-search.inc -->

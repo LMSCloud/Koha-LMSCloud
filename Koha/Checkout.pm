@@ -20,14 +20,14 @@ package Koha::Checkout;
 
 use Modern::Perl;
 
-use Carp;
 use DateTime;
-use Try::Tiny;
+use Try::Tiny qw( catch try );
 
-use C4::Circulation qw(MarkIssueReturned);
+use C4::Circulation qw( LostItem MarkIssueReturned );
+use Koha::Checkouts::Renewals;
 use Koha::Checkouts::ReturnClaims;
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Items;
 use Koha::Libraries;
 
@@ -79,6 +79,20 @@ sub item {
     return Koha::Item->_new_from_dbic( $item_rs );
 }
 
+=head3 account_lines
+
+my $account_lines = $checkout->account_lines;
+
+Return the checked out account_lines
+
+=cut
+
+sub account_lines {
+    my ( $self ) = @_;
+    my $account_lines_rs = $self->_result->account_lines;
+    return Koha::Account::Lines->_new_from_dbic( $account_lines_rs );
+}
+
 =head3 library
 
 my $library = $checkout->library;
@@ -103,7 +117,7 @@ Return the patron for who the checkout has been done
 
 sub patron {
     my ( $self ) = @_;
-    my $patron_rs = $self->_result->borrower;
+    my $patron_rs = $self->_result->patron;
     return Koha::Patron->_new_from_dbic( $patron_rs );
 }
 
@@ -120,6 +134,21 @@ sub issuer {
     my $issuer_rs = $self->_result->issuer;
     return unless $issuer_rs;
     return Koha::Patron->_new_from_dbic( $issuer_rs );
+}
+
+=head3 renewals
+
+  my $renewals = $checkout->renewals;
+
+Return a Koha::Checkouts::Renewals set attached to this checkout
+
+=cut
+
+sub renewals {
+    my ( $self ) = @_;
+    my $renewals_rs = $self->_result->renewals;
+    return unless $renewals_rs;
+    return Koha::Checkouts::Renewals->_new_from_dbic( $renewals_rs );
 }
 
 =head3 to_api_mapping
@@ -200,12 +229,12 @@ sub claim_returned {
         );
     }
     catch {
-        if ( $_->isa('Koha::Exceptions::Exception') ) {
+        if ( $_->isa('Koha::Exception') ) {
             $_->rethrow();
         }
         else {
             # ?
-            Koha::Exceptions::Exception->throw( "Unhandled exception" );
+            Koha::Exception->throw( "Unhandled exception" );
         }
     };
 }

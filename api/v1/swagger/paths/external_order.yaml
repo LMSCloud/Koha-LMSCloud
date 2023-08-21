@@ -1,0 +1,60 @@
+/bzsh/external_order:
+  post:
+    x-mojo-to: BZSH::ExternalOrder#addExternalOrder
+    operationId: add_external_order
+    description: Store a new external purchase order to be processed by Koha
+    summary: Store a new external purchase order to be processed by Koha
+    tags:
+      - external_order
+    parameters:
+      - name: body
+        in: body
+        description: Create an external order request for processing with the Koha acquisition module
+        required: true
+        schema:
+          type: object
+          items:
+            $ref: "../swagger.yaml#/definitions/external_order"
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      '200':
+        description: The order was stored for stored for further processing.
+        schema:
+          type: object
+          properties:
+            process_info:
+              type: string
+      '400':
+        description: Bad parameter
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '401':
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '403':
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '404':
+        description: Resource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '409':
+        description: Conflict in creating resource
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '500':
+        description: Internal server error
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '503':
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        parameters: order_manage

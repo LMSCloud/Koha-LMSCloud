@@ -24,16 +24,17 @@ use Modern::Perl;
 
 # standard or CPAN modules used
 use CGI qw(:standard -utf8);
-use DBI;
 use Encode;
 
 # Koha modules used
 use C4::Context;
-use C4::Output;
-use C4::Auth;
-use C4::Biblio;
-use C4::ImportBatch;
-use C4::XSLT ();
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
+use C4::Biblio qw( GetXmlBiblio );
+use C4::XSLT;
+
+use Koha::Biblios;
+use Koha::Import::Records;
 
 my $input= CGI->new;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -42,7 +43,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     query           => $input,
     type            => "intranet",
     flagsrequired   => { catalogue => 1  },
-    debug           => 1,
   }
 );
 
@@ -50,12 +50,24 @@ my $biblionumber= $input->param('id');
 my $importid= $input->param('importid');
 my $view= $input->param('viewas')||'';
 
+my $marcflavour = C4::Context->preference('marcflavour');
+
 my $record;
+my $record_type = 'biblio';
+my $format = $marcflavour eq 'UNIMARC' ? 'UNIMARC' : 'USMARC';
 if ($importid) {
-    $record = C4::ImportBatch::GetRecordFromImportBiblio( $importid, 'embed_items' );
+    my $import_record = Koha::Import::Records->find($importid);
+    if ($import_record) {
+        if ($marcflavour eq 'UNIMARC' && $import_record->record_type eq 'auth') {
+            $format = 'UNIMARCAUTH';
+        }
+
+        $record = $import_record->get_marc_record();
+    }
 }
 else {
-    $record =GetMarcBiblio({ biblionumber => $biblionumber });
+    my $biblio = Koha::Biblios->find($biblionumber);
+    $record = $biblio->metadata->record;
 }
 if(!ref $record) {
     print $input->redirect("/cgi-bin/koha/errors/404.pl");
@@ -63,11 +75,10 @@ if(!ref $record) {
 }
 
 if($view eq 'card' || $view eq 'html') {
-    my $xml = $importid ? $record->as_xml(): GetXmlBiblio($biblionumber);
+    my $xml = $importid ? $record->as_xml($format): GetXmlBiblio($biblionumber);
     my $xsl;
     if ( $view eq 'card' ){
-        $xsl = C4::Context->preference('marcflavour') eq 'UNIMARC'
-              ? 'UNIMARC_compact.xsl' : 'compact.xsl';
+        $xsl = $marcflavour eq 'UNIMARC' ? 'UNIMARC_compact.xsl' : 'compact.xsl';
     }
     else {
         $xsl = 'plainMARC.xsl';

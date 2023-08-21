@@ -21,18 +21,9 @@ use strict;
 use warnings;
 use utf8;
 
-BEGIN {
-
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
-
-use Getopt::Long;
-use Pod::Usage;
+use Getopt::Long qw( GetOptions );
 use Koha::Script -cron;
-use C4::ImportBatch;
+use C4::ImportBatch qw( BatchCommitRecords GetStagedWebserviceBatches );
 
 my ($help, $framework);
 
@@ -55,4 +46,7 @@ EOF
 my $batch_ids = GetStagedWebserviceBatches() or exit;
 
 $framework ||= '';
-BatchCommitRecords($_, $framework) foreach @$batch_ids;
+BatchCommitRecords({
+    batch_id  => $_,
+    framework => $framework
+}) foreach @$batch_ids;

@@ -89,10 +89,27 @@ our $mapping = {
     'admin/oai_set_mappings'                   => '/administration.html#oai-sets-configuration',
     'admin/oai_sets'                           => '/administration.html#oai-sets-configuration',
     'admin/patron-attr-types'                  => '/administration.html#patron-attribute-types',
-    'admin/preferences'                        => '/systempreferences.html',
+    'admin/preferences'                        => '/globalpreferences.html',
+    'admin/preferences#accounting'             => '/accountspreferences.html',
+    'admin/preferences#acquisitions'           => '/acquisitionspreferences.html',
+    'admin/preferences#admin'                  => '/administrationpreferences.html',
+    'admin/preferences#authorities'            => '/authoritiespreferences.html',
+    'admin/preferences#cataloguing'            => '/catalogingpreferences.html',
+    'admin/preferences#circulation'            => '/circulationpreferences.html',
+    'admin/preferences#enhanced_content'       => '/enhancedcontentpreferences.html',
+    'admin/preferences#i18n_l10n'              => '/i18npreferences.html',
+    'admin/preferences#logs'                   => '/logspreferences.html',
+    'admin/preferences#opac'                   => '/opacpreferences.html',
+    'admin/preferences#patrons'                => '/patronspreferences.html',
+    'admin/preferences#searching'              => '/searchingpreferences.html',
+    'admin/preferences#serials'                => '/serialspreferences.html',
+    'admin/preferences#staff_interface'        => '/staffclientpreferences.html',
+    'admin/preferences#staff_interface'        => '/staffclientpreferences.html',
+    'admin/preferences#tools'                  => '/toolspreferences.html',
+    'admin/preferences#web_services'           => '/webservicespreferences.html',
     'admin/smart-rules'                        => '/administration.html#circulation-and-fine-rules',
     'admin/sms_providers'                      => '/administration.html#sms-cellular-providers',
-    'admin/systempreferences'                  => '/systempreferences.html#local-use',
+    'admin/systempreferences'                  => '/localusepreferences.html',
     'admin/transport-cost-matrix'              => '/administration.html#transport-cost-matrix',
     'admin/z3950servers'                       => '/administration.html#z39.50/sru-servers',
     'authorities/authorities-home'             => '/cataloging.html#authorities',
@@ -105,9 +122,11 @@ our $mapping = {
     'catalogue/moredetail'                     => '/cataloging.html#item-records',
     'catalogue/search-history'                 => '/plugins.html#search-history',
     'catalogue/search'                         => '/searching.html',
+    'cataloguing/cataloging-home'              => '/cataloging.html',
     'cataloguing/addbiblio'                    => '/cataloging.html#bibliographic-records',
     'cataloguing/addbooks'                     => '/cataloging.html',
     'cataloguing/additem'                      => '/cataloging.html#item-records',
+    'cataloguing/cataloging-home.pl'           => '/cataloging.html',
     'cataloguing/linkitem'                     => '/cataloging.html#adding-analytic-records',
     'cataloguing/merge'                        => '/cataloging.html#merging-records',
     'cataloguing/moveitem'                     => '/cataloging.html#moving-items',
@@ -131,6 +150,34 @@ our $mapping = {
     'course_reserves/course-details'           => '/course_reserves.html',
     'course_reserves/course-reserves'          => '/course_reserves.html',
     'course_reserves/course'                   => '/course_reserves.html#adding-courses',
+    'erm/erm'                                  => '/erm.html',
+    'erm/agreements'                           => '/erm.html#agreements',
+    'erm/agreements/'                          => '/erm.html#search-and-view-an-agreement-record',
+    'erm/agreements/add'                       => '/erm.html#create-an-agreement-record',
+    'erm/agreements/edit/'                     => '/erm.html#create-an-agreement-record',
+    'erm/licenses'                             => '/erm.html#licenses',
+    'erm/licenses/'                            => '/erm.html#search-and-view-a-license-record',
+    'erm/licenses/add'                         => '/erm.html#create-a-license-record',
+    'erm/licenses/edit'                        => '/erm.html#create-a-license-record',
+    'erm/eholdings/local/packages'             => '/erm.html#local',
+    'erm/eholdings/local/packages/'            => '/erm.html#local',
+    'erm/eholdings/local/packages/add'         => '/erm.html#local',
+    'erm/eholdings/local/packages/edit/'       => '/erm.html#local',
+    'erm/eholdings/local/titles'               => '/erm.html#titles-1',
+    'erm/eholdings/local/titles/'              => '/erm.html#titles-1',
+    'erm/eholdings/local/titles/add'           => '/erm.html#titles-1',
+    'erm/eholdings/local/titles/edit/'         => '/erm.html#titles-1',
+    'erm/eholdings/local/titles/import'        => '/erm.html#import-a-new-local-title-record-from-a-list',
+    'erm/eholdings/local/resources/'           => '/erm.html#eholdings',
+    'erm/eholdings/ebsco/packages'             => '/erm.html#packages',
+    'erm/eholdings/ebsco/packages/'            => '/erm.html#packages',
+    'erm/eholdings/ebsco/packages/add'         => '/erm.html#packages',
+    'erm/eholdings/ebsco/packages/edit/'       => '/erm.html#packages',
+    'erm/eholdings/ebsco/titles'               => '/erm.html#titles',
+    'erm/eholdings/ebsco/titles/'              => '/erm.html#titles',
+    'erm/eholdings/ebsco/titles/add'           => '/erm.html#titles',
+    'erm/eholdings/ebsco/titles/edit/'         => '/erm.html#titles',
+    'erm/eholdings/ebsco/resources/'           => '/erm.html#ebsco',
     'ill/ill-requests'                         => '/ILL_requests.html',
     'labels/label-edit-batch'                  => '/tools.html#label-batches-label',
     'labels/label-edit-layout'                 => '/tools.html#label-layouts-label',
@@ -215,7 +262,7 @@ our $mapping = {
     'tools/holidays'                           => '/tools.html#calendar',
     'tools/import_borrowers'                   => '/tools.html#patron-import',
     'tools/inventory'                          => '/tools.html#inventory-stocktaking',
-    'tools/koha-news'                          => '/tools.html#news',
+    'tools/additional-contents'                => '/tools.html#news', # FIXME Needs a change to the manual
     'tools/letter'                             => '/tools.html#notices-slips',
     'tools/manage-marc-import'                 => '/tools.html#staged-marc-record-management',
     'tools/marc_modification_templates'        => '/tools.html#marc-modification-templates',
@@ -235,15 +282,29 @@ our $mapping = {
 sub get_url {
     my ( $url, $preferred_language ) = @_;
     my $file;
-    if ($url =~ /koha\/(.*)\.pl/) {
+    if ($url =~ /koha\/(.*)\.pl/ || $url =~ '/koha/(erm.*)') {
         $file = $1;
     } else {
         $file = 'mainpage';
     }
     $file =~ s/[^a-zA-Z0-9_\-\/]*//g;
 
+    if ( $file =~ m|^erm| ) {
+        $file =~ s|\d*$||;
+    }
+
+    my $view;
+    if ($url =~ /(?:\?|\&)tab=(?<value>[\w+,.-]*)/) {
+        $view = $file . '#' . $+{value};
+    }
+
     my $base_url = _get_base_url( $preferred_language );
-    return $base_url . ( exists $mapping->{$file} ? $mapping->{$file} : $mapping->{mainpage} );
+    return $base_url
+      . (
+          exists $mapping->{$view} ? $mapping->{$view}
+        : exists $mapping->{$file} ? $mapping->{$file}
+        :                            $mapping->{mainpage}
+      );
 }
 
 1;

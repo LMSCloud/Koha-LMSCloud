@@ -9,14 +9,14 @@ Cataloging:
         -
             - pref: advancedMARCeditor
               choices:
-                  1: "Don't display"
-                  0: Display
+                  1: "Don't show"
+                  0: Show
             - descriptions of fields and subfields in the MARC editor.
         -
             - pref: EasyAnalyticalRecords
               choices:
-                  1: Display
-                  0: "Don't display"
+                  1: Show
+                  0: "Don't show"
             - "easy ways to create analytical record relationships."
         -
             - pref: EnableAdvancedCatalogingEditor
@@ -26,7 +26,7 @@ Cataloging:
                   0: "Don't enable"
             - the advanced cataloging editor.
             - "<br/> <strong>NOTE:</strong>"
-            - Currently does not include support for UNIMARC or NORMARC fixed fields.
+            - Currently does not include support for UNIMARC fixed fields.
         -
             - "When saving in a MARC/MARCXML file in the advanced cataloging editor or exporting from the detail page in the staff interface, use the"
             - pref: DefaultSaveRecordFileID
@@ -59,8 +59,8 @@ Cataloging:
         -
             - pref: SpineLabelShowPrintOnBibDetails
               choices:
-                  1: Display
-                  0:  "Don't display"
+                  1: Show
+                  0:  "Don't show"
             - buttons on the bibliographic details page to print item spine labels.
         -
     Record structure:
@@ -78,7 +78,6 @@ Cataloging:
               choices:
                   MARC21: MARC21
                   UNIMARC: UNIMARC
-                  NORMARC: NORMARC
             - format.
         -
             - Use the item type of the
@@ -134,6 +133,7 @@ Cataloging:
         -
             - "Define a list of subfields to use when prefilling items (separated by space):"
             - pref: SubfieldsToUseWhenPrefill
+            - "If left empty, all subfields will be prefilled."
         -
             - Use the languague (ISO 690-2)
             - pref: UNIMARCField100Language
@@ -166,6 +166,26 @@ Cataloging:
             - and record's last modifier name in MARC subfield
             - pref: MarcFieldForModifierName
             - ". <br/><strong>NOTE:</strong> Use a dollar sign between field and subfield like 123$a."
+        -
+            - Control Number (001) is
+            - pref: autoControlNumber
+              choices:
+                  biblionumber: generated as biblionumber.
+                  "OFF": not generated automatically.
+        -
+            - pref: UseOCLCEncodingLevels
+              choices:
+                  1: Display
+                  0: "Don't display"
+            - OCLC defined values for MARC encoding level in leader value builder for position 17.
+        -
+            - Apply framework default values
+            - pref: ApplyFrameworkDefaults
+              multiple:
+                new: "when cataloguing new records"
+                duplicate: "when editing records as new (duplicating)"
+                changed: "when changing the framework while editing the existing record"
+                imported: "when importing a record via z39.50"
     Display:
         -
             - 'Separate main entry and subdivisions with '
@@ -193,8 +213,8 @@ Cataloging:
         -
             - pref: hide_marc
               choices:
-                  1: "Don't display"
-                  0: Display
+                  1: "Don't show"
+                  0: Show
             - MARC tag numbers, subfield codes and indicators in MARC views.
         -
             - pref: LabelMARCView
@@ -256,8 +276,8 @@ Cataloging:
         -
             - pref: AcquisitionDetails
               choices:
-                  1: Display
-                  0: "Don't display"
+                  1: Show
+                  0: "Don't show"
             - acquisition details on the bibliographic record detail page.
         -
             - "Show the following fields for deleted records after a merge:"
@@ -268,6 +288,36 @@ Cataloging:
             - "<li>value of 001</li>"
             - "<li>subfields a and b of fields 245</li>"
             - "<li>all subfields of fields 600</li>"
+        -
+            - "Show a list of component records, as linked via field 773, in"
+            - pref: ShowComponentRecords
+              choices:
+                  nowhere: "no"
+                  staff: "staff interface"
+                  opac: "OPAC"
+                  both: "both staff interface and OPAC"
+            - "record detail pages."
+            - "A maximum of"
+            - pref: MaxComponentRecords
+            - "records will be displayed."
+            - "<br/> UNIMARC is not supported."
+            - By default, sort component results by
+            - pref: ComponentSortField
+              default: title
+              choices:
+                  call_number: call number
+                  pubdate: date of publication
+                  acqdate: date added
+                  title: title
+                  author: author
+                  biblionumber: biblionumber
+            - ','
+            - pref: ComponentSortOrder
+              choices:
+                  asc: ascending.
+                  dsc: descending.
+                  az: from A to Z.
+                  za: from Z to A.
     Importing:
         -
             - When matching on ISBN with the record import tool,
@@ -287,7 +337,12 @@ Cataloging:
                   1: "do"
                   0: "don't"
             - attempt to match aggressively by trying all variations of the ISSNs in the imported record as a phrase in the ISSN fields of already cataloged records.
-
+        -
+            - pref: MARCOverlayRules
+              choices:
+                  1: "Use"
+                  0: "Don't use"
+            - MARC overlay rules for incoming records, to decide which action to take for each field.
     Exporting:
         -
             - "Include the following fields when exporting BibTeX:"

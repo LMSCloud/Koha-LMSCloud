@@ -19,14 +19,15 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
 use C4::Members;
 use Koha::Patron::Modifications;
 use Koha::Libraries;
-use Koha::List::Patron;
+use Koha::List::Patron qw( GetPatronLists );
 use Koha::Patron::Categories;
+use Koha::Patron::Attribute::Types;
 
 my $query = CGI->new;
 
@@ -35,7 +36,6 @@ my ($template, $loggedinuser, $cookie, $flags)
                  query => $query,
                  type => "intranet",
                  flagsrequired => {borrowers => 'edit_borrowers'},
-                 debug => 1,
                  });
 
 my $no_add = 0;
@@ -44,13 +44,14 @@ if( Koha::Libraries->search->count < 1){
     $template->param(no_branches => 1);
 }
 
-my @categories = Koha::Patron::Categories->search_with_library_limits;
-if(scalar(@categories) < 1){
+my $categories = Koha::Patron::Categories->search_with_library_limits;
+unless ( $categories->count ) {
     $no_add = 1;
     $template->param(no_categories => 1);
 }
 else {
-    $template->param(categories=>\@categories);
+    # FIXME This does not seem to be used in the template
+    $template->param(categories => $categories);
 }
 
 my $branch =
@@ -72,6 +73,9 @@ $template->param(
     PatronAutoComplete => C4::Context->preference('PatronAutoComplete'),
     patron_lists => [ GetPatronLists() ],
     PatronsPerPage => C4::Context->preference("PatronsPerPage") || 20,
+    attribute_type_codes => ( C4::Context->preference('ExtendedPatronAttributes')
+        ? [ Koha::Patron::Attribute::Types->search( { staff_searchable => 1 } )->get_column('code') ]
+        : [] ),
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

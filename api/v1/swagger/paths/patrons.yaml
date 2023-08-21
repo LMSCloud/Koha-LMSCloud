@@ -1,0 +1,616 @@
+---
+/patrons:
+  get:
+    x-mojo-to: Patrons#list
+    operationId: listPatrons
+    tags:
+      - patrons
+    summary: List patrons
+    produces:
+      - application/json
+    parameters:
+      - name: patron_id
+        in: query
+        description: Search on patron_id
+        required: false
+        type: string
+      - name: cardnumber
+        in: query
+        description: Case insensitive search on cardnumber
+        required: false
+        type: string
+      - name: surname
+        in: query
+        description: Case insensitive search on surname
+        required: false
+        type: string
+      - name: firstname
+        in: query
+        description: Case insensitive search on firstname
+        required: false
+        type: string
+      - name: title
+        in: query
+        description: Case insensitive search on title
+        required: false
+        type: string
+      - name: other_name
+        in: query
+        description: Case insensitive search on othernames
+        required: false
+        type: string
+      - name: initials
+        in: query
+        description: Case insensitive search on initials
+        required: false
+        type: string
+      - name: street_number
+        in: query
+        description: Case insensitive search on streetnumber
+        required: false
+        type: string
+      - name: street_type
+        in: query
+        description: Case insensitive search on streettype
+        required: false
+        type: string
+      - name: address
+        in: query
+        description: Case insensitive search on address
+        required: false
+        type: string
+      - name: address2
+        in: query
+        description: Case insensitive search on address2
+        required: false
+        type: string
+      - name: city
+        in: query
+        description: Case insensitive search on city
+        required: false
+        type: string
+      - name: state
+        in: query
+        description: Case insensitive search on state
+        required: false
+        type: string
+      - name: postal_code
+        in: query
+        description: Case insensitive search on zipcode
+        required: false
+        type: string
+      - name: country
+        in: query
+        description: Case insensitive search on country
+        required: false
+        type: string
+      - name: email
+        in: query
+        description: Case insensitive search on email
+        required: false
+        type: string
+      - name: phone
+        in: query
+        description: Case insensitive search on phone
+        required: false
+        type: string
+      - name: mobile
+        in: query
+        description: Case insensitive search on mobile
+        required: false
+        type: string
+      - name: fax
+        in: query
+        description: Case insensitive search on fax
+        required: false
+        type: string
+      - name: secondary_email
+        in: query
+        description: Case insensitive search on secondary_email
+        required: false
+        type: string
+      - name: secondary_phone
+        in: query
+        description: Case insensitive search on secondary_phone
+        required: false
+        type: string
+      - name: altaddress_street_number
+        in: query
+        description: Case insensitive search on altaddress_street_number
+        required: false
+        type: string
+      - name: altaddress_street_type
+        in: query
+        description: Case insensitive search on altaddress_street_type
+        required: false
+        type: string
+      - name: altaddress_address
+        in: query
+        description: Case insensitive search on altaddress_address
+        required: false
+        type: string
+      - name: altaddress_address2
+        in: query
+        description: Case insensitive search on altaddress_address2
+        required: false
+        type: string
+      - name: altaddress_city
+        in: query
+        description: Case insensitive search on altaddress_city
+        required: false
+        type: string
+      - name: altaddress_state
+        in: query
+        description: Case insensitive search on altaddress_state
+        required: false
+        type: string
+      - name: altaddress_postal_code
+        in: query
+        description: Case insensitive search on altaddress_postal_code
+        required: false
+        type: string
+      - name: altaddress_country
+        in: query
+        description: Case insensitive search on altaddress_country
+        required: false
+        type: string
+      - name: altaddress_email
+        in: query
+        description: Case insensitive search on altaddress_email
+        required: false
+        type: string
+      - name: altaddress_phone
+        in: query
+        description: Case insensitive search on altaddress_phone
+        required: false
+        type: string
+      - name: date_of_birth
+        in: query
+        description: Case insensitive search on date_of_birth
+        required: false
+        type: string
+      - name: library_id
+        in: query
+        description: Case insensitive search on library_id
+        required: false
+        type: string
+      - name: category_id
+        in: query
+        description: Case insensitive search on category_id
+        required: false
+        type: string
+      - name: date_enrolled
+        in: query
+        description: Case insensitive search on date_enrolled
+        required: false
+        type: string
+      - name: expiry_date
+        in: query
+        description: Case insensitive search on expiry_date
+        required: false
+        type: string
+      - name: incorrect_address
+        in: query
+        description: Search on incorrect_address
+        required: false
+        type: boolean
+      - name: patron_card_lost
+        in: query
+        description: Search on patron_card_lost
+        required: false
+        type: boolean
+      - name: restricted
+        in: query
+        description: Filter search by restricted
+        required: false
+        type: boolean
+      - name: staff_notes
+        in: query
+        description: Case insensitive search on staff_notes
+        required: false
+        type: string
+      - name: relationship_type
+        in: query
+        description: Case insensitive search on relationship_type
+        required: false
+        type: string
+      - name: gender
+        in: query
+        description: Case insensitive search on gender
+        required: false
+        type: string
+      - name: userid
+        in: query
+        description: Case insensitive search on userid
+        required: false
+        type: string
+      - name: opac_notes
+        in: query
+        description: Case insensitive search on opac_notes
+        required: false
+        type: string
+      - name: altaddress_notes
+        in: query
+        description: Case insensitive search on altaddress_notes
+        required: false
+        type: string
+      - name: statistics_1
+        in: query
+        description: Case insensitive search on statistics_1
+        required: false
+        type: string
+      - name: statistics_2
+        in: query
+        description: Case insensitive search on statistics_2
+        required: false
+        type: string
+      - name: autorenew_checkouts
+        in: query
+        description: Search on autorenew_checkouts
+        required: false
+        type: boolean
+      - name: altcontact_firstname
+        in: query
+        description: Case insensitive search on altcontact_firstname
+        required: false
+        type: string
+      - name: altcontact_title
+        in: query
+        description: Case insensitive search on altcontact_title
+        required: false
+        type: string
+      - name: altcontact_surname
+        in: query
+        description: Case insensitive search on altcontact_surname
+        required: false
+        type: string
+      - name: altcontact_address
+        in: query
+        description: Case insensitive search on altcontact_address
+        required: false
+        type: string
+      - name: altcontact_address2
+        in: query
+        description: Case insensitive search on altcontact_address2
+        required: false
+        type: string
+      - name: altcontact_city
+        in: query
+        description: Case insensitive search on altcontact_city
+        required: false
+        type: string
+      - name: altcontact_state
+        in: query
+        description: Case insensitive search on altcontact_state
+        required: false
+        type: string
+      - name: altcontact_postal_code
+        in: query
+        description: Case insensitive search on altcontact_postal_code
+        required: false
+        type: string
+      - name: altcontact_country
+        in: query
+        description: Case insensitive search on altcontact_country
+        required: false
+        type: string
+      - name: altcontact_phone
+        in: query
+        description: Case insensitive search on altcontact_phone
+        required: false
+        type: string
+      - name: sms_number
+        in: query
+        description: Case insensitive search on sms_number
+        required: false
+        type: string
+      - name: sms_provider_id
+        in: query
+        description: Case insensitive search on sms_provider_id
+        required: false
+        type: string
+      - name: privacy
+        in: query
+        description: Search on privacy
+        required: false
+        type: string
+      - name: privacy_guarantor_checkouts
+        in: query
+        description: Search on privacy_guarantor_checkouts
+        required: false
+        type: string
+      - name: check_previous_checkout
+        in: query
+        description: Case insensitive search on check_previous_checkout
+        required: false
+        type: string
+      - name: updated_on
+        in: query
+        description: Search on updated_on
+        required: false
+        type: string
+      - name: last_seen
+        in: query
+        description: Case insensitive search on last_seen
+        required: false
+        type: string
+      - name: lang
+        in: query
+        description: Case insensitive search on lang
+        required: false
+        type: string
+      - name: login_attempts
+        in: query
+        description: Search on login_attempts
+        required: false
+        type: string
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - $ref: "../swagger.yaml#/parameters/q_header"
+      - $ref: "../swagger.yaml#/parameters/request_id_header"
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - extended_attributes
+            - checkouts+count
+            - overdues+count
+            - account_balance
+            - library
+        collectionFormat: csv
+    responses:
+      "200":
+        description: A list of patrons
+        schema:
+          type: array
+          items:
+            $ref: "../swagger.yaml#/definitions/patron"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        - borrowers: "edit_borrowers"
+        - tools: "label_creator"
+        - serials: "routing"
+        - acquisition: "order_manage"
+  post:
+    x-mojo-to: Patrons#add
+    operationId: addPatron
+    tags:
+      - patrons
+    summary: Add patron
+    parameters:
+      - name: body
+        in: body
+        description: A JSON object containing information about the new patron
+        required: true
+        schema:
+          $ref: "../swagger.yaml#/definitions/patron"
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      "201":
+        description: A successfully created patron
+        schema:
+          items:
+            $ref: "../swagger.yaml#/definitions/patron"
+      "400":
+        description: Bad parameter
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Resource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "409":
+        description: Conflict in creating resource
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        borrowers: edit_borrowers
+"/patrons/{patron_id}":
+  get:
+    x-mojo-to: Patrons#get
+    operationId: getPatron
+    tags:
+      - patrons
+    summary: Get patron
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/patron_id_pp"
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - extended_attributes
+        collectionFormat: csv
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: A patron
+        schema:
+          $ref: "../swagger.yaml#/definitions/patron"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Patron not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        borrowers: edit_borrowers
+  put:
+    x-mojo-to: Patrons#update
+    operationId: updatePatron
+    tags:
+      - patrons
+    summary: Update patron
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/patron_id_pp"
+      - name: body
+        in: body
+        description: A JSON object containing new information about existing patron
+        required: true
+        schema:
+          $ref: "../swagger.yaml#/definitions/patron"
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: A successfully updated patron
+        schema:
+          items:
+            $ref: "../swagger.yaml#/definitions/patron"
+      "400":
+        description: Bad parameter
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Resource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "409":
+        description: Conflict in updating resource
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        borrowers: "1"
+  delete:
+    x-mojo-to: Patrons#delete
+    operationId: deletePatron
+    tags:
+      - patrons
+    summary: Delete patron
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/patron_id_pp"
+    produces:
+      - application/json
+    responses:
+      "204":
+        description: Patron deleted
+      "400":
+        description: Patron deletion failed
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Patron not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "409":
+        description: |
+          Conflict. Possible `error_code` attribute values:
+
+            * `has_checkouts`: The patron has pending checkouts
+            * `has_debt`: The patron has pending debts
+            * `has_guarantees`: The patron has guarantees
+            * `is_anonymous_patron`: The system-wide anonymous patron cannot be deleted
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        borrowers: delete_borrowers

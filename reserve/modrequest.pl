@@ -24,23 +24,18 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
+use URI;
 use List::MoreUtils qw( uniq );
+use Try::Tiny;
+
 use C4::Output;
-use C4::Reserves;
-use C4::Auth;
-use Koha::DateUtils qw( dt_from_string );
+use C4::Reserves qw( ModReserve ModReserveCancelAll );
+use C4::Auth qw( checkauth );
+use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
 
 my $query = CGI->new;
-my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
-    {   
-        template_name   => "about.tt",
-        query           => $query,
-        type            => "intranet",
-        flagsrequired   => { reserveforothers => 1 },
-        debug           => 1,
-        flagsrequired   => { reserveforothers => 1 },
-    }
-);
+
+checkauth($query, 0, { reserveforothers => '*' }, 'intranet');
 
 my @reserve_id = $query->multi_param('reserve_id');
 my @rank = $query->multi_param('rank-request');
@@ -75,18 +70,32 @@ else {
         my $params = {
             rank => $rank[$i],
             reserve_id => $reserve_id[$i],
-            expirationdate => $expirationdates[$i] ? dt_from_string($expirationdates[$i]) : undef,
+            expirationdate => $expirationdates[$i] || undef,
             branchcode => $branch[$i],
             itemnumber => $itemnumber[$i],
             defined $suspend_until ? ( suspend_until => $suspend_until ) : (),
             cancellation_reason => $cancellation_reason,
         };
         if (C4::Context->preference('AllowHoldDateInFuture')) {
-            $params->{reservedate} = $reservedates[$i] ? dt_from_string($reservedates[$i]) : undef;
+            $params->{reservedate} = $reservedates[$i] || undef;
         }
 
-        ModReserve($params);
+        try {
+            ModReserve($params);
+        } catch {
+            if ($_->isa('Koha::Exceptions::ObjectNotFound')){
+                warn $_;
+            } else {
+                $_->rethrow;
+            }
+        }
     }
+    my @biblio_ids = uniq @biblionumber;
+    Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
+        {
+            biblio_ids => \@biblio_ids
+        }
+    );
 }
 
 my $from=$query->param('from');
@@ -96,7 +105,7 @@ if ( $from eq 'borrower'){
 } elsif ( $from eq 'circ'){
     print $query->redirect("/cgi-bin/koha/circ/circulation.pl?borrowernumber=$borrower[0]");
 } else {
-     my $url = "/cgi-bin/koha/reserve/request.pl?";
-     $url .= "biblionumbers=" . join('/', @biblionumber);
+     my $url = URI->new("/cgi-bin/koha/reserve/request.pl");
+     $url->query_form( biblionumber => [@biblionumber]);
      print $query->redirect($url);
 }

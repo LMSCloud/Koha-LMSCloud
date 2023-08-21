@@ -20,14 +20,15 @@ package Koha::Object;
 
 use Modern::Perl;
 
-use Carp;
+use Carp qw( croak );
 use Mojo::JSON;
 use Scalar::Util qw( blessed looks_like_number );
-use Try::Tiny;
+use Try::Tiny qw( catch try );
+use List::MoreUtils qw( any );
 
 use Koha::Database;
 use Koha::Exceptions::Object;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Object::Message;
 
 =head1 NAME
@@ -538,6 +539,7 @@ sub prefetch_whitelist {
                     ...
                 }
             },
+            public => 0|1,
             ...
          ]
         }
@@ -551,33 +553,70 @@ sub to_api {
     my ( $self, $params ) = @_;
     my $json_object = $self->TO_JSON;
 
+    # Make sure we duplicate the $params variable to avoid
+    # breaking calls in a loop (Koha::Objects->to_api)
+    $params = defined $params ? {%$params} : {};
+
+    # children should be able to handle without
+    my $embeds  = delete $params->{embed};
+    my $strings = delete $params->{strings};
+
+    # coded values handling
+    my $string_map = {};
+    if ( $strings and $self->can('strings_map') ) {
+        $string_map = $self->strings_map($params);
+    }
+
+    # Remove forbidden attributes if required (including their coded values)
+    if ( $params->{public} ) {
+        for my $field ( keys %{$json_object} ) {
+            delete $json_object->{$field}
+              unless any { $_ eq $field } @{ $self->public_read_list };
+        }
+
+        if ($strings) {
+            foreach my $field ( keys %{$string_map} ) {
+                delete $string_map->{$field}
+                  unless any { $_ eq $field } @{ $self->public_read_list };
+            }
+        }
+    }
+
     my $to_api_mapping = $self->to_api_mapping;
 
-    # Rename attributes if there's a mapping
+    # Rename attributes and coded values if there's a mapping
     if ( $self->can('to_api_mapping') ) {
         foreach my $column ( keys %{ $self->to_api_mapping } ) {
             my $mapped_column = $self->to_api_mapping->{$column};
             if ( exists $json_object->{$column}
                 && defined $mapped_column )
             {
+
                 # key != undef
                 $json_object->{$mapped_column} = delete $json_object->{$column};
+                $string_map->{$mapped_column}  = delete $string_map->{$column}
+                  if exists $string_map->{$column};
+
             }
             elsif ( exists $json_object->{$column}
                 && !defined $mapped_column )
             {
+
                 # key == undef
                 delete $json_object->{$column};
+                delete $string_map->{$column};
             }
         }
     }
 
-    my $embeds = $params->{embed};
+    $json_object->{_strings} = $string_map
+      if $strings;
 
     if ($embeds) {
         foreach my $embed ( keys %{$embeds} ) {
-            if ( $embed =~ m/^(?<relation>.*)_count$/
-                and $embeds->{$embed}->{is_count} ) {
+            if (    $embed =~ m/^(?<relation>.*)_count$/
+                and $embeds->{$embed}->{is_count} )
+            {
 
                 my $relation = $+{relation};
                 $json_object->{$embed} = $self->$relation->count;
@@ -586,24 +625,37 @@ sub to_api {
                 my $curr = $embed;
                 my $next = $embeds->{$curr}->{children};
 
+                $params->{strings} = 1
+                  if $embeds->{$embed}->{strings};
+
                 my $children = $self->$curr;
 
                 if ( defined $children and ref($children) eq 'ARRAY' ) {
                     my @list = map {
                         $self->_handle_to_api_child(
-                            { child => $_, next => $next, curr => $curr } )
+                            {
+                                child  => $_,
+                                next   => $next,
+                                curr   => $curr,
+                                params => $params
+                            }
+                        )
                     } @{$children};
                     $json_object->{$curr} = \@list;
                 }
                 else {
                     $json_object->{$curr} = $self->_handle_to_api_child(
-                        { child => $children, next => $next, curr => $curr } );
+                        {
+                            child  => $children,
+                            next   => $next,
+                            curr   => $curr,
+                            params => $params
+                        }
+                    );
                 }
             }
         }
     }
-
-
 
     return $json_object;
 }
@@ -622,6 +674,44 @@ own mapping returned.
 
 sub to_api_mapping {
     return {};
+}
+
+=head3 strings_map
+
+    my $string_map = $object->strings_map($params);
+
+Generic method that returns the string map for coded attributes.
+
+Return should be a hashref keyed on database field name with the values
+being hashrefs containing 'str', 'type' and optionally 'category'.
+
+This is then used in to_api to render the _strings embed when requested.
+
+Note: this only returns an empty I<hashref>. Each class should have its
+own mapping returned.
+
+=cut
+
+sub strings_map {
+    return {};
+}
+
+=head3 public_read_list
+
+
+    my @public_read_list = @{$object->public_read_list};
+
+Generic method that returns the list of database columns that are allowed to
+be passed to render objects on the public API.
+
+Note: this only returns an empty I<arrayref>. Each class should have its
+own implementation.
+
+=cut
+
+sub public_read_list
+ {
+    return [];
 }
 
 =head3 from_api_mapping
@@ -711,7 +801,7 @@ sub attributes_from_api {
         elsif ( _date_or_datetime_column_type( $columns_info->{$koha_field_name}->{data_type} ) ) {
             try {
                 if ( $columns_info->{$koha_field_name}->{data_type} eq 'date' ) {
-                    $value = $dtf->format_date(dt_from_string($value, 'rfc3339'))
+                    $value = $dtf->format_date(dt_from_string($value, 'iso'))
                         if defined $value;
                 }
                 else {
@@ -858,19 +948,21 @@ sub _type { }
 sub _handle_to_api_child {
     my ($self, $args ) = @_;
 
-    my $child = $args->{child};
-    my $next  = $args->{next};
-    my $curr  = $args->{curr};
+    my $child  = $args->{child};
+    my $next   = $args->{next};
+    my $curr   = $args->{curr};
+    my $params = $args->{params};
 
     my $res;
 
     if ( defined $child ) {
 
-        Koha::Exceptions::Exception->throw( "Asked to embed $curr but its return value doesn't implement to_api" )
+        Koha::Exception->throw( "Asked to embed $curr but its return value doesn't implement to_api" )
             if defined $next and blessed $child and !$child->can('to_api');
 
         if ( blessed $child ) {
-            $res = $child->to_api({ embed => $next });
+            $params->{embed} = $next;
+            $res = $child->to_api($params);
         }
         else {
             $res = $child;

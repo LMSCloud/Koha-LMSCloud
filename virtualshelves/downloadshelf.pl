@@ -20,15 +20,13 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use Encode qw(encode);
 
-use C4::Auth;
-use C4::Biblio;
-use C4::Items;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Record;
-use C4::Ris;
+use C4::Ris qw( marc2ris );
 
+use Koha::Biblios;
 use Koha::CsvProfiles;
 use Koha::Virtualshelves;
 
@@ -70,9 +68,8 @@ if ($shelfid && $format) {
             else { #Other formats
                 while ( my $content = $contents->next ) {
                     my $biblionumber = $content->biblionumber;
-                    my $record = GetMarcBiblio({
-                        biblionumber => $biblionumber,
-                        embed_items  => 1 });
+                    my $biblio = Koha::Biblios->find($biblionumber);
+                    my $record = $biblio->metadata->record({ embed_items => 1 });
                     if ($format eq 'iso2709') {
                         $output .= $record->as_usmarc();
                     }
@@ -102,7 +99,7 @@ if ($shelfid && $format) {
     }
 }
 else {
-    $template->param(csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc', used_for => 'export_records' }) ]);
+    $template->param(csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc', used_for => 'export_records' })->as_list ]);
     $template->param(shelfid => $shelfid); 
 }
 $template->param( messages => \@messages );

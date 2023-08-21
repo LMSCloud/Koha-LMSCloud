@@ -37,7 +37,7 @@ use Modern::Perl;
 use Time::HiRes qw(gettimeofday);
 use POSIX qw(strftime);
 use C4::Context;
-use C4::Biblio qw( AddBiblio ); # We shouldn't use it
+use C4::Biblio qw( AddBiblio );
 
 use Koha::CirculationRules;
 
@@ -85,13 +85,13 @@ our $sample_data = {
 };
 our ( $borrowernumber, $start, $prev_time, $cleanup_needed );
 
-$dbh->do(q|INSERT INTO itemtypes(itemtype) VALUES (?)|, undef, $sample_data->{itemtype}{itemtype});
-
 SKIP: {
     eval { require Selenium::Remote::Driver; };
     skip "Selenium::Remote::Driver is needed for selenium tests.", 22 if $@;
 
     $cleanup_needed = 1;
+
+    $dbh->do(q|INSERT INTO itemtypes(itemtype) VALUES (?)|, undef, $sample_data->{itemtype}{itemtype});
 
     open my $fh, '>>', '/tmp/output.txt';
 
@@ -130,6 +130,8 @@ SKIP: {
 
     $borrowernumber = $dbh->selectcol_arrayref(q|SELECT borrowernumber FROM borrowers WHERE userid=?|, {}, $sample_data->{patron}{userid} )->[0];
 
+    my $itemtype = $sample_data->{itemtype};
+
     my @biblionumbers;
     for my $i ( 1 .. $number_of_biblios_to_insert ) {
         my $biblio = MARC::Record->new();
@@ -138,11 +140,13 @@ SKIP: {
             $biblio->append_fields(
                 MARC::Field->new('200', ' ', ' ', a => 'test biblio '.$i),
                 MARC::Field->new('200', ' ', ' ', f => 'test author '.$i),
+                MARC::Field->new('200', ' ', ' ', b => $itemtype->{itemtype}),
             );
         } else {
             $biblio->append_fields(
                 MARC::Field->new('245', ' ', ' ', a => 'test biblio '.$i),
                 MARC::Field->new('100', ' ', ' ', a => 'test author '.$i),
+                MARC::Field->new('942', ' ', ' ', c => $itemtype->{itemtype}),
             );
         }
         my ($biblionumber, $biblioitemnumber) = AddBiblio($biblio, '');
@@ -150,8 +154,6 @@ SKIP: {
     }
 
     time_diff("add biblio");
-
-    my $itemtype = $sample_data->{itemtype};
 
     my $issuing_rules = $sample_data->{issuingrule};
     Koha::CirculationRules->set_rules(
@@ -183,6 +185,7 @@ SKIP: {
             my $id = $input->get_attribute('id');
             next unless $id =~ m|^tag_952_subfield|;
 
+            my $effective_input = $input;
             my $v;
 
             # FIXME This is based on default values
@@ -201,6 +204,12 @@ SKIP: {
                 $id =~ m|^tag_952_subfield_w| # replacementpricedate
             ) {
                 $v = strftime("%Y-%m-%d", localtime);
+                $effective_input = $driver->find_element('//div[@id="subfield952w"]/input[@type="text" and @class="input_marceditor items.replacementpricedate noEnterSubmit flatpickr-input"]');
+            }
+            elsif (
+                $id =~ m|^tag_952_subfield_y| # itemtype
+            ) {
+                next; # auto-filled
             }
             elsif (
                 $id =~ m|^tag_952_subfield_d| # dateaccessioned
@@ -215,8 +224,15 @@ SKIP: {
             else {
                 $v = 't_value_bib' . $biblionumber;
             }
-            $input->send_keys( $v );
+            $effective_input->send_keys( $v );
         }
+
+        # Find itemtype select2 and open it
+        my $itype_select = $driver->find_element('//*[@id="subfield952y"]/span[1]');
+        $itype_select->click;
+        # Select an itemtype
+        my $options = $driver->find_elements('.select2-results__option', 'css');
+        @$options[0]->click;
 
         $driver->find_element('//input[@name="add_submit"]')->click;
         like( $driver->get_title(), qr(Items.*Record #$biblionumber) );
@@ -235,7 +251,7 @@ SKIP: {
         $driver->find_element('//fieldset[@id="circ_circulation_issue"]/button[@type="submit"]')->click;
         $nb_of_checkouts++;
         like( $driver->get_title(), qr(Checking out to $sample_data->{patron}{surname}) );
-        is( $driver->find_element('//a[@href="#checkouts"]')->get_attribute('text'), $nb_of_checkouts.' Checkout(s)', );
+        is( $driver->find_element('//a[@href="#checkouts"]')->get_attribute('text'), 'Checkouts ('.$nb_of_checkouts.')' );
     }
 
     time_diff("checkout");
@@ -243,7 +259,7 @@ SKIP: {
     for my $biblionumber ( @biblionumbers ) {
         $driver->get($base_url."/circ/returns.pl");
         $driver->find_element('//input[@id="barcode"]')->send_keys('t_value_bib'.$biblionumber);
-        $driver->find_element('//*[@id="circ_returns_checkin"]/div[2]/div[1]/div[2]/button')->click;
+        $driver->find_element('//*[@id="circ_returns_checkin"]//button[@type="submit"]')->click;
         like( $driver->get_title(), qr(Check in test biblio \d+) );
     }
 

@@ -17,20 +17,20 @@
 
 use Modern::Perl;
 
-use C4::Circulation;
-use C4::Items;
-use C4::Biblio;
+use C4::Circulation qw( AddIssue AddReturn GetBranchBorrowerCircRule GetBranchItemRule );
+use C4::Items qw( ModItemTransfer );
+use C4::Biblio qw( AddBiblio );
 use C4::Context;
 use Koha::CirculationRules;
 
 use Koha::Patrons;
 
-use Test::More tests => 16;
+use Test::More tests => 18;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
 BEGIN {
-    use_ok('C4::Circulation');
+    use_ok('C4::Circulation', qw( AddIssue AddReturn GetBranchBorrowerCircRule GetBranchItemRule ));
 }
 
 can_ok( 'C4::Circulation', qw(
@@ -264,22 +264,22 @@ is_deeply(
         $samplebranch1->{branchcode},
         $sampleitemtype1->{itemtype},
     ),
-    { returnbranch => 'homebranch', holdallowed => 'invalid_value', @lazy_any },
+    { holdallowed => 'invalid_value', @lazy_any },
     "GetBranchitem returns holdallowed and return branch"
 );
 is_deeply(
     GetBranchItemRule(),
-    { returnbranch => 'homebranch', holdallowed => 'from_local_hold_group', @lazy_any },
+    { holdallowed => 'from_local_hold_group', @lazy_any },
 "Without parameters GetBranchItemRule returns the values in default_circ_rules"
 );
 is_deeply(
     GetBranchItemRule( $samplebranch2->{branchcode} ),
-    { returnbranch => 'holdingbranch', holdallowed => 'from_home_library', @lazy_any },
+    { holdallowed => 'from_home_library', @lazy_any },
 "With only a branchcode GetBranchItemRule returns values in default_branch_circ_rules"
 );
 is_deeply(
     GetBranchItemRule( -1, -1 ),
-    { returnbranch => 'homebranch', holdallowed => 'from_local_hold_group', @lazy_any },
+    { holdallowed => 'from_local_hold_group', @lazy_any },
     "With only one parametern GetBranchItemRule returns default values"
 );
 
@@ -291,9 +291,13 @@ $query =
 "INSERT INTO issues (borrowernumber,itemnumber,branchcode) VALUES( ?,?,? )";
 $dbh->do( $query, {}, $borrower_id1, $item_id1, $samplebranch1->{branchcode} );
 
+t::lib::Mocks::mock_preference( 'CataloguingLog', 1 );
+my $log_count_before = $schema->resultset('ActionLog')->search({module => 'CATALOGUING'})->count();
 my ($doreturn, $messages, $iteminformation, $borrower) = AddReturn('barcode_1',
     $samplebranch2->{branchcode});
 is( $messages->{NeedsTransfer}, $samplebranch1->{branchcode}, "AddReturn respects default return policy - return to homebranch" );
+my $log_count_after = $schema->resultset('ActionLog')->search({module => 'CATALOGUING'})->count();
+is($log_count_before, $log_count_after, "Update to holdingbranch is not logged");
 
 # item2 returned at branch2 should trigger transfer to holding branch
 $query =
@@ -327,3 +331,70 @@ t::lib::Mocks::mock_preference( 'item-level_itypes', 0 );
 
 $schema->storage->txn_rollback;
 
+subtest "GetBranchItemRule() tests" => sub {
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+
+    $dbh->do('DELETE FROM circulation_rules');
+
+    my $homebranch    = $builder->build( { source => 'Branch' } )->{branchcode};
+    my $holdingbranch = $builder->build( { source => 'Branch' } )->{branchcode};
+    my $checkinbranch = $builder->build( { source => 'Branch' } )->{branchcode};
+
+    my $manager = $builder->build_object( { class => "Koha::Patrons" } );
+    t::lib::Mocks::mock_userenv(
+        {
+            patron     => $manager,
+            branchcode => $checkinbranch,
+        }
+    );
+
+    my $biblio = $builder->build_sample_biblio;
+    my $item = Koha::Item->new(
+        {
+            biblionumber  => $biblio->id,
+            homebranch    => $homebranch,
+            holdingbranch => $holdingbranch,
+            itype         => $sampleitemtype1->{itemtype}
+        }
+    )->store;
+
+    Koha::CirculationRules->set_rule(
+        {
+            branchcode   => $homebranch,
+            itemtype     => undef,
+            rule_name    => 'returnbranch',
+            rule_value   => 'homebranch',
+        }
+    );
+
+    Koha::CirculationRules->set_rule(
+        {
+            branchcode   => $holdingbranch,
+            itemtype     => undef,
+            rule_name    => 'returnbranch',
+            rule_value   => 'holdingbranch',
+        }
+    );
+
+    Koha::CirculationRules->set_rule(
+        {
+            branchcode   => $checkinbranch,
+            itemtype     => undef,
+            rule_name    => 'returnbranch',
+            rule_value   => 'noreturn',
+        }
+    );
+
+    t::lib::Mocks::mock_preference( 'CircControlReturnsBranch', 'ItemHomeLibrary' );
+    is( Koha::CirculationRules->get_return_branch_policy($item), 'homebranch' );
+
+    t::lib::Mocks::mock_preference( 'CircControlReturnsBranch', 'ItemHoldingLibrary' );
+    is( Koha::CirculationRules->get_return_branch_policy($item), 'holdingbranch' );
+
+    t::lib::Mocks::mock_preference( 'CircControlReturnsBranch', 'CheckInLibrary' );
+    is( Koha::CirculationRules->get_return_branch_policy($item), 'noreturn' );
+
+    $schema->storage->txn_rollback;
+};

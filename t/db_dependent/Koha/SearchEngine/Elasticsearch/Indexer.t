@@ -19,7 +19,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 3;
+use Test::More tests => 4;
 use Test::MockModule;
 use Test::Warn;
 use t::lib::Mocks;
@@ -28,6 +28,7 @@ use t::lib::TestBuilder;
 use MARC::Record;
 
 use Koha::Database;
+use Koha::Biblios;
 
 my $schema = Koha::Database->schema();
 
@@ -91,7 +92,11 @@ subtest 'index_records() tests' => sub {
     my $mock_index = Test::MockModule->new("Koha::SearchEngine::Elasticsearch::Indexer");
     $mock_index->mock( update_index => sub {
         my ($self, $record_ids, $records) = @_;
-        warn $record_ids->[0] . $records->[0]->as_usmarc;
+        warn "Update " . $record_ids->[0] . $records->[0]->as_usmarc;
+    });
+    $mock_index->mock( update_index_background => sub {
+        my ($self, $record_ids) = @_;
+        warn "Update background " . $record_ids->[0];
     });
 
     my $indexer = Koha::SearchEngine::Elasticsearch::Indexer->new({ 'index' => 'authorities' });
@@ -101,13 +106,37 @@ subtest 'index_records() tests' => sub {
         MARC::Field->new('001', '1234567'),
         MARC::Field->new('100', '', '', 'a' => 'Rosenstock, Jeff'),
     );
-    warning_is{ $indexer->index_records([42],'specialUpdate','authorityserver',[$marc_record]); } "42".$marc_record->as_usmarc,
-        "When passing record and ids to index_records they are correctly passed through to update_index";
+    warning_is {
+        $indexer->index_records( [42], 'specialUpdate', 'authorityserver',
+            [$marc_record] );
+    }
+    "Update 42" . $marc_record->as_usmarc,
+    "When passing record and ids to index_records they are correctly passed through to update_index";
 
     $indexer = Koha::SearchEngine::Elasticsearch::Indexer->new({ 'index' => 'biblios' });
-    $marc_record = C4::Biblio::GetMarcBiblio({ biblionumber => $biblio->biblionumber, embed_items  => 1 });
-    warning_is{ $indexer->index_records([$biblio->biblionumber],'specialUpdate','biblioserver'); } $biblio->biblionumber.$marc_record->as_usmarc,
-        "When passing id only to index_records the marc record is fetched and passed through to update_index";
+    $marc_record = $biblio->metadata->record({ embed_items => 1 });
+    warning_is {
+        $indexer->index_records( [ $biblio->biblionumber ],
+            'specialUpdate', 'biblioserver' );
+    }
+    "Update background " . $biblio->biblionumber,
+    "When passing id only to index_records the marc record is fetched and passed through to update_index";
+
+};
+
+subtest 'update_index' => sub {
+    plan tests => 1;
+
+    my $biblio = $builder->build_sample_biblio;
+    my $biblionumber = $biblio->biblionumber;
+    $biblio->delete;
+
+    my $indexer = Koha::SearchEngine::Elasticsearch::Indexer->new({ 'index' => 'biblios' });
+    warning_is {
+        $indexer->update_index([$biblionumber]);
+
+    } "", "update_index called with deleted biblionumber should not crash";
+
 };
 
 }

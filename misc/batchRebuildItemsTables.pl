@@ -2,16 +2,17 @@
 
 use Modern::Perl;
 
-use Getopt::Long;
+use Getopt::Long qw( GetOptions );
 use MARC::Field;
 use MARC::Record;
-use Pod::Usage;
-use Time::HiRes qw(gettimeofday);
+use Pod::Usage qw( pod2usage );
+use Time::HiRes qw( gettimeofday );
 
 use Koha::Script;
 use C4::Context;
-use C4::Biblio;
-use C4::Items;
+use C4::Biblio qw( GetMarcFromKohaField );
+use C4::Items qw( ModItemFromMarc );
+use Koha::Biblios;
 
 =head1 NAME
 
@@ -72,9 +73,9 @@ $sth->execute();
 while ( my ( $biblionumber, $biblioitemnumber, $frameworkcode ) = $sth->fetchrow ) {
     $count++;
     warn $count unless $count % 1000;
-    my $record = GetMarcBiblio({
-        biblionumber => $biblionumber,
-        embed_items   => 1 });
+    my $biblio = Koha::Biblios->find($biblionumber);
+    my $record = $biblio->metadata->record({ embed_items => 1 });
+
     unless ($record) { push @errors, "bad record biblionumber $biblionumber"; next; }
 
     unless ($test_parameter) {

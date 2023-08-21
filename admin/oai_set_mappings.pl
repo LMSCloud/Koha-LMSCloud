@@ -33,11 +33,10 @@ the OR operator will be applied.
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Output;
-use C4::OAI::Sets;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::OAI::Sets qw( GetOAISet GetOAISetMappings ModOAISetMappings );
 
-use Data::Dumper;
 
 my $input = CGI->new;
 my ($template, $loggedinuser, $cookie, $flags) = get_template_and_user( {
@@ -45,7 +44,6 @@ my ($template, $loggedinuser, $cookie, $flags) = get_template_and_user( {
     query           => $input,
     type            => 'intranet',
     flagsrequired   => { 'parameters' => 'manage_oai_sets' },
-    debug           => 1,
 } );
 
 my $id = $input->param('id');
@@ -62,7 +60,7 @@ if($op && $op eq "save") {
     my @mappings;
     my $i = 0;
     while($i < @marcfields and $i < @marcsubfields and $i < @marcvalues) {
-        if($marcfields[$i] and $marcsubfields[$i]) {
+        if($marcfields[$i] ne '' and $marcsubfields[$i] ne '' ) {
             push @mappings, {
                 marcfield     => $marcfields[$i],
                 marcsubfield  => $marcsubfields[$i],

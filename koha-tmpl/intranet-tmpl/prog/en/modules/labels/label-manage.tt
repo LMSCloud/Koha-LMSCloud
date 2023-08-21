@@ -1,45 +1,42 @@
 [% USE raw %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% BLOCK translate_label_element %]
 [%-  SWITCH element -%]
-[%-  CASE 'layout'    -%]layout
-[%-  CASE 'Layouts'   -%]Layouts
-[%-  CASE 'template'  -%]template
-[%-  CASE 'Templates' -%]Templates
-[%-  CASE 'profile'   -%]profile
-[%-  CASE 'Profiles'  -%]Profiles
-[%-  CASE 'batch'     -%]batch
-[%-  CASE 'Batches'   -%]Batches
+[%-  CASE 'layout'    -%][% t('layout') | html %]
+[%-  CASE 'Layouts'   -%][% t('Layouts') | html %]
+[%-  CASE 'template'  -%][% t('template') | html %]
+[%-  CASE 'Templates' -%][% t('Templates') | html %]
+[%-  CASE 'profile'   -%][% t('profile') | html %]
+[%-  CASE 'Profiles'  -%][% t('Profiles') | html %]
+[%-  CASE 'batch'     -%][% t('batch') | html %]
+[%-  CASE 'Batches'   -%][% t('Batches') | html %]
 [%-  END -%]
 [% END %]
     [% INCLUDE 'doc-head-open.inc' %]
-    <title>[% PROCESS translate_label_element element=label_element_title %] &rsaquo; Label creator &rsaquo; Tools &rsaquo; Koha</title>
+    <title>[% PROCESS translate_label_element element=label_element_title %] &rsaquo; Label creator &rsaquo; Cataloging &rsaquo; Koha</title>
     [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
 <body id="labels_label-manage" class="tools labels">
-    [% INCLUDE 'header.inc' %]
+    [% WRAPPER 'header.inc' %]
     [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-        <ol>
-            <li>
-                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-            </li>
-            <li>
-                <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
-            </li>
-            <li>
-                <a href="/cgi-bin/koha/labels/label-home.pl">Label creator</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    [% PROCESS translate_label_element element=label_element_title %]
-                </a>
-            </li>
-        </ol>
-    </nav>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/cataloguing/cataloging-home.pl">Cataloging</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/labels/label-home.pl">Label creator</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            [% PROCESS translate_label_element element=label_element_title %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
     <div class="main container-fluid">
         <div class="row">
@@ -47,6 +44,7 @@
                 <main>
 
                     [% INCLUDE 'labels-toolbar.inc' %]
+                    <h1>Manage labels</h1>
 
                         [% IF ( error ) %]
                             <div class="dialog alert">
@@ -54,7 +52,7 @@
                             </div>
                         [% END %]
 
-                        <div id="manage-label-layouts">
+                        <div id="manage-label-layouts" class="page-section">
                             [% IF ( table_loop ) %]
                             <form name="layouts" action="/cgi-bin/koha/label-manage.pl?label_element=[% label_element | html %]">
                             [% IF    ( label_element == 'layout' ) %]
@@ -66,51 +64,54 @@
                             [% ELSIF ( label_element == 'batch' ) %]
                             <h2>Currently available batches</h2>
                             [% END %]
-                            <table id="labels-table">
-                                [% FOREACH table_loo IN table_loop %]
-                                    [% IF ( table_loo.header_fields ) %]
-                                        <thead>
-                                        <tr>
-                                            [% FOREACH header_field IN table_loo.header_fields %]
-                                                [% SWITCH header_field.field_label %]
-                                                    [% CASE 'Layout ID'       %]<th>Layout ID</th>
-                                                    [% CASE 'Layout'          %]<th>Layout</th>
-                                                    [% CASE 'Barcode Type'    %]<th>Barcode type</th>
-                                                    [% CASE 'Print Type'      %]<th>Print type</th>
-                                                    [% CASE 'Template ID'     %]<th>Template ID</th>
-                                                    [% CASE 'Template Name'   %]<th>Template name</th>
-                                                    [% CASE 'Description'     %]<th>Description</th>
-                                                    [% CASE 'Actions'         %]<th class="noExport">Actions</th>
-                                                    [% CASE 'Profile ID'      %]<th>Profile ID</th>
-                                                    [% CASE 'Printer Name'    %]<th>Printer name</th>
-                                                    [% CASE 'Paper Bin'       %]<th>Paper bin</th>
-                                                    [% CASE 'Batch ID'        %]<th>Batch ID</th>
-                                                    [% CASE 'Item Count'      %]<th>Item count</th>
-                                                    [% CASE 'Fields to Print' %]<th>Fields to print</th>
-                                                    [% CASE                   %]<th>[% header_field.field_label | html %]</th>
+
+                            <div class="page-section">
+                                <table id="labels-table">
+                                    [% FOREACH table_loo IN table_loop %]
+                                        [% IF ( table_loo.header_fields ) %]
+                                            <thead>
+                                            <tr>
+                                                [% FOREACH header_field IN table_loo.header_fields %]
+                                                    [% SWITCH header_field.field_label %]
+                                                        [% CASE 'Layout ID'       %]<th>Layout ID</th>
+                                                        [% CASE 'Layout'          %]<th>Layout</th>
+                                                        [% CASE 'Barcode Type'    %]<th>Barcode type</th>
+                                                        [% CASE 'Print Type'      %]<th>Print type</th>
+                                                        [% CASE 'Template ID'     %]<th>Template ID</th>
+                                                        [% CASE 'Template Name'   %]<th>Template name</th>
+                                                        [% CASE 'Description'     %]<th>Description</th>
+                                                        [% CASE 'Actions'         %]<th class="noExport">Actions</th>
+                                                        [% CASE 'Profile ID'      %]<th>Profile ID</th>
+                                                        [% CASE 'Printer Name'    %]<th>Printer name</th>
+                                                        [% CASE 'Paper Bin'       %]<th>Paper bin</th>
+                                                        [% CASE 'Batch ID'        %]<th>Batch ID</th>
+                                                        [% CASE 'Item Count'      %]<th>Item count</th>
+                                                        [% CASE 'Fields to Print' %]<th>Fields to print</th>
+                                                        [% CASE                   %]<th>[% header_field.field_label | html %]</th>
+                                                    [% END %]
+                                                [% END %]
+                                            </tr>
+                                            </thead>
+                                        [% ELSE %]
+                                            <tr>
+                                            [% FOREACH text_field IN table_loo.text_fields %]
+                                                [% IF ( text_field.select_field ) %]
+                                                    <td class="actions">
+                                                        <a class="btn btn-default btn-xs" href="/cgi-bin/koha/labels/label-edit-[% label_element |url %].pl?op=edit&amp;element_id=[% text_field.field_value |url %]"><i class="fa fa-edit"></i> Edit</a>
+                                                        <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/labels/label-manage.pl?op=delete&amp;label_element=[% label_element | html %]&amp;element_id=[% text_field.field_value |url %]"><i class="fa fa-trash"></i> Delete</a>
+                                                    </td>
+                                                    [% IF label_element == 'batch' %] <td><input type="checkbox" name="action" value="[% text_field.field_value | html %]" /></td>[% END %]
+                                                [% ELSIF ( text_field.field_value ) %]
+                                                    <td>[% text_field.field_value | html %]</td>
+                                                [% ELSE %]
+                                                    <td>&nbsp;</td>
                                                 [% END %]
                                             [% END %]
-                                        </tr>
-                                        </thead>
-                                    [% ELSE %]
-                                        <tr>
-                                        [% FOREACH text_field IN table_loo.text_fields %]
-                                            [% IF ( text_field.select_field ) %]
-                                                <td class="actions">
-                                                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/labels/label-edit-[% label_element |url %].pl?op=edit&amp;element_id=[% text_field.field_value |url %]"><i class="fa fa-edit"></i> Edit</a>
-                                                    <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/labels/label-manage.pl?op=delete&amp;label_element=[% label_element | html %]&amp;element_id=[% text_field.field_value |url %]"><i class="fa fa-trash"></i> Delete</a>
-                                                </td>
-                                                [% IF label_element == 'batch' %] <td><input type="checkbox" name="action" value="[% text_field.field_value | html %]" /></td>[% END %]
-                                            [% ELSIF ( text_field.field_value ) %]
-                                                <td>[% text_field.field_value | html %]</td>
-                                            [% ELSE %]
-                                                <td>&nbsp;</td>
-                                            [% END %]
+                                            </tr>
                                         [% END %]
-                                        </tr>
                                     [% END %]
-                                [% END %]
-                            </table>
+                                </table>
+                            </div> <!-- /.page-section -->
                             [% IF ( print ) %]<button type="button" class="btn btn-default" id="print">Export selected</button>[% END %]
                             </fieldset>
                             </form>
@@ -128,13 +129,12 @@
 
         <div class="col-sm-2 col-sm-pull-10">
             <aside>
-                [% INCLUDE 'tools-menu.inc' %]
+                [% INCLUDE 'cat-menu.inc' %]
             </aside>
         </div> <!-- /.col-sm-2.col-sm-pull-10 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/tools-menu.js") | $raw %]
     [% INCLUDE 'greybox.inc' %]
     [% INCLUDE 'datatables.inc' %]
     <script>
@@ -186,6 +186,7 @@
             return (-1);
         }
         $(document).ready(function(){
+            $('#navmenulist a[href$="/cgi-bin/koha/labels/label-home.pl"]').addClass("current");
             $("#print").click(function(e){
                 e.preventDefault();
                 Xport();

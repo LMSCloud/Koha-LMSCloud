@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2017-2019 (C) LMSCloud GmbH
+# Copyright 2017-2023 (C) LMSCloud GmbH
 #
 # This file is part of Koha.
 #
@@ -107,8 +107,7 @@ ISBN 978-3-548-28436-1 : kt. : EUR 8.99
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use CGI::Carp;
 use utf8;

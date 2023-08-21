@@ -41,12 +41,13 @@ It need :
 
 use strict;
 #use warnings; FIXME - Bug 2505
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use CGI qw ( -utf8 );
 use C4::Context;
 
-use C4::AuthoritiesMarc;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::AuthoritiesMarc qw( SearchAuthorities GetAuthority );
 
 =head1 DESCRIPTION
 
@@ -55,14 +56,15 @@ plugin_parameters : other parameters added when the plugin is called by the dopo
 =cut
 
 sub plugin_javascript {
-    my ( $dbh, $record, $tagslib, $field_number, $tabloop ) = @_;
+    my ( $dbh, $record, $tagslib, $field_number ) = @_;
     my $function_name = $field_number;
     my $res = "
     <script>
     
     
-        function Clic$function_name(index) {
+        function Clic$function_name(event) {
         /* find the 010a value and the 210c. it will be used in the popup to find possibles collections */
+            event.preventDefault();
             var isbn_found   = 0;
             var editor_found = 0;
             
@@ -80,8 +82,8 @@ sub plugin_javascript {
                 }
             }
                     
-            defaultvalue = document.getElementById(\"$field_number\").value;
-            window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_225a.pl&index=\"+index+\"&result=\"+defaultvalue+\"&editor_found=\"+editor_found,\"unimarc225a\",'width=500,height=400,toolbar=false,scrollbars=no');
+            defaultvalue = document.getElementById(event.data.id).value;
+            window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_225a.pl&index=\"+event.data.id+\"&result=\"+defaultvalue+\"&editor_found=\"+editor_found,\"unimarc225a\",'width=500,height=400,toolbar=false,scrollbars=no');
     
         }
     </script>
@@ -104,7 +106,6 @@ sub plugin {
             query           => $input,
             type            => "intranet",
             flagsrequired   => { editcatalogue => '*' },
-            debug           => 1,
         }
     );
 

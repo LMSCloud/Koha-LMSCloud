@@ -1,3 +1,4 @@
+[% USE raw %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Cancel order &rsaquo; Acquisition &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
@@ -6,24 +7,22 @@
 <body id="acq_cancelorder" class="acq">
 [% INCLUDE 'header.inc' %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a>
-        </li>
-        <li>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% basket.bookseller.id | uri %]">[% basket.bookseller.name | html %]</a>
-        </li>
-        <li>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/basket.pl?basketno=[% basket.basketno | uri %]">Basket [% basket.basketname | html %] ([% basket.basketno | html %]) for [% basket.bookseller.name | html %]</a>
-        <li>
-            <a href="#" aria-current="page">Cancel order</a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Cancel order</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -32,12 +31,12 @@
       [% UNLESS ( confirmcancel ) %]
       <form method="post" action="">
         <div class="dialog alert">
-          <h3>Are you sure you want to cancel this order ([% ordernumber | html %])</h3>
+          <h1>Are you sure you want to cancel this order ([% ordernumber | html %])</h1>
           <p>
             [% IF (del_biblio) %]
-              Bibliographic record will be deleted too.
+              <span>Bibliographic record will be deleted too.</span>
             [% ELSE %]
-              Bibliographic record will not be deleted.
+              <span>Bibliographic record will not be deleted.</span>
             [% END %]
           </p>
           <p>
@@ -62,6 +61,11 @@
         [% ELSE %]
             <div class="dialog alert">
                 An error has occurred.
+                [% IF error_order_already_cancelled %]
+                    <p>The order has been cancelled already.</p>
+                [% ELSIF error_order_not_found %]
+                    <p>The order could not be found.</p>
+                [% END %]
                 [% IF ( error_delitem ) %]
                     <p>The order has been cancelled, although one or more items could not have been deleted.</p>
                 [% END %]

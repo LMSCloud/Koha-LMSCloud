@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2016-2018 LMSCloud GmbH
+# Copyright 2016-2023 LMSCloud GmbH
 #
 # This file is part of Koha.
 #
@@ -29,16 +29,13 @@ use warnings;
 
 use DateTime;
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use CGI qw ( -utf8 );
-use C4::Biblio;
-use C4::Koha;       # use getitemtypeinfo
-use C4::NewsChannels;    # GetNewsToDisplay
+use Koha::AdditionalContents;
 
 my $query = new CGI;
-
 my $dbh = C4::Context->dbh;
 
 # open template
@@ -101,16 +98,19 @@ if ( defined($query->param('shownews')) ) {
         elsif (C4::Context->userenv and defined $query->param('branch') and length $query->param('branch') == 0 ){
             $homebranch = "";
         }
-       
-        # Display news
-        # use cookie setting for language, bug default to syspref if it's not set
-        my ($theme, $news_lang, $availablethemes) = C4::Templates::themelanguage(C4::Context->config('opachtdocs'),$templatename,'opac',$query);
-        my $all_koha_news   = &GetNewsToDisplay($news_lang,$homebranch);
-        my $koha_news_count = scalar @$all_koha_news;
+        
+		my $koha_news = Koha::AdditionalContents->search_for_display(
+			{
+				category   => 'news',
+				location   => ['opac_only', 'staff_and_opac'],
+				lang       => $template->lang,
+				library_id => $homebranch,
+			}
+		);
 
         $template->param(
-            koha_news           => $all_koha_news,
-            koha_news_count     => $koha_news_count
+            koha_news           => $koha_news,
+            koha_news_count     => $koha_news->count
         );
     }
 }

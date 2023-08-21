@@ -20,13 +20,14 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_and_exit_if_error output_and_exit output_html_with_http_headers );
 use CGI qw ( -utf8 );
 use C4::Members;
-use C4::Letters;
+use C4::Letters qw( GetPreparedLetter EnqueueLetter );
 use Koha::Patrons;
 use Koha::Patron::Categories;
+use Koha::Patron::Password::Recovery qw( SendPasswordRecoveryEmail ValidateBorrowernumber );
 
 my $input=CGI->new;
 
@@ -43,7 +44,6 @@ my ($template, $loggedinuser, $cookie)= get_template_and_user({template_name => 
 				query => $input,
 				type => "intranet",
                 flagsrequired => {borrowers => 'edit_borrowers'},
-				debug => 1,
 				});
 
 my $logged_in_user = Koha::Patrons->find( $loggedinuser );
@@ -59,6 +59,55 @@ if ( $op eq 'resend_notice' ) {
         # redirect to self to avoid form submission on refresh
         print $input->redirect("/cgi-bin/koha/members/notices.pl?borrowernumber=$borrowernumber");
     }
+}
+
+if ( $op eq 'send_welcome' ) {
+    my $emailaddr = $patron->notice_email_address;
+
+    # if we manage to find a valid email address, send notice
+    if ($emailaddr) {
+        eval {
+            my $letter = GetPreparedLetter(
+                module      => 'members',
+                letter_code => 'WELCOME',
+                branchcode  => $patron->branchcode,
+                lang        => $patron->lang || 'default',
+                tables      => {
+                    'branches'  => $patron->branchcode,
+                    'borrowers' => $patron->borrowernumber,
+                },
+                want_librarian => 1,
+            ) or return;
+
+            my $message_id = EnqueueLetter(
+                {
+                    letter                 => $letter,
+                    borrowernumber         => $patron->id,
+                    to_address             => $emailaddr,
+                    message_transport_type => 'email',
+                    branchcode             => $patron->branchcode,
+                }
+            );
+        };
+    }
+
+    # redirect to self to avoid form submission on refresh
+    print $input->redirect("/cgi-bin/koha/members/notices.pl?borrowernumber=$borrowernumber");
+}
+
+if ( $op eq 'send_password_reset' ) {
+
+    my $emailaddr = $patron->notice_email_address;
+
+    if ($emailaddr) {
+
+        # send staff initiated password recovery
+        SendPasswordRecoveryEmail( $patron, $emailaddr, 1 );
+    }
+
+    # redirect to self to avoid form submission on refresh
+    print $input->redirect(
+        "/cgi-bin/koha/members/notices.pl?borrowernumber=$borrowernumber");
 }
 
 # Getting the messages

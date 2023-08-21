@@ -14,35 +14,23 @@
 </head>
 
 <body id="pat_statistics" class="pat">
-[% INCLUDE 'header.inc' %]
-[% PROCESS 'patron-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'patron-search-header.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-
-        [% IF blocking_error %]
-            <li>
-                <a href="#" aria-current="page">
-                    Patrons
-                </a>
-            </li>
-
-        [% ELSE %]
-            <li>
-                <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Statistics for [% INCLUDE 'patron-title.inc' invert_name = 1 %]
-
-                </a>
-            </li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
         [% END %]
-    </ol>
-</nav>
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber | uri %]">[% INCLUDE 'patron-title.inc' %]</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Statistics</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -53,53 +41,55 @@
 
             <h1>Statistics for [% INCLUDE 'patron-title.inc' %]</h1>
             [% IF ( datas.size ) %]
-                <table id="statistics">
-                <thead>
-                    <tr>
-                      [% FOREACH cn IN column_names %]
-                          <th>
-                            [% SWITCH cn %]
-                            [% CASE 'itype' %]
-                                Item type
-                            [% CASE 'ccode' %]
-                                Collection
-                            [% CASE 'location' %]
-                                Shelving location
-                            [% CASE 'homebranch' %]
-                                Home library
-                            [% CASE 'holdingbranch' %]
-                                Holding library
-                            [% CASE %]
-                                [% cn | html %]
-                            [% END %]
-                          </th>
-                      [% END %]
-                      <th>Total checkouts as of yesterday</th>
-                      <th>Today's checkouts</th>
-                      <th>Today's checkins</th>
-                      <th>Total checkouts</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    [% FOREACH r IN datas %]
+                <div class="page-section">
+                    <table id="statistics">
+                    <thead>
                         <tr>
-                            [% FOREACH c IN r %]
-                                <td>[% c | html %]</td>
-                            [% END %]
+                        [% FOREACH cn IN column_names %]
+                            <th>
+                                [% SWITCH cn %]
+                                [% CASE 'itype' %]
+                                    <span>Item type</span>
+                                [% CASE 'ccode' %]
+                                    <span>Collection</span>
+                                [% CASE 'location' %]
+                                    <span>Shelving location</span>
+                                [% CASE 'homebranch' %]
+                                    <span>Home library</span>
+                                [% CASE 'holdingbranch' %]
+                                    <span>Holding library</span>
+                                [% CASE %]
+                                    <span>[% cn | html %]</span>
+                                [% END %]
+                            </th>
+                        [% END %]
+                        <th>Total checkouts as of yesterday</th>
+                        <th>Today's checkouts</th>
+                        <th>Today's checkins</th>
+                        <th>Total checkouts</th>
                         </tr>
-                    [% END %]
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="[% column_names.size | html %]">TOTAL</td>
-                        <td>[% count_total_precedent_state | html %]</td>
-                        <td>[% count_total_issues | html %]</td>
-                        <td>[% count_total_issues_returned | html %]</td>
-                        <td>[% count_total_actual_state | html %]</td>
-                    </tr>
-                </tfoot>
-                </table>
+                    </thead>
+
+                    <tbody>
+                        [% FOREACH r IN datas %]
+                            <tr>
+                                [% FOREACH c IN r %]
+                                    <td>[% c | html %]</td>
+                                [% END %]
+                            </tr>
+                        [% END %]
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="[% column_names.size | html %]">TOTAL</td>
+                            <td>[% count_total_precedent_state | html %]</td>
+                            <td>[% count_total_issues | html %]</td>
+                            <td>[% count_total_issues_returned | html %]</td>
+                            <td>[% count_total_actual_state | html %]</td>
+                        </tr>
+                    </tfoot>
+                    </table>
+                </div> <!-- /.page-section -->
             [% ELSE %]
                 <div class="dialog message">There are no statistics for this patron.</div>
             [% END %]

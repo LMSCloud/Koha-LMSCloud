@@ -1,3 +1,5 @@
+[% USE raw %]
+[% USE Koha %]
 [% USE KohaDates %]
 [% USE Asset %]
 [% SET footerjs = 1 %]
@@ -9,49 +11,41 @@
 </head>
 
 <body id="rep_aggregated_statistics" class="rep">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
-        </li>
-        <li>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/reports/aggregated_statistics.pl">Aggregated statistics</a>
-        </li>
+        [% END %]
         [% IF ( add_form or copy_form) %]
             [% IF ( modify ) %]
-                <li>
-                    Modify statistics
-                </li>
-            [% ELSE %] 
-                <li>
-                    Add statistics
-                </li>
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Modify statistics</span>
+                [% END %]
+            [% ELSE %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Add statistics</span>
+                [% END %]
             [% END %]
         [% ELSE %]
-            [% IF ( add_validate or copy_validate) %] 
-                <li>
-                    Aggregated statistics added
-                <li>
+            [% IF ( delete_confirm ) %] 
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Confirm deletion</span>
+                [% END %]
             [% ELSE %]
-                [% IF ( delete_confirm ) %] 
-                    <li>
-                        Confirm deletion
-                    </li>
-                [% ELSE %]
-                    <li>
-                        Aggregated statistics
-                    <li>
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Aggregated statistics</span>
                 [% END %]
             [% END %]
         [% END %]
-    </ol>
-</nav>
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 
 <div class="main container-fluid">
@@ -187,13 +181,13 @@
                                 </li>
                                 <li>
                                     <label for="startdate" class="required">From:</label>
-                                    <input type="text"  class="datepicker" id="startdate" name="startdate" size="10" maxlength="10" value="[% startdate | $KohaDates %]" required="required" />
+                                    <input type="text"  class="flatpickr" id="startdate" name="startdate" size="10" maxlength="10" value="[% startdate | $KohaDates %]" required="required" />
                                         <span class="hint">[% INCLUDE 'date-format.inc' %]</span>
                                     <span class="required">Required</span>
                                 </li>
                                 <li>
                                     <label for="enddate" class="required">To:</label>
-                                    <input type="text" class="datepicker" id="enddate" name="enddate" size="10" maxlength="10" value="[% enddate | $KohaDates %]" required="required" />
+                                    <input type="text" class="flatpickr" id="enddate" name="enddate" size="10" maxlength="10" value="[% enddate %]" required="required" />
                                         <span class="hint">[% INCLUDE 'date-format.inc' %]</span>
                                     <span class="required">Required</span>
                                 </li>

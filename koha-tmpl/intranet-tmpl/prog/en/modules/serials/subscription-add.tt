@@ -14,49 +14,37 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
 /* Prevents Bootstrap menus from being hidden inside modal */
 #mana_search_result .modal { overflow: visible; }
 #mana_search_result .modal-body { overflow-y: visible; }
+
 fieldset.rows table { clear: none; margin: 0; }
 </style>
 </head>
 
 <body id="ser_subscription-add" class="ser">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'serials-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'serials-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-
-        [% IF blocking_error %]
-            <li>
-                <a href="#" aria-current="page">
-                    Serials
-                </a>
-            </li>
-        [% ELSE %]
-            <li>
+    [% WRAPPER 'sub-header.inc' %]
+        [% WRAPPER breadcrumbs %]
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/serials/serials-home.pl">Serials</a>
-            </li>
-            [% IF ( modify ) %]
-                <li>
-                    <a href="/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=[% subscriptionid | uri %]"><em>[% bibliotitle | html %]</em></a>
-                </li>
-                <li>
-                    <a href="#" aria-current="page">
-                        Modify subscription
-                    </a>
-                </li>
-            [% ELSE %]
-                <li>
-                    <a href="#" aria-current="page">
-                        New subscription
-                    </a>
-                </li>
             [% END %]
-        [% END %]
-    </ol>
-</nav>
+            [% UNLESS ( blocking_error ) %]
+                [% IF ( modify ) %]
+                    [% WRAPPER breadcrumb_item %]
+                        <a href="/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=[% subscriptionid | uri %]"><em>[% bibliotitle | html %]</em></a>
+                    [% END %]
+                    [% WRAPPER breadcrumb_item bc_active= 1 %]
+                        <span>Modify subscription</span>
+                    [% END %]
+                [% ELSE %]
+                    [% WRAPPER breadcrumb_item bc_active= 1 %]
+                        <span>New subscription</span>
+                    [% END %]
+                [% END %]
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
+    [% END #/ WRAPPER sub-header.inc %]
 
 [% INCLUDE 'blocking_errors.inc' %]
 
@@ -85,12 +73,12 @@ fieldset.rows table { clear: none; margin: 0; }
                                 [% END %]
                                 <li>
                                     <label for="aqbooksellerid">Vendor: </label>
-                                    <input type="text" name="aqbooksellerid" id="aqbooksellerid" value="[% aqbooksellerid | html %]" size="8" /> (<input type="text" name="aqbooksellername" id="aqbooksellername" value="[% aqbooksellername | html %]" disabled="disabled" readonly="readonly" />) <a href="#" id="vendor_search"><i class="fa fa-search"></i> Search for a vendor</a>
+                                    <input type="text" name="aqbooksellerid" id="aqbooksellerid" value="[% aqbooksellerid | html %]" size="8" /><input type="text" name="aqbooksellername" id="aqbooksellername" value="[% aqbooksellername | html %]" disabled="disabled" readonly="readonly" /><a href="#" id="vendor_search"><i class="fa fa-search"></i> Search for a vendor</a>
                                 </li>
                                 <li>
                                     <label for="biblionumber" class="required">Record:</label>
                                     <input type="text" name="biblionumber" id="biblionumber" value="[% bibnum | html %]" size="8" />
-                                    (<input type="text" name="title" value="[% bibliotitle | html %]" disabled="disabled" readonly="readonly" />) <span class="required" title="Subscriptions must be associated with a bibliographic record">Required</span>
+                                    <input type="text" name="title" value="[% bibliotitle | html %]" disabled="disabled" readonly="readonly" /><span class="required" title="Subscriptions must be associated with a bibliographic record">Required</span>
                                     <span id="error_bib_not_exist"></span>
                                     <div class="hint">Subscriptions must be associated with a bibliographic record</div>
                                     <div class="inputnote"> <a href="#" id="record_search"><i class="fa fa-search"></i> Search for record</a>
@@ -103,35 +91,32 @@ fieldset.rows table { clear: none; margin: 0; }
                                         [% END %]
                                     </div>
                                 </li>
-                                <li class="radio">
+                                <li>
+                                    <span class="label">When receiving this serial:</span>
                                     [% IF ( serialsadditems ) %]
-                                        <p><input type="radio" id="serialsadditems-yes" name="serialsadditems" value="1" checked="checked" /><label class="widelabel" for="serialsadditems-yes"> Create an item record when receiving this serial</label></p>
-                                        <p><input type="radio" id="serialsadditems-no" name="serialsadditems" value="0" /><label class="widelabel" for="serialsadditems-no"> Do not create an item record when receiving this serial </label></p>
+                                        <input type="radio" id="serialsadditems-yes" name="serialsadditems" value="1" checked="checked" />
+                                        <label class="radio" for="serialsadditems-yes"> Create an item record</label>
+                                        <input type="radio" id="serialsadditems-no" name="serialsadditems" value="0" />
+                                        <label class="radio" for="serialsadditems-no"> Do not create an item record</label>
                                     [% ELSE %]
-                                        <p><input type="radio" id="serialsadditems-yes" name="serialsadditems" value="1"/><label class="widelabel" for="serialsadditems-yes"> Create an item record when receiving this serial</label></p>
-                                        <p><input type="radio" id="serialsadditems-no" name="serialsadditems" value="0" checked="checked" /><label class="widelabel" for="serialsadditems-no"> Do not create an item record when receiving this serial</label></p>
+                                        <input type="radio" id="serialsadditems-yes" name="serialsadditems" value="1"/>
+                                        <label class="radio" for="serialsadditems-yes"> Create an item record</label>
+                                        <input type="radio" id="serialsadditems-no" name="serialsadditems" value="0" checked="checked" />
+                                        <label class="radio" for="serialsadditems-no"> Do not create an item record</label>
                                     [% END %]
                                 </li>
-                                <li class="radio">
-                                  <p>When there is an irregular issue:</p>
+                                <li>
+                                <label for="irregular_issue">When there is an irregular issue:</label>
                                   [% IF (skip_serialseq) %]
-                                    <p>
                                       <input type="radio" id="skip_serialseq_yes" name="skip_serialseq" value="1" checked="checked" />
-                                      <label for="skip_serialseq_yes">Skip issue number</label>
-                                    </p>
-                                    <p>
+                                      <label class="radio" for="skip_serialseq_yes">Skip issue number</label>
                                       <input type="radio" id="skip_serialseq_no" name="skip_serialseq" value="0" />
-                                      <label for="skip_serialseq_no">Keep issue number</label>
-                                    </p>
+                                      <label class="radio" for="skip_serialseq_no">Keep issue number</label>
                                   [% ELSE %]
-                                    <p>
                                       <input type="radio" id="skip_serialseq_yes" name="skip_serialseq" value="1" />
-                                      <label for="skip_serialseq_yes">Skip issue number</label>
-                                    </p>
-                                    <p>
+                                      <label class="radio" for="skip_serialseq_yes">Skip issue number</label>
                                       <input type="radio" id="skip_serialseq_no" name="skip_serialseq" value="0" checked="checked" />
-                                      <label for="skip_serialseq_no">Keep issue number</label>
-                                    </p>
+                                      <label class="radio" for="skip_serialseq_no">Keep issue number</label>
                                   [% END %]
                                 </li>
                                 <li>
@@ -199,7 +184,28 @@ fieldset.rows table { clear: none; margin: 0; }
                                         [% END %]
                                     </select>
                                 </li>
-                                <li>
+                                [% IF serialsadditems %]
+                                <li class="use_items">
+                                [% ELSE %]
+                                <li class="use_items" style="display:none">
+                                [% END %]
+                                    <label for="ccode">Collection:</label>
+                                    <select name="ccode" id="ccode">
+                                        <option value="">None</option>
+                                        [% FOREACH ccode_loo IN ccodes_loop %]
+                                            [% IF ccode_loo.authorised_value == ccode %]
+                                                <option value="[% ccode_loo.authorised_value | html %]" selected="selected">[% ccode_loo.lib | html %]</option>
+                                            [% ELSE %]
+                                                <option value="[% ccode_loo.authorised_value | html %]">[% ccode_loo.lib | html %]</option>
+                                            [% END %]
+                                        [% END %]
+                                    </select>
+                                </li>
+                                [% IF serialsadditems %]
+                                <li class="use_items">
+                                [% ELSE %]
+                                <li class="use_items" style="display:none">
+                                [% END %]
                                     <label for="itemtype">Item type:</label>
                                     <select name="itemtype" id="itemtype">
                                         <option value=""></option>
@@ -227,22 +233,40 @@ fieldset.rows table { clear: none; margin: 0; }
                                     </select>
                                 </li>
                                 [% END %]
-                                    <li>
+                                <li>
                                     <label for="graceperiod">Grace period:</label>
                                     <input type="text" name="graceperiod" id="graceperiod" value="[% graceperiod | html %]" size="5"/> day(s)
                                 </li>
                                 <li>
                                      <label class="widelabel" for="staffdisplaycount">Number of issues to display to staff: </label>
-                                     <input type="text" name="staffdisplaycount" id="staffdisplaycount" value="[% staffdisplaycount | html %]" size="4"/>
+                                     <input type="text" name="staffdisplaycount" id="staffdisplaycount" value="[% staffdisplaycount | html %]" inputmode="numeric" pattern="[0-9]*"  size="4"/>
+                                     <div class="hint">
+                                        Default:
+                                        [% Koha.Preference('StaffSerialIssueDisplayCount') | html %]
+                                        [% IF ( CAN_user_parameters_manage_sysprefs ) %]
+                                            (<a target="_blank" href="/cgi-bin/koha/admin/preferences.pl?tab=&op=search&searchfield=StaffSerialIssueDisplayCount">StaffSerialIssueDisplayCount</a> system preference)
+                                        [% ELSE %]
+                                            (StaffSerialIssueDisplayCount system preference)
+                                        [% END %]
+                                    </div>
                                  </li>
                                  <li>
                                     <label class="widelabel" for="opacdisplaycount">Number of issues to display to the public: </label>
-                                    <input type="text" name="opacdisplaycount" id="opacdisplaycount" value="[% opacdisplaycount | html %]" size="4"/>
+                                    <input type="text" name="opacdisplaycount" id="opacdisplaycount" value="[% opacdisplaycount | html %]" inputmode="numeric" pattern="[0-9]*"  size="4"/>
+                                    <div class="hint">
+                                        Default:
+                                        [% Koha.Preference('OPACSerialIssueDisplayCount') | html %]
+                                        [% IF ( CAN_user_parameters_manage_sysprefs ) %]
+                                            (<a target="_blank" href="/cgi-bin/koha/admin/preferences.pl?tab=&op=search&searchfield=OPACSerialIssueDisplayCount">OPACSerialIssueDisplayCount</a>  system preference)
+                                        [% ELSE %]
+                                            (OPACSerialIssueDisplayCount system preference)
+                                        [% END %]
+                                    </div>
                                 </li>
                             </ol>
                         </fieldset>
                         <fieldset class="action">
-                            <button type="button" id="subscription_add_next" style="float:right;">Next <i class="fa fa-long-arrow-right"></i></button>
+                            <button type="button" class="btn btn-primary" id="subscription_add_next" style="float:right;">Next <i class="fa fa-long-arrow-right"></i></button>
                         </fieldset>
                     </div> <!-- /.col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 -->
                 </div> <!-- /.row#page_1 -->
@@ -263,17 +287,17 @@ fieldset.rows table { clear: none; margin: 0; }
                                     <li>
                                         <label for="acqui_date" class="required">First issue publication date:</label>
                                         [% UNLESS (more_than_one_serial) %]
-                                          <input type="text" size="10" id="acqui_date" name="firstacquidate" value="[% firstacquidate | $KohaDates %]" class="datepicker required" required="required" />
+                                          <input type="text" size="10" id="acqui_date" name="firstacquidate" value="[% firstacquidate | html %]" class="flatpickr required" required="required" />
                                         [% ELSE %]
                                           [% firstacquidate | $KohaDates %]
-                                          <input type="hidden" id="acqui_date" name="firstacquidate" value="[% firstacquidate | $KohaDates %]"/>
+                                          <input type="hidden" id="acqui_date" name="firstacquidate" value="[% firstacquidate | $KohaDates dateformat => 'iso' %]"/>
                                         [% END %]
                                         <span class="required">Required</span>
                                     </li>
                                     [% IF (more_than_one_serial) %]
                                       <li>
                                         <label for="nextacquidate">Next issue publication date:</label>
-                                        <input type="text" size="10" id="nextacquidate" name="nextacquidate" value="[% nextacquidate | $KohaDates %]" class="datepicker" />
+                                        <input type="text" size="10" id="nextacquidate" name="nextacquidate" value="[% nextacquidate | html %]" class="flatpickr" />
                                       </li>
                                     [% END %]
                                     <li>
@@ -327,11 +351,11 @@ fieldset.rows table { clear: none; margin: 0; }
                                     </li>
                                     <li>
                                         <label for="from" class="required"> Subscription start date:</label>
-                                        <input type="text" size="10" id="from" name="startdate" value="[% startdate | $KohaDates %]" class="datepickerfrom required" required="required" />
+                                        <input type="text" size="10" id="from" name="startdate" value="[% startdate | html %]" class="flatpickr required" data-date_to="to" required="required" />
                                     </li>
                                     <li>
                                         <label for="to">Subscription end date:</label>
-                                        <input type="text" size="10" id="to" name="enddate" value="[% enddate | $KohaDates %]" class="datepickerto" />
+                                        <input type="text" size="10" id="to" name="enddate" value="[% enddate | html %]" class="flatpickr" />
                                     </li>
                                     <li>
                                         <label for="numberpattern" class="required">Numbering pattern:</label>
@@ -514,8 +538,8 @@ fieldset.rows table { clear: none; margin: 0; }
                             <input type="hidden" id="unitsperissue"  name="unitsperissue" value=""/>
                             <input type="hidden" id="issuesperunit"  name="issuesperunit" value=""/>
                             <fieldset class="action">
-                                <button type="button" id="subscription_add_previous" style="float:left"><i class="fa fa-long-arrow-left"></i> Previous</button>
-                                <input id="save-subscription" type="submit" value="Save subscription" style="float:right;" accesskey="w"/>
+                                <button type="button" class="btn btn-default" id="subscription_add_previous" style="float:left"><i class="fa fa-long-arrow-left"></i> Previous</button>
+                                <input id="save-subscription" class="btn btn-primary" type="submit" value="Save subscription" style="float:right;" accesskey="w"/>
                             </fieldset>
                         </div>
                     </div>
@@ -524,7 +548,7 @@ fieldset.rows table { clear: none; margin: 0; }
                     </div>
                 </div> <!-- /.row#page_2 -->
             </form>
-        </div>
+        </div><!-- /.main -->
 
         <!-- Mana Search Result Modal -->
         <div class="modal" id="mana_search_result" tabindex="-1" role="dialog" aria-labelledby="mana_search_result_label">
@@ -562,29 +586,6 @@ fieldset.rows table { clear: none; margin: 0; }
         [%- ELSE -%]
             var mana_enabled = 0;
         [%- END -%]
-        var MSG_LINK_TO_VENDOR = _("If you wish to claim late or missing issues you must link this subscription to a vendor. Click OK to ignore or Cancel to return and enter a vendor");
-        var MSG_LINK_BIBLIO = _("You must choose or create a bibliographic record");
-        var MSG_BIBLIO_NOT_EXIST = _("Bibliographic record does not exist!");
-        var MSG_REQUIRED_SUB_LENGTH = _("You must choose a subscription length or an end date.");
-        var MSG_TEST_PREDICTION = _("Please click on 'Test prediction pattern' before saving subscription.");
-        var MSG_REQUIRED_PUB_DATE = _("You must choose a first publication date");
-        var MSG_SAVE_PREDICTION_PATTERN = _("You have modified the advanced prediction pattern. Please save your work or cancel modifications.");
-        var MSG_PATTERN_IRREG = _("Warning! Present pattern has planned irregularities. Click on 'Test prediction pattern' to check if it's still valid");
-        var MSG_PATTERN_NAME = _("Please enter a name for this pattern");
-        var MSG_PATTERN_NAME_EXISTS = _("This pattern name already exists. Do you want to modify it?");
-        var MSG_OVERWRITE_PATTERNS = _("Warning: This will modify the pattern for all subscriptions that are using it.");
-        var MSG_PATTERN_CREATE_FAILED = _("Something went wrong. Unable to create a new numbering pattern.");
-        var MSG_PATTERN_TEST_FAILED = _("Cannot test prediction pattern for the following reason(s): %s");
-        var MSG_FREQUENCY_UNDEFINED = _("Frequency is not defined");
-        var MSG_PUB_DATE_UNDEFINED = _("First publication date is not defined");
-        var MSG_NEXT_ISSUE_UNDEFINED = _("Next issue publication date is not defined");
-        var MSG_MANA_SEARCHING = _("Searching for subscription in Mana Knowledge Base");
-        var MSG_MANA_RESULTS = _("Results from Mana Knowledge Base");
-        var MSG_MANA_SUBSCRIPTION_FOUND = _("Subscription found on Mana Knowledge Base:");
-        var MSG_MANA_SHOW_DETAILS = _("Show Mana results");
-        var MSG_MANA_NO_SUBSCRIPTION_FOUND = _("No subscription found on Mana Knowledge Base");
-        var MSG_MANA_SHARE_PATTERN = _("Please feel free to share your pattern with all others librarians once you are done");
-
         var BOOKSELLER_IDS = [% To.json( bookseller_ids ) || '[]' | html %];
     </script>
     [% Asset.js("js/subscription-add.js") | $raw %]

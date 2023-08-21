@@ -19,9 +19,9 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 
 use Koha::Libraries;
 use Koha::Library::OverDriveInfos;
@@ -55,7 +55,7 @@ if ( $op && $op eq 'update' ) {
     }
 }
 
-my @branches = Koha::Libraries->search();
+my @branches = Koha::Libraries->search->as_list;
 my @branch_od_info;
 foreach my $branch ( @branches ){
     my $od_info =  Koha::Library::OverDriveInfos->find($branch->branchcode);

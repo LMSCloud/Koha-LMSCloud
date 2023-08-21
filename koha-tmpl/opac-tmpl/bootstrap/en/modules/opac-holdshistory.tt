@@ -4,6 +4,10 @@
 [% USE KohaDates %]
 [% USE TablesSettings %]
 [% USE ItemTypes %]
+[% USE AdditionalContents %]
+[% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Your holds history &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
@@ -39,19 +43,19 @@
 [% INCLUDE 'masthead.inc' %]
 
 <div class="main">
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
+    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
+        <ol class="breadcrumb">
             <li class="breadcrumb-item">
                 <a href="/cgi-bin/koha/opac-main.pl">Home</a>
             </li>
             <li class="breadcrumb-item">
                 <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
             </li>
-            <li class="breadcrumb-item" aria-current="page">
-                <a href="#">Your holds history</a>
+            <li class="breadcrumb-item active">
+                <a href="#" aria-current="page">Your holds history</a>
             </li>
-        </ul>
-    </nav>
+        </ol>
+    </nav> <!-- /#breadcrumbs -->
 
     <div class="container-fluid">
         <div class="row">
@@ -65,7 +69,7 @@
                     <h1>Holds history</h1>
 
                     [% IF !holds %]
-                        You have never placed a hold from this library.
+                        No data available
                     [% ELSE %]
                         [% SET show_itemtype_column = Koha.Preference('AllowHoldItemTypeSelection') %]
                         <div id="opac-user-holdsrec">
@@ -114,7 +118,7 @@
                                     <tbody>
                                     [% FOREACH hold IN holds %]
                                         <tr>
-                                        <td><a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% hold.biblio.biblionumber | uri %]">[% INCLUDE 'biblio-title.inc' biblio=hold.biblio %]</a></td>
+                                        <td>[% INCLUDE 'biblio-title.inc' biblio=hold.biblio link=>1 %]</td>
                                         <td>[% hold.biblio.author | html %]</td>
                                         <td>[% hold.item.barcode | html %]</td>
                                         <td>[% Branches.GetName( hold.branchcode ) | html %]</td>
@@ -145,15 +149,19 @@
                                         [% END %]
                                         <td>
                                         [% IF hold.found == 'F' %]
-                                            Fulfilled
+                                            <span>Fulfilled</span>
                                         [% ELSIF hold.cancellationdate %]
-                                            Cancelled
+                                            <span>Cancelled</span>
                                         [% ELSIF hold.found == 'W' %]
-                                            Waiting
+                                            [% IF hold.cancellation_requests.count == 0 %]
+                                                <span>Waiting</span>
+                                            [% ELSE %]
+                                                <span>Cancelled</span>
+                                            [% END %]
                                         [% ELSIF hold.found == 'T' %]
-                                            In transit
+                                            <span>In transit</span>
                                         [% ELSE %]
-                                            Pending
+                                            <span>Pending</span>
                                         [% END %]
                                         </td>
                                         </tr>

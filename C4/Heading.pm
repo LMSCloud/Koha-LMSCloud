@@ -19,12 +19,10 @@ package C4::Heading;
 
 use Modern::Perl;
 
-use MARC::Record;
 use MARC::Field;
 use C4::Context;
-use Module::Load;
-use Carp;
-
+use Module::Load qw( load );
+use List::Util qw( none );
 
 =head1 NAME
 
@@ -196,26 +194,32 @@ sub _search {
     my $self         = shift;
     my $index        = shift || undef;
     my $skipmetadata = shift || undef;
+    my $thesaurus = $self->{thesaurus};
+    my $subject_heading_thesaurus = '';
     my @marclist;
     my @and_or;
     my @excluding = [];
     my @operator;
     my @value;
 
+    my $check_thesaurus = C4::Context->preference('LinkerConsiderThesaurus');
+
+    # FIXME: We specify values for @and_or and @excluding
+    # but these fields are not used anywhere and should be removed
     if ($index) {
         push @marclist, $index;
-        push @and_or,   'and';
+        push @and_or,   'AND';
         push @operator, $self->{'match_type'};
         push @value,    $self->{'search_form'};
     }
 
-    #    if ($self->{'thesaurus'}) {
-    #        push @marclist, 'thesaurus';
-    #        push @and_or, 'and';
-    #        push @excluding, '';
-    #        push @operator, 'is';
-    #        push @value, $self->{'thesaurus'};
-    #    }
+    if ( $check_thesaurus && $thesaurus ) {
+        push @marclist, 'thesaurus';
+        push @and_or, 'and';
+        push @excluding, '';
+        push @operator, 'is';
+        push @value, $thesaurus;
+    }
 
     require Koha::SearchEngine::QueryBuilder;
     require Koha::SearchEngine::Search;
@@ -233,7 +237,32 @@ sub _search {
         \@value,    $self->{'auth_type'},
         'AuthidAsc'
     );
-    return $searcher->search_auth_compat( $search_query, 0, 20, $skipmetadata );
+
+    my ( $matched_auths, $total ) = $searcher->search_auth_compat( $search_query, 0, 20, $skipmetadata );
+    # Some auth records may not contain the 040$f to specify their source
+    # This is legal, so we do a fallback search
+    if (
+           $check_thesaurus
+        && !$total
+        && $thesaurus
+        && none { $_ eq $thesaurus } (
+            'lcsh',         'lcac', 'mesh', 'nal',
+            'notspecified', 'cash', 'rvm',  'sears',
+            'aat'
+        )
+      )
+    {
+        pop @value;
+        push @value, 'notdefined';
+        $search_query =
+          $builder->build_authorities_query_compat( \@marclist, \@and_or,
+            \@excluding, \@operator, \@value, $self->{'auth_type'},
+            'AuthidAsc' );
+        ( $matched_auths, $total ) =
+          $searcher->search_auth_compat( $search_query, 0, 20, $skipmetadata );
+    }
+    return ( $matched_auths, $total );
+
 }
 
 =head1 INTERNAL FUNCTIONS
@@ -247,7 +276,6 @@ depending on the selected MARC flavour.
 
 sub _marc_format_handler {
     my $marcflavour = uc shift;
-    $marcflavour = 'MARC21' if ( $marcflavour eq 'NORMARC' );
     my $pname = "C4::Heading::$marcflavour";
     load $pname;
     return $pname->new();

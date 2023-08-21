@@ -9,10 +9,11 @@
     <meta name="description" content="[% Koha.Preference('OpacMetaDescription') | html %]" />
 [% END %]
 <link rel="shortcut icon" href="[% IF ( Koha.Preference('OpacFavicon') ) %][% Koha.Preference('OpacFavicon') | url %][% ELSE %][% interface | url %]/[% theme | url %]/images/favicon.ico[% END %]" type="image/x-icon" />
+<link rel="apple-touch-icon" href="[% IF ( Koha.Preference('OpacFavicon') ) %][% Koha.Preference('OpacFavicon') | url %][% ELSE %][% interface | url %]/[% theme | url %]/images/favicon.ico[% END %]" type="image/x-icon" />
 [% IF ( bidi ) %]
-    [% Asset.css("lib/jquery/jquery-ui-rtl-1.12.1.min.css") | $raw %]
+    [% Asset.css("lib/jquery/jquery-ui-rtl-1.13.1.min.css") | $raw %]
 [% ELSE %]
-    [% Asset.css("lib/jquery/jquery-ui-1.12.1.min.css") | $raw %]
+    [% Asset.css("lib/jquery/jquery-ui-1.13.1.min.css") | $raw %]
 [% END %]
 [% IF ( Koha.Preference('opaclayoutstylesheet') && Koha.Preference('opaclayoutstylesheet') != "opac.css" ) %]
     [% SET opaclayoutstylesheet = Koha.Preference('opaclayoutstylesheet') %]
@@ -63,6 +64,7 @@
 <script>
     var Koha = {};
     function _(s) { return s } // dummy function for gettext
+    const is_logged_in = [% IF logged_in_user %]true[% ELSE %]false[% END %]
 </script>
 [% IF lang && lang != 'en' %]
     [% Asset.js(lang _ '/js/locale_data.js') | $raw %]
@@ -70,7 +72,6 @@
 [% Asset.js('js/Gettext.js') | $raw %]
 [% Asset.js('js/i18n.js') | $raw %]
 
-[% Asset.js("lib/modernizr.min.js") | $raw %]
 [% Asset.css("lib/font-awesome/css/font-awesome.min.css") | $raw %]
 [% PROCESS 'html_helpers.inc' %]
 [% KohaPlugins.get_plugins_opac_head | $raw %]

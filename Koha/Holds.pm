@@ -19,7 +19,6 @@ package Koha::Holds;
 
 use Modern::Perl;
 
-use Carp;
 
 use Koha::Database;
 
@@ -33,9 +32,22 @@ Koha::Holds - Koha Hold object set class
 
 =head1 API
 
-=head2 Class Methods
+=head2 Class methods
+
+=head3 filter_by_found
+
+    my $found_holds = $holds->filter_by_found;
+
+Returns a filtered resultset without holds that are considered I<found>.
+i.e. 'P', 'T' and 'W'.
 
 =cut
+
+sub filter_by_found {
+    my ($self) = @_;
+
+    return $self->search( { found => [ 'P', 'T', 'W' ] } );
+}
 
 =head3 waiting
 
@@ -47,6 +59,18 @@ sub waiting {
     my ( $self ) = @_;
 
     return $self->search( { found => 'W' } );
+}
+
+=head3 processing
+
+returns a set of holds that are processing from an existing set
+
+=cut
+
+sub processing {
+    my ( $self ) = @_;
+
+    return $self->search( { found => 'P' } );
 }
 
 =head3 unfilled
@@ -86,6 +110,9 @@ sub forced_hold_level {
     my $item_level_count = $self->search( { itemnumber => { '!=' => undef } } )->count();
     return 'item' if $item_level_count > 0;
 
+    my $item_group_level_count = $self->search( { item_group_id => { '!=' => undef } } )->count();
+    return 'item_group' if $item_group_level_count > 0;
+
     my $record_level_count = $self->search( { itemnumber => undef } )->count();
     return 'record' if $record_level_count > 0;
 
@@ -112,39 +139,71 @@ Items that are not:
 sub get_items_that_can_fill {
     my ( $self ) = @_;
 
+    return Koha::Items->new->empty()
+      unless $self->count() > 0;
+
     my @itemnumbers = $self->search({ 'me.itemnumber' => { '!=' => undef } })->get_column('itemnumber');
     my @biblionumbers = $self->search({ 'me.itemnumber' => undef })->get_column('biblionumber');
     my @bibs_or_items;
     push @bibs_or_items, 'me.itemnumber' => { in => \@itemnumbers } if @itemnumbers;
-    push @bibs_or_items, 'biblionumber' => { in => \@biblionumbers } if @biblionumbers;
+    push @bibs_or_items, 'me.biblionumber' => { in => \@biblionumbers } if @biblionumbers;
 
-    my @branchtransfers = map { $_->itemnumber }
-      Koha::Item::Transfers->search(
-          { datearrived => undef },
-          {
-              columns => ['itemnumber'],
-              collapse => 1,
-          }
-      );
-    my @waiting_holds = map { $_->itemnumber }
-      Koha::Holds->search(
-          { 'found' => 'W' },
-          {
-              columns => ['itemnumber'],
-              collapse => 1,
-          }
-      );
+    my @branchtransfers = Koha::Item::Transfers->filter_by_current->search({}, {
+            columns  => ['itemnumber'],
+            collapse => 1,
+        }
+    )->get_column('itemnumber');
+    my @waiting_holds = Koha::Holds->search(
+        { 'found' => 'W' },
+        {
+            columns  => ['itemnumber'],
+            collapse => 1,
+        }
+    )->get_column('itemnumber');
 
     return Koha::Items->search(
         {
             -or => \@bibs_or_items,
             itemnumber   => { -not_in => [ @branchtransfers, @waiting_holds ] },
             onloan       => undef,
+            notforloan   => 0,
         }
     )->filter_by_for_hold();
 }
 
-=head3 type
+=head3 filter_by_has_cancellation_requests
+
+    my $with_cancellation_reqs = $holds->filter_by_has_cancellation_requests;
+
+Returns a filtered resultset only containing holds that have cancellation requests.
+
+=cut
+
+sub filter_by_has_cancellation_requests {
+    my ($self) = @_;
+
+    return $self->search( { 'hold_cancellation_request_id' => { '!=' => undef } },
+        { join => 'cancellation_requests' } );
+}
+
+=head3 filter_out_has_cancellation_requests
+
+    my $holds_without_cancellation_requests = $holds->filter_out_has_cancellation_requests;
+
+Returns a filtered resultset without holds with cancellation requests.
+
+=cut
+
+sub filter_out_has_cancellation_requests {
+    my ($self) = @_;
+
+    return $self->search( { 'hold_cancellation_request_id' => { '=' => undef } },
+        { join => 'cancellation_requests' } );
+}
+
+=head2 Internal methods
+
+=head3 _type
 
 =cut
 

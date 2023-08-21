@@ -19,13 +19,13 @@ use Modern::Perl;
 
 use Koha::Script;
 use C4::Context;
-use Getopt::Long;
-use Fcntl qw(:flock);
-use File::Temp qw/ tempdir /;
-use File::Path;
-use C4::Biblio;
-use C4::AuthoritiesMarc;
-use C4::Items;
+use Getopt::Long qw( GetOptions );
+use Fcntl qw( LOCK_EX LOCK_NB LOCK_UN );
+use File::Temp qw( tempdir );
+use File::Path qw( mkpath rmtree );
+use C4::Biblio qw( GetXmlBiblio );
+use C4::AuthoritiesMarc qw( GetAuthority GetAuthorityXML );
+use C4::Items qw( Item2Marc );
 use Koha::RecordProcessor;
 use Koha::Caches;
 use XML::LibXML;
@@ -509,12 +509,14 @@ sub export_marc_records_from_sth {
                           ? GetXmlBiblio( $record_number )
                           : GetAuthorityXML( $record_number );
             if ($record_type eq 'biblio'){
-                my @items = GetItemsInfo($record_number);
-                if (@items){
+                my $biblio = Koha::Biblios->find($record_number);
+                next unless $biblio;
+                my $items = $biblio->items;
+                if ($items->count){
                     my $record = MARC::Record->new;
                     $record->encoding('UTF-8');
                     my @itemsrecord;
-                    foreach my $item (@items){
+                    for my $item ( @{$items->unblessed} ) {
                         my $record = Item2Marc($item, $record_number);
                         push @itemsrecord, $record->field($itemtag);
                     }
@@ -678,7 +680,10 @@ sub get_raw_marc_record {
 
     my $marc;
     if ($record_type eq 'biblio') {
-        eval { $marc = C4::Biblio::GetMarcBiblio({ biblionumber => $record_number, embed_items => 1 }); };
+        eval {
+            my $biblio = Koha::Biblios->find($record_number);
+            $marc = $biblio->metadata->record({ embed_items => 1 });
+        };
         if ($@ || !$marc) {
             # here we do warn since catching an exception
             # means that the bib was found but failed

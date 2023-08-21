@@ -2,6 +2,7 @@
 [% USE Asset %]
 [% USE AuthorisedValues %]
 [% USE KohaDates %]
+[% USE Koha %]
 [%- USE Branches -%]
 [%- USE Price -%]
 [%- USE ItemTypes -%]
@@ -9,7 +10,8 @@
 [%- USE TablesSettings -%]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Items overdue as of [% todaysdate | html %] &rsaquo; Circulation &rsaquo; Koha</title>
+[% PROCESS 'modal-claims.inc' %]
+<title>Items overdue as of [% todaysdate | $KohaDates %] &rsaquo; Circulation &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% FILTER collapse %]
     <style>
@@ -29,24 +31,20 @@
 </head>
 
 <body id="circ_overdue" class="circ">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'circ-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Overdues as of [% todaysdate | html %]
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Overdues as of [% todaysdate | $KohaDates %]</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -54,13 +52,13 @@
             <main>
 
 [% IF ( noreport ) %]
-  <h2>Overdue report</h2>
+  <h1>Overdue report</h1>
   <p>Please choose one or more filters to proceed.</p>
 [% ELSE %]
 
 [% IF ( overdueloop ) %]
 
-  <h2>[% nnoverdue | html %] [% IF ( noverdue_is_plural ) %]Items[% ELSE %]Item[% END %] overdue as of [% todaysdate | html %][% IF ( isfiltered ) %] <span style="font-size:70%;">(Filtered. <a href="/cgi-bin/koha/circ/overdue.pl">Reset filter</a>)</span>[% END %]</h2>
+  <h2>[% nnoverdue | html %] [% IF ( noverdue_is_plural ) %]Items[% ELSE %]Item[% END %] overdue as of [% todaysdate | $KohaDates %][% IF ( isfiltered ) %] <span style="font-size:70%;">(Filtered. <a href="/cgi-bin/koha/circ/overdue.pl">Reset filter</a>)</span>[% END %]</h2>
 
   <p>
     [% IF ( isfiltered ) %]
@@ -75,7 +73,7 @@
   </p>
 
   <div class="sql"><pre>[% sql | html %]</pre></div>
-  <div class="searchresults">
+  <div class="page-section searchresults">
     <table id="overduest">
       <thead>
         <tr>
@@ -86,18 +84,22 @@
           <th class="anti-the">Title</th>
           <th>Home library</th>
           <th>Holding library</th>
+          <th>Shelving location</th>
           <th>Barcode</th>
           <th>Call number</th>
           <th>Item type</th>
           <th>Price</th>
           <th>Non-public note</th>
+          [% IF Koha.Preference('ClaimReturnedLostValue') %]
+            <th>Return claims</th>
+          [% END %]
         </tr>
       </thead>
       [%- BLOCK subject -%]Overdue:[%- END -%]
       <tbody>
       [% FOREACH overdueloo IN overdueloop %]
         <tr>
-          <td data-order="[% overdueloo.duedate | html %]">[% overdueloo.duedate | $KohaDates %]</td>
+          <td data-order="[% overdueloo.duedate | html %]"><span class='overdue'>[% overdueloo.duedate | $KohaDates %]</span></td>
           <td>
             [% INCLUDE 'patron-title.inc' patron=overdueloo.patron hide_patron_infos_if_needed=1 %]
             [% IF logged_in_user.can_see_patron_infos( overdueloo.patron ) %]
@@ -110,20 +112,35 @@
           <td>[% INCLUDE 'biblio-title.inc' biblio=overdueloo link = 1 %] [% IF ( overdueloo.author ) %], by [% overdueloo.author | html %][% END %][% IF ( overdueloo.enumchron ) %], [% overdueloo.enumchron | html %][% END %]</td>
             <td>[% Branches.GetName( overdueloo.homebranchcode ) | html %]</td>
             <td>[% Branches.GetName( overdueloo.holdingbranchcode ) | html %]</td>
+            <td>[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => overdueloo.location ) | html %]</td>
           <td><a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% overdueloo.biblionumber | uri %]&amp;itemnumber=[% overdueloo.itemnum | uri %]#item[% overdueloo.itemnum | uri %]">[% overdueloo.barcode | html %]</a></td>
           <td>[% overdueloo.itemcallnumber | html %]</td>
             <td>[% ItemTypes.GetDescription( overdueloo.itemtype ) | html %]</td>
           <td>[% overdueloo.replacementprice | $Price %]</td>
           <td>[% overdueloo.itemnotes_nonpublic | html %]</td>
+          [% IF Koha.Preference('ClaimReturnedLostValue') %]
+            <td>
+              [% IF ( overdueloo.return_claim_created_on ) %]
+                <span class="badge">[% overdueloo.return_claim_created_on | $KohaDates with_hours => 1 %]</span>
+              [% ELSE %]
+                <a class="btn btn-default btn-xs claim-returned-btn" data-itemnumber=[% overdueloo.itemnum | html %]>
+                    <i class="fa fa-exclamation-circle"></i> Claim returned
+                </a>
+              [% END %]
+            </td>
+          [% END %]
         </tr>
       [% END %]
       </tbody>
     </table>
   </div>
 
+ <!-- Claims Returned Modal -->
+ [% PROCESS 'modal-claims-display' %]
+
 [% ELSE %]
 
-  <h2>Overdue report</h2>
+  <h1>Overdue report</h1>
   [% IF ( isfiltered ) %]
     <p>There are no overdues matching your search. <a href="/cgi-bin/koha/circ/overdue.pl">Reset filter</a></p>
   [% ELSE %]
@@ -155,11 +172,11 @@
 
             <li class="date_due_filter">
                 <label for="from">From:</label>
-                <input type="text" id="from" name="dateduefrom" size="10" value="[% filters.dateduefrom | $KohaDates %]" class="datepickerfrom" />
+                <input type="text" id="from" name="dateduefrom" size="10" value="[% filters.dateduefrom | html %]" class="flatpickr" data-date_to="to" />
             </li>
             <li class="date_due_filter">
                 <label for="to">To:</label>
-                <input type="text" id="to" name="datedueto" size="10" value="[% filters.datedueto | $KohaDates %]" class="datepickerto" />
+                <input type="text" id="to" name="datedueto" size="10" value="[% filters.datedueto | html %]" class="flatpickr" />
             </li>
         </ol>
     </fieldset>
@@ -248,11 +265,11 @@
     </li>
 
 </ol>
-   <fieldset class="action">
-      <input type="submit" value="Apply filter" class="submit" />
-      <input type="hidden" name="op" value="apply filter" />
    </fieldset>
-   </fieldset>
+    <fieldset class="action">
+        <input type="submit" class="btn btn-primary" value="Apply filter" />
+        <input type="hidden" name="op" value="apply filter" />
+    </fieldset>
   </form>
 
             </aside>
@@ -264,6 +281,8 @@
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'columns_settings.inc' %]
     [% INCLUDE 'select2.inc' %]
+    [% INCLUDE 'js-date-format.inc' %]
+    [% PROCESS 'modal-claims-js' %]
     <script>
         function clone_input( node, original_id ) {
             var original = node;
@@ -295,13 +314,17 @@
         }
 
         $(document).ready(function(){
-            var columns_settings = [% TablesSettings.GetColumns( 'circ', 'overdues', 'circ-overdues', 'json' ) | $raw %];
+            var table_settings = [% TablesSettings.GetTableSettings( 'circ', 'overdues', 'circ-overdues', 'json' ) | $raw %];
+
+            [% IF !Koha.Preference('ClaimReturnedLostValue') %]
+                table_settings['columns'].splice(13, 1);
+            [% END %]
+
             KohaTable("overduest", {
                 "sPaginationType": "full",
-                "aaSorting": [[0, 'asc']],
                 "autoWidth": false,
                 "stateSave": true
-            }, columns_settings);
+            }, table_settings);
 
             $("#showall").on("change", function(){
                 update_date_due_filters_visibility();

@@ -1,0 +1,60 @@
+---
+"/rotas/{rota_id}/stages/{stage_id}/position":
+  put:
+    x-mojo-to: Stage#move
+    operationId: moveStage
+    summary: Update stage
+    tags:
+      - rotas
+    parameters:
+      - name: rota_id
+        in: path
+        required: true
+        description: A rotas ID
+        type: integer
+      - name: stage_id
+        in: path
+        required: true
+        description: A stages ID
+        type: integer
+      - name: position
+        in: body
+        required: true
+        description: A stages position in the rota
+        schema:
+          type: integer
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: OK
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Position not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        stockrotation: "1"

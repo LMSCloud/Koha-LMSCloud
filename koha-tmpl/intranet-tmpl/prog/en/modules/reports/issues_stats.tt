@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
@@ -9,44 +10,38 @@
 </head>
 
 <body id="rep_issues_stats" class="rep">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
-        </li>
-        [% IF ( do_it ) %]
-            <li>
-                <a href="/cgi-bin/koha/reports/issues_stats.pl">Circulation statistics</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Results
-                </a>
-            </li>
-        [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Circulation statistics
-                </a>
-            </li>
         [% END %]
-    </ol>
-</nav>
+        [% IF ( do_it ) %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/reports/issues_stats.pl">Circulation statistics</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Results</span>
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Circulation statistics</span>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
         <div class="col-sm-10 col-sm-push-2">
             <main>
 
+<h1>Circulation statistics</h1>
 [% IF ( do_it ) %]
     [% FOREACH mainloo IN mainloop %]
-        <h1>Circulation statistics</h1>
         [% IF ( mainloo.loopfilter ) %]
             <p>Filtered on:</p>
             <ul>
@@ -59,24 +54,23 @@
                     <li>
                 [% END %]
                 [% SWITCH loopfilte.crit %]
-                    [% CASE 0 %]Period from
-                    [% CASE 1 %]Period to
-                    [% CASE 2 %]Patron category =
-                    [% CASE 3 %]Item type =
-                    [% CASE 4 %]Issuing library =
-                    [% CASE 5 %]Collection =
-                    [% CASE 6 %]Location =
-                    [% CASE 7 %]Item call number &gt;=
-                    [% CASE 8 %]Item call number &lt;
-                    [% CASE 9 %]Patron sort1 =
-                    [% CASE 10 %]Patron sort2 =
-                    [% CASE 11 %]Home library =
-                    [% CASE 12 %]Holding library =
-                    [% CASE 13 %]Patron library =
-                    [% CASE 14 %]Issuing library =
-                    [% CASE %][% loopfilte.crit | html %] =
+                    [% CASE 0 %]<span>Period from [% loopfilte.filter | html %]</span>
+                    [% CASE 1 %]<span>Period to [% loopfilte.filter | html %]</span>
+                    [% CASE 2 %]<span>Patron category = [% loopfilte.filter | html %]</span>
+                    [% CASE 3 %]<span>Item type = [% loopfilte.filter | html %]</span>
+                    [% CASE 4 %]<span>Issuing library = [% loopfilte.filter | html %]</span>
+                    [% CASE 5 %]<span>Collection = [% loopfilte.filter | html %]</span>
+                    [% CASE 6 %]<span>Location = [% loopfilte.filter | html %]</span>
+                    [% CASE 7 %]<span>Item call number &gt;= [% loopfilte.filter | html %]</span>
+                    [% CASE 8 %]<span>Item call number &lt; [% loopfilte.filter | html %]</span>
+                    [% CASE 9 %]<span>Patron sort1 = [% loopfilte.filter | html %]</span>
+                    [% CASE 10 %]<span>Patron sort2 = [% loopfilte.filter | html %]</span>
+                    [% CASE 11 %]<span>Home library = [% loopfilte.filter | html %]</span>
+                    [% CASE 12 %]<span>Holding library = [% loopfilte.filter | html %]</span>
+                    [% CASE 13 %]<span>Patron library = [% loopfilte.filter | html %]</span>
+                    [% CASE 14 %]<span>Issuing library = [% loopfilte.filter | html %]</span>
+                    [% CASE %]<span>[% loopfilte.crit | html %] = [% loopfilte.filter | html %]</span>
                 [% END %]
-                [% loopfilte.filter | html %]
 				</li>
             [% END %]
             </ul>
@@ -126,11 +120,14 @@
                 <td>Period</td>
                 <td><input type="radio" name="Line" value="datetime" /></td>
                 <td><input type="radio" name="Column" value="datetime" /></td>
-                <td><label for="from">From</label> <input type="text" size="10" id="from" name="Filter" class="datepickerfrom" />
-                    <label for="to">To</label> <input size="10" id="to" name="Filter" value="" type="text" class="datepickerto" />
+                <td>
+                    <label for="from">From</label>
+                    <input type="text" size="10" id="from" name="Filter" class="flatpickr" data-date_to="to" />
+                    <label for="to">To</label>
+                    <input size="10" id="to" name="Filter" value="" type="text" class="flatpickr" />
                     <span class="hint">[% INCLUDE 'date-format.inc' %]</span>
-                    </td>
-                </tr>
+                </td>
+            </tr>
             <tr>
                 <td><label for="PeriodTypeSel">Type:</label><select name="PeriodTypeSel" id="PeriodTypeSel">
                     <option value ="issue">Checkout</option>
@@ -383,7 +380,7 @@
 	</fieldset>
 
 	<fieldset class="action">
-	<input type="submit" value="Submit" />
+    <input type="submit" class="btn btn-primary" value="Submit" />
 	<input type="hidden" name="report_name" value="[% report_name | html %]" />
 	<input type="hidden" name="do_it" value="1" />
 	</fieldset>

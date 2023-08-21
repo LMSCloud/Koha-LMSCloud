@@ -9,8 +9,7 @@ const os = require('os');
 const path = require('path');
 const util = require('util');
 
-const sass = require("gulp-sass");
-const cssnano = require("gulp-cssnano");
+const sass = require('gulp-sass')(require('sass'));
 const rtlcss = require('gulp-rtlcss');
 const sourcemaps = require('gulp-sourcemaps');
 const autoprefixer = require('gulp-autoprefixer');
@@ -22,26 +21,23 @@ const Vinyl = require('vinyl');
 const args = require('minimist')(process.argv.slice(2));
 const rename = require('gulp-rename');
 
-const STAFF_JS_BASE = "koha-tmpl/intranet-tmpl/prog/js";
 const STAFF_CSS_BASE = "koha-tmpl/intranet-tmpl/prog/css";
-const OPAC_JS_BASE = "koha-tmpl/opac-tmpl/bootstrap/js";
 const OPAC_CSS_BASE = "koha-tmpl/opac-tmpl/bootstrap/css";
 
-if (args.view == "opac") {
-    var css_base = OPAC_CSS_BASE;
-    var js_base = OPAC_JS_BASE;
-} else {
-    var css_base = STAFF_CSS_BASE;
-    var js_base = STAFF_JS_BASE;
-}
+var CSS_BASE = args.view == "opac"
+    ? OPAC_CSS_BASE
+    : STAFF_CSS_BASE;
 
 var sassOptions = {
-    errLogToConsole: true,
-    precision: 3
+    includePaths: [
+        __dirname + '/node_modules',
+        __dirname + '/../node_modules'
+    ]
 }
 
 // CSS processing for development
-function css() {
+function css(css_base) {
+    css_base = css_base || CSS_BASE
     var stream = src(css_base + "/src/**/*.scss")
         .pipe(sourcemaps.init())
         .pipe(sass(sassOptions).on('error', sass.logError))
@@ -63,15 +59,13 @@ function css() {
     return stream;
 
 }
-
 // CSS processing for production
-function build() {
+function build(css_base) {
+    css_base = css_base || CSS_BASE;
+    sassOptions.outputStyle = "compressed";
     var stream = src(css_base + "/src/**/*.scss")
         .pipe(sass(sassOptions).on('error', sass.logError))
         .pipe(autoprefixer())
-        .pipe(cssnano({
-            zindex: false
-        }))
         .pipe(dest(css_base));
 
     if( args.view == "opac" ){
@@ -85,16 +79,19 @@ function build() {
     return stream;
 }
 
+function opac_css(){
+    return css(OPAC_CSS_BASE);
+}
+
+function staff_css(){
+    return css(STAFF_CSS_BASE);
+}
+
 const poTasks = {
     'marc-MARC21': {
         extract: po_extract_marc_marc21,
         create: po_create_marc_marc21,
         update: po_update_marc_marc21,
-    },
-    'marc-NORMARC': {
-        extract: po_extract_marc_normarc,
-        create: po_create_marc_normarc,
-        update: po_update_marc_normarc,
     },
     'marc-UNIMARC': {
         extract: po_extract_marc_unimarc,
@@ -136,6 +133,11 @@ const poTasks = {
         create: po_create_installer_marc21,
         update: po_update_installer_marc21,
     },
+    'installer-UNIMARC': {
+        extract: po_extract_installer_unimarc,
+        create: po_create_installer_unimarc,
+        update: po_update_installer_unimarc,
+    },
 };
 
 const poTypes = Object.keys(poTasks);
@@ -147,7 +149,6 @@ function po_extract_marc (type) {
 }
 
 function po_extract_marc_marc21 ()  { return po_extract_marc('MARC21') }
-function po_extract_marc_normarc () { return po_extract_marc('NORMARC') }
 function po_extract_marc_unimarc () { return po_extract_marc('UNIMARC') }
 
 function po_extract_staff () {
@@ -155,12 +156,9 @@ function po_extract_staff () {
         'koha-tmpl/intranet-tmpl/prog/en/**/*.tt',
         'koha-tmpl/intranet-tmpl/prog/en/**/*.inc',
         'koha-tmpl/intranet-tmpl/prog/en/xslt/*.xsl',
-        'koha-tmpl/intranet-tmpl/prog/en/columns.def',
         '!koha-tmpl/intranet-tmpl/prog/en/**/*MARC21*',
-        '!koha-tmpl/intranet-tmpl/prog/en/**/*NORMARC*',
         '!koha-tmpl/intranet-tmpl/prog/en/**/*UNIMARC*',
         '!koha-tmpl/intranet-tmpl/prog/en/**/*marc21*',
-        '!koha-tmpl/intranet-tmpl/prog/en/**/*normarc*',
         '!koha-tmpl/intranet-tmpl/prog/en/**/*unimarc*',
     ];
 
@@ -175,10 +173,8 @@ function po_extract_opac () {
         'koha-tmpl/opac-tmpl/bootstrap/en/**/*.inc',
         'koha-tmpl/opac-tmpl/bootstrap/en/xslt/*.xsl',
         '!koha-tmpl/opac-tmpl/bootstrap/en/**/*MARC21*',
-        '!koha-tmpl/opac-tmpl/bootstrap/en/**/*NORMARC*',
         '!koha-tmpl/opac-tmpl/bootstrap/en/**/*UNIMARC*',
         '!koha-tmpl/opac-tmpl/bootstrap/en/**/*marc21*',
-        '!koha-tmpl/opac-tmpl/bootstrap/en/**/*normarc*',
         '!koha-tmpl/opac-tmpl/bootstrap/en/**/*unimarc*',
     ];
 
@@ -190,10 +186,13 @@ function po_extract_opac () {
 const xgettext_options = '--from-code=UTF-8 --package-name Koha '
     + '--package-version= -k -k__ -k__x -k__n:1,2 -k__nx:1,2 -k__xn:1,2 '
     + '-k__p:1c,2 -k__px:1c,2 -k__np:1c,2,3 -k__npx:1c,2,3 -kN__ '
-    + '-kN__n:1,2 -kN__p:1c,2 -kN__np:1c,2,3 --force-po';
+    + '-kN__n:1,2 -kN__p:1c,2 -kN__np:1c,2,3 '
+    + '-k -k$__ -k$__x -k$__n:1,2 -k$__nx:1,2 -k$__xn:1,2 '
+    + '--force-po';
 
 function po_extract_messages_js () {
     const globs = [
+        'koha-tmpl/intranet-tmpl/prog/js/vue/**/*.vue',
         'koha-tmpl/intranet-tmpl/prog/js/**/*.js',
         'koha-tmpl/opac-tmpl/bootstrap/js/**/*.js',
     ];
@@ -252,6 +251,8 @@ function po_extract_installer_marc (type) {
 
 function po_extract_installer_marc21 ()  { return po_extract_installer_marc('MARC21') }
 
+function po_extract_installer_unimarc ()  { return po_extract_installer_marc('UNIMARC') }
+
 function po_create_type (type) {
     const access = util.promisify(fs.access);
     const exec = util.promisify(child_process.exec);
@@ -272,7 +273,6 @@ function po_create_type (type) {
 }
 
 function po_create_marc_marc21 ()       { return po_create_type('marc-MARC21') }
-function po_create_marc_normarc ()      { return po_create_type('marc-NORMARC') }
 function po_create_marc_unimarc ()      { return po_create_type('marc-UNIMARC') }
 function po_create_staff ()             { return po_create_type('staff-prog') }
 function po_create_opac ()              { return po_create_type('opac-bootstrap') }
@@ -281,6 +281,7 @@ function po_create_messages ()          { return po_create_type('messages') }
 function po_create_messages_js ()       { return po_create_type('messages-js') }
 function po_create_installer ()         { return po_create_type('installer') }
 function po_create_installer_marc21 ()  { return po_create_type('installer-MARC21') }
+function po_create_installer_unimarc () { return po_create_type('installer-UNIMARC') }
 
 function po_update_type (type) {
     const msgmerge_opts = '--backup=off --quiet --sort-output --update';
@@ -294,7 +295,6 @@ function po_update_type (type) {
 }
 
 function po_update_marc_marc21 ()       { return po_update_type('marc-MARC21') }
-function po_update_marc_normarc ()      { return po_update_type('marc-NORMARC') }
 function po_update_marc_unimarc ()      { return po_update_type('marc-UNIMARC') }
 function po_update_staff ()             { return po_update_type('staff-prog') }
 function po_update_opac ()              { return po_update_type('opac-bootstrap') }
@@ -303,6 +303,7 @@ function po_update_messages ()          { return po_update_type('messages') }
 function po_update_messages_js ()       { return po_update_type('messages-js') }
 function po_update_installer ()         { return po_update_type('installer') }
 function po_update_installer_marc21 ()  { return po_update_type('installer-MARC21') }
+function po_update_installer_unimarc () { return po_update_type('installer-UNIMARC') }
 
 /**
  * Gulp plugin that executes xgettext-like command `cmd` on all files given as
@@ -369,13 +370,15 @@ function getLanguages () {
     return Array.from(new Set(languages));
 }
 
-exports.build = build;
-exports.css = css;
+exports.build = function(next){build(); next();};
+exports.css = function(next){css(); next();};
+exports.opac_css = opac_css;
+exports.staff_css = staff_css;
+exports.watch = function () {
+    watch(OPAC_CSS_BASE + "/src/**/*.scss", series('opac_css'));
+    watch(STAFF_CSS_BASE + "/src/**/*.scss", series('staff_css'));
+};
 
 exports['po:create'] = parallel(...poTypes.map(type => series(poTasks[type].extract, poTasks[type].create)));
 exports['po:update'] = parallel(...poTypes.map(type => series(poTasks[type].extract, poTasks[type].update)));
 exports['po:extract'] = parallel(...poTypes.map(type => poTasks[type].extract));
-
-exports.default = function () {
-    watch(css_base + "/src/**/*.scss", series('css'));
-}

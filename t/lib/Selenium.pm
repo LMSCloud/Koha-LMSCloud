@@ -18,8 +18,6 @@ package t::lib::Selenium;
 
 use Modern::Perl;
 use Carp qw( croak );
-use JSON qw( from_json );
-use File::Slurp qw( write_file );
 
 use C4::Context;
 
@@ -49,7 +47,7 @@ sub new {
     );
     bless $self, $class;
     $self->add_error_handler;
-    $self->driver->set_implicit_wait_timeout(5000);
+    $self->driver->set_implicit_wait_timeout(10000);
     return $self;
 }
 
@@ -121,7 +119,7 @@ sub fill_form {
         if ( $tag eq 'input' ) {
             $self->driver->find_element('//input[@id="'.$id.'"]')->send_keys($value);
         } elsif ( $tag eq 'select' ) {
-            $self->driver->find_element('//select[@id="'.$id.'"]/option[@value="'.$value.'"]')->click;
+            $self->driver->find_element('//select[@id="'.$id.'"]//option[@value="'.$value.'"]')->click;
         }
     }
 }
@@ -129,8 +127,19 @@ sub fill_form {
 sub submit_form {
     my ( $self ) = @_;
 
+    # If there is only one submit element on the page we use it
+    my @submit_elements = $self->driver->find_elements('//input[@type="submit"]');
+    if ( @submit_elements == 1 ) {
+        $self->click_when_visible('//input[@type="submit"]');
+        return;
+    }
+
     my $default_submit_selector = '//fieldset[@class="action"]/input[@type="submit"]';
-    $self->driver->find_element($default_submit_selector)->click
+    my @elts = map { my $size = $_->get_size; ( $size->{height} && $size->{width} ) ? $_ : () } $self->driver->find_elements($default_submit_selector);
+
+    die "Too many forms are displayed. Cannot submit." if @elts > 1;
+
+    return $elts[0]->click;
 }
 
 sub click {
@@ -182,6 +191,39 @@ sub wait_for_element_visible {
     }
     $self->add_error_handler;
     return $elt;
+}
+
+sub wait_for_ajax {
+    my ( $self ) = @_;
+
+    my $is_ready;
+    my $max_retries = $self->max_retries;
+    my $i;
+    while ( not $is_ready ) {
+        $is_ready = $self->driver->execute_script('return jQuery.active == 0');
+        $self->driver->pause(1000) unless $is_ready;
+
+        die "Cannot wait more for jQuery to be active (wait_for_ajax)"
+            if $max_retries <= ++$i
+    }
+}
+
+sub get_next_alert_text {
+    my ( $self ) = @_;
+
+    my $alert_text;
+    my $max_retries = $self->max_retries;
+    my $i;
+    $self->remove_error_handler;
+    while ( not $alert_text ) {
+        $alert_text = eval { $self->driver->get_alert_text };
+        $self->driver->pause(1000) unless $alert_text;
+
+        die "Cannot wait more for next alert (get_next_alert)"
+          if $max_retries <= ++$i;
+    }
+    $self->add_error_handler;
+    return $alert_text;
 }
 
 sub show_all_entries {

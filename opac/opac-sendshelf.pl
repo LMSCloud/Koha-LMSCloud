@@ -20,15 +20,18 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use Encode qw( encode );
-use Carp;
-use Try::Tiny;
+use Encode;
+use Carp qw( carp );
+use Try::Tiny qw( catch try );
 
-use C4::Auth;
-use C4::Biblio;
-use C4::Items;
-use C4::Output;
-use C4::Members;
+use C4::Auth qw( get_template_and_user );
+use C4::Biblio qw(
+    GetFrameworkCode
+    GetMarcISBN
+    GetMarcSubjects
+);
+use C4::Output qw( output_html_with_http_headers );
+use Koha::Biblios;
 use Koha::Email;
 use Koha::Patrons;
 use Koha::Virtualshelves;
@@ -52,12 +55,9 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user (
 my $shelfid = $query->param('shelfid');
 my $email   = $query->param('email');
 
-my $dbh          = C4::Context->dbh;
-
 my $shelf = Koha::Virtualshelves->find( $shelfid );
 if ( $shelf and $shelf->can_be_viewed( $borrowernumber ) ) {
-
-if ( $email ) {
+  if ( $email ) {
     my $comment    = $query->param('comment');
 
     my ( $template2, $borrowernumber, $cookie ) = get_template_and_user(
@@ -70,7 +70,6 @@ if ( $email ) {
     );
 
     my $patron = Koha::Patrons->find( $borrowernumber );
-    my $borcat = $patron ? $patron->categorycode : q{};
 
     my $shelf = Koha::Virtualshelves->find( $shelfid );
     my $contents = $shelf->get_contents;
@@ -80,26 +79,32 @@ if ( $email ) {
 
     while ( my $content = $contents->next ) {
         my $biblionumber = $content->biblionumber;
-        my $record           = GetMarcBiblio({
-            biblionumber => $biblionumber,
-            embed_items  => 1,
-            opac         => 1,
-            borcat       => $borcat });
+        my $biblio       = Koha::Biblios->find( $biblionumber ) or next;
+        my $dat          = $biblio->unblessed;
+        my $record = $biblio->metadata->record(
+            {
+                embed_items => 1,
+                opac        => 1,
+                patron      => $patron,
+            }
+        );
         next unless $record;
         my $fw               = GetFrameworkCode($biblionumber);
-        my $dat              = GetBiblioData($biblionumber);
 
-        my $marcauthorsarray = GetMarcAuthors( $record, $marcflavour );
+        my $marcauthorsarray = $biblio->get_marc_contributors;
         my $marcsubjctsarray = GetMarcSubjects( $record, $marcflavour );
 
-        my @items = GetItemsInfo( $biblionumber );
+        my $items = $biblio->items->search_ordered->filter_by_visible_in_opac({ patron => $patron });
 
         $dat->{ISBN}           = GetMarcISBN($record, $marcflavour);
         $dat->{MARCSUBJCTS}    = $marcsubjctsarray;
         $dat->{MARCAUTHORS}    = $marcauthorsarray;
         $dat->{'biblionumber'} = $biblionumber;
-        $dat->{ITEM_RESULTS}   = \@items;
+        $dat->{ITEM_RESULTS}   = $items;
         $dat->{HASAUTHORS}     = $dat->{'author'} || @$marcauthorsarray;
+        my ( $host, $relatedparts ) = $biblio->get_marc_host;
+        $dat->{HOSTITEMENTRIES} = $host;
+        $dat->{RELATEDPARTS} = $relatedparts;
 
         $iso2709 .= $record->as_usmarc();
 
@@ -174,14 +179,12 @@ END_OF_BODY
     );
     output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
 
-
-}else{
+  } else {
     $template->param( shelfid => $shelfid,
                       url     => "/cgi-bin/koha/opac-sendshelf.pl",
                     );
     output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
-}
-
+  }
 } else {
     $template->param( invalidlist => 1,
                       url     => "/cgi-bin/koha/opac-sendshelf.pl",

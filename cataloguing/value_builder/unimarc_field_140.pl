@@ -22,21 +22,22 @@ use strict;
 #use warnings; FIXME - Bug 2505
 
 use Koha::Util::FrameworkPlugin qw(wrapper);
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use CGI qw ( -utf8 );
 use C4::Context;
 
 use C4::Search;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 
 sub plugin_javascript {
-my ($dbh,$record,$tagslib,$field_number,$tabloop) = @_;
+my ($dbh,$record,$tagslib,$field_number) = @_;
 my $function_name= $field_number;
 my $res="
 <script>
-function Clic$function_name(i) {
-	defaultvalue=document.getElementById(\"$field_number\").value;
-	newin=window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_140.pl&index=$field_number&result=\"+defaultvalue,\"unimarc_field_140\",'width=1000,height=575,toolbar=false,scrollbars=yes');
+function Clic$function_name(event) {
+    event.preventDefault();
+    defaultvalue=document.getElementById(event.data.id).value;
+    newin=window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_140.pl&index=\" + event.data.id + \"&result=\"+defaultvalue,\"unimarc_field_140\",'width=1000,height=575,toolbar=false,scrollbars=yes');
 
 }
 </script>
@@ -59,7 +60,6 @@ my ($template, $loggedinuser, $cookie)
 			     query => $input,
 			     type => "intranet",
 			     flagsrequired => {editcatalogue => '*'},
-			     debug => 1,
 			     });
 	my $f1 = substr($result,0,1); $f1 = wrapper( $f1 ) if $f1;
 	my $f2 = substr($result,1,1); $f2 = wrapper( $f2 ) if $f2;

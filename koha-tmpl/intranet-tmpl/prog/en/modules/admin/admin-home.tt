@@ -1,3 +1,5 @@
+
+[% USE raw %]
 [% USE Koha %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
@@ -5,25 +7,22 @@
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="admin_admin-home" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Administration
-            </a>
-        </li>
-    </ol>
-</nav>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Administration</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
         <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+        <h1>Koha administration</h1>
             [% IF ( CAN_user_parameters_manage_mana ) %]
                 [% IF ( Koha.Preference('Mana') == 1) && !mana_url %]
                     <div class="dialog message">
@@ -50,7 +49,6 @@
                     </div>
                 [% END %]
             [% END %]
-        <h1>Koha administration</h1>
         <div class="row">
             <div class="col-md-6 sysprefs">
             [% IF ( CAN_user_parameters_manage_sysprefs ) %]
@@ -60,7 +58,7 @@
                     <p>Manage global system preferences like MARC flavor, date format, administrator email, and templates.</p>
                     <input type="hidden" name="op" value="search" />
                     <input type="text" name="searchfield" value="[% searchfield | html %]" />
-                    <input type="submit" name="ok" class="submit" value="Search" />
+                    <input type="submit" name="ok" class="btn btn-primary" value="Search" />
                 </fieldset>
                 </form>
             [% END %]
@@ -86,7 +84,7 @@
                 </dl>
             [% END %]
 
-            [% IF ( CAN_user_parameters_manage_patron_categories || CAN_user_parameters_manage_circ_rules || CAN_user_parameters_manage_patron_attributes || CAN_user_parameters_manage_transfers || CAN_user_parameters_manage_item_circ_alerts || CAN_user_parameters_manage_cities ) %]
+            [% IF ( CAN_user_parameters_manage_patron_categories || CAN_user_parameters_manage_circ_rules || CAN_user_parameters_manage_patron_attributes || CAN_user_parameters_manage_transfers || CAN_user_parameters_manage_item_circ_alerts || CAN_user_parameters_manage_cities || CAN_user_parameters_manage_curbside_pickups ) %]
                 <h3>Patrons and circulation</h3>
                 <dl>
                 [% IF ( CAN_user_parameters_manage_patron_categories ) %]
@@ -119,6 +117,14 @@
                     <dt><a href="/cgi-bin/koha/admin/cities.pl">Cities and towns</a></dt>
                     <dd>Define cities and towns that your patrons live in</dd>
                 [% END %]
+                [% IF ( CAN_user_parameters_manage_curbside_pickups ) %]
+                    <dt><a href="/cgi-bin/koha/admin/curbside_pickup.pl">Curbside pickup</a></dt>
+                    <dd>Configure curbside pickup for libraries</dd>
+                [% END %]
+                [% IF ( CAN_user_parameters_manage_patron_restrictions ) %]
+                    <dt><a href="/cgi-bin/koha/admin/restrictions.pl">Patron restrictions</a></dt>
+                    <dd>Define patron restrictions.</dd>
+                [% END %]
                 </dl>
             [% END %]
 
@@ -147,17 +153,17 @@
             [% END %]
 
             [% IF CAN_user_parameters_manage_background_jobs %]
-                <h3>Background jobs</h3>
+                <h3>Jobs</h3>
                 <dl>
-                    <dt><a href="/cgi-bin/koha/admin/background_jobs.pl">Manage background jobs</a></dt>
-                    <dd>View, manage and cancel background jobs.</dd>
+                    <dt><a href="/cgi-bin/koha/admin/background_jobs.pl">Manage jobs</a></dt>
+                    <dd>View, manage and cancel jobs.</dd>
                 </dl>
             [% END %]
 
             </div>
 
             <div class="col-md-6 sysprefs">
-            [% IF ( CAN_user_parameters_manage_marc_frameworks || CAN_user_parameters_manage_classifications || CAN_user_parameters_manage_matching_rules || CAN_user_parameters_manage_oai_sets || CAN_user_parameters_manage_item_search_fields || CAN_user_parameters_manage_search_engine_config ) %]
+            [% IF ( CAN_user_parameters_manage_marc_frameworks || CAN_user_parameters_manage_classifications || CAN_user_parameters_manage_matching_rules || CAN_user_parameters_manage_oai_sets || CAN_user_parameters_manage_item_search_fields || CAN_user_parameters_manage_search_engine_config || CAN_user_parameters_manage_marc_overlay_rules || ( Koha.Preference('SavedSearchFilters') && ( CAN_user_parameters_manage_search_filters ) ) ) %]
                 <h3>Catalog</h3>
                 <dl>
                     [% IF ( CAN_user_parameters_manage_marc_frameworks ) %]
@@ -173,12 +179,16 @@
                         <dd>Create and manage Authorities frameworks that define the characteristics of your MARC Records (field and subfield definitions)</dd>
                     [% END %]
                     [% IF ( CAN_user_parameters_manage_classifications ) %]
-                        <dt><a href="/cgi-bin/koha/admin/classsources.pl">Classification sources</a></dt>
+                        <dt><a href="/cgi-bin/koha/admin/classsources.pl">Classification configuration</a></dt>
                         <dd>Define classification sources (i.e. call number schemes) used by your collection.  Also define filing rules used for sorting call numbers and splitting rules for splitting them</dd>
                     [% END %]
                     [% IF ( CAN_user_parameters_manage_matching_rules ) %]
                         <dt><a href="/cgi-bin/koha/admin/matching-rules.pl">Record matching rules</a></dt>
                         <dd>Manage rules for automatically matching MARC records during record imports</dd>
+                    [% END %]
+                    [% IF ( CAN_user_parameters_manage_marc_overlay_rules ) %]
+                        <dt><a href="/cgi-bin/koha/admin/marc-overlay-rules.pl">Record overlay rules</a></dt>
+                        <dd>Managed rules for automatic overlay of MARC fields during record imports and updates</dd>
                     [% END %]
                     [% IF ( CAN_user_parameters_manage_oai_sets ) %]
                         <dt><a href="/cgi-bin/koha/admin/oai_sets.pl">OAI sets configuration</a></dt>
@@ -188,6 +198,10 @@
                         <dt><a href="/cgi-bin/koha/admin/items_search_fields.pl">Item search fields</a></dt>
                         <dd>Manage custom fields for item search</dd>
                     [% END %]
+                    [% IF Koha.Preference('SavedSearchFilters') && ( CAN_user_parameters_manage_search_filters ) %]
+                        <dt><a href="/cgi-bin/koha/admin/search_filters.pl">Search filters</a></dt>
+                        <dd>Manage custom search filters</dd>
+                    [% END %]
                     [% IF ( CAN_user_parameters_manage_search_engine_config ) %]
                         <dt><a href="/cgi-bin/koha/admin/searchengine/elasticsearch/mappings.pl">Search engine configuration (Elasticsearch)</a></dt>
                         <dd>Manage indexes, facets, and their mappings to MARC fields and subfields</dd>
@@ -195,7 +209,7 @@
                 </dl>
             [% END %]
 
-            [% IF ( CAN_user_acquisition_currencies_manage || CAN_user_acquisition_period_manage || CAN_user_acquisition_budget_manage || CAN_user_acquisition_edi_manage ) %]
+            [% IF ( CAN_user_acquisition_currencies_manage || CAN_user_acquisition_period_manage || CAN_user_acquisition_budget_manage || ( Koha.Preference('EDIFACT') && CAN_user_acquisition_edi_manage ) ) %]
                 <h3>Acquisition parameters</h3>
                 <dl>
                     [% IF ( CAN_user_acquisition_currencies_manage ) %]
@@ -210,7 +224,7 @@
                         <dt><a href="/cgi-bin/koha/admin/aqbudgets.pl">Funds</a></dt>
                         <dd>Define funds within your budgets</dd>
                     [% END %]
-                    [% IF ( CAN_user_acquisition_edi_manage ) %]
+                    [% IF ( Koha.Preference('EDIFACT') && CAN_user_acquisition_edi_manage ) %]
                         <dt><a href="/cgi-bin/koha/admin/edi_accounts.pl">EDI accounts</a></dt>
                         <dd>Manage vendor EDI accounts for import/export</dd>
                         <dt><a href="/cgi-bin/koha/admin/edi_ean_accounts.pl">Library EANs</a></dt>
@@ -219,11 +233,15 @@
                 </dl>
             [% END %]
 
-            [% IF ( ( CAN_user_parameters_manage_smtp_servers || CAN_user_parameters_manage_search_targets || CAN_user_parameters_manage_didyoumean || CAN_user_parameters_manage_column_config || CAN_user_parameters_manage_audio_alerts || CAN_user_parameters_manage_sms_providers && Koha.Preference('SMSSendDriver') == 'Email' ) || CAN_user_parameters_manage_usage_stats || CAN_user_parameters_manage_additional_fields || CAN_user_parameters_manage_mana || (Koha.Preference('EnableAdvancedCatalogingEditor') && CAN_user_parameters_manage_keyboard_shortcuts) ) %]
+            [% IF ( ( CAN_user_parameters_manage_identity_providers || CAN_user_parameters_manage_smtp_servers || CAN_user_parameters_manage_search_targets || CAN_user_parameters_manage_didyoumean || CAN_user_parameters_manage_column_config || CAN_user_parameters_manage_audio_alerts || CAN_user_parameters_manage_sms_providers && Koha.Preference('SMSSendDriver') == 'Email' ) || CAN_user_parameters_manage_usage_stats || CAN_user_parameters_manage_additional_fields || CAN_user_parameters_manage_mana || (Koha.Preference('EnableAdvancedCatalogingEditor') && CAN_user_parameters_manage_keyboard_shortcuts) ) %]
                 <h3>Additional parameters</h3>
                 <dl>
                         <!-- <dt><a href="/cgi-bin/koha/admin/printers.pl">Network Printers</a></dt>
                         <dd>Printers (UNIX paths).</dd> -->
+                    [% IF ( CAN_user_parameters_manage_identity_providers) %]
+                        <dt><a href="/cgi-bin/koha/admin/identity_providers.pl">Identity providers</a></dt>
+                        <dd>Define which external identity providers to use</dd>
+                    [% END %]
                     [% IF ( CAN_user_parameters_manage_search_targets ) %]
                         <dt><a href="/cgi-bin/koha/admin/z3950servers.pl">Z39.50/SRU servers</a></dt>
                         <dd>Define which external servers to query for MARC data</dd>
@@ -270,13 +288,5 @@
         </div>
     </div>
 </div>
-
-[% MACRO jsinclude BLOCK %]
-    <script>
-        $(document).ready(function(){
-            $("input[class='head-searchbox'][name='searchfield']").focus();
-        });
-    </script>
-[% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

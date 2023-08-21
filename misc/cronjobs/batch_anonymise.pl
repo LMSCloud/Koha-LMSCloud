@@ -17,27 +17,19 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
-use Carp;
-
-BEGIN {
-
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
+use Modern::Perl;
 
 use Koha::Script -cron;
+
 use C4::Context;
-use Koha::Patrons;
-use Date::Calc qw(
-  Today
-  Add_Delta_Days
-);
-use Getopt::Long;
-use C4::Log;
+use C4::Log qw( cronlogaction );
+
+use Koha::Database;
+use Koha::DateUtils qw(dt_from_string output_pref);
+use Koha::Old::Checkouts;
+use Koha::Old::Holds;
+
+use Getopt::Long qw( GetOptions );
 
 sub usage {
     print STDERR <<USAGE;
@@ -50,6 +42,8 @@ Note: If the system preference 'AnonymousPatron' is not defined, NULL will be us
 USAGE
     exit $_[0];
 }
+
+my $command_line_options = join(" ",@ARGV);
 
 my ( $help, $days, $verbose );
 
@@ -68,14 +62,27 @@ if ( !$days  ) {
     usage(1);
 }
 
-cronlogaction();
+cronlogaction({ info => $command_line_options });
 
-my ($year,$month,$day) = Today();
-my ($newyear,$newmonth,$newday) = Add_Delta_Days ($year,$month,$day,(-1)*$days);
-my $formatdate = sprintf "%4d-%02d-%02d",$newyear,$newmonth,$newday;
-$verbose and print "Checkouts before $formatdate will be anonymised.\n";
+my $date = dt_from_string->subtract( days => $days );
 
-my $rows = Koha::Patrons->search_patrons_to_anonymise( { before => $formatdate } )->anonymise_issue_history( { before => $formatdate } );
+print "Checkouts and holds before " . output_pref( { dt => $date, dateformat => 'iso', dateonly => 1 } ) . " will be anonymised.\n"
+  if $verbose;
+
+my $rows = Koha::Old::Checkouts
+          ->filter_by_anonymizable
+          ->filter_by_last_update( { days => $days, timestamp_column_name => 'returndate' })
+          ->anonymize;
+
 $verbose and print int($rows) . " checkouts anonymised.\n";
+
+$rows = Koha::Old::Holds
+          ->filter_by_anonymizable
+          ->filter_by_last_update( { days => $days } )
+          ->anonymize;
+
+$verbose and print int($rows) . " holds anonymised.\n";
+
+cronlogaction({ action => 'End', info => "COMPLETED" });
 
 exit(0);

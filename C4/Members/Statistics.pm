@@ -26,17 +26,17 @@ use Modern::Perl;
 
 use C4::Context;
 
-our ( @ISA, @EXPORT, @EXPORT_OK, $debug );
+our ( @ISA, @EXPORT_OK );
 
 BEGIN {
-    $debug = $ENV{DEBUG} || 0;
     require Exporter;
     @ISA = qw(Exporter);
 
-    push @EXPORT, qw(
-        &GetTotalIssuesTodayByBorrower
-        &GetTotalIssuesReturnedTodayByBorrower
-        &GetPrecedentStateByBorrower
+    @EXPORT_OK = qw(
+        get_fields
+        GetTotalIssuesTodayByBorrower
+        GetTotalIssuesReturnedTodayByBorrower
+        GetPrecedentStateByBorrower
     );
 }
 

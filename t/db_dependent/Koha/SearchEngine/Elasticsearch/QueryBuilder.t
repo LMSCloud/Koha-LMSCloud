@@ -22,12 +22,13 @@ use Test::Exception;
 use Test::Warn;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
-use Test::More tests => 7;
+use Test::More tests => 8;
 
 use List::Util qw( all );
 
 use Koha::Database;
 use Koha::SearchEngine::Elasticsearch::QueryBuilder;
+use Koha::SearchFilters;
 
 my $schema = Koha::Database->new->schema;
 $schema->storage->txn_begin;
@@ -39,50 +40,51 @@ $se->mock( 'get_elasticsearch_mappings', sub {
     my %all_mappings;
 
     my $mappings = {
-        data => {
-            properties => {
-                title => {
-                    type => 'text'
-                },
-                title__sort => {
-                    type => 'text'
-                },
-                subject => {
-                    type => 'text',
-                    facet => 1
-                },
-                'subject-heading-thesaurus' => {
-                    type => 'text',
-                    facet => 1
-                },
-                itemnumber => {
-                    type => 'integer'
-                },
-                sortablenumber => {
-                    type => 'integer'
-                },
-                sortablenumber__sort => {
-                    type => 'integer'
-                },
-                heading => {
-                    type => 'text'
-                },
-                'heading-main' => {
-                    type => 'text'
-                },
-                heading__sort => {
-                    type => 'text'
-                },
-                match => {
-                    type => 'text'
-                },
-                'match-heading' => {
-                    type => 'text'
-                },
-                'match-heading-see-from' => {
-                    type => 'text'
-                },
-            }
+        properties => {
+            title => {
+                type => 'text'
+            },
+            title__sort => {
+                type => 'text'
+            },
+            subject => {
+                type => 'text',
+                facet => 1
+            },
+            'subject-heading-thesaurus' => {
+                type => 'text',
+                facet => 1
+            },
+            'subject-heading-thesaurus-conventions' => {
+                type => 'text'
+            },
+            itemnumber => {
+                type => 'integer'
+            },
+            sortablenumber => {
+                type => 'integer'
+            },
+            sortablenumber__sort => {
+                type => 'integer'
+            },
+            heading => {
+                type => 'text'
+            },
+            'heading-main' => {
+                type => 'text'
+            },
+            heading__sort => {
+                type => 'text'
+            },
+            match => {
+                type => 'text'
+            },
+            'match-heading' => {
+                type => 'text'
+            },
+            'match-heading-see-from' => {
+                type => 'text'
+            },
         }
     };
     $all_mappings{$self->index} = $mappings;
@@ -103,7 +105,7 @@ $se->mock( 'get_elasticsearch_mappings', sub {
 
 subtest 'build_authorities_query_compat() tests' => sub {
 
-    plan tests => 65;
+    plan tests => 72;
 
     my $qb;
 
@@ -217,7 +219,7 @@ subtest 'build_authorities_query_compat() tests' => sub {
 };
 
 subtest 'build_query tests' => sub {
-    plan tests => 57;
+    plan tests => 60;
 
     my $qb;
 
@@ -341,6 +343,14 @@ subtest 'build_query tests' => sub {
         'Open end year in year range of an st-year search is handled properly'
     );
 
+    ( undef, $query ) = $qb->build_query_compat( undef, ['2019-'], ['yr,st-year'],
+        ['yr,st-numeric:-2019','yr,st-numeric:2005','yr,st-numeric:1984-2022'] );
+    is(
+        $query->{query}{query_string}{query},
+        '(date-of-publication:[2019 TO *]) AND (date-of-publication:[* TO 2019]) AND (date-of-publication:2005) AND (date-of-publication:[1984 TO 2022])',
+        'Limit on year search is handled properly when colon used'
+    );
+
     # Enable auto-truncation
     t::lib::Mocks::mock_preference( 'QueryAutoTruncate', '1' );
 
@@ -384,7 +394,7 @@ subtest 'build_query tests' => sub {
     ( undef, $query ) = $qb->build_query_compat( undef, ['"donald duck"'], undef, ['available'] );
     is(
         $query->{query}{query_string}{query},
-        '("donald duck") AND onloan:false',
+        '("donald duck") AND available:true',
         "query with quotes is unaltered when QueryAutoTruncate is enabled"
     );
 
@@ -494,6 +504,20 @@ subtest 'build_query tests' => sub {
         $query->{query}{query_string}{query},
         '(title:"donald duck") AND (author:("Dillinger Escaplan")) AND itype:(("BOOK") OR ("CD"))',
         "Limits quoted correctly when passed as phrase"
+    );
+
+    ( undef, $query ) = $qb->build_query_compat( ['OR'], ['title:"donald duck"', 'author:"Dillinger Escaplan"'], undef, ['itype:BOOK'] );
+    is(
+        $query->{query}{query_string}{query},
+        '((title:"donald duck") OR (author:"Dillinger Escaplan")) AND itype:("BOOK")',
+        "OR query with limit"
+    );
+
+    ( undef, $query ) = $qb->build_query_compat( undef, undef, undef, ['itype:BOOK'] );
+    is(
+        $query->{query}{query_string}{query},
+        'itype:("BOOK")',
+        "Limit only"
     );
 
     # Scan queries
@@ -725,38 +749,76 @@ subtest 'build_query_compat() SearchLimitLibrary tests' => sub {
     t::lib::Mocks::mock_preference('SearchLimitLibrary', 'both');
     my ( undef, undef, undef, undef, undef, $limit, $limit_cgi, $limit_desc, undef ) =
         $query_builder->build_query_compat( undef, undef, undef, [ "branch:CPL" ], undef, undef, undef, undef );
-    is( $limit, "(homebranch: CPL OR holdingbranch: CPL)", "Branch limit expanded to home/holding branch");
-    is( $limit_desc, "(homebranch: CPL OR holdingbranch: CPL)", "Limit description correctly expanded");
-    is( $limit_cgi, "&limit=branch%3ACPL", "Limit cgi does not get expanded");
+    is( $limit, '(homebranch: "CPL" OR holdingbranch: "CPL")', "Branch limit expanded to home/holding branch");
+    is( $limit_desc, '(homebranch: "CPL" OR holdingbranch: "CPL")', "Limit description correctly expanded");
+    is( $limit_cgi, '&limit=branch%3ACPL', "Limit cgi does not get expanded");
     ( undef, undef, undef, undef, undef, $limit, $limit_cgi, $limit_desc, undef ) =
         $query_builder->build_query_compat( undef, undef, undef, [ "multibranchlimit:$groupid" ], undef, undef, undef, undef );
-    is( $limit, "(homebranch: $branchcodes[0] OR homebranch: $branchcodes[1] OR holdingbranch: $branchcodes[0] OR holdingbranch: $branchcodes[1])", "Multibranch limit expanded to home/holding branches");
-    is( $limit_desc, "(homebranch: $branchcodes[0] OR homebranch: $branchcodes[1] OR holdingbranch: $branchcodes[0] OR holdingbranch: $branchcodes[1])", "Multibranch limit description correctly expanded");
+    is( $limit, "(homebranch: \"$branchcodes[0]\" OR homebranch: \"$branchcodes[1]\" OR holdingbranch: \"$branchcodes[0]\" OR holdingbranch: \"$branchcodes[1]\")", "Multibranch limit expanded to home/holding branches");
+    is( $limit_desc, "(homebranch: \"$branchcodes[0]\" OR homebranch: \"$branchcodes[1]\" OR holdingbranch: \"$branchcodes[0]\" OR holdingbranch: \"$branchcodes[1]\")", "Multibranch limit description correctly expanded");
     is( $limit_cgi, "&limit=multibranchlimit%3A$groupid", "Multibranch limit cgi does not get expanded");
 
     t::lib::Mocks::mock_preference('SearchLimitLibrary', 'homebranch');
     ( undef, undef, undef, undef, undef, $limit, $limit_cgi, $limit_desc, undef ) =
         $query_builder->build_query_compat( undef, undef, undef, [ "branch:CPL" ], undef, undef, undef, undef );
-    is( $limit, "(homebranch: CPL)", "branch limit expanded to home branch");
-    is( $limit_desc, "(homebranch: CPL)", "limit description correctly expanded");
+    is( $limit, "(homebranch: \"CPL\")", "branch limit expanded to home branch");
+    is( $limit_desc, "(homebranch: \"CPL\")", "limit description correctly expanded");
     is( $limit_cgi, "&limit=branch%3ACPL", "limit cgi does not get expanded");
     ( undef, undef, undef, undef, undef, $limit, $limit_cgi, $limit_desc, undef ) =
         $query_builder->build_query_compat( undef, undef, undef, [ "multibranchlimit:$groupid" ], undef, undef, undef, undef );
-    is( $limit, "(homebranch: $branchcodes[0] OR homebranch: $branchcodes[1])", "branch limit expanded to home branch");
-    is( $limit_desc, "(homebranch: $branchcodes[0] OR homebranch: $branchcodes[1])", "limit description correctly expanded");
+    is( $limit, "(homebranch: \"$branchcodes[0]\" OR homebranch: \"$branchcodes[1]\")", "branch limit expanded to home branch");
+    is( $limit_desc, "(homebranch: \"$branchcodes[0]\" OR homebranch: \"$branchcodes[1]\")", "limit description correctly expanded");
     is( $limit_cgi, "&limit=multibranchlimit%3A$groupid", "Limit cgi does not get expanded");
 
     t::lib::Mocks::mock_preference('SearchLimitLibrary', 'holdingbranch');
     ( undef, undef, undef, undef, undef, $limit, $limit_cgi, $limit_desc, undef ) =
         $query_builder->build_query_compat( undef, undef, undef, [ "branch:CPL" ], undef, undef, undef, undef );
-    is( $limit, "(holdingbranch: CPL)", "branch limit expanded to holding branch");
-    is( $limit_desc, "(holdingbranch: CPL)", "Limit description correctly expanded");
+    is( $limit, "(holdingbranch: \"CPL\")", "branch limit expanded to holding branch");
+    is( $limit_desc, "(holdingbranch: \"CPL\")", "Limit description correctly expanded");
     is( $limit_cgi, "&limit=branch%3ACPL", "Limit cgi does not get expanded");
     ( undef, undef, undef, undef, undef, $limit, $limit_cgi, $limit_desc, undef ) =
         $query_builder->build_query_compat( undef, undef, undef, [ "multibranchlimit:$groupid" ], undef, undef, undef, undef );
-    is( $limit, "(holdingbranch: $branchcodes[0] OR holdingbranch: $branchcodes[1])", "branch limit expanded to holding branch");
-    is( $limit_desc, "(holdingbranch: $branchcodes[0] OR holdingbranch: $branchcodes[1])", "Limit description correctly expanded");
+    is( $limit, "(holdingbranch: \"$branchcodes[0]\" OR holdingbranch: \"$branchcodes[1]\")", "branch limit expanded to holding branch");
+    is( $limit_desc, "(holdingbranch: \"$branchcodes[0]\" OR holdingbranch: \"$branchcodes[1]\")", "Limit description correctly expanded");
     is( $limit_cgi, "&limit=multibranchlimit%3A$groupid", "Limit cgi does not get expanded");
+
+};
+
+subtest "Handle search filters" => sub {
+    plan tests => 7;
+
+    my $qb;
+
+    ok(
+        $qb = Koha::SearchEngine::Elasticsearch::QueryBuilder->new({ 'index' => 'biblios' }),
+        'Creating new query builder object for biblios'
+    );
+
+    my $filter = Koha::SearchFilter->new({
+        name => "test",
+        query => q|{"operands":["cat","bat","rat"],"indexes":["kw","ti","au"],"operators":["AND","OR"]}|,
+        limits => q|{"limits":["mc-itype,phr:BK","mc-itype,phr:MU","available"]}|,
+    })->store;
+    my $filter_id = $filter->id;
+
+    my ( undef, undef, undef, undef, undef, $limit, $limit_cgi, $limit_desc ) = $qb->build_query_compat( undef, undef, undef, ["search_filter:$filter_id"] );
+
+    is( $limit,q{(available:true) AND ((cat) AND title:(bat) OR author:(rat)) AND itype:(("BK") OR ("MU"))},"Limit correctly formed");
+    is( $limit_cgi,"&limit=search_filter%3A$filter_id","CGI limit is not expanded");
+    is( $limit_desc,q{(available:true) AND ((cat) AND title:(bat) OR author:(rat)) AND itype:(("BK") OR ("MU"))},"Limit description is correctly expanded");
+
+    $filter = Koha::SearchFilter->new({
+        name => "test",
+        query => q|{"operands":["su:biography"],"indexes":[],"operators":[]}|,
+        limits => q|{"limits":[]}|,
+    })->store;
+    $filter_id = $filter->id;
+
+    ( undef, undef, undef, undef, undef, $limit, $limit_cgi, $limit_desc ) = $qb->build_query_compat( undef, undef, undef, ["search_filter:$filter_id"] );
+
+    is( $limit,q{(subject:biography)},"Limit correctly formed for ccl type query");
+    is( $limit_cgi,"&limit=search_filter%3A$filter_id","CGI limit is not expanded");
+    is( $limit_desc,q{(subject:biography)},"Limit description is correctly handled for ccl type query");
 
 };
 

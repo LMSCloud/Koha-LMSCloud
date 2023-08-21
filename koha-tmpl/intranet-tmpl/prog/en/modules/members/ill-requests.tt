@@ -13,24 +13,23 @@
 </head>
 
 <body id="pat_illrequestshistory" class="pat">
-    [% INCLUDE 'header.inc' %]
-    [% INCLUDE 'patron-search.inc' %]
+    [% WRAPPER 'header.inc' %]
+    [% INCLUDE 'patron-search-header.inc' %]
+[% END %]
 
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-        <ol>
-            <li>
-                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-            </li>
-            <li>
-                <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    ILL requests history for [% INCLUDE 'patron-title.inc' %]
-                </a>
-            </li>
-        </ol>
-    </nav>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber | uri %]">[% INCLUDE 'patron-title.inc' %]</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>ILL requests history</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
 
@@ -39,7 +38,9 @@
             <main>
                 [% INCLUDE 'members-toolbar.inc' %]
                 <h1>ILL requests history</h1>
-                [% INCLUDE 'ill-list-table.inc' %]
+                <div class="page-section">
+                    [% INCLUDE 'ill-list-table.inc' %]
+                </div>
             </main>
         </div> <!-- .col-sm-10.col-sm-push-2 -->
 
@@ -55,13 +56,15 @@
         [% Asset.js("js/members-menu.js") | $raw %]
         [% INCLUDE 'datatables.inc' %]
         [% INCLUDE 'columns_settings.inc' %]
+        [% INCLUDE 'js-biblio-format.inc' %]
+        [% INCLUDE 'js-patron-format.inc' %]
         [% INCLUDE 'calendar.inc' %]
         <script>
             // introducing JS variables to make the filter parameters accessible for js/ill-list-table.js
             var prefilters = '[% prefilters | html %]';
 
             // Set column settings
-            var columns_settings = [% TablesSettings.GetColumns( 'illrequests', 'ill-requests', 'ill-requests', 'json' ) %];
+            var table_settings = [% TablesSettings.GetTableSettings( 'illrequests', 'ill-requests', 'ill-requests', 'json' ) | $raw %];
 
             function backendNameToDesignation (backend_name) {
                 var backend_designation = '';

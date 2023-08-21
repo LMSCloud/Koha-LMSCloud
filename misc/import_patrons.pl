@@ -19,8 +19,8 @@
 
 use Modern::Perl;
 
-use Getopt::Long;
-use Pod::Usage;
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 
 use Koha::Script;
 use Koha::Patrons::Import;
@@ -30,22 +30,30 @@ my $csv_file;
 my $matchpoint;
 my $overwrite_cardnumber;
 my $overwrite_passwords;
+my $welcome_new = 0;
 my %defaults;
 my $ext_preserve = 0;
 my $confirm;
 my $verbose      = 0;
 my $help;
+my @preserve_fields;
+my $update_dateexpiry;
+my $update_dateexpiry_from_today;
 
 GetOptions(
-    'c|confirm'                     => \$confirm,
-    'f|file=s'                      => \$csv_file,
-    'm|matchpoint=s'                => \$matchpoint,
-    'd|default=s'                   => \%defaults,
-    'o|overwrite'                   => \$overwrite_cardnumber,
-    'op|overwrite_passwords'        => \$overwrite_passwords,
+    'c|confirm'                      => \$confirm,
+    'f|file=s'                       => \$csv_file,
+    'm|matchpoint=s'                 => \$matchpoint,
+    'd|default=s'                    => \%defaults,
+    'o|overwrite'                    => \$overwrite_cardnumber,
+    'op|overwrite_passwords'         => \$overwrite_passwords,
+    'ue|update-expiration'           => \$update_dateexpiry,
+    'et|expiration-from-today'       => \$update_dateexpiry_from_today,
+    'en|email-new'                   => \$welcome_new,
     'p|preserve-extended-attributes' => \$ext_preserve,
-    'v|verbose+'                    => \$verbose,
-    'h|help|?'                      => \$help,
+    'pf|preserve-field=s'            => \@preserve_fields,
+    'v|verbose+'                     => \$verbose,
+    'h|help|?'                       => \$help,
 ) or pod2usage(2);
 
 pod2usage(1) if $help;
@@ -65,6 +73,10 @@ my $return = $Import->import_patrons(
         overwrite_cardnumber         => $overwrite_cardnumber,
         overwrite_passwords          => $overwrite_passwords,
         preserve_extended_attributes => $ext_preserve,
+        preserve_fields              => \@preserve_fields,
+        update_dateexpiry            => $update_dateexpiry,
+        update_dateexpiry_from_today => $update_dateexpiry_from_today,
+        send_welcome                 => $welcome_new,
         dry_run                      => !$confirm,
     }
 );
@@ -104,7 +116,7 @@ import_patrons.pl - CLI script to import patrons data into Koha
 
 =head1 SYNOPSIS
 
-import_patrons.pl --file /path/to/patrons.csv --matchpoint cardnumber --confirm [--default branchcode=MPL] [--overwrite] [--preserve-extended-attributes] [--verbose]
+import_patrons.pl --file /path/to/patrons.csv --matchpoint cardnumber --confirm [--default branchcode=MPL] [--overwrite] [--preserve-field <column>] [--preserve-extended-attributes] [--update-expiration] [--expiration-from-today] [--verbose]
 
 =head1 OPTIONS
 
@@ -130,6 +142,10 @@ Field on which to match incoming patrons to existing patrons
 
 Set defaults to patron fields, repeatable e.g. --default branchcode=MPL --default categorycode=PT
 
+=item B<-k|--preserve-field>
+
+Prevent specified patron fields for existing patrons from being overwritten
+
 =item B<-o|--overwrite>
 
 Overwrite existing patrons with new data if a match is found
@@ -137,6 +153,18 @@ Overwrite existing patrons with new data if a match is found
 =item B<-p|--preserve-extended-attributes>
 
 Retain extended patron attributes for existing patrons being overwritten
+
+=item B<-en|--email-new>
+
+Send the WELCOME notice email to new users
+
+=item B<-ue|--update-expiration>
+
+If a matching patron is found, extend the expiration date of their account using the patron's enrollment date as the base
+
+=item B<-et|--expiration-from-today>
+
+If a matching patron is found, extend the expiration date of their account using the patron's enrollment date as the base
 
 =item B<-v|--verbose>
 

@@ -17,13 +17,13 @@ package Koha::Virtualshelfshare;
 
 use Modern::Perl;
 
-use Carp;
 use DateTime;
 use DateTime::Duration;
 
 use Koha::Database;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Exceptions;
+use Koha::Patron;
 
 use base qw(Koha::Object);
 
@@ -39,17 +39,17 @@ Koha::Virtualshelfshare - Koha Virtualshelfshare Object class
 
 =cut
 
-=head3 type
+=head3 accept
 
 =cut
 
 sub accept {
     my ( $self, $invitekey, $borrowernumber ) = @_;
     if ( $self->has_expired ) {
-        Koha::Exceptions::Virtualshelves::ShareHasExpired->throw;
+        Koha::Exceptions::Virtualshelf::ShareHasExpired->throw;
     }
     if ( $self->invitekey ne $invitekey ) {
-        Koha::Exceptions::Virtualshelves::InvalidInviteKey->throw;
+        Koha::Exceptions::Virtualshelf::InvalidInviteKey->throw;
     }
 
     # If this borrower already has a share, there is no need to accept twice
@@ -67,6 +67,10 @@ sub accept {
     }
 }
 
+=head3 has_expired
+
+=cut
+
 sub has_expired {
     my ($self) = @_;
     my $dt_sharedate     = dt_from_string( $self->sharedate, 'sql' );
@@ -76,6 +80,21 @@ sub has_expired {
     # Note: has_expired = 0 if the share expires today
     return $has_expired == 1 ? 1 : 0
 }
+
+=head3 sharee
+
+    Returns related Koha::Patron object for the sharee (patron who got this share).
+
+=cut
+
+sub sharee {
+    my $self = shift;
+    return Koha::Patron->_new_from_dbic( $self->{_result}->borrowernumber );
+}
+
+=head3 _type
+
+=cut
 
 sub _type {
     return 'Virtualshelfshare';

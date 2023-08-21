@@ -12,14 +12,14 @@
                         [% IF ( authorized ) %]
                             [% UNLESS ( newshelf ) %]
                                 [% IF ( multiple ) %]
-                                    <h1>Add [% total | html %] items to [% IF ( singleshelf ) %]<em>[% shelfname | html %]</em>: [% ELSE %]a list:[% END %]</h1>
+                                    <h1>Add [% total | html %] items to [% IF ( singleshelf ) %]<em>[% shelfname | html %]</em>: [% ELSE %]<span>a list:</span>[% END %]</h1>
                                 [% ELSE %]
-                                    <h1>Add to [% IF ( singleshelf ) %]<em>[% shelfname | html %]</em>[% ELSE %]a list:[% END %]</h1>
+                                    <h1>Add to [% IF ( singleshelf ) %]<em>[% shelfname | html %]</em>[% ELSE %]<span>a list:</span>[% END %]</h1>
                                 [% END %]
                                 <ul>
                                     [% FOREACH biblio IN biblios %]
-                                        <li> <span class="title">[% INCLUDE 'biblio-title.inc' %]</span>
-                                            [% IF ( biblio.author ) %]<span class="author"> [% biblio.author | html %] </span>[% END %]
+                                        <li>[% INCLUDE 'biblio-title.inc' %]
+                                            [% IF ( biblio.author ) %]<span class="author"> [% biblio.author | html %][% END %]
                                         </li>
                                     [% END %]
                                 </ul>
@@ -79,10 +79,10 @@
                                             <label for="newvirtualshelf">List name:</label>
                                             <input type="text" name="newvirtualshelf" id="newvirtualshelf" size="40" />
                                             <label for="category">Category:</label>
-                                            <select name="category" id="category">
-                                                <option value="1">Private</option>
+                                            <select name="public" id="public">
+                                                <option value="0">Private</option>
                                                 [% IF (OpacAllowPublicListCreation) %]
-                                                    <option value="2">Public</option>
+                                                    <option value="1">Public</option>
                                                 [% END %]
                                             </select>
                                     </fieldset>
@@ -99,9 +99,9 @@
                         [% ELSE %]
                             <p>
                                 [% IF (errcode==1) %]
-                                    Could not create new list. Please check if the name is unique.
+                                    <span>Could not create new list. Please check if the name is unique.</span>
                                 [% ELSE %]
-                                    Sorry, you cannot add items to this list.
+                                    <span>Sorry, you cannot add items to this list.</span>
                                 [% END %]
                             </p>
                         [% END # IF authorized %]

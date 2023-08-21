@@ -1,0 +1,15 @@
+---
+type: object
+properties:
+  count_changes:
+    type: integer
+    description: count of result items
+  changes:
+    type: array
+    description: An array of biblionumber change object information.
+    items:
+      $ref: bzsh_external_order_item_biblionumber_update.yaml
+additionalProperties: false
+required:
+  - count_changes
+  - changes

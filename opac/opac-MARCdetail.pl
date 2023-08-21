@@ -45,25 +45,31 @@ the items attached to the biblio
 
 use Modern::Perl;
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( parametrized_url output_html_with_http_headers );
 use CGI qw ( -utf8 );
-use MARC::Record;
-use C4::Biblio;
-use C4::Items;
+use C4::Biblio qw(
+    CountItemsIssued
+    GetAuthorisedValueDesc
+    GetMarcControlnumber
+    GetMarcFromKohaField
+    GetMarcISSN
+    GetMarcStructure
+    TransformMarcToKoha
+);
 use C4::Reserves;
 use C4::Members;
-use C4::Acquisition;
-use C4::Koha;
-use List::MoreUtils qw( any uniq );
+use C4::Koha qw( GetNormalizedISBN );
+use List::MoreUtils qw( uniq );
 use Koha::Biblios;
 use Koha::CirculationRules;
 use Koha::Items;
 use Koha::ItemTypes;
 use Koha::Patrons;
 use Koha::RecordProcessor;
-use Koha::DateUtils;
+use Koha::DateUtils qw( output_pref );
+use Koha::Util::MARC;
 
 my $query = CGI->new();
 
@@ -81,28 +87,18 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $query,
         type            => "opac",
         authnotrequired => ( C4::Context->preference("OpacPublic") ? 1 : 0 ),
-        debug           => 1,
     }
 );
 
-my $patron = Koha::Patrons->find( $loggedinuser );
-my $borcat = q{};
-if ( C4::Context->preference('OpacHiddenItemsExceptions') ) {
-    # we need to fetch the borrower info here, so we can pass the category
-    $borcat = $patron ? $patron->categorycode : $borcat;
-}
+my $patron = Koha::Patrons->find($loggedinuser);
+my $biblio = Koha::Biblios->find($biblionumber);
+my $record = $biblio->metadata->record;
 
-my $record = GetMarcBiblio({
-    biblionumber => $biblionumber,
-    embed_items  => 1,
-    opac         => 1,
-    borcat       => $borcat });
 if ( ! $record ) {
     print $query->redirect("/cgi-bin/koha/errors/404.pl");
     exit;
 }
 
-my $biblio = Koha::Biblios->find( $biblionumber );
 unless ( $patron and $patron->category->override_hidden_items ) {
     # only skip this check if there's a logged in user
     # and its category overrides OpacHiddenItems
@@ -112,14 +108,16 @@ unless ( $patron and $patron->category->override_hidden_items ) {
     }
 }
 
+my $items = $biblio->items->filter_by_visible_in_opac({ patron => $patron });
 my $framework = $biblio ? $biblio->frameworkcode : q{};
 my $tagslib   = &GetMarcStructure( 0, $framework );
 
 my $record_processor = Koha::RecordProcessor->new({
-    filters => 'ViewPolicy',
+    filters => [ 'EmbedItems', 'ViewPolicy' ],
     options => {
-        interface => 'opac',
-        frameworkcode => $framework
+        interface     => 'opac',
+        frameworkcode => $framework,
+        items         => [ $items->as_list ],
     }
 });
 $record_processor->process($record);
@@ -139,7 +137,7 @@ $template->param(
      $tagslib->{$bt_tag}->{$bt_subtag}->{hidden} > -8;   # except -8;
 
 my $allow_onshelf_holds;
-my $items = $biblio->items;
+$items->reset;
 
 while ( my $item = $items->next ) {
     $allow_onshelf_holds = Koha::CirculationRules->get_onshelfholds_policy( { item => $item, patron => $patron } )
@@ -148,12 +146,6 @@ while ( my $item = $items->next ) {
 
 if( $allow_onshelf_holds || CountItemsIssued($biblionumber) || $biblio->has_items_waiting_or_intransit ) {
     $template->param( ReservableItems => 1 );
-}
-
-# adding the $RequestOnOpac param
-my $RequestOnOpac;
-if (C4::Context->preference("RequestOnOpac")) {
-	$RequestOnOpac = 1;
 }
 
 # fill arrays
@@ -344,7 +336,7 @@ if ( C4::Context->preference("OPACISBD") ) {
 
 #Search for title in links
 my $marcflavour  = C4::Context->preference("marcflavour");
-my $dat = TransformMarcToKoha( $record );
+my $dat = TransformMarcToKoha({ record => $record });
 my $isbn = GetNormalizedISBN(undef,$record,$marcflavour);
 my $marccontrolnumber   = GetMarcControlnumber ($record, $marcflavour);
 my $marcissns = GetMarcISSN( $record, $marcflavour );
@@ -353,6 +345,7 @@ my $issn = $marcissns->[0] || '';
 if (my $search_for_title = C4::Context->preference('OPACSearchForTitleIn')){
     $dat->{title} =~ s/\/+$//; # remove trailing slash
     $dat->{title} =~ s/\s+$//; # remove trailing space
+    my $oclc_no = Koha::Util::MARC::oclc_number( $record );
     $search_for_title = parametrized_url(
         $search_for_title,
         {
@@ -362,6 +355,7 @@ if (my $search_for_title = C4::Context->preference('OPACSearchForTitleIn')){
             ISSN          => $issn,
             CONTROLNUMBER => $marccontrolnumber,
             BIBLIONUMBER  => $biblionumber,
+            OCLC_NO       => $oclc_no,
         }
     );
     $template->param('OPACSearchForTitleIn' => $search_for_title);

@@ -22,14 +22,11 @@ use Modern::Perl;
 use C4::Context;
 use C4::Stats;
 use C4::Members;
-use C4::Log qw(logaction);
 use Koha::Account;
 use Koha::Account::Lines;
 use Koha::Account::Offsets;
 use Koha::Items;
 
-use Mojo::Util qw(deprecated);
-use Data::Dumper qw(Dumper);
 
 use vars qw(@ISA @EXPORT);
 
@@ -37,8 +34,8 @@ BEGIN {
     require Exporter;
     @ISA    = qw(Exporter);
     @EXPORT = qw(
-      &chargelostitem
-      &purge_zero_balance_fees
+      chargelostitem
+      purge_zero_balance_fees
     );
 }
 
@@ -72,18 +69,22 @@ FIXME : if no replacement price, borrower just doesn't get charged?
 
 sub chargelostitem {
     my $dbh = C4::Context->dbh();
-    my ($borrowernumber, $itemnumber, $amount, $description) = @_;
-    my $branchcode = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
-    my $itype = Koha::ItemTypes->find({ itemtype => Koha::Items->find($itemnumber)->effective_itemtype() });
-    my $replacementprice = $amount;
+    my ($borrowernumber, $itemnumber, $replacementprice, $description) = @_;
+    my $item  = Koha::Items->find($itemnumber);
+    my $itype = $item->itemtype;
+    $replacementprice //= 0;
     my $defaultreplacecost = $itype->defaultreplacecost;
     my $processfee = $itype->processfee;
     my $usedefaultreplacementcost = C4::Context->preference("useDefaultReplacementCost");
     my $processingfeenote = C4::Context->preference("ProcessingFeeNote");
-    if ($usedefaultreplacementcost && $amount == 0 && $defaultreplacecost){
+    if ($usedefaultreplacementcost && $replacementprice == 0 && $defaultreplacecost){
         $replacementprice = $defaultreplacecost;
     }
     my $checkout = Koha::Checkouts->find({ itemnumber => $itemnumber });
+    if ( !$checkout && $item->in_bundle ) {
+        my $host = $item->bundle_host;
+        $checkout = $host->checkout;
+    }
     my $issue_id = $checkout ? $checkout->issue_id : undef;
 
     my $account = Koha::Account->new({ patron_id => $borrowernumber });

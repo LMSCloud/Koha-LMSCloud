@@ -4,6 +4,7 @@
 <input type="hidden" name="modify" value="yes" />
 <input type="hidden" name="borrowernumber" value="[% borrowernumber | html %]" />
   <table>
+    <thead>
     <tr><th></th>
         <th>Days in advance</th>
         [% IF Koha.Preference('SMSSendDriver') %]<th>SMS</th>[% END %]
@@ -12,24 +13,30 @@
         <th>Digests only <i id="info_digests" data-toggle="tooltip" title="You can ask for a digest to reduce the number of messages. Messages will be saved and sent as a single message." data-placement="right" class="fa fa-info-circle"></i></th>
         <!-- <th>RSS</th> -->
     </tr>
+    </thead>
+    <tbody>
     [% FOREACH messaging_preference IN messaging_preferences %]
     [% NEXT IF (!Koha.Preference( 'ILLModule' ) || ('ILL_messaging_preferences' != 'are_hidden_by_LMSCloud')) && messaging_preference.message_name.match('^Ill_') %]
     [% NEXT IF messaging_preference.Auto_Renewals && Koha.Preference('AutoRenewalNotices') != 'preferences' %]
-    <tr>
-      <td>[% IF ( messaging_preference.Item_Due ) %]Item due
-          [% ELSIF ( messaging_preference.Advance_Notice ) %]Advance notice
-          [% ELSIF ( messaging_preference.Hold_Filled ) %]Hold filled
-          [% ELSIF ( messaging_preference.Item_Check_in ) %]Item check-in
+    <tr id="[% messaging_preference.message_name _ "_message" | lower | html %]">
+      <td>[% IF ( messaging_preference.Item_Due ) %]<span>Item due</span>
+          [% ELSIF ( messaging_preference.Advance_Notice ) %]<span>Advance notice</span>
+          [% ELSIF ( messaging_preference.Hold_Filled ) %]<span>Hold filled</span>
+          [% ELSIF ( messaging_preference.Hold_Reminder ) %]<span>Hold reminder</span>
+          [% ELSIF ( messaging_preference.Item_Check_in ) %]<span>Item check-in</span>
           [% ELSIF ( messaging_preference.Item_Checkout ) %]
             [% IF Koha.Preference( 'RenewalSendNotice' ) %]
-                Item checkout and renewal
+                <span>Item checkout and renewal</span>
             [% ELSE %]
-                Item checkout
+                <span>Item checkout</span>
             [% END %]
-          [% ELSIF ( messaging_preference.Ill_ready ) %]Interlibrary loan ready
-          [% ELSIF ( messaging_preference.Ill_unavailable ) %]Interlibrary loan unavailable
-          [% ELSIF ( messaging_preference.Auto_Renewals ) %]Auto renewal
-          [% ELSE %]Unknown [% END %]</td>
+          [% ELSIF ( messaging_preference.Ill_ready ) %]<span>Interlibrary loan ready</span>
+          [% ELSIF ( messaging_preference.Ill_unavailable ) %]<span>Interlibrary loan unavailable</span>
+          [% ELSIF ( messaging_preference.Ill_update ) %]<span>Interlibrary loan updated</span>
+          [% ELSIF ( messaging_preference.Auto_Renewals ) %]<span>Auto renewal</span>
+          [% ELSE %]<span>Unknown</span>
+          [% END %]
+      </td>
       [% IF ( messaging_preference.takes_days ) %]
       <td>
           [% IF ( messaging_form_inactive ) %]
@@ -102,12 +109,12 @@
                  <input type="checkbox"
                  id="itiva[% messaging_preference.message_attribute_id | html %]"
                  name="[% messaging_preference.message_attribute_id | html %]"
-                 value="itiva" checked="checked" class="active_notify" data-attr-id="[% messaging_preference.message_attribute_id | html %]" />
+                 value="itiva" checked="checked" class="pmp_phone active_notify" data-attr-id="[% messaging_preference.message_attribute_id | html %]" />
               [% ELSE %]
                  <input type="checkbox"
                  id="itiva[% messaging_preference.message_attribute_id | html %]"
                  name="[% messaging_preference.message_attribute_id | html %]"
-                 value="itiva" class="active_notify" data-attr-id="[% messaging_preference.message_attribute_id | html %]" />
+                 value="itiva" class="pmp_phone active_notify" data-attr-id="[% messaging_preference.message_attribute_id | html %]" />
               [% END %]
           [% END %]
           </td>
@@ -134,12 +141,12 @@
                  <input type="checkbox"
                  id="phone[% messaging_preference.message_attribute_id | html %]"
                  name="[% messaging_preference.message_attribute_id | html %]"
-                 value="phone" checked="checked" class="active_notify" data-attr-id="[% messaging_preference.message_attribute_id | html %]" />
+                 value="phone" checked="checked" class="pmp_phone active_notify" data-attr-id="[% messaging_preference.message_attribute_id | html %]" />
               [% ELSE %]
                  <input type="checkbox"
                  id="phone[% messaging_preference.message_attribute_id | html %]"
                  name="[% messaging_preference.message_attribute_id | html %]"
-                 value="phone" class="active_notify" data-attr-id="[% messaging_preference.message_attribute_id | html %]" />
+                 value="phone" class="pmp_phone active_notify" data-attr-id="[% messaging_preference.message_attribute_id | html %]" />
               [% END %]
           [% END %]
           </td>
@@ -232,4 +239,5 @@
 
     </tr>
     [% END %]
+    </tbody>
   </table>

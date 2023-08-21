@@ -19,24 +19,20 @@ package C4::Stats;
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-require Exporter;
-use Carp;
+use Carp qw( croak );
 use C4::Context;
-use C4::Debug;
 
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Statistics;
 use Koha::PseudonymizedTransactions;
 
-use vars qw(@ISA @EXPORT);
-
-our $debug;
-
+our (@ISA, @EXPORT_OK);
 BEGIN {
-	@ISA    = qw(Exporter);
-	@EXPORT = qw(
-		&UpdateStats
-	);
+    require Exporter;
+    @ISA    = qw(Exporter);
+    @EXPORT_OK = qw(
+      UpdateStats
+    );
 }
 
 
@@ -69,6 +65,7 @@ C<$params> is an hashref whose expected keys are:
     other              : sipmode
     itemtype           : the type of the item
     ccode              : the collection code of the item
+    categorycode           : the categorycode of the patron
 
 type key is mandatory.
 For types used in C4::Circulation (renew,issue,localuse,return), the following other keys are mandatory:
@@ -86,8 +83,8 @@ sub UpdateStats {
 # make some controls
     return () if ! defined $params;
 # change these arrays if new types of transaction or new parameters are allowed
-    my @allowed_keys = qw (type branch amount other itemnumber itemtype borrowernumber ccode location);
-    my @allowed_circulation_types = qw (renew issue localuse return onsite_checkout);
+    my @allowed_keys = qw (type branch amount other itemnumber itemtype borrowernumber ccode location categorycode);
+    my @allowed_circulation_types = qw (renew issue localuse return onsite_checkout recall);
     my @allowed_accounts_types = qw (writeoff payment cancelfee);
     my @allowed_authentication_types = qw (auth-ext);
     my @circulation_mandatory_keys = qw (type branch borrowernumber itemnumber ccode itemtype);
@@ -131,6 +128,7 @@ sub UpdateStats {
     my $itemtype          = exists $params->{itemtype}       ? $params->{itemtype}       : '';
     my $location          = exists $params->{location}       ? $params->{location}       : undef;
     my $ccode             = exists $params->{ccode}          ? $params->{ccode}          : '';
+    my $categorycode      = exists $params->{categorycode}   ? $params->{categorycode}   : undef;
 
     my $dtf = Koha::Database->new->schema->storage->datetime_parser;
     my $statistic = Koha::Statistic->new(
@@ -145,6 +143,7 @@ sub UpdateStats {
             location       => $location,
             borrowernumber => $borrowernumber,
             ccode          => $ccode,
+            categorycode   => $categorycode,
         }
     )->store;
 

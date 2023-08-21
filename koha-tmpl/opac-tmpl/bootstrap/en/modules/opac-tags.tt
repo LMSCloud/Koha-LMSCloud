@@ -1,14 +1,16 @@
 [% USE raw %]
 [% USE Koha %]
 [% USE KohaDates %]
-
+[% USE AdditionalContents %]
+[% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Tags &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %]
     <style>
         fieldset { padding : .3em;margin:.3em 0;}
-        #tagcloud    {background-color: #F3F3F3; text-align: justify;padding:7px;}
+        #tagcloud    {background-color: #F5F5F5; text-align: justify;padding:7px;}
         .tag a       {text-decoration: none;}
         .tag a:hover {text-decoration: underline;}
         .tag         {display: block; padding-left: 1em;}
@@ -28,8 +30,8 @@
 [% INCLUDE 'masthead.inc' %]
 
 <div class="main">
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
+    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
+        <ol class="breadcrumb">
             <li class="breadcrumb-item">
                 <a href="/cgi-bin/koha/opac-main.pl">Home</a>
             </li>
@@ -38,11 +40,11 @@
                     <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
                 </li>
             [% END %]
-            <li class="breadcrumb-item" aria-current="page">
-                <a href="#">Tags</a>
+            <li class="breadcrumb-item active">
+                <a href="#" aria-current="page">Tags</a>
             </li>
-        </ul>
-    </nav>
+        </ol>
+    </nav> <!-- /#breadcrumbs -->
 
     <div class="container-fluid">
         <div class="row">
@@ -62,21 +64,21 @@
                         [% IF ( ERRORS ) %]
                             [% FOREACH ERROR IN ERRORS %]
                                 <div class="alert alert-warning">
-                                    There was a problem with this operation:
+                                    <span>There was a problem with this operation:</span>
                                     [% IF ( ERROR.badparam ) %]
-                                        ERROR: illegal parameter [% ERROR.badparam | html %]
+                                        <span>ERROR: illegal parameter [% ERROR.badparam | html %]</span>
                                     [% ELSIF ( ERROR.login ) %]
-                                        ERROR: You must log in to complete that action.
+                                        <span>ERROR: You must log in to complete that action.</span>
                                     [% ELSIF ( ERROR.failed_delete ) %]
-                                        ERROR: You cannot delete the tag [% ERROR.failed_delete | html %].
-                                        <br />Note: you can only delete your own tags.
+                                        <span>ERROR: You cannot delete the tag [% ERROR.failed_delete | html %].</span>
+                                        <br /><span>Note: you can only delete your own tags.</span>
                                     [% ELSIF ( ERROR.scrubbed ) %]
-                                        Note: your tag contained markup code that was removed.
-                                        <br />The tag was added as &quot;[% ERROR.scrubbed | html %]&quot;.
+                                        <span>Note: your tag contained markup code that was removed.</span>
+                                        <br /><span>The tag was added as &quot;[% ERROR.scrubbed | html %]&quot;.</span>
                                     [% ELSIF ( ERROR.scrubbed_all_bad ) %]
-                                        Note: your tag was entirely markup code.  It was NOT added.
-                                        <br />Please try again with plain text.
-                                    [% ELSE %]Unrecognized error.
+                                        <span>Note: your tag was entirely markup code.  It was NOT added.</span>
+                                        <br /><span>Please try again with plain text.</span>
+                                    [% ELSE %]<span>Unrecognized error.</span>
                                     [% END %]
                                 </div>
                             [% END %]
@@ -87,12 +89,12 @@
                                 <div class="form-inline">
                                     <label>
                                         [% IF Koha.Preference( 'opacuserlogin' ) == 1 %]
-                                            Tags to show from other users:
+                                            <span>Tags to show from other users:</span>
                                         [% ELSE %]
-                                            Tags to show:
+                                            <span>Tags to show:</span>
                                         [% END %]
                                     </label>
-                                    <input type="text" name="limit" class="form-control form-control-sm mr-2" maxlength="4" size="4" value="[% limit or "100" | html %]" />
+                                    <input type="text" name="limit" class="form-control form-control-sm mr-2" maxlength="4" size="4" value="[% limit or '100' | html %]" />
                                     <input type="submit" value="OK" class="btn btn-sm btn-primary" />
                                 </div>
                                 [% IF Koha.Preference( 'opacuserlogin' ) == 1 %]
@@ -114,7 +116,7 @@
                             <div id="tagcloud">
                                 [% FOREACH TAGLOO IN TAGLOOP %]
                                     <span class="tag tagweight[% TAGLOO.stratum | html %]" id="tag[% loop.count | html %]" style="display:inline;">
-                                    <a href="/cgi-bin/koha/opac-search.pl?tag=[% TAGLOO.term |url %]&amp;q=[% TAGLOO.term |url %]">[% TAGLOO.term | html %]</a>
+                                    <a href="/cgi-bin/koha/opac-search.pl?tag=[% TAGLOO.term |uri %]&amp;q=[% TAGLOO.term |uri %]">[% TAGLOO.term | html %]</a>
                                     <span class="tagweight">[% TAGLOO.weight_total | html %]</span>
                                     </span>
                                 [% END %]
@@ -125,7 +127,7 @@
                                 <div class="dialog message">[% added_count | html %] [% IF ( added_count == 1 ) %]tag[% ELSE %]tags[% END %] successfully added.</div>
                             [% END %]
                             [% IF ( deleted_count ) %]
-                            <div class="dialog message">[% deleted_count | html %] [% IF ( deleted_count == 1 ) %]tag[% ELSE %]tags[% END %] successfully deleted.</div>
+                                <div class="dialog message">[% deleted_count | html %] [% IF ( deleted_count == 1 ) %]tag[% ELSE %]tags[% END %] successfully deleted.</div>
                             [% END %]
                         [% END # /add_op %]
 
@@ -151,7 +153,7 @@
                                             <td class="tagterm">
                                                 <span class="tdlabel">Tag:</span>
                                                 [% IF MY_TAG.approved == 1 %]
-                                                    <a href="/cgi-bin/koha/opac-search.pl?tag=[% MY_TAG.term |url %]&amp;q=[% MY_TAG.term |url %]">[% MY_TAG.term | html %]</a>
+                                                    <a href="/cgi-bin/koha/opac-search.pl?tag=[% MY_TAG.term |uri %]&amp;q=[% MY_TAG.term |uri %]">[% MY_TAG.term | html %]</a>
                                                 [% ELSE %]
                                                     [% MY_TAG.term | html %] (not approved)
                                                 [% END %]
@@ -161,9 +163,7 @@
                                                     [% MY_TAG.XSLTBloc | $raw %]
                                                 [% ELSE %]
                                                     <span class="tdlabel">Title:</span>
-                                                    <a class="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% MY_TAG.biblionumber | html %]">
-                                                        [% INCLUDE 'biblio-title.inc' biblio=MY_TAG %]
-                                                    </a>
+                                                    [% INCLUDE 'biblio-title.inc' biblio=MY_TAG link=> 1 %]
                                                     [% IF ( MY_TAG.author ) %]
                                                         by [% MY_TAG.author | html %]
                                                     [% END %]

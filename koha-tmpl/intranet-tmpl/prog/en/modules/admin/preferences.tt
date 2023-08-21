@@ -14,24 +14,20 @@
 [% Asset.css("lib/codemirror/lint.min.css") | $raw %]
 </head>
 <body id="admin_preferences" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                System preferences
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>System preferences</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -39,7 +35,6 @@
             <main>
 
     [% IF ( jump_not_found ) %]
-    <h2>System preferences</h2>
     <div class="dialog alert">
         Could not find a system preference named <code>[% jumpfield | html %]</code>.
     </div>
@@ -48,32 +43,36 @@
     <div class="dialog alert">
         No system preferences matched your search for: <strong>[% searchfield | html %]</strong>
     </div>
+    <h1>System preferences</h1>
     [% ELSIF searchfield %]
-        <h1>You searched for: [% searchfield | html %]</h1>
+    <h1>System preferences matching: [% searchfield | html %]</h1>
+    [% ELSE %]
+    <h1>System preferences</h1>
     [% END %]
     [% FOREACH TAB IN TABS %]
     <div class="prefs-tab">
     <h2>[% TAB.tab_title | html %] preferences</h2>
     <form action="/cgi-bin/koha/admin/preferences.pl" method="post">
-        [% UNLESS ( searchfield ) %]<div id="toolbar"><button class="save-all submit" type="submit">Save all [% TAB.tab_title | html %] preferences</button></div>[% END %]
+        [% UNLESS ( searchfield ) %]<div id="toolbar"><button class="save-all btn btn-primary" type="submit">Save all [% TAB.tab_title | html %] preferences</button></div>[% END %]
         <input type="hidden" name="op" value="save" />
         <input type="hidden" name="tab" value="[% TAB.tab_id | html %]" />
 
             [% FOREACH LINE IN TAB.LINES %]
             [% IF ( LINE.is_group_title ) %]
-            [% UNLESS ( loop.first ) %]</tbody></table>[% END %]
+            [% UNLESS ( loop.first ) %]</tbody></table></div>[% END %]
+            <div class="page-section">
             <div class="row">
                 <div class="col-sm-6">
-                    <h3 id="[% LINE.title | $HtmlId %]"><i class="fa fa-caret-down"></i> [% LINE.title | html %]</h3>
+                    <h3 id="[% TAB.tab_id | $HtmlId %]_[% LINE.title | $HtmlId %]"><i class="fa fa-caret-down"></i> [% LINE.title | html %]</h3>
                 </div>
                 <div class="col-sm-6">
                     [% IF ( searchfield ) %]
-                        <div class="pull-right"><a class="btn btn-link" href="/cgi-bin/koha/admin/preferences.pl?tab=[% TAB.tab_id | html %]#[% LINE.title | $HtmlId %]"><i class="fa fa-list-ul"></i> View all [% LINE.title | html %] preferences</a></div>
+                        <div class="pull-right"><a class="btn btn-link" href="/cgi-bin/koha/admin/preferences.pl?tab=[% TAB.tab_id | html %]#[% TAB.tab_id | $HtmlId %]_[% LINE.title | $HtmlId %]"><i class="fa fa-list-ul"></i> View all [% LINE.title | html %] preferences</a></div>
                     [% END %]
                 </div>
             </div>
 
-            <table class="preferences" id="collapse_[% LINE.title | $HtmlId %]">
+            <table class="preferences" id="collapse_[% TAB.tab_id | $HtmlId %]_[% LINE.title | $HtmlId %]">
             <thead><tr><th>Preference</th><th>Value</th></tr></thead>
             [% UNLESS ( loop.last ) %]<tbody>[% END %]
             [% ELSE %]
@@ -130,7 +129,7 @@
                         [% END %]
                     </select>
                     [% ELSIF ( CHUNK.type_modalselect ) %]
-                        <input type="text" name="pref_[% CHUNK.name | html %]" id="pref_[% CHUNK.name | html %]" class="modalselect preference preference-[% CHUNK.type | html %]" data-source="[% CHUNK.source | html %]" data-exclusions="[% CHUNK.exclusions | html %]" readonly="readonly" value="[% CHUNK.value | html %]"/>
+                        <input type="text" name="pref_[% CHUNK.name | html %]" id="pref_[% CHUNK.name | html %]" class="modalselect preference preference-[% CHUNK.type | html %]" data-source="[% CHUNK.source | html %]" data-required="[% CHUNK.required | html %]" data-exclusions="[% CHUNK.exclusions | html %]" readonly="readonly" value="[% CHUNK.value | html %]"/>
                     [% ELSIF ( CHUNK.type_multiple ) %]
                     <select name="pref_[% CHUNK.name | html %]" id="pref_[% CHUNK.name | html %]" class="preference preference-[% CHUNK.class or "choice" | html %]" multiple="multiple">
                         [% FOREACH CHOICE IN CHUNK.CHOICES %][% IF ( CHOICE.selected ) %]<option value="[% CHOICE.value | html %]" selected="selected">[% ELSE %]<option value="[% CHOICE.value | html %]">[% END %][% CHOICE.text | html %]</option>[% END %]
@@ -186,18 +185,18 @@
                         [% FOR w IN LINE.WARNINGS %]
                             <div class="dialog alert">
                                 [% SWITCH w %]
-                                [% CASE "bcrypt_config_not_set" %]Pseudonymization must only be turned on if the 'bcrypt_settings' configuration entry exists and is correctly filled in the Koha configuration file.
-                                [% CASE %]Unknown warning "[% w | html %]"
+                                [% CASE "bcrypt_config_not_set" %]<span>Pseudonymization must only be turned on if the 'bcrypt_settings' configuration entry exists and is correctly filled in the Koha configuration file.</span>
+                                [% CASE %]<span>Unknown warning "[% w | html %]"</span>
                                 [% END %]
                             </div>
                         [% END %]
                     [% END %]
                 </div></td>
             </tr>
-            [% IF ( loop.last ) %]</tbody></table>[% END %]
+            [% IF ( loop.last ) %]</tbody></table></div>[% END %]
             [% END %]
         [% END %]
-        <fieldset class="action"><button class="save-all submit" type="submit">Save all [% TAB.tab_title | html %] preferences</button> <a href="/cgi-bin/koha/admin/preferences.pl" class="force_reload cancel">Cancel</a></fieldset>
+        <fieldset class="action"><button class="save-all submit btn btn-primary" type="submit">Save all [% TAB.tab_title | html %] preferences</button> <a href="/cgi-bin/koha/admin/preferences.pl" class="force_reload cancel">Cancel</a></fieldset>
     </form>
     </div>
     [% END %]
@@ -230,7 +229,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button id="saveModalPrefs" data-target="" type="button" class="btn btn-default">Save</button>
+                <button id="saveModalPrefs" data-target="" type="button" class="btn btn-primary">Save</button>
                 <button type="button" class="btn btn-link cancel" data-dismiss="modal">Cancel</button>
             </div>
         </div>
@@ -282,6 +281,7 @@
         // This is here because of its dependence on template variables, everything else should go in js/pages/preferences.js - jpw
         var to_highlight = "[% To.json( searchfield ) | html %]";
         var search_jumped = [% IF ( search_jumped ) %]true[% ELSE %]false[% END %];
+        var db_columns = [% To.json( db_columns ) | $raw %];
     </script>
     [% Asset.js("lib/jquery/plugins/humanmsg.js") | $raw %]
     [% Asset.js("js/ajax.js") | $raw %]

@@ -19,15 +19,12 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Output;
-use C4::Koha;
-use C4::Circulation;
-use C4::Reports;
-use C4::Members;
-use Koha::DateUtils;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Koha qw( GetAuthorisedValues );
+use C4::Reports qw( GetDelimiterChoices );
 use Koha::ItemTypes;
 
 =head1 NAME
@@ -44,9 +41,6 @@ my $fullreportname = "reports/cat_issues_top.tt";
 my $limit = $input->param("Limit");
 my $column = $input->param("Criteria");
 my @filters = $input->multi_param("Filter");
-foreach ( @filters[0..3] ) {
-    $_ and $_ = eval { output_pref( { dt => dt_from_string ( $_ ), dateonly => 1, dateformat => 'iso' } ); };
-}
 
 my $output = $input->param("output");
 my $basename = $input->param("basename");
@@ -56,10 +50,8 @@ my ($template, $borrowernumber, $cookie)
                 query => $input,
                 type => "intranet",
                 flagsrequired => { reports => '*'},
-                debug => 1,
                 });
-our $sep     = $input->param("sep");
-$sep = "\t" if ($sep eq 'tabulation');
+our $sep     = C4::Context->csv_delimiter(scalar $input->param("sep"));
 $template->param(do_it => $do_it,
         );
 if ($do_it) {
@@ -168,13 +160,7 @@ sub calculate {
             if (($i==1) and (@$filters[$i-1])) {
                 $cell{err} = 1 if (@$filters[$i]<@$filters[$i-1]) ;
             }
-            # format the dates filters, otherwise just fill as is
-            if ($i>=2) {
-                $cell{filter} .= @$filters[$i];
-            } else {
-                $cell{filter} .= eval { output_pref( { dt => dt_from_string( @$filters[$i] ), dateonly => 1 }); }
-                   if ( @$filters[$i] );
-            }
+            $cell{filter} .= @$filters[$i];
             $cell{crit} .="Issue From" if ($i==0);
             $cell{crit} .="Issue To" if ($i==1);
             $cell{crit} .="Return From" if ($i==2);

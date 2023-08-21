@@ -29,13 +29,14 @@ Search for invoices
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 
-use C4::Acquisition qw/GetInvoices/;
-use C4::Budgets;
-use Koha::DateUtils;
+use C4::Acquisition qw( GetInvoices GetInvoice );
+use C4::Budgets qw( GetBudget GetBudgets CanUserUseBudget );
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Acquisition::Booksellers;
+use Koha::AdditionalFields;
 
 my $input = CGI->new;
 my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
@@ -44,7 +45,6 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
         query           => $input,
         type            => 'intranet',
         flagsrequired   => { 'acquisition' => '*' },
-        debug           => 1,
     }
 );
 
@@ -63,32 +63,49 @@ my $branch           = $input->param('branch');
 my $message_id       = $input->param('message_id');
 my $op               = $input->param('op');
 
-$shipmentdatefrom and $shipmentdatefrom = eval { dt_from_string( $shipmentdatefrom ) };
-$shipmentdateto   and $shipmentdateto   = eval { dt_from_string( $shipmentdateto ) };
-$billingdatefrom  and $billingdatefrom  = eval { dt_from_string( $billingdatefrom ) };
-$billingdateto    and $billingdateto    = eval { dt_from_string( $billingdateto ) };
+my @additional_fields = Koha::AdditionalFields->search(
+    {   tablename  => 'aqinvoices',
+        searchable => 1
+    }
+)->as_list;
+my @additional_field_filters;
+for my $field (@additional_fields) {
+    my $value = $input->param( 'additional_field_' . $field->id );
+    if ( defined $value and $value ne '' ) {
+        push @additional_field_filters,
+          { id    => $field->id,
+            value => $value,
+          };
+    }
+}
 
 my $invoices = [];
 if ( $op and $op eq 'do_search' ) {
     @{$invoices} = GetInvoices(
-        invoicenumber    => $invoicenumber,
-        supplierid       => $supplierid,
-        shipmentdatefrom => $shipmentdatefrom ? output_pref( { str => $shipmentdatefrom, dateformat => 'iso' } ) : undef,
-        shipmentdateto   => $shipmentdateto   ? output_pref( { str => $shipmentdateto,   dateformat => 'iso' } ) : undef,
-        billingdatefrom  => $billingdatefrom  ? output_pref( { str => $billingdatefrom,  dateformat => 'iso' } ) : undef,
-        billingdateto    => $billingdateto    ? output_pref( { str => $billingdateto,    dateformat => 'iso' } ) : undef,
-        isbneanissn      => $isbneanissn,
-        title            => $title,
-        author           => $author,
-        publisher        => $publisher,
-        publicationyear  => $publicationyear,
-        branchcode       => $branch,
-        message_id       => $message_id,
+        invoicenumber     => $invoicenumber,
+        supplierid        => $supplierid,
+        shipmentdatefrom  => $shipmentdatefrom,
+        shipmentdateto    => $shipmentdateto,
+        billingdatefrom   => $billingdatefrom,
+        billingdateto     => $billingdateto,
+        isbneanissn       => $isbneanissn,
+        title             => $title,
+        author            => $author,
+        publisher         => $publisher,
+        publicationyear   => $publicationyear,
+        branchcode        => $branch,
+        message_id        => $message_id,
+        additional_fields => \@additional_field_filters,
     );
 }
 
+$template->param(
+    additional_field_filters      => { map { $_->{id} => $_->{value} } @additional_field_filters },
+    additional_fields_for_invoice => \@additional_fields,
+);
+
 # Build suppliers list
-my @suppliers      = Koha::Acquisition::Booksellers->search( undef, { order_by => { -asc => 'name' } } );
+my @suppliers      = Koha::Acquisition::Booksellers->search( undef, { order_by => { -asc => 'name' } } )->as_list;
 my $suppliers_loop = [];
 my $suppliername;
 foreach (@suppliers) {

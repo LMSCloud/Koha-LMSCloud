@@ -95,6 +95,18 @@ __PACKAGE__->add_columns(
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
 );
 
+=head1 PRIMARY KEY
+
+=over 4
+
+=item * L</import_record_id>
+
+=back
+
+=cut
+
+__PACKAGE__->set_primary_key("import_record_id");
+
 =head1 RELATIONS
 
 =head2 import_record
@@ -113,9 +125,14 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2020-11-03 09:53:04
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:/nOWo4fGjdch+K0T+07cSw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-10-17 11:17:50
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Oj/1VkjYP538OlNeu41mqA
 
+sub koha_object_class {
+    'Koha::Import::Record::Biblio';
+}
+sub koha_objects_class {
+    'Koha::Import::Record::Biblios';
+}
 
-# You can replace this text with custom content, and it will be preserved on regeneration
 1;

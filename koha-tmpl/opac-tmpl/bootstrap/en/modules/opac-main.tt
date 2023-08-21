@@ -4,12 +4,15 @@
 [% USE Branches %]
 [% USE Categories %]
 [% USE Price %]
-[% USE KohaNews %]
+[% USE AdditionalContents %]
+[% USE AuthClient %]
 [% PROCESS 'i18n.inc' %]
-[% SET OpacNavRight = KohaNews.get( location => "OpacNavRight", lang => lang, library => branchcode ) %]
-[% SET OpacMainUserBlock = KohaNews.get( location => "OpacMainUserBlock", lang => lang, library => branchcode ) %]
-[% SET OpacLoginInstructions = KohaNews.get( location => "OpacLoginInstructions", lang => lang, library => branchcode ) %]
-[% SET OpacMainPageLeftPanel = KohaNews.get( location => "OpacMainPageLeftPanel", lang => lang, library => branchcode ) %]
+[% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% SET OpacNavRight = AdditionalContents.get( location => "OpacNavRight", lang => lang, library => logged_in_user.branchcode || default_branch ) %]
+[% SET OpacMainUserBlock = AdditionalContents.get( location => "OpacMainUserBlock", lang => lang, library => logged_in_user.branchcode || default_branch ) %]
+[% SET OpacLoginInstructions = AdditionalContents.get( location => "OpacLoginInstructions", lang => lang, library => branchcode || default_branch ) %]
+[% SET OpacMainPageLeftPanel = AdditionalContents.get( location => "OpacMainPageLeftPanel", lang => lang, library => branchcode || default_branch ) %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
@@ -19,22 +22,22 @@
 [% INCLUDE 'masthead.inc' %]
 
 <div class="main">
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
+    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
+        <ol class="breadcrumb">
             [% IF news_item %]
                 <li class="breadcrumb-item">
                     <a href="/cgi-bin/koha/opac-main.pl">Home</a>
                 </li>
-                <li class="breadcrumb-item active" aria-current="page">
-                    [% news_item.title | html %]
+                <li class="breadcrumb-item active">
+                    <a href="#" aria-current="page">[% news_item.title | html %]</a>
                 </li>
             [% ELSE %]
-                <li class="breadcrumb-item active" aria-current="page">
-                    <a href="/cgi-bin/koha/opac-main.pl">Home</a>
+                <li class="breadcrumb-item active">
+                    <a href="#" aria-current="page">Home</a>
                 </li>
             [% END %]
-        </ul>
-    </nav>
+        </ol>
+    </nav> <!-- /#breadcrumbs -->
 
     [% IF Koha.Preference( 'opacuserlogin' ) == 1 %]
         [% IF ( loggedinusername ) %]
@@ -115,7 +118,7 @@
         [% koha_news_count = newsfiltercount                                %]
         [% koha_news = newsfilter                                           %]
 
-        [% IF ( koha_news ) %]
+        [% IF koha_news.count %]
 
             [% IF single_news_error %]
 
@@ -126,8 +129,9 @@
             [% ELSIF koha_news.size > 0 %]
 
                 <div id="news" class="newscontainer">
-                    [% SET newsdisp = ( Koha.Preference('NewsAuthorDisplay') ) %]
+                    [% SET show_author = Koha.Preference('NewsAuthorDisplay') == 'opac' || Koha.Preference('NewsAuthorDisplay') == 'both' %]
                     [% FOREACH koha_new IN koha_news %]
+                    [% IF koha_new.category == 'news' %]
                         <div class="newsitem">
                             <h4 class="newsheader">
                                 [% IF ( news_item ) %]
@@ -139,21 +143,17 @@
                             <div class="newsbody">[% koha_new.content | $raw %]</div>
                             <div class="newsfooter">
                                 Published on [% koha_new.published_on | $KohaDates %]
-                                [% IF ( (newsdisp == 'opac' || newsdisp == 'both') && koha_new.borrowernumber ) %]
-                                    [% IF news_item %]
-                                        [% SET author = koha_new.author %]
-                                        by <span class="newsauthor_title">[% author.title | html %] </span>[% author.firstname | html %] [% author.surname | html %]
-                                    [% ELSE %]
-                                        by <span class="newsauthor_title">[% koha_new.author_title | html %] </span>[% koha_new.author_firstname | html %] [% koha_new.author_surname | html %]
-                                    [% END %]
+                                [% IF ( show_author && koha_new.author ) %]
+                                    by <span class="newsauthor">[% INCLUDE 'patron-title.inc' patron=koha_new.author %]</span>
                                 [% END %]
                                 [% IF ( news_item ) %]
                                     &bull; <a href="/cgi-bin/koha/opac-main.pl">Show all news</a>
                                 [% END %]
                             </div>
                         </div>
-
                     [% END %]
+                    [% END %]
+
                     [% UNLESS (news_item || koha_news.size == 0 ) %]
                         <div id="rssnews-container">
                             <!-- Logged in users have a branch code or it could be explicitly set -->
@@ -161,15 +161,15 @@
                                 <i class="fa fa-rss" aria-hidden="true"></i>
                                 [% IF Branches.all.size == 1 %]
                                     [% IF branchcode %]
-                                        RSS feed for [% Branches.GetName( branchcode ) | html %] library news
+                                        <span>RSS feed for [% Branches.GetName( branchcode ) | html %] library news</span>
                                     [% ELSE %]
-                                        RSS feed for library news
+                                        <span>RSS feed for library news</span>
                                     [% END %]
                                 [% ELSE %]
                                     [% IF branchcode %]
-                                        RSS feed for [% Branches.GetName( branchcode ) | html %] and system-wide library news
+                                        <span>RSS feed for [% Branches.GetName( branchcode ) | html %] and system-wide library news</span>
                                     [% ELSE %]
-                                        RSS feed for system-wide library news
+                                        <span>RSS feed for system-wide library news</span>
                                     [% END %]
                                 [% END %]
                             </a>
@@ -222,13 +222,36 @@
                                     <input type="hidden" name="koha_login_context" value="opac" />
                                     <fieldset class="brief">
                                         <legend>Log in to your account:</legend>
-                                        <label for="userid">Login:</label>
-                                        <input class="form-control" type="text" id="userid" name="userid" autocomplete="off" />
-                                        <label for="password">Password:</label>
-                                        <input class="form-control" type="password" id="password" name="password" autocomplete="off" />
-                                        <fieldset class="action">
-                                            <input type="submit" value="Log in" class="btn btn-primary" />
-                                        </fieldset>
+                                        [% IF ( Koha.Preference('GoogleOpenIDConnect') == 1 ) %]
+                                            <a href="/cgi-bin/koha/svc/auth/googleopenidconnect" class="btn btn-light" id="openid_connect"><i class="fa fa-google" aria-hidden="true"></i> Log in with Google</a>
+                                            <p>If you do not have a Google account, but do have a local account, you can still log in: </p>
+                                        [% END # /IF GoogleOpenIDConnect %]
+                                        [% SET identity_providers = AuthClient.get_providers('opac') %]
+                                        [% IF ( ! identity_providers.empty ) %]
+                                            [% FOREACH provider IN identity_providers %]
+                                                <p class="clearfix">
+                                                    <a href="[% provider.url | url %]" class="btn btn-light col-md-12" id="provider_[% provider.code | html %]">
+                                                        [% IF provider.icon_url %]
+                                                        <img src="[% provider.icon_url | url %]"  style="max-height: 20px; max-width: 20px;"/>
+                                                        [% ELSE %]
+                                                        <i class="fa fa-user" aria-hidden="true"></i>
+                                                        [% END %]
+                                                        Log in with [% provider.description | html %]
+                                                    </a>
+                                                </p>
+                                            [% END %]
+                                            <hr/>
+                                            <p>If you do not have an external account, but do have a local account, you can still log in: </p>
+                                        [% END # /IF  identity_providers.size %]
+                                        <div class="local-login">
+                                            <label for="userid">Login:</label>
+                                            <input class="form-control" type="text" id="userid" name="userid" autocomplete="off" />
+                                            <label for="password">Password:</label>
+                                            <input class="form-control" type="password" id="password" name="password" autocomplete="off" />
+                                            <fieldset class="action">
+                                                <input type="submit" value="Log in" class="btn btn-primary" />
+                                            </fieldset>
+                                        </div>
                                         [% IF ( OpacLoginInstructions ) %]
                                             <div id="nologininstructions-main" class="nologininstructions">
                                                 [% PROCESS koha_news_block news => OpacLoginInstructions %]

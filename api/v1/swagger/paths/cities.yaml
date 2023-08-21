@@ -29,32 +29,36 @@
         description: Case Insensative search on city postal code
         required: false
         type: string
-      - $ref: ../parameters.json#/match
-      - $ref: ../parameters.json#/order_by
-      - $ref: ../parameters.json#/page
-      - $ref: ../parameters.json#/per_page
-      - $ref: ../parameters.json#/q_param
-      - $ref: ../parameters.json#/q_body
-      - $ref: ../parameters.json#/q_header
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - $ref: "../swagger.yaml#/parameters/q_header"
+      - $ref: "../swagger.yaml#/parameters/request_id_header"
     responses:
       "200":
         description: A list of cities
         schema:
           type: array
           items:
-            $ref: ../definitions.json#/city
+            $ref: "../swagger.yaml#/definitions/city"
       "403":
         description: Access forbidden
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
       "500":
-        description: Internal error
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
       "503":
         description: Under maintenance
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
         catalogue: "1"
@@ -70,30 +74,33 @@
         description: A JSON object containing informations about the new hold
         required: true
         schema:
-          $ref: ../definitions.json#/city
+          $ref: "../swagger.yaml#/definitions/city"
     produces:
       - application/json
     responses:
       "201":
         description: City added
         schema:
-          $ref: ../definitions.json#/city
+          $ref: "../swagger.yaml#/definitions/city"
       "401":
         description: Authentication required
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
       "403":
         description: Access forbidden
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
       "500":
-        description: Internal error
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
       "503":
         description: Under maintenance
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
         parameters: manage_cities
@@ -105,26 +112,29 @@
       - cities
     summary: Get city
     parameters:
-      - $ref: ../parameters.json#/city_id_pp
+      - $ref: "../swagger.yaml#/parameters/city_id_pp"
     produces:
       - application/json
     responses:
       "200":
         description: A city
         schema:
-          $ref: ../definitions.json#/city
+          $ref: "../swagger.yaml#/definitions/city"
       "404":
         description: City not found
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
       "500":
-        description: Internal error
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
       "503":
         description: Under maintenance
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
         catalogue: "1"
@@ -135,40 +145,40 @@
       - cities
     summary: Update city
     parameters:
-      - $ref: ../parameters.json#/city_id_pp
+      - $ref: "../swagger.yaml#/parameters/city_id_pp"
       - name: body
         in: body
         description: A city object
         required: true
         schema:
-          $ref: ../definitions.json#/city
+          $ref: "../swagger.yaml#/definitions/city"
     produces:
       - application/json
     responses:
       "200":
         description: A city
         schema:
-          $ref: ../definitions.json#/city
+          $ref: "../swagger.yaml#/definitions/city"
       "401":
         description: Authentication required
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
       "403":
         description: Access forbidden
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
       "404":
         description: City not found
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
       "500":
         description: Internal error
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
       "503":
         description: Under maintenance
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
         parameters: manage_cities
@@ -179,7 +189,7 @@
       - cities
     summary: Delete city
     parameters:
-      - $ref: ../parameters.json#/city_id_pp
+      - $ref: "../swagger.yaml#/parameters/city_id_pp"
     produces:
       - application/json
     responses:
@@ -188,23 +198,23 @@
       "401":
         description: Authentication required
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
       "403":
         description: Access forbidden
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
       "404":
         description: City not found
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
       "500":
         description: Internal error
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
       "503":
         description: Under maintenance
         schema:
-          $ref: ../definitions.json#/error
+          $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
         parameters: manage_cities

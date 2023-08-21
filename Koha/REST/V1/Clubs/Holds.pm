@@ -19,7 +19,6 @@ use Modern::Perl;
 
 use Mojo::Base 'Mojolicious::Controller';
 
-use C4::Biblio;
 use C4::Reserves;
 
 use Koha::Items;
@@ -27,11 +26,9 @@ use Koha::Patrons;
 use Koha::Holds;
 use Koha::Clubs;
 use Koha::Club::Hold;
-use Koha::DateUtils;
 
-use Scalar::Util qw(blessed);
-use Try::Tiny;
-use List::Util 'shuffle';
+use Scalar::Util qw( blessed );
+use Try::Tiny qw( catch try );
 
 =head1 API
 
@@ -103,11 +100,6 @@ sub add {
                 status  => 404,
                 openapi => { error => "Biblio not found" }
             );
-        }
-
-        # AddReserve expects date to be in syspref format
-        if ($expiration_date) {
-            $expiration_date = output_pref( dt_from_string( $expiration_date, 'rfc3339' ) );
         }
 
         my $club_hold = Koha::Club::Hold::add(

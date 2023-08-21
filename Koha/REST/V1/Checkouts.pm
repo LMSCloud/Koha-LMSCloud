@@ -22,11 +22,11 @@ use Mojo::JSON;
 
 use C4::Auth qw( haspermission );
 use C4::Context;
-use C4::Circulation;
+use C4::Circulation qw( AddRenewal );
 use Koha::Checkouts;
 use Koha::Old::Checkouts;
 
-use Try::Tiny;
+use Try::Tiny qw( catch try );
 
 =head1 NAME
 
@@ -98,6 +98,42 @@ sub get {
         $c->unhandled_exception($_);
     };
 }
+
+=head3 get_renewals
+
+List Koha::Checkout::Renewals
+
+=cut
+
+sub get_renewals {
+    my $c = shift->openapi->valid_input or return;
+
+    try {
+        my $checkout_id = $c->validation->param('checkout_id');
+        my $checkout    = Koha::Checkouts->find($checkout_id);
+        $checkout = Koha::Old::Checkouts->find($checkout_id)
+          unless ($checkout);
+
+        unless ($checkout) {
+            return $c->render(
+                status  => 404,
+                openapi => { error => "Checkout doesn't exist" }
+            );
+        }
+
+        my $renewals_rs = $checkout->renewals;
+        my $renewals = $c->objects->search( $renewals_rs );
+
+        return $c->render(
+            status  => 200,
+            openapi => $renewals
+        );
+    }
+    catch {
+        $c->unhandled_exception($_);
+    };
+}
+
 
 =head3 renew
 
@@ -193,7 +229,7 @@ sub allows_renewal {
             openapi => {
                 allows_renewal => $renewable,
                 max_renewals => $rule->rule_value,
-                current_renewals => $checkout->renewals,
+                current_renewals => $checkout->renewals_count,
                 unseen_renewals => $checkout->unseen_renewals,
                 error => $error
             }

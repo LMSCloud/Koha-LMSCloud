@@ -270,6 +270,21 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 course_items
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::CourseItem>
+
+=cut
+
+__PACKAGE__->has_many(
+  "course_items",
+  "Koha::Schema::Result::CourseItem",
+  { "foreign.biblionumber" => "self.biblionumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 cover_images
 
 Type: has_many
@@ -282,6 +297,21 @@ __PACKAGE__->has_many(
   "cover_images",
   "Koha::Schema::Result::CoverImage",
   { "foreign.biblionumber" => "self.biblionumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 erm_eholdings_titles
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::ErmEholdingsTitle>
+
+=cut
+
+__PACKAGE__->has_many(
+  "erm_eholdings_titles",
+  "Koha::Schema::Result::ErmEholdingsTitle",
+  { "foreign.biblio_id" => "self.biblionumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -300,6 +330,36 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 illrequests
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Illrequest>
+
+=cut
+
+__PACKAGE__->has_many(
+  "illrequests",
+  "Koha::Schema::Result::Illrequest",
+  { "foreign.biblio_id" => "self.biblionumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 item_groups
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::ItemGroup>
+
+=cut
+
+__PACKAGE__->has_many(
+  "item_groups",
+  "Koha::Schema::Result::ItemGroup",
+  { "foreign.biblio_id" => "self.biblionumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 items
 
 Type: has_many
@@ -311,6 +371,21 @@ Related object: L<Koha::Schema::Result::Item>
 __PACKAGE__->has_many(
   "items",
   "Koha::Schema::Result::Item",
+  { "foreign.biblionumber" => "self.biblionumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 linktrackers
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Linktracker>
+
+=cut
+
+__PACKAGE__->has_many(
+  "linktrackers",
+  "Koha::Schema::Result::Linktracker",
   { "foreign.biblionumber" => "self.biblionumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
@@ -342,6 +417,21 @@ __PACKAGE__->has_many(
   "ratings",
   "Koha::Schema::Result::Rating",
   { "foreign.biblionumber" => "self.biblionumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 recalls
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Recall>
+
+=cut
+
+__PACKAGE__->has_many(
+  "recalls",
+  "Koha::Schema::Result::Recall",
+  { "foreign.biblio_id" => "self.biblionumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -465,6 +555,21 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 tmp_holdsqueues
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::TmpHoldsqueue>
+
+=cut
+
+__PACKAGE__->has_many(
+  "tmp_holdsqueues",
+  "Koha::Schema::Result::TmpHoldsqueue",
+  { "foreign.biblionumber" => "self.biblionumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 virtualshelfcontents
 
 Type: has_many
@@ -481,13 +586,20 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:nmmsZusHYNAMimE9sImSNg
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-05-12 07:24:19
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:SpddykztHBO6DzVLDX+2Pw
 
 __PACKAGE__->has_many(
   "biblioitem",
   "Koha::Schema::Result::Biblioitem",
   { "foreign.biblionumber" => "self.biblionumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+__PACKAGE__->has_many(
+  "ill_requests",
+  "Koha::Schema::Result::Illrequest",
+  { "foreign.biblio_id" => "self.biblionumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 

@@ -22,7 +22,6 @@ use CGI;
 
 use C4::Auth qw(checkauth);
 use C4::Context;
-use C4::Debug;
 use C4::External::FilmFriend;
 use JSON;
 

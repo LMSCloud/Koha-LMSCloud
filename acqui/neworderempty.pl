@@ -68,24 +68,30 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
 
-use C4::Auth;
-use C4::Budgets;
+use C4::Auth qw( get_template_and_user );
+use C4::Budgets qw( GetBudget GetBudgetHierarchy CanUserUseBudget );
 
-use C4::Acquisition;
-use C4::Contract;
-use C4::Suggestions;	# GetSuggestion
-use C4::Biblio;			# GetBiblioData GetMarcPrice
-use C4::Items; #PrepareItemRecord
-use C4::Output;
-use C4::Koha;
+use C4::Acquisition qw( GetOrder GetBasket FillWithDefaultValues GetOrderUsers );
+use C4::Contract qw( GetContract );
+use C4::Suggestions qw( GetSuggestion GetSuggestionInfo );
+use C4::Biblio qw(
+    AddBiblio
+    GetBiblioData
+    GetMarcFromKohaField
+    GetMarcPrice
+    GetMarcStructure
+    IsMarcStructureInternal
+);
+use C4::Output qw( output_and_exit output_html_with_http_headers );
 use C4::Members;
-use C4::Search qw/FindDuplicate/;
+use C4::Search qw( FindDuplicate );
 
 #needed for z3950 import:
-use C4::ImportBatch qw/GetImportRecordMarc SetImportRecordStatus SetMatchedBiblionumber/;
+use C4::ImportBatch qw( SetImportRecordStatus SetMatchedBiblionumber GetImportRecordMarc );
 
 use Koha::Acquisition::Booksellers;
-use Koha::Acquisition::Currencies;
+use Koha::Acquisition::Currencies qw( get_active );
+use Koha::Biblios;
 use Koha::BiblioFrameworks;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::MarcSubfieldStructures;
@@ -93,6 +99,7 @@ use Koha::ItemTypes;
 use Koha::Patrons;
 use Koha::RecordProcessor;
 use Koha::Subscriptions;
+use Koha::UI::Form::Builder::Biblio;
 
 our $input           = CGI->new;
 my $booksellerid    = $input->param('booksellerid');	# FIXME: else ERROR!
@@ -116,7 +123,6 @@ our ( $template, $loggedinuser, $cookie, $userflags ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { acquisition => 'order_manage' },
-        debug           => 1,
     }
 );
 
@@ -194,7 +200,8 @@ if ( not $ordernumber ) {    # create order
     if ( $biblionumber ) {
         $data = GetBiblioData($biblionumber);
         if ( !$listprice ) {
-            my $record = GetMarcBiblio({ biblionumber => $biblionumber });
+            my $biblio = Koha::Biblios->find( $biblionumber );
+            my $record = $biblio ? $biblio->metadata->record : undef;
             $listprice = GetMarcPrice($record, $marcflavour) if ( $record );
         }
     }
@@ -206,10 +213,11 @@ if ( not $ordernumber ) {    # create order
     }
 
     if ( not $biblionumber and Koha::BiblioFrameworks->find('ACQ') ) {
-        #my $acq_mss = Koha::MarcSubfieldStructures->search({ frameworkcode => 'ACQ', tagfield => { '!=' => $itemnumber_tag } });
+        my $biblio_form_builder = Koha::UI::Form::Builder::Biblio->new();
         foreach my $tag ( sort keys %{$tagslib} ) {
             next if $tag eq '';
             next if $tag eq $itemnumber_tag;    # skip items fields
+            my $index_tag = int(rand(1000000));
             foreach my $subfield ( sort keys %{ $tagslib->{$tag} } ) {
                 my $mss = $tagslib->{$tag}{$subfield};
                 next if IsMarcStructureInternal($mss);
@@ -241,32 +249,15 @@ if ( not $ordernumber ) {    # create order
                     }
                 }
 
-                if ( $value ) {
-
-                    # get today date & replace <<YYYY>>, <<YY>>, <<MM>>, <<DD>> if provided in the default value
-                    my $today_dt = dt_from_string;
-                    my $year     = $today_dt->strftime('%Y');
-                    my $shortyear = $today_dt->strftime('%y');
-                    my $month    = $today_dt->strftime('%m');
-                    my $day      = $today_dt->strftime('%d');
-                    $value =~ s/<<YYYY>>/$year/g;
-                    $value =~ s/<<YY>>/$shortyear/g;
-                    $value =~ s/<<MM>>/$month/g;
-                    $value =~ s/<<DD>>/$day/g;
-
-                    # And <<USER>> with surname (?)
-                    my $username =
-                      (   C4::Context->userenv
-                        ? C4::Context->userenv->{'surname'}
-                        : "superlibrarian" );
-                    $value =~ s/<<USER>>/$username/g;
-                }
-                push @catalog_details, {
-                    tag      => $tag,
-                    subfield => $subfield,
-                    %$mss,    # Do we need plugins support (?)
-                    value => $value,
-                };
+                push @catalog_details, $biblio_form_builder->generate_subfield_form(
+                    {
+                        tag => $tag,
+                        subfield => $subfield,
+                        value => $value,
+                        index_tag => $index_tag,
+                        tagslib => $tagslib,
+                    }
+                );
             }
         }
     }
@@ -296,11 +287,18 @@ $biblionumber = $data->{biblionumber};
 # - no ordernumber, no biblionumber: from a suggestion, from a new order
 if ( not $ordernumber or $biblionumber ) {
     if ( C4::Context->preference('UseACQFrameworkForBiblioRecords') ) {
-        my $record = $biblionumber ? GetMarcBiblio({ biblionumber => $biblionumber }) : undef;
+        my $biblio = Koha::Biblios->find($biblionumber);
+        my $record = $biblio ? $biblio->metadata->record : undef;
+        my $biblio_form_builder = Koha::UI::Form::Builder::Biblio->new(
+            {
+                biblionumber => $biblionumber,
+            }
+        );
         foreach my $tag ( sort keys %{$tagslib} ) {
             next if $tag eq '';
             next if $tag eq $itemnumber_tag; # skip items fields
             my @fields = $biblionumber ? $record->field($tag) : ();
+            my $index_tag = int(rand(1000000));
             foreach my $subfield ( sort keys %{ $tagslib->{$tag} } ) {
                 my $mss = $tagslib->{$tag}{$subfield};
                 next if IsMarcStructureInternal($mss);
@@ -308,12 +306,16 @@ if ( not $ordernumber or $biblionumber ) {
                 # We only need to display the values
                 my $value = join '; ', map { $tag < 10 ? $_->data : $_->subfield( $subfield ) } @fields;
                 if ( $value ) {
-                    push @catalog_details, {
-                        tag => $tag,
-                        subfield => $subfield,
-                        %$mss,
-                        value => $value,
-                    };
+                    push @catalog_details, $biblio_form_builder->generate_subfield_form(
+                        {
+                            tag => $tag,
+                            subfield => $subfield,
+                            value => $value,
+                            index_tag => $index_tag,
+                            record => $record,
+                            tagslib => $tagslib,
+                        }
+                    );
                 }
             }
         }
@@ -325,7 +327,6 @@ $template->param( catalog_details => \@catalog_details, );
 my $suggestion;
 $suggestion = GetSuggestionInfo($suggestionid) if $suggestionid;
 
-my @currencies = Koha::Acquisition::Currencies->search;
 my $active_currency = Koha::Acquisition::Currencies->get_active;
 
 # build bookfund list
@@ -364,9 +365,7 @@ if ($basketobj->effective_create_items eq 'ordering' && !$ordernumber) {
     );
 }
 
-# Get the item types list, but only if item_level_itype is YES. Otherwise, it will be in the item, no need to display it in the biblio
-my @itemtypes;
-@itemtypes = Koha::ItemTypes->search unless C4::Context->preference('item-level_itypes');
+my @itemtypes = Koha::ItemTypes->search->as_list;
 
 if ( defined $from_subscriptionid ) {
     # Get the last received order for this subscription
@@ -451,7 +450,7 @@ $template->param(
     invoiceincgst    => $bookseller->invoiceincgst,
     cur_active_sym   => $active_currency->symbol,
     cur_active       => $active_currency->currency,
-    currencies       => \@currencies,
+    currencies       => Koha::Acquisition::Currencies->search,
     currency         => $data->{currency},
     vendor_currency  => $bookseller->listprice,
     orderexists      => ( $new eq 'yes' ) ? 0 : 1,
@@ -480,7 +479,8 @@ $template->param(
     acqcreate        => $basketobj->effective_create_items eq "ordering" ? 1 : "",
     users_ids        => join(':', @order_user_ids),
     users            => \@order_users,
-    (uc(C4::Context->preference("marcflavour"))) => 1
+    (uc(C4::Context->preference("marcflavour"))) => 1,
+    estimated_delivery_date => $data->{estimated_delivery_date},
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;
@@ -595,7 +595,6 @@ sub Load_Duplicate {
         query           => $input,
         type            => "intranet",
         flagsrequired   => { acquisition => 'order_manage' },
-#        debug           => 1,
     }
   );
 

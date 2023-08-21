@@ -20,19 +20,17 @@ package Koha::Illrequest;
 
 use Modern::Perl;
 
-use Clone 'clone';
-use File::Basename qw( basename );
-use Encode qw( encode );
-use Try::Tiny;
+use Clone qw( clone );
+use Try::Tiny qw( catch try );
 use Data::Dumper;
 use DateTime;
 
 use C4::Letters;
-use C4::Members;
+use Mojo::Util qw(deprecated);
+
+use Koha::Cache::Memory::Lite;
 use Koha::Database;
-use Koha::DateUtils;
-use Koha::Email;
-use Koha::DateUtils qw/ dt_from_string /;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Exceptions::Ill;
 use Koha::Illcomments;
 use Koha::Illrequestattributes;
@@ -46,7 +44,7 @@ use Koha::Items;
 use Koha::ItemTypes;
 use Koha::Libraries;
 
-use C4::Circulation qw( CanBookBeIssued AddIssue  );
+use C4::Circulation qw( CanBookBeIssued AddIssue );
 
 use base qw(Koha::Object);
 
@@ -124,6 +122,33 @@ available for request.
 
 =head2 Class methods
 
+=head3 init_processors
+
+    $request->init_processors()
+
+Initialises an empty processors arrayref
+
+=cut
+
+sub init_processors {
+    my ( $self ) = @_;
+
+    $self->{processors} = [];
+}
+
+=head3 push_processor
+
+    $request->push_processors(sub { ...something... });
+
+Pushes a passed processor function into our processors arrayref
+
+=cut
+
+sub push_processor {
+    my ( $self, $processor ) = @_;
+    push @{$self->{processors}}, $processor;
+}
+
 =head3 statusalias
 
     my $statusalias = $request->statusalias;
@@ -139,11 +164,11 @@ sub statusalias {
     my ( $self ) = @_;
     return unless $self->status_alias;
     # We can't know which result is the right one if there are multiple
-    # ILLSTATUS authorised values with the same authorised_value column value
+    # ILL_STATUS_ALIAS authorised values with the same authorised_value column value
     # so we just use the first
     return Koha::AuthorisedValues->search(
         {
-            category         => 'ILLSTATUS',
+            category         => 'ILL_STATUS_ALIAS',
             authorised_value => $self->SUPER::status_alias
         },
         {},
@@ -156,6 +181,7 @@ sub statusalias {
 =cut
 
 sub illrequestattributes {
+    deprecated 'illrequestattributes is DEPRECATED in favor of extended_attributes';
     my ( $self ) = @_;
     return Koha::Illrequestattributes->_new_from_dbic(
         scalar $self->_result->illrequestattributes
@@ -173,6 +199,21 @@ sub illcomments {
     );
 }
 
+=head3 comments
+
+    my $ill_comments = $req->comments;
+
+Returns a I<Koha::Illcomments> resultset for the linked comments.
+
+=cut
+
+sub comments {
+    my ( $self ) = @_;
+    return Koha::Illcomments->_new_from_dbic(
+        scalar $self->_result->comments
+    );
+}
+
 =head3 logs
 
 =cut
@@ -184,6 +225,10 @@ sub logs {
 }
 
 =head3 patron
+
+    my $patron = $request->patron;
+
+Returns the linked I<Koha::Patron> object.
 
 =cut
 
@@ -216,6 +261,36 @@ sub backend_is_available {
         }
     }
     return $this_backend_is_available;
+}
+
+=head3 library
+
+    my $library = $request->library;
+
+Returns the linked I<Koha::Library> object.
+
+=cut
+
+sub library {
+    my ($self) = @_;
+
+    return Koha::Library->_new_from_dbic( scalar $self->_result->library );
+}
+
+=head3 extended_attributes
+
+    my $extended_attributes = $request->extended_attributes;
+
+Returns the linked I<Koha::Illrequestattributes> resultset object.
+
+=cut
+
+sub extended_attributes {
+    my ( $self ) = @_;
+
+    my $rs = $self->_result->extended_attributes;
+    # We call search to use the filters in Koha::Illrequestattributes->search
+    return Koha::Illrequestattributes->_new_from_dbic($rs)->search;
 }
 
 =head3 status_alias
@@ -261,11 +336,11 @@ sub status_alias {
         return $ret;
     }
     # We can't know which result is the right one if there are multiple
-    # ILLSTATUS authorised values with the same authorised_value column value
+    # ILL_STATUS_ALIAS authorised values with the same authorised_value column value
     # so we just use the first
     my $alias = Koha::AuthorisedValues->search(
         {
-            category         => 'ILLSTATUS',
+            category         => 'ILL_STATUS_ALIAS',
             authorised_value => $self->SUPER::status_alias
         },
         {},
@@ -410,6 +485,7 @@ sub _backend_capability {
     try {
         $capability = $self->_backend->capabilities($name);
     } catch {
+        warn $_;
         return 0;
     };
     # Try to invoke it
@@ -768,6 +844,23 @@ sub mark_completed {
     };
 }
 
+=head2 backend_illview
+
+View and manage an ILL request
+
+=cut
+
+sub backend_illview {
+    my ( $self, $params ) = @_;
+
+    my $response = $self->_backend_capability('illview',{
+        request    => $self,
+        other      => $params,
+    });
+    return $self->expandTemplate($response) if $response;
+    return $response;
+}
+
 =head2 backend_migrate
 
 Migrate a request from one backend to another.
@@ -776,7 +869,8 @@ Migrate a request from one backend to another.
 
 sub backend_migrate {
     my ( $self, $params ) = @_;
-
+    # Set the request's backend to be the destination backend
+    $self->load_backend($params->{backend});
     my $response = $self->_backend_capability('migrate',{
             request    => $self,
             other      => $params,
@@ -933,6 +1027,28 @@ my $permitted = 1;
     }
 
     return $self->expandTemplate($result);
+}
+
+=head3 backend_get_update
+
+    my $update = backend_get_update($request);
+
+    Given a request, returns an update in a prescribed
+    format that can then be passed to update parsers
+
+=cut
+
+sub backend_get_update {
+    my ( $self, $options ) = @_;
+
+    my $response = $self->_backend_capability(
+        'get_supplier_update',
+        {
+            request => $self,
+            %{$options}
+        }
+    );
+    return $response;
 }
 
 =head3 expandTemplate
@@ -1141,12 +1257,9 @@ or undef if none exists
 
 sub biblio {
     my ( $self ) = @_;
-
-    return if !$self->biblio_id;
-
-    return Koha::Biblios->find({
-        biblionumber => $self->biblio_id
-    });
+    my $biblio_rs = $self->_result->biblio;
+    return unless $biblio_rs;
+    return Koha::Biblio->_new_from_dbic($biblio_rs);
 }
 
 =head3 check_out
@@ -1288,7 +1401,7 @@ sub check_out {
             scalar $target_item->barcode
         );
         if ($params->{duedate} && length $params->{duedate} > 0) {
-            push @issue_args, $params->{duedate};
+            push @issue_args, dt_from_string($params->{duedate});
         }
         # Check if we can check out
         my ( $error, $confirm, $alerts, $messages ) =
@@ -1395,11 +1508,17 @@ sub generic_confirm {
         my $to = $params->{partners};
         if ( defined $to ) {
             $to =~ s/^\x00//;       # Strip leading NULLs
-            $to =~ s/\x00/; /;      # Replace others with '; '
         }
         Koha::Exceptions::Ill::NoTargetEmail->throw(
             "No target email addresses found. Either select at least one partner or check your ILL partner library records.")
           if ( !$to );
+
+        # Take the null delimited string that we receive and create
+        # an array of associated patron objects
+        my @to_patrons = map {
+            Koha::Patrons->find({ borrowernumber => $_ })
+        } split(/\x00/, $to);
+
         # Create the from, replyto and sender headers
         my $from = $branch->from_email_address;
         my $replyto = $branch->inbound_ill_address;
@@ -1416,26 +1535,37 @@ sub generic_confirm {
         $letter->{title} = $params->{subject};
         $letter->{content} = $params->{body};
 
-        # Queue the notice
-        my $params = {
-            letter                 => $letter,
-            borrowernumber         => $self->borrowernumber,
-            message_transport_type => 'email',
-            to_address             => $to,
-            from_address           => $from,
-            reply_address          => $replyto,
-            branchcode             => $branch->branchcode,
-        };
-
         if ($letter) {
-            my $result = C4::Letters::EnqueueLetter($params);
-            if ( $result ) {
+
+            # Keep track of who received this notice
+            my @queued = ();
+            # Iterate our array of recipient patron objects
+            foreach my $patron(@to_patrons) {
+                # Create the params we pass to the notice
+                my $params = {
+                    letter                 => $letter,
+                    borrowernumber         => $patron->borrowernumber,
+                    message_transport_type => 'email',
+                    to_address             => $patron->email,
+                    from_address           => $from,
+                    reply_address          => $replyto,
+                    branchcode             => $branch->branchcode,
+                };
+                my $result = C4::Letters::EnqueueLetter($params);
+                if ( $result ) {
+                    push @queued, $patron->email;
+                }
+            }
+
+            # If all notices were queued successfully,
+            # store that
+            if (scalar @queued == scalar @to_patrons) {
                 $self->status("GENREQ")->store;
                 $self->_backend_capability(
                     'set_requested_partners',
                     {
                         request => $self,
-                        to => $to
+                        to => join("; ", @queued)
                     }
                 );
                 return {
@@ -1447,6 +1577,7 @@ sub generic_confirm {
                     next    => 'illview',
                 };
             }
+
         }
         return {
             error   => 1,
@@ -1469,7 +1600,7 @@ Send a specified notice regarding this request to a patron
 =cut
 
 sub send_patron_notice {
-    my ( $self, $notice_code ) = @_;
+    my ( $self, $notice_code, $additional_text ) = @_;
 
     # We need a notice code
     if (!$notice_code) {
@@ -1480,8 +1611,9 @@ sub send_patron_notice {
 
     # Map from the notice code to the messaging preference
     my %message_name = (
-        ILL_PICKUP_READY   => 'Ill_ready',
-        ILL_REQUEST_UNAVAIL => 'Ill_unavailable'
+        ILL_PICKUP_READY    => 'Ill_ready',
+        ILL_REQUEST_UNAVAIL => 'Ill_unavailable',
+        ILL_REQUEST_UPDATE  => 'Ill_update'
     );
 
     # Get the patron's messaging preferences
@@ -1503,8 +1635,9 @@ sub send_patron_notice {
     my @fail = ();
     for my $transport (@transports) {
         my $letter = $self->get_notice({
-            notice_code => $notice_code,
-            transport   => $transport
+            notice_code     => $notice_code,
+            transport       => $transport,
+            additional_text => $additional_text
         });
         if ($letter) {
             my $result = C4::Letters::EnqueueLetter({
@@ -1627,7 +1760,8 @@ sub get_notice {
     );
     my $metahash = $self->metadata;
     my @metaarray = ();
-    while (my($key, $value) = each %{$metahash}) {
+    foreach my $key (sort { lc $a cmp lc $b } keys %{$metahash}) {
+        my $value = $metahash->{$key};
         push @metaarray, "- $key: $value" if $value;
     }
     my $metastring = join("\n", @metaarray);
@@ -1646,11 +1780,48 @@ sub get_notice {
         substitute  => {
             ill_bib_title      => $title ? $title->value : '',
             ill_bib_author     => $author ? $author->value : '',
-            ill_full_metadata  => $metastring
+            ill_full_metadata  => $metastring,
+            additional_text    => $params->{additional_text}
         }
     );
 
     return $letter;
+}
+
+
+=head3 attach_processors
+
+Receive a Koha::Illrequest::SupplierUpdate and attach
+any processors we have for it
+
+=cut
+
+sub attach_processors {
+    my ( $self, $update ) = @_;
+
+    foreach my $processor(@{$self->{processors}}) {
+        if (
+            $processor->{target_source_type} eq $update->{source_type} &&
+            $processor->{target_source_name} eq $update->{source_name}
+        ) {
+            $update->attach_processor($processor);
+        }
+    }
+}
+
+=head3 append_to_note
+
+    append_to_note("Some text");
+
+Append some text to the staff note
+
+=cut
+
+sub append_to_note {
+    my ($self, $text) = @_;
+    my $current = $self->notesstaff;
+    $text = ($current && length $current > 0) ? "$current\n\n$text" : $text;
+    $self->notesstaff($text)->store;
 }
 
 =head3 id_prefix
@@ -1714,7 +1885,28 @@ possibly records the fact that something happened
 sub store {
     my ( $self, $attrs ) = @_;
 
+    my %updated_columns = $self->_result->get_dirty_columns;
+
+    my @holds;
+    if( $self->in_storage and defined $updated_columns{'borrowernumber'} and
+        Koha::Patrons->find( $updated_columns{'borrowernumber'} ) )
+    {
+        # borrowernumber has changed
+        my $old_illreq = $self->get_from_storage;
+        @holds = Koha::Holds->search( {
+            borrowernumber => $old_illreq->borrowernumber,
+            biblionumber   => $self->biblio_id,
+        } )->as_list if $old_illreq;
+    }
+
     my $ret = $self->SUPER::store;
+
+    if ( scalar @holds ) {
+        # move holds to the changed borrowernumber
+        foreach my $hold ( @holds ) {
+            $hold->borrowernumber( $updated_columns{'borrowernumber'} )->store;
+        }
+    }
 
     $attrs->{log_origin} = 'core';
 
@@ -1876,6 +2068,101 @@ sub  checkIfIllItem {
 }
 
 =head2 Internal methods
+
+=head3 to_api_mapping
+
+=cut
+
+sub to_api_mapping {
+    return {
+        accessurl         => 'access_url',
+        backend           => 'ill_backend_id',
+        borrowernumber    => 'patron_id',
+        branchcode        => 'library_id',
+        completed         => 'completed_date',
+        deleted_biblio_id => undef,
+        illrequest_id     => 'ill_request_id',
+        notesopac         => 'opac_notes',
+        notesstaff        => 'staff_notes',
+        orderid           => 'ill_backend_request_id',
+        placed            => 'requested_date',
+        price_paid        => 'paid_price',
+        replied           => 'replied_date',
+        status_alias      => 'status_av',
+        updated           => 'timestamp',
+    };
+}
+
+=head3 strings_map
+
+    my $strings = $self->string_map({ [ public => 0|1 ] });
+
+Returns a map of column name to string representations. Extra information
+is returned depending on the column characteristics as shown below.
+
+Accepts a param hashref where the I<public> key denotes whether we want the public
+or staff client strings.
+
+Example:
+
+    {
+        status => {
+            backend => 'backendName',
+            str     => 'Status description',
+            type    => 'ill_status',
+        },
+        status_alias => {
+            category => 'ILL_STATUS_ALIAS,
+            str      => $value, # the AV description, depending on $params->{public}
+            type     => 'av',
+        }
+    }
+
+=cut
+
+sub strings_map {
+    my ( $self, $params ) = @_;
+
+    my $cache     = Koha::Cache::Memory::Lite->get_instance();
+    my $cache_key = 'ill:status_graph:' . $self->backend;
+
+    my $status_graph_union = $cache->get($cache_key);
+    unless ($status_graph_union) {
+        $status_graph_union = $self->capabilities;
+        $cache->set( $cache_key, $status_graph_union );
+    }
+
+    my $status_string =
+      ( exists $status_graph_union->{ $self->status } && defined $status_graph_union->{ $self->status }->{name} )
+      ? $status_graph_union->{ $self->status }->{name}
+      : $self->status;
+
+    my $status_code =
+      ( exists $status_graph_union->{ $self->status } && defined $status_graph_union->{ $self->status }->{id} )
+      ? $status_graph_union->{ $self->status }->{id}
+      : $self->status;
+
+    my $strings = {
+        status => {
+            backend => $self->backend, # the backend identifier
+            str     => $status_string, # the status description, taken from the status graph
+            code    => $status_code,   # the status id, taken from the status graph
+            type    => 'ill_status',   # fixed type
+        }
+    };
+
+    my $status_alias = $self->statusalias;
+    if ($status_alias) {
+        $strings->{"status_alias"} = {
+            category => 'ILL_STATUS_ALIAS',
+            str      => $params->{public} ? $status_alias->lib_opac : $status_alias->lib,
+            code     => $status_alias->authorised_value,
+            type     => 'av',
+        };
+    }
+
+    return $strings;
+}
 
 =head3 _type
 

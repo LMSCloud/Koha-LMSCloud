@@ -1,5 +1,6 @@
 [% USE raw %]
 [% USE Asset %]
+[% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Spine labels &rsaquo; Tools &rsaquo; Koha</title>
@@ -21,16 +22,17 @@
             </div>
 	[% ELSE %]
             <body id="labels_spinelabel-print" class="tools labels">
-            <div id="spinelabel">
-				[% content | $raw %]
+            <div id="spinelabel" class="[% Branches.GetLoggedInBranchcode | html %]" data-loggedinbranch="[% Branches.GetLoggedInBranchcode | html %]" data-homebranch="[% itemhomebranch | html %]" data-holdingbranch="[% itemholdingbranch | html %]">
+                [% content | $raw %]
             </div>
             <div id="print_button" class="noprint">
                 <button class="btn btn-default print-label"><i class="fa fa-print"></i> Print this label</button>
+                <button class="btn btn-default edit-label"><i class="fa fa-lock"></i> Edit this label</button>
             </div>
 	[% END %]
 
-[% Asset.js( "lib/jquery/jquery-2.2.3.min.js" ) | $raw %]
-[% Asset.js( "lib/jquery/jquery-migrate-1.3.0.min.js" ) | $raw %]
+[% Asset.js( "lib/jquery/jquery-3.6.0.min.js" ) | $raw %]
+[% Asset.js( "lib/jquery/jquery-migrate-3.3.2.min.js" ) | $raw %]
 [% IF ( autoprint ) %]
     [% INCLUDE 'slip-print.inc' #printThenClose %]
 [% END %]
@@ -45,6 +47,12 @@
         $(".close-window").on("click", function(e){
             e.preventDefault();
             window.close();
+        });
+        $('.edit-label').click( function() {
+                $('#spinelabel').attr('contenteditable', function(index, attr){
+                    return attr == 'true' ? null : 'true';
+                });
+                $('.edit-label .fa').toggleClass('fa-lock').toggleClass('fa-unlock');
         });
     });
 </script>

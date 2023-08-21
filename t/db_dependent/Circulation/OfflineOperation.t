@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
-use C4::Circulation;
+use C4::Circulation qw( AddOfflineOperation GetOfflineOperation GetOfflineOperations DeleteOfflineOperation );
 
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string output_pref );
@@ -10,7 +10,7 @@ use Koha::Library;
 use Test::More tests => 7;
 
 BEGIN {
-    use_ok('C4::Circulation');
+    use_ok('C4::Circulation', qw( AddOfflineOperation GetOfflineOperation GetOfflineOperations DeleteOfflineOperation ));
 }
 can_ok(
     'C4::Circulation',
@@ -48,7 +48,6 @@ my $samplebranch1 = {
     branchemail    => 'sample email',
     branchurl      => 'sample url',
     branchip       => 'sample ip',
-    opac_info      => 'sample opac',
 };
 Koha::Library->new($samplebranch1)->store;
 

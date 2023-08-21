@@ -2,13 +2,12 @@ package C4::Creators::Template;
 
 use strict;
 use warnings;
-use POSIX qw(ceil);
+use POSIX qw( ceil );
 use autouse 'Data::Dumper' => qw(Dumper);
 
 use C4::Context;
-use C4::Debug;
 use C4::Creators::Profile;
-use C4::Creators::Lib qw(get_unit_values);
+use C4::Creators::Lib qw( get_unit_values );
 
 
 sub _check_params {
@@ -147,7 +146,7 @@ sub delete {
         push @query_params, $opts{'template_id'}, $opts{'creator'};
     }
     if (scalar(@query_params) < 2) {   # If there is no template id or creator type then we cannot delete it
-        warn sprintf('%s : Cannot delete template as the template id is invalid or non-existent.', $call_type) if !$query_params[0];
+        warn sprintf('%s : Cannot delete template as the template ID is invalid or non-existent.', $call_type) if !$query_params[0];
         warn sprintf('%s : Cannot delete template as the creator type is invalid or non-existent.', $call_type) if !$query_params[1];
         return -1;
     }

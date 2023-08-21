@@ -21,7 +21,6 @@ function clone_line(line) {
 }
 
 function tableInit( oldtabid, newtabid ) {
-
     if ( oldtabid ){
         var oldTableId = $("#" + oldtabid + "_table");
         oldTableId.DataTable().destroy();
@@ -42,10 +41,10 @@ $(document).ready(function () {
 
     tableInit( "", "search_fields");
 
-    $("#tabs").tabs({
-        activate: function( event, ui ){
-            tableInit( ui.oldPanel.attr('id'), ui.newPanel.attr('id') );
-        },
+    $("a[data-toggle='tab']").on("shown.bs.tab", function (e) {
+        var oldtabid = $(e.relatedTarget).data("tab");
+        var newtabid = $(e.target).data("tab");
+        tableInit( oldtabid, newtabid );
     });
 
     $('.delete').click(function () {
@@ -53,7 +52,9 @@ $(document).ready(function () {
             alert( __("This field is mandatory and must have at least one mapping") );
             return;
         } else {
-            $(this).parents('tr').remove();
+            var table = $(this).closest('table');
+            let dt = $(table).DataTable();
+            dt.row( $(this).closest('tr') ).remove().draw();
         }
     });
 
@@ -63,15 +64,22 @@ $(document).ready(function () {
 
     $('.add').click(function () {
         var table = $(this).closest('table');
+        let table_id = table.attr('id');
         var index_name = $(table).attr('data-index_name');
         var line = $(this).closest("tr");
         var marc_field = $(line).find('input[data-id="mapping_marc_field"]').val();
         if (marc_field.length > 0) {
             var new_line = clone_line(line);
             new_line.appendTo($('table[data-index_name="' + index_name + '"]>tbody'));
-            $('.delete').click(function () {
-                $(this).parents('tr').remove();
-            });
+            let dt = $('#' + table_id).DataTable();
+            dt.row.add(new_line).draw();
+
+            $(table).on( 'click', '.delete', function () {
+                var table = $(this).closest('table');
+                let dt = $(table).DataTable();
+                dt.row( $(this).closest('tr') ).remove().draw();
+            } );
+
             clean_line(line);
 
             $(table).tableDnD({
@@ -81,5 +89,23 @@ $(document).ready(function () {
     });
     $("#facet_biblios > table").tableDnD({
         onDragClass: "dragClass highlighted-row",
+    });
+
+    $("#es_mappings").on("submit", function(e){
+        let table_ids = ['search_fields_table', 'mapping_biblios_table', 'mapping_authorities_table'];
+        $(table_ids).each(function(){
+            let table;
+            // Remove warning "Cannot reinitialise DataTable"
+            if ( $.fn.dataTable.isDataTable( '#' + this ) ) {
+                table = $('#' + this).DataTable();
+            }
+            else {
+                table = $('#' + this).DataTable( {
+                    paging: false
+                } );
+            }
+            table.search('').draw();
+        });
+        return true;
     });
 });

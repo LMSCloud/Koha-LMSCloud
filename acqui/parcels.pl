@@ -68,14 +68,16 @@ To know how many results have to be display / page.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 
-use C4::Acquisition;
-use C4::Budgets;
+use C4::Acquisition qw( GetInvoices GetInvoice AddInvoice );
+use C4::Budgets qw( GetBudgetHierarchy GetBudget CanUserUseBudget );
 
 use Koha::Acquisition::Booksellers;
-use Koha::DateUtils qw( output_pref dt_from_string );
+use Koha::Acquisition::Invoices;
+use Koha::AdditionalFields;
+use Koha::DateUtils qw( dt_from_string );
 
 my $input          = CGI->new;
 my $booksellerid     = $input->param('booksellerid');
@@ -93,7 +95,6 @@ our ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
         query           => $input,
         type            => 'intranet',
         flagsrequired   => { acquisition => 'order_receive' },
-        debug           => 1,
     }
 );
 
@@ -101,7 +102,6 @@ my $invoicenumber = $input->param('invoice');
 my $shipmentcost = $input->param('shipmentcost');
 my $shipmentcost_budgetid = $input->param('shipmentcost_budgetid');
 my $shipmentdate = $input->param('shipmentdate');
-$shipmentdate and $shipmentdate = output_pref({ str => $shipmentdate, dateformat => 'iso', dateonly => 1 });
 
 if ( $op and $op eq 'new' ) {
     if ( C4::Context->preference('AcqWarnOnDuplicateInvoice') ) {
@@ -120,6 +120,7 @@ if ( $op and $op eq 'new' ) {
     }
     $op = 'confirm' unless $template->{'VARS'}->{'duplicate_invoices'};
 }
+
 if ($op and $op eq 'confirm') {
     my $invoiceid = AddInvoice(
         invoicenumber => $invoicenumber,
@@ -128,7 +129,23 @@ if ($op and $op eq 'confirm') {
         shipmentcost => $shipmentcost,
         shipmentcost_budgetid => $shipmentcost_budgetid,
     );
-    if(defined $invoiceid) {
+    if (defined $invoiceid) {
+
+        my @additional_fields;
+        my $invoice_fields = Koha::AdditionalFields->search({ tablename => 'aqinvoices' });
+        while ( my $field = $invoice_fields->next ) {
+            my $value = $input->param('additional_field_' . $field->id);
+            if (defined $value) {
+                push @additional_fields, {
+                    id    => $field->id,
+                    value => $value,
+                };
+            }
+        }
+        if (@additional_fields) {
+            my $invoice = Koha::Acquisition::Invoices->find( $invoiceid );
+            $invoice->set_additional_fields(\@additional_fields);
+        }
         # Successful 'Add'
         print $input->redirect("/cgi-bin/koha/acqui/parcel.pl?invoiceid=$invoiceid");
         exit 0;
@@ -137,12 +154,16 @@ if ($op and $op eq 'confirm') {
     }
 }
 
+$template->param(
+    available_additional_fields => [ Koha::AdditionalFields->search({ tablename => 'aqinvoices' })->as_list ]
+);
+
 my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
 my @parcels = GetInvoices(
     supplierid => $booksellerid,
     invoicenumber => $code,
-    ( $datefrom ? ( shipmentdatefrom => output_pref({ dt => dt_from_string($datefrom), dateformat => 'iso' }) ) : () ),
-    ( $dateto   ? ( shipmentdateto   => output_pref({ dt => dt_from_string($dateto),   dateformat => 'iso' }) )    : () ),
+    ( $datefrom ? ( shipmentdatefrom => $datefrom ) : () ),
+    ( $dateto   ? ( shipmentdateto   => $dateto   ) : () ),
     order_by => $order
 );
 my $count_parcels = @parcels;

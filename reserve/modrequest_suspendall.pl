@@ -25,19 +25,12 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Output;
-use C4::Reserves;
-use C4::Auth;
+use C4::Reserves qw( SuspendAll );
+use C4::Auth qw( checkauth );
 
 my $query = CGI->new;
-my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
-    {
-        template_name   => "about.tt",
-        query           => $query,
-        type            => "intranet",
-        flagsrequired   => { reserveforothers => 1 },
-        debug           => 1,
-    }
-);
+
+checkauth($query, 0, { reserveforothers => '*' }, 'intranet');
 
 my $borrowernumber = $query->param('borrowernumber');
 my $suspend        = $query->param('suspend');

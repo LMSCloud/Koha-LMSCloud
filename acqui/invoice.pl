@@ -29,16 +29,20 @@ Invoice details
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Output;
-use C4::Acquisition;
-use C4::Budgets;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_and_exit output_html_with_http_headers );
+use C4::Acquisition qw( CloseInvoice ReopenInvoice ModInvoice MergeInvoices DelInvoice GetInvoice GetInvoiceDetails get_rounded_price );
+use C4::Budgets qw( GetBudgetHierarchy GetBudget CanUserUseBudget );
+use JSON qw( encode_json );
+use C4::Log qw(logaction);
 
 use Koha::Acquisition::Booksellers;
-use Koha::Acquisition::Currencies;
-use Koha::DateUtils;
+use Koha::Acquisition::Currencies qw( get_active );
+use Koha::AdditionalFields;
+use Koha::DateUtils qw( output_pref );
 use Koha::Misc::Files;
 use Koha::Acquisition::Invoice::Adjustments;
+use Koha::Acquisition::Invoices;
 
 my $input = CGI->new;
 my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
@@ -47,7 +51,6 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
         query           => $input,
         type            => 'intranet',
         flagsrequired   => { 'acquisition' => '*' },
-        debug           => 1,
     }
 );
 
@@ -101,8 +104,8 @@ elsif ( $op && $op eq 'mod' ) {
     ModInvoice(
         invoiceid             => $invoiceid,
         invoicenumber         => $invoicenumber,
-        shipmentdate          => scalar output_pref( { str => scalar $input->param('shipmentdate'), dateformat => 'iso', dateonly => 1 } ),
-        billingdate           => scalar output_pref( { str => scalar $input->param('billingdate'),  dateformat => 'iso', dateonly => 1 } ),
+        shipmentdate          => scalar $input->param('shipmentdate'),
+        billingdate           => scalar $input->param('billingdate'),
         shipmentcost          => $shipmentcost,
         shipmentcost_budgetid => $shipment_budget_id
     );
@@ -124,6 +127,18 @@ elsif ( $op && $op eq 'mod' ) {
         MergeInvoices($invoiceid, \@sources);
         defined($invoice_files) && $invoice_files->MergeFileRecIds(@sources);
     }
+
+    my @additional_fields;
+    my $invoice_fields = Koha::AdditionalFields->search({ tablename => 'aqinvoices' });
+    while ( my $field = $invoice_fields->next ) {
+        my $value = $input->param('additional_field_' . $field->id);
+        push @additional_fields, {
+            id => $field->id,
+            value => $value,
+        };
+    }
+    Koha::Acquisition::Invoices->find($invoiceid)->set_additional_fields(\@additional_fields);
+
     $template->param( modified => 1 );
 }
 elsif ( $op && $op eq 'delete' ) {
@@ -146,7 +161,24 @@ elsif ( $op && $op eq 'del_adj' ) {
 
     my $adjustment_id  = $input->param('adjustment_id');
     my $del_adj = Koha::Acquisition::Invoice::Adjustments->find( $adjustment_id );
-    $del_adj->delete() if ($del_adj);
+    if ($del_adj) {
+        if (C4::Context->preference("AcquisitionLog")) {
+            my $infos = {
+                invoiceid     => $del_adj->invoiceid,
+                budget_id     => $del_adj->budget_id,
+                encumber_open => $del_adj->encumber_open,
+                adjustment    => $del_adj->adjustment,
+                reason        => $del_adj->reason
+            };
+            logaction(
+                'ACQUISITIONS',
+                'DELETE_INVOICE_ADJUSTMENT',
+                $adjustment_id,
+                encode_json($infos)
+            );
+        }
+        $del_adj->delete();
+    }
 }
 elsif ( $op && $op eq 'mod_adj' ) {
 
@@ -161,22 +193,52 @@ elsif ( $op && $op eq 'mod_adj' ) {
     my @encumber_open  = $input->multi_param('encumber_open');
     my %e_open = map { $_ => 1 } @encumber_open;
 
+    my @keys = ('adjustment', 'reason', 'budget_id', 'encumber_open');
     for( my $i=0; $i < scalar @adjustment; $i++ ){
         if( $adjustment_id[$i] eq 'new' ){
             next unless ( $adjustment[$i] || $reason[$i] );
-            my $new_adj = Koha::Acquisition::Invoice::Adjustment->new({
+            my $adj = {
                 invoiceid => $invoiceid,
                 adjustment => $adjustment[$i],
                 reason => $reason[$i],
                 note => $note[$i],
                 budget_id => $budget_id[$i] || undef,
                 encumber_open => defined $e_open{ $adjustment_id[$i] } ? 1 : 0,
-            });
+            };
+            my $new_adj = Koha::Acquisition::Invoice::Adjustment->new($adj);
             $new_adj->store();
+            # Log this addition
+            if (C4::Context->preference("AcquisitionLog")) {
+                logaction(
+                    'ACQUISITIONS',
+                    'CREATE_INVOICE_ADJUSTMENT',
+                    $new_adj->adjustment_id,
+                    encode_json($adj)
+                );
+            }
         }
         else {
             my $old_adj = Koha::Acquisition::Invoice::Adjustments->find( $adjustment_id[$i] );
             unless ( $old_adj->adjustment == $adjustment[$i] && $old_adj->reason eq $reason[$i] && $old_adj->budget_id == $budget_id[$i] && $old_adj->encumber_open == $e_open{$adjustment_id[$i]} && $old_adj->note eq $note[$i] ){
+                # Log this modification
+                if (C4::Context->preference("AcquisitionLog")) {
+                    my $infos = {
+                        adjustment        => $adjustment[$i],
+                        reason            => $reason[$i],
+                        budget_id         => $budget_id[$i],
+                        encumber_open     => $e_open{$adjustment_id[$i]},
+                        adjustment_old    => $old_adj->adjustment,
+                        reason_old        => $old_adj->reason,
+                        budget_id_old     => $old_adj->budget_id,
+                        encumber_open_old => $old_adj->encumber_open
+                    };
+                    logaction(
+                        'ACQUISITIONS',
+                        'UPDATE_INVOICE_ADJUSTMENT',
+                        $adjustment_id[$i],
+                        encode_json($infos)
+                    );
+                }
                 $old_adj->timestamp(undef);
                 $old_adj->adjustment( $adjustment[$i] );
                 $old_adj->reason( $reason[$i] );
@@ -241,6 +303,8 @@ foreach my $r ( @{$budgets} ) {
         b_txt    => $r->{budget_name},
         b_active => $r->{budget_period_active},
         selected => $selected,
+        b_sort1_authcat => $r->{'sort1_authcat'},
+        b_sort2_authcat => $r->{'sort2_authcat'},
       };
 }
 
@@ -250,12 +314,21 @@ foreach my $r ( @{$budgets} ) {
 my $adjustments = Koha::Acquisition::Invoice::Adjustments->search({ invoiceid => $details->{'invoiceid'} });
 if ( $adjustments ) { $template->param( adjustments => $adjustments ); }
 
+my $invoice = Koha::Acquisition::Invoices->find($invoiceid);
+$template->param(
+    available_additional_fields => Koha::AdditionalFields->search( { tablename => 'aqinvoices' } ),
+    additional_field_values => { map {
+                $_->field->id => $_->value
+            } $invoice->additional_field_values->as_list },
+);
+
 $template->param(
     invoiceid                   => $details->{'invoiceid'},
     invoicenumber               => $details->{'invoicenumber'},
     suppliername                => $details->{'suppliername'},
     booksellerid                => $details->{'booksellerid'},
     shipmentdate                => $details->{'shipmentdate'},
+    shipment_budget_id          => $shipmentcost_budgetid,
     billingdate                 => $details->{'billingdate'},
     invoiceclosedate            => $details->{'closedate'},
     shipmentcost                => $shipmentcost,

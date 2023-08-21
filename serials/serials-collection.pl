@@ -21,17 +21,15 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Koha;
-use C4::Serials;
-use C4::Letters;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Serials qw( ModSerialStatus GetSubscription GetNextExpected GetNextSeq GetNextDate NewIssue HasSubscriptionExpired abouttoexpire check_routing GetFullSubscription PrepareSerialsData CountSubscriptionFromBiblionumber GetSubscriptionsFromBiblionumber GetFullSubscriptionsFromBiblionumber );
+use C4::Output qw( output_and_exit output_html_with_http_headers );
 use C4::Context;
 use Koha::Serial::Items;
 
 use Koha::DateUtils qw( dt_from_string );
 
-use List::MoreUtils qw/uniq/;
+use List::MoreUtils qw( uniq );
 
 
 my $query = CGI->new;
@@ -45,7 +43,6 @@ my ($template, $loggedinuser, $cookie)
                             query => $query,
                             type => "intranet",
                             flagsrequired => {serials => '*'},
-                            debug => 1,
                             });
 my $biblionumber = $query->param('biblionumber');
 my @subscriptionid = $query->multi_param('subscriptionid');
@@ -126,9 +123,9 @@ if($op eq 'delete_confirm'){
         }
         my $items = Koha::Items->search({ itemnumber => \@itemnumbers });
         while ( my $item = $items->next ) {
-            my $error = $item->safe_delete;
+            my $deleted = $item->safe_delete;
             $template->param(error_delitem => 1)
-                if $error eq '1';
+                unless $deleted;
         }
     }
     for my $serialid (@serialsid){

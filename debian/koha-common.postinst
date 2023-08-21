@@ -182,7 +182,7 @@ log4perl.appender.SIP=Log::Log4perl::Appender::File
 log4perl.appender.SIP.filename=/var/log/koha/$site/sip.log
 log4perl.appender.SIP.mode=append
 log4perl.appender.SIP.layout=PatternLayout
-log4perl.appender.SIP.layout.ConversionPattern=[%d] [%P] [%p] %m %l%n
+log4perl.appender.SIP.layout.ConversionPattern=[%d] [%P] [%p] %X{accountid}@%X{peeraddr}: %m %l%n
 log4perl.appender.SIP.utf8=1
 
 EOF
@@ -198,7 +198,7 @@ log4perl.appender.PLACKOPAC=Log::Log4perl::Appender::File
 log4perl.appender.PLACKOPAC.filename=/var/log/koha/$site/plack-opac-error.log
 log4perl.appender.PLACKOPAC.mode=append
 log4perl.appender.PLACKOPAC.layout=PatternLayout
-log4perl.appender.PLACKOPAC.layout.ConversionPattern=[%d] [%p] %m
+log4perl.appender.PLACKOPAC.layout.ConversionPattern=[%d] [%p] %m%n
 log4perl.appender.PLACKOPAC.utf8=1
 
 EOF
@@ -214,7 +214,7 @@ log4perl.appender.PLACKAPI=Log::Log4perl::Appender::File
 log4perl.appender.PLACKAPI.filename=/var/log/koha/$site/plack-api-error.log
 log4perl.appender.PLACKAPI.mode=append
 log4perl.appender.PLACKAPI.layout=PatternLayout
-log4perl.appender.PLACKAPI.layout.ConversionPattern=[%d] [%p] %m
+log4perl.appender.PLACKAPI.layout.ConversionPattern=[%d] [%p] %m%n
 log4perl.appender.PLACKAPI.utf8=1
 
 EOF
@@ -230,8 +230,23 @@ log4perl.appender.PLACKINTRANET=Log::Log4perl::Appender::File
 log4perl.appender.PLACKINTRANET.filename=/var/log/koha/$site/plack-intranet-error.log
 log4perl.appender.PLACKINTRANET.mode=append
 log4perl.appender.PLACKINTRANET.layout=PatternLayout
-log4perl.appender.PLACKINTRANET.layout.ConversionPattern=[%d] [%p] %m
+log4perl.appender.PLACKINTRANET.layout.ConversionPattern=[%d] [%p] %m%n
 log4perl.appender.PLACKINTRANET.utf8=1
+
+EOF
+    fi
+done
+
+for site in $(koha-list); do
+    log4perl_config="/etc/koha/sites/$site/log4perl.conf"
+    if ! log4perl_component $log4perl_config "worker"; then
+        cat <<EOF >> $log4perl_config
+log4perl.logger.worker = WARN, WORKER
+log4perl.appender.WORKER=Log::Log4perl::Appender::Screen
+log4perl.appender.WORKER.stderr=1
+log4perl.appender.WORKER.layout=PatternLayout
+log4perl.appender.WORKER.layout.ConversionPattern=[%d] [%p] %m %l%n
+log4perl.appender.WORKER.utf8=1
 
 EOF
     fi

@@ -34,16 +34,13 @@ This script allows to do 2 things.
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Output;
-use C4::Members;
-use C4::Circulation;    # AnonymiseIssueHistory.
-use Koha::DateUtils qw( dt_from_string output_pref );
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Members qw( GetBorrowersToExpunge );
+use Koha::Old::Checkouts;
 use Koha::Patron::Categories;
 use Koha::Patrons;
-use Date::Calc qw/Today Add_Delta_YM/;
-use Koha::Patrons;
-use Koha::List::Patron;
+use Koha::List::Patron qw( GetPatronLists );
 
 my $cgi = CGI->new;
 
@@ -55,22 +52,12 @@ my $params = $cgi->Vars;
 
 my $step = $params->{step} || 1;
 my $not_borrowed_since =    # the date which filter on issue history.
-  $params->{not_borrowed_since}
-  ? dt_from_string $params->{not_borrowed_since}
-  : undef;
+  $params->{not_borrowed_since};
 my $last_issue_date =         # the date which filter on borrowers last issue.
-  $params->{last_issue_date}
-  ? dt_from_string $params->{last_issue_date}
-  : undef;
-my $borrower_dateexpiry =
-  $params->{borrower_dateexpiry}
-  ? dt_from_string $params->{borrower_dateexpiry}
-  : undef;
-my $borrower_lastseen =
-  $params->{borrower_lastseen}
-  ? dt_from_string $params->{borrower_lastseen}
-  : undef;
+  $params->{last_issue_date};
 my $patron_list_id = $params->{patron_list_id};
+my $borrower_dateexpiry = $params->{borrower_dateexpiry};
+my $borrower_lastseen = $params->{borrower_lastseen};
 
 my $borrower_categorycode = $params->{'borrower_categorycode'} || q{};
 
@@ -158,7 +145,12 @@ elsif ( $step == 3 ) {
     # Anonymising all members
     if ($do_anonym) {
         #FIXME: anonymisation errors are not handled
-        my $rows = Koha::Patrons->search_patrons_to_anonymise( { before => $last_issue_date } )->anonymise_issue_history( { before => $last_issue_date } );
+        my $rows = Koha::Old::Checkouts
+                     ->filter_by_anonymizable
+                     ->filter_by_last_update({
+                         to => $last_issue_date, timestamp_column_name => 'returndate' })
+                     ->anonymize;
+
         $template->param(
             do_anonym   => $rows,
         );
@@ -208,21 +200,9 @@ sub _get_selection_params {
         $borrower_categorycode, $patron_list_id, $branch) = @_;
 
     my $params = {};
-    $params->{not_borrowed_since} = output_pref({
-        dt         => $not_borrowed_since,
-        dateformat => 'iso',
-        dateonly   => 1
-    }) if $not_borrowed_since;
-    $params->{expired_before} = output_pref({
-        dt         => $borrower_dateexpiry,
-        dateformat => 'iso',
-        dateonly   => 1
-    }) if $borrower_dateexpiry;
-    $params->{last_seen} = output_pref({
-        dt         => $borrower_lastseen,
-        dateformat => 'iso',
-        dateonly   => 1
-    }) if $borrower_lastseen;
+    $params->{not_borrowed_since} = $not_borrowed_since;
+    $params->{expired_before} = $borrower_dateexpiry;
+    $params->{last_seen} = $borrower_lastseen;
     $params->{category_code} = $borrower_categorycode if $borrower_categorycode;
     $params->{patron_list_id} = $patron_list_id if $patron_list_id;
 

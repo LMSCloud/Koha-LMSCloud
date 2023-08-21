@@ -16,31 +16,46 @@ package C4::Search;
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-require Exporter;
 use C4::Context;
-use C4::Biblio;    # GetMarcFromKohaField, GetBiblioData
-use C4::Koha;      # getFacets
+use C4::Biblio qw( TransformMarcToKoha GetMarcFromKohaField GetFrameworkCode GetAuthorisedValueDesc GetBiblioData );
+use C4::Koha qw( getFacets GetVariationsOfISBN GetNormalizedUPC GetNormalizedEAN GetNormalizedOCLCNumber GetNormalizedISBN getitemtypeimagelocation );
 use Koha::DateUtils;
 use Koha::Libraries;
+use Koha::SearchEngine::QueryBuilder;
 use Lingua::Stem;
 use XML::Simple;
-use C4::XSLT;
-use C4::Reserves;    # GetReserveStatus
-use C4::Debug;
-use C4::Charset;
+use C4::XSLT qw( XSLTParse4Display );
+use C4::Reserves qw( GetReserveStatus );
+use C4::Charset qw( SetUTF8Flag );
 use Koha::AuthorisedValues;
 use Koha::ItemTypes;
 use Koha::Libraries;
+use Koha::Logger;
 use Koha::Patrons;
+use Koha::Recalls;
 use Koha::RecordProcessor;
+use Koha::SearchFilters;
 use URI::Escape;
 use Business::ISBN;
 use MARC::Record;
 use MARC::Field;
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $DEBUG);
 
+our (@ISA, @EXPORT_OK);
 BEGIN {
-    $DEBUG = ($ENV{DEBUG}) ? 1 : 0;
+    require Exporter;
+    @ISA    = qw(Exporter);
+    @EXPORT_OK = qw(
+      FindDuplicate
+      SimpleSearch
+      searchResults
+      getRecords
+      buildQuery
+      GetDistinctValues
+      enabled_staff_search_views
+      new_record_from_zebra
+      z3950_search_args
+      getIndexes
+    );
 }
 
 =head1 NAME
@@ -59,17 +74,6 @@ This module provides searching functions for Koha's bibliographic databases
 
 =cut
 
-@ISA    = qw(Exporter);
-@EXPORT = qw(
-  &FindDuplicate
-  &SimpleSearch
-  &searchResults
-  &getRecords
-  &buildQuery
-  &GetDistinctValues
-  &enabled_staff_search_views
-);
-
 # make all your functions, whether exported or not;
 
 =head2 FindDuplicate
@@ -83,7 +87,7 @@ This function attempts to find duplicate records using a hard-coded, fairly simp
 sub FindDuplicate {
     my ($record) = @_;
     my $dbh = C4::Context->dbh;
-    my $result = TransformMarcToKoha( $record, '' );
+    my $result = TransformMarcToKoha({ record => $record });
     my $sth;
     my $query;
 
@@ -92,6 +96,7 @@ sub FindDuplicate {
     if ( $result->{isbn} ) {
         $result->{isbn} =~ s/\(.*$//;
         $result->{isbn} =~ s/\s+$//;
+        $result->{isbn} =~ s/\|/OR/;
         $query = "isbn:$result->{isbn}";
     }
     else {
@@ -126,7 +131,7 @@ sub FindDuplicate {
                 $possible_duplicate_record
             );
 
-            my $result = TransformMarcToKoha( $marcrecord, '' );
+            my $result = TransformMarcToKoha({ record => $marcrecord });
 
             # FIXME :: why 2 $biblionumber ?
             if ($result) {
@@ -183,7 +188,7 @@ my @results;
 
 for my $r ( @{$marcresults} ) {
     my $marcrecord = MARC::File::USMARC::decode($r);
-    my $biblio = TransformMarcToKoha($marcrecord,q{});
+    my $biblio = TransformMarcToKoha({ record => $marcrecord });
 
     #build the iarray of hashs for the template.
     push @results, {
@@ -306,7 +311,7 @@ sub getRecords {
     my $results_hashref = ();
 
     # TODO simplify this structure ( { branchcode => $branchname } is enought) and remove this parameter
-    $branches ||= { map { $_->branchcode => { branchname => $_->branchname } } Koha::Libraries->search };
+    $branches ||= { map { $_->branchcode => { branchname => $_->branchname } } Koha::Libraries->search->as_list };
 
     # Initialize variables for the faceted results objects
     my $facets_counter = {};
@@ -323,8 +328,7 @@ sub getRecords {
 # if this is a local search, use the $koha-query, if it's a federated one, use the federated-query
         my $query_to_use = ($servers[$i] =~ /biblioserver/) ? $koha_query : $simple_query;
 
-        #$query_to_use = $simple_query if $scan;
-        warn $simple_query if ( $scan and $DEBUG );
+        Koha::Logger->get->debug($simple_query) if $scan;
 
         # Check if we've got a query_type defined, if so, use it
         eval {
@@ -360,10 +364,10 @@ sub getRecords {
                 $sort_by .= "1=1003 >i ";
             }
             elsif ( $sort eq "popularity_asc" ) {
-                $sort_by .= "1=9003 <i ";
+                $sort_by .= "1=9003,4=109 <i ";
             }
             elsif ( $sort eq "popularity_dsc" ) {
-                $sort_by .= "1=9003 >i ";
+                $sort_by .= "1=9003,4=109 >i ";
             }
             elsif ( $sort eq "call_number_asc" ) {
                 $sort_by .= "1=8007  <i ";
@@ -388,6 +392,12 @@ sub getRecords {
             }
             elsif ( $sort eq "title_za" || $sort eq "title_dsc" ) {
                 $sort_by .= "1=4 >i ";
+            }
+            elsif ( $sort eq "biblionumber_az" || $sort eq "biblionumber_asc" ) {
+                $sort_by .= "1=12 <i ";
+            }
+            elsif ( $sort eq "biblionumber_za" || $sort eq "biblionumber_dsc" ) {
+                $sort_by .= "1=12 >i ";
             }
             else {
                 warn "Ignoring unrecognized sort '$sort' requested" if $sort_by;
@@ -874,7 +884,8 @@ sub _build_stemmed_operand {
           unless ( $stem =~ /(and$|or$|not$)/ ) || ( length($stem) < 3 );
         $stemmed_operand .= " ";
     }
-    warn "STEMMED OPERAND: $stemmed_operand" if $DEBUG;
+
+    Koha::Logger->get->debug("STEMMED OPERAND: $stemmed_operand");
     return $stemmed_operand;
 }
 
@@ -889,7 +900,7 @@ sub _build_weighted_query {
     my $fuzzy_enabled = C4::Context->preference("QueryFuzzy")        || 0;
     $operand =~ s/"/ /g;    # Bug 7518: searches with quotation marks don't work
 
-    my $weighted_query .= "(rk=(";    # Specifies that we're applying rank
+    my $weighted_query = "(rk=(";    # Specifies that we're applying rank
 
     # Keyword, or, no index specified
     if ( ( $index eq 'kw' ) || ( !$index ) ) {
@@ -1005,6 +1016,8 @@ sub getIndexes{
                     'Conference-name-seealso',
                     'Content-type',
                     'Control-number',
+                    'Control-number-identifier',
+                    'cni',
                     'copydate',
                     'Corporate-name',
                     'Corporate-name-heading',
@@ -1072,6 +1085,8 @@ sub getIndexes{
                     'mc-itemtype',
                     'mc-rtype',
                     'mus',
+                    'Multipart-resource-level',
+                    'mrl',
                     'name',
                     'Music-number',
                     'Name-geographic',
@@ -1208,7 +1223,6 @@ See verbose embedded documentation.
 
 sub buildQuery {
     my ( $operators, $operands, $indexes, $limits, $sort_by, $scan, $lang) = @_;
-    warn "---------\nEnter buildQuery\n---------" if $DEBUG;
 
     my $query_desc;
 
@@ -1231,7 +1245,7 @@ sub buildQuery {
     my $query_cgi;
     my $query_type;
 
-    my $limit;
+    my $limit = q{};
     my $limit_cgi;
     my $limit_desc;
 
@@ -1245,25 +1259,107 @@ sub buildQuery {
         $query = "ccl=$query" if $cclq;
     }
 
+    # add limits
+    my %group_OR_limits;
+    my $availability_limit;
+    foreach my $this_limit (@limits) {
+        next unless $this_limit;
+        if ( $this_limit =~ /available/ ) {
+#
+## 'available' is defined as (items.onloan is NULL) and (items.itemlost = 0)
+## In English:
+## all records not indexed in the onloan register (zebra) and all records with a value of lost equal to 0
+            $availability_limit .=
+"( (allrecords,AlwaysMatches='') and (not-onloan-count,st-numeric >= 1) and (lost,st-numeric=0) )";
+            $limit_cgi  .= "&limit=available";
+            $limit_desc .= "";
+        }
+
+        # group_OR_limits, prefixed by mc-
+        # OR every member of the group
+        elsif ( $this_limit =~ /mc/ ) {
+            my ($k,$v) = split(/:/, $this_limit,2);
+            if ( $k !~ /mc-i(tem)?type/ ) {
+                # in case the mc-ccode value has complicating chars like ()'s inside it we wrap in quotes
+                $this_limit =~ tr/"//d;
+                $this_limit = $k.':"'.$v.'"';
+            }
+
+            $group_OR_limits{$k} .= " or " if $group_OR_limits{$k};
+            $limit_desc      .= " or " if $group_OR_limits{$k};
+            $group_OR_limits{$k} .= "$this_limit";
+            $limit_cgi       .= "&limit=" . uri_escape_utf8($this_limit);
+            $limit_desc      .= " $this_limit";
+        }
+        elsif ( $this_limit =~ '^multibranchlimit:|^branch:' ) {
+            $limit_cgi  .= "&limit=" . uri_escape_utf8($this_limit);
+            $limit .= " and " if $limit || $query;
+            my $branchfield  = C4::Context->preference('SearchLimitLibrary');
+            my @branchcodes;
+            if(  $this_limit =~ '^multibranchlimit:' ){
+                my ($group_id) = ( $this_limit =~ /^multibranchlimit:(.*)$/ );
+                my $search_group = Koha::Library::Groups->find( $group_id );
+                @branchcodes  = map { $_->branchcode } $search_group->all_libraries;
+                @branchcodes = sort { $a cmp $b } @branchcodes;
+            } else {
+                @branchcodes = ( $this_limit =~ /^branch:(.*)$/ );
+            }
+
+            if (@branchcodes) {
+                if ( $branchfield eq "homebranch" ) {
+                    $this_limit = sprintf "(%s)", join " or ", map { 'homebranch: ' . $_ } @branchcodes;
+                }
+                elsif ( $branchfield eq "holdingbranch" ) {
+                    $this_limit = sprintf "(%s)", join " or ", map { 'holdingbranch: ' . $_ } @branchcodes;
+                }
+                else {
+                    $this_limit =  sprintf "(%s or %s)",
+                      join( " or ", map { 'homebranch: ' . $_ } @branchcodes ),
+                      join( " or ", map { 'holdingbranch: ' . $_ } @branchcodes );
+                }
+            }
+            $limit .= "$this_limit";
+            $limit_desc .= " $this_limit";
+        } elsif ( $this_limit =~ '^search_filter:' ) {
+            # Here we will get the query as a string, append to the limits, and pass through buildQuery
+            # again to clean the terms and handle nested filters
+            $limit_cgi  .= "&limit=" . uri_escape_utf8($this_limit);
+            my ($filter_id) = ( $this_limit =~ /^search_filter:(.*)$/ );
+            my $search_filter = Koha::SearchFilters->find( $filter_id );
+            next unless $search_filter;
+            my ($expanded_lim, $query_lim) = $search_filter->expand_filter;
+            push @$expanded_lim, $query_lim;
+            my ( $error, undef, undef, undef, undef, $fixed_limit, undef, undef, undef ) = buildQuery ( undef, undef, undef, $expanded_lim, undef, undef, $lang);
+            $limit .= " and " if $limit || $query;
+            $limit .= "$fixed_limit";
+            $limit_desc .= " $limit";
+        }
+
+        # Regular old limits
+        else {
+            $limit .= " and " if $limit || $query;
+            $limit      .= "$this_limit";
+            $limit_cgi  .= "&limit=" . uri_escape_utf8($this_limit);
+            $limit_desc .= " $this_limit";
+        }
+    }
+    foreach my $k (keys (%group_OR_limits)) {
+        $limit .= " and " if ( $query || $limit );
+        $limit .= "($group_OR_limits{$k})";
+    }
+    if ($availability_limit) {
+        $limit .= " and " if ( $query || $limit );
+        $limit .= "($availability_limit)";
+    }
+
 # for handling ccl, cql, pqf queries in diagnostic mode, skip the rest of the steps
 # DIAGNOSTIC ONLY!!
     if ( $query =~ /^ccl=/ ) {
         my $q=$';
         # This is needed otherwise ccl= and &limit won't work together, and
         # this happens when selecting a subject on the opac-detail page
-        @limits = grep {!/^$/} @limits;
         my $original_q = $q; # without available part
-        unless ( grep { $_ eq 'available' } @limits ) {
-            $q =~ s| and \( \(allrecords,AlwaysMatches=''\) and \(not-onloan-count,st-numeric >= 1\) and \(lost,st-numeric=0\) \)||;
-            $original_q = $q;
-        }
-        if ( @limits ) {
-            if ( grep { $_ eq 'available' } @limits ) {
-                $q .= q| and ( (allrecords,AlwaysMatches='') and (not-onloan-count,st-numeric >= 1) and (lost,st-numeric=0) )|;
-                @limits = grep {!/^available$/} @limits;
-            }
-            $q .= ' and '.join(' and ', @limits) if @limits;
-        }
+        $q .= $limit if $limit;
         return ( undef, $q, $q, "q=ccl=".uri_escape_utf8($q), $original_q, '', '', '', 'ccl' );
     }
     if ( $query =~ /^cql=/ ) {
@@ -1354,7 +1450,14 @@ sub buildQuery {
                     if ( $index eq 'nb' ) {
                         if ( C4::Context->preference("SearchWithISBNVariations") ) {
                             my @isbns = C4::Koha::GetVariationsOfISBN( $operand );
-                            $operands[$i] = $operand =  '(nb=' . join(' OR nb=', @isbns) . ')';
+                            $operands[$i] = $operand = '(' . join( ' OR ', map { 'nb=' . $_ } @isbns ) . ')';
+                            $indexes[$i] = $index = 'kw';
+                        }
+                    }
+                    if ( $index eq 'ns' ) {
+                        if ( C4::Context->preference("SearchWithISSNVariations") ) {
+                            my @issns = C4::Koha::GetVariationsOfISSN( $operand );
+                            $operands[$i] = $operand = '(' . join( ' OR ', map { 'ns=' . $_ } @issns ) . ')';
                             $indexes[$i] = $index = 'kw';
                         }
                     }
@@ -1376,7 +1479,6 @@ sub buildQuery {
 						$operand=join(" ",map{
 											(index($_,"*")>0?"$_":"$_*")
 											 }split (/\s+/,$operand));
-						warn $operand if $DEBUG;
 					}
 				}
 
@@ -1385,9 +1487,9 @@ sub buildQuery {
                 my( $nontruncated, $righttruncated, $lefttruncated,
                     $rightlefttruncated, $regexpr
                 ) = _detect_truncation( $operand, $index );
-                warn
-"TRUNCATION: NON:>@$nontruncated< RIGHT:>@$righttruncated< LEFT:>@$lefttruncated< RIGHTLEFT:>@$rightlefttruncated< REGEX:>@$regexpr<"
-                  if $DEBUG;
+
+                Koha::Logger->get->debug(
+                    "TRUNCATION: NON:>@$nontruncated< RIGHT:>@$righttruncated< LEFT:>@$lefttruncated< RIGHTLEFT:>@$rightlefttruncated< REGEX:>@$regexpr<");
 
                 # Apply Truncation
                 if (
@@ -1420,14 +1522,14 @@ sub buildQuery {
                     }
                 }
                 $operand = $truncated_operand if $truncated_operand;
-                warn "TRUNCATED OPERAND: >$truncated_operand<" if $DEBUG;
+                Koha::Logger->get->debug("TRUNCATED OPERAND: >$truncated_operand<");
 
                 # Handle Stemming
                 my $stemmed_operand = q{};
                 $stemmed_operand = _build_stemmed_operand($operand, $lang)
 										if $stemming;
 
-                warn "STEMMED OPERAND: >$stemmed_operand<" if $DEBUG;
+                Koha::Logger->get->debug("STEMMED OPERAND: >$stemmed_operand<");
 
                 # Handle Field Weighting
                 my $weighted_operand = q{};
@@ -1437,7 +1539,7 @@ sub buildQuery {
                     $indexes_set = 1;
                 }
 
-                warn "FIELD WEIGHTED OPERAND: >$weighted_operand<" if $DEBUG;
+                Koha::Logger->get->debug("FIELD WEIGHTED OPERAND: >$weighted_operand<");
 
                 #Use relevance ranking when not using a weighted query (which adds relevance ranking of its own)
 
@@ -1462,87 +1564,7 @@ sub buildQuery {
             }    #/if $operands
         }    # /for
     }
-    warn "QUERY BEFORE LIMITS: >$query<" if $DEBUG;
-
-    # add limits
-    my %group_OR_limits;
-    my $availability_limit;
-    foreach my $this_limit (@limits) {
-        next unless $this_limit;
-        if ( $this_limit =~ /available/ ) {
-#
-## 'available' is defined as (items.onloan is NULL) and (items.itemlost = 0)
-## In English:
-## all records not indexed in the onloan register (zebra) and all records with a value of lost equal to 0
-            $availability_limit .=
-"( (allrecords,AlwaysMatches='') and (not-onloan-count,st-numeric >= 1) and (lost,st-numeric=0) )";
-            $limit_cgi  .= "&limit=available";
-            $limit_desc .= "";
-        }
-
-        # group_OR_limits, prefixed by mc-
-        # OR every member of the group
-        elsif ( $this_limit =~ /mc/ ) {
-            my ($k,$v) = split(/:/, $this_limit,2);
-            if ( $k !~ /mc-i(tem)?type/ ) {
-                # in case the mc-ccode value has complicating chars like ()'s inside it we wrap in quotes
-                $this_limit =~ tr/"//d;
-                $this_limit = $k.':"'.$v.'"';
-            }
-
-            $group_OR_limits{$k} .= " or " if $group_OR_limits{$k};
-            $limit_desc      .= " or " if $group_OR_limits{$k};
-            $group_OR_limits{$k} .= "$this_limit";
-            $limit_cgi       .= "&limit=" . uri_escape_utf8($this_limit);
-            $limit_desc      .= " $this_limit";
-        }
-        elsif ( $this_limit =~ '^multibranchlimit:|^branch:' ) {
-            $limit_cgi  .= "&limit=" . uri_escape_utf8($this_limit);
-            $limit .= " and " if $limit || $query;
-            my $branchfield  = C4::Context->preference('SearchLimitLibrary');
-            my @branchcodes;
-            if(  $this_limit =~ '^multibranchlimit:' ){
-                my ($group_id) = ( $this_limit =~ /^multibranchlimit:(.*)$/ );
-                my $search_group = Koha::Library::Groups->find( $group_id );
-                @branchcodes  = map { $_->branchcode } $search_group->all_libraries;
-                @branchcodes = sort { $a cmp $b } @branchcodes;
-            } else {
-                @branchcodes = ( $this_limit =~ /^branch:(.*)$/ );
-            }
-
-            if (@branchcodes) {
-                if ( $branchfield eq "homebranch" ) {
-                    $this_limit = sprintf "(%s)", join " or ", map { 'homebranch: ' . $_ } @branchcodes;
-                }
-                elsif ( $branchfield eq "holdingbranch" ) {
-                    $this_limit = sprintf "(%s)", join " or ", map { 'holdingbranch: ' . $_ } @branchcodes;
-                }
-                else {
-                    $this_limit =  sprintf "(%s or %s)",
-                      join( " or ", map { 'homebranch: ' . $_ } @branchcodes ),
-                      join( " or ", map { 'holdingbranch: ' . $_ } @branchcodes );
-                }
-            }
-            $limit .= "$this_limit";
-            $limit_desc .= " $this_limit";
-        }
-
-        # Regular old limits
-        else {
-            $limit .= " and " if $limit || $query;
-            $limit      .= "$this_limit";
-            $limit_cgi  .= "&limit=" . uri_escape_utf8($this_limit);
-            $limit_desc .= " $this_limit";
-        }
-    }
-    foreach my $k (keys (%group_OR_limits)) {
-        $limit .= " and " if ( $query || $limit );
-        $limit .= "($group_OR_limits{$k})";
-    }
-    if ($availability_limit) {
-        $limit .= " and " if ( $query || $limit );
-        $limit .= "($availability_limit)";
-    }
+    Koha::Logger->get->debug("QUERY BEFORE LIMITS: >$query<");
 
     # Normalize the query and limit strings
     # This is flawed , means we can't search anything with : in it
@@ -1579,16 +1601,9 @@ sub buildQuery {
     # append the limit to the query
     $query .= " " . $limit;
 
-    # Warnings if DEBUG
-    if ($DEBUG) {
-        warn "QUERY:" . $query;
-        warn "QUERY CGI:" . $query_cgi;
-        warn "QUERY DESC:" . $query_desc;
-        warn "LIMIT:" . $limit;
-        warn "LIMIT CGI:" . $limit_cgi;
-        warn "LIMIT DESC:" . $limit_desc;
-        warn "---------\nLeave buildQuery\n---------";
-    }
+    Koha::Logger->get->debug(
+        sprintf "buildQuery returns\nQUERY:%s\nQUERY CGI:%s\nQUERY DESC:%s\nLIMIT:%s\nLIMIT CGI:%s\nLIMIT DESC:%s",
+        $query, $query_cgi, $query_desc, $limit, $limit_cgi, $limit_desc );
 
     return (
         undef,              $query, $simple_query, $query_cgi,
@@ -1611,7 +1626,7 @@ sub _build_initial_query {
     my $operator = "";
     if ($params->{previous_operand}){
         #If there is a previous operand, add a supplied operator or the default 'and'
-        $operator = ($params->{operator}) ? " ".($params->{operator})." " : ' and ';
+        $operator = ($params->{operator}) ? ($params->{operator}) : 'AND';
     }
 
     #NOTE: indexes_set is typically set when doing truncation or field weighting
@@ -1619,14 +1634,14 @@ sub _build_initial_query {
 
     #e.g. "kw,wrdl:test"
     #e.g. " and kw,wrdl:test"
-    $params->{query} .= $operator . $operand;
+    $params->{query} .= " " . $operator . " " . $operand;
 
     $params->{query_cgi} .= "&op=".uri_escape_utf8($operator) if $operator;
     $params->{query_cgi} .= "&idx=".uri_escape_utf8($params->{index}) if $params->{index};
     $params->{query_cgi} .= "&q=".uri_escape_utf8($params->{original_operand}) if ( $params->{original_operand} ne '' );
 
     #e.g. " and kw,wrdl: test"
-    $params->{query_desc} .= $operator . ( $params->{index_plus} // q{} ) . " " . ( $params->{original_operand} // q{} );
+    $params->{query_desc} .= " " . $operator . " " . ( $params->{index_plus} // q{} ) . " " . ( $params->{original_operand} // q{} );
 
     $params->{previous_operand} = 1 unless $params->{previous_operand}; #If there is no previous operand, mark this as one
 
@@ -1669,7 +1684,7 @@ sub searchResults {
     });
 
     #Build branchnames hash
-    my %branches = map { $_->branchcode => $_->branchname } Koha::Libraries->search({}, { order_by => 'branchname' });
+    my %branches = map { $_->branchcode => $_->branchname } Koha::Libraries->search({}, { order_by => 'branchname' })->as_list;
 
 # FIXME - We build an authorised values hash here, using the default framework
 # though it is possible to have different authvals for different fws.
@@ -1713,12 +1728,6 @@ sub searchResults {
     my ($bibliotag,$bibliosubf)=GetMarcFromKohaField( 'biblio.biblionumber' );
 
     # set stuff for XSLT processing here once, not later again for every record we retrieved
-    my $interface = $search_context->{'interface'} eq 'opac' ? 'OPAC' : '';
-    my $xslsyspref = $interface . $sysprefname;
-    my $xslfile = C4::Context->preference($xslsyspref);
-
-    my $lang   = $xslfile ? C4::Languages::getlanguage()  : undef;
-    my $sysxml = $xslfile ? C4::XSLT::get_xslt_sysprefs() : undef;
 
     my $userenv = C4::Context->userenv;
     my $logged_in_user
@@ -1754,7 +1763,7 @@ sub searchResults {
                : GetFrameworkCode($marcrecord->subfield($bibliotag,$bibliosubf));
 
         SetUTF8Flag($marcrecord);
-        my $oldbiblio = TransformMarcToKoha( $marcrecord, $fw, 'no_items' );
+        my $oldbiblio = TransformMarcToKoha({ record => $marcrecord, limit_table => 'no_items' });
         $oldbiblio->{result_number} = $i + 1;
 
 		$oldbiblio->{normalized_upc}  = GetNormalizedUPC(       $marcrecord,$marcflavour);
@@ -1801,50 +1810,6 @@ sub searchResults {
         # Build summary if there is one (the summary is defined in the itemtypes table)
         $oldbiblio->{description} = $itemtype ? $itemtype->{translated_description} : q{};
 
-        # FIXME: this is only used in the deprecated non-XLST opac results
-        if ( !$xslfile && $is_opac && $itemtype && $itemtype->{summary} ) {
-            my $summary = $itemtypes{ $oldbiblio->{itemtype} }->{summary};
-            my @fields  = $marcrecord->fields();
-
-            my $newsummary;
-            foreach my $line ( "$summary\n" =~ /(.*)\n/g ){
-                my $tags = {};
-                foreach my $tag ( $line =~ /\[(\d{3}[\w|\d])\]/ ) {
-                    $tag =~ /(.{3})(.)/;
-                    if($marcrecord->field($1)){
-                        my @abc = $marcrecord->field($1)->subfield($2);
-                        $tags->{$tag} = $#abc + 1 ;
-                    }
-                }
-
-                # We catch how many times to repeat this line
-                my $max = 0;
-                foreach my $tag (keys(%$tags)){
-                    $max = $tags->{$tag} if($tags->{$tag} > $max);
-                 }
-
-                # we replace, and repeat each line
-                for (my $i = 0 ; $i < $max ; $i++){
-                    my $newline = $line;
-
-                    foreach my $tag ( $newline =~ /\[(\d{3}[\w|\d])\]/g ) {
-                        $tag =~ /(.{3})(.)/;
-
-                        if($marcrecord->field($1)){
-                            my @repl = $marcrecord->field($1)->subfield($2);
-                            my $subfieldvalue = $repl[$i];
-                            $newline =~ s/\[$tag\]/$subfieldvalue/g;
-                        }
-                    }
-                    $newsummary .= "$newline\n";
-                }
-            }
-
-            $newsummary =~ s/\[(.*?)]//g;
-            $newsummary =~ s/\n/<br\/>/g;
-            $oldbiblio->{summary} = $newsummary;
-        }
-
         # Pull out the items fields
         my @fields = $marcrecord->field($itemtag);
         $marcrecord->delete_fields( @fields ) unless C4::Context->preference('PassItemMarcToXSLT');
@@ -1853,7 +1818,7 @@ sub searchResults {
         # adding linked items that belong to host records
         if ( C4::Context->preference('EasyAnalyticalRecords') ) {
             my $analyticsfield = '773';
-            if ($marcflavor eq 'MARC21' || $marcflavor eq 'NORMARC') {
+            if ($marcflavor eq 'MARC21') {
                 $analyticsfield = '773';
             } elsif ($marcflavor eq 'UNIMARC') {
                 $analyticsfield = '461';
@@ -1895,6 +1860,7 @@ sub searchResults {
         my $item_in_transit_count = 0;
         my $item_onhold_count     = 0;
         my $notforloan_count      = 0;
+        my $item_recalled_count   = 0;
         my $items_count           = scalar(@fields);
         my $maxitems_pref = C4::Context->preference('maxItemsinSearchResults');
         my $maxitems = $maxitems_pref ? $maxitems_pref - 1 : 1;
@@ -1908,19 +1874,21 @@ sub searchResults {
             foreach my $code ( keys %subfieldstosearch ) {
                 $item->{$code} = $field->subfield( $subfieldstosearch{$code} );
             }
+
+            unless ( $item->{itemnumber} ) {
+                warn "MARC item without itemnumber retrieved for biblio ($oldbiblio->{biblionumber})";
+                next;
+            }
+
             $item->{description} = $itemtypes{ $item->{itype} }{translated_description} if $item->{itype};
 
-	        # OPAC hidden items
+            # OPAC hidden items
             if ($is_opac) {
-                # hidden because lost
-                if ($hidelostitems && $item->{itemlost}) {
-                    $hideatopac_count++;
-                    next;
-                }
-                # hidden based on OpacHiddenItems syspref
-                my @hi = C4::Items::GetHiddenItemnumbers({ items=> [ $item ], borcat => $search_context->{category} });
-                if (scalar @hi) {
-                    push @hiddenitems, @hi;
+                # hidden based on OpacHiddenItems syspref or because lost
+                my $hi = Koha::Items->search( { itemnumber => $item->{itemnumber} } )
+                                    ->filter_by_visible_in_opac({ patron => $search_context->{patron} });
+                unless ( $hi->count ) {
+                    push @hiddenitems, $item->{itemnumber};
                     $hideatopac_count++;
                     next;
                 }
@@ -1988,6 +1956,9 @@ sub searchResults {
                 # is item on the reserve shelf?
                 my $reservestatus = '';
 
+                # is item a waiting recall?
+                my $recallstatus = '';
+
                 unless ($item->{withdrawn}
                         || $item->{itemlost}
                         || $item->{damaged}
@@ -2006,9 +1977,22 @@ sub searchResults {
                     # FIXME: to avoid having the query the database like this, and to make
                     #        the in transit status count as unavailable for search limiting,
                     #        should map transit status to record indexed in Zebra.
-                    #
-                    ($transfertwhen, $transfertfrom, $transfertto) = C4::Circulation::GetTransfers($item->{itemnumber});
+
+                    my $item_object = Koha::Items->find($item->{itemnumber});
+                    my $transfer = defined($item_object) ? $item_object->get_transfer : undef;
+                    ( $transfertwhen, $transfertfrom, $transfertto ) =
+                      defined($transfer)
+                      ? (
+                        $transfer->datesent, $transfer->frombranch,
+                        $transfer->tobranch
+                      )
+                      : ( '', '', '' );
                     $reservestatus = C4::Reserves::GetReserveStatus( $item->{itemnumber} );
+                    if ( C4::Context->preference('UseRecalls') ) {
+                        if ( Koha::Recalls->search({ item_id => $item->{itemnumber}, status => 'waiting' })->count ) {
+                            $recallstatus = 'Waiting';
+                        }
+                    }
                 }
 
                 # item is withdrawn, lost, damaged, not for loan, reserved or in transit
@@ -2017,6 +2001,7 @@ sub searchResults {
                     || $item->{damaged}
                     || $item->{notforloan}
                     || $reservestatus eq 'Waiting'
+                    || $recallstatus eq 'Waiting'
                     || ($transfertwhen && $transfertwhen ne ''))
                 {
                     $withdrawn_count++        if $item->{withdrawn};
@@ -2024,6 +2009,7 @@ sub searchResults {
                     $itemdamaged_count++     if $item->{damaged};
                     $item_in_transit_count++ if $transfertwhen && $transfertwhen ne '';
                     $item_onhold_count++     if $reservestatus eq 'Waiting';
+                    $item_recalled_count++   if $recallstatus eq 'Waiting';
                     $item->{status} = ($item->{withdrawn}//q{}) . "-" . ($item->{itemlost}//q{}) . "-" . ($item->{damaged}//q{}) . "-" . ($item->{notforloan}//q{});
 
                     $other_count++;
@@ -2033,6 +2019,7 @@ sub searchResults {
                         $other_items->{$key}->{$_} = $item->{$_};
                     }
                     $other_items->{$key}->{intransit} = ( $transfertwhen ne '' ) ? 1 : 0;
+                    $other_items->{$key}->{recalled} = ($recallstatus) ? 1 : 0;
                     $other_items->{$key}->{onhold} = ($reservestatus) ? 1 : 0;
                     $other_items->{$key}->{notforloan} = GetAuthorisedValueDesc('','',$item->{notforloan},'','',$notforloan_authorised_value) if $notforloan_authorised_value and $item->{notforloan};
                     $other_items->{$key}->{count}++ if $item->{$hbranch};
@@ -2078,18 +2065,36 @@ sub searchResults {
 
         # XSLT processing of some stuff
         # we fetched the sysprefs already before the loop through all retrieved record!
-        if (!$scan && $xslfile) {
+        if (!$scan) {
             $record_processor->options({
                 frameworkcode => $fw,
                 interface     => $search_context->{'interface'}
             });
 
             $record_processor->process($marcrecord);
-            $oldbiblio->{XSLTResultsRecord} = XSLTParse4Display($oldbiblio->{biblionumber}, $marcrecord, $xslsyspref, 1, \@hiddenitems, $sysxml, $xslfile, $lang, $xslt_variables);
+
+            $oldbiblio->{XSLTResultsRecord} = XSLTParse4Display(
+                {
+                    biblionumber => $oldbiblio->{biblionumber},
+                    record       => $marcrecord,
+                    xsl_syspref  => (
+                        $is_opac
+                        ? 'OPACXSLTResultsDisplay'
+                        : 'XSLTResultsDisplay'
+                    ),
+                    fix_amps       => 1,
+                    hidden_items   => \@hiddenitems,
+                    xslt_variables => $xslt_variables,
+                }
+            );
         }
 
         my $biblio_object = Koha::Biblios->find( $oldbiblio->{biblionumber} );
         $oldbiblio->{biblio_object} = $biblio_object;
+        $oldbiblio->{coins} = eval { $biblio_object->get_coins }
+          if $biblio_object
+          && C4::Context->preference('COinSinOPACResults')
+          && $is_opac;
 
         my $can_place_holds = 1;
         # if biblio level itypes are used and itemtype is notforloan, it can't be reserved either
@@ -2116,6 +2121,7 @@ sub searchResults {
         $oldbiblio->{damagedcount}         = $itemdamaged_count;
         $oldbiblio->{intransitcount}       = $item_in_transit_count;
         $oldbiblio->{onholdcount}          = $item_onhold_count;
+        $oldbiblio->{recalledcount}        = $item_recalled_count;
         $oldbiblio->{orderedcount}         = $ordered_count;
         $oldbiblio->{notforloancount}      = $notforloan_count;
 
@@ -2125,7 +2131,6 @@ sub searchResults {
             my $holdingsep = C4::Context->preference("AlternateHoldingsSeparator") || ' ';
             my @alternateholdingsinfo = ();
             my @holdingsfields = $marcrecord->field(substr $fieldspec, 0, 3);
-            my $alternateholdingscount = 0;
 
             for my $field (@holdingsfields) {
                 my %holding = ( holding => '' );
@@ -2139,12 +2144,10 @@ sub searchResults {
                 }
                 if ($havesubfield) {
                     push(@alternateholdingsinfo, \%holding);
-                    $alternateholdingscount++;
                 }
             }
 
             $oldbiblio->{'ALTERNATEHOLDINGS'} = \@alternateholdingsinfo;
-            $oldbiblio->{'alternateholdings_count'} = $alternateholdingscount;
         }
 
         push( @newresults, $oldbiblio );
@@ -2268,7 +2271,6 @@ sub GetDistinctValues {
     if ($fieldname=~/\./){
 			my ($table,$column)=split /\./, $fieldname;
 			my $dbh = C4::Context->dbh;
-			warn "select DISTINCT($column) as value, count(*) as cnt from $table group by lib order by $column " if $DEBUG;
 			my $sth = $dbh->prepare("select DISTINCT($column) as value, count(*) as cnt from $table ".($string?" where $column like \"$string%\"":"")."group by value order by $column ");
 			$sth->execute;
 			my $elements=$sth->fetchall_arrayref({});

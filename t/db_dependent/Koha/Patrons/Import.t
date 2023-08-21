@@ -18,7 +18,7 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 161;
+use Test::More tests => 176;
 use Test::Warn;
 use Test::Exception;
 use Encode qw( encode_utf8 );
@@ -28,6 +28,7 @@ use utf8;
 use Test::MockModule;
 use Koha::Database;
 use Koha::Patron::Relationships;
+use Koha::DateUtils qw(dt_from_string);
 
 use File::Temp qw(tempfile tempdir);
 my $temp_dir = tempdir('Koha_patrons_import_test_XXXX', CLEANUP => 1, TMPDIR => 1);
@@ -93,6 +94,7 @@ my $csv_headers  = 'cardnumber,surname,firstname,title,othernames,initials,stree
 my $res_header   = 'cardnumber, surname, firstname, title, othernames, initials, streetnumber, streettype, address, address2, city, state, zipcode, country, email, phone, mobile, fax, dateofbirth, branchcode, categorycode, dateenrolled, dateexpiry, userid, password';
 my $csv_one_line = '1000,Nancy,Jenkins,Dr,,NJ,78,Circle,Bunting,El Paso,Henderson,Texas,79984,United States,ajenkins0@sourceforge.net,7-(388)559-6763,3-(373)151-4471,8-(509)286-4001,10/16/1965,CPL,PT,12/28/2014,07/01/2015,jjenkins0,DPQILy';
 my $csv_one_line_a = '1001,Nancy,Jenkins,Dr,,NJ,78,Circle,Bunting,El Paso,Henderson,Texas,79984,United States,ajenkins0@sourceforge.net,7-(388)559-6763,3-(373)151-4471,8-(509)286-4001,10/16/1965,CPL,PT,12/28/2014,07/01/2015,jjenkins0,DPQILy';
+my $csv_one_line_b = '1000,Nancy2,Jenkins2,Dr,,NJ,78,Circle,Bunting,El Paso,Henderson,Texas,79984,United States,ajenkins0@sourceforge.net,7-(388)559-6763,3-(373)151-4471,8-(509)286-4001,10/16/1965,CPL,PT,12/28/2014,07/01/2015,jjenkins0,DPQILy';
 
 my $filename_1 = make_csv($temp_dir, $csv_headers, $csv_one_line);
 open(my $handle_1, "<", $filename_1) or die "cannot open < $filename_1: $!";
@@ -183,6 +185,40 @@ is($result_3a->{feedback}->[0]->{value}, $res_header, 'Got the expected header r
 is($result_3a->{imported}, 0, 'Got the expected 0 imported result from import_patrons');
 is($result_3a->{invalid}, 0, 'Got the expected 0 invalid result from import_patrons');
 is($result_3a->{overwritten}, 1, 'Got the expected 1 overwritten result from import_patrons that matched');
+
+# Given ... valid file handle, good matchpoint that matches should overwrite when set, surname is protected from
+# overwrite but firstname is not
+my $filename_3c = make_csv($temp_dir, $csv_headers, $csv_one_line_b);
+open(my $handle_3c, "<", $filename_3c) or die "cannot open < $filename_3: $!";
+my $params_3c = { file => $handle_3c, matchpoint => 'cardnumber', overwrite_cardnumber => 1, preserve_fields => [ 'firstname' ], update_dateexpiry => 1, update_dateexpiry_from_today => 1 };
+
+my $patron_3 = Koha::Patrons->find({ cardnumber => '1000' });
+is( $patron_3->dateexpiry, '2015-07-01', "Expiration date is correct with update_dateexpiry = false" );
+
+# When ...
+my $result_3c;
+warning_is { $result_3c = $patrons_import->import_patrons($params_3c) }
+    undef,
+    "No warning raised by import_patrons";
+
+# Then ...
+is($result_3c->{already_in_db}, 0, 'Got the expected 0 already_in_db from import_patrons when matched and overwrite set');
+is($result_3c->{errors}->[0]->{duplicate_userid}, undef, 'No duplicate userid error from import patrons with duplicate userid (it is our own)');
+is($result_3c->{errors}->[0]->{userid}, undef, 'No duplicate userid error from import patrons with duplicate userid (it is our own)');
+
+is($result_3c->{feedback}->[0]->{feedback}, 1, 'Got 1 expected feedback from import_patrons that matched and overwritten');
+is($result_3c->{feedback}->[0]->{name}, 'headerrow', 'Got the expected header row name from import_patrons with duplicate userid');
+is($result_3c->{feedback}->[0]->{value}, $res_header, 'Got the expected header row value from import_patrons with duplicate userid');
+
+is($result_3c->{imported}, 0, 'Got the expected 0 imported result from import_patrons');
+is($result_3c->{invalid}, 0, 'Got the expected 0 invalid result from import_patrons');
+is($result_3c->{overwritten}, 1, 'Got the expected 1 overwritten result from import_patrons that matched');
+
+my $patron_3c = Koha::Patrons->find({ cardnumber => '1000' });
+is( $patron_3c->dateexpiry, dt_from_string->add( months => 99, end_of_month => 'limit' )->ymd, "Expiration date is correct with update_dateexpiry = true" );
+
+is( $patron_3c->surname, "Nancy2", "Surname field is preserved from original" );
+is( $patron_3c->firstname, "Jenkins", "Firstname field is overwritten" );
 
 # Given ... valid file handle, good matchpoint that does not match and conflicting userid.
 my $filename_3b = make_csv($temp_dir, $csv_headers, $csv_one_line_a);
@@ -1111,6 +1147,32 @@ subtest 'patron_attributes' => sub {
 
     };
 
+};
+
+subtest 'welcome_email' => sub {
+
+    plan tests => 3;
+
+    #Setup our info
+    my $branchcode = $builder->build({ source => "Branch"})->{branchcode};
+    my $categorycode = $builder->build({ source => "Category", value => { category_type => 'A'  } })->{categorycode};
+    my $staff_categorycode = $builder->build({ source => "Category", value => { category_type => 'S'  } })->{categorycode};
+    my $csv_headers  = 'surname,userid,branchcode,categorycode,password,email';
+    my $csv_new      = "Spagobi,EldridgeS,$branchcode,$categorycode,H4ckR".',me@myemail.com';
+    my $defaults = { cardnumber => "" }; #currently all the defaults come as "" if not filled
+
+    #Make the test files for importing
+    my $filename_1 = make_csv($temp_dir, $csv_headers, $csv_new);
+    open(my $handle_1, "<", $filename_1) or die "cannot open < $filename_1: $!";
+
+    my $params_1 = { file => $handle_1, matchpoint => 'userid', overwrite_passwords => 1, overwrite_cardnumber => 1, send_welcome => 1};
+
+    my $result = $patrons_import->import_patrons($params_1, $defaults);
+    is($result->{already_in_db}, 0, 'New borrower imported as expected');
+    is($result->{feedback}->[3]->{name}, 'welcome_sent', 'Email send reported');
+    my $eldridge = Koha::Patrons->find({ userid => 'EldridgeS'});
+    my $notices = Koha::Notice::Messages->search({ borrowernumber => $eldridge->borrowernumber });
+    is($notices->count, 1, 'Notice was queued');
 };
 
 # got is { code => $code, attribute => $attribute }

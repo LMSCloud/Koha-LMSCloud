@@ -21,29 +21,29 @@
 use Modern::Perl;
 
 use Koha::Util::FrameworkPlugin qw(wrapper);
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use CGI qw ( -utf8 );
 use C4::Context;
 
 use C4::Search;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 
 sub plugin_javascript {
-    my ( $dbh, $record, $tagslib, $field_number, $tabloop ) = @_;
+    my ( $dbh, $record, $tagslib, $field_number ) = @_;
     my $function_name = $field_number;
     my $res           = "
 <script>
-function Blur$function_name(subfield_managed) {
-	var leader_length = document.getElementById(\"$field_number\").value.length;
+function Blur$function_name(event) {
+    var leader_length = document.getElementById(event.data.id).value.length;
     if (leader_length != 24 && leader_length !=0) {
         alert(_('leader has an incorrect size: ' + leader_length + ' instead of 24 chars'));
     }
-    return 1;
 }
 
-function Clic$function_name(i) {
-	defaultvalue=document.getElementById(\"$field_number\").value;
-	newin=window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=unimarc_leader.pl&index=$field_number&result=\"+defaultvalue,\"unimarc_field_100\",'width=1000,height=600,toolbar=false,scrollbars=yes');
+function Clic$function_name(event) {
+    event.preventDefault();
+    defaultvalue=document.getElementById(event.data.id).value;
+    newin=window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=unimarc_leader.pl&index=\" + event.data.id + \"&result=\"+defaultvalue,\"unimarc_field_100\",'width=1000,height=600,toolbar=false,scrollbars=yes');
 
 }
 </script>
@@ -65,7 +65,6 @@ sub plugin {
             query           => $input,
             type            => "intranet",
             flagsrequired   => { editcatalogue => '*' },
-            debug           => 1,
         }
     );
     $result = "     nam         3       " unless $result;

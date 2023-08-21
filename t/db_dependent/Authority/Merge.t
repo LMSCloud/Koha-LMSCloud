@@ -4,7 +4,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 10;
+use Test::More tests => 11;
 
 use Getopt::Long;
 use MARC::Record;
@@ -13,14 +13,15 @@ use Test::MockModule;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
-use C4::Biblio;
+use C4::Biblio qw( AddBiblio ModBiblio );
 use Koha::Authorities;
 use Koha::Authority::ControlledIndicators;
 use Koha::Authority::MergeRequests;
+use Koha::Biblios;
 use Koha::Database;
 
 BEGIN {
-        use_ok('C4::AuthoritiesMarc');
+        use_ok('C4::AuthoritiesMarc', qw( merge AddAuthority compare_fields DelAuthority ModAuthority ));
 }
 
 # Optionally change marc flavour
@@ -95,13 +96,13 @@ subtest 'Test merge A1 to A2 (within same authtype)' => sub {
     is( $rv, 1, 'We expect one biblio record (out of two) to be updated' );
 
     # Check the results
-    my $newbiblio1 = GetMarcBiblio({ biblionumber => $biblionumber1 });
+    my $newbiblio1 = Koha::Biblios->find($biblionumber1)->metadata->record;
     compare_fields( $biblio1, $newbiblio1, {}, 'count' );
     compare_fields( $biblio1, $newbiblio1, {}, 'order' );
     is( $newbiblio1->subfield('609', '9'), $authid1, 'Check biblio1 609$9' );
     is( $newbiblio1->subfield('609', 'a'), 'George Orwell',
         'Check biblio1 609$a' );
-    my $newbiblio2 = GetMarcBiblio({ biblionumber => $biblionumber2 });
+    my $newbiblio2 = Koha::Biblios->find($biblionumber2)->metadata->record;
     compare_fields( $biblio2, $newbiblio2, {}, 'count' );
     compare_fields( $biblio2, $newbiblio2, {}, 'order' );
     is( $newbiblio2->subfield('609', '9'), $authid1, 'Check biblio2 609$9' );
@@ -139,11 +140,11 @@ subtest 'Test merge A1 to modified A1, test strict mode' => sub {
     is( $rv, 2, 'Both records are updated now' );
 
     #Check the results
-    my $biblio1 = GetMarcBiblio({ biblionumber => $biblionumber1 });
+    my $biblio1 = Koha::Biblios->find($biblionumber1)->metadata->record;
     compare_fields( $MARC1, $biblio1, {}, 'count' );
     compare_fields( $MARC1, $biblio1, {}, 'order' );
     is( $auth1new->field(109)->subfield('a'), $biblio1->field(109)->subfield('a'), 'Record1 values updated correctly' );
-    my $biblio2 = GetMarcBiblio({ biblionumber => $biblionumber2 });
+    my $biblio2 = Koha::Biblios->find($biblionumber2)->metadata->record;
     compare_fields( $MARC2, $biblio2, {}, 'count' );
     compare_fields( $MARC2, $biblio2, {}, 'order' );
     is( $auth1new->field(109)->subfield('a'), $biblio2->field(109)->subfield('a'), 'Record2 values updated correctly' );
@@ -155,7 +156,7 @@ subtest 'Test merge A1 to modified A1, test strict mode' => sub {
     ModBiblio( $MARC1, $biblionumber1, '' );
     @linkedrecords = ( $biblionumber1 );
     $rv = C4::AuthoritiesMarc::merge({ mergefrom => $authid1, MARCfrom => $auth1old, mergeto => $authid1, MARCto => $auth1new });
-    $biblio1 = GetMarcBiblio({ biblionumber => $biblionumber1 });
+    $biblio1 = Koha::Biblios->find($biblionumber1)->metadata->record;
     is( $biblio1->field(109)->subfield('b'), undef, 'Subfield overwritten in strict mode' );
     compare_fields( $MARC1, $biblio1, { 609 => 1 }, 'count' );
     my @old609 = $MARC1->field('609');
@@ -196,7 +197,7 @@ subtest 'Test merge A1 to B1 (changing authtype)' => sub {
         MARC::Field->new( '612', '', '', a => 'unrelated', 9 => 'other' ),
     );
     my ( $biblionumber ) = C4::Biblio::AddBiblio( $marc, '' );
-    my $oldbiblio = C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber });
+    my $oldbiblio = Koha::Biblios->find($biblionumber)->metadata->record;
 
     # Time to merge
     @linkedrecords = ( $biblionumber );
@@ -204,7 +205,87 @@ subtest 'Test merge A1 to B1 (changing authtype)' => sub {
     is( $retval, 1, 'We touched only one biblio' );
 
     # Get new marc record for compares
-    my $newbiblio = C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber });
+    my $newbiblio = Koha::Biblios->find($biblionumber)->metadata->record;
+    compare_fields( $oldbiblio, $newbiblio, {}, 'count' );
+    # Exclude 109/609 and 112/612 in comparing order
+    my $excl = { '109' => 1, '112' => 1, '609' => 1, '612' => 1 };
+    compare_fields( $oldbiblio, $newbiblio, $excl, 'order' );
+    # Check position of 612s in the new record
+    my $full_order = join q/,/, map { $_->tag } $newbiblio->fields;
+    is( $full_order =~ /611(,612){3}/, 1, 'Check position of all 612s' );
+
+    # Check some fields
+    is( $newbiblio->field('003')->data,
+        $oldbiblio->field('003')->data,
+        'Check contents of a control field not expected to be touched' );
+    is( $newbiblio->subfield( '245', 'a' ),
+        $oldbiblio->subfield( '245', 'a' ),
+        'Check contents of a data field not expected to be touched' );
+    is( $newbiblio->subfield( '112', 'a' ),
+        $auth2->subfield( '112', 'a' ), 'Check modified 112a' );
+    is( $newbiblio->subfield( '112', 'c' ),
+        $auth2->subfield( '112', 'c' ), 'Check new 112c' );
+
+    # Check 112b; this subfield was cleared when moving from 109 to 112
+    # Note that this fix only applies to the current loose mode only
+    is( $newbiblio->subfield( '112', 'b' ), undef,
+        'Merge respects a cleared subfield in loose mode' );
+
+    # Check the original 612
+    is( ( $newbiblio->field('612') )[0]->subfield( 'a' ),
+        $oldbiblio->subfield( '612', 'a' ), 'Check untouched 612a' );
+    # Check second 612
+    is( ( $newbiblio->field('612') )[1]->subfield( 'a' ),
+        $auth2->subfield( '112', 'a' ), 'Check second touched 612a' );
+    # Check second new 612ax (in LOOSE mode)
+    is( ( $newbiblio->field('612') )[2]->subfield( 'a' ),
+        $auth2->subfield( '112', 'a' ), 'Check touched 612a' );
+    is( ( $newbiblio->field('612') )[2]->subfield( 'x' ),
+        ( $oldbiblio->field('609') )[1]->subfield('x'),
+        'Check 612x' );
+};
+
+subtest 'Test update A with modified heading tag (changing authtype)' => sub {
+# Bug 19693
+# This would happen rarely when updating authorities from authority file
+# when the tag of a heading field is being changed (and thus also
+# the authtype)
+    plan tests => 13;
+
+    # Get back to loose mode now
+    t::lib::Mocks::mock_preference('AuthorityMergeMode', 'loose');
+
+    # create an auth rec
+    my $auth1 = MARC::Record->new;
+    $auth1->append_fields( MARC::Field->new( '109', '0', '0', 'a' => 'George Orwell', b => 'bb' ));
+    my $authid1 = AddAuthority( $auth1, undef, $authtype1 );
+
+    # create a biblio with one 109 and two 609s to be touched
+    # seems exceptional see bug 13760 comment10
+    my $marc = MARC::Record->new;
+    $marc->append_fields(
+        MARC::Field->new( '003', 'some_003' ),
+        MARC::Field->new( '109', '', '', a => 'G. Orwell', b => 'bb', d => 'd', 9 => $authid1 ),
+        MARC::Field->new( '245', '', '', a => 'My title' ),
+        MARC::Field->new( '609', '', '', a => 'Orwell', 9 => "$authid1" ),
+        MARC::Field->new( '609', '', '', a => 'Orwell', x => 'xx', 9 => "$authid1" ),
+        MARC::Field->new( '611', '', '', a => 'Added for testing order' ),
+        MARC::Field->new( '612', '', '', a => 'unrelated', 9 => 'other' ),
+    );
+    my ( $biblionumber ) = C4::Biblio::AddBiblio( $marc, '' );
+    my $oldbiblio = Koha::Biblios->find($biblionumber)->metadata->record;
+
+    # Time to merge
+    @linkedrecords = ( $biblionumber );
+    my $auth2 = MARC::Record->new;
+    $auth2->append_fields( MARC::Field->new( '112', '0', '0', 'a' => 'Batman', c => 'cc' ));
+    my $authid2 = ModAuthority($authid1, $auth2, $authtype2 );
+    # inside ModAuthority the following is executed:
+    # merge({ mergefrom => $authid1, MARCfrom => $auth1, mergeto => $authid1, MARCto => $auth2 });
+    is( $authid2, $authid1, 'authid after ModAuthority OK' );
+
+    # Get new marc record for compares
+    my $newbiblio = Koha::Biblios->find($biblionumber)->metadata->record;
     compare_fields( $oldbiblio, $newbiblio, {}, 'count' );
     # Exclude 109/609 and 112/612 in comparing order
     my $excl = { '109' => 1, '112' => 1, '609' => 1, '612' => 1 };
@@ -261,7 +342,7 @@ subtest 'Merging authorities should handle deletes (BZ 18070)' => sub {
     DelAuthority({ authid => $authid1 }); # this triggers a merge call
 
     # See what happened in the biblio record
-    my $marc1 = C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber });
+    my $marc1 = Koha::Biblios->find($biblionumber)->metadata->record;
     is( $marc1->field('609'), undef, 'Field 609 should be gone too' );
 
     # Now we simulate the delete as done in the cron job
@@ -283,7 +364,7 @@ subtest 'Merging authorities should handle deletes (BZ 18070)' => sub {
     $mocks->{auth_mod}->unmock_all;
     merge({ mergefrom => $authid1, biblionumbers => [ $biblionumber ] });
     # Final check
-    $marc1 = C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber });
+    $marc1 = Koha::Biblios->find($biblionumber)->metadata->record;
     is( $marc1->field('609'), undef, 'Merge removed the 609 again even after deleting the authority record' );
 };
 
@@ -307,14 +388,14 @@ subtest "Test some specific postponed merge issues" => sub {
     # This proves the !authtypefrom condition in sub merge
     # Additionally, we test clearing subfield
     merge({ mergefrom => $id + 1, MARCfrom => $oldauthmarc, mergeto => $id, MARCto => $authmarc, biblionumbers => [ $biblionumber ] });
-    $biblio = C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber });
+    $biblio = Koha::Biblios->find($biblionumber)->metadata->record;
     is( $biblio->subfield('609', '9'), $id, '612 moved to 609' );
     is( $biblio->subfield('609', 'c'), undef, '609c cleared correctly' );
 
     # Merge A to B postponed, delete B immediately (hits B < hits A)
     # This proves the !@record_to test in sub merge
     merge({ mergefrom => $id + 2, mergeto => $id + 1, MARCto => undef, biblionumbers => [ $biblionumber ] });
-    $biblio = C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber });
+    $biblio = Koha::Biblios->find($biblionumber)->metadata->record;
     is( $biblio->field('612'), undef, 'Last 612 must be gone' );
 
     # Show that we 'need' skip_merge; this example is far-fetched.
@@ -326,7 +407,7 @@ subtest "Test some specific postponed merge issues" => sub {
     my $restored_mocks = set_mocks();
     DelAuthority({ authid => $id, skip_merge => 1 }); # delete A
     $restored_mocks->{auth_mod}->unmock_all;
-    $biblio = C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber });
+    $biblio = Koha::Biblios->find($biblionumber)->metadata->record;
     is( $biblio->subfield('109', '9'), $id, 'If the 109 is no longer present, another modify merge would not bring it back' );
 
     # Bug 22437 now removes older postponed A->A merges in DelAuthority
@@ -367,7 +448,7 @@ subtest "Graceful resolution of missing reporting tag" => sub {
 
     # Merge
     merge({ mergefrom => $id1, MARCfrom => $authmarc, mergeto => $id2, MARCto => $authmarc, biblionumbers => [ $biblionumber ] });
-    $biblio = C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber });
+    $biblio = Koha::Biblios->find($biblionumber)->metadata->record;
     is( $biblio->subfield('612', '9'), $id2, 'id2 saved in $9' );
     is( $biblio->subfield('612', 'a'), ' ', 'Kept an empty $a too' );
 
@@ -392,7 +473,7 @@ subtest 'merge should not reorder too much' => sub {
 
     # Merge 109 and 609 and check order of subfields
     merge({ mergefrom => $id, MARCfrom => $authmarc, mergeto => $id, MARCto => $authmarc, biblionumbers => [ $biblionumber ] });
-    my $biblio2 = C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber });
+    my $biblio2 = Koha::Biblios->find($biblionumber)->metadata->record;
     my $subfields = [ map { $_->[0] } $biblio2->field('109')->subfields ];
     is_deeply( $subfields, [ 'i', 'a', 'b', 'c', '9' ], 'Merge only moved $9' );
     $subfields = [ map { $_->[0] } $biblio2->field('609')->subfields ];
@@ -422,7 +503,7 @@ subtest 'Test how merge handles controlled indicators' => sub {
 
     # Merge and check indicators and $2
     merge({ mergefrom => $id, MARCfrom => $authmarc, mergeto => $id, MARCto => $authmarc, biblionumbers => [ $biblionumber ] });
-    my $biblio2 = C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber });
+    my $biblio2 = Koha::Biblios->find($biblionumber)->metadata->record;
     is( $biblio2->field('609')->indicator(1), '7', 'Indicator1 OK' );
     is( $biblio2->field('609')->indicator(2), '7', 'Indicator2 OK' );
     is( $biblio2->subfield('609', '2'), 'aat', 'Subfield $2 OK' );
@@ -431,7 +512,7 @@ subtest 'Test how merge handles controlled indicators' => sub {
     $authmarc->field('008')->update( (' 'x11).'a' ); # LOC, no $2 needed
     AddAuthority( $authmarc, $id, $authtype1 ); # modify
     merge({ mergefrom => $id, MARCfrom => $authmarc, mergeto => $id, MARCto => $authmarc, biblionumbers => [ $biblionumber ] });
-    $biblio2 = C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber });
+    $biblio2 = Koha::Biblios->find($biblionumber)->metadata->record;
     is( $biblio2->subfield('609', '2'), undef, 'No subfield $2 left' );
 };
 

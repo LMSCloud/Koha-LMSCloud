@@ -20,14 +20,16 @@
 use Modern::Perl;
 use CGI qw ( -utf8 ); 
 use HTML::Entities;
-use MARC::Record;
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
-use C4::Biblio;
-use C4::Items;
-use C4::Search;		# enabled_staff_search_views
-use C4::Serials;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Biblio qw(
+    GetBiblioData
+    GetFrameworkCode
+    GetMarcStructure
+);
+use C4::Search qw( z3950_search_args enabled_staff_search_views );
+use C4::Serials qw( CountSubscriptionFromBiblionumber );
 
 use Koha::Biblios;
 use Koha::BiblioFrameworks;
@@ -50,11 +52,11 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $query,
         type            => "intranet",
         flagsrequired   => { catalogue => 1 },
-        debug           => 1,
     }
 );
 
-my $record = GetMarcBiblio({ biblionumber => $biblionumber });
+my $biblio_object = Koha::Biblios->find( $biblionumber ); # FIXME Should replace $biblio
+my $record = $biblio_object->metadata->record;
 if ( not defined $record ) {
     # biblionumber invalid -> report and exit
     $template->param( unknownbiblionumber => 1,
@@ -64,17 +66,14 @@ if ( not defined $record ) {
     exit;
 }
 
-my $biblio_object = Koha::Biblios->find( $biblionumber ); # FIXME Should replace $biblio
 my $tagslib = GetMarcStructure(1,$frameworkcode);
 my $biblio = GetBiblioData($biblionumber);
 
 if($query->cookie("holdfor")){ 
     my $holdfor_patron = Koha::Patrons->find( $query->cookie("holdfor") );
     $template->param(
-        holdfor => $query->cookie("holdfor"),
-        holdfor_surname => $holdfor_patron->surname,
-        holdfor_firstname => $holdfor_patron->firstname,
-        holdfor_cardnumber => $holdfor_patron->cardnumber,
+        holdfor        => $query->cookie("holdfor"),
+        holdfor_patron => $holdfor_patron,
     );
 }
 
@@ -136,14 +135,14 @@ my $some_private_shelves = Koha::Virtualshelves->get_some_shelves(
     {
         borrowernumber => $loggedinuser,
         add_allowed    => 1,
-        category       => 1,
+        public         => 0,
     }
 );
 my $some_public_shelves = Koha::Virtualshelves->get_some_shelves(
     {
         borrowernumber => $loggedinuser,
         add_allowed    => 1,
-        category       => 2,
+        public         => 1,
     }
 );
 

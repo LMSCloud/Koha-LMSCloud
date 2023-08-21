@@ -75,17 +75,19 @@ chosen 'Digests only' on the advance messages.
 =cut
 
 use Modern::Perl;
-use Pod::Usage;
-use Getopt::Long;
+use Pod::Usage qw( pod2usage );
+use Getopt::Long qw( GetOptions );
 
 use Koha::Script -cron;
-use C4::Circulation;
+use C4::Circulation qw( CanBookBeRenewed AddRenewal );
 use C4::Context;
-use C4::Log;
+use C4::Log qw( cronlogaction );
 use C4::Letters;
 use Koha::Checkouts;
 use Koha::Libraries;
 use Koha::Patrons;
+
+my $command_line_options = join(" ",@ARGV);
 
 my ( $help, $send_notices, $verbose, $confirm, $digest_per_branch );
 GetOptions(
@@ -127,13 +129,21 @@ To change this, edit the "EnhancedMessagingPreferences" syspref.
 END_WARN
 }
 
-cronlogaction();
+cronlogaction({ info => $command_line_options });
 
 $verbose = 1 unless $verbose or $confirm;
 print "Test run only\n" unless $confirm;
 
 print "getting auto renewals\n" if $verbose;
-my $auto_renews = Koha::Checkouts->search({ auto_renew => 1, 'borrower.autorenew_checkouts' => 1 },{ join => 'borrower'});
+my $auto_renews = Koha::Checkouts->search(
+    {
+        auto_renew                   => 1,
+        'patron.autorenew_checkouts' => 1,
+    },
+    {
+        join => ['patron','item']
+    }
+);
 print "found " . $auto_renews->count . " auto renewals\n" if $verbose;
 
 my $renew_digest = {};
@@ -141,7 +151,7 @@ my %report;
 while ( my $auto_renew = $auto_renews->next ) {
     print "examining item '" . $auto_renew->itemnumber . "' to auto renew\n" if $verbose;
 
-    my ( $borrower_preferences, $wants_email, $wants_digest ) = ( undef, 0, 0 );
+    my ( $borrower_preferences, $wants_messages, $wants_digest ) = ( undef, 0, 0 );
     if ( $send_notices_pref eq 'preferences' ){
         $borrower_preferences = C4::Members::Messaging::GetMessagingPreferences(
             {
@@ -149,15 +159,14 @@ while ( my $auto_renew = $auto_renews->next ) {
                 message_name   => 'auto_renewals'
             }
         );
-        $wants_email = 1
+        $wants_messages = 1
             if $borrower_preferences
-            && $borrower_preferences->{transports}
-            && $borrower_preferences->{transports}->{email};
+            && $borrower_preferences->{transports};
         $wants_digest = 1
-            if $wants_email
+            if $wants_messages
             && $borrower_preferences->{wants_digest};
     } else { # Preference is never or cron
-        $wants_email = $send_notices;
+        $wants_messages = $send_notices;
         $wants_digest = 0;
     }
 
@@ -171,11 +180,11 @@ while ( my $auto_renew = $auto_renews->next ) {
               $auto_renew->issue_id, $auto_renew->borrowernumber, $auto_renew->itemnumber, $confirm ? 'will' : 'would';
         }
         if ($confirm){
-            my $date_due = AddRenewal( $auto_renew->borrowernumber, $auto_renew->itemnumber, $auto_renew->branchcode, undef, undef, undef, 0 );
+            my $date_due = AddRenewal( $auto_renew->borrowernumber, $auto_renew->itemnumber, $auto_renew->branchcode, undef, undef, undef, 0, 1 );
             $auto_renew->auto_renew_error(undef)->store;
         }
         push @{ $report{ $auto_renew->borrowernumber } }, $auto_renew
-            if ( $wants_email ) && !$wants_digest;
+            if ( $wants_messages ) && !$wants_digest;
     } elsif ( $error eq 'too_many'
         or $error eq 'on_reserve'
         or $error eq 'restriction'
@@ -194,7 +203,7 @@ while ( my $auto_renew = $auto_renews->next ) {
         if ( $updated ) {
             $auto_renew->auto_renew_error($error)->store if $confirm;
             push @{ $report{ $auto_renew->borrowernumber } }, $auto_renew
-              if $error ne 'auto_too_soon' && ( $wants_email  && !$wants_digest );    # Do not notify if it's too soon
+              if $error ne 'auto_too_soon' && ( $wants_messages  && !$wants_digest );    # Do not notify if it's too soon
         }
     }
 
@@ -202,12 +211,14 @@ while ( my $auto_renew = $auto_renews->next ) {
         # cache this one to process after we've run through all of the items.
         if ($digest_per_branch) {
             $renew_digest->{ $auto_renew->branchcode }->{ $auto_renew->borrowernumber }->{success}++ if $error eq 'auto_renew';
-            $renew_digest->{ $auto_renew->branchcode }->{ $auto_renew->borrowernumber }->{error}++ unless $error eq 'auto_renew';
+            $renew_digest->{ $auto_renew->branchcode }->{ $auto_renew->borrowernumber }->{error}++ unless $error eq 'auto_renew' || $error eq 'auto_too_soon';
+            $renew_digest->{ $auto_renew->branchcode }->{ $auto_renew->borrowernumber }->{results}->{$error}++ ;
             push @{$renew_digest->{ $auto_renew->branchcode }->{ $auto_renew->borrowernumber }->{issues}}, $auto_renew->itemnumber;
             $renew_digest->{ $auto_renew->branchcode }->{ $auto_renew->borrowernumber }->{updated} = 1 if $updated && $error ne 'auto_too_soon';
         } else {
             $renew_digest->{ $auto_renew->borrowernumber }->{success} ++ if $error eq 'auto_renew';
-            $renew_digest->{ $auto_renew->borrowernumber }->{error}++ unless $error eq 'auto_renew';
+            $renew_digest->{ $auto_renew->borrowernumber }->{error}++ unless $error eq 'auto_renew' || $error eq 'auto_too_soon';
+            $renew_digest->{ $auto_renew->borrowernumber }->{results}->{$error}++ ;
             $renew_digest->{ $auto_renew->borrowernumber }->{updated} = 1 if $updated && $error ne 'auto_too_soon';
             push @{$renew_digest->{ $auto_renew->borrowernumber }->{issues}}, $auto_renew->itemnumber;
         }
@@ -218,31 +229,46 @@ while ( my $auto_renew = $auto_renews->next ) {
 if ( $send_notices && $confirm ) {
     for my $borrowernumber ( keys %report ) {
         my $patron = Koha::Patrons->find($borrowernumber);
-        for my $issue ( @{ $report{$borrowernumber} } ) {
-            my $item   = Koha::Items->find( $issue->itemnumber );
-            my $letter = C4::Letters::GetPreparedLetter(
-                module      => 'circulation',
-                letter_code => 'AUTO_RENEWALS',
-                tables      => {
-                    borrowers => $patron->borrowernumber,
-                    issues    => $issue->itemnumber,
-                    items     => $issue->itemnumber,
-                    biblio    => $item->biblionumber,
-                },
-                lang => $patron->lang,
-            );
-
-            my $library = Koha::Libraries->find( Koha::Libraries->get_effective_branch($patron->branchcode) );
-            my $admin_email_address = $library->from_email_address;
-
-            C4::Letters::EnqueueLetter(
-                {   letter                 => $letter,
-                    borrowernumber         => $borrowernumber,
-                    message_transport_type => 'email',
-                    from_address           => $admin_email_address,
-                    branchcode             => $library->branchcode,
+        my $borrower_preferences =
+            C4::Members::Messaging::GetMessagingPreferences(
+                {
+                    borrowernumber => $borrowernumber,
+                    message_name   => 'auto_renewals'
                 }
             );
+        for my $issue ( @{ $report{$borrowernumber} } ) {
+            my $item = $issue->item;
+            # Force sending of email and only email if pref is set to "cron"
+            my @transports = $send_notices_pref eq 'preferences' ? keys %{ $borrower_preferences->{'transports'} } : 'email';
+            foreach my $transport ( @transports ) {
+                my $letter = C4::Letters::GetPreparedLetter (
+                    module      => 'circulation',
+                    letter_code => 'AUTO_RENEWALS',
+                    tables      => {
+                        borrowers => $patron->borrowernumber,
+                        issues    => $issue->itemnumber,
+                        items     => $issue->itemnumber,
+                        biblio    => $item->biblionumber,
+                    },
+                    lang => $patron->lang,
+                    message_transport_type => $transport,
+                );
+
+                if ($letter) {
+                    my $library = Koha::Libraries->find( Koha::Libraries->get_effective_branch($patron->branchcode) );
+                    my $admin_email_address = $library->from_email_address;
+
+                    C4::Letters::EnqueueLetter(
+                        {
+                            letter                 => $letter,
+                            borrowernumber         => $borrowernumber,
+                            from_address           => $admin_email_address,
+                            message_transport_type => $transport,
+                            branchcode             => $library->branchcode,
+                        }
+                    );
+                }
+            }
         }
     }
 
@@ -261,6 +287,8 @@ if ( $send_notices && $confirm ) {
         });
     }
 }
+
+cronlogaction({ action => 'End', info => "COMPLETED" });
 
 =head1 METHODS
 
@@ -323,23 +351,31 @@ sub send_digests {
                 substitute => {
                     error => $digest->{error}||0,
                     success => $digest->{success}||0,
+                    results => $digest->{results},
                 },
                 loops => { issues => \@{$digest->{issues}} },
                 tables      => {
                     borrowers => $patron->borrowernumber,
                 },
                 message_transport_type => $transport,
-            ) || warn "no letter of type '$params->{letter_code}' found for borrowernumber $borrowernumber. Please see sample_notices.sql";
+            );
 
-            next unless $letter;
+            if ($letter) {
+                C4::Letters::EnqueueLetter(
+                    {
+                        letter                 => $letter,
+                        borrowernumber         => $borrowernumber,
+                        from_address           => $from_address,
+                        message_transport_type => $transport,
+                        branchcode             => Koha::Libraries->get_effective_branch($branchcode)
+                    }
+                );
+            }
+            else {
+                warn
+"no letter of type '$params->{letter_code}' found for borrowernumber $borrowernumber. Please see sample_notices.sql";
+            }
 
-            C4::Letters::EnqueueLetter({
-                letter                 => $letter,
-                borrowernumber         => $borrowernumber,
-                from_address           => $from_address,
-                message_transport_type => $transport,
-                branchcode             => Koha::Libraries->get_effective_branch($branchcode)
-            });
         }
     }
 }

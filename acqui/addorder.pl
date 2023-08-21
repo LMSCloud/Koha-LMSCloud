@@ -72,7 +72,7 @@ the ISBN of the record ordered.
 =item C<quantity>
 the quantity to order.
 
-=item C<list_price>
+=item C<listprice>
 the price of this order.
 
 =item C<uncertainprice>
@@ -119,19 +119,25 @@ if it is an order from an existing suggestion : the id of this suggestion.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use JSON qw ( to_json );
-use C4::Auth;           # get_template_and_user
-use C4::Acquisition;    # ModOrder
-use C4::Suggestions;    # ModStatus
-use C4::Biblio;         # AddBiblio TransformKohaToMarc
-use C4::Budgets;
-use C4::Items;
-use C4::Output;
-use C4::Log qw(logaction);
-use Koha::Acquisition::Currencies;
+use JSON qw ( to_json encode_json );
+use C4::Auth qw( get_template_and_user );
+use C4::Acquisition qw( FillWithDefaultValues ModOrderUsers );
+use C4::Suggestions qw( ModSuggestion );
+use C4::Biblio qw(
+    AddBiblio
+    GetMarcFromKohaField
+    TransformHtmlToXml
+    TransformKohaToMarc
+);
+use C4::Budgets qw( GetBudget GetBudgetSpent GetBudgetOrdered );
+use C4::Items qw( AddItemFromMarc );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Log qw( logaction );
+use Koha::Acquisition::Currencies qw( get_active );
 use Koha::Acquisition::Orders;
 use Koha::Acquisition::Baskets;
 use C4::Barcodes;
+use Koha::DateUtils qw( dt_from_string );
 
 ### "-------------------- addorder.pl ----------"
 
@@ -149,6 +155,14 @@ unless($confirm_budget_exceeding) {
     my $budget = GetBudget($budget_id);
     my $budget_spent = GetBudgetSpent($budget_id);
     my $budget_ordered = GetBudgetOrdered($budget_id);
+
+    my $ordernumber = $input->param('ordernumber');
+    if ( $ordernumber ) {
+        # modifying an existing order so remove order price from $budget_ordered
+        my $order = Koha::Acquisition::Orders->find($ordernumber);
+        $budget_ordered = $budget_ordered - ( $order->ecost_tax_included * $order->quantity );
+    }
+
     my $budget_used = $budget_spent + $budget_ordered;
     my $budget_remaining = $budget->{budget_amount} - $budget_used;
     my $budget_encumbrance = $budget->{budget_amount} * $budget->{budget_encumb} / 100;
@@ -176,7 +190,7 @@ unless($confirm_budget_exceeding) {
         foreach (keys %$vars) {
             push @vars_loop, {
                 name => $_,
-                values => [$input->param($_)],
+                values => [ $input->multi_param($_) ],
             };
         }
 
@@ -219,19 +233,57 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { acquisition => 'order_manage' },
-        debug           => 1,
     }
 );
 
 # get CGI parameters
-my $orderinfo = $input->Vars;
-$orderinfo->{'list_price'}    ||=  0;
-$orderinfo->{'uncertainprice'} ||= 0;
+my $orderinfo = {
+    ordernumber          => scalar $input->param('ordernumber'),
+    basketno             => scalar $input->param('basketno'),
+    biblionumber         => scalar $input->param('biblionumber'),
+    invoiceid            => scalar $input->param('invoiceid'),
+    quantity             => scalar $input->param('quantity'),
+    budget_id            => scalar $input->param('budget_id'),
+    currency             => scalar $input->param('currency'),
+    listprice            => scalar $input->param('listprice'),
+    uncertainprice       => scalar $input->param('uncertainprice'),
+    tax_rate_on_ordering => scalar $input->param('tax_rate'),
+    discount             => scalar $input->param('discount'),
+    rrp                  => scalar $input->param('rrp'),
+    replacementprice     => scalar $input->param('replacementprice'),
+    ecost                => scalar $input->param('ecost'),
+    unitprice            => scalar $input->param('unitprice'),
+    order_internalnote   => scalar $input->param('order_internalnote'),
+    order_vendornote     => scalar $input->param('order_vendornote'),
+    sort1                => scalar $input->param('sort1'),
+    sort2                => scalar $input->param('sort2'),
+    subscriptionid       => scalar $input->param('subscriptionid'),
+    estimated_delivery_date => scalar $input->param('estimated_delivery_date'),
+};
+
+$orderinfo->{uncertainprice} ||= 0;
 $orderinfo->{subscriptionid} ||= undef;
 
 my $user     = $input->remote_user;
 my $basketno = $$orderinfo{basketno};
 my $basket   = Koha::Acquisition::Baskets->find($basketno);
+
+# Order related fields we're going to log
+my @log_order_fields = (
+    'quantity',
+    'listprice',
+    'unitprice',
+    'unitprice_tax_excluded',
+    'unitprice_tax_included',
+    'rrp',
+    'replacementprice',
+    'rrp_tax_excluded',
+    'rrp_tax_included',
+    'ecost',
+    'ecost_tax_excluded',
+    'ecost_tax_included',
+    'tax_rate_on_ordering'
+);
 
 # create, modify or delete biblio
 # create if $quantity>0 and $existing='no'
@@ -251,18 +303,18 @@ if ( $basket->{is_standing} || $orderinfo->{quantity} ne '0' ) {
             #if it doesn't create it
             $record = TransformKohaToMarc(
                 {
-                    "biblio.title"                => "$$orderinfo{title}",
-                    "biblio.author"               => $$orderinfo{author}          ? $$orderinfo{author}        : "",
-                    "biblio.seriestitle"          => $$orderinfo{series}          ? $$orderinfo{series}        : "",
-                    "biblioitems.isbn"            => $$orderinfo{isbn}            ? $$orderinfo{isbn}          : "",
-                    "biblioitems.ean"             => $$orderinfo{ean}             ? $$orderinfo{ean}           : "",
-                    "biblioitems.publishercode"   => $$orderinfo{publishercode}   ? $$orderinfo{publishercode} : "",
-                    "biblioitems.publicationyear" => $$orderinfo{publicationyear} ? $$orderinfo{publicationyear}: "",
-                    "biblio.copyrightdate"        => $$orderinfo{publicationyear} ? $$orderinfo{publicationyear}: "",
-                    "biblioitems.itemtype"        => $$orderinfo{itemtype} ? $$orderinfo{itemtype} : "",
-                    "biblioitems.editionstatement"=> $$orderinfo{editionstatement} ? $$orderinfo{editionstatement} : "",
-                });
-
+                    "biblio.title"                => $input->param('title') || '',
+                    "biblio.author"               => $input->param('author') || '',
+                    "biblio.seriestitle"          => $input->param('series') || '',
+                    "biblioitems.isbn"            => $input->param('isbn') || '',
+                    "biblioitems.ean"             => $input->param('ean') || '',
+                    "biblioitems.publishercode"   => $input->param('publishercode') || '',
+                    "biblioitems.publicationyear" => $input->param('publicationyear') || '',
+                    "biblio.copyrightdate"        => $input->param('publicationyear') || '',
+                    "biblioitems.itemtype"        => $input->param('itemtype') || '',
+                    "biblioitems.editionstatement"=> $input->param('editionstatement') || '',
+                }
+            );
         }
         C4::Acquisition::FillWithDefaultValues( $record );
 
@@ -273,10 +325,10 @@ if ( $basket->{is_standing} || $orderinfo->{quantity} ne '0' ) {
     }
 
     # change suggestion status if applicable
-    if ( $orderinfo->{suggestionid} ) {
+    if ( my $suggestionid = $input->param('suggestionid') ) {
         ModSuggestion(
             {
-                suggestionid => $orderinfo->{suggestionid},
+                suggestionid => $suggestionid,
                 biblionumber => $orderinfo->{biblionumber},
                 STATUS       => 'ORDERED',
             }
@@ -285,21 +337,32 @@ if ( $basket->{is_standing} || $orderinfo->{quantity} ne '0' ) {
 
     $orderinfo->{unitprice} = $orderinfo->{ecost} if not defined $orderinfo->{unitprice} or $orderinfo->{unitprice} eq '';
 
-    $orderinfo = C4::Acquisition::populate_order_with_prices(
-        {
-            order        => $orderinfo,
-            booksellerid => $orderinfo->{booksellerid},
-            ordering     => 1,
-        }
-    );
+    my $order;
+    my $log_action_name;
 
-    # if we already have $ordernumber, then it's an ordermodif
-    my $order = Koha::Acquisition::Order->new($orderinfo);
     if ( $orderinfo->{ordernumber} ) {
-        ModOrder($orderinfo);
+        $order = Koha::Acquisition::Orders->find($orderinfo->{ordernumber});
+        $order->set($orderinfo);
+        $log_action_name = 'MODIFY_ORDER';
+    } else {
+        $order = Koha::Acquisition::Order->new($orderinfo);
+        $log_action_name = 'CREATE_ORDER';
     }
-    else { # else, it's a new line
-        $order->store;
+    $order->populate_with_prices_for_ordering();
+    $order->store;
+
+    # Log the order creation
+    if (C4::Context->preference("AcquisitionLog")) {
+        my $infos = {};
+        foreach my $field(@log_order_fields) {
+            $infos->{$field} = $order->$field;
+        }
+        logaction(
+            'ACQUISITIONS',
+            $log_action_name,
+            $order->ordernumber,
+            encode_json($infos)
+        );
     }
     my $order_users_ids = $input->param('users_ids');
     my @order_users = split( /:/, $order_users_ids );
@@ -313,8 +376,6 @@ if ( $basket->{is_standing} || $orderinfo->{quantity} ne '0' ) {
         my @field_values = $input->multi_param('field_value');
         my @serials      = $input->multi_param('serial');
         my @itemid       = $input->multi_param('itemid');
-        my @ind_tag      = $input->multi_param('ind_tag');
-        my @indicator    = $input->multi_param('indicator');
         #Rebuilding ALL the data for items into a hash
         # parting them on $itemid.
 
@@ -328,15 +389,13 @@ if ( $basket->{is_standing} || $orderinfo->{quantity} ne '0' ) {
         push @{$itemhash{$itemid[$i]}->{'tags'}},$tags[$i];
         push @{$itemhash{$itemid[$i]}->{'subfields'}},$subfields[$i];
             push @{$itemhash{$itemid[$i]}->{'field_values'}},$field_values[$i];
-            push @{$itemhash{$itemid[$i]}->{'ind_tag'}},$ind_tag[$i];
-            push @{$itemhash{$itemid[$i]}->{'indicator'}},$indicator[$i];
         }
         foreach my $item (keys %itemhash){
             my $xml = TransformHtmlToXml( $itemhash{$item}->{'tags'},
                                     $itemhash{$item}->{'subfields'},
                                     $itemhash{$item}->{'field_values'},
-                                    $itemhash{$item}->{'indicator'},
-                                    $itemhash{$item}->{'ind_tag'},
+                                    undef,
+                                    undef,
                                     'ITEM');
             my $record=MARC::Record::new_from_xml($xml, 'UTF-8');
             my ($barcodefield,$barcodesubfield) = GetMarcFromKohaField('items.barcode');
@@ -374,7 +433,7 @@ if (C4::Context->preference("AcquisitionLog") && $basketno) {
 }
 
 my $booksellerid=$$orderinfo{booksellerid};
-if (my $import_batch_id=$$orderinfo{import_batch_id}) {
+if (my $import_batch_id = $input->param('import_batch_id')) {
     print $input->redirect("/cgi-bin/koha/acqui/addorderiso2709.pl?import_batch_id=$import_batch_id&basketno=$basketno&booksellerid=$booksellerid");
 } elsif ( defined $orderinfo->{invoiceid} ) {
     print $input->redirect("/cgi-bin/koha/acqui/parcel.pl?invoiceid=" . $orderinfo->{invoiceid});

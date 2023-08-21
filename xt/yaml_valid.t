@@ -20,13 +20,9 @@
 use Modern::Perl;
 use Test::YAML::Valid;
 use File::Find;
+use FindBin ();
 
 use Test::More;
-
-BEGIN {
-    use FindBin;
-    eval { require "$FindBin::Bin/../misc/kohalib.pl" };
-}
 
 my $filebase = "$FindBin::Bin/../koha-tmpl/intranet-tmpl/prog/en/modules/admin/preferences";
 

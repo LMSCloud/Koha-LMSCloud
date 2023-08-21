@@ -1,0 +1,634 @@
+---
+"/biblios":
+  post:
+    x-mojo-to: Biblios#add
+    operationId: addBiblio
+    tags:
+      - biblios
+    summary: Add biblio
+    description: |
+      Add a bibliographic record to Koha. An optional `x-framework-id`
+      may be passed to specify the cataloguing framework to be used (instead
+      of the default).
+
+      The request body is expected to contain a MARC record in the format specified in
+      the `Content-type` header you pass. Possible values for this header and the corresponding
+      record formats expected are listed below:
+
+      * application/marcxml+xml: MARCXML
+      * application/marc-in-json: MARC-in-JSON
+      * application/marc: Raw USMARC binary data
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/framework_id_header"
+      - $ref: "../swagger.yaml#/parameters/marc_schema_header"
+      - $ref: "../swagger.yaml#/parameters/confirm_not_duplicate_header"
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: A biblio
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "406":
+        description: Not acceptable
+        schema:
+          type: array
+          description: Accepted content-types
+          items:
+            type: string
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        editcatalogue: edit_catalogue
+  get:
+    x-mojo-to: Biblios#list
+    operationId: listBiblio
+    tags:
+      - biblios
+    summary: List biblios
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - $ref: "../swagger.yaml#/parameters/q_header"
+      - $ref: "../swagger.yaml#/parameters/request_id_header"
+    produces:
+      - application/json
+      - application/marcxml+xml
+      - application/marc-in-json
+      - application/marc
+      - text/plain
+    responses:
+      "200":
+        description: A list of biblios
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Biblio not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "406":
+        description: Not acceptable
+        schema:
+          type: array
+          description: Accepted content-types
+          items:
+            type: string
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        catalogue: "1"
+"/biblios/{biblio_id}":
+  get:
+    x-mojo-to: Biblios#get
+    operationId: getBiblio
+    tags:
+      - biblios
+    summary: Get biblio
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/biblio_id_pp"
+    produces:
+      - application/json
+      - application/marcxml+xml
+      - application/marc-in-json
+      - application/marc
+      - text/plain
+    responses:
+      "200":
+        description: A biblio
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Biblio not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "406":
+        description: Not acceptable
+        schema:
+          type: array
+          description: Accepted content-types
+          items:
+            type: string
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        catalogue: "1"
+  delete:
+    x-mojo-to: Biblios#delete
+    operationId: deleteBiblio
+    tags:
+      - biblios
+    summary: Delete biblio
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/biblio_id_pp"
+    produces:
+      - application/json
+    responses:
+      "204":
+        description: Biblio deleted
+        schema:
+          type: string
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Biblio not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "409":
+        description: Unable to perform action on biblio
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: Internal error
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        editcatalogue: edit_catalogue
+  put:
+    x-mojo-to: Biblios#update
+    operationId: updateBiblio
+    tags:
+      - biblios
+    summary: Update biblio
+    description: |
+      Updates a bibliographic record to Koha. An optional `x-framework-id`
+      may be passed, to specify the cataloguing framework to be used (instead
+      of the default).
+
+      The request body is expected to contain a MARC record in the format specified by
+      the `Content-type` header passed. Possible values for this headers and the corresponding
+      record formats expected are listed below:
+
+      * application/marcxml+xml: MARCXML
+      * application/marc-in-json: MARC-in-JSON
+      * application/marc: Raw USMARC binary data
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/biblio_id_pp"
+      - $ref: "../swagger.yaml#/parameters/framework_id_header"
+      - $ref: "../swagger.yaml#/parameters/marc_schema_header"
+      - $ref: "../swagger.yaml#/parameters/confirm_not_duplicate_header"
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: A biblio
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Biblio not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "406":
+        description: Not acceptable
+        schema:
+          type: array
+          description: Accepted content-types
+          items:
+            type: string
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        editcatalogue: edit_catalogue
+"/biblios/{biblio_id}/checkouts":
+  get:
+    x-mojo-to: Biblios#get_checkouts
+    operationId: listBiblioCheckouts
+    tags:
+      - checkouts
+    summary: List checkouts for a biblio
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/biblio_id_pp"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - $ref: "../swagger.yaml#/parameters/q_header"
+      - $ref: "../swagger.yaml#/parameters/request_id_header"
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - issuer
+            - item
+            - patron
+            - library
+        collectionFormat: csv
+      - name: checked_in
+        in: query
+        description: By default, current checkouts are returned, when this is true then
+          checked in checkouts are returned as result.
+        type: boolean
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: A list of checkouts
+        schema:
+          $ref: "../swagger.yaml#/definitions/checkouts"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Biblio not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        circulate: circulate_remaining_permissions
+"/biblios/{biblio_id}/items":
+  get:
+    x-mojo-to: Biblios#get_items
+    operationId: getBiblioItems
+    tags:
+      - biblios
+    summary: Get items for a biblio
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/biblio_id_pp"
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - $ref: "../swagger.yaml#/parameters/q_header"
+      - $ref: "../swagger.yaml#/parameters/request_id_header"
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: A list of the items attached to the record
+        schema:
+          type: array
+          items:
+            $ref: "../swagger.yaml#/definitions/item"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Biblio not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "406":
+        description: Not acceptable
+        schema:
+          type: array
+          description: Accepted content-types
+          items:
+            type: string
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        catalogue: "1"
+"/biblios/{biblio_id}/pickup_locations":
+  get:
+    x-mojo-to: Biblios#pickup_locations
+    operationId: getBiblioPickupLocations
+    tags:
+      - biblios
+    summary: Get valid pickup locations for a biblio
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/biblio_id_pp"
+      - name: patron_id
+        in: query
+        description: Internal patron identifier
+        required: true
+        type: integer
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - $ref: "../swagger.yaml#/parameters/q_header"
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: Biblio pickup locations
+        schema:
+          type: array
+          items:
+            $ref: "../swagger.yaml#/definitions/library"
+      "400":
+        description: Missing or wrong parameters
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Biblio not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        reserveforothers: place_holds
+"/public/biblios/{biblio_id}":
+  get:
+    x-mojo-to: Biblios#get_public
+    operationId: getBiblioPublic
+    tags:
+      - biblios
+    summary: Get biblio (public)
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/biblio_id_pp"
+    produces:
+      - application/marcxml+xml
+      - application/marc-in-json
+      - application/marc
+      - text/plain
+    responses:
+      "200":
+        description: A biblio
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Biblio not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "406":
+        description: Not acceptable
+        schema:
+          type: array
+          description: Accepted content-types
+          items:
+            type: string
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+"/public/biblios/{biblio_id}/items":
+  get:
+    x-mojo-to: Biblios#get_items_public
+    operationId: getBiblioItemsPublic
+    tags:
+      - biblios
+      - items
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/biblio_id_pp"
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - $ref: "../swagger.yaml#/parameters/q_header"
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: A list of the items attached to the record
+        schema:
+          type: array
+          items:
+            $ref: "../swagger.yaml#/definitions/item"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Biblio not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "406":
+        description: Not acceptable
+        schema:
+          type: array
+          description: Accepted content-types
+          items:
+            type: string
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+"/public/biblios/{biblio_id}/ratings":
+  post:
+    x-mojo-to: Biblios#set_rating
+    operationId: setBiblioRating
+    tags:
+      - biblios
+    summary: set biblio rating (public)
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/biblio_id_pp"
+      - name: body
+        in: body
+        description: A JSON object containing rating information
+        schema:
+          type: object
+          properties:
+            rating:
+              description: the rating
+              type:
+                - integer
+                - "null"
+          required:
+              - rating
+          additionalProperties: false
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: Rating set
+        schema:
+          type: object
+          properties:
+            rating:
+              description: user's rating
+              type:
+                - number
+                - "null"
+            average:
+              description: average rating
+              type: number
+            count:
+              description: number of ratings
+              type: integer
+          additionalProperties: false
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Biblio not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"

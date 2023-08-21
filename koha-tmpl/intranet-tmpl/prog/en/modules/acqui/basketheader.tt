@@ -15,37 +15,31 @@
 </head>
 
 <body id="acq_basketheader" class="acq">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'acquisitions-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'acquisitions-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a>
-        </li>
-        <li>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% booksellername | html %]</a>
-        </li>
+        [% END %]
         [% IF ( add_form ) %]
             [% IF ( basketno ) %]
-                <li>
-                    <a href="#" aria-current="page">
-                        Edit basket '[% basketname | html %]'
-                    </a>
-                </li>
+                [% WRAPPER breadcrumb_item bc_active= 1%]
+                    <span>Edit basket '[% basketname | html %]'</span>
+                [% END %]
             [% ELSE %]
-                <li>
-                    <a href="#" aria-current="page">
-                        Add a basket to [% booksellername | html %]
-                    </a>
-                </li>
+                [% WRAPPER breadcrumb_item bc_active= 1%]
+                    <span>Add a basket to [% booksellername | html %]</span>
+                [% END %]
             [% END %]
         [% END %]
-    </ol>
-</nav>
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -148,13 +142,13 @@
             </ol>
         </fieldset>
 
-        [% IF available_additional_fields %]
+        [% IF available_additional_fields.count %]
             [% INCLUDE 'additional-fields-entry.inc' available=available_additional_fields values=additional_field_values %]
         [% END %]
 
         <fieldset class="action">
             <input type="hidden" name="op" value="add_validate" />
-            <input type="submit" value="Save" />
+            <input type="submit" class="btn btn-primary" value="Save" />
             [% IF ( basketno ) %]
                 <a class="cancel" href="/cgi-bin/koha/acqui/basket.pl?basketno=[% basketno | html %]">Cancel</a>
             [% ELSE %]

@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          koha-common
 # Required-Start:    $remote_fs memcached
@@ -62,11 +62,16 @@ do_start()
     koha-sip   --start $(koha-list --enabled --sip)
     koha-plack --start $(koha-list --enabled --plack)
     koha-z3950-responder --start --quiet $(koha-list --enabled --z3950)
+    # default queue
     koha-worker --start $(koha-list --enabled)
+    # long_tasks queue
+    koha-worker --start --queue long_tasks $(koha-list --enabled)
 
     if [ "$USE_INDEXER_DAEMON" = "yes" ]; then
         koha-indexer --start --quiet $(koha-list --enabled)
     fi
+
+    koha-es-indexer --start --quiet $(koha-list --enabled --elasticsearch)
 }
 
 #
@@ -79,11 +84,16 @@ do_stop()
     koha-sip   --stop $(koha-list --sip)
     koha-plack --stop --quiet $(koha-list --enabled --plack)
     koha-z3950-responder --stop --quiet $(koha-list --enabled --z3950)
+    # default queue
     koha-worker --stop --quiet $(koha-list --enabled)
+    # long_tasks queue
+    koha-worker --stop --queue long_tasks --quiet $(koha-list --enabled)
 
     if [ "$USE_INDEXER_DAEMON" = "yes" ]; then
         koha-indexer --stop --quiet $(koha-list --enabled)
     fi
+
+    koha-es-indexer --stop --quiet $(koha-list --enabled --elasticsearch)
 }
 
 #
@@ -94,11 +104,16 @@ do_reload() {
     koha-sip   --restart $(koha-list --enabled --sip)
     koha-plack --restart --quiet $(koha-list --enabled --plack)
     koha-z3950-responder --restart --quiet $(koha-list --enabled --z3950)
+    # default queue
     koha-worker --restart --quiet $(koha-list --enabled)
+    # long_tasks queue
+    koha-worker --restart --queue long_tasks --quiet $(koha-list --enabled)
 
     if [ "$USE_INDEXER_DAEMON" = "yes" ]; then
         koha-indexer --restart --quiet $(koha-list --enabled)
     fi
+
+    koha-es-indexer --restart --quiet $(koha-list --enabled --elasticsearch)
 }
 
 #
@@ -199,18 +214,21 @@ case "$1" in
 	do_stop
 	case "$?" in
 	  0)
-		do_start
-		case "$?" in
-			0) log_end_msg 0 ;;
-			*) log_end_msg 1 ;; # Failed to start
-		esac
-		;;
+        log_daemon_msg "Successfully stopped all services for instance $NAME"
+        log_end_msg 0
+        ;;
 	  *)
-	  	# Failed to stop
-		log_end_msg 1
-		;;
+        # Failed to stop something
+        log_daemon_msg "Failed to stop some services for instance $NAME"
+        log_end_msg 0
+        ;;
 	esac
-	;;
+    do_start
+    case "$?" in
+        0) log_end_msg 0 ;;
+        *) log_end_msg 1 ;; # Failed to start
+    esac
+    ;;
   status)
         zebra_status
         sip_status

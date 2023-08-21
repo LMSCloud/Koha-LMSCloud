@@ -1,5 +1,7 @@
 [% USE Koha %]
-<div id="checkouts">
+[% PROCESS 'modal-claims.inc' %]
+[% INCLUDE 'format_price.inc' %]
+<div id="checkouts" role="tabpanel" class="tab-pane active">
     [% IF ( issuecount ) %]
         <div id="issues-table-loading-message">
             <p>
@@ -64,12 +66,12 @@
                         <select name="issues-table-output-format" id="issues-table-output-format">
                             <option value="iso2709_995">MARC with items</option>
                             <option value="iso2709">MARC without items</option>
-                            [% IF csv_profiles.size %]
+                            [% IF csv_profiles.count %]
                                 <option value="csv">CSV</option>
                             [% END %]
                         </select>
 
-                        [% IF csv_profiles.size %]
+                        [% IF csv_profiles.count %]
                             <select name="csv_profile_id">
                                 [% FOREACH csv_profile IN csv_profiles %]
                                     <option value="[% csv_profile.export_format_id | html %]">[% csv_profile.profile | html %]</option>
@@ -92,80 +94,4 @@
 </div>
 
 <!-- Claims Returned Modal -->
-<div class="modal fade" id="claims-returned-modal" tabindex="-1" role="dialog" aria-labelledby="claims-returned-modal-label">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h4 class="modal-title" id="claims-returned-modal-label">Claim returned</h4>
-      </div>
-      <div class="modal-body">
-
-          <div class="form-group">
-            <label for="claims-returned-notes" class="control-label">Notes</label>
-            <div>
-              <textarea id="claims-returned-notes" class="form-control" rows="3"></textarea>
-            </div>
-          </div>
-
-          [% IF Koha.Preference('ClaimReturnedChargeFee') == 'ask' %]
-            <div class="form-group">
-              <div class="checkbox">
-                <label for="claims-returned-charge-lost-fee">
-                  <input id="claims-returned-charge-lost-fee" type="checkbox" value="1">
-                  Charge lost fee
-                </label>
-              </div>
-            </div>
-          [% END %]
-
-          <input type="hidden" id="claims-returned-itemnumber" />
-      </div>
-      <div class="modal-footer">
-        <button id="claims-returned-modal-btn-submit" type="button" class="btn btn-primary"><i class="fa fa-exclamation-circle"></i> Make claim</button>
-        <button class="btn btn-default deny cancel" href="#" data-dismiss="modal" aria-hidden="true"><i class="fa fa-times"></i> Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Resolve Return Claim Modal -->
-<div class="modal fade" id="claims-returned-resolved-modal" tabindex="-1" role="dialog" aria-labelledby="claims-returned-resolved-modal-label">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h4 class="modal-title" id="claims-returned-resolved-modal-label">Resolve return claim</h4>
-      </div>
-      <div class="modal-body">
-
-          <div class="form-group">
-            <label for="claims-returned-resolved-code">Resolution</label>
-            [% SET resolutions = AuthorisedValues.GetAuthValueDropbox('RETURN_CLAIM_RESOLUTION') %]
-            <select class="form-control" id="claims-returned-resolved-modal-resolved-code">
-              [% FOREACH r IN resolutions %]
-                  <option value="[% r.authorised_value | html %]">[% r.lib | html %]</option>
-              [% END %]
-            </select>
-
-            <label for="new_lost_status">New item lost value:</label>
-            [% SET itemlost = AuthorisedValues.GetAuthValueDropbox('LOST') %]
-            <select class="form-control" id="new_lost_status">
-              <option value="0">(Not lost)</option>
-              [% FOREACH lost IN itemlost %]
-                  <option value="[% lost.authorised_value | html %]">[% lost.lib | html %]</option>
-              [% END %]
-            </select>
-          </div>
-
-          <input type="hidden" id="claims-returned-resolved-modal-id"/>
-      </div>
-      <div class="modal-footer">
-        <button id="claims-returned-resolved-modal-btn-submit" type="button" class="btn btn-primary">
-          <i id="claims-returned-resolved-modal-btn-submit-icon" class="fa fa-exclamation-circle"></i>
-          <i id="claims-returned-resolved-modal-btn-submit-spinner" class="fa fa-spinner fa-pulse fa-fw" style="display:none"></i>
-          Resolve claim
-         </button>
-        <button class="btn btn-default deny cancel" href="#" data-dismiss="modal" aria-hidden="true"><i class="fa fa-times"></i> Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
+[% PROCESS 'modal-claims-display' %]

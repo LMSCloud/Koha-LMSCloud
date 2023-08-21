@@ -17,8 +17,8 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 
 my $scheme = C4::Context->preference('SpineLabelFormat');
 my $query  = CGI->new;
@@ -27,7 +27,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $query,
         type            => "intranet",
         flagsrequired   => { catalogue => 1 },
-        debug           => 1,
     }
 );
 
@@ -46,10 +45,10 @@ $sth = $dbh->prepare($sql);
 $sth->execute($barcode);
 $item = $sth->fetchrow_hashref;
 
-unless (defined $item) {
-  $template->param( 'Barcode' => $barcode );
-  $template->param( 'BarcodeNotFound' => 1 );
-}
+$template->param(
+    Barcode         => $barcode,
+    BarcodeNotFound => 1,
+) unless defined $item;
 
 my $body;
 
@@ -83,7 +82,11 @@ while ( my ( $key, $value ) = each(%$data) ) {
 
 $body = $scheme;
 
-$template->param( autoprint => C4::Context->preference("SpineLabelAutoPrint") );
-$template->param( content   => $body );
+$template->param(
+    autoprint         => C4::Context->preference("SpineLabelAutoPrint"),
+    content           => $body,
+    itemholdingbranch => $item->{holdingbranch},
+    itemhomebranch    => $item->{homebranch},
+);
 
 output_html_with_http_headers $query, $cookie, $template->output;

@@ -3,7 +3,9 @@
 use Modern::Perl;
 use Test::More tests => 3;
 use t::lib::TestBuilder;
-use C4::Items;
+use C4::Items qw( GetMarcItem );
+
+use Koha::AuthorisedValues;
 
 BEGIN {
     use_ok('Koha::Z3950Responder');
@@ -39,7 +41,8 @@ subtest 'add_item_status' => sub {
             value  => {
                 itemnumber    => $item_1->itemnumber,
                 datearrived   => undef,
-                datecancelled => undef
+                datecancelled => undef,
+                datesent      => \'NOW()',
             }
         }
     );
@@ -50,6 +53,10 @@ subtest 'add_item_status' => sub {
     my $item_marc_2 = C4::Items::GetMarcItem( $item_2->biblionumber, $item_2->itemnumber );
     my $item_field_2 = scalar $item_marc_2->field($itemtag);
     ## END SECOND ITEM ##
+
+    # We want to test the default values, so we remove custom status alias if present
+    my $available = Koha::AuthorisedValues->find({ category => 'Z3950_STATUS', authorised_value => 'AVAILABLE' });
+    $available->delete if $available;
 
     # Create the responder
     my $args={ PEER_NAME => 'PEER'};

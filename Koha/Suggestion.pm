@@ -19,10 +19,9 @@ package Koha::Suggestion;
 
 use Modern::Perl;
 
-use Carp;
 
 use Koha::Database;
-use Koha::DateUtils qw(dt_from_string);
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Patrons;
 
 use base qw(Koha::Object);
@@ -161,6 +160,7 @@ sub to_api_mapping {
         lastmodificationby   => 'last_status_change_by',
         STATUS               => 'status',
         note                 => 'note',
+        staff_note           => 'staff_note',
         author               => 'author',
         title                => 'title',
         copyrightdate        => 'copyright_date',

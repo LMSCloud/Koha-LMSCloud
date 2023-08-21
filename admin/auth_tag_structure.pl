@@ -20,10 +20,9 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Koha;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
 
 use Koha::Authority::Types;
@@ -50,7 +49,6 @@ my ($template, $loggedinuser, $cookie)
                  query => $input,
                  type => "intranet",
                  flagsrequired => {parameters => 'manage_marc_frameworks'},
-                 debug => 1,
                  });
 
 my $authority_types = Koha::Authority::Types->search( {}, { order_by => ['authtypecode'] } );

@@ -20,46 +20,42 @@ package C4::Overdues;
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Date::Calc qw/Today Date_to_Days/;
-use Date::Manip qw/UnixDate/;
+use Date::Calc qw( Today );
+use Date::Manip qw( UnixDate );
 use List::MoreUtils qw( uniq );
-use POSIX qw( floor ceil );
-use Locale::Currency::Format 1.28;
-use Carp;
+use POSIX qw( ceil floor );
+use Locale::Currency::Format 1.28 qw( currency_format FMT_SYMBOL );
+use Carp qw( carp );
 
-use C4::Circulation;
-use C4::Context;
 use C4::Accounts;
-use C4::Log; # logaction
-use C4::Debug;
-use Koha::DateUtils;
+use C4::Context;
 use Koha::Account::Lines;
 use Koha::Account::Offsets;
 use Koha::Checkouts;
+use Koha::DateUtils qw( output_pref dt_from_string );
 use Koha::Libraries;
+use Koha::Recalls;
+use Koha::Logger;
+use Koha::Patrons;
 
-use vars qw(@ISA @EXPORT);
-
+our (@ISA, @EXPORT_OK);
 BEGIN {
     require Exporter;
     @ISA = qw(Exporter);
 
     # subs to rename (and maybe merge some...)
-    push @EXPORT, qw(
-      &CalcFine
-      &Getoverdues
-      &checkoverdues
-      &UpdateFine
-      &GetFine
-      &get_chargeable_units
-      &GetOverduesForBranch
-      &GetOverdueMessageTransportTypes
-      &parse_overdues_letter
-    );
-
-    # subs to move to Circulation.pm
-    push @EXPORT, qw(
-      &GetIssuesIteminfo
+    @EXPORT_OK = qw(
+      CalcFine
+      Getoverdues
+      checkoverdues
+      UpdateFine
+      GetFine
+      GetBranchcodesWithOverdueRules
+      get_chargeable_units
+      GetOverduesForBranch
+      GetOverdueMessageTransportTypes
+      parse_overdues_letter
+      GetIssuesIteminfo
     );
 }
 
@@ -97,14 +93,14 @@ sub Getoverdues {
     my $statement;
     if ( C4::Context->preference('item-level_itypes') ) {
         $statement = "
-   SELECT issues.*, items.itype as itemtype, items.homebranch, items.barcode, items.itemlost, items.replacementprice
+   SELECT issues.*, items.itype as itemtype, items.homebranch, items.barcode, items.itemlost, items.replacementprice, items.biblionumber, items.holdingbranch
      FROM issues 
 LEFT JOIN items       USING (itemnumber)
     WHERE date_due < NOW()
 ";
     } else {
         $statement = "
-   SELECT issues.*, biblioitems.itemtype, items.itype, items.homebranch, items.barcode, items.itemlost, replacementprice
+   SELECT issues.*, biblioitems.itemtype, items.itype, items.homebranch, items.barcode, items.itemlost, replacementprice, items.biblionumber, items.holdingbranch
      FROM issues 
 LEFT JOIN items       USING (itemnumber)
 LEFT JOIN biblioitems USING (biblioitemnumber)
@@ -244,6 +240,7 @@ sub CalcFine {
                 'fine',
                 'overduefinescap',
                 'cap_fine_to_replacement_price',
+                'recall_overdue_fine',
             ]
         }
     );
@@ -263,7 +260,27 @@ sub CalcFine {
         # If chargeperiod_charge_at = 1, we charge a fine at the start of each charge period
         # if chargeperiod_charge_at = 0, we charge at the end of each charge period
         $charge_periods = defined $issuing_rule->{chargeperiod_charge_at} && $issuing_rule->{chargeperiod_charge_at} == 1 ? ceil($charge_periods) : floor($charge_periods);
-        $amount = $charge_periods * $issuing_rule->{fine};
+
+        # check if item has been recalled. recall should have been marked Overdue by cronjob, so only look at overdue recalls
+        # only charge using recall_overdue_fine if there is an item-level recall for this particular item, OR a biblio-level recall
+        my @recalls = Koha::Recalls->search({ biblio_id => $item->{biblionumber}, status => 'overdue' })->as_list;
+        my $bib_level_recall = 0;
+        $bib_level_recall = 1 if scalar @recalls > 0;
+        foreach my $recall ( @recalls ) {
+            if ( $recall->item_level and $recall->item_id == $item->{itemnumber} and $issuing_rule->{recall_overdue_fine} ) {
+                $bib_level_recall = 0;
+                $amount = $charge_periods * $issuing_rule->{recall_overdue_fine};
+                last;
+            }
+        }
+        if ( $bib_level_recall and $issuing_rule->{recall_overdue_fine} ) {
+            # biblio-level recall
+            $amount = $charge_periods * $issuing_rule->{recall_overdue_fine};
+        }
+        if ( scalar @recalls == 0 && $issuing_rule->{fine}) {
+            # no recall, use normal fine amount
+            $amount = $charge_periods * $issuing_rule->{fine};
+        }
     } # else { # a zero (or null) chargeperiod or negative units_minus_grace value means no charge. }
 
     $amount = $issuing_rule->{overduefinescap} if $issuing_rule->{overduefinescap} && $amount > $issuing_rule->{overduefinescap};
@@ -275,7 +292,7 @@ sub CalcFine {
       && C4::Context->preference("useDefaultReplacementCost");
 
     $amount = $item->{replacementprice} if ( $issuing_rule->{cap_fine_to_replacement_price} && $item->{replacementprice} && $amount > $item->{replacementprice} );
-    $debug and warn sprintf("CalcFine returning (%s, %s, %s)", $amount, $units_minus_grace, $chargeable_units);
+
     return ($amount, $units_minus_grace, $chargeable_units);
 }
 
@@ -497,7 +514,7 @@ has the book on loan.
 
 C<$amount> is the current amount owed by the patron.
 
-C<$due> is the due date formatted to the currently specified date format
+C<$due> is the date
 
 C<&UpdateFine> looks up the amount currently owed on the given item
 and sets it to C<$amount>, creating, if necessary, a new entry in the
@@ -522,8 +539,6 @@ sub UpdateFine {
     my $amount         = $params->{amount};
     my $due            = $params->{due} // q{};
 
-    $debug and warn "UpdateFine({ itemnumber => $itemnum, borrowernumber => $borrowernumber, due => $due, issue_id => $issue_id})";
-
     unless ( $issue_id ) {
         carp("No issue_id passed in!");
         return;
@@ -540,7 +555,6 @@ sub UpdateFine {
 
     my $accountline;
     my $total_amount_other = 0.00;
-    my $due_qr = qr/$due/;
     # Cycle through the fines and
     # - find line that relates to the requested $itemnum
     # - accumulate fines for other items
@@ -548,7 +562,7 @@ sub UpdateFine {
     while (my $overdue = $overdues->next) {
         if ( defined $overdue->issue_id && $overdue->issue_id == $issue_id && $overdue->debit_type_code eq 'OVERDUE' && ( $overdue->status eq 'UNRETURNED' || $overdue->status eq 'LOST' ) ) {
             if ($accountline) {
-                $debug and warn "Not a unique accountlines record for issue_id $issue_id";
+                Koha::Logger->get->debug("Not a unique accountlines record for issue_id $issue_id"); # FIXME Do we really need to log that?
                 #FIXME Should we still count this one in total_amount ??
             }
             else {
@@ -564,12 +578,12 @@ sub UpdateFine {
         if ($accountline) {
             if ( ( $amount - $accountline->amount ) > $maxIncrease ) {
                 my $new_amount = $accountline->amount + $maxIncrease;
-                $debug and warn "Reducing fine for item $itemnum borrower $borrowernumber from $amount to $new_amount - MaxFine reached";
+                Koha::Logger->get->debug("Reducing fine for item $itemnum borrower $borrowernumber from $amount to $new_amount - MaxFine reached");
                 $amount = $new_amount;
             }
         }
         elsif ( $amount > $maxIncrease ) {
-            $debug and warn "Reducing fine for item $itemnum borrower $borrowernumber from $amount to $maxIncrease - MaxFine reached";
+            Koha::Logger->get->debug("Reducing fine for item $itemnum borrower $borrowernumber from $amount to $maxIncrease - MaxFine reached");
             $amount = $maxIncrease;
         }
     }
@@ -586,16 +600,23 @@ sub UpdateFine {
         }
     } else {
         if ( $amount ) { # Don't add new fines with an amount of 0
-            my $sth4 = $dbh->prepare(
-                "SELECT title FROM biblio LEFT JOIN items ON biblio.biblionumber=items.biblionumber WHERE items.itemnumber=?"
-            );
-            $sth4->execute($itemnum);
-            my $title = $sth4->fetchrow;
-            my $desc = "$title $due";
             
             my $issue = Koha::Checkouts->find( $issue_id );
             my $branchcode = undef;
             $branchcode  = $issue->branchcode() if ($issue);
+            my $patron = Koha::Patrons->find( $borrowernumber );
+            my $letter = eval { C4::Letters::GetPreparedLetter(
+                module                 => 'circulation',
+                letter_code            => 'OVERDUE_FINE_DESC',
+                message_transport_type => 'print',
+                lang                   => $patron->lang,
+                tables                 => {
+                    issues    => $itemnum,
+                    borrowers => $borrowernumber,
+                    items     => $itemnum,
+                },
+            ) };
+            my $desc = $letter ? $letter->{content} : sprintf("Item %s - due %s", $itemnum, output_pref($due) );
 
             my $account = Koha::Account->new({ patron_id => $borrowernumber });
             $accountline = $account->add_debit(
@@ -700,7 +721,7 @@ sub GetBranchcodesWithOverdueRules {
         my $searchlibparams = {};
         $searchlibparams = { -or => [ mobilebranch => undef, mobilebranch => '' ] }
             if ( C4::Context->preference('BookMobileSupportEnabled') && !C4::Context->preference('BookMobileStationOverdueRulesActive'));
-        return map { $_->branchcode } Koha::Libraries->search($searchlibparams, { order_by => 'branchname' });
+        return Koha::Libraries->search($searchlibparams, { order_by => 'branchname' })->get_column('branchcode');
     }
     return @$branchcodes;
 }

@@ -3,14 +3,26 @@
 var date = new Date();
 date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
 
+function guess_nb_cols() {
+    // This is a bit ugly, we are trying to know if there are checkboxes in the first column of the table
+    if ( $("#itemst tr:first th:first").html() == "" ) {
+        // First header is empty, it's a checkbox
+        return 3;
+    } else {
+        // First header is not empty, there are no checkboxes
+        return 2;
+    }
+}
+
 function hideColumns() {
     var valCookie = Cookies.get("showColumns");
+    var nb_cols = guess_nb_cols();
     if (valCookie) {
         valCookie = valCookie.split("/");
         $("#showall").prop("checked", false).parent().removeClass("selected");
         for ( var i = 0; i < valCookie.length; i++ ) {
             if (valCookie[i] !== '') {
-                var index = valCookie[i] - 3;
+                var index = valCookie[i] - nb_cols;
                 $("#itemst td:nth-child(" + valCookie[i] + "),#itemst th:nth-child(" + valCookie[i] + ")").toggle();
                 $("#checkheader" + index).prop("checked", false).parent().removeClass("selected");
             }
@@ -20,10 +32,11 @@ function hideColumns() {
 
 function hideColumn(num) {
     $("#hideall,#showall").prop("checked", false).parent().removeClass("selected");
+    var nb_cols = guess_nb_cols();
     var valCookie = Cookies.get("showColumns");
     // set the index of the table column to hide
     $("#" + num).parent().removeClass("selected");
-    var hide = Number(num.replace("checkheader", "")) + 3;
+    var hide = Number(num.replace("checkheader", "")) + nb_cols;
     // hide header and cells matching the index
     $("#itemst td:nth-child(" + hide + "),#itemst th:nth-child(" + hide + ")").toggle();
     // set or modify cookie with the hidden column's index
@@ -39,10 +52,10 @@ function hideColumn(num) {
         if (!found) {
             valCookie.push(hide);
             var cookieString = valCookie.join("/");
-            Cookies.set("showColumns", cookieString, { expires: date, path: '/' });
+            Cookies.set("showColumns", cookieString, { expires: date, path: '/', sameSite: 'Lax'  });
         }
     } else {
-        Cookies.set("showColumns", hide, { expires: date, path: '/' });
+        Cookies.set("showColumns", hide, { expires: date, path: '/', sameSite: 'Lax'  });
     }
 }
 
@@ -59,7 +72,8 @@ function showColumn(num) {
     $("#" + num).parent().addClass("selected");
     var valCookie = Cookies.get("showColumns");
     // set the index of the table column to hide
-    var show = Number(num.replace("checkheader", "")) + 3;
+    var nb_cols = guess_nb_cols();
+    var show = Number(num.replace("checkheader", "")) + nb_cols;
     // hide header and cells matching the index
     $("#itemst td:nth-child(" + show + "),#itemst th:nth-child(" + show + ")").toggle();
     // set or modify cookie with the hidden column's index
@@ -74,30 +88,32 @@ function showColumn(num) {
         }
         if (found) {
             var cookieString = valCookie.join("/");
-            Cookies.set("showColumns", cookieString, { expires: date, path: '/' });
+            Cookies.set("showColumns", cookieString, { expires: date, path: '/', sameSite: 'Lax'  });
         }
     }
 }
 
 function showAllColumns() {
+    var nb_cols = guess_nb_cols();
     $("#selections input:checkbox").each(function () {
         $(this).prop("checked", true);
     });
     $("#selections span").addClass("selected");
-    $("#itemst td:nth-child(3),#itemst tr th:nth-child(3)").nextAll().show();
+    $("#itemst td:nth-child("+nb_cols+"),#itemst tr th:nth-child("+nb_cols+")").nextAll().show();
     Cookies.remove("showColumns", { path: '/' });
     $("#hideall").prop("checked", false).parent().removeClass("selected");
 }
 
 function hideAllColumns() {
+    var nb_cols = guess_nb_cols();
     $("#selections input:checkbox").each(function () {
         $(this).prop("checked", false);
     });
     $("#selections span").removeClass("selected");
-    $("#itemst td:nth-child(3),#itemst th:nth-child(3)").nextAll().hide();
+    $("#itemst td:nth-child("+nb_cols+"),#itemst tr th:nth-child("+nb_cols+")").nextAll().hide();
     $("#hideall").prop("checked", true).parent().addClass("selected");
     var cookieString = allColumns.join("/");
-    Cookies.set("showColumns", cookieString, { expires: date, path: '/' });
+    Cookies.set("showColumns", cookieString, { expires: date, path: '/', sameSite: 'Lax'  });
 }
 
 $(document).ready(function () {
@@ -105,7 +121,8 @@ $(document).ready(function () {
     $("#itemst").dataTable($.extend(true, {}, dataTablesDefaults, {
         "sDom": 't',
         "aoColumnDefs": [
-            { "aTargets": [0], "bSortable": false, "bSearchable": false },
+            { "aTargets": [0, 1], "bSortable": false, "bSearchable": false },
+            { "aTargets": [0], "bVisible": false },
             { "sType": "anti-the", "aTargets": ["anti-the"] }
         ],
         "bPaginate": false,

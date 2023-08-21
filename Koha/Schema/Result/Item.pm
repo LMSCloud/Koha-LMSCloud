@@ -259,6 +259,14 @@ foreign key from the branches table for the library that is currently in possess
 
 date and time this item was last altered
 
+=head2 deleted_on
+
+  data_type: 'datetime'
+  datetime_undef_if_invalid: 1
+  is_nullable: 1
+
+date/time of deletion
+
 =head2 location
 
   data_type: 'varchar'
@@ -463,6 +471,12 @@ __PACKAGE__->add_columns(
     datetime_undef_if_invalid => 1,
     default_value => \"current_timestamp",
     is_nullable => 0,
+  },
+  "deleted_on",
+  {
+    data_type => "datetime",
+    datetime_undef_if_invalid => 1,
+    is_nullable => 1,
   },
   "location",
   { data_type => "varchar", is_nullable => 1, size => 80 },
@@ -729,6 +743,51 @@ __PACKAGE__->might_have(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 item_bundles_hosts
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::ItemBundle>
+
+=cut
+
+__PACKAGE__->has_many(
+  "item_bundles_hosts",
+  "Koha::Schema::Result::ItemBundle",
+  { "foreign.host" => "self.itemnumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 item_bundles_item
+
+Type: might_have
+
+Related object: L<Koha::Schema::Result::ItemBundle>
+
+=cut
+
+__PACKAGE__->might_have(
+  "item_bundles_item",
+  "Koha::Schema::Result::ItemBundle",
+  { "foreign.item" => "self.itemnumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 item_group_item
+
+Type: might_have
+
+Related object: L<Koha::Schema::Result::ItemGroupItem>
+
+=cut
+
+__PACKAGE__->might_have(
+  "item_group_item",
+  "Koha::Schema::Result::ItemGroupItem",
+  { "foreign.item_id" => "self.itemnumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 items_last_borrower
 
 Type: might_have
@@ -740,6 +799,21 @@ Related object: L<Koha::Schema::Result::ItemsLastBorrower>
 __PACKAGE__->might_have(
   "items_last_borrower",
   "Koha::Schema::Result::ItemsLastBorrower",
+  { "foreign.itemnumber" => "self.itemnumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 linktrackers
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Linktracker>
+
+=cut
+
+__PACKAGE__->has_many(
+  "linktrackers",
+  "Koha::Schema::Result::Linktracker",
   { "foreign.itemnumber" => "self.itemnumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
@@ -771,6 +845,21 @@ __PACKAGE__->has_many(
   "old_reserves",
   "Koha::Schema::Result::OldReserve",
   { "foreign.itemnumber" => "self.itemnumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 recalls
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Recall>
+
+=cut
+
+__PACKAGE__->has_many(
+  "recalls",
+  "Koha::Schema::Result::Recall",
+  { "foreign.item_id" => "self.itemnumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -850,8 +939,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:U5Tm2JfUnfhACRDJ4SpFgQ
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-08-01 17:33:12
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:joGnGYWVILPsYHE9CQxHxg
 
 __PACKAGE__->belongs_to( biblioitem => "Koha::Schema::Result::Biblioitem", "biblioitemnumber" );
 
@@ -864,6 +953,19 @@ __PACKAGE__->belongs_to(
 
 __PACKAGE__->add_columns(
     '+exclude_from_local_holds_priority' => { is_boolean => 1 },
+);
+
+# Relationship with orders via the aqorders_item table that not have foreign keys
+__PACKAGE__->has_many(
+  "aqorders_item",
+  "Koha::Schema::Result::AqordersItem",
+  { "foreign.itemnumber" => "self.itemnumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+__PACKAGE__->many_to_many(
+  "item_orders",
+  "aqorders_item",
+  "ordernumber",
 );
 
 use C4::Context;

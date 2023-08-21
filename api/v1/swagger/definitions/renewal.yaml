@@ -1,0 +1,43 @@
+---
+type: object
+properties:
+  renewal_id:
+    type: integer
+    description: internally assigned renewal identifier
+  checkout_id:
+    type: integer
+    description: internally assigned checkout identifier
+  interface:
+    type:
+      - string
+      - "null"
+    description: "Interface from which the renewal took place (values can be: api, cron, commandline, intranet, opac and sip)"
+  renewer_id:
+    type:
+      - integer
+      - "null"
+    description: internally assigned for the user that processed the renewal
+  renewal_date:
+    type: string
+    format: date-time
+    description: Date the renewal took place
+  seen:
+    type:
+      - boolean
+    description: Seen/Unseen renewal
+  timestamp:
+    type: string
+    description: Last update time
+  renewal_type:
+    type:
+      - string
+      - "null"
+    enum:
+      - Automatic
+      - Manual
+  renewer:
+    type:
+      - object
+      - "null"
+    description: The object representing the renewal issuer
+additionalProperties: false

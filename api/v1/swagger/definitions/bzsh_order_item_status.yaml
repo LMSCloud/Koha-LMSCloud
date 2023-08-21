@@ -1,0 +1,47 @@
+---
+type: object
+properties:
+  biblionumber:
+    type: integer
+    readOnly: true
+    description: Internal identifier for the old bibliographic record
+  library_id:
+    type:
+      - string
+      - "null"
+    description: Internal identifier for the owner library
+  external_order_id:
+    type:
+      - string
+      - 'null'
+    readOnly: true
+    description: external order id of an external system
+  order_status_code:
+    type:
+      - string
+      - 'null'
+    readOnly: true
+    description: status code of the order item
+  order_status_text:
+    type:
+      - string
+      - 'null'
+    readOnly: true
+    description: text for the order item status code
+  date_last_changed:
+    type: string
+    format: date
+    readOnly: true
+    description: last order item update date
+  copies:
+    type: integer
+    readOnly: true
+    description: count of items
+additionalProperties: false
+required:
+  - biblionumber
+  - library_id
+  - order_status_code
+  - order_status_text
+  - date_last_changed
+  - copies

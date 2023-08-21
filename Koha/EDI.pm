@@ -21,28 +21,45 @@ use strict;
 use warnings;
 use base qw(Exporter);
 use utf8;
-use Carp;
+use Carp qw( carp );
 use English qw{ -no_match_vars };
 use Business::ISBN;
 use DateTime;
 use C4::Context;
 use Koha::Database;
-use Koha::DateUtils;
-use C4::Acquisition qw( NewBasket ModOrder);
+use Koha::DateUtils qw( dt_from_string );
+use C4::Acquisition qw( ModOrder NewBasket );
 use C4::Suggestions qw( ModSuggestion );
-use C4::Biblio qw( AddBiblio TransformKohaToMarc GetMarcBiblio GetFrameworkCode GetMarcFromKohaField );
+use C4::Biblio qw(
+    AddBiblio
+    GetFrameworkCode
+    GetMarcFromKohaField
+    TransformKohaToMarc
+);
 use Koha::Edifact::Order;
 use Koha::Edifact;
-use C4::Log qw(logaction);
+use C4::Log qw( logaction );
 use Log::Log4perl;
-use Text::Unidecode;
+use Text::Unidecode qw( unidecode );
+use Koha::Plugins; # Adds plugin dirs to @INC
 use Koha::Plugins::Handler;
 use Koha::Acquisition::Baskets;
 use Koha::Acquisition::Booksellers;
 
 our $VERSION = 1.1;
-our @EXPORT_OK =
-  qw( process_quote process_invoice process_ordrsp create_edi_order get_edifact_ean );
+
+our (@ISA, @EXPORT_OK);
+BEGIN {
+    require Exporter;
+    @ISA = qw(Exporter);
+    @EXPORT_OK = qw(
+      process_quote
+      process_invoice
+      process_ordrsp
+      create_edi_order
+      get_edifact_ean
+    );
+};
 
 sub create_edi_order {
     my $parameters = shift;
@@ -216,6 +233,7 @@ sub process_invoice {
 
     # Plugin has its own invoice processor, only run it and not the standard invoice processor below
     if ( $plugin_class ) {
+        eval "require $plugin_class"; # Import the class, eval is needed because requiring a string doesn't work like requiring a bareword
         my $plugin = $plugin_class->new();
         if ( $plugin->can('edifact_process_invoice') ) {
             Koha::Plugins::Handler->run(
@@ -294,12 +312,22 @@ sub process_invoice {
 
             foreach my $line ( @{$lines} ) {
                 my $ordernumber = $line->ordernumber;
+                if (!$ordernumber ) {
+                   $logger->trace( "Skipping invoice line, no associated ordernumber" );
+                   next;
+                }
+
                 $logger->trace( "Receipting order:$ordernumber Qty: ",
                     $line->quantity );
 
                 my $order = $schema->resultset('Aqorder')->find($ordernumber);
+                if (my $bib = $order->biblionumber) {
+                    my $b = $bib->biblionumber;
+                    my $id = $line->item_number_id;
+                    $logger->trace("Updating bib:$b id:$id");
+                }
 
-      # ModReceiveOrder does not validate that $ordernumber exists validate here
+                # ModReceiveOrder does not validate that $ordernumber exists validate here
                 if ($order) {
 
                     # check suggestions
@@ -539,10 +567,10 @@ sub transfer_items {
             $ilink->update;
             --$quantity;
             --$mapped_by_branch{$i_branch};
-            $logger->warn("Transferred item $item");
+            $logger->warn("Transferred item " . $item->itemnumber);
         }
         else {
-            $logger->warn("Skipped item $item");
+            $logger->warn("Skipped item " . $item->itemnumber);
         }
         if ( $quantity < 1 ) {
             last;
@@ -857,8 +885,6 @@ sub quote_item {
                     my $new_item = {
                         itype =>
                           $item->girfield( 'stock_category', $occurrence ),
-                        location =>
-                          $item->girfield( 'collection_code', $occurrence ),
                         itemcallnumber =>
                           $item->girfield( 'shelfmark', $occurrence )
                           || $item->girfield( 'classification', $occurrence )
@@ -867,11 +893,15 @@ sub quote_item {
                           $item->girfield( 'branch', $occurrence ),
                         homebranch => $item->girfield( 'branch', $occurrence ),
                     };
+
+                    my $lsq_field = C4::Context->preference('EdifactLSQ');
+                    $new_item->{$lsq_field} = $item->girfield( 'sequence_code', $occurrence );
+
                     if ( $new_item->{itype} ) {
                         $item_hash->{itype} = $new_item->{itype};
                     }
-                    if ( $new_item->{location} ) {
-                        $item_hash->{location} = $new_item->{location};
+                    if ( $new_item->{$lsq_field} ) {
+                        $item_hash->{$lsq_field} = $new_item->{$lsq_field};
                     }
                     if ( $new_item->{itemcallnumber} ) {
                         $item_hash->{itemcallnumber} =
@@ -945,8 +975,6 @@ sub quote_item {
                         replacementprice => $price,
                         itype =>
                           $item->girfield( 'stock_category', $occurrence ),
-                        location =>
-                          $item->girfield( 'collection_code', $occurrence ),
                         itemcallnumber =>
                           $item->girfield( 'shelfmark', $occurrence )
                           || $item->girfield( 'classification', $occurrence )
@@ -955,6 +983,8 @@ sub quote_item {
                           $item->girfield( 'branch', $occurrence ),
                         homebranch => $item->girfield( 'branch', $occurrence ),
                     };
+                    my $lsq_field = C4::Context->preference('EdifactLSQ');
+                    $new_item->{$lsq_field} = $item->girfield( 'sequence_code', $occurrence );
                     $new_item->{biblionumber} = $bib->{biblionumber};
                     $new_item->{biblioitemnumber} = $bib->{biblioitemnumber};
                     my $kitem = Koha::Item->new( $new_item )->store;
@@ -1161,7 +1191,8 @@ sub _create_item_from_quote {
     $item_hash->{booksellerid} = $quote->vendor_id;
     $item_hash->{price}        = $item_hash->{replacementprice} = $item->price;
     $item_hash->{itype}        = $item->girfield('stock_category');
-    $item_hash->{location}     = $item->girfield('collection_code');
+    my $lsq_field = C4::Context->preference('EdifactLSQ');
+    $item_hash->{$lsq_field}     = $item->girfield('sequence_code');
 
     my $note = {};
 

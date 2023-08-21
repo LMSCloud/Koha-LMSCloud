@@ -21,8 +21,8 @@ use Modern::Perl;
 
 use CGI;
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_and_exit output_html_with_http_headers );
 
 use Koha::ApiKeys;
 use Koha::Patrons;
@@ -84,7 +84,7 @@ if ($op) {
 
         $template->param(
             fresh_api_key => $api_key,
-            api_keys      => scalar Koha::ApiKeys->search({ patron_id => $patron_id }),
+            api_keys      => Koha::ApiKeys->search({ patron_id => $patron_id }),
         );
     }
 
@@ -121,10 +121,8 @@ if ($op) {
     }
 }
 
-my @api_keys = Koha::ApiKeys->search({ patron_id => $patron_id });
-
 $template->param(
-    api_keys   => \@api_keys,
+    api_keys   => Koha::ApiKeys->search({ patron_id => $patron_id }),
     csrf_token => Koha::Token->new->generate_csrf({ session_id => scalar $cgi->cookie('CGISESSID') }),
     patron     => $patron
 );

@@ -27,17 +27,17 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Koha;
+use C4::Auth qw( get_template_and_user );
+use C4::Koha qw( GetAuthorisedValues );
 use C4::Members;
-use C4::Output;
-use List::MoreUtils qw /any uniq/;
+use C4::Output qw( output_html_with_http_headers );
 use Koha::DateUtils qw( dt_from_string );
-use Koha::List::Patron;
+use Koha::List::Patron qw( GetPatronLists );
 use Koha::Libraries;
 use Koha::Patron::Categories;
-use Koha::Patron::Debarments;
+use Koha::Patron::Debarments qw( AddDebarment DelDebarment );
 use Koha::Patrons;
+use List::MoreUtils qw(uniq);
 
 my $input = CGI->new;
 my $op = $input->param('op') || 'show_form';
@@ -51,41 +51,62 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 
-my %cookies   = parse CGI::Cookie($cookie);
-my $sessionID = $cookies{'CGISESSID'}->value;
+$template->param( CanUpdatePasswordExpiration => 1 ) if $logged_in_user->is_superlibrarian;
+
 my $dbh       = C4::Context->dbh;
 
 # Show borrower informations
 if ( $op eq 'show' ) {
-    my $filefh         = $input->upload('uploadfile');
-    my $filecontent    = $input->param('filecontent');
-    my $patron_list_id = $input->param('patron_list_id');
     my @borrowers;
-    my @cardnumbers;
+    my @patronidnumbers;
     my @notfoundcardnumbers;
+    my $useborrowernumbers = 0;
 
     # Get cardnumbers from a file or the input area
-    if ($filefh) {
-        while ( my $content = <$filefh> ) {
-            $content =~ s/[\r\n]*$//g;
-            push @cardnumbers, $content if $content;
+    if( my $cardnumberlist = $input->param('cardnumberlist') ){
+        # User submitted a list of card numbers
+        push @patronidnumbers, split( /\s\n/, $cardnumberlist );
+    } elsif ( my $cardnumberuploadfile = $input->param('cardnumberuploadfile') ){
+        # User uploaded a file of card numbers
+        binmode $cardnumberuploadfile, ':encoding(UTF-8)';
+        while ( my $content = <$cardnumberuploadfile> ) {
+            next unless $content;
+            $content =~ s/[\r\n]*$//;
+            push @patronidnumbers, $content if $content;
         }
-    } elsif ( $patron_list_id ) {
+    } elsif ( my $borrowernumberlist = $input->param('borrowernumberlist') ){
+        # User submitted a list of borrowernumbers
+        $useborrowernumbers = 1;
+        push @patronidnumbers, split( /\s\n/, $borrowernumberlist );
+    } elsif ( my $borrowernumberuploadfile = $input->param('borrowernumberuploadfile') ){
+        # User uploaded a file of borrowernumbers
+        $useborrowernumbers = 1;
+        binmode $borrowernumberuploadfile, ':encoding(UTF-8)';
+        while ( my $content = <$borrowernumberuploadfile> ) {
+            next unless $content;
+            $content =~ s/[\r\n]*$//;
+            push @patronidnumbers, $content if $content;
+        }
+    } elsif ( my $patron_list_id = $input->param('patron_list_id') ){
+        # User selected a patron list
         my ($list) = GetPatronLists( { patron_list_id => $patron_list_id } );
-
-        @cardnumbers =
+        @patronidnumbers =
           $list->patron_list_patrons()->search_related('borrowernumber')
           ->get_column('cardnumber')->all();
-
-    } else {
-        if ( my $list = $input->param('cardnumberlist') ) {
-            push @cardnumbers, split( /\s\n/, $list );
-        }
     }
 
     my $max_nb_attr = 0;
-    for my $cardnumber ( @cardnumbers ) {
-        my $patron = Koha::Patrons->find( { cardnumber => $cardnumber } );
+
+    # Make sure there is only one of each patron id number
+    @patronidnumbers = uniq( @patronidnumbers );
+
+    for my $patronidnumber ( @patronidnumbers ) {
+        my $patron;
+        if( $useborrowernumbers == 1 ){
+            $patron = Koha::Patrons->find( { borrowernumber => $patronidnumber } );
+        } else {
+            $patron = Koha::Patrons->find( { cardnumber => $patronidnumber } );
+        }
         if ( $patron ) {
             if ( $logged_in_user->can_see_patron_infos( $patron ) ) {
                 my $borrower = $patron->unblessed;
@@ -95,10 +116,10 @@ if ( $op eq 'show' ) {
                 $max_nb_attr = $borrower->{patron_attributes_count} if $borrower->{patron_attributes_count} > $max_nb_attr;
                 push @borrowers, $borrower;
             } else {
-                push @notfoundcardnumbers, $cardnumber;
+                push @notfoundcardnumbers, $patronidnumber;
             }
         } else {
-            push @notfoundcardnumbers, $cardnumber;
+            push @notfoundcardnumbers, $patronidnumber;
         }
     }
 
@@ -113,7 +134,7 @@ if ( $op eq 'show' ) {
     my @patron_attributes_codes;
     my $library_id = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
     my $patron_attribute_types = Koha::Patron::Attribute::Types->search_with_library_limits({}, {}, $library_id);
-    my @patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']});
+    my @patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']})->as_list;
     while ( my $attr_type = $patron_attribute_types->next ) {
         # TODO Repeatable attributes are not correctly managed and can cause data lost.
         # This should be implemented.
@@ -150,6 +171,7 @@ if ( $op eq 'show' ) {
     @notfoundcardnumbers = map { { cardnumber => $_ } } @notfoundcardnumbers;
     $template->param( notfoundcardnumbers => \@notfoundcardnumbers )
         if @notfoundcardnumbers;
+    $template->param( useborrowernumbers => $useborrowernumbers );
 
     # Construct drop-down list values
     my $branches = Koha::Libraries->search({}, { order_by => ['branchname'] })->unblessed;
@@ -310,6 +332,8 @@ if ( $op eq 'show' ) {
         },
     );
 
+    push @fields, { name => "password_expiration_date", type => "date" } if $logged_in_user->is_superlibrarian;
+
     $template->param('patron_attributes_codes', \@patron_attributes_codes);
     $template->param('patron_attributes_values', \@patron_attributes_values);
 
@@ -321,15 +345,17 @@ if ( $op eq 'do' ) {
 
     my @disabled = $input->multi_param('disable_input');
     my $infos;
-    for my $field ( qw/surname firstname branchcode categorycode streetnumber address address2 city state zipcode country email phone mobile sort1 sort2 dateenrolled dateexpiry borrowernotes opacnote debarred debarredcomment/ ) {
+    for my $field ( qw/surname firstname branchcode categorycode streetnumber address address2 city state zipcode country email phone mobile sort1 sort2 dateenrolled dateexpiry password_expiration_date borrowernotes opacnote debarred debarredcomment/ ) {
         my $value = $input->param($field);
         $infos->{$field} = $value if $value;
         $infos->{$field} = "" if grep { $_ eq $field } @disabled;
     }
 
-    for my $field ( qw( dateenrolled dateexpiry debarred ) ) {
+    for my $field ( qw( dateenrolled dateexpiry debarred password_expiration_date ) ) {
         $infos->{$field} = dt_from_string($infos->{$field}) if $infos->{$field};
     }
+
+    delete $infos->{password_expiration_date} unless $logged_in_user->is_superlibrarian;
 
     my @attributes = $input->multi_param('patron_attributes');
     my @attr_values = $input->multi_param('patron_attributes_value');
@@ -338,6 +364,7 @@ if ( $op eq 'do' ) {
     my @borrowernumbers = $input->multi_param('borrowernumber');
     # For each borrower selected
     for my $borrowernumber ( @borrowernumbers ) {
+
         # If at least one field are filled, we want to modify the borrower
         if ( defined $infos ) {
             # If a debarred date or debarred comment has been submitted make a new debarment
@@ -352,19 +379,19 @@ if ( $op eq 'do' ) {
             }
 
             # If debarment date or debarment comment are disabled then remove all debarrments
+            my $patron = Koha::Patrons->find( $borrowernumber );
             if ( grep { /debarred/ } @disabled ) {
                 eval {
-                   my $debarrments = GetDebarments( { borrowernumber => $borrowernumber } );
-                   foreach my $debarment (@$debarrments) {
-                      DelDebarment( $debarment->{'borrower_debarment_id'} );
+                   my $debarrments = $patron->restrictions;
+                   while( my $debarment = $debarrments->next ) {
+                      DelDebarment( $debarment->borrower_debarment_id );
                    }
                 };
             }
 
             $infos->{borrowernumber} = $borrowernumber;
-            eval { Koha::Patrons->find( $borrowernumber )->set($infos)->store; };
+            eval { $patron->set($infos)->store; };
             if ( $@ ) { # FIXME We could provide better error handling here
-                my $patron = Koha::Patrons->find( $borrowernumber );
                 $infos->{cardnumber} = $patron ? $patron->cardnumber || '' : '';
                 push @errors, { error => "can_not_update", borrowernumber => $infos->{borrowernumber}, cardnumber => $infos->{cardnumber} };
             }

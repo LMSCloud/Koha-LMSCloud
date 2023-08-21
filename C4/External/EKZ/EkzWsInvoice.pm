@@ -32,7 +32,7 @@ use C4::Acquisition qw( NewBasket GetBasket GetBaskets ModBasket ReopenBasket
                         GetOrder GetOrderFromItemnumber ModOrderDeliveryNote ModReceiveOrder 
                         GetInvoice GetInvoices AddInvoice CloseInvoice ReopenInvoice );
 # use C4::Acquisition qw( populate_order_with_prices );    # additionally populate_order_with_prices is required here, but it is not exported by C4::Acquisition, so we have to use it inofficially
-use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField GetMarcBiblio );
+use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField );
 use C4::Context;
 use C4::Items qw( ModItemFromMarc );    # additionally GetMarcItem is required here, but it is not exported by C4::Items, so we have to use it inofficially
 use C4::External::EKZ::lib::EkzWebServices;
@@ -48,6 +48,7 @@ use Koha::Item;
 use Koha::Items;
 use Koha::Logger;
 use Koha::Patrons;
+use Koha::Biblios;
 
 binmode( STDIN, ":utf8" );
 binmode( STDOUT, ":utf8" );
@@ -373,7 +374,8 @@ sub genKohaRecords {
                                 $biblionumber = 0;
                                 $biblioExisting = 0;
                                 $invEkzArtikelNr = '';
-                                my $record = C4::Biblio::GetMarcBiblio( { biblionumber => $selBiblionumber, embed_items => 0 } );
+                                my $biblio = Koha::Biblios->find( $selBiblionumber );
+                                my $record = $biblio ? $biblio->metadata->record : undef;
                                 if ( defined($record) ) {
                                     $titleHits->{'count'} = 1;
                                     $titleHits->{'records'}->[0] = $record;
@@ -500,7 +502,8 @@ sub genKohaRecords {
                                 $biblionumber = 0;
                                 $biblioExisting = 0;
                                 $invEkzArtikelNr = '';
-                                my $record = C4::Biblio::GetMarcBiblio( { biblionumber => $selBiblionumber, embed_items => 0 } );
+                                my $biblio = Koha::Biblios->find( $selBiblionumber );
+                                my $record = $biblio ? $biblio->metadata->record : undef;
                                 if ( defined($record) ) {
                                     $titleHits->{'count'} = 1;
                                     $titleHits->{'records'}->[0] = $record;

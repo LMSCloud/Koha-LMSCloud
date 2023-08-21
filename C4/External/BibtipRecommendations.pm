@@ -28,7 +28,7 @@ use URI::Escape;
 use Koha::Old::Checkouts;
 use Koha::Items;
 use Koha::Item;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 
 use LWP::UserAgent;
 use JSON;

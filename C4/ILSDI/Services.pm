@@ -21,22 +21,21 @@ use strict;
 use warnings;
 
 use C4::Members;
-use C4::Items;
-use C4::Circulation;
+use C4::Items qw( get_hostitemnumbers_of );
+use C4::Circulation qw( CanBookBeRenewed barcodedecode CanBookBeIssued AddRenewal );
 use C4::Accounts;
-use C4::Biblio;
-use C4::Reserves qw(AddReserve CanBookBeReserved CanItemBeReserved IsAvailableForItemLevelRequest);
+use C4::Reserves qw( CanBookBeReserved IsAvailableForItemLevelRequest CalculatePriority AddReserve CanItemBeReserved CanReserveBeCanceledFromOpac );
 use C4::Context;
-use C4::AuthoritiesMarc;
-use XML::Simple;
-use HTML::Entities;
+use C4::Auth;
 use CGI qw ( -utf8 );
 use DateTime;
 use C4::Auth;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
+use C4::AuthoritiesMarc qw( GetAuthorityXML );
 
 use Koha::Biblios;
 use Koha::Checkouts;
+use Koha::I18N qw(__);
 use Koha::Items;
 use Koha::Libraries;
 use Koha::Patrons;
@@ -120,7 +119,7 @@ sub GetAvailability {
 
     foreach my $id ( split( / /, $cgi->param('id') ) ) {
         if ( $cgi->param('id_type') eq "item" ) {
-            my ( $biblionumber, $status, $msg, $location ) = _availability($id);
+            my ( $biblionumber, $status, $msg, $location, $itemcallnumber ) = _availability($id);
 
             $out .= "  <dlf:record>\n";
             $out .= "    <dlf:bibliographic id=\"" . ( $biblionumber || $id ) . "\" />\n";
@@ -131,6 +130,7 @@ sub GetAvailability {
             $out .= "          <dlf:availabilitystatus>" . $status . "</dlf:availabilitystatus>\n";
             if ($msg)      { $out .= "          <dlf:availabilitymsg>" . $msg . "</dlf:availabilitymsg>\n"; }
             if ($location) { $out .= "          <dlf:location>" . $location . "</dlf:location>\n"; }
+            if ($itemcallnumber) { $out .= "          <dlf:itemcallnumber>" . $itemcallnumber. "</dlf:itemcallnumber>\n"; }
             $out .= "        </dlf:simpleavailability>\n";
             $out .= "      </dlf:item>\n";
             $out .= "    </dlf:items>\n";
@@ -147,13 +147,14 @@ sub GetAvailability {
                 # We loop over the items to clean them
                 while ( my $item = $items->next ) {
                     my $itemnumber = $item->itemnumber;
-                    my ( $biblionumber, $status, $msg, $location ) = _availability($itemnumber);
+                    my ( $biblionumber, $status, $msg, $location, $itemcallnumber ) = _availability($itemnumber);
                     $out .= "      <dlf:item id=\"" . $itemnumber . "\">\n";
                     $out .= "        <dlf:simpleavailability>\n";
                     $out .= "          <dlf:identifier>" . $itemnumber . "</dlf:identifier>\n";
                     $out .= "          <dlf:availabilitystatus>" . $status . "</dlf:availabilitystatus>\n";
                     if ($msg)      { $out .= "          <dlf:availabilitymsg>" . $msg . "</dlf:availabilitymsg>\n"; }
                     if ($location) { $out .= "          <dlf:location>" . $location . "</dlf:location>\n"; }
+                    if ($itemcallnumber) { $out .= "          <dlf:itemcallnumber>" . $itemcallnumber. "</dlf:itemcallnumber>\n"; }
                     $out .= "        </dlf:simpleavailability>\n";
                     $out .= "      </dlf:item>\n";
                 }
@@ -217,10 +218,7 @@ sub GetRecords {
 
         my $biblioitem = $biblio->biblioitem->unblessed;
 
-        my $embed_items = 1;
-        my $record = GetMarcBiblio({
-            biblionumber => $biblionumber,
-            embed_items  => $embed_items });
+        my $record = $biblio->metadata->record({ embed_items => 1 });
         if ($record) {
             $biblioitem->{marcxml} = $record->as_xml_record();
         }
@@ -396,13 +394,16 @@ sub AuthenticatePatron {
     my ($cgi) = @_;
     my $username = $cgi->param('username');
     my $password = $cgi->param('password');
-    my ($status, $cardnumber, $userid) = C4::Auth::checkpw( C4::Context->dbh, $username, $password );
-    if ( $status ) {
+    my ($status, $cardnumber, $userid) = C4::Auth::checkpw( $username, $password );
+    if ( $status == 1 ) {
         # Track the login
         C4::Auth::track_login_daily( $userid );
         # Get the borrower
         my $patron = Koha::Patrons->find( { userid => $userid } );
         return { id => $patron->borrowernumber };
+    }
+    elsif ( $status == -2 ){
+        return { code => 'PasswordExpired' };
     }
     else {
         return { code => 'PatronNotFound' };
@@ -548,7 +549,7 @@ sub GetPatronInfo {
                     value_description => $_->description, # Awkward retro-compability...
                   }
                   : ()
-            } $patron->extended_attributes->search
+            } $patron->extended_attributes->search->as_list
         ];
     }
 
@@ -644,7 +645,7 @@ sub GetServices {
 
     # Issuing management
     my $barcode = $item->barcode || '';
-    $barcode = barcodedecode($barcode) if ( $barcode && C4::Context->preference('itemBarcodeInputFilter') );
+    $barcode = barcodedecode($barcode) if $barcode;
     if ($barcode) {
         my ( $issuingimpossible, $needsconfirmation ) = CanBookBeIssued( $patron, $barcode );
 
@@ -694,7 +695,8 @@ sub RenewLoan {
 
     # Hashref building
     my $out;
-    $out->{'renewals'} = $issue->renewals;
+    $out->{'renewals'} = $issue->renewals_count;
+    # FIXME Unusual date formatting
     $out->{date_due}   = dt_from_string($issue->date_due)->strftime('%Y-%m-%d %H:%M');
     $out->{'success'}  = $renewal[0];
     $out->{'error'}    = $renewal[1];
@@ -775,15 +777,8 @@ sub HoldTitle {
     return { code => 'libraryNotPickupLocation' } unless $destination->pickup_location;
     return { code => 'cannotBeTransferred' } unless $biblio->can_be_transferred({ to => $destination });
 
-    my $resdate;
-    if ( $cgi->param('start_date') ) {
-        $resdate = $cgi->param('start_date');
-    }
-
-    my $expdate;
-    if ( $cgi->param('expiry_date') ) {
-        $expdate = $cgi->param('expiry_date');
-    }
+    my $resdate = $cgi->param('start_date');
+    my $expdate = $cgi->param('expiry_date');
 
     # Add the reserve
     #    $branch,    $borrowernumber, $biblionumber,
@@ -874,18 +869,11 @@ sub HoldItem {
     }
 
     # Check for item disponibility
-    my $canitembereserved = C4::Reserves::CanItemBeReserved( $borrowernumber, $itemnumber, $branch )->{status};
+    my $canitembereserved = C4::Reserves::CanItemBeReserved( $patron, $item, $branch )->{status};
     return { code => $canitembereserved } unless $canitembereserved eq 'OK';
 
-    my $resdate;
-    if ( $cgi->param('start_date') ) {
-        $resdate = $cgi->param('start_date');
-    }
-
-    my $expdate;
-    if ( $cgi->param('expiry_date') ) {
-        $expdate = $cgi->param('expiry_date');
-    }
+    my $resdate = $cgi->param('start_date');
+    my $expdate = $cgi->param('expiry_date');
 
     # Add the reserve
     my $priority = C4::Reserves::CalculatePriority($biblionumber);
@@ -937,7 +925,9 @@ sub CancelHold {
     my $reserve_id = $cgi->param('item_id');
     my $hold = Koha::Holds->find( $reserve_id );
     return { code => 'RecordNotFound' } unless $hold;
-    return { code => 'RecordNotFound' } unless ($hold->borrowernumber == $borrowernumber);
+
+    # Check if reserve belongs to the borrower and if it is in a state which allows cancellation
+    return { code => 'BorrowerCannotCancelHold' } unless CanReserveBeCanceledFromOpac( $reserve_id, $borrowernumber );
 
     $hold->cancel;
 
@@ -957,25 +947,26 @@ sub _availability {
     my $item = Koha::Items->find($itemnumber);
 
     unless ( $item ) {
-        return ( undef, 'unknown', 'Error: could not retrieve availability for this ID', undef );
+        return ( undef, __('unknown'), __('Error: could not retrieve availability for this ID'), undef );
     }
 
     my $biblionumber = $item->biblioitemnumber;
     my $library = Koha::Libraries->find( $item->holdingbranch );
     my $location = $library ? $library->branchname : '';
+    my $itemcallnumber = $item->itemcallnumber;
 
-    if ( $item->notforloan ) {
-        return ( $biblionumber, 'not available', 'Not for loan', $location );
+    if ( $item->is_notforloan ) {
+        return ( $biblionumber, __('not available'), __('Not for loan'), $location, $itemcallnumber );
     } elsif ( $item->onloan ) {
-        return ( $biblionumber, 'not available', 'Checked out', $location );
+        return ( $biblionumber, __('not available'), __('Checked out'), $location, $itemcallnumber );
     } elsif ( $item->itemlost ) {
-        return ( $biblionumber, 'not available', 'Item lost', $location );
+        return ( $biblionumber, __('not available'), __('Item lost'), $location, $itemcallnumber );
     } elsif ( $item->withdrawn ) {
-        return ( $biblionumber, 'not available', 'Item withdrawn', $location );
+        return ( $biblionumber, __('not available'), __('Item withdrawn'), $location, $itemcallnumber );
     } elsif ( $item->damaged ) {
-        return ( $biblionumber, 'not available', 'Item damaged', $location );
+        return ( $biblionumber, __('not available'), __('Item damaged'), $location, $itemcallnumber );
     } else {
-        return ( $biblionumber, 'available', undef, $location );
+        return ( $biblionumber, __('available'), undef, $location, $itemcallnumber );
     }
 }
 

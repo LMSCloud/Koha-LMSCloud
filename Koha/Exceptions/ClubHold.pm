@@ -2,9 +2,11 @@ package Koha::Exceptions::ClubHold;
 
 use Modern::Perl;
 
+use Koha::Exception;
+
 use Exception::Class (
     'Koha::Exceptions::ClubHold' => {
-        description => "Something went wrong!",
+        isa => 'Koha::Exception',
     },
     'Koha::Exceptions::ClubHold::NoPatrons' => {
         isa => 'Koha::Exceptions::ClubHold',

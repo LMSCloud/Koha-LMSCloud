@@ -25,11 +25,10 @@ use Test::More tests => 14;
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
-use C4::Reserves;
-use C4::Circulation;
+use C4::Reserves qw( AddReserve );
+use C4::Circulation qw( AddIssue );
 use Koha::CirculationRules;
 use Koha::Database;
-use Koha::DateUtils;
 use Koha::Holds;
 
 BEGIN {
@@ -75,7 +74,14 @@ is( $ils->test_cardnumber_compare( 'A1234', 'b1234' ),
 subtest add_hold => sub {
     plan tests => 4;
 
-    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $library = $builder->build_object(
+        {
+            class => 'Koha::Libraries',
+            value => {
+                pickup_location => 1
+            }
+        }
+    );
     my $patron = $builder->build_object(
         {
             class => 'Koha::Patrons',
@@ -276,7 +282,7 @@ subtest checkout => sub {
     AddIssue( $patron->unblessed, $item->barcode, undef, 0 );
     my $checkout = $item->checkout;
     ok( defined($checkout), "Checkout added");
-    is( $checkout->renewals, 0, "Correct renewals");
+    is( $checkout->renewals_count, 0, "Correct renewals");
 
     my $ils = C4::SIP::ILS->new({ id => $library->branchcode });
     my $sip_patron = C4::SIP::ILS::Patron->new( $patron->cardnumber );
@@ -285,7 +291,7 @@ subtest checkout => sub {
     is( $transaction->{screen_msg},"Item already checked out to you: renewing item.","We get a success message when issue is renewed");
 
     $checkout->discard_changes();
-    is( $checkout->renewals, 1, "Renewals has been reduced");
+    is( $checkout->renewals_count, 1, "Renewals has been reduced");
 };
 
 subtest renew_all => sub {

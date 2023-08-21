@@ -19,41 +19,54 @@ package C4::Letters;
 
 use Modern::Perl;
 
-use Date::Calc qw( Add_Delta_Days );
 use Encode;
 use Carp qw( carp croak );
 use Template;
-use Module::Load::Conditional qw(can_load);
+use Module::Load::Conditional qw( can_load );
 
 use Try::Tiny;
 
 use C4::Members;
-use C4::Log;
+use C4::Log qw( logaction );
 use C4::SMS;
 use C4::Templates;
-use C4::Debug;
-use Koha::DateUtils;
 use Koha::SMS::Providers;
 
 use Koha::Email;
 use Koha::Notice::Messages;
 use Koha::Notice::Templates;
-use Koha::DateUtils qw( format_sqldatetime dt_from_string );
 use Koha::Libraries;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Patrons;
 use Koha::SMTP::Servers;
 use Koha::Subscriptions;
 use Koha::Illrequests;
 
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-
 use constant SERIALIZED_EMAIL_CONTENT_TYPE => 'message/rfc822';
 
+our (@ISA, @EXPORT_OK);
 BEGIN {
     require Exporter;
     @ISA = qw(Exporter);
-    @EXPORT = qw(
-        &EnqueueLetter &GetLetters &GetPatronLetters &GetAdhocNoticeLetters &GetLettersAvailableForALibrary &GetLetterTemplates &DelLetter &GetPreparedLetter &GetWrappedLetter &SendAlerts &GetPrintMessages &GetMessagesById &GetMessageTransportTypes
+    @EXPORT_OK = qw(
+      GetLetters
+      GetLettersAvailableForALibrary
+      GetLetterTemplates
+      GetAdhocNoticeLetters
+      GetPatronLetters
+      DelLetter
+      GetPreparedLetter
+      GetWrappedLetter
+      SendAlerts
+      GetPrintMessages
+      GetQueuedMessages
+      GetMessage
+      GetMessageTransportTypes
+      GetMessagesById
+
+      EnqueueLetter
+      SendQueuedMessages
+      ResendMessage
     );
 }
 
@@ -280,41 +293,6 @@ sub GetAdhocNoticeLetters {
     return $selletters;
 }
 
-sub getletter {
-    my ( $module, $code, $branchcode, $message_transport_type, $lang) = @_;
-    $message_transport_type //= '%';
-    $lang = 'default' unless( $lang && C4::Context->preference('TranslateNotices') );
-
-
-    my $only_my_library = C4::Context->only_my_library;
-    if ( $only_my_library and $branchcode ) {
-        $branchcode = C4::Context::mybranch();
-    }
-    $branchcode //= '';
-    
-    # check if the branch is a bookmobile station
-    # if yes use letters of the bookmobile the branch 
-    if ($branchcode) { 
-        $branchcode = Koha::Libraries->get_effective_branch($branchcode);
-    }
-
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare(q{
-        SELECT *
-        FROM letter
-        WHERE module=? AND code=? AND (branchcode = ? OR branchcode = '')
-        AND message_transport_type LIKE ?
-        AND lang =?
-        ORDER BY branchcode DESC LIMIT 1
-    });
-    $sth->execute( $module, $code, $branchcode, $message_transport_type, $lang );
-    my $line = $sth->fetchrow_hashref
-      or return;
-    $line->{'content-type'} = 'text/html; charset="UTF-8"' if $line->{is_html};
-    return { %$line };
-}
-
-
 =head2 DelLetter
 
     DelLetter(
@@ -468,6 +446,7 @@ sub SendAlerts {
         my $dataorders;
         my $action;
         my $basketno;
+        my %loops;
         if ( $type eq 'claimacquisition') {
             $strsth = qq{
             SELECT aqorders.*,aqbasket.*,biblio.*,biblioitems.*
@@ -514,7 +493,7 @@ sub SendAlerts {
         }
 
         if ( $type eq 'orderacquisition') {
-            my $basketno = $externalid;
+            $basketno = $externalid;
             $strsth = qq{
             SELECT aqorders.*,aqbasket.*,biblio.*,biblioitems.*
             FROM aqorders
@@ -542,18 +521,17 @@ sub SendAlerts {
                     }
                 }
             }
+            %loops = (
+                aqorders => [ map { $_->{ordernumber} } @$dataorders ]
+            );
         }
 
-        my $sthbookseller =
-          $dbh->prepare("select * from aqbooksellers where id=?");
-        $sthbookseller->execute( $dataorders->[0]->{booksellerid} );
-        my $databookseller = $sthbookseller->fetchrow_hashref;
-
+        my $booksellerid = $dataorders->[0]->{booksellerid};
         my $addressee =  $type eq 'claimacquisition' || $type eq 'orderacquisition' ? 'acqprimary' : 'serialsprimary';
 
         my $sthcontact =
           $dbh->prepare("SELECT * FROM aqcontacts WHERE booksellerid=? AND $type=1 ORDER BY $addressee DESC");
-        $sthcontact->execute( $dataorders->[0]->{booksellerid} );
+        $sthcontact->execute( $booksellerid );
         my $datacontact = $sthcontact->fetchrow_hashref;
         
         my $deliverybranch = $dataorders->[0]->{deliveryplace};
@@ -563,7 +541,7 @@ sub SendAlerts {
         my @cc;
         push @email, $datacontact->{email}           if ( $datacontact && $datacontact->{email} );
         unless (@email) {
-            warn "Bookseller $dataorders->[0]->{booksellerid} without emails";
+            warn "Bookseller $booksellerid without emails";
             return { error => "no_email" };
         }
         my $addlcontact;
@@ -579,11 +557,12 @@ sub SendAlerts {
             branchcode => $branchcode,
             tables => {
                 'branches'      => $branchcode,
-                'aqbooksellers' => $databookseller,
+                'aqbooksellers' => $booksellerid,
                 'aqcontacts'    => $datacontact,
                 'aqbasket'      => $basketno,
             },
             repeat => $dataorders,
+            loops => \%loops,
             want_librarian => 1,
             substitute => { deliverybranch => $deliverybranch, billingbranch => $billingbranch },
         ) or return { error => "no_letter" };
@@ -633,11 +612,12 @@ sub SendAlerts {
         return { error => $error }
             unless $success;
 
+        my $log_object = $action eq 'ACQUISITION ORDER' ? $externalid : undef;
         my $module = $action eq 'ACQUISITION ORDER' ? 'ACQUISITIONS' : 'CLAIMS';
         logaction(
             $module,
             $action,
-            undef,
+            $log_object,
             "To="
                 . join( ',', @email )
                 . " Title="
@@ -645,57 +625,6 @@ sub SendAlerts {
                 . " Content="
                 . $letter->{content}
         ) if C4::Context->preference("ClaimsLog");
-    }
-   # send an "account details" notice to a newly created user
-    elsif ( $type eq 'members' ) {
-        my $branchcode = Koha::Libraries->get_effective_branch( $externalid->{branchcode} );
-        my $library = Koha::Libraries->find( $branchcode );
-        my $letter = GetPreparedLetter (
-            module => 'members',
-            letter_code => $letter_code,
-            branchcode => $$branchcode,
-            lang       => $externalid->{lang} || 'default',
-            tables => {
-                'branches'    => $library->unblessed,
-                'borrowers' => $externalid->{'borrowernumber'},
-            },
-            substitute => { 'borrowers.password' => $externalid->{'password'} },
-            want_librarian => 1,
-        ) or return;
-        return { error => "no_email" } unless $externalid->{'emailaddr'};
-
-        my $success = try {
-
-            # FIXME: This 'default' behaviour should be moved to Koha::Email
-            my $mail = Koha::Email->create(
-                {
-                    to       => $externalid->{'emailaddr'},
-                    from     => $library->branchemail,
-                    reply_to => $library->branchreplyto,
-                    sender   => $library->branchreturnpath,
-                    subject  => "" . $letter->{'title'},
-                }
-            );
-
-            if ( $letter->{is_html} ) {
-                $mail->html_body( _wrap_html( $letter->{content}, "" . $letter->{title}, 1 ) );
-            }
-            else {
-                $mail->text_body( $letter->{content} );
-            }
-
-            $mail->send_or_die({ transport => $library->smtp_server->transport });
-        }
-        catch {
-            # We expect ref($_) eq 'Email::Sender::Failure'
-            $error = $_->message;
-
-            carp "$_";
-            return;
-        };
-
-        return { error => $error }
-            unless $success;
     }
 
     # If we come here, return an OK status
@@ -742,27 +671,38 @@ sub GetPreparedLetter {
         if ($branchcode) { 
             $branchcode = Koha::Libraries->get_effective_branch($branchcode);
         }
+        my $template = Koha::Notice::Templates->find_effective_template(
+            {
+                module                 => $module,
+                code                   => $letter_code,
+                branchcode             => $branchcode,
+                message_transport_type => $mtt,
+                lang                   => $lang
+            }
+        );
 
-        $letter = getletter( $module, $letter_code, $branchcode, $mtt, $lang );
-
-        unless ( $letter ) {
-            $letter = getletter( $module, $letter_code, $branchcode, $mtt, 'default' )
-                or warn( "No $module $letter_code letter transported by " . $mtt ),
-                    return;
+        unless ( $template ) {
+            warn( "No $module $letter_code letter transported by " . $mtt );
+            return;
         }
+
+        $letter = $template->unblessed;
+        $letter->{'content-type'} = 'text/html; charset="UTF-8"' if $letter->{is_html};
     }
 
+    my $objects = $params{objects} || {};
     my $tables = $params{tables} || {};
     my $substitute = $params{substitute} || {};
     my $loops  = $params{loops} || {}; # loops is not supported for historical notices syntax
     my $repeat = $params{repeat};
-    %$tables || %$substitute || $repeat || %$loops
-      or carp( "ERROR: nothing to substitute - both 'tables', 'loops' and 'substitute' are empty" ),
+    %$tables || %$substitute || $repeat || %$loops || %$objects
+      or carp( "ERROR: nothing to substitute - all of 'objects', 'tables', 'loops' and 'substitute' are empty" ),
          return;
     my $want_librarian = $params{want_librarian};
 
     if (%$substitute) {
         while ( my ($token, $val) = each %$substitute ) {
+            $val //= q{};
             if ( $token eq 'items.content' ) {
                 $val =~ s|\n|<br/>|g if $letter->{is_html};
             }
@@ -832,20 +772,23 @@ sub GetPreparedLetter {
 
     $letter->{content} = _process_tt(
         {
-            content => $letter->{content},
-            tables  => $tables,
-            loops  => $loops,
+            content    => $letter->{content},
+            lang       => $lang,
+            loops      => $loops,
+            objects    => $objects,
             substitute => $substitute,
-            lang => $lang
+            tables     => $tables,
         }
     );
 
     $letter->{title} = _process_tt(
         {
-            content => $letter->{title},
-            tables  => $tables,
-            loops  => $loops,
+            content    => $letter->{title},
+            lang       => $lang,
+            loops      => $loops,
+            objects    => $objects,
             substitute => $substitute,
+            tables     => $tables,
         }
     );
 
@@ -917,13 +860,14 @@ sub _parseletter_sth {
     ($table eq 'aqorders'     )    ? "SELECT * FROM $table WHERE    ordernumber = ?"                                  :
     ($table eq 'aqbasket'     )    ? "SELECT * FROM $table WHERE       basketno = ?"                                  :
     ($table eq 'illrequests'  )    ? "SELECT * FROM $table WHERE  illrequest_id = ?"                                  :
-    ($table eq 'opac_news'    )    ? "SELECT * FROM $table WHERE          idnew = ?"                                  :
     ($table eq 'article_requests') ? "SELECT * FROM $table WHERE             id = ?"                                  :
     ($table eq 'borrower_modifications') ? "SELECT * FROM $table WHERE verification_token = ?" :
     ($table eq 'subscription') ? "SELECT * FROM $table WHERE subscriptionid = ?" :
     ($table eq 'serial') ? "SELECT * FROM $table WHERE serialid = ?" :
     ($table eq 'illrequests') ? "SELECT * FROM $table WHERE illrequest_id = ?" :
     ($table eq 'problem_reports') ? "SELECT * FROM $table WHERE reportid = ?" :
+    ($table eq 'additional_contents' || $table eq 'opac_news') ? "SELECT * FROM additional_contents WHERE idnew = ?" :
+    ($table eq 'recalls') ? "SELECT * FROM $table WHERE recall_id = ?" :
     undef ;
     unless ($query) {
         warn "ERROR: No _parseletter_sth query for table '$table'";
@@ -954,6 +898,7 @@ sub _parseletter {
     # in callers ( by changing / formatting values )
     my $values = $values_in ? { %$values_in } : {};
 
+    # FIXME Dates formatting must be done in notice's templates
     if ( $table eq 'borrowers' && $values->{'dateexpiry'} ){
         $values->{'dateexpiry'} = output_pref({ dt => dt_from_string( $values->{'dateexpiry'} ), dateonly => 1 });
     }
@@ -1008,10 +953,9 @@ sub _parseletter {
                     $dateonly = 1 unless $dateonly;
                 }
                 my $replacedby_date = eval {
-                    output_pref({ dt => dt_from_string( $replacedby ), dateonly => $dateonly });
+                    output_pref({ dt => scalar dt_from_string( $replacedby ), dateonly => $dateonly });
                 };
-                
-                
+                $replacedby_date //= q{};
 
                 if ( $letter->{ $letter_field } ) {
                     $letter->{ $letter_field } =~ s/\Q<<$table.$field\E$isodate\Q>>\E/$val/g;
@@ -1089,7 +1033,7 @@ sub EnqueueLetter {
     my $content = $params->{letter}->{content};
     $content =~ s/\s+//g if(defined $content);
     if ( not defined $content or $content eq '' ) {
-        warn "Trying to add an empty message to the message queue" if $debug;
+        Koha::Logger->get->info("Trying to add an empty message to the message queue");
         return;
     }
 
@@ -1105,13 +1049,13 @@ sub EnqueueLetter {
     my $dbh       = C4::Context->dbh();
     my $statement = << 'ENDSQL';
 INSERT INTO message_queue
-( borrowernumber, subject, content, metadata, letter_code, message_transport_type, status, time_queued, to_address, from_address, reply_address, content_type, failure_code, branchcode )
-VALUES
-( ?,              ?,       ?,       ?,        ?,           ?,                      ?,      CAST(NOW() AS DATETIME),       ?,          ?,            ?,           ?,           ?,              ? )
+( letter_id, borrowernumber, subject, content, metadata, letter_code, message_transport_type, status, time_queued, to_address, from_address, reply_address, content_type, failure_code, branchcode )
+VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, CAST(NOW() AS DATETIME), ?, ?, ?, ?, ?, ? )
 ENDSQL
 
     my $sth    = $dbh->prepare($statement);
     my $result = $sth->execute(
+        $params->{letter}->{id} || undef,         # letter.id
         $params->{'borrowernumber'},              # borrowernumber
         $params->{'letter'}->{'title'},           # subject
         $params->{'letter'}->{'content'},         # content
@@ -1161,7 +1105,7 @@ sub SendQueuedMessages {
         'limit'          => $params->{'limit'} // 0,
         'borrowernumber' => $params->{'borrowernumber'} // q{},
         'letter_code'    => $params->{'letter_code'} // q{},
-        'type'           => $params->{'type'} // q{},
+        'message_transport_type'           => $params->{'type'} // q{},
     };
     my $unsent_messages = _get_unsent_messages( $which_unsent_messages );
     MESSAGE: foreach my $message ( @$unsent_messages ) {
@@ -1174,7 +1118,7 @@ sub SendQueuedMessages {
         warn sprintf( 'sending %s message to patron: %s',
                       $message->{'message_transport_type'},
                       $message->{'borrowernumber'} || 'Admin' )
-          if $params->{'verbose'} or $debug;
+          if $params->{'verbose'};
         # This is just begging for subclassing
         next MESSAGE if ( lc($message->{'message_transport_type'}) eq 'rss' );
         if ( lc( $message->{'message_transport_type'} ) eq 'email' ) {
@@ -1185,13 +1129,13 @@ sub SendQueuedMessages {
                 my $patron = Koha::Patrons->find( $message->{borrowernumber} );
                 my $sms_provider = Koha::SMS::Providers->find( $patron->sms_provider_id );
                 unless ( $sms_provider ) {
-                    warn sprintf( "Patron %s has no sms provider id set!", $message->{'borrowernumber'} ) if $params->{'verbose'} or $debug;
+                    warn sprintf( "Patron %s has no sms provider id set!", $message->{'borrowernumber'} ) if $params->{'verbose'};
                     _set_message_status( { message_id => $message->{'message_id'}, status => 'failed' } );
                     next MESSAGE;
                 }
                 unless ( $patron->smsalertnumber ) {
                     _set_message_status( { message_id => $message->{'message_id'}, status => 'failed' } );
-                    warn sprintf( "No smsalertnumber found for patron %s!", $message->{'borrowernumber'} ) if $params->{'verbose'} or $debug;
+                    warn sprintf( "No smsalertnumber found for patron %s!", $message->{'borrowernumber'} ) if $params->{'verbose'};
                     next MESSAGE;
                 }
                 $message->{to_address}  = $patron->smsalertnumber; #Sometime this is set to email - sms should always use smsalertnumber
@@ -1431,8 +1375,10 @@ sub _add_attachments {
   This function's parameter hash reference takes the following
   optional named parameters:
    message_transport_type: method of message sending (e.g. email, sms, etc.)
+                           Can be a single string, or an arrayref of strings
    borrowernumber        : who the message is to be sent
    letter_code           : type of message being sent (e.g. PASSWORD_RESET)
+                           Can be a single string, or an arrayref of strings
    message_id            : the message_id of the message. In that case the sub will return only 1 result
    limit                 : maximum number of messages to send
 
@@ -1458,10 +1404,6 @@ sub _get_unsent_messages {
 
     my @query_params = ('pending');
     if ( ref $params ) {
-        if ( $params->{'message_transport_type'} ) {
-            $statement .= ' AND mq.message_transport_type = ? ';
-            push @query_params, $params->{'message_transport_type'};
-        }
         if ( $params->{'borrowernumber'} ) {
             $statement .= ' AND mq.borrowernumber = ? ';
             push @query_params, $params->{'borrowernumber'};
@@ -1472,12 +1414,20 @@ sub _get_unsent_messages {
             push @query_params, @message_ids;
         }
         if ( $params->{'letter_code'} ) {
-            $statement .= ' AND mq.letter_code = ? ';
-            push @query_params, $params->{'letter_code'};
+            my @letter_codes = ref $params->{'letter_code'} eq "ARRAY" ? @{$params->{'letter_code'}} : $params->{'letter_code'};
+            if ( @letter_codes ) {
+                my $q = join( ",", ("?") x @letter_codes );
+                $statement .= " AND mq.letter_code IN ( $q ) ";
+                push @query_params, @letter_codes;
+            }
         }
-        if ( $params->{'type'} ) {
-            $statement .= ' AND message_transport_type = ? ';
-            push @query_params, $params->{'type'};
+        if ( $params->{'message_transport_type'} ) {
+            my @types = ref $params->{'message_transport_type'} eq "ARRAY" ? @{$params->{'message_transport_type'}} : $params->{'message_transport_type'};
+            if ( @types ) {
+                my $q = join( ",", ("?") x @types );
+                $statement .= " AND message_transport_type IN ( $q ) ";
+                push @query_params, @types;
+            }
         }
         if ( $params->{message_id} && !ref $params->{'message_id'} eq 'ARRAY' ) {
             $statement .= ' AND message_id = ?';
@@ -1489,8 +1439,6 @@ sub _get_unsent_messages {
         }
     }
 
-    $debug and warn "_get_unsent_messages SQL: $statement";
-    $debug and warn "_get_unsent_messages params: " . join(',',@query_params);
     my $sth = $dbh->prepare( $statement );
     my $result = $sth->execute( @query_params );
     return $sth->fetchall_arrayref({});
@@ -1545,7 +1493,7 @@ sub _send_message_by_email {
         # if yes use letters of the bookmobile the branch 
         my $branchcode = Koha::Libraries->get_effective_branch($patron->library->branchcode);
         
-        my $library = Koha::Libraries->find( $branchcode );
+        $library           = Koha::Libraries->find( $branchcode );
         $branch_email      = $library->from_email_address;
         $branch_replyto    = $library->branchreplyto;
         $branch_returnpath = $library->branchreturnpath;
@@ -1716,6 +1664,7 @@ sub _is_duplicate {
 sub _send_message_by_sms {
     my $message = shift or return;
     my $patron = Koha::Patrons->find( $message->{borrowernumber} );
+    _update_message_to_address($message->{message_id}, $patron->smsalertnumber) if $patron;
 
     unless ( $patron and $patron->smsalertnumber ) {
         _set_message_status( { message_id => $message->{'message_id'},
@@ -1795,9 +1744,10 @@ sub _set_message_status {
 sub _process_tt {
     my ( $params ) = @_;
 
-    my $content = $params->{content};
-    my $tables = $params->{tables};
-    my $loops = $params->{loops};
+    my $content    = $params->{content};
+    my $tables     = $params->{tables};
+    my $loops      = $params->{loops};
+    my $objects    = $params->{objects} || {};
     my $substitute = $params->{substitute} || {};
     my $lang = defined($params->{lang}) && $params->{lang} ne 'default' ? $params->{lang} : 'en';
     my ($theme, $availablethemes);
@@ -1824,13 +1774,21 @@ sub _process_tt {
         }
     ) or die Template->error();
 
-    my $tt_params = { %{ _get_tt_params( $tables ) }, %{ _get_tt_params( $loops, 'is_a_loop' ) }, %$substitute };
+    my $tt_params = { %{ _get_tt_params( $tables ) }, %{ _get_tt_params( $loops, 'is_a_loop' ) }, %$substitute, %$objects };
 
     $content = add_tt_filters( $content );
     $content = qq|[% USE KohaDates %][% USE Remove_MARC_punctuation %]$content|;
 
     my $output;
-    $template->process( \$content, $tt_params, \$output ) || croak "ERROR PROCESSING TEMPLATE: " . $template->error();
+    my $schema = Koha::Database->new->schema;
+    $schema->txn_begin;
+    my $processed = try {
+        $template->process( \$content, $tt_params, \$output );
+    }
+    finally {
+        $schema->txn_rollback;
+    };
+    croak "ERROR PROCESSING TEMPLATE: " . $template->error() unless $processed;
 
     return $output;
 }
@@ -1853,6 +1811,12 @@ sub _get_tt_params {
             singular => 'basket',
             plural   => 'baskets',
             pk       => 'basketno',
+        },
+        aqbooksellers => {
+            module   => 'Koha::Acquisition::Booksellers',
+            singular => 'bookseller',
+            plural   => 'booksellers',
+            pk       => 'id',
         },
         biblio => {
             module   => 'Koha::Biblios',
@@ -1896,8 +1860,14 @@ sub _get_tt_params {
             plural   => 'items',
             pk       => 'itemnumber',
         },
+        additional_contents => {
+            module   => 'Koha::AdditionalContents',
+            singular => 'additional_content',
+            plural   => 'additional_contents',
+            pk       => 'idnew',
+        },
         opac_news => {
-            module   => 'Koha::News',
+            module   => 'Koha::AdditionalContents',
             singular => 'news',
             plural   => 'news',
             pk       => 'idnew',

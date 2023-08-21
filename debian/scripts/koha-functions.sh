@@ -226,17 +226,46 @@ is_indexer_running()
     fi
 }
 
-is_worker_running()
+is_es_indexer_running()
 {
     local instancename=$1
 
-    if daemon --name="$instancename-koha-worker" \
+    if daemon --name="$instancename-koha-es-indexer" \
             --pidfiles="/var/run/koha/$instancename/" \
             --user="$instancename-koha.$instancename-koha" \
             --running ; then
         return 0
     else
         return 1
+    fi
+}
+
+is_worker_running()
+{
+    local instancename=$1
+    local queue=$2
+
+    local name=`get_worker_name $instancename $queue`
+
+    if daemon --name="$name" \
+            --pidfiles="/var/run/koha/$instancename/" \
+            --user="$instancename-koha.$instancename-koha" \
+            --running ; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+get_worker_name()
+{
+    local name=$1
+    local queue=$2
+
+    if [ "$queue" = "" ] || [ "$queue" = "default" ]; then
+        echo "${name}-koha-worker"
+    else
+        echo "${name}-koha-worker-${queue}"
     fi
 }
 
@@ -342,6 +371,20 @@ is_z3950_running()
     fi
 }
 
+is_elasticsearch_enabled()
+{
+    local instancename=$1
+
+    # is querying the DB fails then $searching won't match 'Elasticsearch'. Ditching STDERR
+    search_engine=$(koha-shell $instancename -c "/usr/share/koha/bin/admin/koha-preferences get SearchEngine 2> /dev/null")
+
+    if [ "$search_engine" = "Elasticsearch" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 adjust_paths_dev_install()
 {
 # Adjust KOHA_HOME, PERL5LIB for dev installs, as indicated by
@@ -388,6 +431,26 @@ get_max_record_size()
         echo "$retval"
     else
         echo "1024"
+    fi
+}
+
+get_tmp_path()
+{
+    local instancename=$1
+    local retval=$(run_safe_xmlstarlet $instancename tmp_path)
+    if [ "$retval" != "" ]; then
+        echo "$retval"
+        return 0
+    fi
+}
+
+get_upload_path()
+{
+    local instancename=$1
+    local retval=$(run_safe_xmlstarlet $instancename upload_path)
+    if [ "$retval" != "" ]; then
+        echo "$retval"
+        return 0
     fi
 }
 

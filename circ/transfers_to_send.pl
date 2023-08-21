@@ -20,10 +20,10 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 
 my $input      = CGI->new;
 my $itemnumber = $input->param('itemnumber');
@@ -34,7 +34,6 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
         query         => $input,
         type          => "intranet",
         flagsrequired => { circulate => "circulate_remaining_permissions" },
-        debug         => 1,
     }
 );
 
@@ -42,7 +41,7 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
 my $branchcode = C4::Context->userenv->{'branch'};
 
 # transfers requested but not yet sent
-my @transfers = Koha::Libraries->search(
+my $transfers = Koha::Libraries->search(
     {
         'branchtransfers_tobranches.frombranch'    => $branchcode,
         'branchtransfers_tobranches.daterequested' => { '!=' => undef },
@@ -57,7 +56,7 @@ my @transfers = Koha::Libraries->search(
 );
 
 $template->param(
-    libraries => \@transfers,
+    libraries => $transfers,
     show_date => dt_from_string
 );
 

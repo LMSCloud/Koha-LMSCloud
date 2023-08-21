@@ -24,28 +24,28 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use DateTime::TimeZone;
-use File::Spec;
-use File::Slurp;
-use List::MoreUtils qw/ any /;
-use LWP::Simple;
-use Module::Load::Conditional qw(can_load);
-use XML::Simple;
-use Config;
+use File::Slurp qw( read_file );
+use List::MoreUtils qw( any );
+use Module::Load::Conditional qw( can_load );
+use Config qw( %Config );
 use Search::Elasticsearch;
-use Try::Tiny;
+use Try::Tiny qw( catch try );
 use YAML::XS;
 use Encode;
 
-use C4::Output;
-use C4::Auth;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user get_user_subpermissions );
 use C4::Context;
+use C4::Installer;
 use C4::Installer::PerlModules;
 
 use Koha;
-use Koha::DateUtils qw(dt_from_string output_pref);
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Acquisition::Currencies;
+use Koha::Authorities;
 use Koha::BackgroundJob;
 use Koha::BiblioFrameworks;
+use Koha::Biblios;
 use Koha::Email;
 use Koha::Patron::Categories;
 use Koha::Patrons;
@@ -58,9 +58,6 @@ use Koha::Filter::MARC::ViewPolicy;
 
 use C4::Members::Statistics;
 
-
-#use Smart::Comments '####';
-
 my $query = CGI->new;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
@@ -68,7 +65,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $query,
         type            => "intranet",
         flagsrequired   => { catalogue => 1 },
-        debug           => 1,
     }
 );
 
@@ -130,7 +126,7 @@ if ($^O ne 'VMS') {
 my $zebraVersion = `zebraidx -V`;
 
 # Check running PSGI env
-if ( any { /(^psgi\.|^plack\.)/i } keys %ENV ) {
+if ( C4::Context->psgi_env ) {
     $template->param(
         is_psgi => 1,
         psgi_server => ($ENV{ PLACK_ENV }) ? "Plack ($ENV{PLACK_ENV})" :
@@ -177,8 +173,8 @@ if ($prefStatisticsFields) {
 }
 
 my $prefAutoCreateAuthorities = C4::Context->preference('AutoCreateAuthorities');
-my $prefBiblioAddsAuthorities = C4::Context->preference('BiblioAddsAuthorities');
-my $warnPrefBiblioAddsAuthorities = ( $prefAutoCreateAuthorities && ( !$prefBiblioAddsAuthorities) );
+my $prefRequireChoosingExistingAuthority = C4::Context->preference('RequireChoosingExistingAuthority');
+my $warnPrefRequireChoosingExistingAuthority = ( !$prefAutoCreateAuthorities && ( !$prefRequireChoosingExistingAuthority) );
 
 my $prefEasyAnalyticalRecords  = C4::Context->preference('EasyAnalyticalRecords');
 my $prefUseControlNumber  = C4::Context->preference('UseControlNumber');
@@ -284,6 +280,11 @@ if ( ! C4::Context->config('tmp_path') ) {
     }
 }
 
+my $encryption_key = C4::Context->config('encryption_key');
+if ( !$encryption_key || $encryption_key eq '__ENCRYPTION_KEY__') {
+    push @xml_config_warnings, { error => 'encryption_key_missing' };
+}
+
 # Test Zebra facets configuration
 if ( !defined C4::Context->config('use_zebra_facets') ) {
     push @xml_config_warnings, { error => 'use_zebra_facets_entry_missing' };
@@ -326,12 +327,38 @@ if ( C4::Context->preference('ILLModule') ) {
     $template->param( warnILLConfiguration => $warnILLConfiguration );
 }
 
+{
+    # XSLT sysprefs
+    my @xslt_prefs = qw(
+        OPACXSLTDetailsDisplay
+        OPACXSLTListsDisplay
+        OPACXSLTResultsDisplay
+        XSLTDetailsDisplay
+        XSLTListsDisplay
+        XSLTResultsDisplay
+    );
+    my @warnXSLT;
+    for my $p ( @xslt_prefs ) {
+        my $xsl_filename = C4::XSLT::get_xsl_filename( $p );
+        next if -e $xsl_filename;
+        push @warnXSLT,
+          {
+            syspref  => $p,
+            value    => C4::Context->preference("$p"),
+            filename => $xsl_filename
+          };
+    }
+
+    $template->param( warnXSLT => \@warnXSLT ) if @warnXSLT;
+}
+
 if ( C4::Context->preference('SearchEngine') eq 'Elasticsearch' ) {
     # Check ES configuration health and runtime status
 
     my $es_status;
     my $es_config_error;
     my $es_running = 1;
+    my $es_has_missing = 0;
 
     my $es_conf;
     try {
@@ -356,15 +383,15 @@ if ( C4::Context->preference('SearchEngine') eq 'Elasticsearch' ) {
         my $es_status->{version} = $es->info->{version}->{number};
 
         foreach my $index ( @indexes ) {
-            my $count;
+            my $index_count;
             try {
-                $count = $es->indices->stats( index => $index )
+                $index_count = $es->indices->stats( index => $index )
                       ->{_all}{primaries}{docs}{count};
             }
             catch {
                 if ( ref($_) eq 'Search::Elasticsearch::Error::Missing' ) {
                     push @{ $es_status->{errors} }, "Index not found ($index)";
-                    $count = -1;
+                    $index_count = -1;
                 }
                 elsif ( ref($_) eq 'Search::Elasticsearch::Error::NoNodes' ) {
                     $es_running = 0;
@@ -375,15 +402,31 @@ if ( C4::Context->preference('SearchEngine') eq 'Elasticsearch' ) {
                 }
             };
 
+            my $db_count = -1;
+            my $missing_count = 0;
+            if ( $index eq $biblios_index_name ) {
+                $db_count = Koha::Biblios->search->count;
+            } elsif ( $index eq $authorities_index_name ) {
+                $db_count = Koha::Authorities->search->count;
+            }
+            if ( $db_count != -1 && $index_count != -1 ) {
+                $missing_count = $db_count - $index_count;
+                $es_has_missing = 1 if $missing_count > 0;
+            }
             push @{ $es_status->{indexes} },
               {
-                index_name => $index,
-                count      => $count
+                index_name    => $index,
+                index_count   => $index_count,
+                db_count      => $db_count,
+                missing_count => $missing_count,
               };
         }
         $es_status->{running} = $es_running;
 
-        $template->param( elasticsearch_status => $es_status );
+        $template->param(
+            elasticsearch_status      => $es_status,
+            elasticsearch_has_missing => $es_has_missing,
+        );
     }
 }
 
@@ -547,7 +590,9 @@ $template->param( 'bad_yaml_prefs' => \@bad_yaml_prefs ) if @bad_yaml_prefs;
     my @frameworkcodes = Koha::BiblioFrameworks->search->get_column('frameworkcode');
     my @hidden_biblionumbers;
     push @frameworkcodes, ""; # it's not in the biblio_frameworks table!
+    my $no_FA_framework = 1;
     for my $frameworkcode ( @frameworkcodes ) {
+        $no_FA_framework = 0 if $frameworkcode eq 'FA';
         my $shouldhidemarc_opac = Koha::Filter::MARC::ViewPolicy->should_hide_marc(
             {
                 frameworkcode => $frameworkcode,
@@ -567,6 +612,7 @@ $template->param( 'bad_yaml_prefs' => \@bad_yaml_prefs ) if @bad_yaml_prefs;
           if $shouldhidemarc_intranet->{biblionumber};
     }
     $template->param( warnHiddenBiblionumbers => \@hidden_biblionumbers );
+    $template->param( warnFastCataloging => $no_FA_framework );
 }
 
 {
@@ -580,6 +626,11 @@ $template->param( 'bad_yaml_prefs' => \@bad_yaml_prefs ) if @bad_yaml_prefs;
     }
 }
 
+#BZ 28267: Warn administrators if there are database rows with a format other than 'DYNAMIC'
+{
+    $template->param( warnDbRowFormat => C4::Installer->has_non_dynamic_row_format );
+}
+
 my %versions = C4::Context::get_versions();
 
 $template->param(
@@ -591,9 +642,9 @@ $template->param(
     mysqlVersion  => $versions{'mysqlVersion'},
     apacheVersion => $versions{'apacheVersion'},
     zebraVersion  => $zebraVersion,
-    prefBiblioAddsAuthorities => $prefBiblioAddsAuthorities,
+    prefRequireChoosingExistingAuthority => $prefRequireChoosingExistingAuthority,
     prefAutoCreateAuthorities => $prefAutoCreateAuthorities,
-    warnPrefBiblioAddsAuthorities => $warnPrefBiblioAddsAuthorities,
+    warnPrefRequireChoosingExistingAuthority => $warnPrefRequireChoosingExistingAuthority,
     warnPrefEasyAnalyticalRecords  => $warnPrefEasyAnalyticalRecords,
     warnPrefAnonymousPatronOPACPrivacy        => $warnPrefAnonymousPatronOPACPrivacy,
     warnPrefAnonymousPatronAnonSuggestions    => $warnPrefAnonymousPatronAnonSuggestions,
@@ -681,6 +732,7 @@ my $dev_team = (sort {$b <=> $a} (keys %{$teams->{team}}))[0];
 my $short_version = substr($versions{'kohaVersion'},0,5);
 my $minor = substr($versions{'kohaVersion'},3,2);
 my $development_version = ( $minor eq '05' || $minor eq '11' ) ? 0 : 1;
+my $codename;
 $template->param( short_version => $short_version );
 $template->param( development_version => $development_version );
 
@@ -706,7 +758,16 @@ for my $version ( sort { $a <=> $b } keys %{$teams->{team}} ) {
                 }
             }
         }
-        elsif ( $role ne 'release_date' ) {
+        elsif ( $role eq 'release_date' ) {
+            $teams->{team}->{$version}->{$role} = DateTime->from_epoch( epoch => $teams->{team}->{$version}->{$role});
+        }
+        elsif ( $role eq 'codename' ) {
+            if ( $version == $short_version ) {
+                $codename = $teams->{team}->{$version}->{$role};
+            }
+            next;
+        }
+        else {
             my $name = $teams->{team}->{$version}->{$role}->{name};
             # Add role to contributors
             push @{ $contributors->{$name}->{roles}->{$normalized_role} },
@@ -716,9 +777,6 @@ for my $version ( sort { $a <=> $b } keys %{$teams->{team}} ) {
                 $teams->{team}->{$version}->{$role}->{openhub} =
                   $contributors->{$name}->{openhub};
             }
-        }
-        else {
-            $teams->{team}->{$version}->{$role} = DateTime->from_epoch( epoch => $teams->{team}->{$version}->{$role});
         }
     }
 }
@@ -737,6 +795,7 @@ my @people = map {
   lc($a2last||"") cmp lc($b2last||"");
 } keys %$contributors;
 
+$template->param( kohaCodename  => $codename);
 $template->param( contributors => \@people );
 $template->param( maintenance_team => $teams->{team}->{$dev_team} );
 $template->param( release_team => $teams->{team}->{$short_version} );

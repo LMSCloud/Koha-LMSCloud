@@ -6,8 +6,7 @@ use warnings;
 use autouse 'Data::Dumper' => qw(Dumper);
 
 use C4::Context;
-use C4::Debug;
-use C4::Creators::Lib qw(get_unit_values);
+use C4::Creators::Lib qw( get_unit_values );
 
 
 sub _check_params {
@@ -60,7 +59,7 @@ sub new {
     my $type = ref($invocant) || $invocant;
     my $self = {
         printer_name    => 'Default Printer',
-        template_id     => '',
+        template_id     => 0,
         paper_bin       => 'Tray 1',
         offset_horz     => 0,
         offset_vert     => 0,
@@ -107,7 +106,7 @@ sub delete {
         push @params, $opts{'profile_id'}, $opts{'creator'};
     }
     if (scalar(@params) < 2) {   # If there is no profile id or creator type then we cannot delete it
-        warn sprintf('%s : Cannot delete profile as the profile id is invalid or non-existent.', $call_type) if !$params[0];
+        warn sprintf('%s : Cannot delete profile as the profile ID is invalid or non-existent.', $call_type) if !$params[0];
         warn sprintf('%s : Cannot delete profile as the creator type is invalid or non-existent.', $call_type) if !$params[1];
         return -1;
     }

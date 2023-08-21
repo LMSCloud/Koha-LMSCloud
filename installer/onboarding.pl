@@ -19,14 +19,13 @@
 
 use Modern::Perl;
 use C4::Context;
-use C4::InstallAuth;
+use C4::InstallAuth qw( checkauth get_template_and_user );
 use CGI qw ( -utf8 );
-use C4::Output;
-use C4::Members qw(checkcardnumber);
+use C4::Output qw( output_html_with_http_headers );
+use C4::Members qw( checkcardnumber );
 use Koha::Patrons;
 use Koha::Libraries;
 use Koha::Database;
-use Koha::DateUtils;
 use Koha::Patrons;
 use Koha::Patron::Categories;
 use Koha::ItemTypes;
@@ -99,17 +98,6 @@ if ( $step == 2 ) {
         my $default_privacy       = $input->param('default_privacy');
         my $enrolmentperiod       = $input->param('enrolmentperiod');
         my $enrolmentperioddate = $input->param('enrolmentperioddate') || undef;
-
-        #Converts the string into a date format
-        if ($enrolmentperioddate) {
-            $enrolmentperioddate = output_pref(
-                {
-                    dt         => dt_from_string($enrolmentperioddate),
-                    dateformat => 'DateTime',
-                    dateonly   => 1,
-                }
-            );
-        }
 
         #Adds a new patron category to the database
         $category = Koha::Patron::Category->new(
@@ -242,7 +230,7 @@ if ( $step == 5 ) {
         my $categorycode    = $input->param('categorycode');
         my $itemtype        = $input->param('itemtype');
         my $maxissueqty     = $input->param('maxissueqty');
-        my $issuelength     = $input->param('issuelength');
+        my $issuelength     = $input->param('issuelength') || 0;
         my $lengthunit      = $input->param('lengthunit');
         my $renewalsallowed = $input->param('renewalsallowed');
         my $renewalperiod   = $input->param('renewalperiod');
@@ -252,7 +240,6 @@ if ( $step == 5 ) {
         my $onshelfholds    = $input->param('onshelfholds') || 0;
         $maxissueqty =~ s/\s//g;
         $maxissueqty = undef if $maxissueqty !~ /^\d+/;
-        $issuelength = $issuelength eq q{} ? undef : $issuelength;
 
         my $params = {
             branchcode      => $branchcode,
@@ -286,8 +273,15 @@ if ( $step == 5 ) {
                 overduefinescap                  => "",
                 rentaldiscount                   => 0,
                 reservesallowed                  => $reservesallowed,
-                suspension_chargeperiod          => undef,
-                decreaseloanholds                => undef,
+                suspension_chargeperiod          => 1,
+                decreaseloanholds                => "",
+                unseen_renewals_allowed          => "",
+                recalls_allowed                  => undef,
+                recalls_per_record               => undef,
+                on_shelf_recalls                 => undef,
+                recall_due_date_interval         => undef,
+                recall_overdue_fine              => undef,
+                recall_shelf_time                => undef,
               }
         };
 
@@ -321,7 +315,6 @@ my ( $template, $loggedinuser );
         template_name   => "onboarding/onboardingstep${step}.tt",
         query           => $input,
         type            => "intranet",
-        debug           => 1,
     }
 );
 

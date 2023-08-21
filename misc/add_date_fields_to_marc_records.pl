@@ -17,18 +17,14 @@
 
 use Modern::Perl;
 
-BEGIN {
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
-
 use Koha::Script;
 
-use Getopt::Long;
-use Pod::Usage;
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 use MARC::Field;
 
 use C4::Biblio;
+use Koha::Biblios;
 use Koha::DateUtils qw( dt_from_string );
 
 my ( $verbose, $help, $confirm, $where, @fields, $unless_exists_field );
@@ -67,8 +63,8 @@ my $sth =
 $sth->execute();
 
 while ( my ( $biblionumber, $frameworkcode ) = $sth->fetchrow_array ) {
-    my $marc_record =
-      C4::Biblio::GetMarcBiblio( { biblionumber => $biblionumber } );
+    my $biblio = Koha::Biblios->find($biblionumber);
+    my $marc_record = $biblio->metadata->record;
     next unless $marc_record;
     if ( $unless_exists_field ) {
         my ( $tag,  $subfield ) = split '\$', $unless_exists_field;

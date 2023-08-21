@@ -17,7 +17,7 @@ function check_form_borrowers(nav){
     //patrons form to test if you checked no to the question of double
     if (statut!=1 && document.form.check_member.value > 0 ) {
         if (!(document.form.answernodouble.checked)){
-            message_champ+= MSG_DUPLICATE_SUSPICION;
+            message_champ += __("Please confirm whether this is a duplicate patron");
             statut=1;
             document.form.nodouble.value=0;
         } else {
@@ -36,8 +36,8 @@ function check_form_borrowers(nav){
 
 function clear_entry(node) {
     var original = $(node).parent();
-    $("textarea", original).attr('value', '');
-    $("select", original).attr('value', '');
+    $("textarea", original).val('');
+    $("select", original).val('');
 }
 
 function clone_entry(node) {
@@ -72,17 +72,17 @@ function update_category_code(category_code) {
     //Change password length hint
     var hint = $("#password").siblings(".hint").first();
     var min_length = $('select'+category_selector+' option:selected').data('pwdLength');
-    var hint_string = MSG_PASSWORD_LENGTH.format(min_length);
+    var hint_string = __("Minimum password length: %s").format(min_length);
     hint.html(hint_string);
 }
 
 function select_user(borrowernumber, borrower, relationship) {
-    let is_guarantor = $(`.guarantor-details[data-borrowernumber=${borrower.borrowernumber}]`).length;
+    let is_guarantor = $(`.guarantor-details[data-borrowernumber=${borrowernumber}]`).length;
 
     if ( is_guarantor ) {
         alert("Patron is already a guarantor for this patron");
     } else {
-        $('#guarantor_id').val(borrower.borrowernumber);
+        $('#guarantor_id').val(borrowernumber);
         $('#guarantor_surname').val(borrower.surname);
         $('#guarantor_firstname').val(borrower.firstname);
 
@@ -113,7 +113,7 @@ function select_user(borrowernumber, borrower, relationship) {
         fieldset.find('.new_guarantor_relationship').first().val( guarantor_relationship );
         $('#relationship').find('option:eq(0)').prop('selected', true);
 
-        fieldset.find('.guarantor-details').first().attr( 'data-borrowernumber', borrower.borrowernumber );
+        fieldset.find('.guarantor-details').first().attr( 'data-borrowernumber', borrowernumber );
 
         $('#guarantor_relationships').append( fieldset );
         fieldset.show();
@@ -128,7 +128,7 @@ function select_user(borrowernumber, borrower, relationship) {
 
 function CalculateAge(dateofbirth) {
     var today = new Date();
-    var dob = Date_from_syspref(dateofbirth);
+    var dob = new Date(dateofbirth);
     var age = {};
 
     age.year = today.getFullYear() - dob.getFullYear();
@@ -148,7 +148,7 @@ function CalculateAge(dateofbirth) {
 }
 
 function write_age() {
-    var hint = $("#dateofbirth").siblings(".hint").first();
+    var hint = $("#dateofbirth_hint");
     hint.html(dateformat);
 
     var age = CalculateAge(document.form.dateofbirth.value);
@@ -159,16 +159,16 @@ function write_age() {
 
     var age_string;
     if (age.year || age.month) {
-        age_string = LABEL_AGE + ": ";
+        age_string = __("Age") + ": ";
     }
 
     if (age.year) {
-        age_string += age.year > 1 ? MSG_YEARS.format(age.year) : MSG_YEAR.format(age.year);
+        age_string += age.year > 1 ? __("%s years").format(age.year) : __("%s year").format(age.year);
         age_string += " ";
     }
 
     if (age.month) {
-        age_string += age.month > 1 ? MSG_MONTHS.format(age.month) : MSG_MONTH.format(age.month);
+        age_string += age.month > 1 ? __("%s months").format(age.month) : __("%s month").format(age.month);
     }
 
     hint.html(age_string);
@@ -190,14 +190,18 @@ $(document).ready(function(){
     });
     var mandatory_fields = $("input[name='BorrowerMandatoryField']").val().split ('|');
     $(mandatory_fields).each(function(){
-        $("[name='"+this+"']").attr('required', 'required');
+        let input = $("[name='"+this+"']")
+        if ( input.hasClass('flatpickr') ) {
+            $(input).siblings('.flatpickr_wrapper').find('input.flatpickr').prop('required', true)
+        }
+        input.prop('required', true);
     });
 
     $("fieldset.rows input, fieldset.rows select").addClass("noEnterSubmit");
 
     $('body').on('click', '#guarantor_search', function(e) {
         e.preventDefault();
-        var newin = window.open('guarantor_search.pl','popup','width=800,height=600,resizable=no,toolbar=false,scrollbars=yes,top');
+        var newin = window.open('/cgi-bin/koha/members/search.pl?columns=cardnumber,name,category,branch,dateofbirth,address-library,action','popup','width=1024,height=768,resizable=no,toolbar=false,scrollbars=yes,top');
     });
 
     $('#guarantor_relationships').on('click', '.guarantor_cancel', function(e) {
@@ -229,7 +233,7 @@ $(document).ready(function(){
     $.validator.addMethod(
         "phone",
         function(value, element, phone) {
-            let e164_re = /^(\+[1-9]\d{0,2})?\d{1,12}$/;
+            let e164_re = /^((\+?|(0{2})?)?[1-9]{0,2})?\d{1,12}$/;
             let has_plus = value.charAt(0) === '+';
             value = value.replace(/\D/g,'');
             if ( has_plus ) value = '+' + value;

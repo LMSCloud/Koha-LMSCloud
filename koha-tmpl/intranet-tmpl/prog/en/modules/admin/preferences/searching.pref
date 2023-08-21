@@ -95,20 +95,27 @@ Searching:
             - "Use the following index fields separated by comma "
             - pref: ElasticsearchDefaultAutoCompleteIndexFields
             - " to query suggestions for search field auto completion if no query field is selected. Each of the index fields need to have a suggestion index enabled."
+        -
+            - pref: SavedSearchFilters
+              default: 0
+              choices:
+                  1: Enable
+                  0: Disable
+            - "the option for staff with permission to create/edit custom saved search filters."
     Search form:
         -
             - pref : LoadSearchHistoryToTheFirstLoggedUser
               default: 0
               choices:
                    1: "Add"
-                   no : "Don't add"
+                   0: "Don't add"
             - search history of the unlogged user to the next patron logging in.
         -
-            - Show tabs in the OPAC and staff interface advanced search for limiting searches on the
+            - Show tabs in the staff interface advanced search for limiting searches on the
             - pref: AdvancedSearchTypes
               class: long
             - "fields (separate values with |). Tabs appear in the order listed.<br/>"
-            - "<em>Currently supported values</em>: Item types (<strong>itemtypes</strong>), Collection Codes (<strong>ccode</strong>) and Shelving Location (<strong>loc</strong>)."
+            - "<em>Currently supported values</em>: Item types (<strong>itemtypes</strong>), Collection, (<strong>ccode</strong>) and Shelving location (<strong>loc</strong>)."
         -
             - Limit the languages listed in the advanced search drop-down to the
             - pref: AdvancedSearchLanguages
@@ -262,17 +269,10 @@ Searching:
                   holding: "holding library"
                   both: "both home and holding library"
         -
-            - pref: OPACItemsResultsDisplay
-              type: boolean
-              choices:
-                  1: Show
-                  0: "Don't show"
-            - "an item's library, location and call number in OPAC search results."
-        -
             - Truncate facets length to
             - pref: FacetLabelTruncationLength
               class: integer
-            - characters, in OPAC/staff interface.
+            - characters, in OPAC/staff interface (REQUIRES ZEBRA).
         -
             - Use the following text as separator for UNIMARC authors facets
             - pref: UNIMARCAuthorsFacetsSeparator
@@ -285,10 +285,29 @@ Searching:
                   0: "don't search"
             - on all variations of the ISBN.
         -
+            - When searching on the ISSN index,
+            - pref: SearchWithISSNVariations
+              choices:
+                  1: "search"
+                  0: "don't search"
+            - on all variations of the ISSN.
+        -
+            - pref: RetainCatalogSearchTerms
+              choices:
+                  0: "Don't retain"
+                  1: "Retain"
+            - search terms between searches when searching from the 'search the catalog' tab in the staff interface header.
+        -
+            - pref: RetainPatronsSearchTerms
+              choices:
+                  0: "Don't retain"
+                  1: "Retain"
+            - search terms between searches when searching from the 'checkout' and 'search patrons' tab in the staff interface header.
+        -
             - pref: BiblioItemtypeInfo
               choices:
-                  1: "Display"
-                  0: "Don't display"
+                  1: "Show"
+                  0: "Don't show"
             - ' Koha record level itemtype info on detail and result pages in the OPAC and staff interface. This info also displays if the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=item-level_itypes">item-level_itypes</a> system preference is set to bibliographic record.'
         -
             - pref: PassItemMarcToXSLT
@@ -296,7 +315,14 @@ Searching:
               choices:
                   1: Do
                   0: "Don't"
-            - "make item MARC tags available to XSLT stylesheets. Default is \"Don't\", items are displayed using other methods."
+            - "make item MARC fields (MARC21 952, UNIMARC 995) available to XSLT stylesheets for OPAC and staff interface results pages."
+            - "<br/>Default is \"Don't\", items are displayed using other methods."
+        -
+            - pref: ShowHeadingUse
+              choices:
+                  1: Show
+                  0: "Don't show"
+            - "whether an authority record contains an established heading that conforms to descriptive cataloguing rules, and can therefore be used as a main/added entry, or subject, or series title."
     Did you mean/spell checking:
         -
             - "Swedish service for spellchecking.<br/>"
@@ -306,4 +332,5 @@ Searching:
         -
             - LIBRIS base URL
             - pref: LibrisURL
+              class: url
             - "Please only change this if you are sure it needs changing."

@@ -20,20 +20,21 @@ package Koha::Acquisition::Order;
 use Modern::Perl;
 
 use Carp qw( croak );
-use Try::Tiny;
 
-use C4::Biblio qw(DelBiblio);
+use C4::Biblio qw( DelBiblio );
+use C4::Acquisition;
 
 use Koha::Acquisition::Baskets;
 use Koha::Acquisition::Funds;
 use Koha::Acquisition::Invoices;
 use Koha::Acquisition::Order::Claims;
 use Koha::Database;
-use Koha::DateUtils qw( dt_from_string output_pref );
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Exceptions::Object;
 use Koha::Biblios;
 use Koha::Holds;
 use Koha::Items;
+use Koha::Number::Price;
 use Koha::Subscriptions;
 
 use base qw(Koha::Object);
@@ -78,6 +79,7 @@ sub store {
 
     # if these parameters are missing, we can't continue
     for my $key (qw( basketno quantity biblionumber budget_id )) {
+        next if $key eq 'biblionumber' && ($self->orderstatus // q{}) eq 'cancelled'; # cancelled order might have biblionumber NULL
         croak "Cannot insert order: Mandatory parameter $key is missing"
           unless $self->$key;
     }
@@ -106,8 +108,11 @@ sub store {
 =head3 cancel
 
     $order->cancel(
-        { [ reason        => $reason,
-            delete_biblio => $delete_biblio ]
+        {
+            [
+                reason        => $reason,
+                delete_biblio => $delete_biblio
+            ]
         }
     );
 
@@ -130,11 +135,11 @@ sub cancel {
     my $items = $self->items;
     while ( my $item = $items->next ) {
         my $deleted = $item->safe_delete;
-        unless ( ref($deleted) eq 'Koha::Item' ) {
+        unless ( $deleted ) {
             $self->add_message(
                 {
                     message => 'error_delitem',
-                    payload => { item => $item, reason => $deleted }
+                    payload => { item => $item, reason => @{$deleted->messages}[0]->message }
                 }
             );
         }
@@ -159,6 +164,7 @@ sub cancel {
                     payload => { biblio => $biblio, reason => $error }
                 }
             ) if $error;
+            $self->biblionumber(undef) unless $error; # constraint cleared biblionumber in db already
         }
         else {
 
@@ -480,6 +486,133 @@ sub duplicate_to {
     return $new_order;
 }
 
+=head3 populate_with_prices_for_ordering
+
+Sets calculated values for an order - all values are stored with full precision
+regardless of rounding preference except for tax value which is calculated on
+rounded values if requested
+
+    $order->populate_with_prices_for_ordering()
+
+The values set are:
+    rrp_tax_included
+    rrp_tax_excluded
+    ecost_tax_included
+    ecost_tax_excluded
+    tax_value_on_ordering
+
+=cut
+
+sub populate_with_prices_for_ordering {
+    my ($self) = @_;
+
+    my $bookseller = $self->basket->bookseller;
+    return unless $bookseller;
+
+    my $discount = $self->discount || 0;
+    $discount /= 100 if $discount > 1;
+
+    if ( $bookseller->listincgst ) {
+        # The user entered the prices tax included
+        $self->unitprice($self->unitprice + 0);
+        $self->unitprice_tax_included($self->unitprice);
+        $self->rrp_tax_included($self->rrp);
+
+        # price tax excluded = price tax included / ( 1 + tax rate )
+        $self->unitprice_tax_excluded( $self->unitprice_tax_included / ( 1 + $self->tax_rate_on_ordering ) );
+        $self->rrp_tax_excluded( $self->rrp_tax_included / ( 1 + $self->tax_rate_on_ordering ) );
+
+        # ecost tax included = rrp tax included  ( 1 - discount )
+        $self->ecost_tax_included($self->rrp_tax_included * ( 1 - $discount ));
+
+        # ecost tax excluded = rrp tax excluded * ( 1 - discount )
+        $self->ecost_tax_excluded($self->rrp_tax_excluded * ( 1 - $discount ));
+
+        # tax value = quantity * ecost tax excluded * tax rate
+        # we should use the unitprice if included
+        my $cost_tax_included = $self->unitprice_tax_included == 0 ? $self->ecost_tax_included : $self->unitprice_tax_included;
+        my $cost_tax_excluded = $self->unitprice_tax_excluded == 0 ? $self->ecost_tax_excluded : $self->unitprice_tax_excluded;
+        $self->tax_value_on_ordering( ( C4::Acquisition::get_rounded_price($cost_tax_included) - C4::Acquisition::get_rounded_price($cost_tax_excluded) ) * $self->quantity );
+    } else {
+        # The user entered the prices tax excluded
+        $self->unitprice_tax_excluded($self->unitprice);
+        $self->rrp_tax_excluded($self->rrp);
+
+        # price tax included = price tax excluded * ( 1 - tax rate )
+        $self->unitprice_tax_included($self->unitprice_tax_excluded * ( 1 + $self->tax_rate_on_ordering ));
+        $self->rrp_tax_included($self->rrp_tax_excluded * ( 1 + $self->tax_rate_on_ordering ));
+
+        # ecost tax excluded = rrp tax excluded * ( 1 - discount )
+        $self->ecost_tax_excluded($self->rrp_tax_excluded * ( 1 - $discount ));
+
+        # ecost tax included = rrp tax excluded * ( 1 + tax rate ) * ( 1 - discount ) = ecost tax excluded * ( 1 + tax rate )
+        $self->ecost_tax_included($self->ecost_tax_excluded * ( 1 + $self->tax_rate_on_ordering ));
+
+        # tax value = quantity * ecost tax included * tax rate
+        # we should use the unitprice if included
+        my $cost_tax_excluded = $self->unitprice_tax_excluded == 0 ? $self->ecost_tax_excluded : $self->unitprice_tax_excluded;
+        $self->tax_value_on_ordering($self->quantity * C4::Acquisition::get_rounded_price($cost_tax_excluded) * $self->tax_rate_on_ordering);
+    }
+}
+
+=head3 populate_with_prices_for_receiving
+
+Sets calculated values for an order - all values are stored with full precision
+regardless of rounding preference except for tax value which is calculated on
+rounded values if requested
+
+    $order->populate_with_prices_for_receiving()
+
+The values set are:
+    unitprice_tax_included
+    unitprice_tax_excluded
+    tax_value_on_receiving
+
+Note: When receiving, if the rounded value of the unitprice matches the rounded
+value of the ecost then then ecost (full precision) is used.
+
+=cut
+
+sub populate_with_prices_for_receiving {
+    my ($self) = @_;
+
+    my $bookseller = $self->basket->bookseller;
+    return unless $bookseller;
+
+    my $discount = $self->discount || 0;
+    $discount /= 100 if $discount > 1;
+
+    if ($bookseller->invoiceincgst) {
+        # Trick for unitprice. If the unit price rounded value is the same as the ecost rounded value
+        # we need to keep the exact ecost value
+        if ( Koha::Number::Price->new( $self->unitprice )->round == Koha::Number::Price->new( $self->ecost_tax_included )->round ) {
+            $self->unitprice($self->ecost_tax_included);
+        }
+
+        # The user entered the unit price tax included
+        $self->unitprice_tax_included($self->unitprice);
+
+        # unit price tax excluded = unit price tax included / ( 1 + tax rate )
+        $self->unitprice_tax_excluded($self->unitprice_tax_included / ( 1 + $self->tax_rate_on_receiving ));
+    } else {
+        # Trick for unitprice. If the unit price rounded value is the same as the ecost rounded value
+        # we need to keep the exact ecost value
+        if ( Koha::Number::Price->new($self->unitprice)->round == Koha::Number::Price->new($self->ecost_tax_excluded)->round ) {
+            $self->unitprice($self->ecost_tax_excluded);
+        }
+
+        # The user entered the unit price tax excluded
+        $self->unitprice_tax_excluded($self->unitprice);
+
+
+        # unit price tax included = unit price tax included * ( 1 + tax rate )
+        $self->unitprice_tax_included($self->unitprice_tax_excluded * ( 1 + $self->tax_rate_on_receiving ));
+    }
+
+    # tax value = quantity * unit price tax excluded * tax rate
+    $self->tax_value_on_receiving($self->quantity * C4::Acquisition::get_rounded_price($self->unitprice_tax_excluded) * $self->tax_rate_on_receiving);
+}
+
 =head3 to_api_mapping
 
 This method returns the mapping for representing a Koha::Acquisition::Order object
@@ -491,6 +624,7 @@ sub to_api_mapping {
     return {
         basketno                      => 'basket_id',
         biblionumber                  => 'biblio_id',
+        deleted_biblionumber          => 'deleted_biblio_id',
         budget_id                     => 'fund_id',
         budgetdate                    => undef,                    # unused
         cancellationreason            => 'cancellation_reason',

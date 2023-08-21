@@ -22,23 +22,22 @@ package C4::Breeding;
 use strict;
 use warnings;
 
-use C4::Biblio;
-use C4::Koha;
-use C4::Charset;
+use C4::Biblio qw(TransformMarcToKoha);
+use C4::Koha qw( GetVariationsOfISBN );
+use C4::Charset qw( MarcToUTF8Record SetUTF8Flag );
 use MARC::File::USMARC;
 use MARC::Field;
-use C4::ImportBatch;
-use C4::AuthoritiesMarc; #GuessAuthTypeCode, FindDuplicateAuthority
+use C4::ImportBatch qw( GetZ3950BatchId AddBiblioToBatch AddAuthToBatch );
+use C4::AuthoritiesMarc qw( GuessAuthTypeCode GetAuthorizedHeading );
 use C4::Languages;
 use Koha::Database;
 use Koha::XSLT::Base;
 
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-
+our (@ISA, @EXPORT_OK);
 BEGIN {
-	require Exporter;
-	@ISA = qw(Exporter);
-    @EXPORT = qw(&BreedingSearch &Z3950Search &Z3950SearchAuth Z3950SearchGeneral);
+    require Exporter;
+    @ISA       = qw(Exporter);
+    @EXPORT_OK = qw(BreedingSearch ImportBreedingAuth Z3950Search Z3950SearchAuth Z3950SearchGeneral);
 }
 
 =head1 NAME
@@ -81,8 +80,13 @@ sub BreedingSearch {
     # normalise ISBN like at import
     my @isbns = C4::Koha::GetVariationsOfISBN($term);
 
-    $query = "SELECT import_record_id, file_name, isbn, title, author
-              FROM  import_biblios 
+    $query = "SELECT import_biblios.import_record_id,
+                import_batches.file_name,
+                import_biblios.isbn,
+                import_biblios.title,
+                import_biblios.author,
+                import_batches.upload_timestamp
+              FROM  import_biblios
               JOIN import_records USING (import_record_id)
               JOIN import_batches USING (import_batch_id)
               WHERE title LIKE ? OR author LIKE ? OR isbn IN (" . join(',',('?') x @isbns) . ")";
@@ -291,16 +295,18 @@ sub _handle_one_result {
     my $breedingid = AddBiblioToBatch($batch_id, $seq, $marcrecord, 'UTF-8', 0);
         #Last zero indicates: no update for batch record counts
 
-
-    #call to TransformMarcToKoha replaced by next call
-    #we only need six fields from the marc record
     my $row;
-    $row = _add_rowdata(
-        {
-            biblionumber => $bib,
-            server       => $servhref->{servername},
-            breedingid   => $breedingid,
-        }, $marcrecord) if $breedingid;
+    if( $breedingid ){
+        my @kohafields = ('biblio.title','biblio.author','biblioitems.isbn','biblioitems.lccn','biblioitems.editionstatement');
+        push @kohafields, C4::Context->preference('marcflavour') eq "MARC21" ? 'biblio.copyrightdate' : 'biblioitems.publicationyear';
+        $row = C4::Biblio::TransformMarcToKoha({ record => $marcrecord, kohafields => \@kohafields, limit_table => 'no_items' });
+        $row->{date} = $row->{copyrightdate} // $row->{publicationyear};
+        $row->{biblionumber} = $bib;
+        $row->{server}       = $servhref->{servername};
+        $row->{breedingid}   = $breedingid;
+        $row->{isbn}=_isbn_replace($row->{isbn});
+        $row = _add_custom_field_rowdata($row, $marcrecord);
+    }
     return ( $row, $error );
 }
 
@@ -345,28 +351,6 @@ sub _do_xslt_proc {
     } else {
         return ( $marc, $xslh->err ); #original record in case of errors
     }
-}
-
-sub _add_rowdata {
-    my ($row, $record)=@_;
-    my %fetch= (
-        title => 'biblio.title',
-        author => 'biblio.author',
-        isbn =>'biblioitems.isbn',
-        lccn =>'biblioitems.lccn', #LC control number (not call number)
-        edition =>'biblioitems.editionstatement'
-    );
-    $fetch{date} = C4::Context->preference('marcflavour') eq "MARC21" ? 'biblio.copyrightdate' : 'biblioitems.publicationyear';
-
-    foreach my $k (keys %fetch) {
-        $row->{$k} = C4::Biblio::TransformMarcToKohaOneField( $fetch{$k}, $record );
-    }
-    $row->{date}//= $row->{date2};
-    $row->{isbn}=_isbn_replace($row->{isbn});
-
-    $row = _add_custom_field_rowdata($row, $record);
-
-    return $row;
 }
 
 sub _add_custom_field_rowdata
@@ -620,7 +604,7 @@ sub Z3950SearchAuth {
                             $heading_authtype_code = GuessAuthTypeCode($marcrecord);
                             next if ( not defined $heading_authtype_code ) ;
 
-                            $heading = C4::AuthoritiesMarc::GetAuthorizedHeading({ record => $marcrecord });
+                            $heading = GetAuthorizedHeading({ record => $marcrecord });
 
                             my $breedingid = ImportBreedingAuth( $marcrecord, $serverhost[$k], $encoding[$k], $heading );
                             my %row_data;

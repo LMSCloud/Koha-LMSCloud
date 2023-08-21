@@ -22,10 +22,10 @@ package C4::Message;
 use strict;
 use warnings;
 use C4::Context;
-use C4::Letters;
-use YAML::XS;
+use C4::Letters qw( GetPreparedLetter EnqueueLetter );
+use YAML::XS qw( Dump );
 use Encode;
-use Carp;
+use Carp qw( carp );
 
 =head1 NAME
 
@@ -37,8 +37,8 @@ How to add a new message to the queue:
 
   use C4::Message;
   use C4::Items;
-  my $borrower = { borrowernumber => 1 };
-  my $item     = Koha::Items->find($itemnumber)->unblessed;
+  my $patron = Koha::Patron->find({ borrowernumber => 1 });
+  my $item   = Koha::Items->find($itemnumber)->unblessed;
   my $letter =  C4::Letters::GetPreparedLetter (
       module => 'circulation',
       letter_code => 'CHECKOUT',
@@ -48,7 +48,7 @@ How to add a new message to the queue:
           'biblioitems', $item->{biblionumber},
       },
   );
-  C4::Message->enqueue($letter, $borrower->{borrowernumber}, 'email', $branch);
+  C4::Message->enqueue($letter, $patron, 'email', $branch);
 
 How to update a borrower's last checkout message:
 
@@ -148,7 +148,7 @@ sub find_last_message {
 }
 
 
-=head3 C4::Message->enqueue($letter, $borrower, $transport, $branch)
+=head3 C4::Message->enqueue($letter, $patron, $transport, $branch)
 
 This is a front-end for C<C4::Letters::EnqueueLetter()> that adds metadata to
 the message.
@@ -157,45 +157,45 @@ the message.
 
 # C4::Message->enqueue($letter, $borrower, $transport, $branch)
 sub enqueue {
-    my ($class, $letter, $borrower, $transport, $branch) = @_;
+    my ( $class, $letter, $patron, $transport, $branch ) = @_;
     my $metadata   = _metadata($letter);
-    my $to_address = _to_address($borrower, $transport);
+    my $to_address = _to_address( $patron, $transport );
 
     # Same as render_metadata
     my $format ||= sub { $_[0] || "" };
-    my $body = join('', map { $format->($_) } @{$metadata->{body}});
+    my $body = join( '', map { $format->($_) } @{ $metadata->{body} } );
     $letter->{content} = $metadata->{header} . $body . $metadata->{footer};
 
-    $letter->{metadata} = Encode::decode_utf8(Dump($metadata));
-    C4::Letters::EnqueueLetter({
-        letter                 => $letter,
-        borrowernumber         => $borrower->{borrowernumber},
-        message_transport_type => $transport,
-        to_address             => $to_address,
-        branchcode             => $branch
-    });
+    $letter->{metadata} = Encode::decode_utf8( Dump($metadata) );
+    C4::Letters::EnqueueLetter(
+        {
+            letter                 => $letter,
+            borrowernumber         => $patron->id,
+            message_transport_type => $transport,
+            to_address             => $to_address,
+            branchcode             => $branch,
+        }
+    );
 }
 
 # based on message $transport, pick an appropriate address to send to
 sub _to_address {
-    my ($borrower, $transport) = @_;
+    my ( $patron, $transport ) = @_;
     my $address;
-    if ($transport eq 'email') {
-        $address = $borrower->{email}
-            || $borrower->{emailpro}
-            || $borrower->{B_email};
-    } elsif ($transport eq 'sms') {
-        $address = $borrower->{smsalertnumber}
-            || $borrower->{phone}
-            || $borrower->{phonepro}
-            || $borrower->{B_phone};
-    } else {
+    if ( $transport eq 'email' ) {
+        $address = $patron->notice_email_address;
+    }
+    elsif ( $transport eq 'sms' ) {
+        $address = $patron->smsalertnumber;
+    }
+    else {
         warn "'$transport' is an unknown message transport.";
     }
-    if (not defined $address) {
+    if ( not defined $address ) {
         warn "An appropriate $transport address "
-            . "for borrower $borrower->{userid} "
-            . "could not be found.";
+          . "for borrower "
+          . $patron->userid
+          . "could not be found.";
     }
     return $address;
 }

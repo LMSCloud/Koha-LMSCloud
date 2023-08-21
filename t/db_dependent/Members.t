@@ -25,7 +25,7 @@ use Data::Dumper qw/Dumper/;
 use C4::Context;
 use Koha::Database;
 use Koha::Holds;
-use Koha::List::Patron;
+use Koha::List::Patron qw( AddPatronList AddPatronsToList );
 use Koha::Patrons;
 use Koha::Patron::Relationship;
 
@@ -33,7 +33,7 @@ use t::lib::Mocks;
 use t::lib::TestBuilder;
 
 BEGIN {
-        use_ok('C4::Members');
+        use_ok('C4::Members', qw( checkcardnumber GetBorrowersToExpunge DeleteUnverifiedOpacRegistrations DeleteExpiredOpacRegistrations ));
 }
 
 my $schema = Koha::Database->schema;
@@ -411,6 +411,9 @@ subtest 'purgeSelfRegistration' => sub {
     foreach(1..3) {
         $dbh->do("INSERT INTO borrower_modifications (timestamp, borrowernumber, verification_token, changed_fields) VALUES ('2014-01-01 01:02:03',0,?,'firstname,surname')", undef, (scalar localtime)."_$_");
     }
+    # Add a record with a borrowernumber which should not be deleted by DeleteUnverifiedOpacRegistrations
+    # NOTE: We are using the borrowernumber from the last test outside this subtest
+    $dbh->do( "INSERT INTO borrower_modifications (timestamp, borrowernumber, verification_token, changed_fields) VALUES ('2014-01-01 01:02:03', ?, '', 'firstname,surname' )", undef, $borrowernumber );
     is( C4::Members::DeleteUnverifiedOpacRegistrations($d), 3, 'Test for DeleteUnverifiedOpacRegistrations' );
 
     #purge members in temporary category
@@ -452,7 +455,6 @@ subtest 'purgeSelfRegistration' => sub {
             value => {
                 borrowernumber    => $self_reg->borrowernumber,
                 amountoutstanding => 5,
-                acocunttype       => undef
             }
         }
     );

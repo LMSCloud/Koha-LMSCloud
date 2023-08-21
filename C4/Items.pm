@@ -21,12 +21,12 @@ package C4::Items;
 
 use Modern::Perl;
 
-use vars qw(@ISA @EXPORT);
+our (@ISA, @EXPORT_OK);
 BEGIN {
     require Exporter;
     @ISA = qw(Exporter);
 
-    @EXPORT = qw(
+    @EXPORT_OK = qw(
         AddItemFromMarc
         AddItemBatchFromMarc
         ModItemFromMarc
@@ -35,37 +35,32 @@ BEGIN {
         ModItemTransfer
         CheckItemPreSave
         GetItemsForInventory
-        GetItemsInfo
-        GetItemsLocationInfo
-        GetHostItemsInfo
         get_hostitemnumbers_of
-        GetHiddenItemnumbers
-        MoveItemFromBiblio
+        GetMarcItem
         CartToShelf
         GetAnalyticsCount
         SearchItems
         PrepareItemrecordDisplay
+        ToggleNewStatus
     );
 }
 
-use Carp;
-use Try::Tiny;
+use Carp qw( croak );
 use C4::Context;
 use C4::Koha;
-use C4::Biblio;
-use Koha::DateUtils;
+use C4::Biblio qw( GetMarcStructure TransformMarcToKoha );
 use MARC::Record;
-use C4::ClassSource;
-use C4::Log;
-use List::MoreUtils qw(any);
+use C4::ClassSource qw( GetClassSort GetClassSources GetClassSource );
+use C4::Log qw( logaction );
+use List::MoreUtils qw( any );
 use DateTime::Format::MySQL;
-use Data::Dumper; # used as part of logging item record changes, not just for
                   # debugging; so please don't remove this
 
 use Koha::AuthorisedValues;
-use Koha::DateUtils qw(dt_from_string);
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Database;
 
+use Koha::Biblios;
 use Koha::Biblioitems;
 use Koha::Items;
 use Koha::ItemTypes;
@@ -143,14 +138,18 @@ sub CartToShelf {
 Given a MARC::Record object containing an embedded item
 record and a biblionumber, create a new item record.
 
-The final optional parameter, C<$params>, expected to contain
+The final optional parameter, C<$params>, may contain
 'skip_record_index' key, which relayed down to Koha::Item/store,
 there it prevents calling of index_records,
 which takes most of the time in batch adds/deletes: index_records
 to be called later in C<additem.pl> after the whole loop.
 
+You may also optionally pass biblioitemnumber in the params hash to
+boost performance of inserts by preventing a lookup in Koha::Item.
+
 $params:
     skip_record_index => 1|0
+    biblioitemnumber => $biblioitemnumber
 
 =cut
 
@@ -164,14 +163,14 @@ sub AddItemFromMarc {
     # parse item hash from MARC
     my $frameworkcode = C4::Biblio::GetFrameworkCode($biblionumber);
     my ( $itemtag, $itemsubfield ) = C4::Biblio::GetMarcFromKohaField( "items.itemnumber" );
-
     my $localitemmarc = MARC::Record->new;
     $localitemmarc->append_fields( $source_item_marc->field($itemtag) );
 
-    my $item_values = C4::Biblio::TransformMarcToKoha( $localitemmarc, $frameworkcode, 'items' );
+    my $item_values = C4::Biblio::TransformMarcToKoha({ record => $localitemmarc, limit_table => 'items' });
     my $unlinked_item_subfields = _get_unlinked_item_subfields( $localitemmarc, $frameworkcode );
     $item_values->{more_subfields_xml} = _get_unlinked_subfields_xml($unlinked_item_subfields);
     $item_values->{biblionumber} = $biblionumber;
+    $item_values->{biblioitemnumber} = $params->{biblioitemnumber};
     $item_values->{cn_source} = delete $item_values->{'items.cn_source'}; # Because of C4::Biblio::_disambiguate
     $item_values->{cn_sort}   = delete $item_values->{'items.cn_sort'};   # Because of C4::Biblio::_disambiguate
     my $item = Koha::Item->new( $item_values )->store({ skip_record_index => $params->{skip_record_index} });
@@ -246,7 +245,7 @@ sub AddItemBatchFromMarc {
         $temp_item_marc->append_fields($item_field);
     
         # add biblionumber and biblioitemnumber
-        my $item = TransformMarcToKoha( $temp_item_marc, $frameworkcode, 'items' );
+        my $item = TransformMarcToKoha({ record => $temp_item_marc, limit_table => 'items' });
         my $unlinked_item_subfields = _get_unlinked_item_subfields($temp_item_marc, $frameworkcode);
         $item->{'more_subfields_xml'} = _get_unlinked_subfields_xml($unlinked_item_subfields);
         $item->{'biblionumber'} = $biblionumber;
@@ -303,7 +302,16 @@ sub ModItemFromMarc {
     my $localitemmarc = MARC::Record->new;
     $localitemmarc->append_fields( $item_marc->field($itemtag) );
     my $item_object = Koha::Items->find($itemnumber);
-    my $item = TransformMarcToKoha( $localitemmarc, $frameworkcode, 'items' );
+    my $item = TransformMarcToKoha({ record => $localitemmarc, limit_table => 'items' });
+
+    # When importing items we blank this column, we need to set it to the existing value
+    # to prevent it being blanked by set_or_blank
+    $item->{onloan} = $item_object->onloan if( $item_object->onloan && !defined $item->{onloan} );
+
+    # When importing and replacing items we should not remove the dateacquired so we should set it
+    # to the existing value
+    $item->{dateaccessioned} = $item_object->dateaccessioned
+      if ( $item_object->dateaccessioned && !defined $item->{dateaccessioned} );
 
     # When importing items we blank this column, we need to set it to the existing value
     # to prevent it being blanked by set_or_blank
@@ -406,17 +414,16 @@ The last optional parameter allows for passing skip_record_index through to the 
 sub ModDateLastSeen {
     my ( $itemnumber, $leave_item_lost, $params ) = @_;
 
-    my $today = output_pref({ dt => dt_from_string, dateformat => 'iso', dateonly => 1 });
-
     my $item = Koha::Items->find($itemnumber);
-    $item->datelastseen($today);
+    $item->datelastseen(dt_from_string->ymd);
+    my $log = $item->itemlost && !$leave_item_lost ? 1 : 0; # If item was lost, record the change to the item
     $item->itemlost(0) unless $leave_item_lost;
-    $item->store({ log_action => 0, skip_record_index => $params->{skip_record_index} });
+    $item->store({ log_action => $log, skip_record_index => $params->{skip_record_index}, skip_holds_queue => $params->{skip_holds_queue} });
 }
 
 =head2 CheckItemPreSave
 
-    my $item_ref = TransformMarcToKoha($marc, 'items');
+    my $item_ref = TransformMarcToKoha({ record => $marc, limit_table => 'items' });
     # do stuff
     my %errors = CheckItemPreSave($item_ref);
     if (exists $errors{'duplicate_barcode'}) {
@@ -547,6 +554,7 @@ sub GetItemsForInventory {
     my $statushash   = $parameters->{'statushash'}   // '';
     my $ignore_waiting_holds = $parameters->{'ignore_waiting_holds'} // '';
     my $itemtypes    = $parameters->{'itemtypes'}    || [];
+    my $ccode        = $parameters->{'ccode'}        // '';
 
     my $dbh = C4::Context->dbh;
     my ( @bind_params, @where_strings );
@@ -555,7 +563,8 @@ sub GetItemsForInventory {
     my $max_cnsort = GetClassSort($class_source,undef,$maxlocation);
 
     my $select_columns = q{
-        SELECT DISTINCT(items.itemnumber), barcode, itemcallnumber, title, author, biblio.biblionumber, biblio.frameworkcode, datelastseen, homebranch, location, notforloan, damaged, itemlost, withdrawn, stocknumber, items.cn_sort
+        SELECT DISTINCT(items.itemnumber), barcode, itemcallnumber, title, author, biblio.biblionumber, biblio.frameworkcode, datelastseen, homebranch, location, notforloan, damaged, itemlost, withdrawn, stocknumber, items.cn_sort, ccode
+
     };
     my $select_count = q{SELECT COUNT(DISTINCT(items.itemnumber))};
     my $query = q{
@@ -572,6 +581,11 @@ sub GetItemsForInventory {
         }
     }
 
+    if ($ccode){
+        push @where_strings, 'ccode = ?';
+        push @bind_params, $ccode;
+    }
+
     if ($minlocation) {
         push @where_strings, 'items.cn_sort >= ?';
         push @bind_params, $min_cnsort;
@@ -583,7 +597,6 @@ sub GetItemsForInventory {
     }
 
     if ($datelastseen) {
-        $datelastseen = output_pref({ str => $datelastseen, dateformat => 'iso', dateonly => 1 });
         push @where_strings, '(datelastseen < ? OR datelastseen IS NULL)';
         push @bind_params, $datelastseen;
     }
@@ -647,7 +660,7 @@ sub GetItemsForInventory {
             '+select' => [ 'marc_subfield_structures.kohafield', 'marc_subfield_structures.frameworkcode', 'me.authorised_value', 'me.lib' ],
             '+as'     => [ 'kohafield',                          'frameworkcode',                          'authorised_value',    'lib' ],
         }
-    );
+    )->as_list;
 
     my $avmapping = { map { $_->get_column('kohafield') . ',' . $_->get_column('frameworkcode') . ',' . $_->get_column('authorised_value') => $_->get_column('lib') } @avs };
 
@@ -669,263 +682,6 @@ sub GetItemsForInventory {
     return (\@results, $iTotalRecords);
 }
 
-=head2 GetItemsInfo
-
-  @results = GetItemsInfo($biblionumber);
-
-Returns information about items with the given biblionumber.
-
-C<GetItemsInfo> returns a list of references-to-hash. Each element
-contains a number of keys. Most of them are attributes from the
-C<biblio>, C<biblioitems>, C<items>, and C<itemtypes> tables in the
-Koha database. Other keys include:
-
-=over 2
-
-=item C<$data-E<gt>{branchname}>
-
-The name (not the code) of the branch to which the book belongs.
-
-=item C<$data-E<gt>{datelastseen}>
-
-This is simply C<items.datelastseen>, except that while the date is
-stored in YYYY-MM-DD format in the database, here it is converted to
-DD/MM/YYYY format. A NULL date is returned as C<//>.
-
-=item C<$data-E<gt>{datedue}>
-
-=item C<$data-E<gt>{class}>
-
-This is the concatenation of C<biblioitems.classification>, the book's
-Dewey code, and C<biblioitems.subclass>.
-
-=item C<$data-E<gt>{ocount}>
-
-I think this is the number of copies of the book available.
-
-=item C<$data-E<gt>{order}>
-
-If this is set, it is set to C<One Order>.
-
-=back
-
-=cut
-
-sub GetItemsInfo {
-    my ( $biblionumber ) = @_;
-    my $dbh   = C4::Context->dbh;
-    require C4::Languages;
-    my $language = C4::Languages::getlanguage();
-    my $query = "
-    SELECT items.*,
-           biblio.*,
-           biblioitems.volume,
-           biblioitems.number,
-           biblioitems.itemtype,
-           biblioitems.isbn,
-           biblioitems.issn,
-           biblioitems.publicationyear,
-           biblioitems.publishercode,
-           biblioitems.volumedate,
-           biblioitems.volumedesc,
-           biblioitems.lccn,
-           biblioitems.url,
-           items.notforloan as itemnotforloan,
-           issues.borrowernumber,
-           issues.date_due as datedue,
-           issues.onsite_checkout,
-           borrowers.cardnumber,
-           borrowers.surname,
-           borrowers.firstname,
-           borrowers.branchcode as bcode,
-           serial.serialseq,
-           serial.publisheddate,
-           itemtypes.description,
-           COALESCE( localization.translation, itemtypes.description ) AS translated_description,
-           itemtypes.notforloan as notforloan_per_itemtype,
-           holding.branchurl,
-           holding.branchcode,
-           holding.branchname,
-           holding.opac_info as holding_branch_opac_info,
-           home.opac_info as home_branch_opac_info,
-           IF(tmp_holdsqueue.itemnumber,1,0) AS has_pending_hold
-     FROM items
-     LEFT JOIN branches AS holding ON items.holdingbranch = holding.branchcode
-     LEFT JOIN branches AS home ON items.homebranch=home.branchcode
-     LEFT JOIN biblio      ON      biblio.biblionumber     = items.biblionumber
-     LEFT JOIN biblioitems ON biblioitems.biblioitemnumber = items.biblioitemnumber
-     LEFT JOIN issues USING (itemnumber)
-     LEFT JOIN borrowers USING (borrowernumber)
-     LEFT JOIN serialitems USING (itemnumber)
-     LEFT JOIN serial USING (serialid)
-     LEFT JOIN itemtypes   ON   itemtypes.itemtype         = "
-     . (C4::Context->preference('item-level_itypes') ? 'items.itype' : 'biblioitems.itemtype');
-    $query .= q|
-    LEFT JOIN tmp_holdsqueue USING (itemnumber)
-    LEFT JOIN localization ON itemtypes.itemtype = localization.code
-        AND localization.entity = 'itemtypes'
-        AND localization.lang = ?
-    |;
-
-    $query .= " WHERE items.biblionumber = ? ORDER BY home.branchname, items.enumchron, LPAD( items.copynumber, 8, '0' ), items.dateaccessioned DESC" ;
-    my $sth = $dbh->prepare($query);
-    $sth->execute($language, $biblionumber);
-    my $i = 0;
-    my @results;
-    my $serial;
-
-    my $userenv = C4::Context->userenv;
-    my $want_not_same_branch = C4::Context->preference("IndependentBranches") && !C4::Context->IsSuperLibrarian();
-    while ( my $data = $sth->fetchrow_hashref ) {
-        if ( $data->{borrowernumber} && $want_not_same_branch) {
-            $data->{'NOTSAMEBRANCH'} = $data->{'bcode'} ne $userenv->{branch};
-        }
-
-        $serial ||= $data->{'serial'};
-
-        my $descriptions;
-        # get notforloan complete status if applicable
-        $descriptions = Koha::AuthorisedValues->get_description_by_koha_field({frameworkcode => $data->{frameworkcode}, kohafield => 'items.notforloan', authorised_value => $data->{itemnotforloan} });
-        $data->{notforloanvalue}     = $descriptions->{lib} // '';
-        $data->{notforloanvalueopac} = $descriptions->{opac_description} // '';
-
-        # get restricted status and description if applicable
-        $descriptions = Koha::AuthorisedValues->get_description_by_koha_field({frameworkcode => $data->{frameworkcode}, kohafield => 'items.restricted', authorised_value => $data->{restricted} });
-        $data->{restrictedvalue}     = $descriptions->{lib} // '';
-        $data->{restrictedvalueopac} = $descriptions->{opac_description} // '';
-
-        # my stack procedures
-        $descriptions = Koha::AuthorisedValues->get_description_by_koha_field({frameworkcode => $data->{frameworkcode}, kohafield => 'items.stack', authorised_value => $data->{stack} });
-        $data->{stack}          = $descriptions->{lib} // '';
-
-        # Find the last 3 people who borrowed this item.
-        my $sth2 = $dbh->prepare("SELECT * FROM old_issues,borrowers
-                                    WHERE itemnumber = ?
-                                    AND old_issues.borrowernumber = borrowers.borrowernumber
-                                    ORDER BY returndate DESC
-                                    LIMIT 3");
-        $sth2->execute($data->{'itemnumber'});
-        my $ii = 0;
-        while (my $data2 = $sth2->fetchrow_hashref()) {
-            $data->{"timestamp$ii"} = $data2->{'timestamp'} if $data2->{'timestamp'};
-            $data->{"card$ii"}      = $data2->{'cardnumber'} if $data2->{'cardnumber'};
-            $data->{"borrower$ii"}  = $data2->{'borrowernumber'} if $data2->{'borrowernumber'};
-            $ii++;
-        }
-
-        $results[$i] = $data;
-        $i++;
-    }
-
-    return $serial
-        ? sort { ($b->{'publisheddate'} || $b->{'enumchron'} || "") cmp ($a->{'publisheddate'} || $a->{'enumchron'} || "") } @results
-        : @results;
-}
-
-=head2 GetItemsLocationInfo
-
-  my @itemlocinfo = GetItemsLocationInfo($biblionumber);
-
-Returns the branch names, shelving location and itemcallnumber for each item attached to the biblio in question
-
-C<GetItemsInfo> returns a list of references-to-hash. Data returned:
-
-=over 2
-
-=item C<$data-E<gt>{homebranch}>
-
-Branch Name of the item's homebranch
-
-=item C<$data-E<gt>{holdingbranch}>
-
-Branch Name of the item's holdingbranch
-
-=item C<$data-E<gt>{location}>
-
-Item's shelving location code
-
-=item C<$data-E<gt>{location_intranet}>
-
-The intranet description for the Shelving Location as set in authorised_values 'LOC'
-
-=item C<$data-E<gt>{location_opac}>
-
-The OPAC description for the Shelving Location as set in authorised_values 'LOC'.  Falls back to intranet description if no OPAC 
-description is set.
-
-=item C<$data-E<gt>{itemcallnumber}>
-
-Item's itemcallnumber
-
-=item C<$data-E<gt>{cn_sort}>
-
-Item's call number normalized for sorting
-
-=back
-
-=cut
-
-sub GetItemsLocationInfo {
-        my $biblionumber = shift;
-        my @results;
-
-	my $dbh = C4::Context->dbh;
-	my $query = "SELECT a.branchname as homebranch, b.branchname as holdingbranch, 
-			    location, itemcallnumber, cn_sort
-		     FROM items, branches as a, branches as b
-		     WHERE homebranch = a.branchcode AND holdingbranch = b.branchcode 
-		     AND biblionumber = ?
-		     ORDER BY cn_sort ASC";
-	my $sth = $dbh->prepare($query);
-        $sth->execute($biblionumber);
-
-        while ( my $data = $sth->fetchrow_hashref ) {
-             my $av = Koha::AuthorisedValues->search({ category => 'LOC', authorised_value => $data->{location} });
-             $av = $av->count ? $av->next : undef;
-             $data->{location_intranet} = $av ? $av->lib : '';
-             $data->{location_opac}     = $av ? $av->opac_description : '';
-	     push @results, $data;
-	}
-	return @results;
-}
-
-=head2 GetHostItemsInfo
-
-    $hostiteminfo = GetHostItemsInfo($hostfield);
-    Returns the iteminfo for items linked to records via a host field
-
-=cut
-
-sub GetHostItemsInfo {
-    my ($record) = @_;
-    my @returnitemsInfo;
-
-    if( !C4::Context->preference('EasyAnalyticalRecords') ) {
-        return @returnitemsInfo;
-    }
-
-    my @fields;
-    if( C4::Context->preference('marcflavour') eq 'MARC21' ||
-      C4::Context->preference('marcflavour') eq 'NORMARC') {
-        @fields = $record->field('773');
-    } elsif( C4::Context->preference('marcflavour') eq 'UNIMARC') {
-        @fields = $record->field('461');
-    }
-
-    foreach my $hostfield ( @fields ) {
-        my $hostbiblionumber = $hostfield->subfield("0");
-        my $linkeditemnumber = $hostfield->subfield("9");
-        my @hostitemInfos = GetItemsInfo($hostbiblionumber);
-        foreach my $hostitemInfo (@hostitemInfos) {
-            if( $hostitemInfo->{itemnumber} eq $linkeditemnumber ) {
-                push @returnitemsInfo, $hostitemInfo;
-                last;
-            }
-        }
-    }
-    return @returnitemsInfo;
-}
-
 =head2 get_hostitemnumbers_of
 
   my @itemnumbers_of = get_hostitemnumbers_of($biblionumber);
@@ -945,13 +701,14 @@ sub get_hostitemnumbers_of {
         return ();
     }
 
-    my $marcrecord = C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber });
+    my $biblio = Koha::Biblios->find($biblionumber);
+    my $marcrecord = $biblio->metadata->record;
     return unless $marcrecord;
 
     my ( @returnhostitemnumbers, $tag, $biblio_s, $item_s );
 
     my $marcflavor = C4::Context->preference('marcflavour');
-    if ( $marcflavor eq 'MARC21' || $marcflavor eq 'NORMARC' ) {
+    if ( $marcflavor eq 'MARC21' ) {
         $tag      = '773';
         $biblio_s = '0';
         $item_s   = '9';
@@ -976,65 +733,6 @@ sub get_hostitemnumbers_of {
     }
 
     return @returnhostitemnumbers;
-}
-
-=head2 GetHiddenItemnumbers
-
-    my @itemnumbers_to_hide = GetHiddenItemnumbers({ items => \@items, borcat => $category });
-
-Given a list of items it checks which should be hidden from the OPAC given
-the current configuration. Returns a list of itemnumbers corresponding to
-those that should be hidden. Optionally takes a borcat parameter for certain borrower types
-to be excluded
-
-=cut
-
-sub GetHiddenItemnumbers {
-    my $params = shift;
-    my $items = $params->{items};
-    if (my $exceptions = C4::Context->preference('OpacHiddenItemsExceptions') and $params->{'borcat'}){
-        foreach my $except (split(/\|/, $exceptions)){
-            if ($params->{'borcat'} eq $except){
-                return; # we don't hide anything for this borrower category
-            }
-        }
-    }
-    my @resultitems;
-
-    my $hidingrules = C4::Context->yaml_preference('OpacHiddenItems');
-
-    return
-        unless $hidingrules;
-
-    my $dbh = C4::Context->dbh;
-
-    # For each item
-    foreach my $item (@$items) {
-
-        # We check each rule
-        foreach my $field (keys %$hidingrules) {
-            my $val;
-            if (exists $item->{$field}) {
-                $val = $item->{$field};
-            }
-            else {
-                my $query = "SELECT $field from items where itemnumber = ?";
-                $val = $dbh->selectrow_array($query, undef, $item->{'itemnumber'});
-            }
-            $val = '' unless defined $val;
-
-            # If the results matches the values in the yaml file
-            if (any { $val eq $_ } @{$hidingrules->{$field}}) {
-
-                # We add the itemnumber to the list
-                push @resultitems, $item->{'itemnumber'};
-
-                # If at least one rule matched for an item, no need to test the others
-                last;
-            }
-        }
-    }
-    return @resultitems;
 }
 
 =head1 LIMITED USE FUNCTIONS
@@ -1110,57 +808,6 @@ directly, but are documented in order to explain
 the inner workings of C<C4::Items>.
 
 =cut
-
-=head2 MoveItemFromBiblio
-
-  MoveItemFromBiblio($itenumber, $frombiblio, $tobiblio);
-
-Moves an item from a biblio to another
-
-Returns undef if the move failed or the biblionumber of the destination record otherwise
-
-=cut
-
-sub MoveItemFromBiblio {
-    my ($itemnumber, $frombiblio, $tobiblio) = @_;
-    my $dbh = C4::Context->dbh;
-    my ( $tobiblioitem ) = $dbh->selectrow_array(q|
-        SELECT biblioitemnumber
-        FROM biblioitems
-        WHERE biblionumber = ?
-    |, undef, $tobiblio );
-    my $return = $dbh->do(q|
-        UPDATE items
-        SET biblioitemnumber = ?,
-            biblionumber = ?
-        WHERE itemnumber = ?
-            AND biblionumber = ?
-    |, undef, $tobiblioitem, $tobiblio, $itemnumber, $frombiblio );
-    if ($return == 1) {
-        my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
-        $indexer->index_records( $tobiblio, "specialUpdate", "biblioserver" );
-        $indexer->index_records( $frombiblio, "specialUpdate", "biblioserver" );
-	    # Checking if the item we want to move is in an order 
-        require C4::Acquisition;
-        my $order = C4::Acquisition::GetOrderFromItemnumber($itemnumber);
-	    if ($order) {
-		    # Replacing the biblionumber within the order if necessary
-		    $order->{'biblionumber'} = $tobiblio;
-	        C4::Acquisition::ModOrder($order);
-	    }
-
-        # Update reserves, hold_fill_targets, tmp_holdsqueue and linktracker tables
-        for my $table_name ( qw( reserves hold_fill_targets tmp_holdsqueue linktracker ) ) {
-            $dbh->do( qq|
-                UPDATE $table_name
-                SET biblionumber = ?
-                WHERE itemnumber = ?
-            |, undef, $tobiblio, $itemnumber );
-        }
-        return $tobiblio;
-	}
-    return;
-}
 
 =head2 _marc_from_item_hash
 
@@ -1322,6 +969,10 @@ counts Usage of itemnumber in Analytical bibliorecords.
 sub GetAnalyticsCount {
     my ($itemnumber) = @_;
 
+    if ( !C4::Context->preference('EasyAnalyticalRecords') ) {
+        return 0;
+    }
+
     ### ZOOM search here
     my $query;
     $query= "hi=".$itemnumber;
@@ -1357,7 +1008,8 @@ sub _SearchItems_build_where_fragment {
         my @columns = Koha::Database->new()->schema()->resultset('Item')->result_source->columns;
         push @columns, Koha::Database->new()->schema()->resultset('Biblio')->result_source->columns;
         push @columns, Koha::Database->new()->schema()->resultset('Biblioitem')->result_source->columns;
-        my @operators = qw(= != > < >= <= like);
+        push @columns, Koha::Database->new()->schema()->resultset('Issue')->result_source->columns;
+        my @operators = qw(= != > < >= <= is like);
         push @operators, 'not like';
         my $field = $filter->{field} // q{};
         if ( (0 < grep { $_ eq $field } @columns) or (substr($field, 0, 5) eq 'marc:') ) {
@@ -1401,6 +1053,22 @@ sub _SearchItems_build_where_fragment {
                     $column = "ExtractValue($sqlfield, '$xpath')";
                     $query =~ s/&/&amp;/g if (!(ref $query eq 'ARRAY'));
                 }
+            }
+            elsif ($field eq 'isbn') {
+                if ( C4::Context->preference("SearchWithISBNVariations") and $query ) {
+                    my @isbns = C4::Koha::GetVariationsOfISBN( $query );
+                    $query = [];
+                    push @$query, @isbns;
+                }
+                $column = $field;
+            }
+            elsif ($field eq 'issn') {
+                if ( C4::Context->preference("SearchWithISSNVariations") and $query ) {
+                    my @issns = C4::Koha::GetVariationsOfISSN( $query );
+                    $query = [];
+                    push @$query, @issns;
+                }
+                $column = $field;
             } else {
                 $column = $field;
             }
@@ -1410,14 +1078,27 @@ sub _SearchItems_build_where_fragment {
             }
 
             if (ref $query eq 'ARRAY') {
-                if ($op eq '=') {
-                    $op = 'IN';
-                } elsif ($op eq '!=') {
-                    $op = 'NOT IN';
+                if ($op eq 'like') {
+                    $where_fragment = {
+                        str => "($column LIKE " . join (" OR $column LIKE ", ('?') x @$query ) . ")",
+                        args => $query,
+                    };
                 }
+                else {
+                    if ($op eq '=') {
+                        $op = 'IN';
+                    } elsif ($op eq '!=') {
+                        $op = 'NOT IN';
+                    }
+                    $where_fragment = {
+                        str => "$column $op (" . join (',', ('?') x @$query) . ")",
+                        args => $query,
+                    };
+                }
+            } elsif ( $op eq 'is' ) {
                 $where_fragment = {
-                    str => "$column $op (" . join (',', ('?') x @$query) . ")",
-                    args => $query,
+                    str => "$column $op $query",
+                    args => [],
                 };
             } else {
                 if (defined($filter->{'handleNullLikeValue'}) ) {    # $filter->{'handleNullLikeValue'} specifies that a items record where items.$column IS NULL should be treated like a items record where items.$column = $filter->{'handleNullLikeValue'} (e.g. 0, or '')
@@ -1476,7 +1157,7 @@ A filter has the following keys:
 
 =item * query: the value to search in this column
 
-=item * operator: comparison operator. Can be one of = != > < >= <= like 'not like'
+=item * operator: comparison operator. Can be one of = != > < >= <= like 'not like' is
 
 =back
 
@@ -1535,6 +1216,7 @@ sub SearchItems {
           LEFT JOIN biblio ON biblio.biblionumber = items.biblionumber
           LEFT JOIN biblioitems ON biblioitems.biblioitemnumber = items.biblioitemnumber
           LEFT JOIN biblio_metadata ON biblio_metadata.biblionumber = biblio.biblionumber
+          LEFT JOIN issues ON issues.itemnumber = items.itemnumber
           WHERE 1
     };
     if (defined $where_str and $where_str ne '') {
@@ -1547,10 +1229,17 @@ sub SearchItems {
     my @columns = Koha::Database->new()->schema()->resultset('Item')->result_source->columns;
     push @columns, Koha::Database->new()->schema()->resultset('Biblio')->result_source->columns;
     push @columns, Koha::Database->new()->schema()->resultset('Biblioitem')->result_source->columns;
-    my $sortby = (0 < grep {$params->{sortby} eq $_} @columns)
-        ? $params->{sortby} : 'itemnumber';
-    my $sortorder = (uc($params->{sortorder}) eq 'ASC') ? 'ASC' : 'DESC';
-    $query .= qq{ ORDER BY $sortby $sortorder };
+    push @columns, Koha::Database->new()->schema()->resultset('Issue')->result_source->columns;
+
+    if ( $params->{sortby} eq 'availability' ) {
+        my $sortorder = (uc($params->{sortorder}) eq 'ASC') ? 'ASC' : 'DESC';
+        $query .= qq{ ORDER BY onloan $sortorder };
+    } else {
+        my $sortby = (0 < grep {$params->{sortby} eq $_} @columns)
+            ? $params->{sortby} : 'itemnumber';
+        my $sortorder = (uc($params->{sortorder}) eq 'ASC') ? 'ASC' : 'DESC';
+        $query .= qq{ ORDER BY $sortby $sortorder };
+    }
 
     my $rows = $params->{rows};
     my @limit_args;
@@ -1762,6 +1451,15 @@ sub PrepareItemrecordDisplay {
                         $defaultvalue = $defaultvalues->{location};
                     }
                 }
+                if (   ( $subfield->{kohafield} eq 'items.ccode' )
+                    && $defaultvalues
+                    && $defaultvalues->{'ccode'} ) {
+
+                    if ( !$itemrecord and $defaultvalues ) {
+                        # if the item record *doesn't* exists, always use the default value
+                        $defaultvalue = $defaultvalues->{ccode};
+                    }
+                }
                 if ( $subfield->{authorised_value} ) {
                     my @authorised_values;
                     my %authorised_lib;
@@ -1848,7 +1546,7 @@ sub PrepareItemrecordDisplay {
                         name => $subfield->{value_builder},
                         item_style => 1,
                     });
-                    my $pars = { dbh => $dbh, record => undef, tagslib =>$tagslib, id => $subfield_data{id}, tabloop => undef };
+                    my $pars = { dbh => $dbh, record => undef, tagslib =>$tagslib, id => $subfield_data{id} };
                     $plugin->build( $pars );
                     if ( $itemrecord and my $field = $itemrecord->field($tag) ) {
                         $defaultvalue = $field->subfield($subfield->{subfield}) || q{};
@@ -1909,6 +1607,9 @@ sub ToggleNewStatus {
     my $report;
     for my $rule ( @rules ) {
         my $age = $rule->{age};
+        # Default to using items.dateaccessioned if there's an old item modification rule
+        # missing an agefield value
+        my $agefield = $rule->{agefield} ? $rule->{agefield} : 'items.dateaccessioned';
         my $conditions = $rule->{conditions};
         my $substitutions = $rule->{substitutions};
         foreach ( @$substitutions ) {
@@ -1923,6 +1624,7 @@ sub ToggleNewStatus {
             WHERE 1
         |;
         for my $condition ( @$conditions ) {
+            next unless $condition->{field};
             if (
                  grep { $_ eq $condition->{field} } @item_columns
               or grep { $_ eq $condition->{field} } @biblioitem_columns
@@ -1940,7 +1642,7 @@ sub ToggleNewStatus {
             }
         }
         if ( defined $age ) {
-            $query .= q| AND TO_DAYS(NOW()) - TO_DAYS(dateaccessioned) >= ? |;
+            $query .= qq| AND TO_DAYS(NOW()) - TO_DAYS($agefield) >= ? |;
             push @params, $age;
         }
         my $sth = $dbh->prepare($query);

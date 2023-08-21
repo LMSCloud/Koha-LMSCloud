@@ -8,24 +8,20 @@
 </head>
 
 <body id="admin_share_content" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Share content with Mana KB
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            Share content with Mana KB
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -97,13 +93,13 @@
                                     [% ELSE %]
                                         <input id="autosharewithmana" type="checkbox" name="autosharewithmana" checked="checked">
                                     [% END %]
-                                    <div class="hint">If checked, new subscriptions you create will be automatically shared with Mana KB.</div>
+                                    <span class="hint">If checked, new subscriptions you create will be automatically shared with Mana KB.</span>
                                 </li>
                             </ol>
-                            <fieldset class="action">
-                                <input type="hidden" name="op" value="save" />
-                                <input type="submit" value="Save" />
-                            </fieldset>
+                        </fieldset>
+                        <fieldset class="action">
+                            <input type="hidden" name="op" value="save" />
+                            <input type="submit" class="btn btn-primary" value="Save" />
                         </fieldset>
                     </form>
 
@@ -124,10 +120,10 @@
                                         <div class="hint">Your unique security token used for authentication on Mana KB service (anti spam).</div>
                                     </li>
                                 </ol>
-                                <fieldset class="action">
-                                    <input type="hidden" name="op" value="reset" />
-                                    <input type="submit" value="Reset your token" />
-                                </fieldset>
+                            </fieldset>
+                            <fieldset class="action">
+                                <input type="hidden" name="op" value="reset" />
+                                <input type="submit" class="btn btn-primary" value="Reset your token" />
                             </fieldset>
                         </form>
                     [% ELSE %]
@@ -144,10 +140,10 @@
                                         <input id="email" type="text" name="email" size="45" required="required" />
                                     </li>
                                 </ol>
-                                <fieldset class="action">
-                                    <input type="hidden" name="op" value="send" />
-                                    <input type="submit" value="Send to Mana KB" />
-                                </fieldset>
+                            </fieldset>
+                            <fieldset class="action">
+                                <input type="hidden" name="op" value="send" />
+                                <input type="submit" class="btn btn-primary" value="Send to Mana KB" />
                             </fieldset>
                         </form>
                     [% END %]

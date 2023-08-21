@@ -159,7 +159,7 @@ sub _build_query {
     my $mappings = $self->get_elasticsearch_mappings();
     my @suggestionfields;
     for $field(@fields) {
-        push @suggestionfields, $field if ( exists($mappings->{data}->{properties}->{$field}) );
+        push @suggestionfields, $field if ( exists($mappings->{properties}->{$field}) );
     }
     
     my $query = {

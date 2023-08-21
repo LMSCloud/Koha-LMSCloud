@@ -23,8 +23,8 @@ use JSON qw( encode_json );
 use CGI;
 use C4::Service;
 use C4::Context;
-use C4::Auth qw /check_cookie_auth/;
-use C4::Output qw(:DEFAULT :ajax);
+use C4::Auth qw( check_cookie_auth );
+use C4::Output qw( is_ajax output_with_http_headers );
 use C4::Patroncards::Batch;
 use C4::Labels::Batch;
 
@@ -39,7 +39,7 @@ svc/creator_batches - Web service for managing AJAX functionality for patroncard
 # AJAX requests
 my $is_ajax = is_ajax();
 my $cgi = CGI->new;
-my ( $auth_status, $sessionID ) = check_cookie_auth( $cgi->cookie('CGISESSID'), { catalogue => 1 } );
+my ( $auth_status ) = check_cookie_auth( $cgi->cookie('CGISESSID'), { catalogue => 1 } );
 if ( $auth_status ne "ok" ) {
     exit 0;
 }

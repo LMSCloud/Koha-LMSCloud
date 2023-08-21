@@ -21,8 +21,8 @@ use strict;
 use warnings;
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Output;
-use C4::Auth;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
 use C4::Koha;
 use Koha::Libraries;
 use C4::CashRegisterManagement;
@@ -72,7 +72,7 @@ elsif ( $op eq 'edit' ) {
     $cash_register_id = $input->param('cash_register_id') ;
 }
 elsif ( $op eq 'save' ) {
-    $action = 'edit';
+    $action = '';
 
     $cash_register_id = $input->param('cash_register_id') ;
     my $cash_register_name = $input->param('cash_register_name') ;
@@ -92,7 +92,7 @@ elsif ( $op eq 'save' ) {
         $cash_register_id);
     $cash_register_id = $cash_register->id();
     
-    print $input->redirect("/cgi-bin/koha/tools/cash-register-management.pl?op=edit&cash_register_id=$cash_register_id");
+    print $input->redirect("/cgi-bin/koha/tools/cash-register-management.pl");
 }
 
 if ( $cash_register_id ) {
@@ -108,14 +108,15 @@ my @permitted_staff = $cashmanagement->readPermittedStaff($cash_register_id);
 ########################################
 # Read cash registers
 ########################################
-my @cash_registers = $cashmanagement->getAllCashRegisters();
-
+if ( $action ne 'edit' ) {
+    my @cash_registers = $cashmanagement->getAllCashRegisters();
+    $template->param( cash_registers => \@cash_registers );
+}
 ########################################
 #  Set template paramater
 ########################################
 $template->param(
                         branch => $branch,
-                        cash_registers => \@cash_registers,
                         permitted_staff => \@permitted_staff,
                         enabled_staff => \@enabled_staff,
                         action => $action

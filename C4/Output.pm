@@ -27,35 +27,29 @@ package C4::Output;
 
 use Modern::Perl;
 
-use URI::Escape;
+use HTML::Entities;
 use Scalar::Util qw( looks_like_number );
+use URI::Escape;
 
-use C4::Auth qw(get_template_and_user);
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
 use C4::Templates;
 
 use utf8;
 
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+our (@ISA, @EXPORT_OK);
 
 BEGIN {
     require Exporter;
 
- @ISA    = qw(Exporter);
-    @EXPORT_OK = qw(&is_ajax ajax_fail); # More stuff should go here instead
-    %EXPORT_TAGS = ( all =>[qw(setlanguagecookie pagination_bar parametrized_url
-                                &output_with_http_headers &output_ajax_with_http_headers &output_html_with_http_headers)],
-                    ajax =>[qw(&output_with_http_headers &output_ajax_with_http_headers is_ajax)],
-                    html =>[qw(&output_with_http_headers &output_html_with_http_headers)]
-                );
-    push @EXPORT, qw(
+    @ISA    = qw(Exporter);
+    @EXPORT_OK = qw(
+        is_ajax
+        ajax_fail
         setlanguagecookie getlanguagecookie pagination_bar parametrized_url
+        output_html_with_http_headers output_ajax_with_http_headers output_with_http_headers
+        output_and_exit_if_error output_and_exit output_error
     );
-    push @EXPORT, qw(
-        &output_html_with_http_headers &output_ajax_with_http_headers &output_with_http_headers
-        &output_and_exit_if_error &output_and_exit &output_error
-    );
-
 }
 
 =head1 NAME
@@ -92,6 +86,8 @@ sub pagination_bar {
     my $startfrom_name = (@_) ? shift : 'page';
     my $additional_parameters = shift || {};
 
+    $base_url = HTML::Entities::encode($base_url);
+
     $current_page = looks_like_number($current_page) ? $current_page : undef;
     $nb_pages     = looks_like_number($nb_pages)     ? $nb_pages     : undef;
 
@@ -102,8 +98,6 @@ sub pagination_bar {
 	$base_url =~ s/$delim*\b$startfrom_name=(\d+)//g; # remove previous pagination var
     unless (defined $current_page and $current_page > 0 and $current_page <= $nb_pages) {
         $current_page = ($1) ? $1 : 1;	# pull current page from param in URL, else default to 1
-		# $debug and	# FIXME: use C4::Debug;
-		# warn "with QUERY_STRING:" .$ENV{QUERY_STRING}. "\ncurrent_page:$current_page\n1:$1  2:$2  3:$3";
     }
 	$base_url =~ s/($delim)+/$1/g;	# compress duplicate delims
 	$base_url =~ s/$delim;//g;		# remove empties

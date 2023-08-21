@@ -19,7 +19,6 @@ package Koha::Clubs;
 
 use Modern::Perl;
 
-use Carp;
 
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string );
@@ -51,7 +50,7 @@ sub get_enrollable {
     my $borrower = $params->{borrower};
     if ($borrower) {
         delete( $params->{borrower} );
-        my @enrollments = $borrower->get_club_enrollments();
+        my @enrollments = $borrower->get_club_enrollments->as_list;
         if (@enrollments) {
             $params->{'me.id'} = { -not_in => [ map { $_->club()->id() } @enrollments ] };
         }
@@ -71,19 +70,7 @@ sub get_enrollable {
         ]
     ];
 
-    my $rs = $self->_resultset()->search( $params, { prefetch => 'club_template' } );
-
-    if (wantarray) {
-        my $class = ref($self) ? ref($self) : $self;
-
-        return $class->_wrap( $rs->all() );
-
-    }
-    else {
-        my $class = ref($self) ? ref($self) : $self;
-
-        return $class->_new_from_dbic($rs);
-    }
+    return $self->search( $params, { prefetch => 'club_template' } );
 }
 
 =head3 filter_out_empty

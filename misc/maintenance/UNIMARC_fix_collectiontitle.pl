@@ -7,13 +7,7 @@
 use strict;
 use warnings;
 
-BEGIN {
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
-
 use Koha::Script;
-use C4::Biblio;
 
 sub process {
 

@@ -31,12 +31,12 @@ publication date, based on frequency and first publication date.
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use Date::Calc qw(Today Day_of_Year Week_of_Year Day_of_Week Days_in_Year Delta_Days Add_Delta_Days Add_Delta_YM);
-use C4::Auth;
-use C4::Output;
-use C4::Serials;
+use Date::Calc qw( Add_Delta_Days Add_Delta_YM Day_of_Week Delta_Days );
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Serials qw( GetSubscription GetFictiveIssueNumber GetSeq GetSubscriptionIrregularities GetNextDate GetNextSeq );
 use C4::Serials::Frequency;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 
 my $input = CGI->new;
 my ($template, $loggedinuser, $cookie, $flags) = get_template_and_user( {
@@ -90,16 +90,11 @@ my %pattern = (
     every3          => scalar $input->param('every3') // '',
 );
 
-$firstacquidate = eval { output_pref( { str => $firstacquidate, dateonly => 1, dateformat => 'iso' } ); }
-    or output_pref( { dt => dt_from_string, dateonly => 1, dateformat => 'iso' } );
+$firstacquidate = $firstacquidate ? dt_from_string($firstacquidate)->ymd : dt_from_string->ymd;
 
-$enddate = eval { output_pref( { str => $enddate, dateonly => 1, dateformat => 'iso' } ); };
+$enddate = dt_from_string($enddate)->ymd;
 
-if($nextacquidate) {
-    $nextacquidate =  eval { output_pref( { str => $nextacquidate, dateonly => 1, dateformat => 'iso' } ); };
-} else {
-    $nextacquidate = $firstacquidate;
-}
+$nextacquidate = $nextacquidate ? dt_from_string($nextacquidate)->ymd : $firstacquidate;
 my $date = $nextacquidate;
 
 my %subscription = (

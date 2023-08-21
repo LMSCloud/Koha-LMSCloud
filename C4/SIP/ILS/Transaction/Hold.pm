@@ -7,12 +7,12 @@ use Modern::Perl;
 
 use C4::SIP::ILS::Transaction;
 
-use C4::Reserves;	# AddReserve
+use C4::Reserves qw( CalculatePriority AddReserve ModReserve CanItemBeReserved );
 use Koha::Holds;
 use Koha::Patrons;
-use parent qw(C4::SIP::ILS::Transaction);
-
 use Koha::Items;
+
+use parent qw(C4::SIP::ILS::Transaction);
 
 my %fields = (
 	expiration_date => 0,
@@ -61,18 +61,23 @@ sub do_hold {
         return $self;
     }
 
-    my $priority = C4::Reserves::CalculatePriority($item->biblionumber);
-    AddReserve(
-        {
-            priority       => $priority,
-            branchcode     => $branch,
-            borrowernumber => $patron->borrowernumber,
-            biblionumber   => $item->biblionumber
-        }
-    );
+    my $canReserve = CanItemBeReserved($patron, $item, $branch);
+    if ($canReserve->{status} eq 'OK') {
+        my $priority = C4::Reserves::CalculatePriority($item->biblionumber);
+        AddReserve(
+            {
+                priority       => $priority,
+                branchcode     => $branch,
+                borrowernumber => $patron->borrowernumber,
+                biblionumber   => $item->biblionumber
+            }
+        );
 
-    # unfortunately no meaningful return value
-    $self->ok(1);
+        $self->ok(1);
+    } else {
+        $self->ok(0);
+    }
+
     return $self;
 }
 

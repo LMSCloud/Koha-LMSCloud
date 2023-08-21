@@ -21,15 +21,14 @@ package C4::Biblio;
 
 use Modern::Perl;
 
-use vars qw(@ISA @EXPORT);
+use vars qw(@ISA @EXPORT_OK);
 BEGIN {
     require Exporter;
     @ISA = qw(Exporter);
 
-    @EXPORT = qw(
+    @EXPORT_OK = qw(
         AddBiblio
         GetBiblioData
-        GetMarcBiblio
         GetISBDView
         GetMarcControlnumber
         GetMarcISBN
@@ -45,6 +44,7 @@ BEGIN {
         GetMarcQuantity
         GetAuthorisedValueDesc
         GetMarcStructure
+        GetMarcSubfieldStructure
         IsMarcStructureInternal
         GetMarcFromKohaField
         GetMarcSubfieldStructureFromKohaField
@@ -59,6 +59,7 @@ BEGIN {
         DelBiblio
         BiblioAutoLink
         LinkBibHeadingsToAuthorities
+        ApplyMarcOverlayRules
         TransformMarcToKoha
         TransformHtmlToMarc
         TransformHtmlToXml
@@ -69,45 +70,51 @@ BEGIN {
     # those functions are exported but should not be used
     # they are useful in a few circumstances, so they are exported,
     # but don't use them unless you are a core developer ;-)
-    push @EXPORT, qw(
+    push @EXPORT_OK, qw(
       ModBiblioMarc
     );
 }
 
-use Carp;
-use Try::Tiny;
+use Carp qw( carp );
+use Try::Tiny qw( catch try );
 
-use Encode qw( decode is_utf8 );
+use Encode;
 use List::MoreUtils qw( uniq );
 use MARC::Record;
 use MARC::File::USMARC;
 use MARC::File::XML;
-use POSIX qw(strftime);
-use Module::Load::Conditional qw(can_load);
+use POSIX qw( strftime );
+use Module::Load::Conditional qw( can_load );
 
 use C4::Koha;
-use C4::Log;    # logaction
+use C4::Log qw( logaction );    # logaction
 use C4::Budgets;
-use C4::ClassSource;
-use C4::Charset;
+use C4::ClassSource qw( GetClassSort GetClassSource );
+use C4::Charset qw(
+    nsb_clean
+    SetMarcUnicodeFlag
+    SetUTF8Flag
+);
+use C4::Languages;
 use C4::Linker;
 use C4::OAI::Sets;
-use C4::Debug;
+use C4::Items qw( GetMarcItem );
 
+use Koha::Logger;
 use Koha::Caches;
+use Koha::ClassSources;
 use Koha::Authority::Types;
 use Koha::Acquisition::Currencies;
+use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
 use Koha::Biblio::Metadatas;
 use Koha::Holds;
 use Koha::ItemTypes;
+use Koha::MarcOverlayRules;
 use Koha::Plugins;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Indexer;
 use Koha::Libraries;
 use Koha::Util::MARC;
-
-use vars qw($debug $cgi_debug);
-
 
 =head1 NAME
 
@@ -179,30 +186,28 @@ The first argument is a C<MARC::Record> object containing the
 bib to add, while the second argument is the desired MARC
 framework code.
 
-This function also accepts a third, optional argument: a hashref
-to additional options.  The only defined option is C<defer_marc_save>,
-which if present and mapped to a true value, causes C<AddBiblio>
-to omit the call to save the MARC in C<biblio_metadata.metadata>
-This option is provided B<only>
-for the use of scripts such as C<bulkmarcimport.pl> that may need
-to do some manipulation of the MARC record for item parsing before
-saving it and which cannot afford the performance hit of saving
-the MARC record twice.  Consequently, do not use that option
-unless you can guarantee that C<ModBiblioMarc> will be called.
+The C<$options> argument is a hashref with additional parameters:
+
+=over 4
+
+=item B<defer_marc_save>: used when ModBiblioMarc is handled by the caller
+
+=item B<skip_record_index>: used when the indexing schedulling will be handled by the caller
+
+=back
 
 =cut
 
 sub AddBiblio {
-    my $record          = shift;
-    my $frameworkcode   = shift;
-    my $options         = @_ ? shift : undef;
-    my $defer_marc_save = 0;
+    my ( $record, $frameworkcode, $options ) = @_;
+
+    $options //= {};
+    my $skip_record_index = $options->{skip_record_index} || 0;
+    my $defer_marc_save   = $options->{defer_marc_save}   || 0;
+
     if (!$record) {
         carp('AddBiblio called with undefined record');
         return;
-    }
-    if ( defined $options and exists $options->{'defer_marc_save'} and $options->{'defer_marc_save'} ) {
-        $defer_marc_save = 1;
     }
 
     my $schema = Koha::Database->schema;
@@ -212,7 +217,7 @@ sub AddBiblio {
 
             # transform the data into koha-table style data
             SetUTF8Flag($record);
-            my $olddata = TransformMarcToKoha( $record, $frameworkcode );
+            my $olddata = TransformMarcToKoha({ record => $record, limit_table => 'no_items' });
 
             my $biblio = Koha::Biblio->new(
                 {
@@ -279,12 +284,12 @@ sub AddBiblio {
             # update MARC subfield that stores biblioitems.cn_sort
             _koha_marc_update_biblioitem_cn_sort( $record, $olddata, $frameworkcode );
 
-            if (C4::Context->preference('BiblioAddsAuthorities')) {
+            if (C4::Context->preference('AutoLinkBiblios')) {
                 BiblioAutoLink( $record, $frameworkcode );
             }
 
-            # now add the record
-            ModBiblioMarc( $record, $biblionumber ) unless $defer_marc_save;
+            # now add the record, don't index while we are in the transaction though
+            ModBiblioMarc( $record, $biblionumber, { skip_record_index => 1 } ) unless $defer_marc_save;
 
             # update OAI-PMH sets
             if(C4::Context->preference("OAI-PMH:AutoUpdateSets")) {
@@ -294,7 +299,13 @@ sub AddBiblio {
             _after_biblio_action_hooks({ action => 'create', biblio_id => $biblionumber });
 
             logaction( "CATALOGUING", "ADD", $biblionumber, "biblio" ) if C4::Context->preference("CataloguingLog");
+
         });
+        # We index now, after the transaction is committed
+        unless ( $skip_record_index ) {
+            my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
+            $indexer->index_records( $biblionumber, "specialUpdate", "biblioserver" );
+        }
     } catch {
         warn $_;
         ( $biblionumber, $biblioitemnumber ) = ( undef, undef );
@@ -304,7 +315,7 @@ sub AddBiblio {
 
 =head2 ModBiblio
 
-  ModBiblio( $record,$biblionumber,$frameworkcode, $disable_autolink);
+  ModBiblio($record, $biblionumber, $frameworkcode, $options);
 
 Replace an existing bib record identified by C<$biblionumber>
 with one supplied by the MARC::Record object C<$record>.  The embedded
@@ -320,27 +331,50 @@ in the C<biblio> and C<biblioitems> tables, as well as
 which fields are used to store embedded item, biblioitem,
 and biblionumber data for indexing.
 
-Unless C<$disable_autolink> is passed ModBiblio will relink record headings
+The C<$options> argument is a hashref with additional parameters:
+
+=over 4
+
+=item C<overlay_context>
+
+This parameter is forwarded to L</ApplyMarcOverlayRules> where it is used for
+selecting the current rule set if MARCOverlayRules is enabled.
+See L</ApplyMarcOverlayRules> for more details.
+
+=item C<disable_autolink>
+
+Unless C<disable_autolink> is passed ModBiblio will relink record headings
 to authorities based on settings in the system preferences. This flag allows
 us to not relink records when the authority linker is saving modifications.
+
+=item C<skip_holds_queue>
+
+Unless C<skip_holds_queue> is passed, ModBiblio will trigger the BatchUpdateBiblioHoldsQueue
+task to rebuild the holds queue for the biblio if I<RealTimeHoldsQueue> is enabled.
+
+=back
 
 Returns 1 on success 0 on failure
 
 =cut
 
 sub ModBiblio {
-    my ( $record, $biblionumber, $frameworkcode, $disable_autolink ) = @_;
+    my ( $record, $biblionumber, $frameworkcode, $options ) = @_;
+
+    $options //= {};
+    my $skip_record_index = $options->{skip_record_index} || 0;
+
     if (!$record) {
         carp 'No record passed to ModBiblio';
         return 0;
     }
 
     if ( C4::Context->preference("CataloguingLog") ) {
-        my $newrecord = GetMarcBiblio({ biblionumber => $biblionumber });
-        logaction( "CATALOGUING", "MODIFY", $biblionumber, "biblio BEFORE=>" . $newrecord->as_formatted );
+        my $biblio = Koha::Biblios->find($biblionumber);
+        logaction( "CATALOGUING", "MODIFY", $biblionumber, "biblio BEFORE=>" . $biblio->metadata->record->as_formatted );
     }
 
-    if ( !$disable_autolink && C4::Context->preference('BiblioAddsAuthorities') ) {
+    if ( !$options->{disable_autolink} && C4::Context->preference('AutoLinkBiblios') ) {
         BiblioAutoLink( $record, $frameworkcode );
     }
 
@@ -361,6 +395,21 @@ sub ModBiblio {
 
     _strip_item_fields($record, $frameworkcode);
 
+    # apply overlay rules
+    if (   C4::Context->preference('MARCOverlayRules')
+        && $biblionumber
+        && defined $options
+        && exists $options->{overlay_context} )
+    {
+        $record = ApplyMarcOverlayRules(
+            {
+                biblionumber    => $biblionumber,
+                record          => $record,
+                overlay_context => $options->{overlay_context},
+            }
+        );
+    }
+
     # update biblionumber and biblioitemnumber in MARC
     # FIXME - this is assuming a 1 to 1 relationship between
     # biblios and biblioitems
@@ -371,13 +420,13 @@ sub ModBiblio {
     _koha_marc_update_bib_ids( $record, $frameworkcode, $biblionumber, $biblioitemnumber );
 
     # load the koha-table data object
-    my $oldbiblio = TransformMarcToKoha( $record, $frameworkcode );
+    my $oldbiblio = TransformMarcToKoha({ record => $record });
 
     # update MARC subfield that stores biblioitems.cn_sort
     _koha_marc_update_biblioitem_cn_sort( $record, $oldbiblio, $frameworkcode );
 
     # update the MARC record (that now contains biblio and items) with the new record data
-    &ModBiblioMarc( $record, $biblionumber );
+    ModBiblioMarc( $record, $biblionumber, { skip_record_index => $skip_record_index } );
 
     # modify the other koha tables
     _koha_modify_biblio( $dbh, $oldbiblio, $frameworkcode );
@@ -389,6 +438,12 @@ sub ModBiblio {
     if(C4::Context->preference("OAI-PMH:AutoUpdateSets")) {
         C4::OAI::Sets::UpdateOAISetsBiblio($biblionumber, $record);
     }
+
+    Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
+        {
+            biblio_ids => [ $biblionumber ]
+        }
+    ) unless $options->{skip_holds_queue} or !C4::Context->preference('RealTimeHoldsQueue');
 
     return 1;
 }
@@ -418,7 +473,7 @@ sub _strip_item_fields {
 
 =head2 DelBiblio
 
-  my $error = &DelBiblio($biblionumber);
+  my $error = &DelBiblio($biblionumber, $params);
 
 Exported function (core API) for deleting a biblio in koha.
 Deletes biblio record from Zebra and Koha tables (biblio & biblioitems)
@@ -427,6 +482,15 @@ Checks to make sure that the biblio has no items attached.
 return:
 C<$error> : undef unless an error occurs
 
+I<$params> is a hashref containing extra parameters. Valid keys are:
+
+=over 4
+
+=item B<skip_holds_queue>: used when the holds queue update will be handled by the caller
+
+=item B<skip_record_index>: used when the indexing schedulling will be handled by the caller
+
+=back
 =cut
 
 sub DelBiblio {
@@ -452,8 +516,15 @@ sub DelBiblio {
     # We delete any existing holds
     my $holds = $biblio->holds;
     while ( my $hold = $holds->next ) {
-        $hold->cancel;
+        # no need to update the holds queue on each step, we'll do it at the end
+        $hold->cancel({ skip_holds_queue => 1 });
     }
+
+    # We update any existing orders
+    my $orders = $biblio->orders;
+    $orders->update({ deleted_biblionumber => $biblionumber}, { no_triggers => 1 });
+    # Update related ILL requests
+    $biblio->ill_requests->update({ deleted_biblio_id => $biblio->id, biblio_id => undef });
 
     unless ( $params->{skip_record_index} ){
         my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
@@ -480,6 +551,12 @@ sub DelBiblio {
     _after_biblio_action_hooks({ action => 'delete', biblio_id => $biblionumber });
 
     logaction( "CATALOGUING", "DELETE", $biblionumber, "biblio" ) if C4::Context->preference("CataloguingLog");
+
+    Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
+        {
+            biblio_ids => [ $biblionumber ]
+        }
+    ) unless $params->{skip_holds_queue} or !C4::Context->preference('RealTimeHoldsQueue');
 
     return;
 }
@@ -644,7 +721,7 @@ sub LinkBibHeadingsToAuthorities {
                         $marcrecordauth->insert_fields_ordered(
                             MARC::Field->new(
                                 '667', '', '',
-                                'a' => "Machine generated authority record."
+                                'a' => C4::Context->preference('GenerateAuthorityField667')
                             )
                         );
                         my $cite =
@@ -654,7 +731,7 @@ sub LinkBibHeadingsToAuthorities {
                         $cite =~ s/^[\s\,]*//;
                         $cite =~ s/[\s\,]*$//;
                         $cite =
-                            "Work cat.: ("
+                            C4::Context->preference('GenerateAuthorityField670') . ": ("
                           . ( $library ? $library->get_effective_marcorgcode : C4::Context->preference('MARCOrgCode') ) . ")"
                           . $bib->subfield( '999', 'c' ) . ": "
                           . $cite;
@@ -1121,99 +1198,6 @@ sub GetMarcSubfieldStructureFromKohaField {
     return wantarray ? @{$mss->{$kohafield}} : $mss->{$kohafield}->[0];
 }
 
-=head2 GetMarcBiblio
-
-  my $record = GetMarcBiblio({
-      biblionumber => $biblionumber,
-      embed_items  => $embeditems,
-      opac         => $opac,
-      borcat       => $patron_category });
-
-Returns MARC::Record representing a biblio record, or C<undef> if the
-biblionumber doesn't exist.
-
-Both embed_items and opac are optional.
-If embed_items is passed and is 1, items are embedded.
-If opac is passed and is 1, the record is filtered as needed.
-
-=over 4
-
-=item C<$biblionumber>
-
-the biblionumber
-
-=item C<$embeditems>
-
-set to true to include item information.
-
-=item C<$opac>
-
-set to true to make the result suited for OPAC view. This causes things like
-OpacHiddenItems to be applied.
-
-=item C<$borcat>
-
-If the OpacHiddenItemsExceptions system preference is set, this patron category
-can be used to make visible OPAC items which would be normally hidden.
-It only makes sense in combination both embed_items and opac values true.
-
-=back
-
-=cut
-
-sub GetMarcBiblio {
-    my ($params) = @_;
-
-    if (not defined $params) {
-        carp 'GetMarcBiblio called without parameters';
-        return;
-    }
-
-    my $biblionumber = $params->{biblionumber};
-    my $embeditems   = $params->{embed_items} || 0;
-    my $opac         = $params->{opac} || 0;
-    my $borcat       = $params->{borcat} // q{};
-
-    if (not defined $biblionumber) {
-        carp 'GetMarcBiblio called with undefined biblionumber';
-        return;
-    }
-
-    my $dbh          = C4::Context->dbh;
-    my $sth          = $dbh->prepare("SELECT biblioitemnumber FROM biblioitems WHERE biblionumber=? ");
-    $sth->execute($biblionumber);
-    my $row     = $sth->fetchrow_hashref;
-    my $biblioitemnumber = $row->{'biblioitemnumber'};
-    my $marcxml = GetXmlBiblio( $biblionumber );
-    $marcxml = StripNonXmlChars( $marcxml );
-    my $frameworkcode = GetFrameworkCode($biblionumber);
-    MARC::File::XML->default_record_format( C4::Context->preference('marcflavour') );
-    my $record = MARC::Record->new();
-
-    if ($marcxml) {
-        $record = eval {
-            MARC::Record::new_from_xml( $marcxml, "UTF-8",
-                C4::Context->preference('marcflavour') );
-        };
-        if ($@) { warn " problem with :$biblionumber : $@ \n$marcxml"; }
-        return unless $record;
-
-        C4::Biblio::_koha_marc_update_bib_ids( $record, $frameworkcode, $biblionumber,
-            $biblioitemnumber );
-        C4::Biblio::EmbedItemsInMarcBiblio({
-            marc_record  => $record,
-            biblionumber => $biblionumber,
-            opac         => $opac,
-            borcat       => $borcat })
-          if ($embeditems);
-
-        return $record;
-    }
-    else {
-        return;
-    }
-}
-
 =head2 GetXmlBiblio
 
   my $marcxml = GetXmlBiblio($biblionumber);
@@ -1259,7 +1243,7 @@ sub GetMarcPrice {
     my @listtags;
     my $subfield;
     
-    if ( $marcflavour eq "MARC21" || $marcflavour eq "NORMARC" ) {
+    if ( $marcflavour eq "MARC21" ) {
         @listtags = ('345', '020');
         $subfield="c";
     } elsif ( $marcflavour eq "UNIMARC" ) {
@@ -1404,20 +1388,58 @@ descriptions rather than normal ones when they exist.
 sub GetAuthorisedValueDesc {
     my ( $tag, $subfield, $value, $framework, $tagslib, $category, $opac ) = @_;
 
+    return q{} unless defined($value);
+
+    my $cache     = Koha::Caches->get_instance();
+    my $cache_key;
     if ( !$category ) {
 
         return $value unless defined $tagslib->{$tag}->{$subfield}->{'authorised_value'};
 
         #---- branch
         if ( $tagslib->{$tag}->{$subfield}->{'authorised_value'} eq "branches" ) {
-            my $branch = Koha::Libraries->find($value);
-            return $branch? $branch->branchname: q{};
+            $cache_key = "libraries:name";
+            my $libraries = $cache->get_from_cache( $cache_key, { unsafe => 1 } );
+            if ( !$libraries ) {
+                $libraries = {
+                    map { $_->branchcode => $_->branchname }
+                      Koha::Libraries->search( {},
+                        { columns => [ 'branchcode', 'branchname' ] } )
+                      ->as_list
+                };
+                $cache->set_in_cache($cache_key, $libraries);
+            }
+            return $libraries->{$value};
         }
 
         #---- itemtypes
         if ( $tagslib->{$tag}->{$subfield}->{'authorised_value'} eq "itemtypes" ) {
-            my $itemtype = Koha::ItemTypes->find( $value );
-            return $itemtype ? $itemtype->translated_description : q||;
+            my $lang = C4::Languages::getlanguage;
+            $lang //= 'en';
+            $cache_key = 'itemtype:description:' . $lang;
+            my $itypes = $cache->get_from_cache( $cache_key, { unsafe => 1 } );
+            if ( !$itypes ) {
+                $itypes =
+                  { map { $_->itemtype => $_->translated_description }
+                      Koha::ItemTypes->search()->as_list };
+                $cache->set_in_cache( $cache_key, $itypes );
+            }
+            return $itypes->{$value};
+        }
+
+        if ( $tagslib->{$tag}->{$subfield}->{'authorised_value'} eq "cn_source" ) {
+            $cache_key = "cn_sources:description";
+            my $cn_sources = $cache->get_from_cache( $cache_key, { unsafe => 1 } );
+            if ( !$cn_sources ) {
+                $cn_sources = {
+                    map { $_->cn_source => $_->description }
+                      Koha::ClassSources->search( {},
+                        { columns => [ 'cn_source', 'description' ] } )
+                      ->as_list
+                };
+                $cache->set_in_cache($cache_key, $cn_sources);
+            }
+            return $cn_sources->{$value};
         }
 
         #---- "true" authorized value
@@ -1426,10 +1448,25 @@ sub GetAuthorisedValueDesc {
 
     my $dbh = C4::Context->dbh;
     if ( $category ne "" ) {
-        my $sth = $dbh->prepare( "SELECT lib, lib_opac FROM authorised_values WHERE category = ? AND authorised_value = ?" );
-        $sth->execute( $category, $value );
-        my $data = $sth->fetchrow_hashref;
-        return ( $opac && $data->{'lib_opac'} ) ? $data->{'lib_opac'} : $data->{'lib'};
+        $cache_key = "AV_descriptions:" . $category;
+        my $av_descriptions = $cache->get_from_cache( $cache_key, { unsafe => 1 } );
+        if ( !$av_descriptions ) {
+            $av_descriptions = {
+                map {
+                    $_->authorised_value =>
+                      { lib => $_->lib, lib_opac => $_->lib_opac }
+                } Koha::AuthorisedValues->search(
+                    { category => $category },
+                    {
+                        columns => [ 'authorised_value', 'lib_opac', 'lib' ]
+                    }
+                )->as_list
+            };
+            $cache->set_in_cache($cache_key, $av_descriptions);
+        }
+        return ( $opac && $av_descriptions->{$value}->{'lib_opac'} )
+          ? $av_descriptions->{$value}->{'lib_opac'}
+          : $av_descriptions->{$value}->{'lib'};
     } else {
         return $value;    # if nothing is found return the original value
     }
@@ -1450,9 +1487,9 @@ sub GetMarcControlnumber {
         return;
     }
     my $controlnumber = "";
-    # Control number or Record identifier are the same field in MARC21, UNIMARC and NORMARC
+    # Control number or Record identifier are the same field in MARC21 and UNIMARC
     # Keep $marcflavour for possible later use
-    if ($marcflavour eq "MARC21" || $marcflavour eq "UNIMARC" || $marcflavour eq "NORMARC") {
+    if ($marcflavour eq "MARC21" || $marcflavour eq "UNIMARC" ) {
         my $controlnumberField = $record->field('001');
         if ($controlnumberField) {
             $controlnumber = $controlnumberField->data();
@@ -1514,7 +1551,7 @@ sub GetMarcISSN {
     if ( $marcflavour eq "UNIMARC" ) {
         $scope = '011';
     }
-    else {    # assume MARC21 or NORMARC
+    else {    # assume MARC21
         $scope = '022';
     }
     my @marcissns;
@@ -1545,7 +1582,7 @@ sub GetMarcSubjects {
         $mintag = "600";
         $maxtag = "611";
         $fields_filter = '6..';
-    } else { # marc21/normarc
+    } else { # marc21
         $mintag = "600";
         $maxtag = "699";
         $fields_filter = '6..';
@@ -1590,7 +1627,7 @@ sub GetMarcSubjects {
                 push @link_loop, {
                     limit    => $subject_limit,
                     'link'   => $linkvalue,
-                    operator => (scalar @link_loop) ? ' and ' : undef
+                    operator => (scalar @link_loop) ? ' AND ' : undef
                 };
             }
             my @this_link_loop = @link_loop;
@@ -1613,6 +1650,7 @@ sub GetMarcSubjects {
     }
     return \@marcsubjects;
 }    #end getMARCsubjects
+
 
 =head2 GetMarcAuthors
 
@@ -1796,7 +1834,7 @@ sub GetMarcSeries {
         $mintag = "225";
         $maxtag = "225";
         $fields_filter = '2..';
-    } else {    # marc21/normarc
+    } else {    # marc21
         $mintag = "440";
         $maxtag = "490";
         $fields_filter = '4..';
@@ -1829,7 +1867,7 @@ sub GetMarcSeries {
 
             push @link_loop, {
                 'link' => $linkvalue,
-                operator => (scalar @link_loop) ? ' and ' : undef
+                operator => (scalar @link_loop) ? ' AND ' : undef
             };
 
             if ($volume_number) {
@@ -1897,10 +1935,16 @@ sub UpsertMarcControlField {
 
 sub GetFrameworkCode {
     my ($biblionumber) = @_;
-    my $dbh            = C4::Context->dbh;
-    my $sth            = $dbh->prepare("SELECT frameworkcode FROM biblio WHERE biblionumber=?");
-    $sth->execute($biblionumber);
-    my ($frameworkcode) = $sth->fetchrow;
+    my $cache          = Koha::Cache::Memory::Lite->get_instance();
+    my $cache_key      = "FrameworkCode-$biblionumber";
+    my $frameworkcode  = $cache->get_from_cache($cache_key);
+    unless ( defined $frameworkcode ) {
+        my $dbh = C4::Context->dbh;
+        ($frameworkcode) = $dbh->selectrow_array(
+            "SELECT frameworkcode FROM biblio WHERE biblionumber=?",
+            undef, $biblionumber );
+        $cache->set_in_cache( $cache_key, $frameworkcode );
+    }
     return $frameworkcode;
 }
 
@@ -1987,12 +2031,13 @@ This function returns a host field populated with data from the host record, the
 sub PrepHostMarcField {
     my ($hostbiblionumber,$hostitemnumber, $marcflavour) = @_;
     $marcflavour ||="MARC21";
-    
-    my $hostrecord = GetMarcBiblio({ biblionumber => $hostbiblionumber });
+
+    my $biblio = Koha::Biblios->find($hostbiblionumber);
+    my $hostrecord = $biblio->metadata->record;
     my $item = Koha::Items->find($hostitemnumber);
 
 	my $hostmarcfield;
-    if ( $marcflavour eq "MARC21" || $marcflavour eq "NORMARC" ) {
+    if ( $marcflavour eq "MARC21" ) {
 	
         #main entry
         my $mainentry;
@@ -2082,7 +2127,7 @@ sub TransformHtmlToXml {
 
     my $xml = MARC::File::XML::header('UTF-8');
     $xml .= "<record>\n";
-    $auth_type = C4::Context->preference('marcflavour') unless $auth_type;
+    $auth_type = C4::Context->preference('marcflavour') unless $auth_type; # FIXME auth_type must be removed
     MARC::File::XML->default_record_format($auth_type);
 
     # in UNIMARC, field 100 contains the encoding
@@ -2328,7 +2373,7 @@ sub TransformHtmlToMarc {
 
 =head2 TransformMarcToKoha
 
-    $result = TransformMarcToKoha( $record, undef, $limit )
+    $result = TransformMarcToKoha({ record => $record, limit_table => $limit })
 
 Extract data from a MARC bib record into a hashref representing
 Koha biblio, biblioitems, and items fields.
@@ -2339,9 +2384,11 @@ hash_ref.
 =cut
 
 sub TransformMarcToKoha {
-    my ( $record, $frameworkcode, $limit_table ) = @_;
-    # FIXME  Parameter $frameworkcode is obsolete and will be removed
-    $limit_table //= q{};
+    my ( $params ) = @_;
+
+    my $record = $params->{record};
+    my $limit_table = $params->{limit_table} // q{};
+    my $kohafields = $params->{kohafields};
 
     my $result = {};
     if (!defined $record) {
@@ -2359,13 +2406,34 @@ sub TransformMarcToKoha {
     # The next call acknowledges Default as the authoritative framework
     # for Koha to MARC mappings.
     my $mss = GetMarcSubfieldStructure( '', { unsafe => 1 } ); # Do not change framework
-    foreach my $kohafield ( keys %{ $mss } ) {
+    @{$kohafields} = keys %{ $mss } unless $kohafields;
+    foreach my $kohafield ( @{$kohafields} ) {
         my ( $table, $column ) = split /[.]/, $kohafield, 2;
         next unless $tables{$table};
-        my $val = TransformMarcToKohaOneField( $kohafield, $record );
-        next if !defined $val;
+        my ( $value, @values );
+        foreach my $fldhash ( @{$mss->{$kohafield}} ) {
+            my $tag = $fldhash->{tagfield};
+            my $sub = $fldhash->{tagsubfield};
+            foreach my $fld ( $record->field($tag) ) {
+                if( $sub eq '@' || $fld->is_control_field ) {
+                    push @values, $fld->data if $fld->data;
+                } else {
+                    push @values, grep { $_ } $fld->subfield($sub);
+                }
+            }
+        }
+        if ( @values ){
+            $value = join ' | ', uniq(@values);
+
+            # Additional polishing for individual kohafields
+            if( $kohafield =~ /copyrightdate|publicationyear/ ) {
+                $value = _adjust_pubyear( $value );
+            }
+        }
+
+        next if !defined $value;
         my $key = _disambiguate( $table, $column );
-        $result->{$key} = $val;
+        $result->{$key} = $value;
     }
     return $result;
 }
@@ -2409,44 +2477,9 @@ sub _disambiguate {
 
 }
 
-=head2 TransformMarcToKohaOneField
-
-    $val = TransformMarcToKohaOneField( 'biblio.title', $marc );
-
-    Note: The authoritative Default framework is used implicitly.
-
-=cut
-
-sub TransformMarcToKohaOneField {
-    my ( $kohafield, $marc ) = @_;
-
-    my ( @rv, $retval );
-    my @mss = GetMarcSubfieldStructureFromKohaField($kohafield);
-    foreach my $fldhash ( @mss ) {
-        my $tag = $fldhash->{tagfield};
-        my $sub = $fldhash->{tagsubfield};
-        foreach my $fld ( $marc->field($tag) ) {
-            if( $sub eq '@' || $fld->is_control_field ) {
-                push @rv, $fld->data if $fld->data;
-            } else {
-                push @rv, grep { $_ } $fld->subfield($sub);
-            }
-        }
-    }
-    return unless @rv;
-    $retval = join ' | ', uniq(@rv);
-
-    # Additional polishing for individual kohafields
-    if( $kohafield =~ /copyrightdate|publicationyear/ ) {
-        $retval = _adjust_pubyear( $retval );
-    }
-
-    return $retval;
-}
-
 =head2 _adjust_pubyear
 
-    Helper routine for TransformMarcToKohaOneField
+    Helper routine for TransformMarcToKoha
 
 =cut
 
@@ -2457,16 +2490,11 @@ sub _adjust_pubyear {
         $retval = $1;
     } elsif( $retval =~ m/(\d\d\d\d)/ && $1 > 0 ) {
         $retval = $1;
-    } elsif( $retval =~ m/
-             (?<year>\d)[-]?[.Xx?]{3}
-            |(?<year>\d{2})[.Xx?]{2}
-            |(?<year>\d{3})[.Xx?]
-            |(?<year>\d)[-]{3}\?
-            |(?<year>\d\d)[-]{2}\?
-            |(?<year>\d{3})[-]\?
-    /xms ) { # the form 198-? occurred in Dutch ISBD rules
-        my $digits = $+{year};
-        $retval = $digits * ( 10 ** ( 4 - length($digits) ));
+    } elsif( $retval =~ m/(?<year>\d{1,3})[.Xx?-]/ ) {
+        # See also bug 24674: enough to look at one unknown year char like .Xx-?
+        # At this point in code 1234? or 1234- already passed the earlier regex
+        # Things like 2-, 1xx, 1??? are now converted to a four positions-year.
+        $retval = $+{year} * ( 10 ** (4-length($+{year})) );
     } else {
         $retval = undef;
     }
@@ -2502,7 +2530,7 @@ $server is authorityserver or biblioserver
 
 sub ModZebra {
     my ( $record_number, $op, $server ) = @_;
-    $debug && warn "ModZebra: updates requested for: $record_number $op $server\n";
+    Koha::Logger->get->debug("ModZebra: updates requested for: $record_number $op $server");
     my $dbh = C4::Context->dbh;
 
     # true ModZebra commented until indexdata fixes zebraDB crashes (it seems they occur on multiple updates
@@ -2523,85 +2551,6 @@ sub ModZebra {
         $sth->execute( $record_number, $server, $op );
         $sth->finish;
     }
-}
-
-=head2 EmbedItemsInMarcBiblio
-
-    EmbedItemsInMarcBiblio({
-        marc_record  => $marc,
-        biblionumber => $biblionumber,
-        item_numbers => $itemnumbers,
-        opac         => $opac });
-
-Given a MARC::Record object containing a bib record,
-modify it to include the items attached to it as 9XX
-per the bib's MARC framework.
-if $itemnumbers is defined, only specified itemnumbers are embedded.
-
-If $opac is true, then opac-relevant suppressions are included.
-
-If opac filtering will be done, borcat should be passed to properly
-override if necessary.
-
-=cut
-
-sub EmbedItemsInMarcBiblio {
-    my ($params) = @_;
-    my ($marc, $biblionumber, $itemnumbers, $opac, $borcat);
-    $marc = $params->{marc_record};
-    if ( !$marc ) {
-        carp 'EmbedItemsInMarcBiblio: No MARC record passed';
-        return;
-    }
-    $biblionumber = $params->{biblionumber};
-    $itemnumbers = $params->{item_numbers};
-    $opac = $params->{opac};
-    $borcat = $params->{borcat} // q{};
-
-    $itemnumbers = [] unless defined $itemnumbers;
-
-    my $frameworkcode = GetFrameworkCode($biblionumber);
-    _strip_item_fields($marc, $frameworkcode);
-
-    # ... and embed the current items
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare("SELECT itemnumber FROM items WHERE biblionumber = ?");
-    $sth->execute($biblionumber);
-    my ( $itemtag, $itemsubfield ) = GetMarcFromKohaField( "items.itemnumber" );
-
-    my @item_fields; # Array holding the actual MARC data for items to be included.
-    my @items;       # Array holding items which are both in the list (sitenumbers)
-                     # and on this biblionumber
-
-    # Flag indicating if there is potential hiding.
-    my $opachiddenitems = $opac
-      && ( C4::Context->preference('OpacHiddenItems') !~ /^\s*$/ );
-
-    require C4::Items;
-    while ( my ($itemnumber) = $sth->fetchrow_array ) {
-        next if @$itemnumbers and not grep { $_ == $itemnumber } @$itemnumbers;
-        my $item;
-        if ( $opachiddenitems ) {
-            $item = Koha::Items->find($itemnumber);
-            $item = $item ? $item->unblessed : undef;
-        }
-        push @items, { itemnumber => $itemnumber, item => $item };
-    }
-    my @items2pass = map { $_->{item} } @items;
-    my @hiddenitems =
-      $opachiddenitems
-      ? C4::Items::GetHiddenItemnumbers({
-            items  => \@items2pass,
-            borcat => $borcat })
-      : ();
-    # Convert to a hash for quick searching
-    my %hiddenitems = map { $_ => 1 } @hiddenitems;
-    foreach my $itemnumber ( map { $_->{itemnumber} } @items ) {
-        next if $hiddenitems{$itemnumber};
-        my $item_marc = C4::Items::GetMarcItem( $biblionumber, $itemnumber );
-        push @item_fields, $item_marc->field($itemtag);
-    }
-    $marc->append_fields(@item_fields);
 }
 
 =head1 INTERNAL FUNCTIONS
@@ -2633,6 +2582,13 @@ sub _koha_marc_update_bib_ids {
         C4::Biblio::UpsertMarcControlField( $record, $biblioitem_tag, $biblioitemnumber );
     } else {
         C4::Biblio::UpsertMarcSubfield($record, $biblioitem_tag, $biblioitem_subfield, $biblioitemnumber);
+    }
+
+    # update the control number (001) in MARC
+    if(C4::Context->preference('autoControlNumber') eq 'biblionumber'){
+        unless($record->field('001')){
+            $record->insert_fields_ordered(MARC::Field->new('001', $biblionumber));
+        }
     }
 }
 
@@ -2709,6 +2665,9 @@ sub _koha_modify_biblio {
         $biblio->{'notes'},    $biblio->{'serial'},      $biblio->{'seriestitle'}, $biblio->{'copyrightdate'} ? int($biblio->{'copyrightdate'}) : undef,
         $biblio->{'abstract'}, $biblio->{'biblionumber'}
     ) if $biblio->{'biblionumber'};
+
+    my $cache = Koha::Cache::Memory::Lite->get_instance();
+    $cache->clear_from_cache("FrameworkCode-" . $biblio->{biblionumber});
 
     if ( $dbh->errstr || !$biblio->{'biblionumber'} ) {
         $error .= "ERROR in _koha_modify_biblio $query" . $dbh->errstr;
@@ -2913,7 +2872,7 @@ sub _koha_delete_biblio_metadata {
 
 =head2 ModBiblioMarc
 
-  &ModBiblioMarc($newrec,$biblionumber);
+  ModBiblioMarc($newrec,$biblionumber);
 
 Add MARC XML data for a biblio to koha
 
@@ -2924,11 +2883,13 @@ Function exported, but should NOT be used, unless you really know what you're do
 sub ModBiblioMarc {
     # pass the MARC::Record to this function, and it will create the records in
     # the marcxml field
-    my ( $record, $biblionumber ) = @_;
+    my ( $record, $biblionumber, $params ) = @_;
     if ( !$record ) {
         carp 'ModBiblioMarc passed an undefined record';
         return;
     }
+
+    my $skip_record_index = $params->{skip_record_index} || 0;
 
     # Clone record as it gets modified
     $record = $record->clone();
@@ -2989,8 +2950,10 @@ sub ModBiblioMarc {
     $m_rs->metadata( $record->as_xml_record($encoding) );
     $m_rs->store;
 
-    my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
-    $indexer->index_records( $biblionumber, "specialUpdate", "biblioserver" );
+    unless ( $skip_record_index ) {
+        my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
+        $indexer->index_records( $biblionumber, "specialUpdate", "biblioserver" );
+    }
 
     return $biblionumber;
 }
@@ -3005,13 +2968,15 @@ Generate the host item entry for an analytic child entry
 sub prepare_host_field {
     my ( $hostbiblio, $marcflavour ) = @_;
     $marcflavour ||= C4::Context->preference('marcflavour');
-    my $host = GetMarcBiblio({ biblionumber => $hostbiblio });
+
+    my $biblio = Koha::Biblios->find($hostbiblio);
+    my $host = $biblio->metadata->record;
     # unfortunately as_string does not 'do the right thing'
     # if field returns undef
     my %sfd;
     my $field;
     my $host_field;
-    if ( $marcflavour eq 'MARC21' || $marcflavour eq 'NORMARC' ) {
+    if ( $marcflavour eq 'MARC21' ) {
         if ( $field = $host->field('100') || $host->field('110') || $host->field('11') ) {
             my $s = $field->as_string('ab');
             if ($s) {
@@ -3140,17 +3105,18 @@ Update the total issue count for a particular bib record.
 =cut
 
 sub UpdateTotalIssues {
-    my ($biblionumber, $increase, $value) = @_;
+    my ($biblionumber, $increase, $value, $skip_holds_queue) = @_;
     my $totalissues;
 
-    my $record = GetMarcBiblio({ biblionumber => $biblionumber });
-    unless ($record) {
-        carp "UpdateTotalIssues could not get biblio record";
+    my $biblio = Koha::Biblios->find($biblionumber);
+    unless ($biblio) {
+        carp "UpdateTotalIssues could not get biblio";
         return;
     }
-    my $biblio = Koha::Biblios->find( $biblionumber );
-    unless ($biblio) {
-        carp "UpdateTotalIssues could not get datas of biblio";
+
+    my $record = $biblio->metadata->record;
+    unless ($record) {
+        carp "UpdateTotalIssues could not get biblio record";
         return;
     }
     my $biblioitem = $biblio->biblioitem;
@@ -3174,7 +3140,7 @@ sub UpdateTotalIssues {
          $record->insert_grouped_field($field);
      }
 
-     return ModBiblio($record, $biblionumber, $biblio->frameworkcode);
+     return ModBiblio($record, $biblionumber, $biblio->frameworkcode, { skip_holds_queue => $skip_holds_queue });
 }
 
 =head2 RemoveAllNsb
@@ -3225,8 +3191,66 @@ sub RemoveAllNsb {
     return $record;
 }
 
-1;
+=head2 ApplyMarcOverlayRules
 
+    my $record = ApplyMarcOverlayRules($params)
+
+Applies marc merge rules to a record.
+
+C<$params> is expected to be a hashref with below keys defined.
+
+=over 4
+
+=item C<biblionumber>
+biblionumber of old record
+
+=item C<record>
+Incoming record that will be merged with old record
+
+=item C<overlay_context>
+hashref containing at least one context module and filter value on
+the form {module => filter, ...}.
+
+=back
+
+Returns:
+
+=over 4
+
+=item C<$record>
+
+Merged MARC record based with merge rules for C<context> applied. If no old
+record for C<biblionumber> can be found, C<record> is returned unchanged.
+Default action when no matching context is found to return C<record> unchanged.
+If no rules are found for a certain field tag the default is to overwrite with
+fields with this field tag from C<record>.
+
+=back
+
+=cut
+
+sub ApplyMarcOverlayRules {
+    my ($params) = @_;
+    my $biblionumber = $params->{biblionumber};
+    my $incoming_record = $params->{record};
+
+    if (!$biblionumber) {
+        carp 'ApplyMarcOverlayRules called on undefined biblionumber';
+        return;
+    }
+    if (!$incoming_record) {
+        carp 'ApplyMarcOverlayRules called on undefined record';
+        return;
+    }
+    my $biblio = Koha::Biblios->find($biblionumber);
+    my $old_record = $biblio->metadata->record;
+
+    # Skip overlay rules if called with no context
+    if ($old_record && defined $params->{overlay_context}) {
+        return Koha::MarcOverlayRules->merge_records($old_record, $incoming_record, $params->{overlay_context});
+    }
+    return $incoming_record;
+}
 
 =head2 _after_biblio_action_hooks
 
@@ -3250,6 +3274,8 @@ sub _after_biblio_action_hooks {
         }
     );
 }
+
+1;
 
 __END__
 

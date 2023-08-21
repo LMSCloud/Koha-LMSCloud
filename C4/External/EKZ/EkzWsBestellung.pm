@@ -25,10 +25,10 @@ use Data::Dumper;
 use CGI::Carp;
 use Exporter;
 
-use C4::Biblio qw( GetMarcBiblio );
 use C4::Context;
 use C4::External::EKZ::lib::EkzWebServices;
 use C4::External::EKZ::lib::EkzKohaRecords;
+use Koha::Biblios;
 use Koha::AcquisitionImport::AcquisitionImports;
 use Koha::AcquisitionImport::AcquisitionImportObjects;
 use Koha::Logger;
@@ -208,8 +208,9 @@ sub BestelleBeiEkz {
                     my $verlag = '';
                     my $erscheinungsJahr = '';
 
-                    $logger->debug("BestelleBeiEkz() GetMarcBiblio of biblionumber:" . $aqorders_hit->{'biblionumber'} . ":");
-                    my $marcrecord = C4::Biblio::GetMarcBiblio( { biblionumber => $aqorders_hit->{'biblionumber'}, embed_items => 0 } );
+                    $logger->debug("BestelleBeiEkz() Koha::Biblios->find->metadata->record of biblionumber:" . $aqorders_hit->{'biblionumber'} . ":");
+                    my $biblio = Koha::Biblios->find( $aqorders_hit->{'biblionumber'} );
+                    my $marcrecord = $biblio ? $biblio->metadata->record : undef;
 
                     if ( $marcrecord ) {
                         my ( @fields, $field );

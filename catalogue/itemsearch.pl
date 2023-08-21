@@ -20,13 +20,12 @@
 use Modern::Perl;
 use CGI;
 
-use JSON;
+use JSON qw( to_json );
 
-use C4::Auth;
-use C4::Output;
-use C4::Items;
-use C4::Biblio;
-use C4::Koha;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_with_http_headers output_html_with_http_headers );
+use C4::Items qw( SearchItems );
+use C4::Koha qw( GetAuthorisedValues );
 
 use Koha::AuthorisedValues;
 use Koha::Biblios;
@@ -65,7 +64,7 @@ if (defined $format and $format eq 'json') {
                 push @f, $searchcol;
                 push @c, 'and';
 
-                if ( grep { $_ eq $columns[$i] } qw( ccode homebranch holdingbranch location itype notforloan itemlost ) ) {
+                if ( grep { $_ eq $columns[$i] } qw( ccode homebranch holdingbranch location itype notforloan itemlost onloan ) ) {
                     push @q, "$word";
                     push @op, '=';
                 }
@@ -206,6 +205,21 @@ if ( defined $format ) {
         }
     }
 
+    # null/is not null parameters
+    foreach my $p (qw( onloan )) {
+        my $v = $cgi->param($p) // '';
+        my $f = {
+            field => $p,
+            operator => "is",
+        };
+        if ( $v eq 'IS NOT NULL' ) {
+            $f->{query} = "not null";
+        } elsif ( $v eq 'IS NULL' ) {
+            $f->{query} = "null";
+        }
+        push @{ $filter->{filters} }, $f unless ( $v eq "" );
+    }
+
     if (my $itemcallnumber_from = scalar $cgi->param('itemcallnumber_from')) {
         push @{ $filter->{filters} }, {
             field => 'itemcallnumber',
@@ -251,6 +265,8 @@ if ( defined $format ) {
             my $biblio = Koha::Biblios->find( $item->{biblionumber} );
             $item->{biblio} = $biblio;
             $item->{biblioitem} = $biblio->biblioitem->unblessed;
+            my $checkout = Koha::Checkouts->find({ itemnumber => $item->{itemnumber} });
+            $item->{checkout} = $checkout;
         }
     }
 
@@ -280,15 +296,9 @@ if ( defined $format ) {
 
 # Display the search form
 
-my @branches = map { value => $_->branchcode, label => $_->branchname }, Koha::Libraries->search( {}, { order_by => 'branchname' } );
-my @homebranches = map { value => $_->branchcode, label => $_->branchname }, Koha::Libraries->search( { -or => [ mobilebranch => undef, mobilebranch => '' ] }, { order_by => 'branchname' } );
-my @itemtypes;
-foreach my $itemtype ( Koha::ItemTypes->search_with_localization ) {
-    push @itemtypes, {
-        value => $itemtype->itemtype,
-        label => $itemtype->translated_description,
-    };
-}
+my @branches = map { value => $_->branchcode, label => $_->branchname }, Koha::Libraries->search( {}, { order_by => 'branchname' } )->as_list;
+my @homebranches = map { value => $_->branchcode, label => $_->branchname }, Koha::Libraries->search( { -or => [ mobilebranch => undef, mobilebranch => '' ] }, { order_by => 'branchname' } )->as_list;
+my @itemtypes = map { value => $_->itemtype, label => $_->translated_description }, Koha::ItemTypes->search_with_localization->as_list;
 
 my @ccodes = Koha::AuthorisedValues->get_descriptions_by_koha_field({ kohafield => 'items.ccode' });
 foreach my $ccode (@ccodes) {

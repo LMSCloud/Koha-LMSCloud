@@ -20,7 +20,7 @@
 use strict;
 use warnings;
 
-use C4::ClassSplitRoutine::LCC;
+use C4::ClassSplitRoutine::LCC qw( split_callnumber );
 use Test::More;
 
 BEGIN {
@@ -40,7 +40,7 @@ BEGIN {
     }
     my $test_num = 1;
     foreach (keys(%$lccns)) {
-        my $split_num += scalar(@{$lccns->{$_}});
+        my $split_num = scalar(@{$lccns->{$_}});
         $test_num += 2 * $split_num;
         $test_num += 4;
     }

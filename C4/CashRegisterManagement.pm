@@ -31,7 +31,7 @@ use Koha::CashRegister::CashRegisterAccount;
 use Koha::Account::CreditTypes;
 use Koha::Account::DebitTypes;
 use DateTime;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Acquisition::Currencies;
 use Locale::Currency::Format;
 use DateTime::Format::MySQL;
@@ -120,7 +120,7 @@ sub getEffectiveBranchcode {
     # If logged in as a book mobile station, the cash register of the assigned book mobile has to be used;
     # cash registers for book mobile station make no sense and therefore can not be created.
     my %assignedBookMobileBranchcode = ();
-    my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search };
+    my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search->as_list };
     for my $branchi (sort { $branches->{$a}->{branchcode} cmp $branches->{$b}->{branchcode} } keys %$branches) {
         if ( $branches->{$branchi}->{'mobilebranch'} ) {
             $assignedBookMobileBranchcode{$branchi} = $branches->{$branchi}->{'mobilebranch'};
@@ -714,9 +714,9 @@ List all defined cash registerss.
 sub getAllCashRegisters {
     my $self = shift;
     my @cash_registers = ();
-    my @cash_register_managers = Koha::CashRegister::CashRegisterManagers->search({});
+    my @cash_register_managers = Koha::CashRegister::CashRegisterManagers->search({})->as_list;
 
-    foreach my $cashreg (Koha::CashRegister::CashRegisterDefinitions->search({})) {
+    foreach my $cashreg (Koha::CashRegister::CashRegisterDefinitions->search({})->as_list) {
     
         my $balance = $self->getCurrentBalance($cashreg->id());
         
@@ -1437,7 +1437,7 @@ sub getLastBookingsFromTo {
     $sth_bor->finish();
     $sth->finish();
 
-    return (\@result,output_pref({dt => dt_from_string($date_from), dateonly => 0}),output_pref({dt => dt_from_string($date_to), dateonly => 0}));
+    return (\@result,output_pref({dt => dt_from_string($date_from), dateformat => 'iso', dateonly => 0}),output_pref({dt => dt_from_string($date_to), dateformat => 'iso', dateonly => 0}));
 }
 
 =head2 getCashRegisterPaymentAndDepositOverview
@@ -1515,7 +1515,7 @@ sub getCashRegisterPaymentAndDepositOverview {
     
     $result->{type} = 'inoutpaymentoverview';
     
-    return ($result,output_pref({dt => dt_from_string($date_from), dateonly => 0}),output_pref({dt => dt_from_string($date_to), dateonly => 0}));
+    return ($result,output_pref({dt => dt_from_string($date_from), dateformat => 'iso', dateonly => 0}),output_pref({dt => dt_from_string($date_to), dateformat => 'iso', dateonly => 0}));
 }
 
 =head2 getFinesOverviewByBranch
@@ -1548,19 +1548,19 @@ sub getFinesOverview {
     
     # read credit types
     my %credit_types;
-    foreach my $credit_type ( Koha::Account::CreditTypes->search() ) {
+    foreach my $credit_type ( Koha::Account::CreditTypes->search()->as_list ) {
         $credit_types{$credit_type->code} = $credit_type->description;
     }
     
     # read debit types
     my %debit_types;
-    foreach my $debit_type ( Koha::Account::DebitTypes->search() ) {
+    foreach my $debit_type ( Koha::Account::DebitTypes->search()->as_list ) {
         $debit_types{$debit_type->code} = $debit_type->description;
     }
     
     # read itemtypes
     my %itemtypes;
-    foreach my $it(Koha::ItemTypes->search) {
+    foreach my $it(Koha::ItemTypes->search->as_list) {
         $itemtypes{$it->itemtype} = $it->description;
     }
     
@@ -3242,7 +3242,7 @@ sub getFinesOverview {
         }
     }
     
-    return ($result,output_pref({dt => dt_from_string($date_from), dateonly => 0}),output_pref({dt => dt_from_string($date_to), dateonly => 0}));
+    return ($result,output_pref({dt => dt_from_string($date_from), dateformat => 'iso', dateonly => 0}),output_pref({dt => dt_from_string($date_to), dateformat => 'iso', dateonly => 0}));
 }
 
 =head2 getCashTransactionOverviewByBranch
@@ -3485,7 +3485,7 @@ sub getCashTransactionOverviewByBranch {
     $result->{sum}->{final_balance}->{booking_amount_formatted} = $self->formatAmountWithCurrency($result->{sum}->{final_balance}->{amount});
     
     
-    return ($result,output_pref({dt => dt_from_string($date_from), dateonly => 0}),output_pref({dt => dt_from_string($date_to), dateonly => 0}));
+    return ($result,output_pref({dt => dt_from_string($date_from), dateformat => 'iso', dateonly => 0}),output_pref({dt => dt_from_string($date_to), dateformat => 'iso', dateonly => 0}));
 }
 
 

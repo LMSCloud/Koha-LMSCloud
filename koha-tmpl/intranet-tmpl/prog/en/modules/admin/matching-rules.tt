@@ -18,13 +18,13 @@
 
 [% BLOCK norms_text %]
     [% SWITCH norm %]
-        [% CASE 'none' %]None
-        [% CASE 'remove_spaces' %]Remove spaces
-        [% CASE 'upper_case' %]Uppercase
-        [% CASE 'lower_case' %]Lowercase
-        [% CASE 'legacy_default' %]Legacy default
-        [% CASE 'ISBN' %]ISBN
-        [% CASE %][% norm | html %]
+        [% CASE 'none' %]<span>None</span>
+        [% CASE 'remove_spaces' %]<span>Remove spaces</span>
+        [% CASE 'upper_case' %]<span>Uppercase</span>
+        [% CASE 'lower_case' %]<span>Lowercase</span>
+        [% CASE 'legacy_default' %]<span>Legacy default</span>
+        [% CASE 'ISBN' %]<span>ISBN</span>
+        [% CASE %]<span>[% norm | html %]</span>
     [% END %]
 [% END %]
 
@@ -59,51 +59,43 @@
 </style>
 </head>
 <body id="admin_matching-rules" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
+        [% END %]
 
         [% IF ( matching_rule_form ) %]
-            <li>
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/admin/matching-rules.pl">Record matching rules</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    [% IF ( edit_matching_rule ) %]
-                        Modify record matching rule
-                    [% ELSE %]
-                        Add record matching rule
-                    [% END %]
-                </a>
-            </li>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% IF ( edit_matching_rule ) %]
+                    <span>Modify record matching rule</span>
+                [% ELSE %]
+                    <span>Add record matching rule</span>
+                [% END %]
+            [% END %]
 
         [% ELSIF ( delete_matching_rule_form ) %]
-            <li>
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/admin/matching-rules.pl">Record matching rules</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    Confirm deletion of record matching rule &quot;[% code | html %]&quot;
-                </a>
-            </li>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Confirm deletion of record matching rule '[% code | html %]'</span>
+            [% END %]
 
         [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Record matching rules
-                </a>
-            </li>
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Record matching rules</span>
+            [% END %]
         [% END %]
-    </ol>
-</nav> <!-- /#breadcrumbs -->
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -112,9 +104,9 @@
 
                 [% IF ( matching_rule_form ) %]
                     [% IF ( edit_matching_rule ) %]
-                        <h2>Modify record matching rule</h2>
+                        <h1>Modify record matching rule</h1>
                     [% ELSE %]
-                        <h2>Add record matching rule</h2>
+                        <h1>Add record matching rule</h1>
                     [% END %]
                     <form action="[% script_name | html %]" name="Aform" method="post">
                         <input type="hidden" name="op" value="[% confirm_op | html %]" />
@@ -127,7 +119,7 @@
                                         <input type="hidden" name="code" value="[% code | html %]" />
                                         [% code | html %]
                                     [% ELSE %]
-                                        <label for="code" class="required">Matching rule code: </label>
+                                        <label for="code" class="required focus">Matching rule code: </label>
                                         <input type="text" id="code" name="code"  size="10" maxlength="10" /> <span class="required">Required</span>
                                     [% END %]
                                 </li>
@@ -414,9 +406,9 @@
                         </fieldset>
                         <fieldset class="action">
                             [% IF ( edit_matching_rule ) %]
-                                <input type="button" value="Save" onclick="CheckMatchingRuleForm(this.form)" />
+                                <input type="button" class="btn btn-primary" value="Save" onclick="CheckMatchingRuleForm(this.form)" />
                             [% ELSE %]
-                                <input type="button" value="Save" onclick="CheckMatchingRuleForm(this.form)" />
+                                <input type="button" class="btn btn-primary" value="Save" onclick="CheckMatchingRuleForm(this.form)" />
                             [% END %]
                             <a class="cancel" href="/cgi-bin/koha/admin/matching-rules.pl">Cancel</a>
                         </fieldset> <!-- /.action -->
@@ -425,7 +417,7 @@
 
                 [% IF ( delete_matching_rule_form ) %]
                     <div class="dialog alert">
-                        <h3>Confirm deletion of record matching rule <span class="ex">'[% code | html %]' ([% description | html %])</span>?</h3>
+                        <h1>Confirm deletion of record matching rule <span class="ex">'[% code | html %]' ([% description | html %])</span>?</h1>
                         <form action="[% script_name | html %]" name="Aform" method="post">
                             <input type="hidden" name="op" value="[% confirm_op | html %]" />
                             <input type="hidden" name="matcher_id" value="[% matcher_id | html %]" />
@@ -443,7 +435,7 @@
                         <a class="btn btn-default" id="newrule" href="[% script_name | url %]?op=add_matching_rule"><i class="fa fa-plus"></i> New record matching rule</a>
                     </div>
 
-                    <h2>Record matching rules</h2>
+                    <h1>Record matching rules</h1>
 
                     [% IF ( added_matching_rule ) %]
                         <div class="dialog message">Added record matching rule &quot;[% added_matching_rule | html %]&quot;</div>
@@ -455,25 +447,27 @@
                         <div class="dialog message">Deleted record matching rule &quot;[% deleted_matching_rule | html %]&quot;</div>
                     [% END %]
                     [% IF ( available_matching_rules ) %]
-                        <table>
-                            <tr>
-                                <th>#</th>
-                                <th>Code</th>
-                                <th>Description</th>
-                                <th class="noExport">Actions</th>
-                            </tr>
-                            [% FOREACH available_matching_rule IN available_matching_rules %]
+                        <div class="page-section">
+                            <table>
                                 <tr>
-                                    <td>[% available_matching_rule.matcher_id | html %]</td>
-                                    <td>[% available_matching_rule.code | html %]</td>
-                                    <td>[% available_matching_rule.description | html %]</td>
-                                    <td class="actions">
-                                        <a class="btn btn-default btn-xs" href="[% available_matching_rule.script_name | url %]?op=edit_matching_rule&amp;matcher_id=[% available_matching_rule.matcher_id | uri %]"><i class="fa fa-pencil"></i> Edit</a>
-                                        <a class="btn btn-default btn-xs" href="[% available_matching_rule.script_name | url %]?op=delete_matching_rule&amp;matcher_id=[% available_matching_rule.matcher_id | uri %]"><i class="fa fa-trash"></i> Delete</a>
-                                    </td>
+                                    <th>#</th>
+                                    <th>Code</th>
+                                    <th>Description</th>
+                                    <th class="noExport">Actions</th>
                                 </tr>
-                            [% END %]
-                        </table>
+                                [% FOREACH available_matching_rule IN available_matching_rules %]
+                                    <tr>
+                                        <td>[% available_matching_rule.matcher_id | html %]</td>
+                                        <td>[% available_matching_rule.code | html %]</td>
+                                        <td>[% available_matching_rule.description | html %]</td>
+                                        <td class="actions">
+                                            <a class="btn btn-default btn-xs" href="[% available_matching_rule.script_name | url %]?op=edit_matching_rule&amp;matcher_id=[% available_matching_rule.matcher_id | uri %]"><i class="fa fa-pencil"></i> Edit</a>
+                                            <a class="btn btn-default btn-xs" href="[% available_matching_rule.script_name | url %]?op=delete_matching_rule&amp;matcher_id=[% available_matching_rule.matcher_id | uri %]"><i class="fa fa-trash"></i> Delete</a>
+                                        </td>
+                                    </tr>
+                                [% END %]
+                            </table>
+                        </div> <!-- /.page-section -->
                     [% ELSE %]
                         <p>There are no saved matching rules.</p>
                     [% END # /IF ( available_matching_rules ) %]

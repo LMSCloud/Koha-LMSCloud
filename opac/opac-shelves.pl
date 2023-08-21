@@ -20,28 +20,35 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Biblio;
+use C4::Auth qw( get_template_and_user );
+use C4::Biblio qw( GetBiblioData GetFrameworkCode );
 use C4::External::BakerTaylor qw( image_url link_url );
-use C4::Koha;
-use C4::Items;
+use C4::Koha qw(
+    GetNormalizedEAN
+    GetNormalizedISBN
+    GetNormalizedOCLCNumber
+    GetNormalizedUPC
+);
 use C4::Members;
-use C4::Output;
+use C4::Output qw( pagination_bar output_with_http_headers );
 use C4::Tags qw( get_tags );
-use C4::XSLT;
+use C4::XSLT qw( XSLTParse4Display );
 use C4::Divibib::NCIPService qw(DIVIBIBAGENCYID);
 
 use Koha::Biblios;
 use Koha::Biblioitems;
 use Koha::CirculationRules;
 use Koha::CsvProfiles;
+use Koha::DateUtils qw/dt_from_string/;
 use Koha::Items;
 use Koha::ItemTypes;
 use Koha::Patrons;
+use Koha::Virtualshelfshares;
 use Koha::Virtualshelves;
 use Koha::RecordProcessor;
 
 use constant ANYONE => 2;
+use constant STAFF => 3;
 
 my $query = CGI->new;
 
@@ -80,11 +87,12 @@ if (C4::Context->preference("BakerTaylorEnabled")) {
 }
 
 my $referer  = $query->param('referer')  || $op;
-my $category = 1;
-$category = 2 if $query->param('category') && $query->param('category') == 2;
+my $public = 0;
+$public = 1 if $query->param('public') && $query->param('public') == 1;
 
 my ( $shelf, $shelfnumber, @messages );
 
+# PART 1: Perform a few actions
 if ( $op eq 'add_form' ) {
     # Only pass default
     $shelf = { allow_change_from_owner => 1 };
@@ -93,7 +101,7 @@ if ( $op eq 'add_form' ) {
     $shelf       = Koha::Virtualshelves->find($shelfnumber);
 
     if ( $shelf ) {
-        $category = $shelf->category;
+        $public = $shelf->public;
         my $patron = Koha::Patrons->find( $shelf->owner );
         $template->param( owner => $patron, );
         unless ( $shelf->can_be_managed( $loggedinuser ) ) {
@@ -110,9 +118,10 @@ if ( $op eq 'add_form' ) {
             $shelf = Koha::Virtualshelf->new(
                 {   shelfname          => scalar $query->param('shelfname'),
                     sortfield          => scalar $query->param('sortfield'),
-                    category           => $category,
+                    public             => $public,
                     allow_change_from_owner => $allow_changes_from > 0,
                     allow_change_from_others => $allow_changes_from == ANYONE,
+                    allow_change_from_staff => $allow_changes_from == STAFF,
                     owner              => scalar $loggedinuser,
                 }
             );
@@ -144,7 +153,8 @@ if ( $op eq 'add_form' ) {
             my $allow_changes_from = $query->param('allow_changes_from');
             $shelf->allow_change_from_owner( $allow_changes_from > 0 );
             $shelf->allow_change_from_others( $allow_changes_from == ANYONE );
-            $shelf->category( $category );
+            $shelf->allow_change_from_staff( $allow_changes_from == STAFF );
+            $shelf->public( $public );
             eval { $shelf->store };
 
             if ($@) {
@@ -249,14 +259,47 @@ if ( $op eq 'add_form' ) {
         push @messages, { type => 'error', code => 'does_not_exist' };
     }
     $op = 'view';
+} elsif( $op eq 'transfer' ) {
+    $shelfnumber = $query->param('shelfnumber');
+    $shelf = Koha::Virtualshelves->find($shelfnumber) if $shelfnumber;
+    my $new_owner = $query->param('new_owner'); # borrowernumber or undef
+    my $error_code = $shelf
+        ? $shelf->cannot_be_transferred({ by => $loggedinuser, to => $new_owner, interface => 'opac' })
+        : 'does_not_exist';
+
+    if( !$new_owner && $error_code eq 'missing_to_parameter' ) { # show transfer form
+        my $patrons = [];
+        my $shares = $shelf->get_shares->search({ borrowernumber => { '!=' => undef } });
+        while( my $share = $shares->next ) {
+            my $email = $share->sharee->notice_email_address;
+            push @$patrons, { email => $email, borrowernumber => $share->get_column('borrowernumber') } if $email;
+        }
+        if( @$patrons ) {
+            $template->param( shared_users => $patrons );
+            $op = 'transfer';
+        } else {
+            push @messages, { type => 'error', code => 'no_email_found' };
+        }
+    } elsif( $error_code ) {
+        push @messages, { type => 'error', code => $error_code };
+        $op = 'list';
+    } else { # transfer; remove new_owner from virtualshelfshares, add loggedinuser
+        $shelf->_result->result_source->schema->txn_do( sub {
+            $shelf->get_shares->search({ borrowernumber => $new_owner })->delete;
+            Koha::Virtualshelfshare->new({ shelfnumber => $shelfnumber, borrowernumber => $loggedinuser, sharedate => dt_from_string })->store;
+            $shelf->owner($new_owner)->store;
+        });
+        $op = 'list';
+    }
 }
 
+# PART 2: After a possible action, view one list or show a number of lists
 if ( $op eq 'view' ) {
     $shelfnumber ||= $query->param('shelfnumber');
     $shelf = Koha::Virtualshelves->find($shelfnumber);
     if ( $shelf ) {
         if ( $shelf->can_be_viewed( $loggedinuser ) ) {
-            $category = $shelf->category;
+            $public = $shelf->public;
 
             # Sortfield param may still include sort order with :asc or :desc, but direction overrides it
             my( $sortfield, $direction );
@@ -300,11 +343,6 @@ if ( $op eq 'view' ) {
                 $categorycode = $patron ? $patron->categorycode : undef;
             }
 
-            # Lists display falls back to search results configuration
-            my $xslfile = C4::Context->preference('OPACXSLTListsDisplay');
-            my $lang   = $xslfile ? C4::Languages::getlanguage()  : undef;
-            my $sysxml = $xslfile ? C4::XSLT::get_xslt_sysprefs() : undef;
-
             # initialize the lists of divibib IDs in order to retrieve the onleihe status
             # used in Germany for divibib customers
             my @divibibIDs = ();
@@ -320,16 +358,16 @@ if ( $op eq 'view' ) {
             while ( my $content = $contents->next ) {
                 my $biblionumber = $content->biblionumber;
                 my $this_item    = GetBiblioData($biblionumber);
-                my $record = GetMarcBiblio({ biblionumber => $biblionumber });
-                my $framework = GetFrameworkCode( $biblionumber );
-                my $biblio = Koha::Biblios->find( $biblionumber );
-                $record_processor->options({
+                my $biblio       = Koha::Biblios->find($biblionumber);
+                my $record       = $biblio->metadata->record;
+                my $framework    = GetFrameworkCode($biblionumber);
+                $record_processor->options(
+                    {
                     interface => 'opac',
                     frameworkcode => $framework
                 });
                 $record_processor->process($record);
 
-                
                 if ( C4::Context->preference('DivibibEnabled') && $record->field("001") && $record->field("003") ) {
                     my $Id     = $record->field("001")->data();
                     my $IdProv = $record->field("003")->data();
@@ -402,18 +440,20 @@ if ( $op eq 'view' ) {
                 $this_item->{allow_onshelf_holds} = $allow_onshelf_holds;
                 $this_item->{'ITEM_RESULTS'} = $items;
 
-                if ($xslfile) {
-                    my $variables = {
-                        anonymous_session => ($loggedinuser) ? 0 : 1
-                    };
-                    $this_item->{XSLTBloc} = XSLTParse4Display(
-                        $biblionumber,          $record,
-                        "OPACXSLTListsDisplay", 1,
-                        undef,                 $sysxml,
-                        $xslfile,              $lang,
-                        $variables,            $items->reset
-                    );
-                }
+                my $variables = {
+                    anonymous_session => ($loggedinuser) ? 0 : 1
+                };
+                $this_item->{XSLTBloc} = XSLTParse4Display(
+                    {
+                        biblionumber   => $biblionumber,
+                        record         => $record,
+                        xsl_syspref    => "OPACXSLTListsDisplay",
+                        fix_amps       => 1,
+                        xslt_variables => $variables,
+                        items_rs       => $items->reset,
+                    }
+                );
+
 
                 if ( grep {$_ eq $biblionumber} @cart_list) {
                     $this_item->{incart} = 1;
@@ -436,11 +476,13 @@ if ( $op eq 'view' ) {
                 itemsloop          => \@items_info,
                 sortfield          => $sortfield,
                 direction          => $direction,
-                csv_profiles => [
-                    Koha::CsvProfiles->search(
-                        { type => 'marc', used_for => 'export_records', staff_only => 0 }
-                    )
-                ],
+                csv_profiles => Koha::CsvProfiles->search(
+                    {
+                        type       => 'marc',
+                        used_for   => 'export_records',
+                        staff_only => 0
+                    }
+                  ),
             );
             if ( $page ) {
                 my $pager = $contents->pager;
@@ -458,12 +500,10 @@ if ( $op eq 'view' ) {
     } else {
         push @messages, { type => 'error', code => 'does_not_exist' };
     }
-}
-
-if ( $op eq 'list' ) {
+} elsif ( $op eq 'list' ) {
     my $shelves;
     my ( $page, $rows ) = ( $query->param('page') || 1, 20 );
-    if ( $category == 1 ) {
+    if ( !$public ) {
         $shelves = Koha::Virtualshelves->get_private_shelves({ page => $page, rows => $rows, borrowernumber => $loggedinuser, });
     } else {
         $shelves = Koha::Virtualshelves->get_public_shelves({ page => $page, rows => $rows, });
@@ -474,19 +514,22 @@ if ( $op eq 'list' ) {
         shelves => $shelves,
         pagination_bar => pagination_bar(
             q||, $pager->last_page - $pager->first_page + 1,
-            $page, "page", { op => 'list', category => $category, }
+            $page, "page", { op => 'list', public => $public, }
         ),
     );
 }
 
+my $staffuser;
+$staffuser = Koha::Patrons->find( $loggedinuser )->can_patron_change_staff_only_lists if $loggedinuser;
 $template->param(
     op       => $op,
     referer  => $referer,
     shelf    => $shelf,
     messages => \@messages,
-    category => $category,
+    public   => $public,
     print    => scalar $query->param('print') || 0,
     listsview => 1,
+    staffuser => $staffuser,
 );
 
 my $content_type = $query->param('rss')? 'rss' : 'html';

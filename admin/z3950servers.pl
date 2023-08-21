@@ -27,8 +27,8 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use Koha::Database;
 use Koha::Z3950Servers;
 
@@ -45,7 +45,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user( {
     query => $input,
     type => "intranet",
     flagsrequired => { parameters => 'manage_search_targets' },
-    debug => 1,
 });
 my $script_name = "/cgi-bin/koha/admin/z3950servers.pl";
 $template->param( script_name => $script_name );

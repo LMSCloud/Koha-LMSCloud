@@ -48,9 +48,8 @@ __PACKAGE__->table("vendor_edi_accounts");
 
 =head2 password
 
-  data_type: 'varchar'
+  data_type: 'mediumtext'
   is_nullable: 1
-  size: 40
 
 =head2 last_activity
 
@@ -79,6 +78,13 @@ __PACKAGE__->table("vendor_edi_accounts");
   data_type: 'varchar'
   is_nullable: 1
   size: 20
+
+=head2 standard
+
+  data_type: 'varchar'
+  default_value: 'EUR'
+  is_nullable: 1
+  size: 3
 
 =head2 id_code_qualifier
 
@@ -149,7 +155,7 @@ __PACKAGE__->add_columns(
   "username",
   { data_type => "varchar", is_nullable => 1, size => 40 },
   "password",
-  { data_type => "varchar", is_nullable => 1, size => 40 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "last_activity",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "vendor_id",
@@ -160,6 +166,8 @@ __PACKAGE__->add_columns(
   { data_type => "mediumtext", is_nullable => 1 },
   "san",
   { data_type => "varchar", is_nullable => 1, size => 20 },
+  "standard",
+  { data_type => "varchar", default_value => "EUR", is_nullable => 1, size => 3 },
   "id_code_qualifier",
   { data_type => "varchar", default_value => 14, is_nullable => 1, size => 3 },
   "transport",
@@ -250,8 +258,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:54
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:TtWuTpP4Ac6/+T6OPMSsRA
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-05-15 18:35:52
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:06GuQaUKF6/BO/gw3hKLmA
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

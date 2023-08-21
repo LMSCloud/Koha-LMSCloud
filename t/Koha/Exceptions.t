@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 8;
+use Test::More tests => 10;
 use Test::MockObject;
 use Test::Exception;
 
@@ -308,4 +308,92 @@ subtest 'Koha::Exceptions::Patron tests' => sub {
         'Koha::Exceptions::Patron::MissingMandatoryExtendedAttribute',
         'Exception is thrown :-D';
     is( "$@", 'Manual message exception', 'Exception not stringified if manually passed' );
+};
+
+subtest 'Koha::Exceptions::Plugin tests' => sub {
+
+    plan tests => 5;
+
+    use_ok("Koha::Exceptions::Plugin");
+
+    my $plugin_class = 'yahey';
+
+    throws_ok
+        { Koha::Exceptions::Plugin::InstallDied->throw(
+            plugin_class => $plugin_class ); }
+        'Koha::Exceptions::Plugin::InstallDied',
+        'Exception is thrown :-D';
+
+    # stringify the exception
+    is( "$@", "Calling 'install' died for plugin $plugin_class", 'Exception stringified correctly' );
+
+    throws_ok
+        { Koha::Exceptions::Plugin::UpgradeDied->throw(
+            plugin_class => $plugin_class ); }
+        'Koha::Exceptions::Plugin::UpgradeDied',
+        'Exception is thrown :-D';
+
+    # stringify the exception
+    is( "$@", "Calling 'upgrade' died for plugin $plugin_class", 'Exception stringified correctly' );
+};
+
+subtest 'Koha::Exception tests' => sub {
+
+    plan tests => 8;
+
+    use Koha::Exception;
+
+    use Exception::Class (
+        'Koha::Exceptions::Weird' => {
+            isa         => 'Koha::Exception',
+            description => 'Weird exception!',
+            fields      => [ 'a', 'b' ]
+        }
+    );
+
+    my $exception_message = "This is a message";
+
+    throws_ok
+        { Koha::Exceptions::Weird->throw( $exception_message ) }
+        'Koha::Exception',
+        'Exception is thrown :-D';
+
+    is(
+        "$@",
+        "Exception 'Koha::Exceptions::Weird' thrown '$exception_message'\n",
+        'Exception not stringified if manually passed'
+    );
+
+    throws_ok
+        { Koha::Exceptions::Weird->throw( a => "A", b => "B" ) }
+        'Koha::Exception',
+        'Exception is thrown :-D';
+
+    is(
+        "$@",
+        "Exception 'Koha::Exceptions::Weird' thrown 'Weird exception!' with a => A, b => B\n",
+        'Exception stringified correctly'
+    );
+
+    throws_ok
+        { Koha::Exceptions::Weird->throw( a => "A" ) }
+        'Koha::Exception',
+        'Exception is thrown :-D';
+
+    is(
+        "$@",
+        "Exception 'Koha::Exceptions::Weird' thrown 'Weird exception!' with a => A\n",
+        'Exception stringified correctly, b skipped entirely'
+    );
+
+    throws_ok
+        { Koha::Exceptions::Weird->throw() }
+        'Koha::Exception',
+        'Exception is thrown :-D';
+
+    is(
+        "$@",
+        "Exception 'Koha::Exceptions::Weird' thrown 'Weird exception!'\n",
+        'Exception stringified correctly'
+    );
 };

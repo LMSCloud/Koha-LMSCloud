@@ -69,6 +69,16 @@
         [% END %]
         </li>
 
+        [% IF ( erm ) %]
+            <li class="active">
+                <a title="E-resource management" href="/cgi-bin/koha/admin/preferences.pl?tab=erm">E-resource management</a>
+                [% PROCESS subtabs  %]
+        [% ELSE %]
+            <li>
+                <a title="E-resource management" href="/cgi-bin/koha/admin/preferences.pl?tab=erm">E-resource management</a>
+        [% END %]
+        </li>
+
         [% IF ( i18n_l10n ) %]
             <li class="active">
                 <a title="Internationalization and localization" href="/cgi-bin/koha/admin/preferences.pl?tab=i18n_l10n">I18N/L10N</a>
@@ -76,6 +86,16 @@
         [% ELSE %]
             <li>
                 <a title="Internationalization and localization" href="/cgi-bin/koha/admin/preferences.pl?tab=i18n_l10n">I18N/L10N</a>
+        [% END %]
+        </li>
+
+        [% IF ( interlibrary_loans ) %]
+            <li class="active">
+                <a title="Interlibrary loans" href="/cgi-bin/koha/admin/preferences.pl?tab=interlibrary_loans">Interlibrary loans</a>
+                [% PROCESS subtabs  %]
+        [% ELSE %]
+            <li>
+                <a title="Interlibrary loans" href="/cgi-bin/koha/admin/preferences.pl?tab=interlibrary_loans">Interlibrary loans</a>
         [% END %]
         </li>
 
@@ -177,7 +197,7 @@
             <ul>
                 [% FOREACH LINE IN TAB.LINES %]
                     [% IF ( LINE.is_group_title ) %]
-                        <li><a class="pref_sublink" href="#[% LINE.title | $HtmlId %]">[% LINE.title | html %]</a></li>
+                        <li><a class="pref_sublink" href="#[% TAB.tab_id | html %]_[% LINE.title | $HtmlId %]">[% LINE.title | html %]</a></li>
                     [% END %]
                 [% END %]
             </ul>

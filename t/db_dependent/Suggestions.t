@@ -18,14 +18,14 @@
 use Modern::Perl;
 
 use DateTime::Duration;
-use Test::More tests => 106;
+use Test::More tests => 91;
 use Test::Warn;
 
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
 use C4::Context;
-use C4::Letters;
+use C4::Letters qw( GetQueuedMessages GetMessage );
 use C4::Budgets qw( AddBudgetPeriod AddBudget GetBudget );
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string output_pref );
@@ -34,7 +34,7 @@ use Koha::Patrons;
 use Koha::Suggestions;
 
 BEGIN {
-    use_ok('C4::Suggestions');
+    use_ok('C4::Suggestions', qw( NewSuggestion GetSuggestion ModSuggestion GetSuggestionInfo GetSuggestionFromBiblionumber GetSuggestionInfoFromBiblionumber GetSuggestionByStatus ConnectSuggestionAndBiblio DelSuggestion MarcRecordFromNewSuggestion GetUnprocessedSuggestions DelSuggestionsOlderThan ));
 }
 
 my $schema  = Koha::Database->new->schema;
@@ -329,73 +329,6 @@ is( $connect_suggestion_and_biblio, '1', 'ConnectSuggestionAndBiblio returns 1' 
 $suggestion = GetSuggestion($my_suggestionid);
 is( $suggestion->{biblionumber}, $biblio_2->biblionumber, 'ConnectSuggestionAndBiblio updates the biblio number correctly' );
 
-my $search_suggestion = SearchSuggestion();
-is( @$search_suggestion, 3, 'SearchSuggestion without arguments returns all suggestions' );
-
-$search_suggestion = SearchSuggestion({
-    title => $mod_suggestion1->{title},
-});
-is( @$search_suggestion, 1, 'SearchSuggestion returns the correct number of suggestions' );
-$search_suggestion = SearchSuggestion({
-    title => 'another title',
-});
-is( @$search_suggestion, 0, 'SearchSuggestion returns the correct number of suggestions' );
-
-$search_suggestion = SearchSuggestion({
-    author => $mod_suggestion1->{author},
-});
-is( @$search_suggestion, 1, 'SearchSuggestion returns the correct number of suggestions' );
-$search_suggestion = SearchSuggestion({
-    author => 'another author',
-});
-is( @$search_suggestion, 0, 'SearchSuggestion returns the correct number of suggestions' );
-
-$search_suggestion = SearchSuggestion({
-    publishercode => $mod_suggestion1->{publishercode},
-});
-is( @$search_suggestion, 1, 'SearchSuggestion returns the correct number of suggestions' );
-$search_suggestion = SearchSuggestion({
-    publishercode => 'another publishercode',
-});
-is( @$search_suggestion, 0, 'SearchSuggestion returns the correct number of suggestions' );
-
-$search_suggestion = SearchSuggestion({
-    STATUS => $mod_suggestion3->{STATUS},
-});
-is( @$search_suggestion, 2, 'SearchSuggestion returns the correct number of suggestions' );
-
-$search_suggestion = SearchSuggestion({
-    STATUS => q||
-});
-is( @$search_suggestion, 0, 'SearchSuggestion should not return all suggestions if we want the suggestions with a STATUS=""' );
-$search_suggestion = SearchSuggestion({
-    STATUS => 'REJECTED',
-});
-is( @$search_suggestion, 0, 'SearchSuggestion returns the correct number of suggestions' );
-
-$search_suggestion = SearchSuggestion({
-    budgetid => '',
-});
-is( @$search_suggestion, 3, 'SearchSuggestion (budgetid = "") returns the correct number of suggestions' );
-$search_suggestion = SearchSuggestion({
-    budgetid => $budget_id,
-});
-is( @$search_suggestion, 2, 'SearchSuggestion (budgetid = $budgetid) returns the correct number of suggestions' );
-$search_suggestion = SearchSuggestion({
-    budgetid => '__NONE__',
-});
-is( @$search_suggestion, 1, 'SearchSuggestion (budgetid = "__NONE__") returns the correct number of suggestions' );
-$search_suggestion = SearchSuggestion({
-    budgetid => '__ANY__',
-});
-is( @$search_suggestion, 3, 'SearchSuggestion (budgetid = "__ANY__") returns the correct number of suggestions' );
-
-$search_suggestion = SearchSuggestion({ budgetid => $budget_id });
-is( @$search_suggestion[0]->{budget_name}, GetBudget($budget_id)->{budget_name}, 'SearchSuggestion returns the correct budget name');
-$search_suggestion = SearchSuggestion({ budgetid => "__NONE__" });
-is( @$search_suggestion[0]->{budget_name}, undef, 'SearchSuggestion returns the correct budget name');
-
-
 my $del_suggestion = {
     title => 'my deleted title',
     STATUS => 'CHECKED',
@@ -646,6 +579,28 @@ subtest 'ModSuggestion should work on suggestions without a suggester' => sub {
     $suggestion = GetSuggestion($my_suggestionid);
 
     is( $suggestion->{note}, "Test note", "ModSuggestion works on suggestions without a suggester" );
+};
+
+subtest 'Suggestion with ISBN' => sub {
+    my $suggestion_with_isbn = {
+        isbn     => '1940997232',
+        title    => "The Clouds",
+        author   => "Aristophanes",
+    };
+    my $record = MarcRecordFromNewSuggestion( $suggestion_with_isbn );
+    is("MARC::Record", ref($record), "MarcRecordFromNewSuggestion should return a MARC::Record object");
+
+    my ($isbn_tag, $isbn_subfield) = C4::Biblio::GetMarcFromKohaField('biblioitems.isbn', '');
+    is($record->field( $isbn_tag )->subfield( $isbn_subfield ), "1940997232", "ISBN Record from suggestion ISBN should be '1940997232'");
+
+    my ($issn_tag, $issn_subfield) = C4::Biblio::GetMarcFromKohaField('biblioitems.issn', '');
+    is($record->field( $issn_tag )->subfield( $issn_subfield ), "1940997232", "ISSN Record from suggestion ISBN should also be '1940997232'");
+
+    my ($title_tag, $title_subfield) = C4::Biblio::GetMarcFromKohaField('biblio.title', '');
+    is($record->field( $title_tag), undef, "Record from suggestion title should be empty");
+
+    my ($author_tag, $author_subfield) = C4::Biblio::GetMarcFromKohaField('biblio.author', '');
+    is($record->field( $author_tag), undef, "Record from suggestion author should be empty");
 };
 
 $schema->storage->txn_rollback;

@@ -18,10 +18,13 @@ use Data::Dumper;
 use CGI qw ( -utf8 );
 use C4::Auth qw(&check_api_auth);
 use C4::Context;
+use C4::Items qw(ModDateLastSeen);
 
 use Koha::Patrons;
 use Koha::Patron::Attributes;
+use Koha::Plugins;
 use Koha::Items;
+use Koha::DateUtils qw( output_pref );
 
 use UNIVERSAL::can;
 
@@ -71,12 +74,12 @@ my %handlers = (
         handler  => \&handle_checkout,
         protocol => {
             1 => {
-                template     => "CCA18A18",
+                template     => "A1A1A18A18",
                 template_len => 38,
                 fields       => [ (FID_INST_ID), (FID_PATRON_ID), (FID_ITEM_ID), (FID_TERMINAL_PWD) ],
             },
             2 => {
-                template     => "CCA18A18",
+                template     => "A1A1A18A18",
                 template_len => 38,
                 fields       => [ (FID_INST_ID), (FID_PATRON_ID), (FID_ITEM_ID), (FID_TERMINAL_PWD), (FID_ITEM_PROPS), (FID_PATRON_PWD), (FID_FEE_ACK), (FID_CANCEL) ],
             },
@@ -87,12 +90,12 @@ my %handlers = (
         handler  => \&handle_checkin,
         protocol => {
             1 => {
-                template     => "CA18A18",
+                template     => "A1A18A18",
                 template_len => 37,
                 fields       => [ (FID_CURRENT_LOCN), (FID_INST_ID), (FID_ITEM_ID), (FID_TERMINAL_PWD) ],
             },
             2 => {
-                template     => "CA18A18",
+                template     => "A1A18A18",
                 template_len => 37,
                 fields       => [ (FID_CURRENT_LOCN), (FID_INST_ID), (FID_ITEM_ID), (FID_TERMINAL_PWD), (FID_ITEM_PROPS), (FID_CANCEL) ],
             }
@@ -103,7 +106,7 @@ my %handlers = (
         handler  => \&handle_block_patron,
         protocol => {
             1 => {
-                template     => "CA18",
+                template     => "A1A18",
                 template_len => 19,
                 fields       => [ (FID_INST_ID), (FID_BLOCKED_CARD_MSG), (FID_PATRON_ID), (FID_TERMINAL_PWD) ],
             },
@@ -114,7 +117,7 @@ my %handlers = (
         handler  => \&handle_sc_status,
         protocol => {
             1 => {
-                template     => "CA3A4",
+                template     => "A1A3A4",
                 template_len => 8,
                 fields       => [],
             }
@@ -125,7 +128,7 @@ my %handlers = (
         handler  => \&handle_request_acs_resend,
         protocol => {
             1 => {
-                template     => "",
+                template     => q{},
                 template_len => 0,
                 fields       => [],
             }
@@ -227,7 +230,7 @@ my %handlers = (
         handler  => \&handle_renew,
         protocol => {
             2 => {
-                template     => "CCA18A18",
+                template     => "A1A1A18A18",
                 template_len => 38,
                 fields       => [ (FID_INST_ID), (FID_PATRON_ID), (FID_PATRON_PWD), (FID_ITEM_ID), (FID_TITLE_ID), (FID_TERMINAL_PWD), (FID_ITEM_PROPS), (FID_FEE_ACK) ],
             }
@@ -549,6 +552,7 @@ sub handle_checkout {
     $fields = $self->{fields};
 
     $patron_id = $fields->{ (FID_PATRON_ID) };
+    Koha::Plugins->call('patron_barcode_transform', \$patron_id );
     $item_id   = $fields->{ (FID_ITEM_ID) };
     my $fee_ack = $fields->{ (FID_FEE_ACK) };
 
@@ -558,7 +562,7 @@ sub handle_checkout {
         # not a lot we can do about it
         siplog( "LOG_WARNING", "received no-block checkout from terminal '%s'", $account->{id} );
 
-        $status = $ils->checkout_no_block( $patron_id, $item_id, $sc_renewal_policy, $trans_date, $nb_due_date );
+        $status = $ils->checkout( $patron_id, $item_id, $sc_renewal_policy, $fee_ack, $account, $nb_due_date );
     } else {
 
         # Does the transaction date really matter for items that are
@@ -582,7 +586,16 @@ sub handle_checkout {
         }
 
         # We never return the obsolete 'U' value for 'desensitize'
-        $resp .= sipbool( $status->desensitize );
+        $resp .= sipbool(
+            desensitize(
+                {
+                    item   => $item,
+                    patron => $patron,
+                    server => $server,
+                    status => $status,
+                }
+            )
+        );
         $resp .= timestamp;
 
         # Now for the variable fields
@@ -591,7 +604,11 @@ sub handle_checkout {
         $resp .= add_field( FID_ITEM_ID,   $item_id, $server );
         $resp .= add_field( FID_TITLE_ID,  $item->title_id, $server );
         if ( $item->due_date ) {
-            $resp .= add_field( FID_DUE_DATE, timestamp( $item->due_date ), $server );
+            my $due_date =
+              $account->{format_due_date}
+              ? output_pref( { str => $item->due_date, as_due_date => 1 } )
+              : timestamp( $item->due_date );
+            $resp .= add_field( FID_DUE_DATE, $due_date, $server );
         } else {
             $resp .= add_field( FID_DUE_DATE, q{}, $server );
         }
@@ -710,8 +727,11 @@ sub handle_checkin {
     if ( $no_block eq 'Y' ) {
 
         # Off-line transactions, ick.
-        siplog( "LOG_WARNING", "received no-block checkin from terminal '%s'", $account->{id} );
-        $status = $ils->checkin_no_block( $item_id, $trans_date, $return_date, $item_props, $cancel );
+        siplog( "LOG_WARNING", "received no-block checkin from terminal '%s' - no-block checkin not supported", $account->{id} );
+        #FIXME We need to write the routine called below
+        #$status = $ils->checkin_no_block( $item_id, $trans_date, $return_date, $item_props, $cancel );
+        #Until we do, lets just checkin the item
+        $status = $ils->checkin( $item_id, $trans_date, $return_date, $my_branch, $item_props, $cancel, $account );
     } else {
         $status = $ils->checkin( $item_id, $trans_date, $return_date, $my_branch, $item_props, $cancel, $account );
     }
@@ -806,6 +826,8 @@ sub handle_block_patron {
     $blocked_card_msg = $fields->{ (FID_BLOCKED_CARD_MSG) };
     $patron_id        = $fields->{ (FID_PATRON_ID) };
     $terminal_pwd     = $fields->{ (FID_TERMINAL_PWD) };
+
+    Koha::Plugins->call('patron_barcode_transform', \$patron_id );
 
     # Terminal passwords are different from account login
     # passwords, but I have no idea what to do with them.  So,
@@ -1031,6 +1053,8 @@ sub handle_patron_info {
     $start        = $fields->{ (FID_START_ITEM) };
     $end          = $fields->{ (FID_END_ITEM) };
 
+    Koha::Plugins->call('patron_barcode_transform', \$patron_id );
+
     $patron = $ils->find_patron($patron_id);
 
     $resp = (PATRON_INFO_RESP);
@@ -1208,6 +1232,8 @@ sub handle_fee_paid {
     $fee_id     = $fields->{ (FID_FEE_ID) };
     $trans_id   = $fields->{ (FID_TRANSACTION_ID) };
 
+    Koha::Plugins->call('patron_barcode_transform', \$patron_id );
+
     $ils->check_inst_id( $inst_id, "handle_fee_paid" );
 
     my $pay_result = $ils->pay_fee( $patron_id, $patron_pwd, $fee_amt, $fee_type, $pay_type, $fee_id, $trans_id, $currency, $is_writeoff, $disallow_overpayment, $register_id );
@@ -1255,6 +1281,7 @@ sub handle_fee_paid {
     $resp .= add_field( FID_INST_ID,   $inst_id, $server );
     $resp .= add_field( FID_PATRON_ID, $patron_id, $server );
     $resp .= maybe_add( FID_TRANSACTION_ID, $status->transaction_id, $server );
+    $resp .= maybe_add( FID_SCREEN_MSG,     $pay_result->{error}, $server );
     $resp .= maybe_add( FID_SCREEN_MSG,     $status->screen_msg, $server );
     $resp .= maybe_add( FID_PRINT_LINE,     $status->print_line, $server );
 
@@ -1307,10 +1334,11 @@ sub handle_fee_debit {
 
 sub handle_item_information {
     my ( $self, $server ) = @_;
-    my $ils = $server->{ils};
+    my $account = $server->{account};
+    my $ils     = $server->{ils};
+    my $fields  = $self->{fields};
+    my $resp    = ITEM_INFO_RESP;
     my $trans_date;
-    my $fields = $self->{fields};
-    my $resp   = ITEM_INFO_RESP;
     my $item;
     my $i;
 
@@ -1333,6 +1361,8 @@ sub handle_item_information {
         # title id is required, but we don't have one
         $resp .= add_field( FID_TITLE_ID, '', $server );
     } else {
+        my $seen = $account->{seen_on_item_information};
+        ModDateLastSeen( $item->itemnumber, $seen eq 'keep_lost' ) if $seen;
 
         # Valid Item ID, send the good stuff
         my $circulation_status = $item->sip_circulation_status;
@@ -1363,6 +1393,7 @@ sub handle_item_information {
         }
 
 
+
         if ( my $CR = $server->{account}->{cr_item_field} ) {
             $resp .= maybe_add( FID_COLLECTION_CODE, $item->{$CR}, $server );
         } else {
@@ -1390,7 +1421,11 @@ sub handle_item_information {
             $resp .= add_field( FID_HOLD_QUEUE_LEN, $i, $server );
         }
         if ( $item->due_date ) {
-            $resp .= add_field( FID_DUE_DATE, timestamp( $item->due_date ), $server );
+            my $due_date =
+              $account->{format_due_date}
+              ? output_pref( { str => $item->due_date, as_due_date => 1 } )
+              : timestamp( $item->due_date );
+            $resp .= add_field( FID_DUE_DATE, $due_date, $server );
         }
         if ( ( $i = $item->recall_date ) != 0 ) {
             $resp .= add_field( FID_RECALL_DATE, timestamp($i), $server );
@@ -1403,6 +1438,7 @@ sub handle_item_information {
         $resp .= maybe_add( FID_PRINT_LINE, $item->print_line, $server );
 
         $resp .= $item->build_additional_item_fields_string( $server );
+        $resp .= $item->build_custom_field_string( $server );
     }
 
     $self->write_msg( $resp, undef, $server->{account}->{terminator}, $server->{account}->{encoding} );
@@ -1472,6 +1508,8 @@ sub handle_patron_enable {
     $patron_id  = $fields->{ (FID_PATRON_ID) };
     $patron_pwd = $fields->{ (FID_PATRON_PWD) };
 
+    Koha::Plugins->call('patron_barcode_transform', \$patron_id );
+
     siplog( "LOG_DEBUG", "handle_patron_enable: patron_id: '%s', patron_pwd: '%s'", $patron_id, $patron_pwd );
 
     $patron = $ils->find_patron($patron_id);
@@ -1534,6 +1572,8 @@ sub handle_hold {
     $item_id     = $fields->{ (FID_ITEM_ID) } || '';
     $title_id    = $fields->{ (FID_TITLE_ID) } || '';
     $fee_ack     = $fields->{ (FID_FEE_ACK) } || 'N';
+
+    Koha::Plugins->call('patron_barcode_transform', \$patron_id );
 
     if ( $hold_mode eq '+' ) {
         $status = $ils->add_hold( $patron_id, $patron_pwd, $item_id, $title_id, $expiry_date, $pickup_locn, $hold_type, $fee_ack );
@@ -1600,6 +1640,8 @@ sub handle_renew {
     $item_props = $fields->{ (FID_ITEM_PROPS) };
     $fee_ack    = $fields->{ (FID_FEE_ACK) };
 
+    Koha::Plugins->call('patron_barcode_transform', \$patron_id );
+
     $status = $ils->renew( $patron_id, $patron_pwd, $item_id, $title_id, $no_block, $nb_due_date, $third_party, $item_props, $fee_ack );
 
     $patron = $status->patron;
@@ -1613,7 +1655,7 @@ sub handle_renew {
         } else {
             $resp .= 'U';
         }
-        $resp .= sipbool( $status->desensitize );
+        $resp .= sipbool( desensitize( { status => $status, patron => $patron, server => $server } ) );
         $resp .= timestamp;
         $resp .= add_field( FID_PATRON_ID, $patron->id, $server );
         $resp .= add_field( FID_ITEM_ID, $item->id, $server );
@@ -1680,6 +1722,8 @@ sub handle_renew_all {
     $patron_pwd   = $fields->{ (FID_PATRON_PWD) };
     $terminal_pwd = $fields->{ (FID_TERMINAL_PWD) };
     $fee_ack      = $fields->{ (FID_FEE_ACK) };
+
+    Koha::Plugins->call('patron_barcode_transform', \$patron_id );
 
     $status = $ils->renew_all( $patron_id, $patron_pwd, $fee_ack );
 
@@ -1838,7 +1882,7 @@ sub patron_status_string {
         $server->{account}->{overdues_block_checkout} ? boolspace( $patron->too_many_overdue ) : q{ },
         boolspace( $patron->too_many_renewal ),
         boolspace( $patron->too_many_claim_return ),
-        boolspace( $patron->too_many_lost ),
+        boolspace( $patron->too_many_lost( $server ) ),
         boolspace( $patron->excessive_fines ),
         boolspace( $patron->excessive_fees ),
         boolspace( $patron->recall_overdue ),
@@ -1858,6 +1902,38 @@ sub api_auth {
     }
     my ( $status, $cookie, $sessionID ) = check_api_auth( $query, { circulate => 1 }, 'intranet' );
     return $status;
+}
+
+sub desensitize {
+    my ($params) = @_;
+
+    my $status      = $params->{status};
+    my $desensitize = $status->desensitize();
+
+    # If desenstize is already false, no need to do anything
+    return unless $desensitize;
+
+    my $patron = $params->{patron};
+    my $item   = $params->{item};
+    my $server = $params->{server};
+
+    my $patron_categories = $server->{account}->{inhouse_patron_categories} // q{};
+    my $item_types = $server->{account}->{inhouse_item_types} // q{};
+
+    # If no patron categories or item types are set for never desensitize, no need to do anything
+    return $desensitize unless $patron_categories || $item_types;
+
+    my $patron_category = $patron->ptype();
+    my @patron_categories = split( /,/, $patron_categories );
+    my $found_patron_category = grep( /^$patron_category$/, @patron_categories );
+    return 0 if $found_patron_category;
+
+    my $item_type = $item->itemtype;
+    my @item_types = split( /,/, $item_types );
+    my $found_item_type = grep( /^$item_type$/, @item_types );
+    return 0 if $found_item_type;
+
+    return 1;
 }
 
 1;

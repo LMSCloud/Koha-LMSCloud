@@ -22,8 +22,8 @@ use Data::Dumper;
 
 use CGI;
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use Koha::Notice::Templates;
 use Koha::AuthorisedValues;
 use Koha::Illcomment;
@@ -32,9 +32,9 @@ use Koha::Illrequest::Availability;
 use Koha::Libraries;
 use Koha::Token;
 
-use Try::Tiny;
-use URI::Escape;
-use JSON;
+use Try::Tiny qw( catch try );
+use URI::Escape qw( uri_escape_utf8 );
+use JSON qw( encode_json );
 
 our $cgi = CGI->new;
 my $illRequests = Koha::Illrequests->new;
@@ -100,6 +100,12 @@ if ( $backends_available ) {
                 ( tran_success => $params->{tran_success} ) : () ),
         );
 
+        my $backend_result = $request->backend_illview($params);
+        $template->param(
+            whole      => $backend_result,
+        ) if $backend_result;
+
+
     } elsif ( $op eq 'create' ) {
         # We're in the process of creating a request
         my $request = Koha::Illrequest->new->load_backend( $params->{backend} );
@@ -155,14 +161,12 @@ if ( $backends_available ) {
         my $request = Koha::Illrequests->find($params->{illrequest_id});
         my $backend_result;
         if ( $params->{backend} ) {
-            my $new_request = Koha::Illrequest->new->load_backend( $params->{backend} );
-            $backend_result = $new_request->backend_migrate($params);
+            $backend_result = $request->backend_migrate($params);
             if ($backend_result) {
                 $template->param(
                     whole   => $backend_result,
-                    request => $new_request
+                    request => $request
                 );
-                $request = $new_request;
             } else {
                 # Backend failure, redirect back to illview
                 print $cgi->redirect( '/cgi-bin/koha/ill/ill-requests.pl'
@@ -462,7 +466,7 @@ $template->param(
     backends   => $backends,
     types      => [ "Book", "Article", "Journal" ],
     query_type => $op,
-    branches   => scalar Koha::Libraries->search,
+    branches   => Koha::Libraries->search,
 );
 
 output_html_with_http_headers( $cgi, $cookie, $template->output );

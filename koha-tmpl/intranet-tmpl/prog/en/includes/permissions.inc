@@ -75,6 +75,12 @@
     [%- CASE 'problem_reports' -%]
         <span class="main_permission problem_reports_permission">OPAC problem reports management</span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'recalls' -%]
+        <span class="main_permission recalls_permission">Recalls</span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'erm' -%]
+        <span class="main_permission erm_permission">Manage the electronic resources module</span>
+        <span class="permissioncode">([% name | html %])</span>
     [%- END -%]
 [%- END -%]
 
@@ -160,6 +166,11 @@
             Manage patron categories
         </span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'manage_patron_restrictions' -%]
+        <span class="sub_permission manage_patron_restrictions_subpermission">
+            Manage patron restrictions
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'manage_patron_attributes' -%]
         <span class="sub_permission manage_patron_attributes_subpermission">
             Manage extended patron attributes
@@ -205,9 +216,19 @@
             Manage item search fields
         </span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'manage_search_filters' -%]
+        <span class="sub_permission manage_search_filters_subpermission">
+            Manage saved search filters
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'manage_search_engine_config' -%]
         <span class="sub_permission manage_search_engine_config_subpermission">
             Manage search engine configuration
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'manage_marc_overlay_rules' -%]
+        <span class="sub_permission manage_marc_overlay_rules_subpermission">
+          Manage MARC overlay rules configuration
         </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'manage_search_targets' -%]
@@ -263,6 +284,16 @@
     [%- CASE 'manage_background_jobs' -%]
         <span class="sub_permission manage_background_jobs_subpermission">
             Manage background jobs
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'manage_curbside_pickups' -%]
+        <span class="sub_permission manage_curbside_pickups_subpermission">
+            Manage curbside pickups
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'delete_borrowers' -%]
+        <span class="sub_permission delete_borrowers_subpermission">
+            Delete patrons
         </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'edit_borrowers' -%]
@@ -325,6 +356,16 @@
             Fast cataloging
         </span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'manage_item_groups' -%]
+        <span class="sub_permission manage_item_groups_subpermission">
+            Create, update and delete item groups, add or remove items from an item group
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'manage_item_editor_templates' -%]
+        <span class="sub_permission manage_item_editor_templates_subpermission">
+            Create, update and delete item editor templates owned by others
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'remaining_permissions' -%]
         <span class="sub_permission remaining_permissions_subpermission">
             Remaining permissions for managing fines and fees
@@ -348,6 +389,16 @@
     [%- CASE 'writeoff' -%]
         <span class="sub_permission writeoff_subpermission">
             Write off fines and fees
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'manual_invoice' -%]
+        <span class="sub_permission manual_invoice_subpermission">
+            Add manual invoices to a patron account
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'manual_credit' -%]
+        <span class="sub_permission manual_credit_subpermission">
+            Add manual credits to a patron account
         </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'suggestions_manage' -%]
@@ -440,9 +491,9 @@
             Define days when the library is closed
         </span>
         <span class="permissioncode">([% name | html %])</span>
-    [%- CASE 'edit_news' -%]
-        <span class="sub_permission edit_news_subpermission">
-            Write news for the OPAC and staff interfaces
+    [%- CASE 'edit_additional_contents' -%]
+        <span class="sub_permission edit_additional_contents_subpermission">
+            Write additional contents for the OPAC and staff interfaces (news and HTML customizations)
         </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'edit_notice_status_triggers' -%]
@@ -680,6 +731,11 @@
             Delete public lists
         </span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'edit_public_lists' -%]
+        <span class="sub_permission edit_public_lists_subpermission">
+            Edit public lists (Name, settings, and permissions, but not explicitly contents)
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'upload_general_files' -%]
         <span class="sub_permission upload_general_files_subpermission">
             Upload any file
@@ -811,6 +867,18 @@
     [%- CASE 'manage_problem_reports' -%]
         <span class="sub_permission manage_problem_reports_subpermission">
             Manage OPAC problem reports
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+  [%# recalls %]
+    [%- CASE 'manage_recalls' -%]
+        <span class="sub_permission place_recalls_subpermission">
+            Manage recalls for patrons
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+  [%# identity_providers %]
+    [%- CASE 'manage_identity_providers' -%]
+        <span class="sub_permission manage_identity_providers_subpermission">
+            Manage identity providers
         </span>
         <span class="permissioncode">([% name | html %])</span>
   [%- END -%]

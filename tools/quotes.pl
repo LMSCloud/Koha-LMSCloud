@@ -18,11 +18,11 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use Try::Tiny;
+use Try::Tiny qw( catch try );
 
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use Koha::Quotes;
 
 my $input = CGI->new;
@@ -33,7 +33,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         query         => $input,
         type          => "intranet",
         flagsrequired => { tools => 'edit_quotes' },
-        debug         => 1,
     }
 );
 

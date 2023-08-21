@@ -21,16 +21,11 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Koha;
-use C4::Auth;
-use C4::Output;
-use C4::Acquisition;
-use C4::Reserves;
-use C4::Circulation;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Reserves qw( AddReserve ModReserve );
 use C4::Context;
-use C4::Members;
-use C4::Biblio;
-use C4::Items;
-use C4::Serials;
+use C4::Serials qw( delroutingmember getroutinglist GetSubscription GetSerials check_routing );
 use URI::Escape;
 
 use Koha::Biblios;
@@ -66,14 +61,18 @@ my $library;
 if($ok){
     # get biblio information....
     my $biblionumber = $subs->{'bibnum'};
-    my @itemresults = GetItemsInfo( $biblionumber );
-    my $branch = @itemresults ? $itemresults[0]->{'holdingbranch'} : $subs->{branchcode};
+
+    my $biblio = Koha::Biblios->find( $biblionumber );
+    my $items = $biblio->items->search_ordered;
+    my $branch =
+        $items->count
+      ? $items->next->holding_branch->branchcode
+      : $subs->{branchcode};
     $library = Koha::Libraries->find($branch);
 
 	if (C4::Context->preference('RoutingListAddReserves')){
 		# get existing reserves .....
 
-        my $biblio = Koha::Biblios->find( $biblionumber );
         my $holds = $biblio->current_holds;
         my $count = $holds->count;
         while ( my $hold = $holds->next ) {
@@ -113,7 +112,6 @@ if($ok){
 				query => $query,
 				type => "intranet",
 				flagsrequired => {serials => '*'},
-				debug => 1,
 				});
 } else {
     ($template, $loggedinuser, $cookie)
@@ -121,7 +119,6 @@ if($ok){
 				query => $query,
 				type => "intranet",
 				flagsrequired => {serials => '*'},
-				debug => 1,
 				});
 }
 

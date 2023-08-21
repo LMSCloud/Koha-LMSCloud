@@ -38,12 +38,11 @@ parameters tables.
 
 use Modern::Perl;
 
-use C4::AuthoritiesMarc;
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
+use C4::AuthoritiesMarc qw( GetAuthority GenerateHierarchy GetTagsLabels );
 use C4::Context;
-use C4::Output;
+use C4::Output qw( output_html_with_http_headers );
 use CGI qw ( -utf8 );
-use MARC::Record;
 use C4::Koha;
 use Koha::Authorities;
 
@@ -175,7 +174,6 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user(
         query           => $query,
         type            => "intranet",
         flagsrequired   => { catalogue => 1 },
-        debug           => 1,
     }
 );
 
@@ -183,7 +181,7 @@ my $authid = $query->param('authid');
 
 my $authobj = Koha::Authorities->find($authid);
 my $authtypecode = $authobj ? $authobj->authtypecode : q{};
-$tagslib = &GetTagsLabels(1,$authtypecode);
+$tagslib = GetTagsLabels(1,$authtypecode);
 
 # Build list of authtypes for showing them
 my $authority_types = Koha::Authority::Types->search({}, { order_by => ['authtypetext']});

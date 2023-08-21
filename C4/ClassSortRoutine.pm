@@ -1,7 +1,7 @@
 package C4::ClassSortRoutine;
 
-# Copyright (C) 2007 LibLime
-# 
+# Copyright 2022 Koha Development Team
+#
 # This file is part of Koha.
 #
 # Koha is free software; you can redistribute it and/or modify it
@@ -17,15 +17,19 @@ package C4::ClassSortRoutine;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
-require Exporter;
 use Class::Factory::Util;
-use C4::Context;
 
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-
+our (@ISA, @EXPORT_OK);
+BEGIN {
+    require Exporter;
+    @ISA    = qw(Exporter);
+    @EXPORT_OK = qw(
+       GetSortRoutineNames
+       GetClassSortKey
+    );
+}
 
 =head1 NAME 
 
@@ -39,12 +43,6 @@ use C4::ClassSortRoutine;
 =head1 FUNCTIONS
 
 =cut
-
-@ISA    = qw(Exporter);
-@EXPORT = qw(
-   &GetSortRoutineNames
-   &GetClassSortKey
-);
 
 # initialization code
 my %loaded_routines = ();

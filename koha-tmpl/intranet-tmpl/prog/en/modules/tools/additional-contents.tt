@@ -1,0 +1,760 @@
+[% USE raw %]
+[% USE Asset %]
+[% USE Koha %]
+[% USE KohaDates %]
+[% USE Branches %]
+[% SET footerjs = 1 %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Additional contents &rsaquo; Tools &rsaquo; Koha</title>
+[% INCLUDE 'doc-head-close.inc' %]
+[% IF ( wysiwyg ) %]
+    [% SET editmode = "wysiwyg" %]
+[% ELSE %]
+    [% SET editmode = "text" %]
+    [% Asset.css("lib/codemirror/codemirror.css") | $raw %]
+    [% Asset.css("lib/codemirror/lint.min.css") | $raw %]
+    <style>
+        .CodeMirror {
+            resize: vertical;
+            z-index: 0;
+        }
+    </style>
+[% END %]
+    <style>
+        .syspref-link::before {
+            content: " | ";
+        }
+        .customisation-link::before {
+            content: " | ";
+        }
+        .customisation-link:first-child::before {
+            content: none;
+        }
+        label[for^="title_"],
+        label[for^="content_"] {
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body id="tools_additional-contents" class="tools">
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
+
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
+        [% END %]
+
+        [% IF op == 'add_form' %]
+            [% WRAPPER breadcrumb_item %]
+                [% IF category == 'news' %]
+                    <a href="/cgi-bin/koha/tools/additional-contents.pl?category=news">News</a>
+                [% ELSIF category == 'pages' %]
+                    <a href="/cgi-bin/koha/tools/additional-contents.pl?category=pages">Pages</a>
+                [% ELSE %]
+                    <a href="/cgi-bin/koha/tools/additional-contents.pl?category=html_customizations">HTML customizations</a>
+                [% END %]
+            [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    [% IF additional_content.idnew %]
+                        <span>Modify additional content</span>
+                    [% ELSE %]
+                        <span>Add additional content</span>
+                    [% END %]
+                    [% IF category == 'news' %]
+                        <span>(News)</span>
+                    [% ELSIF category == 'pages' %]
+                        <span>(Pages)</span>
+                    [% ELSE %]
+                        <span>(HTML customizations)</span>
+                    [% END %]
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% IF category == 'news' %]
+                    <span>News</span>
+                [% ELSIF category == 'pages' %]
+                    <span>Pages</span>
+                [% ELSE %]
+                    <span>HTML customizations</span>
+                [% END %]
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
+
+[% IF op == 'add_form' %]
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+[% ELSE %]
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+[% END %]
+
+<main>
+
+    [% FOR m IN messages %]
+        <div class="dialog [% m.type | html %]">
+            [% SWITCH m.code %]
+            [% CASE 'error_on_update' %]
+                <span>An error occurred when updating this content. Perhaps it already exists</span>
+            [% CASE 'error_on_insert' %]
+                <span>An error occurred when adding this content. Check the logs</span>
+            [% CASE 'error_on_delete' %]
+                <span>An error occurred when deleting this content. Check the logs</span>
+            [% CASE 'success_on_update' %]
+                <span>Content updated successfully</span>
+            [% CASE 'success_on_insert' %]
+                <span>Content added successfully</span>
+            [% CASE 'success_on_delete' %]
+                <span>Content deleted successfully</span>
+            [% CASE %]
+                <span>[% m.code | html %]</span>
+            [% END %]
+        </div>
+    [% END %]
+
+    [% IF op == 'add_form' %]
+        [% PROCESS add_form %]
+    [% ELSE %]
+        [% PROCESS list %]
+    [% END %]
+
+</main>
+
+        [% IF op != 'add_form' %]
+            </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+            <div class="col-sm-2 col-sm-pull-10">
+                <aside>
+
+                    <div id="news-filter">
+                        <form action="/cgi-bin/koha/tools/additional-contents.pl" method="get">
+                            <h4>Filter</h4>
+                            <fieldset class="brief">
+                                <ol>
+                                    <li>
+                                        <label for="news_keyword">Keyword:</label>
+                                        <input type="text" name="news_keyword" id="news_keyword" />
+                                    </li>
+                                    <li>
+                                        <label for="news_display_location">Display location:</label>
+                                        <select name="news_display_location" id="news_display_location">
+                                            <option value="">All</option>
+                                            [% PROCESS locations_options category => category %]
+                                        </select>
+                                    </li>
+                                    <li>
+                                        <label for="news_library">Library: </label>
+                                        <select id="news_library" name="news_library">
+                                            <option value=""></option>
+                                            <option value="">All libraries</option>
+                                            [% PROCESS options_for_libraries libraries => Branches.all( selected => branchcode, unfiltered => 1, ) %]
+                                        </select>
+                                    </li>
+                                    <li>
+                                        <label>
+                                            <input type="checkbox" name="show_expired" id="show_expired" /> Show expired
+                                        </label>
+                                    </li>
+                                </ol>
+                            </fieldset>
+                        </form>
+                    </div>
+
+                    [% INCLUDE 'tools-menu.inc' %]
+                </aside>
+            </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        [% END %]
+    </div> <!-- /.row -->
+</div> <!-- /.main.container-fluid -->
+
+[% BLOCK add_form %]
+    [% IF additional_content %]
+        <h1>Modify an additional content</h1>
+    [% ELSE %]
+        <h1>New additional content ([% IF category == 'news' %]News[% ELSIF category == 'pages' %]Pages[% ELSE %]HTML customizations[% END %])</h1>
+    [% END %]
+
+    <div id="toolbar" class="btn-toolbar">
+        <div class="btn-group">
+            <button class="btn btn-primary" id="submit_form"><i class="fa fa-save"></i> Save</button>
+            <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+            <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+                <li><a id="saveandcontinue" href="#">Save and continue editing</a></li>
+            </ul>
+        </div>
+        [% IF category == 'news' %]
+            <a class="btn btn-default cancel" href="/cgi-bin/koha/tools/additional-contents.pl"><i class="fa fa-remove"></i> Cancel</a>
+        [% ELSIF category == 'pages' %]
+            <a class="btn btn-default cancel" href="/cgi-bin/koha/tools/additional-contents.pl?category=pages"><i class="fa fa-remove"></i> Cancel</a>
+        [% ELSE %]
+            <a class="btn btn-default cancel" href="/cgi-bin/koha/tools/additional-contents.pl?category=html_customizations"><i class="fa fa-remove"></i> Cancel</a>
+        [% END %]
+    </div>
+
+    <form id="add_additional_content" method="post" action="/cgi-bin/koha/tools/additional-contents.pl" class="validate">
+        <input type="hidden" name="op" value="add_validate" />
+        <input type="hidden" name="category" value="[% category | html %]" />
+        <input type="hidden" name="code" value="[% additional_content.code | html %]" />
+        <input type="hidden" name="idnew" value="[% additional_content.idnew | html %]" />
+        <input type="hidden" id="redirect" name="redirect" value="" />
+        <input type="hidden" id="editmode" name="editmode" value="[% editmode | html %]" />
+        <fieldset class="rows">
+            <ol>
+                <li>
+                    <label for="location">Display location:</label>
+                    <select id="location" name="location">
+                        [% PROCESS locations_options location => additional_content.location %]
+                    </select>
+                </li>
+                <li>
+                    <label for="branchcode">Library: </label>
+                    <select id="branchcode" name="branchcode">
+                        [% IF additional_content.branchcode == '' %]
+                            <option value="" selected="selected">All libraries</option>
+                        [% ELSE %]
+                            <option value="">All libraries</option>
+                        [% END %]
+                        [% PROCESS options_for_libraries libraries => Branches.all( selected => additional_content.branchcode, unfiltered => 1, ) %]
+                    </select>
+                </li>
+                [% UNLESS languages.size %]
+                    <li>
+                        [% IF category == 'news' %]
+                            <label for="title" class="required">Title: </label>
+                            <input id="title" size="100" maxlength="250" type="text" name="title_default" value="[% additional_content.title | html %]" required="required" class="required" /> <span class="required">Required</span>
+                        [% ELSE %]
+                            <label for="title">Title: </label>
+                            <input id="title" size="100" maxlength="250" type="text" name="title_default" value="[% additional_content.title | html %]" />
+                        [% END %]
+                    </li>
+                [% END %]
+                <li>
+                    <label for="from">Publication date: </label>
+                    <input id="from" type="text" name="published_on" size="15" value="[% additional_content.published_on | html %]" class="flatpickr" data-date_to="to" />
+                    <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
+                </li>
+                <li>
+                    <label for="to">Expiration date: </label>
+                    <input id="to" type="text" name="expirationdate" size="15" value="[% additional_content.expirationdate | html %]" class="flatpickr" />
+                    <div class="hint">
+                        [% INCLUDE 'date-format.inc' %]
+                        [% IF category == 'news' %]
+                            <br>News will still be accessible by direct URL if expired.
+                        [% END %]
+                    </div>
+                </li>
+                <li>
+                    <label for="number">Appear in position: </label>
+                    [% IF ( additional_content.number ) %]
+                        <input id="number" size="3" name="number" type="text" value="[% additional_content.number | html %]" />
+                    [% ELSE %]
+                        <input id="number" size="3" name="number" type="text" />
+                    [% END %]
+                </li>
+            </ol>
+        </fieldset>
+
+        [% IF languages.size %]
+            [% WRAPPER tabs id= "tabs" %]
+                [% WRAPPER tabs_nav %]
+                    [% FOR language IN languages %]
+                        [% IF language.lang == 'default' %]
+                            [% WRAPPER tab_item tabname= "lang_default" %] <span>Default</span> [% END %]
+                        [% ELSE %]
+                            [% WRAPPER tab_item tabname= "lang_${language.lang}" %] [% language.description | html %] [% END %]
+                        [% END %]
+                    [% END %]
+                [% END # /WRAPPER tabs_nav %]
+
+                [% WRAPPER tab_panels %]
+                    [% FOR language IN languages %]
+                        [% WRAPPER tab_panel tabname="lang_${language.lang}" %]
+                            <fieldset>
+                                <ol>
+                                    <li>
+                                        <label for="title_[% language.lang | html %]">Title: </label>
+                                        <input id="title_[% language.lang| html %]" size="100" maxlength="250" type="text" name="title_[% language.lang | html %]" value="[% translated_contents.item(language.lang).title | html %]">
+                                    </li>
+                                    <li>
+                                        <label for="content_[% language.lang | html %]">Content: </label>
+                                        <textarea name="content_[% language.lang | html %]" id="content_[% language.lang | html %]" data-lang="[% language.lang | html%]" cols="75" rows="10">[% translated_contents.item(language.lang).content | html %]</textarea>
+                                        <input type="hidden" name="lang" value="[% language.lang | html %]" />
+                                    </li>
+                                </ol>
+                            </fieldset>
+                        [% END # /WRAPPER tab_panel#lang %]
+                    [% END # /FOR language %]
+                [% END # /WRAPPER tab_panels %]
+            [% END # /WRAPPER tabs %]
+        [% ELSE %]
+            <div id="lang_default">
+                <div class="clearfix">
+                    <textarea name="content" id="content_default" data-lang="[% language.lang | html %]"  cols="75" rows="10">[% additional_content.content | html %]</textarea>
+                </div>
+            </div>
+        [% END # /IF languages.size %]
+    </form>
+[% END %]
+
+[% BLOCK list %]
+
+    <div id="toolbar" class="btn-toolbar">
+        <div class="btn-group">
+            <a href="/cgi-bin/koha/tools/additional-contents.pl?op=add_form&category=[% category | uri %]&editmode=[% editmode | uri %]" class="btn btn-default" id="newentry"> <i class="fa fa-plus"></i> New entry</a><button class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu pull-right">
+                <li>
+                    [% IF ( wysiwyg ) %]
+                        <a href="/cgi-bin/koha/tools/additional-contents.pl?op=add_form&category=[% category | uri %]&editmode=text">New entry using text editor</a>
+                    [% ELSE %]
+                        <a href="/cgi-bin/koha/tools/additional-contents.pl?op=add_form&category=[% category | uri %]&editmode=wysiwyg">New entry using WYSIWYG editor</a>
+                    [% END %]
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <h2>Additional contents ([% IF category == 'news' %]News[% ELSIF category == 'pages' %]Pages[% ELSE %]HTML customizations[% END %])</h2>
+    <span id="additional_contents_links">
+        See
+        <a class="customisation-link" href="/cgi-bin/koha/tools/additional-contents.pl?category=news">News</a>
+        <a class="customisation-link" href="/cgi-bin/koha/tools/additional-contents.pl?category=html_customizations">HTML customizations</a>
+        <a class="customisation-link" href="/cgi-bin/koha/tools/additional-contents.pl?category=pages">Pages</a>
+        [% IF ( CAN_user_parameters_manage_sysprefs ) %]
+            <a class="syspref-link" href='/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OPACUserJS'>OPACUserJS</a>
+            <a class="syspref-link" href='/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OPACUserCSS'>OPACUserCSS</a>
+        [% END %]
+    </span>
+
+    [% IF additional_contents.count %]
+        <div class="page-section">
+            <form id="del_form" method="post" action="/cgi-bin/koha/tools/additional-contents.pl">
+                <table id="table_additional_contents">
+                    <thead>
+                        <tr>
+                            <th class="NoSort">&nbsp;</th>
+                            <th>Location</th>
+                            <th>Library</th>
+                            <th>Number</th>
+                            <th>Publication date</th>
+                            <th>Expiration date</th>
+                            <th class="anti-the">Title</th>
+                            <th>Author</th>
+                            [% IF category == 'pages' %]
+                                <th>Page URL</th>
+                                <th class="anti-the">Page</th>
+                            [% ELSE %]
+                                <th class="anti-the">News</th>
+                            [% END %]
+                            <th class="NoSort noExport">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        [% FOREACH c IN additional_contents%]
+                            [% IF ( c.is_expired ) %]<tr class="expired">[% ELSE %]<tr>[% END %]
+                            <td>
+                                <input type="checkbox" name="ids" value="[% c.idnew | html %]" />
+                            </td>
+                            <td>
+                                [% IF c.category == 'news' || c.category == 'pages' %]
+                                    [% IF c.location == 'staff_and_opac' %]<span>All</span>
+                                    [% ELSIF c.location == 'staff_only' %]<span>Staff interface</span>
+                                    [% ELSIF c.location == 'opac_only' %]<span>OPAC</span>
+                                    [% ELSIF c.location == 'slip' %]<span>Slip</span>
+                                    [% ELSE %]<span>Unknown ('[% location | html %]')</span>
+                                    [% END %]
+                                [% ELSE %]
+                                    [% c.location | html %]
+                                [% END %]
+                            </td>
+                            <td>
+                                [% IF ( c.branchcode == "" ) -%]
+                                All libraries
+                                [% ELSE %][% c.library.branchname | html %]
+                                [% END %]
+                            </td>
+                            <td>[% c.number | html %]</td>
+                            <td data-order="[% c.published_on | html %]">[% c.published_on | $KohaDates %]</td>
+                            <td data-order="[% c.expirationdate | html %]">[% c.expirationdate | $KohaDates %] [% IF ( c.is_expired ) %](<span class="expired">expired</span>)[% END %]</td>
+                            <td>[% c.title | html %]</td>
+                            <td>[% IF ( c.author) %][% INCLUDE 'patron-title.inc' patron=c.author %][% END %]</td>
+                            [% IF category == 'pages' %]
+                                <td class="actions">
+                                    [% IF c.location == 'opac_only' OR c.location == 'staff_and_opac' %]
+                                        <strong>OPAC</strong>:
+                                        <a target="_blank" href="[% Koha.Preference('OPACBaseURL') | url %]/cgi-bin/koha/opac-page.pl?page_id=[% c.idnew | url %]" title="View on OPAC">Default</a>
+                                        OR
+                                        <a target="_blank" href="[% Koha.Preference('OPACBaseURL') | url %]/cgi-bin/koha/opac-page.pl?code=[% c.code | url %]" title="View on OPAC">Current language</a>
+                                    [% END %]
+                                    [% IF c.location == 'staff_only' OR c.location == 'staff_and_opac' %]
+                                        [% IF c.location == 'staff_and_opac' %]<br/>[% END %]
+                                        <strong>Staff interface</strong>:
+                                        <a href="/cgi-bin/koha/tools/page.pl?page_id=[% c.idnew | url %]" title="View on staff interface">Default</a>
+                                        OR
+                                        <a href="/cgi-bin/koha/tools/page.pl?code=[% c.code | url %]" title="View on staff interface">Current language</a>
+                                    [% END %]
+                                </td>
+                            [% END %]
+                            <td>
+                                <div class="btn-group">
+                                    <a class="preview_news btn btn-default btn-xs" data-number="[% loop.count | html %]"><i class="fa fa-eye" aria-hidden="true"></i> Preview content</a>
+                                </div>
+                                <div id="contentModal[% loop.count | html %]" class="modal" tabindex="-1" role="dialog" data-number="[% loop.count | html %]">
+                                    <div class="modal-dialog" role="document">
+                                        <div class="modal-content modal-lg">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Preview of: "[% c.title | html %]"</h5>
+                                            </div>
+                                        <div class="modal-body">
+                                            [% c.content | $raw %]
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="actions">
+                                <div class="btn-group dropup">
+                                    <a href="/cgi-bin/koha/tools/additional-contents.pl?op=add_form&amp;id=[% c.idnew | uri %]&editmode=[% editmode | uri %]" class="btn btn-default btn-xs"> <i class="fa fa-pencil"></i> Edit</a><button class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">
+                                        <span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu pull-right">
+                                        <li>
+                                            [% IF ( wysiwyg ) %]
+                                                <a href="/cgi-bin/koha/tools/additional-contents.pl?op=add_form&amp;id=[% c.idnew | uri %]&editmode=text"><i class="fa fa-pencil"></i> Edit with text editor</a>
+                                            [% ELSE %]
+                                                <a href="/cgi-bin/koha/tools/additional-contents.pl?op=add_form&amp;id=[% c.idnew | uri %]&editmode=wysiwyg"><i class="fa fa-pencil"></i> Edit with WYSIWYG editor</a>
+                                            [% END %]
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="btn-group">
+                                    <a href="#" class="delete_news btn btn-default btn-xs" data-idnew="[% c.idnew | html %]"><i class="fa fa-trash"></i> Delete</a>
+                                </div>
+                            </td>
+                        </tr>
+                        [% END %]
+                    </tbody>
+                </table>
+                <input type="hidden" name="op" value="delete_confirmed" />
+                <input type="hidden" name="category" value="[% category | html %]" />
+                <fieldset class="action"><input type="submit" class="btn btn-primary" value="Delete selected" /></fieldset>
+            </form>
+            <form action="/cgi-bin/koha/tools/additional-contents.pl" method="post" id="delete_single">
+                <input type="hidden" id="del_op" name="op" value="delete_confirmed" />
+                <input type="hidden" id="del_category" name="category" value="[% category | html %]" />
+                <input type="hidden" id="del_ids" name="ids" />
+            </form>
+        </div> <!-- /.page-section -->
+    [% ELSE %]
+        <div class="dialog message">There are no additional contents.</div>
+    [% END %]
+[% END %]
+
+[% BLOCK locations_options %]
+    [% IF category == 'news' || category == 'pages' %]
+        [% IF location == "staff_and_opac" %]
+            <option value="staff_and_opac" selected="selected">Staff interface and OPAC</option>
+        [% ELSE %]
+            <option value="staff_and_opac">Staff interface and OPAC</option>
+        [% END %]
+
+        [% IF location == "staff_only" %]
+            <option value="staff_only" selected="selected">Staff interface</option>
+        [% ELSE %]
+            <option value="staff_only">Staff interface</option>
+        [% END %]
+
+        [% IF location == "opac_only" %]
+            <option value="opac_only" selected="selected">OPAC</option>
+        [% ELSE %]
+            <option value="opac_only">OPAC</option>
+        [% END %]
+
+        [% UNLESS category == 'pages' %]
+            [% IF location == "slip" %]
+                <option value="slip" selected="selected">Slip</option>
+            [% ELSE %]
+                <option value="slip">Slip</option>
+            [% END %]
+        [% END %]
+    [% ELSE %]
+        [% SET available_options = [ 'OpacNavRight', 'opacheader', 'OpacCustomSearch', 'OpacMainUserBlock', 'opaccredits', 'OpacLoginInstructions', 'OpacNav', 'OpacNavBottom', 'OpacSuggestionInstructions', 'ArticleRequestsDisclaimerText', 'OpacMoreSearches', 'OpacMySummaryNote', 'OpacLibraryInfo' ] %]
+        [% FOREACH l IN available_options.sort %]
+            [% IF l == location %]
+                <option value="[% l | html %]" selected="selected">[% l | html %]</option>
+            [% ELSE %]
+                <option value="[% l | html %]">[% l | html %]</option>
+            [% END %]
+        [% END %]
+    [% END %]
+[% END %]
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
+    [% Asset.js("js/tools-menu.js") | $raw %]
+    [% Asset.js("lib/hc-sticky.js") | $raw %]
+    <script>
+        $("#saveandcontinue").on("click",function(e){
+            e.preventDefault();
+            $("#redirect").val("just_save");
+            $("#submit_form").click();
+        });
+    </script>
+    [% IF additional_contents.count %]
+        [% INCLUDE 'datatables.inc' %]
+        <script>
+            $('.preview_news').click( function() {
+                modalNumber = $(this).attr('data-number');
+                $('.modal[data-number="'+modalNumber+'"]').modal('show');
+            })
+            function Checkbox(){
+                var form = document.getElementById('del_form');
+                var inputs = form.getElementsByTagName('input');
+                var checked = false;
+                for (var i=0; i<inputs.length; i++) {
+                    if (inputs[i].type == 'checkbox' && inputs[i].name == 'ids') {
+                        checked = inputs[i].checked;
+                        if (checked) return true;
+                    }
+                }
+            }
+
+            function filterDataTable( table, column, term ){
+                if( column ){
+                    table.column( column ).search( term ).draw();
+                } else {
+                    table.search( term ).draw();
+                }
+                clearFilter( term );
+            }
+
+            function clearFilter( term ){
+                if( term == "" ){
+                    $(".dt_button_clear_filter").addClass("disabled");
+                } else {
+                    $(".dt_button_clear_filter").removeClass("disabled");
+                }
+            }
+
+            /* Custom table search configuration: If a table row
+               has an "expired" class, hide it UNLESS the
+               show_expired checkbox is checked */
+            $.fn.dataTable.ext.search.push(
+                function( settings, searchData, index, rowData, counter ) {
+                    var row = $(settings.aoData[index].nTr);
+                    if( row.hasClass("expired") && !$("#show_expired").prop("checked") ){
+                        return false;
+                    } else {
+                        return true;
+                    }
+                }
+            );
+
+            $(document).ready(function() {
+
+                var table = $("#table_additional_contents").DataTable($.extend(true, {}, dataTablesDefaults, {
+                    "order": [[ 4, "desc" ]],
+                    "aoColumnDefs": [
+                        { "sortable": false, "searchable": false, 'targets': [ 'NoSort' ] },
+                        { "type": "anti-the", "targets": [ "anti-the" ] }
+                    ],
+                    "sPaginationType": "full_numbers"
+                }));
+
+                $("#del_form").on("click", ".delete_news", function(e){
+                    e.preventDefault();
+                    if( confirmDelete( _("Are you sure you want to delete this content? This cannot be undone.") ) ){
+                        $("#del_ids").val( $(this).data("idnew") );
+                        $("#delete_single").submit();
+                    }
+                });
+
+                $("#del_form").on("submit",function(){
+                    if ( Checkbox() ) {
+                        return confirmDelete( _("Are you sure you want to delete the selected content?") );
+                    } else {
+                        alert(_("Please select content to delete."));
+                        return false;
+                    }
+                });
+
+                $("#show_expired").on("change", function(){
+                    /* redraw the DataTable according to the custom search function */
+                    table.draw();
+                });
+
+                table.on( 'search.dt', function () {
+                    var term = table.search();
+                    $("#news_keyword").val( term );
+                });
+
+                $("#news_keyword").on("keyup", function(){
+                    var term = $(this).val();
+                    filterDataTable( table, null, term );
+                });
+
+                $("#news_display_location").on("change", function(){
+                    var term = $(this).val();
+                    filterDataTable( table, 1, term );
+                });
+
+                $("#news_library").on("change", function(){
+                    // Table must be filtered by the <option>'s text, not its value
+                    var opt = $(this).find("option:selected").text();
+                    filterDataTable( table, 2, opt );
+                });
+
+                $(".dt_button_clear_filter").on("click", function(){
+                    table.search('').columns().search('').draw();
+                    $("#news-filter select").each(function(){
+                        $(this).val("");
+                    });
+                });
+            });
+        </script>
+    [% ELSE %]
+        <script>
+            $(document).ready(function() {
+                [% IF category == 'news' %]
+                $("#add_additional_content").validate({
+                    submitHandler: function(form){
+                        if ( ! $("#title_default").val().length > 0 ) {
+                            alert(_("Please specify a title for 'Default'"));
+                            return false;
+                        }
+                        else {
+                            [% UNLESS wysiwyg %]
+                                let content = $('#content_default').siblings(".CodeMirror")[0].CodeMirror.getValue();
+                            [% ELSE %]
+                                let content = tinyMCE.get('content_default').getContent();
+                            [% END %]
+
+                            if ( ! content.length > 0 ) {
+                                alert(__("Please specify a content for 'Default'"));
+                                return false;
+                            }
+                        }
+
+                        form.submit();
+                    }
+                });
+                [% END %]
+
+                $("#submit_form").on("click",function(){
+                    $("#add_additional_content").submit();
+                });
+
+                Sticky = $("#toolbar");
+                Sticky.hcSticky({
+                    stickTo: ".main",
+                    stickyClass: "floating"
+                });
+
+            });
+        </script>
+    [% END %]
+    [% UNLESS ( wysiwyg ) %]
+        [% Asset.js( "lib/codemirror/codemirror.min.js" ) | $raw %]
+        [% Asset.js( "lib/codemirror/xml.min.js" ) | $raw %]
+        [% Asset.js( "lib/codemirror/lint.min.js" ) | $raw %]
+        [% Asset.js( "lib/linters/htmlhint.min.js" ) | $raw %]
+        [% Asset.js( "lib/codemirror/html-lint.min.js" ) | $raw %]
+        <script>
+            let editors = new Object(); /* Keeps track of initialized CodeMirror instances */
+            $(document).ready(function(){
+
+                if( $("#tabs .tab-pane.active").length < 1 ){
+                    /* Activate first tab and initialize its CodeMirror instance */
+                    let firstTab = $("#tabs a:first");
+                    firstTab.tab("show");
+                    if ( firstTab[0] ) {
+                        initCodeMirror( firstTab[0].hash );
+                    }
+                }
+
+                $("#tabs a[data-toggle='tab']").on("shown.bs.tab", function (e) {
+                    /* Try to initialize CodeMirror instance when tab opens */
+                    initCodeMirror( e.target.hash );
+                });
+            });
+
+            function initCodeMirror( container ){
+                /* Initialize CodeMirror instance only if it doesn't exist */
+                if( !editors[ container ] ){
+                    let textarea = $( container ).find("textarea[name^='content_']");
+                    let this_lang = textarea.attr('data-lang');
+                    let editor = CodeMirror.fromTextArea( document.getElementById('content_' + this_lang), {
+                        lineNumbers: true,
+                        lineWrapping: true,
+                        lint: true,
+                        mode: "text/html",
+                        gutters: ["CodeMirror-lint-markers"],
+                        viewportMargin: Infinity,
+                    });
+                    editors[ container ] = editor;
+                    return editor;
+                }
+            }
+        </script>
+    [% ELSE %]
+        [% Asset.js("lib/tiny_mce/tinymce.min.js") | $raw %]
+        [% INCLUDE 'str/tinymce_i18n.inc' %]
+        <script>
+
+            $(document).ready(function(){
+                if( $("#tabs").length > 0 && $("#tabs .tab-pane.active").length < 1 ){
+                    /* Activate first tab and initialize its tinyMCE instance */
+                    let firstTab = $("#tabs a:first");
+                    firstTab.tab("show");
+                    initTinyMce( firstTab[0].hash );
+                }
+
+                $("#tabs a[data-toggle='tab']").on("shown.bs.tab", function (e) {
+                    /* Try to initialize tinyMCE instance when tab opens */
+                    initTinyMce( e.target.hash );
+                });
+            });
+
+            function initTinyMce( container ){
+                let textarea = $( container ).find("textarea[name^='content_']");
+                /* TinyMCE seems to do its own check to prevent double-initialization
+                   so We don't need to keep track of it */
+                let editor = tinyMCE.init({
+                    branding : false,
+                    block_unsupported_drop : false,
+                    content_css : "[% interface | html %]/[% theme | html %]/css/tinymce.css",
+                    custom_elements:"style,link,~link",
+                    extended_valid_elements:"style,link[href|rel]",
+                    force_br_newlines : false,
+                    force_p_newlines : false,
+                    forced_root_block : '',
+                    menubar : "file edit view insert format tools table",
+                    plugins : "autoresize table hr link image charmap lists code emoticons",
+                    autoresize_bottom_margin: 60,
+                    relative_urls : false,
+                    selector: "#" + textarea[0].id,
+                    verify_html: false,
+                    toolbar : [
+                        "formatselect | bold italic | cut copy paste | alignleft aligncenter alignright | outdent indent | image link unlink anchor cleanup hr",
+                        "table | bullist numlist | undo redo | removeformat | emoticons charmap | forecolor backcolor | code"
+                    ],
+                });
+                return editor;
+            }
+        </script>
+    [% END # /UNLESS wysiwyg %]
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]

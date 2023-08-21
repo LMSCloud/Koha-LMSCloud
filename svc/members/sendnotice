@@ -23,18 +23,20 @@ $CGI::LIST_CONTEXT_WARN = 0;
 
 use C4::Auth qw( get_template_and_user haspermission get_user_subpermissions );
 use C4::Output qw( output_with_http_headers );
-use C4::Letters;
+use C4::Letters qw ( GetMessagesById );
 use C4::Overdues;
 use C4::Context;
-use C4::NewsChannels; #get slip news
 use C4::NoticeFees;
 
+
+use Koha::AdditionalContents;
 use Koha::Acquisition::Currencies;
 use Koha::Libraries;
 use Koha::DateUtils qw( output_pref dt_from_string );
 use Koha::Patrons;
 use Locale::Currency::Format 1.28;
 use Koha::DateUtils;
+use Koha::Notice::Templates;
 use File::Spec;
 
 
@@ -125,7 +127,16 @@ sub SendAdhocNotices {
         $lettertemplates = {};
         my @transferTypes = ('email','print');
         for my $transfer(@transferTypes) {
-            my $letter = C4::Letters::getletter($module, $lettercode, $branchcode, $transfer );
+			my $template = Koha::Notice::Templates->find_effective_template(
+				{
+					module                 => $module,
+					code                   => $lettercode,
+					branchcode             => $branchcode,
+					message_transport_type => $transfer
+				}
+			);
+			my $letter;
+			$letter = $template->unblessed if ($template);
             if ( $letter && $letter->{'content'} ) {
                 $lettertemplates->{$transfer}->{'letter'} = $letter;
                 $lettertemplates->{$transfer}->{'readItems'}    = ( $letter->{'content'} =~ /(<item>.*<\/item>)/s || $letter->{'content'} =~ /(<checkedout>.*<\/checkedout>)/s ) ? 1 : 0;
@@ -252,10 +263,30 @@ sub SendAdhocNotices {
                     $repeat->{overdue} = \@overdue_tables if ( $readOverdues );
                     
                     if ( $readNews ) {
-                        $repeat->{news} = [ map {
-                                                $_->{'timestamp'} = $_->{'newdate'};
-                                                { opac_news => $_ }
-                                            } @{ GetNewsToDisplay("slip",$branchcode) } ];
+						my $news = Koha::AdditionalContents->search_for_display(
+							{
+								category   => 'news',
+								location   => 'slip',
+								lang       => $patron->lang,
+								library_id => $branchcode,
+							}
+						);
+						my @news;
+						while ( my $n = $news->next ) {
+							my $all = $n->unblessed_all_relateds;
+
+							# FIXME We keep newdate and timestamp for backward compatibility (from GetNewsToDisplay)
+							# But we should remove them and adjust the existing templates in a db rev
+							# FIXME This must be formatted in the notice template
+							my $published_on_dt = output_pref({ dt => dt_from_string( $all->{published_on} ), dateonly => 1 });
+							$all->{newdate} = $published_on_dt;
+							$all->{timestamp} = $published_on_dt;
+
+							push @news, {
+								additional_contents => $all,
+							};
+						}
+                        $repeat->{news} = \@news;
                     }
                 }
                 

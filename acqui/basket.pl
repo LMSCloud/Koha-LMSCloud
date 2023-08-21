@@ -21,26 +21,22 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use C4::Auth;
-use C4::Koha;
-use C4::Output;
+use C4::Auth qw( get_template_and_user haspermission );
+use C4::Output qw( output_html_with_http_headers output_and_exit );
 use CGI qw ( -utf8 );
-use C4::Acquisition;
-use C4::Budgets;
-use C4::Contract;
-use C4::Debug;
-use C4::Biblio;
-use C4::Items;
-use C4::Suggestions;
+use C4::Acquisition qw( GetBasket CanUserManageBasket GetBasketAsCSV NewBasket NewBasketgroup ModBasket ReopenBasket ModBasketUsers GetBasketgroup GetBasketgroups GetBasketUsers GetOrders GetOrder get_rounded_price );
+use C4::Budgets qw( GetBudgetHierarchy GetBudget CanUserUseBudget );
+use C4::Contract qw( GetContract );
+use C4::Suggestions qw( GetSuggestion GetSuggestionInfoFromBiblionumber GetSuggestionInfo );
 use Koha::Biblios;
 use Koha::Acquisition::Baskets;
 use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Orders;
 use Koha::Libraries;
-use C4::Letters qw/SendAlerts/;
-use Date::Calc qw/Add_Delta_Days/;
+use C4::Letters qw( SendAlerts );
+use Date::Calc qw( Add_Delta_Days );
 use Koha::Database;
-use Koha::EDI qw( create_edi_order get_edifact_ean );
+use Koha::EDI qw( create_edi_order );
 use Koha::CsvProfiles;
 use Koha::Patrons;
 
@@ -86,7 +82,6 @@ our ( $template, $loggedinuser, $cookie, $userflags ) = get_template_and_user(
         query           => $query,
         type            => "intranet",
         flagsrequired   => { acquisition => 'order_manage' },
-        debug           => 1,
     }
 );
 
@@ -314,10 +309,6 @@ if ( $op eq 'list' ) {
     # if new basket, pre-fill infos
     $basket->{creationdate} = ""            unless ( $basket->{creationdate} );
     $basket->{authorisedby} = $loggedinuser unless ( $basket->{authorisedby} );
-    $debug
-      and warn sprintf
-      "loggedinuser: $loggedinuser; creationdate: %s; authorisedby: %s",
-      $basket->{creationdate}, $basket->{authorisedby};
 
     my @basketusers_ids = GetBasketUsers($basketno);
     my @basketusers;
@@ -386,6 +377,9 @@ if ( $op eq 'list' ) {
         last;
     }
 
+    my $basket_obj = Koha::Acquisition::Baskets->find($basketno);
+    my $edi_order = $basket_obj->edi_order;
+
     $template->param(
         basketno             => $basketno,
         basket               => $basket,
@@ -397,6 +391,7 @@ if ( $op eq 'list' ) {
         basketcontractname   => $contract->{contractname},
         branches_loop        => \@branches_loop,
         creationdate         => $basket->{creationdate},
+        edi_order            => $edi_order,
         authorisedby         => $basket->{authorisedby},
         authorisedbyname     => $basket->{authorisedbyname},
         users_ids            => join(':', @basketusers_ids),
@@ -429,8 +424,8 @@ if ( $op eq 'list' ) {
         unclosable           => @orders || @cancelledorders ? $basket->{is_standing} : 1,
         has_budgets          => $has_budgets,
         duplinbatch          => $duplinbatch,
-        csv_profiles         => [ Koha::CsvProfiles->search({ type => 'sql', used_for => 'export_basket' }) ],
-        available_additional_fields => [ Koha::AdditionalFields->search( { tablename => 'aqbasket' } ) ],
+        csv_profiles         => Koha::CsvProfiles->search({ type => 'sql', used_for => 'export_basket' }),
+        available_additional_fields => Koha::AdditionalFields->search( { tablename => 'aqbasket' } ),
         additional_field_values => { map {
             $_->field->name => $_->value
         } Koha::Acquisition::Baskets->find($basketno)->additional_field_values->as_list },
@@ -501,11 +496,12 @@ sub get_order_infos {
         $line{order_object}         = $order;
     }
 
-
     my $suggestion   = GetSuggestionInfoFromBiblionumber($line{biblionumber});
     $line{suggestionid}         = $$suggestion{suggestionid};
     $line{surnamesuggestedby}   = $$suggestion{surnamesuggestedby};
     $line{firstnamesuggestedby} = $$suggestion{firstnamesuggestedby};
+
+    $line{estimated_delivery_date} = $order->{estimated_delivery_date};
 
     foreach my $key (qw(transferred_from transferred_to)) {
         if ($line{$key}) {

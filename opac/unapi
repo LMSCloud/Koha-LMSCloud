@@ -38,7 +38,7 @@ an XML format such as OAI DC, RSS2, MARCXML, or MODS.
 
 use CGI qw ( -utf8 );
 use C4::Context;
-use C4::Biblio;
+use C4::Biblio qw( GetXmlBiblio );
 use Koha::XSLT::Base;
 
 my $cgi = CGI->new();
@@ -61,19 +61,6 @@ this unAPI implementation.
 
 my $format_to_stylesheet_map = {
     'MARC21' => {
-        'marcxml'      => 'identity.xsl',
-        'marcxml-full' => 'identity.xsl',
-        'mods'         => 'MARC21slim2MODS.xsl',
-        'mods-full'    => 'MARC21slim2MODS.xsl',
-        'mods3'        => 'MARC21slim2MODS3-1.xsl',
-        'mods3-full'   => 'MARC21slim2MODS3-1.xsl',
-        'oai_dc'       => 'MARC21slim2OAIDC.xsl',
-        'rdfdc',       => 'MARC21slim2RDFDC.xsl',
-        'rss2'         => 'MARC21slim2RSS2.xsl',
-        'rss2-full'    => 'MARC21slim2RSS2.xsl',
-        'srw_dc'       => 'MARC21slim2SRWDC.xsl',
-    },
-    'NORMARC' => {
         'marcxml'      => 'identity.xsl',
         'marcxml-full' => 'identity.xsl',
         'mods'         => 'MARC21slim2MODS.xsl',

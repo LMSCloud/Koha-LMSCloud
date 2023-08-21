@@ -13,25 +13,23 @@
 </head>
 
 <body id="payments" class="pos">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'circ-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Point of sale
-            </a>
-        </li>
-    </ol>
-</nav>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Point of sale</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
         <div class="col-md-10 col-md-push-2">
+
+            <h1>Point of sale</h1>
 
         [% IF ( registers.size == 0 ) %]
             <div id="error_message" class="dialog message">
@@ -49,7 +47,7 @@
 
         [% IF payment_id && !Koha.Preference('FinePaymentAutoPopup') %]
         <div class="dialog alert audio-alert-action">
-            Payment received: <a target="_blank" href="/cgi-bin/koha/pos/printreceipt.pl?action=print&accountlines_id=[% payment_id | uri %]&collected=[% collected | uri %]&change=[% change | uri %]" class="btn btn-default btn-xs"><i class="fa fa-print"></i> Print receipt</a>
+            Payment received: <a target="_blank" href="/cgi-bin/koha/pos/printreceipt.pl?action=print&accountlines_id=[% payment_id | uri %]&collected=[% collected | uri %]&change=[% change | uri %]" class="btn btn-default btn-xs"><i class="fa fa-print"></i> Print receipt</a> <a type="button" data-toggle="modal" data-target="#emailReceiptModal" class="btn btn-default btn-xs"><i class="fa fa-envelope"></i> Email receipt</a>
         </div>
         [% END %]
 
@@ -150,7 +148,7 @@
                     </fieldset>
 
                     <div class="action">
-                        <input type="submit" id="submitbutton" name="submitbutton" value="Confirm" />
+                        <input type="submit" id="submitbutton" name="submitbutton" class="btn btn-primary" value="Confirm" />
                         <a class="cancel" href="/cgi-bin/koha/pos/pay.pl">Cancel</a>
                     </div>
                 </div>
@@ -166,7 +164,40 @@
     </div>
 </div> <!-- /.row -->
 
-<!-- Modal -->
+<!-- Email receipt modal -->
+<div class="modal" id="emailReceiptModal" tabindex="-1" role="dialog" aria-labelledby="emailReceiptLabel">
+    <form id="email_form" action="/cgi-bin/koha/pos/pay.pl" method="get" enctype="multipart/form-data" class="validated">
+        <input type="hidden" name="payment_id" id="payment_id" value="[% payment_id | uri %]">
+        <input type="hidden" name="collected" id="collected" value="[% collected | uri %]">
+        <input type="hidden" name="change" id="change" value="[% change | uri %]">"
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="emailReceiptLabel">Email receipt</h4>
+                </div>
+                <div class="modal-body">
+                    <fieldset class="rows">
+                        <ol>
+                            <li>
+                                <label class="required" for="toaddr">Email address: </label>
+                                <input type="email" id="toaddr" name="toaddr" required="required">
+                                <span class="required">Required</span>
+                            </li>
+                        </ol>
+                    </fieldset> <!-- /.rows -->
+                </div> <!-- /.modal-body -->
+                <div class="modal-footer">
+                    <input type="hidden" name="action" value="send">
+                    <button type="submit" class="btn btn-default">Confirm</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div> <!-- /.modal-footer -->
+            </div> <!-- /.modal-content -->
+        </div> <!-- /.modal-dialog -->
+    </form> <!-- /#email_form -->
+</div> <!-- /#emailReceiptModal
+
+<!-- Change modal -->
 <div id="confirm_change_form" class="modal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -187,8 +218,8 @@
 </div>
 
 [% IF payment_id && Koha.Preference('FinePaymentAutoPopup') %]
-<!-- Automatic Print Receipt -->
-      <a id="printReceipt" style="display: none" href="#"></a>
+    <!-- Automatic Print Receipt -->
+    <a id="printReceipt" style="display: none" href="#"></a>
 [% END %]
 
 [% MACRO jsinclude BLOCK %]
@@ -201,26 +232,27 @@
         var newValue = textObj.value;
         var decAmount = "";
         var dolAmount = "";
-        var decFlag   = false;
+        var dolFlag   = false;
         var aChar     = "";
 
-        for(var i=0; i < newValue.length; i++) {
-            aChar = newValue.substring(i, i+1);
-            if (aChar >= "0" && aChar <= "9") {
-                if(decFlag) {
-                    decAmount = "" + decAmount + aChar;
+        for(var i = newValue.length; 0 < i; i--) {
+            aChar = newValue.substring(i-1, i);
+            if ("0" <= aChar && aChar <= "9") {
+                if(dolFlag) {
+                    dolAmount = "" + aChar + dolAmount;
                 }
                 else {
-                    dolAmount = "" + dolAmount + aChar;
+                    decAmount = "" + aChar + decAmount;
                 }
             }
-            if (aChar == ".") {
-                if (decFlag) {
-                    dolAmount = "";
-                    break;
-                }
-                decFlag = true;
+            if (aChar == "." || aChar == ",") {
+                dolFlag = true;
             }
+        }
+
+        if (!dolFlag) {
+            dolAmount = decAmount;
+            decAmount = "";
         }
 
         if (dolAmount == "") {
@@ -354,12 +386,12 @@
                 sale_table.DataTable().row($(this).parents('tr')).remove().draw(false);
         });
 
-        var items_columns_settings = [% TablesSettings.GetColumns('pos', 'pay', 'invoices', 'json') | $raw %];
+        var items_table_settings = [% TablesSettings.GetTableSettings('pos', 'pay', 'invoices', 'json') | $raw %];
         var items_table = KohaTable("invoices", {
                "sPaginationType": "full",
                "aaSorting": [[ 0, "asc" ]],
                "autoWidth": false
-        }, items_columns_settings, false);
+        }, items_table_settings, false);
 
         $("#invoices").on("click", ".add_button", function(e) {
             e.preventDefault();
@@ -402,6 +434,14 @@
         });
 
         $('#payForm').submit(function(e){
+            // first, clear stale sales 'rows' from the payForm
+            if($('input[name="sales"]').length > 0) {
+                $('input[name="sales"]').each(function() {
+                    $(this).remove();
+                });
+            }
+
+            // now, process the current & fresh contents of the sale_table
             if (change != undefined && change.innerHTML > 0.00 && !checked) {
                 e.preventDefault();
                 $("#confirm_change_form").modal("show");

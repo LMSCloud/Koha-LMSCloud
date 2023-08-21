@@ -22,9 +22,8 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 
 use Koha::Database;
-use C4::Auth;
-use C4::Biblio;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use Koha::BiblioFrameworks;
 use Koha::Caches;
 use Koha::MarcSubfieldStructures;
@@ -37,7 +36,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user (
         query           => $input,
         type            => "intranet",
         flagsrequired   => { parameters => 'manage_marc_frameworks' },
-        debug           => 1,
     }
 );
 
@@ -68,9 +66,7 @@ if( $input->param('add_field') && $input->request_method eq 'POST' ) {
 
 # Clear the cache when needed
 unless( $no_upd ) {
-    for( qw| default_value_for_mod_marc- MarcSubfieldStructure- | ) {
-        $cache->clear_from_cache($_);
-    }
+    $cache->clear_from_cache("MarcSubfieldStructure-");
 }
 
 # Build/Show the form
@@ -93,7 +89,7 @@ my @loop_data;
 foreach my $col ( @cols ) {
     my $found;
     my $readonly = $col =~ /\.(biblio|biblioitem|item)number$/;
-    foreach my $row ( $kohafields->search({ kohafield => $col }) ) {
+    foreach my $row ( $kohafields->search({ kohafield => $col })->as_list ) {
         $found = 1;
         push @loop_data, {
             kohafield    => $col,

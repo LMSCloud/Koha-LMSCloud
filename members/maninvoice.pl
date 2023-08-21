@@ -23,15 +23,14 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Try::Tiny;
-use URI::Escape;
+use Try::Tiny qw( catch try );
+use URI::Escape qw( uri_escape_utf8 );
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_and_exit_if_error output_and_exit output_html_with_http_headers );
 use CGI qw ( -utf8 );
 use C4::Members;
 use C4::Accounts;
-use C4::Items;
 use C4::CashRegisterManagement qw(passCashRegisterCheck);
 use Koha::Token;
 
@@ -43,6 +42,7 @@ use Koha::Old::Checkouts;
 
 use Koha::Patron::Categories;
 use Koha::Account::DebitTypes;
+use Koha::AdditionalFields;
 
 my $input = CGI->new;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -52,7 +52,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         type            => "intranet",
         flagsrequired   => {
             borrowers     => 'edit_borrowers',
-            updatecharges => 'remaining_permissions'
+            updatecharges => 'manual_invoice'
         }
     }
 );
@@ -169,6 +169,21 @@ if ($add) {
                 }
             );
 
+            my @additional_fields;
+            my $accountline_fields = Koha::AdditionalFields->search({ tablename => 'accountlines:debit' });
+            while ( my $field = $accountline_fields->next ) {
+                my $value = $input->param('additional_field_' . $field->id);
+                if (defined $value) {
+                    push @additional_fields, {
+                        id => $field->id,
+                        value => $value,
+                    };
+                }
+            }
+            if (@additional_fields) {
+                $line->set_additional_fields(\@additional_fields);
+            }
+
             if ( C4::Context->preference('AccountAutoReconcile') ) {
                 $patron->account->reconcile_balance;
             }
@@ -209,16 +224,17 @@ if ($add) {
     }
 }
 
-my @debit_types = Koha::Account::DebitTypes->search_with_library_limits(
+my $debit_types = Koha::Account::DebitTypes->search_with_library_limits(
   { can_be_invoiced => 1, archived => 0 },
   {}, $library_id );
 
 $template->param(
-  debit_types => \@debit_types,
+  debit_types => $debit_types,
   csrf_token  => Koha::Token->new->generate_csrf(
       { session_id => scalar $input->cookie('CGISESSID') }
   ),
   patron    => $patron,
   finesview => 1,
+  available_additional_fields => [ Koha::AdditionalFields->search({ tablename => 'accountlines:debit' })->as_list ],
   );
 output_html_with_http_headers $input, $cookie, $template->output;

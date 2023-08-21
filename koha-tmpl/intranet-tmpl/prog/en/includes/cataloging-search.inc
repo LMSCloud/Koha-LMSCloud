@@ -1,55 +1,54 @@
 [% USE Koha %]
-<div class="gradient">
-<h1 id="logo"><a href="/cgi-bin/koha/mainpage.pl">[% LibraryName | html %]</a></h1><!-- Begin Cataloging Resident Search Box -->
-    <div id="header_search">
-        <div id="addbooks_search" class="residentsearch">
+[% PROCESS 'html_helpers.inc' %]
+[% PROCESS 'patronfields.inc' %]
+<!-- cataloging-search.inc -->
+<div id="header_search" role="tablist">
+    <div class="tab-content">
+
+        <div id="addbooks_search" role="tabpanel" class="tab-pane active">
             <form name="search" action="addbooks.pl">
-                <label class="tip" for="cat_search">Search the catalog and the reservoir:</label>
-                <input class="head-searchbox" type="text" name="q" id="cat_search" size="40" />
-                <input type="submit" class="submit" value="Submit" />
+                <div class="form-title">
+                    <label class="control-label">Cataloging search</label>
+                </div>
+
+                <div class="form-content">
+                    <input class="head-searchbox form-control" type="text" name="q" id="cat_search" placeholder="Search the catalog and the reservoir" size="40" />
+                </div>
+
+                <button type="submit"><i class="fa fa-arrow-right"></i></button>
             </form>
         </div>
-
-        [% INCLUDE 'patron-search-box.inc' %]
 
         [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
-        <div id="checkin_search" class="residentsearch">
-            <form method="post" action="/cgi-bin/koha/circ/returns.pl" autocomplete="off">
-                <label class="tip" for="ret_barcode">Scan a barcode to check in:</label>
-                <input class="head-searchbox" type="text" name="barcode" id="ret_barcode" size="40" />
-                <input value="Submit" class="submit" type="submit" />
-            </form>
-        </div>
-        <div id="renew_search" class="residentsearch">
-            <form method="post" action="/cgi-bin/koha/circ/renew.pl" autocomplete="off">
-                <label class="tip" for="ren_barcode">Scan a barcode to renew:</label>
-                <input class="head-searchbox" type="text" name="barcode" id="ren_barcode" size="40" />
-                <input value="Submit" class="submit" type="submit" />
-            </form>
-        </div>
+            [% INCLUDE 'patron-search-box.inc' %]
+            [% INCLUDE 'checkin-search-box.inc' %]
+            [% INCLUDE 'renew-search-box.inc' %]
+        [% END %]
+        [% IF ( CAN_user_catalogue ) %]
+            [% INCLUDE 'catalogue-search-box.inc' %]
         [% END %]
 
-
-        <div id="catalog_search" class="residentsearch">
-            <form action="/cgi-bin/koha/catalogue/search.pl"  method="get" id="cat-search-block">
-                [% IF ( Koha.Preference('IntranetCatalogSearchPulldown') ) %]
-                    <label class="tip" for="search-form">Enter search keywords:</label>
-                    [% INCLUDE 'search_indexes.inc' %]
-                [% ELSE %]
-                    <label class="tip" for="search-form">Enter search keywords:</label>
-                [% END %]
-                <input type="text" name="q" id="search-form" size="40" value="" title="Enter the terms you wish to search for." class="head-searchbox form-text" />
-                <input type="submit" class="submit" value="Submit" />
-            </form>
-        </div>
-
-        <ul>
-            <li><a class="keep_text" href="#addbooks_search">Cataloging search</a></li>
-            [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]<li><a class="keep_text" href="#circ_search">Check out</a></li>[% END %]
-            [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]<li><a class="keep_text" href="#checkin_search">Check in</a></li>[% END %]
-            [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]<li><a class="keep_text" href="#renew_search">Renew</a></li>[% END %]
-            <li><a class="keep_text" href="#catalog_search">Search the catalog</a></li>
-        </ul>
-    </div><!-- /header_search -->
-</div><!-- /gradient -->
-<!-- End Cataloging Resident Search Box -->
+    </div><!-- /.tab-content -->
+    <ul class="nav nav-tabs" role="tablist">
+        [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
+            <li role="presentation" class="active">
+                <a title="Cataloging search" href="#addbooks_search" aria-controls="addbooks_search" role="tab" aria-expanded="true" data-toggle="tab" class="keep_text"><i class="fa fa-fw fa-search"></i> <span class="tab-title">Cataloging search</span></a>
+            </li>
+            <li role="presentation">
+                <a title="Check out" href="#circ_search" aria-controls="circ_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-upload"></i> <span class="tab-title">Check out</span></a>
+            </li>
+            <li role="presentation">
+                <a title="Check in" href="#checkin_search" aria-controls="checkin_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-download"></i> <span class="tab-title">Check in</span></a>
+            </li>
+            <li role="presentation">
+                <a title="Renew" href="#renew_search" aria-controls="renew_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-retweet"></i> <span class="tab-title">Renew</span></a>
+            </li>
+        [% END %]
+        [% IF ( CAN_user_catalogue ) %]
+            <li role="presentation">
+                <a title="Search catalog" href="#catalog_search" aria-controls="catalog_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-fw fa-search"></i> <span class="tab-title">Search catalog</span></a>
+            </li>
+        [% END %]
+    </ul>
+</div><!-- /#header_search -->
+<!-- /cataloging-search.inc -->

@@ -35,6 +35,10 @@
             <li><a id="editbiblio" href="/cgi-bin/koha/cataloguing/addbiblio.pl?biblionumber=[% biblionumber | html %]">Edit record</a></li>
             [% END %]
 
+            [% IF CAN_user_tools_records_batchmod %]
+            <li><a id="modifybiblio" href="/cgi-bin/koha/tools/batch_record_modification.pl?recordtype=biblio&op=list&recordnumber_list=[% biblionumber | html %]">Modify record using template</a></li>
+            [% END %]
+
             [% IF CAN_user_editcatalogue_edit_items or ( frameworkcode == 'FA' and CAN_user_editcatalogue_fast_cataloging ) %]
             <li><a id="edititems" href="/cgi-bin/koha/cataloguing/additem.pl?biblionumber=[% biblionumber | html %]">Edit items</a></li>
             [% END %]
@@ -178,7 +182,7 @@
                 </button>
                 <ul class="dropdown-menu">
                     <li><a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% biblionumber | uri %]">Place hold</a></li>
-                    <li><a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% biblionumber | uri %]&amp;findborrower=[% holdfor_cardnumber | uri %]">Place hold for [% holdfor_firstname | html %] [% holdfor_surname | html %] ([% holdfor_cardnumber | html %])</a></li>
+                    <li><a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% biblionumber | uri %]&amp;findborrower=[% holdfor_patron.cardnumber | uri %]">Place hold for [% INCLUDE 'patron-title.inc' patron => holdfor_patron no_title => 1 %]</a></li>
                 </ul>
             </div>
         [% ELSE %]

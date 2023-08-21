@@ -20,36 +20,26 @@
 
 <body id="circ_circulation_batch_checkouts" class="circ">
 
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'circ-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
-        </li>
+        [% END %]
 
         [% IF patron %]
-            <li>
-                <a href="/cgi-bin/koha/circ/circulation.pl">Batch check out</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    [% INCLUDE 'patron-title.inc' %]
-                </a>
-            </li>
-        [% ELSE %]
-            <li>
-                <a href="#" aria-current="page">
-                    Batch check out
-                </a>
-            </li>
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% borrowernumber | uri %]">Check out to [% INCLUDE 'patron-title.inc' %]</a>
+            [% END %]
         [% END %]
-    </ol>
-</nav>
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Batch check out</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -59,6 +49,7 @@
             <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
         [% END %]
             <main>
+            <h1>Batch check out</h1>
 
 [% IF patron %]
 [% INCLUDE 'members-toolbar.inc' %]
@@ -112,16 +103,16 @@
           <fieldset class="rows">
               <legend>Due date: </legend>
               <label for="duedatespec">Hard due date [% INCLUDE 'date-format.inc' %]:</label>
-              <input type="text" size="20" id="duedatespec" name="duedatespec" value="[% duedatespec | $KohaDates with_hours => 1 %]" />
+                <input type="text" size="20" id="duedatespec" name="duedatespec" value="[% duedatespec | html %]" class="flatpickr" data-flatpickr-enable-time="true" />
           </fieldset>
       [% END %]
       <input type="hidden" name="op" value="show" />
-      <fieldset class="action">
+    </fieldset>
+    <fieldset class="action">
         <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber | html %]" />
         <input type="hidden" name="branch" value="[% branch | html %]" />
         <input type="hidden" name="batch" value="1" />
-        <input type="submit" value="Check out" class="button" />
-      </fieldset>
+        <input type="submit" class="btn btn-primary" value="Check out" />
     </fieldset>
   </form>
 
@@ -215,7 +206,7 @@
                       </script>
                   [% END %]
 
-                  [% IF NOT checkout_info.IMPOSSIBLE && ( CAN_user_circulate_force_checkout || checkout_info.HIGHHOLDS ) && ( checkout_info.RESERVED || checkout_info.RESERVE_WAITING || checkout_info.TRANSFERRED || checkout_info.PROCESSING ) %] <!-- arbitrary choice, revert the reserve is not possible-->
+                  [% IF NOT checkout_info.IMPOSSIBLE && ( CAN_user_circulate_force_checkout || checkout_info.HIGHHOLDS ) && ( checkout_info.RESERVED || checkout_info.RESERVE_WAITING || checkout_info.TRANSFERRED || checkout_info.PROCESSING ) %] <!-- arbitrary choice, revert the hold is not possible-->
                       <li><i class="fa fa-li fa-warning"></i>This item is on hold for another patron. The hold will be overridden, but not cancelled.</li>
                   [% ELSIF checkout_info.RESERVED %]
                       <li><i class="fa fa-li fa-warning"></i>This item is on hold for another patron.</li>
@@ -317,7 +308,7 @@
       <input type="hidden" name="branch" value="[% branch | html %]" />
       <input type="hidden" name="duedatespec" value="[% duedatespec | html %]" />
       <input type="hidden" name="batch" value="1" />
-      <input type="submit" id="checkoutrenew" class="approve" value="Checkout or renew" />
+      <input type="submit" id="checkoutrenew" class="btn btn-primary" value="Checkout or renew" />
         </fieldset>
     </form>
     [% END %]
@@ -340,7 +331,6 @@
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
-    [% Asset.js("lib/jquery/plugins/jquery-ui-timepicker-addon.min.js") | $raw %]
     <script>
         $(document).ready(function() {
             if($('#barcodelist').length) {
@@ -357,18 +347,6 @@
                 ],
                 "bPaginate": false
             }));
-
-            [% IF Koha.Preference('SpecifyDueDate') %]
-                $("#duedatespec").datetimepicker({
-                    onClose: function(dateText, inst) {
-                        validate_date(dateText, inst);
-                    },
-                    hour: 23,
-                    minute: 59
-                }).on("change", function(e, value) {
-                    if ( ! is_valid_date( $(this).val() ) ) {$(this).val("");}
-                });
-            [% END %]
         });
 
     </script>

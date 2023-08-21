@@ -5,6 +5,8 @@
 
 use Modern::Perl;
 use Test::More tests => 5;
+use Test::Warn;
+use Test::Deep;
 
 use t::lib::TestBuilder;
 
@@ -14,7 +16,7 @@ use Koha::AuthorisedValue;
 use Koha::AuthorisedValueCategories;
 
 BEGIN {
-    use_ok('C4::Koha', qw( :DEFAULT GetItemTypesCategorized));
+    use_ok('C4::Koha', qw( GetAuthorisedValues GetItemTypesCategorized xml_escape ));
     use_ok('C4::Members');
 }
 
@@ -26,7 +28,7 @@ my $dbh = C4::Context->dbh;
 our $itype_1 = $builder->build({ source => 'Itemtype' });
 
 subtest 'Authorized Values Tests' => sub {
-    plan tests => 3;
+    plan tests => 4;
 
     my $data = {
         category            => 'CATEGORY',
@@ -57,101 +59,99 @@ subtest 'Authorized Values Tests' => sub {
         $sth->execute($data->{category}, $data->{authorised_value}, $data->{lib}, $data->{lib_opac}, $data->{imageurl});
     }
 
-    SKIP: {
-        eval { require Test::Deep; import Test::Deep; };
-        skip "Test::Deep required to run the GetAuthorisedValues() tests.", 2 if $@;
-        Koha::AuthorisedValueCategory->new({ category_name => 'BUG10656' })->store;
-        Koha::AuthorisedValue->new(
-            {   category         => 'BUG10656',
-                authorised_value => 'ZZZ',
-                lib              => 'Z_STAFF',
-                lib_opac         => 'A_PUBLIC',
-                imageurl         => ''
-            }
-        )->store;
-        Koha::AuthorisedValue->new(
-            {   category         => 'BUG10656',
+    Koha::AuthorisedValueCategory->new({ category_name => 'BUG10656' })->store;
+    Koha::AuthorisedValue->new(
+        {   category         => 'BUG10656',
+            authorised_value => 'ZZZ',
+            lib              => 'Z_STAFF',
+            lib_opac         => 'A_PUBLIC',
+            imageurl         => ''
+        }
+    )->store;
+    Koha::AuthorisedValue->new(
+        {   category         => 'BUG10656',
+            authorised_value => 'AAA',
+            lib              => 'A_STAFF',
+            lib_opac         => 'Z_PUBLIC',
+            imageurl         => ''
+        }
+    )->store;
+
+    # the next one sets lib_opac to NULL; in that case, the staff
+    # display value is meant to be used.
+    Koha::AuthorisedValue->new(
+        {   category         => 'BUG10656',
+            authorised_value => 'DDD',
+            lib              => 'D_STAFF',
+            lib_opac         => undef,
+            imageurl         => ''
+        }
+    )->store;
+
+    my $authvals = GetAuthorisedValues('BUG10656');
+    cmp_deeply(
+        $authvals,
+        [
+            {
+                id => ignore(),
+                category => 'BUG10656',
                 authorised_value => 'AAA',
-                lib              => 'A_STAFF',
-                lib_opac         => 'Z_PUBLIC',
-                imageurl         => ''
-            }
-        )->store;
-
-        # the next one sets lib_opac to NULL; in that case, the staff
-        # display value is meant to be used.
-        Koha::AuthorisedValue->new(
-            {   category         => 'BUG10656',
+                lib => 'A_STAFF',
+                lib_opac => 'Z_PUBLIC',
+                imageurl => '',
+            },
+            {
+                id => ignore(),
+                category => 'BUG10656',
                 authorised_value => 'DDD',
-                lib              => 'D_STAFF',
-                lib_opac         => undef,
-                imageurl         => ''
-            }
-        )->store;
+                lib => 'D_STAFF',
+                lib_opac => undef,
+                imageurl => '',
+            },
+            {
+                id => ignore(),
+                category => 'BUG10656',
+                authorised_value => 'ZZZ',
+                lib => 'Z_STAFF',
+                lib_opac => 'A_PUBLIC',
+                imageurl => '',
+            },
+        ],
+        'list of authorised values in staff mode sorted by staff label (bug 10656)'
+    );
+    $authvals = GetAuthorisedValues('BUG10656', 1);
+    cmp_deeply(
+        $authvals,
+        [
+            {
+                id => ignore(),
+                category => 'BUG10656',
+                authorised_value => 'ZZZ',
+                lib => 'A_PUBLIC',
+                lib_opac => 'A_PUBLIC',
+                imageurl => '',
+            },
+            {
+                id => ignore(),
+                category => 'BUG10656',
+                authorised_value => 'DDD',
+                lib => 'D_STAFF',
+                lib_opac => undef,
+                imageurl => '',
+            },
+            {
+                id => ignore(),
+                category => 'BUG10656',
+                authorised_value => 'AAA',
+                lib => 'Z_PUBLIC',
+                lib_opac => 'Z_PUBLIC',
+                imageurl => '',
+            },
+        ],
+        'list of authorised values in OPAC mode sorted by OPAC label (bug 10656)'
+    );
 
-        my $authvals = GetAuthorisedValues('BUG10656');
-        cmp_deeply(
-            $authvals,
-            [
-                {
-                    id => ignore(),
-                    category => 'BUG10656',
-                    authorised_value => 'AAA',
-                    lib => 'A_STAFF',
-                    lib_opac => 'Z_PUBLIC',
-                    imageurl => '',
-                },
-                {
-                    id => ignore(),
-                    category => 'BUG10656',
-                    authorised_value => 'DDD',
-                    lib => 'D_STAFF',
-                    lib_opac => undef,
-                    imageurl => '',
-                },
-                {
-                    id => ignore(),
-                    category => 'BUG10656',
-                    authorised_value => 'ZZZ',
-                    lib => 'Z_STAFF',
-                    lib_opac => 'A_PUBLIC',
-                    imageurl => '',
-                },
-            ],
-            'list of authorised values in staff mode sorted by staff label (bug 10656)'
-        );
-        $authvals = GetAuthorisedValues('BUG10656', 1);
-        cmp_deeply(
-            $authvals,
-            [
-                {
-                    id => ignore(),
-                    category => 'BUG10656',
-                    authorised_value => 'ZZZ',
-                    lib => 'A_PUBLIC',
-                    lib_opac => 'A_PUBLIC',
-                    imageurl => '',
-                },
-                {
-                    id => ignore(),
-                    category => 'BUG10656',
-                    authorised_value => 'DDD',
-                    lib => 'D_STAFF',
-                    lib_opac => undef,
-                    imageurl => '',
-                },
-                {
-                    id => ignore(),
-                    category => 'BUG10656',
-                    authorised_value => 'AAA',
-                    lib => 'Z_PUBLIC',
-                    lib_opac => 'Z_PUBLIC',
-                    imageurl => '',
-                },
-            ],
-            'list of authorised values in OPAC mode sorted by OPAC label (bug 10656)'
-        );
-    }
+    warning_is { GetAuthorisedValues() } [], 'No warning when no parameter passed to GetAuthorisedValues';
 
 };
 
@@ -202,10 +202,10 @@ subtest 'GetItemTypesCategorized test' => sub{
     $insertSth->execute('BKghjklo3', 'Yet another type of book', 'Qwertyware', 0);
 
     # Azertyware should not exist.
-    my @itemtypes = Koha::ItemTypes->search({ searchcategory => 'Azertyware' });
+    my @itemtypes = Koha::ItemTypes->search({ searchcategory => 'Azertyware' })->as_list;
     is( @itemtypes, 0, 'Search item types by searchcategory: Invalid category returns nothing');
 
-    @itemtypes = Koha::ItemTypes->search({ searchcategory => 'Qwertyware' });
+    @itemtypes = Koha::ItemTypes->search({ searchcategory => 'Qwertyware' })->as_list;
     my @got = map { $_->itemtype } @itemtypes;
     my @expected = ( 'BKghjklo2', 'BKghjklo3' );
     is_deeply(\@got,\@expected,'Search item types by searchcategory: valid category returns itemtypes');

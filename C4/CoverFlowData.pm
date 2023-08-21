@@ -22,7 +22,7 @@ use Modern::Perl;
 use Carp;
 use URI::Escape;
 
-use C4::Biblio qw( GetAuthorisedValueDesc GetMarcBiblio TransformMarcToKoha );
+use C4::Biblio qw( GetAuthorisedValueDesc TransformMarcToKoha );
 use C4::Context;
 use C4::Koha qw( GetNormalizedUPC GetNormalizedOCLCNumber GetNormalizedISBN GetNormalizedEAN );
 use C4::Search;
@@ -247,8 +247,7 @@ sub GetCoverFlowDataByQueryString {
     my @biblist;
     if (!defined $error) {
         foreach my $resultrecord (@{$searchresults}) {
-            my $marcrecord = C4::Search::new_record_from_zebra('biblioserver',$resultrecord);
-            my $bibdata = TransformMarcToKoha( $marcrecord, q{} );
+            my $bibdata = TransformMarcToKoha( { record => C4::Search::new_record_from_zebra('biblioserver',$resultrecord) } );
 
             if ($bibdata) {
                 push @results, { biblionumber => $bibdata->{'biblionumber'} };
@@ -299,134 +298,137 @@ sub GetCatalogueData {
         $item->{medium}        = $biblio->medium;
         $item->{part_number}   = $biblio->part_number;
         $item->{part_name}     = $biblio->part_name;
-        my $record = GetMarcBiblio({ biblionumber => $biblio->biblionumber });
-        $item->{'browser_normalized_upc'}  = GetNormalizedUPC($record,$marcflavour);
-        $item->{'browser_normalized_oclc'} = GetNormalizedOCLCNumber($record,$marcflavour);
-        $item->{'browser_normalized_isbn'} = GetNormalizedISBN(undef,$record,$marcflavour);
-        $item->{'browser_normalized_ean'}  = GetNormalizedEAN($record,$marcflavour);
+        my $record = $biblio ? $biblio->metadata->record : undef;
 
-		if (C4::Context->preference('OpacSuppression')) {
-			my $opacsuppressionfield = '942';
-			my $opacsuppressionfieldvalue = $record->field($opacsuppressionfield);
-			if ( $opacsuppressionfieldvalue &&
-				$opacsuppressionfieldvalue->subfield("n") &&
-				$opacsuppressionfieldvalue->subfield("n") == 1) 
-			{
-				next;
+		if ( $record ) {
+			$item->{'browser_normalized_upc'}  = GetNormalizedUPC($record,$marcflavour);
+			$item->{'browser_normalized_oclc'} = GetNormalizedOCLCNumber($record,$marcflavour);
+			$item->{'browser_normalized_isbn'} = GetNormalizedISBN(undef,$record,$marcflavour);
+			$item->{'browser_normalized_ean'}  = GetNormalizedEAN($record,$marcflavour);
+
+			if (C4::Context->preference('OpacSuppression')) {
+				my $opacsuppressionfield = '942';
+				my $opacsuppressionfieldvalue = $record->field($opacsuppressionfield);
+				if ( $opacsuppressionfieldvalue &&
+					$opacsuppressionfieldvalue->subfield("n") &&
+					$opacsuppressionfieldvalue->subfield("n") == 1) 
+				{
+					next;
+				}
 			}
+			my $field = $record->field('245');
+			my $titleblock = q{};
+			my $title = q{};
+			my $author = q{};
+		
+			if ( $field ) {
+				$title = $field->subfield('a');
+				my $subtitle = $field->subfield('b');
+				$author = $field->subfield('c');
+		
+				$titleblock = $title;
+				
+				if ( $subtitle ) {
+					$titleblock .= ': ' . $subtitle;
+				}
+				$author =~ s/^\s*\/\s*// if ($author);
+				if ( $author ) {
+					$titleblock .= ' / ' . $author;
+				}
+				if ( $titleblock !~ /\.$/ ) {
+					$titleblock .= '.';
+				}
+			}
+			
+			$field = $record->field('250');
+			my $edition;
+			if ( $field ) {
+				$edition = $field->subfield('a');
+		
+				if ( $edition ) {
+					$titleblock .= ' - ' . $edition;
+					if ( $titleblock !~ /\.$/ ) {
+						$titleblock .= '.';
+					} 
+				}
+			}
+			
+			$field = $record->field('260');
+			$field = $record->field('264') if (! $field);
+			my $year;
+			my $location;
+			my $publisher;
+			if ( $field ) {
+				$location = $field->subfield('a');
+				$publisher = $field->subfield('b');
+				$year = $field->subfield('c');
+		
+				my $publisherblock = $location;
+				if ( $publisherblock && ( defined $publisher || defined $year )) {
+					$publisherblock .= ': ';
+				}
+				if ( $publisher ) {
+					$publisherblock .=  $publisher;
+				}
+				if ( $year ) {
+					if ( $publisherblock ) {
+						$publisherblock .= ', ';
+					}
+					$publisherblock .=  $year;
+				}
+				if ( $publisherblock ) {
+					$titleblock .= ' - ' . $publisherblock;
+					if ( $titleblock !~ /\.$/ ) {
+						$titleblock .= '.';
+					}
+				}
+			}
+			$title =~ s/[\x{0098}\x{009c}]//g if ($title);
+			$author =~ s/[\x{0098}\x{009c}]//g if ($author);
+			$titleblock =~ s/[\x{0098}\x{009c}]//g if ($titleblock);
+			
+			
+			my $identifier = q{};
+			$field = $record->field('020');
+			if ( $field ) {
+				my $isbn = $field->subfield('a');
+				$identifier = $isbn if ( $isbn );
+			}
+			$field = $record->field('024');
+			if ( $field && $identifier eq q{} ) {
+				my $ean = $field->subfield('a');
+				$identifier = $ean if ( $ean );
+			}
+			
+			my $coverurl = q{};
+			foreach my $field ( $record->field('856') ) {
+				if ( $field->subfield('q') && $field->subfield('q') =~ /^cover/ && $field->subfield('u') ) {
+					next if ($field->subfield('n') && $field->subfield('n') =~ /^(Wikipedia|Antolin)$/i );
+					my $val = $field->subfield('u');
+					next if (! $val);
+					next if ( $val =~ /\.ekz\.de/ && !C4::Context->preference('EKZCover') );
+					next if ( $val =~ /\.onleihe\.de/ && !C4::Context->preference('DivibibEnabled') );
+					$coverurl = $val;
+					$coverurl =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
+					$coverurl =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
+					last;
+				}
+			}
+				
+			my $generic_coverurl = '/api/v1/public/generated_cover?title=' . uri_escape_utf8($title) .'&author=' . uri_escape_utf8($author) ;
+
+			$item->{'titleblock'} = $titleblock;
+			$item->{'coverurl'}   = $coverurl;
+			$item->{'gencover'}   = $generic_coverurl;
+			$item->{'identifier'} = $identifier;
+			$item->{'author'}     = $author;
+			$item->{'year'}       = $year;
+			$item->{'edition'}    = $edition;
+			$item->{'place'}      = $location;
+			$item->{'publisher'}  = $publisher;
+
+			push @valid_items, $item;
 		}
-        my $field = $record->field('245');
-        my $titleblock = q{};
-        my $title = q{};
-        my $author = q{};
-    
-        if ( $field ) {
-            $title = $field->subfield('a');
-            my $subtitle = $field->subfield('b');
-            $author = $field->subfield('c');
-    
-            $titleblock = $title;
-            
-            if ( $subtitle ) {
-                $titleblock .= ': ' . $subtitle;
-            }
-            $author =~ s/^\s*\/\s*// if ($author);
-            if ( $author ) {
-                $titleblock .= ' / ' . $author;
-            }
-            if ( $titleblock !~ /\.$/ ) {
-                $titleblock .= '.';
-            }
-        }
-		
-        $field = $record->field('250');
-        my $edition;
-        if ( $field ) {
-            $edition = $field->subfield('a');
-    
-            if ( $edition ) {
-                $titleblock .= ' - ' . $edition;
-                if ( $titleblock !~ /\.$/ ) {
-                    $titleblock .= '.';
-                } 
-            }
-        }
-		
-        $field = $record->field('260');
-        $field = $record->field('264') if (! $field);
-        my $year;
-        my $location;
-        my $publisher;
-        if ( $field ) {
-            $location = $field->subfield('a');
-            $publisher = $field->subfield('b');
-            $year = $field->subfield('c');
-    
-            my $publisherblock = $location;
-            if ( $publisherblock && ( defined $publisher || defined $year )) {
-                $publisherblock .= ': ';
-            }
-            if ( $publisher ) {
-                $publisherblock .=  $publisher;
-            }
-            if ( $year ) {
-                if ( $publisherblock ) {
-                    $publisherblock .= ', ';
-                }
-                $publisherblock .=  $year;
-            }
-            if ( $publisherblock ) {
-                $titleblock .= ' - ' . $publisherblock;
-                if ( $titleblock !~ /\.$/ ) {
-                    $titleblock .= '.';
-                }
-            }
-        }
-        $title =~ s/[\x{0098}\x{009c}]//g if ($title);
-        $author =~ s/[\x{0098}\x{009c}]//g if ($author);
-        $titleblock =~ s/[\x{0098}\x{009c}]//g if ($titleblock);
-		
-		
-        my $identifier = q{};
-        $field = $record->field('020');
-        if ( $field ) {
-            my $isbn = $field->subfield('a');
-            $identifier = $isbn if ( $isbn );
-        }
-        $field = $record->field('024');
-        if ( $field && $identifier eq q{} ) {
-            my $ean = $field->subfield('a');
-            $identifier = $ean if ( $ean );
-        }
-		
-        my $coverurl = q{};
-        foreach my $field ( $record->field('856') ) {
-            if ( $field->subfield('q') && $field->subfield('q') =~ /^cover/ && $field->subfield('u') ) {
-                next if ($field->subfield('n') && $field->subfield('n') =~ /^(Wikipedia|Antolin)$/i );
-                my $val = $field->subfield('u');
-                next if (! $val);
-                next if ( $val =~ /\.ekz\.de/ && !C4::Context->preference('EKZCover') );
-                next if ( $val =~ /\.onleihe\.de/ && !C4::Context->preference('DivibibEnabled') );
-                $coverurl = $val;
-                $coverurl =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
-                $coverurl =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
-                last;
-            }
-        }
-            
-        my $generic_coverurl = '/api/v1/public/generated_cover?title=' . uri_escape_utf8($title) .'&author=' . uri_escape_utf8($author) ;
-
-        $item->{'titleblock'} = $titleblock;
-        $item->{'coverurl'}   = $coverurl;
-        $item->{'gencover'}   = $generic_coverurl;
-        $item->{'identifier'} = $identifier;
-        $item->{'author'}     = $author;
-        $item->{'year'}       = $year;
-        $item->{'edition'}    = $edition;
-        $item->{'place'}      = $location;
-        $item->{'publisher'}  = $publisher;
-
-        push @valid_items, $item;
     }
     return @valid_items;
 }

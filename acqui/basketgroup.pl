@@ -45,15 +45,16 @@ The bookseller who we want to display the baskets (and basketgroups) of.
 =cut
 
 use Modern::Perl;
-use Carp;
+use Carp qw( croak );
 
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use CGI qw ( -utf8 );
 use File::Spec;
 
-use C4::Acquisition qw/CloseBasketgroup ReOpenBasketgroup GetOrders GetBasketsByBasketgroup GetBasketsByBookseller ModBasketgroup NewBasketgroup DelBasketgroup GetBasketgroups ModBasket GetBasketgroup GetBasket GetBasketGroupAsCSV get_rounded_price/;
-use Koha::EDI qw/create_edi_order get_edifact_ean/;
+use C4::Acquisition qw( GetOrders GetOrder get_rounded_price GetBasket GetBasketgroup GetBasketsByBasketgroup GetBasketgroups GetBasketsByBookseller ModBasket CloseBasketgroup GetBasketGroupAsCSV DelBasketgroup ReOpenBasketgroup ModBasketgroup NewBasket NewBasketgroup );
+use Koha::Database;
+use Koha::EDI qw( get_edifact_ean create_edi_order );
 
 use Koha::Biblioitems;
 use Koha::Acquisition::Booksellers;
@@ -67,7 +68,6 @@ our ($template, $loggedinuser, $cookie)
 			     query => $input,
 			     type => "intranet",
 			     flagsrequired => {acquisition => 'group_manage'},
-			     debug => 1,
                 });
 
 sub BasketTotal {
@@ -126,7 +126,7 @@ sub printbasketgrouppdf{
     my ($basketgroupid) = @_;
 
     my $pdfformat = C4::Context->preference("OrderPdfFormat");
-    my @valid_pdfformats = qw(pdfformat::layout3pages pdfformat::layout2pages pdfformat::layout3pagesfr pdfformat::layout2pagesde pdfformat::layout2pagesdinde);
+    my @valid_pdfformats = qw(pdfformat::layout3pages pdfformat::layout2pages pdfformat::layout3pagesfr pdfformat::layout2pagesde pdfformat::layout1page pdfformat::layout2pagesdinde);
     if (grep {$_ eq $pdfformat} @valid_pdfformats) {
         $pdfformat = "Koha::$pdfformat";
         my $pdfformat_filepath = File::Spec->catfile(split /::/, $pdfformat) . '.pm';

@@ -21,7 +21,7 @@ use warnings;
 use strict;
 
 use LWP::UserAgent;
-use File::Slurp;
+use File::Slurp qw( read_file write_file );
 
 if ( $#ARGV >= 3 && ! caller ) { # process command-line params only if not called as module!
     my ( $url, $user, $password, $biblionumber, $file ) = @ARGV;
@@ -30,7 +30,7 @@ if ( $#ARGV >= 3 && ! caller ) { # process command-line params only if not calle
         url      => $url,
         user     => $user,
         password => $password,
-        debug    => $ENV{DEBUG},
+        debug    => 0,
     );
 
     if ( ! $file ) {
@@ -85,7 +85,6 @@ at beginning of script. Rest of API is described below. Example of its usage is 
     url      => 'http://koha-dev:8080/cgi-bin/koha/svc',
     user     => 'svc-user',
     password => 'svc-password',
-    debug    => 0,
   );
 
 URL must point to Koha's B<intranet> address and port.

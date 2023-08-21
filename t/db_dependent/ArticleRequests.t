@@ -19,7 +19,8 @@ use Modern::Perl;
 
 use POSIX qw(strftime);
 
-use Test::More tests => 54;
+use Test::More tests => 36;
+use Test::MockModule;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -31,6 +32,8 @@ use Koha::Patron;
 use Koha::Library::Group;
 use Koha::CirculationRules;
 use Koha::Caches;
+use Koha::DateUtils qw( dt_from_string );
+use Try::Tiny;
 
 BEGIN {
     use_ok('Koha::ArticleRequest');
@@ -73,16 +76,16 @@ my $article_request = Koha::ArticleRequest->new(
         itemnumber     => $item->itemnumber,
         title          => $article_request_title,
     }
-)->store();
+)->request();
 
 my $notify_message = Koha::Notice::Messages->search->next;
-is( $notify_message->letter_code, "AR_".Koha::ArticleRequest::Status::Pending);
+is( $notify_message->letter_code, "AR_".Koha::ArticleRequest::Status::Requested);
 # Default AR_PROCESSING template content "Title: <<article_requests.title>>"
 like( $notify_message->content, qr{Title: $article_request_title}, 'Values from article_requests table must be fetched for the notification' );
 
 $article_request = Koha::ArticleRequests->find( $article_request->id );
 ok( $article_request->id, 'Koha::ArticleRequest created' );
-is( $article_request->status, Koha::ArticleRequest::Status::Pending, 'New article request has status of Open' );
+is( $article_request->status, Koha::ArticleRequest::Status::Requested, 'New article request has status of Open' );
 isnt( $article_request->created_on, undef, 'New article request has created_on date set' );
 isnt( $article_request->updated_on, undef, 'New article request has updated_on date set' );
 
@@ -101,59 +104,11 @@ is( $article_request->status, Koha::ArticleRequest::Status::Completed, '$ar->com
 # cancel
 $article_request->cancel();
 is( $article_request->status, Koha::ArticleRequest::Status::Canceled, '$ar->complete() changes status to Canceled' );
-$article_request->status(Koha::ArticleRequest::Status::Pending);
-$article_request->store();
+$article_request->set_pending();
 
 is( $article_request->biblio->id,   $biblio->id, '$ar->biblio() gets corresponding Koha::Biblio object' );
 is( $article_request->item->id,     $item->id,   '$ar->item() gets corresponding Koha::Item object' );
 is( $article_request->borrower->id, $patron->id, '$ar->borrower() gets corresponding Koha::Patron object' );
-
-my $ar = $patron->article_requests();
-is( ref($ar),      'Koha::ArticleRequests', '$patron->article_requests returns Koha::ArticleRequests object' );
-is( $ar->next->id, $article_request->id,    'Returned article request matches' );
-
-is( $patron->article_requests_current()->count(), 1, 'Open request returned for article_requests_current' );
-$article_request->process();
-is( $patron->article_requests_current()->count(), 1, 'Processing request returned for article_requests_current' );
-$article_request->complete();
-is( $patron->article_requests_current()->count(), 0, 'Completed request not returned for article_requests_current' );
-$article_request->cancel();
-is( $patron->article_requests_current()->count(), 0, 'Canceled request not returned for article_requests_current' );
-
-$article_request->status(Koha::ArticleRequest::Status::Pending);
-$article_request->store();
-
-is( $patron->article_requests_finished()->count(), 0, 'Open request returned for article_requests_finished' );
-$article_request->process();
-is( $patron->article_requests_finished()->count(), 0, 'Processing request returned for article_requests_finished' );
-$article_request->complete();
-$article_request->cancel();
-is( $patron->article_requests_finished()->count(), 1, 'Canceled request not returned for article_requests_finished' );
-
-$article_request->status(Koha::ArticleRequest::Status::Pending);
-$article_request->store();
-
-$ar = $biblio->article_requests();
-is( ref($ar),      'Koha::ArticleRequests', '$biblio->article_requests returns Koha::ArticleRequests object' );
-is( $ar->next->id, $article_request->id,    'Returned article request matches' );
-
-is( $biblio->article_requests_current()->count(), 1, 'Open request returned for article_requests_current' );
-$article_request->process();
-is( $biblio->article_requests_current()->count(), 1, 'Processing request returned for article_requests_current' );
-$article_request->complete();
-is( $biblio->article_requests_current()->count(), 0, 'Completed request not returned for article_requests_current' );
-$article_request->cancel();
-is( $biblio->article_requests_current()->count(), 0, 'Canceled request not returned for article_requests_current' );
-
-$article_request->status(Koha::ArticleRequest::Status::Pending);
-$article_request->store();
-
-is( $biblio->article_requests_finished()->count(), 0, 'Open request returned for article_requests_finished' );
-$article_request->process();
-is( $biblio->article_requests_finished()->count(), 0, 'Processing request returned for article_requests_finished' );
-$article_request->complete();
-$article_request->cancel();
-is( $biblio->article_requests_finished()->count(), 1, 'Canceled request not returned for article_requests_finished' );
 
 my $rule = Koha::CirculationRules->set_rule(
     {

@@ -1,7 +1,8 @@
+# Compendium of hi.
 msgid ""
 msgstr ""
-"Project-Id-Version: Koha 21.05\n"
-"PO-Revision-Date: 2021-08-22 13:22+0000\n"
+"Project-Id-Version: Koha 22.11\n"
+"PO-Revision-Date: 2023-02-28 11:28+0000\n"
 "Last-Translator: Nikunj Tyagi <nikunj1@gmail.com>\n"
 "Language-Team: Koha Translation Team\n"
 "Language: hi\n"
@@ -10,13 +11,13 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1629638574.666748\n"
-"X-Pootle-Path: /hi/21.05/hi-installer-MARC21.po\n"
+"X-Pootle-Path: /hi/22.11/hi-installer-MARC21.po\n"
 "X-Pootle-Revision: 1\n"
+"X-POOTLE-MTIME: 1677583696.471902\n"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1080
 msgid " Linkage"
-msgstr " संपर्क"
+msgstr " लिंकेज"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1079
 msgid " Materials specified"
@@ -31,7 +32,8 @@ msgid ""
 "'FA', a 'Fast Add' minimal MARC21 framework suitable for ILL or on-the-fly "
 "cataloguing."
 msgstr ""
-"ILL या ऑन-द-फ्लाई कैटलॉगिंग के लिए 'एफए', 'फास्ट ऐड' न्यूनतम मार्क21 फ्रेमवर्क उपयुक्त है."
+"'एफए', एक 'फास्ट ऐड' न्यूनतम MARC21 फ्रेमवर्क जो ILL या ऑन-द-फ्लाई कैटलॉगिंग के लिए "
+"उपयुक्त है."
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3850
 msgid "0 (OCLC)"
@@ -553,7 +555,7 @@ msgstr "जीवनी या ऐतिहासिक डेटा"
 
 #: installer/data/mysql/en/marcflavour/marc21/optional/marc21_simple_bib_frameworks.yml:description:3
 msgid "BKS Books, Booklets, Workbooks"
-msgstr "किताबें, पुस्तिकाएं, कार्यपुस्तिकाएँ"
+msgstr "BKS किताबें, पुस्तिकाएं, कार्यपुस्तिकाएँ"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:25
 msgid "Barcode"
@@ -967,7 +969,7 @@ msgstr "रद्द/अमान्य सिस्टम नियंत्र
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:492
 msgid "Caption"
-msgstr "कैप्शन"
+msgstr "शीर्षक"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:491
 msgid "Caption hierarchy"
@@ -1023,7 +1025,7 @@ msgstr "परिसंचरण प्रकार (ऋण के लिए न
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1311
 msgid "Citation"
-msgstr "उद्धरण"
+msgstr "प्रशस्ति पत्र"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:611
 msgid "City"
@@ -1145,8 +1147,8 @@ msgid "Codeset name and source"
 msgstr "कोडसेट नाम और स्रोत"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:9
-msgid "Collection code"
-msgstr "संग्रह कोड"
+msgid "Collection"
+msgstr "संग्रह"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:439
 msgid "Collective title"
@@ -1458,7 +1460,7 @@ msgstr "स्रोत का कवरेज"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1416
 msgid "Creation date"
-msgstr "रचना तिथि"
+msgstr "निर्माण दिनांक"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:3252
 msgid "Creation process"
@@ -1570,7 +1572,7 @@ msgstr "क्षतिग्रस्त स्तर"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1318
 msgid "Date"
-msgstr "दिनांक"
+msgstr "तिथि"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:232
 msgid "Date 1, B.C.E. date"
@@ -1590,19 +1592,19 @@ msgstr "दिनांक 2, सी.ई. दिनांक"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:14
 msgid "Date acquired"
-msgstr "प्राप्त की गई तिथि"
+msgstr "दिनांक को प्राप्त"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:26
 msgid "Date due"
-msgstr "देय दिनांक"
+msgstr "दिनांक कारण"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:28
 msgid "Date last checked out"
-msgstr "दिनांक अंतिम चेक आउट"
+msgstr "आइटम  अंतिम चेक आउट"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:27
 msgid "Date last seen"
-msgstr "पिछली देखी दिनांक"
+msgstr "पिछले देखा दिनांक"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:982
 msgid "Date made out of print"
@@ -1748,7 +1750,7 @@ msgstr "झुकाव--दक्षिणी सीमा"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_types:1:row:1
 msgid "Default"
-msgstr "डिफ़ॉल्ट"
+msgstr "चूक"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:description:1
 msgid "Default MARC21 Standard Authority types:"
@@ -2468,7 +2470,7 @@ msgstr "गणना का चौथा स्तर"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:748
 msgid "Frequency"
-msgstr "आवृत्ति"
+msgstr "फ़्रिक्वेंसी"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1566
 msgid "Frequency of use"
@@ -2584,7 +2586,7 @@ msgstr "सामान्य विषय उपखंड"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:796
 msgid "Generation"
-msgstr "पीढ़ी"
+msgstr "जेनरेसन"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1816
 msgid "Generation agency"
@@ -2820,7 +2822,7 @@ msgstr "मेजबान नाम"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:692
 msgid "Hours"
-msgstr "घंटा"
+msgstr "घंटे"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1769
 msgid "Hours access method available"
@@ -2905,7 +2907,7 @@ msgstr "IR  बांइडर"
 
 #: installer/data/mysql/en/marcflavour/marc21/optional/marc21_default_matching_rules.yml:description:3
 msgid "ISBN"
-msgstr "आईबीएसएन"
+msgstr "आईऍसबीऍन"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:100
 msgid "ISO code"
@@ -3768,7 +3770,7 @@ msgstr "देशांतर संकल्प"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:2
 msgid "Lost status"
-msgstr "खोया हुआ स्थिति"
+msgstr "स्तर खोया"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4090
 msgid "Lost status [LOCAL, KOHA]"
@@ -4067,11 +4069,11 @@ msgstr "ध्यान दें--स्रोत डेटा उपलब्�
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:149
 msgid "NOTE--USAGE (SUBJECTS) [OBSOLETE, CAN/MARC ONLY]"
-msgstr "नोट--उपयोग (विषय) [केवल अप्रचलित, CAN/मार्क]"
+msgstr "नोट--उपयोग (विषय) [अप्रचलित, कैन/मार्क केवल]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_tag_structure:2:row:135
 msgid "NOTE--WORK CATALOGUED [OBSOLETE, CAN/MARC ONLY]"
-msgstr "नोट - काम सूचीबद्ध [केवल अप्रचलित, CAN/मार्क]"
+msgstr "नोट - काम की सूची [अप्रचलित, कैन / मार्क केवल]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4130
 msgid "NUC (RLIN)"
@@ -4107,7 +4109,7 @@ msgstr "प्रवेश तत्व के रूप में निम्�
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:79
 msgid "Name of extraterrestrial body"
-msgstr "अलौकिक शरीर का नाम"
+msgstr "अतिरिक्त स्थलीय निकाय का नाम"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1176
 msgid "Name of granting institution"
@@ -4123,7 +4125,7 @@ msgstr "उपक्षेत्र में मेजबान के स्�
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:397
 msgid "Name of meeting following jurisdiction name entry element"
-msgstr "क्षेत्राधिकार नाम प्रविष्टि तत्व के बाद बैठक का नाम"
+msgstr "बैठक का नाम निम्नलिखित क्षेत्राधिकार नाम प्रविष्टि तत्व"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:538
 msgid "Name of part/section (BK AM MP MU VM SE) [OBSOLETE]"
@@ -4211,15 +4213,15 @@ msgstr "गैर सार्वजनिक सामान्य नोट"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1771
 msgid "Nonpublic note"
-msgstr "गैरसार्वजनिक टिप्पणी"
+msgstr "गैरसार्वजनिक टिप्पणी: "
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:8
 msgid "Not for loan"
-msgstr "ऋण के लिए नहीं"
+msgstr "नहीं ऋण के लिए"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:711
 msgid "Note"
-msgstr "टिप्पणी"
+msgstr "नोट"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1345
 msgid "Note about original"
@@ -4493,7 +4495,7 @@ msgstr "ओपस संख्या"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1315
 msgid "Order number"
-msgstr "आदेश संख्या"
+msgstr "आदेश संख्या:"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:841
 msgid "Ordinate resolution"
@@ -4739,7 +4741,7 @@ msgstr "दस्तावेज़ के लिए पार्टी"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1758
 msgid "Password"
-msgstr "कूटशब्द"
+msgstr "पासवर्ड"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1753
 msgid "Path"
@@ -5019,11 +5021,11 @@ msgstr "उत्पत्ति (VM) [अप्रचलित]"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:58
 msgid "Public note"
-msgstr "सार्वजनिक नोट"
+msgstr "सार्वजनिक टिप्पणी:"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1415
 msgid "Publication date"
-msgstr "प्रकाशन दिनांक"
+msgstr "प्रकाशन तिथि"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1419
 msgid "Publication status"
@@ -5742,7 +5744,7 @@ msgstr "प्रयोज्यता की माध्यमिक ताल
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4108
 msgid "Section"
-msgstr "खण्ड"
+msgstr "अनुभाग"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:919
 msgid "Security classification"
@@ -5777,8 +5779,8 @@ msgid "Serial"
 msgstr "सीरियल"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:18
-msgid "Serial Enumeration / chronology"
-msgstr "सीरियल गणन/कालक्रम"
+msgid "Serial enumeration / chronology"
+msgstr "सीरियल गणन / कालक्रम"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:660
 msgid "Serial identification"
@@ -5794,7 +5796,7 @@ msgstr "सीरियल रिकॉर्ड झंडा"
 
 #: installer/data/mysql/en/marcflavour/marc21/optional/marc21_simple_bib_frameworks.yml:biblio_framework:1:row:6
 msgid "Serials"
-msgstr "सीरियल"
+msgstr "सीरियलों"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:1270
 msgid "Series analysis practice"
@@ -6043,7 +6045,7 @@ msgstr "अवधि या कोड का स्रोत"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:860
 msgid "Special playback characteristics"
-msgstr "विशेष प्लेबैक विशेषताओं"
+msgstr "विशेष प्लेबैक विशेषताएं"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:685
 msgid "Specialized telephone number"
@@ -6369,7 +6371,7 @@ msgstr "टैग और अनुक्रम संख्या"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:858
 msgid "Tape configuration"
-msgstr "टेप विन्यास"
+msgstr "टेप कॉन्फ़िगरेशन "
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:1280
 msgid "Target audience note"
@@ -6572,16 +6574,12 @@ msgid "Topical term or geographic name entry element"
 msgstr "सामयिक शब्द या भौगोलिक नाम प्रविष्टि तत्व"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:21
-msgid "Total Checkouts"
+msgid "Total checkouts"
 msgstr "कुल चैकआउट"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:23
-msgid "Total Holds"
+msgid "Total holds"
 msgstr "कुल होल्डस"
-
-#: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:22
-msgid "Total Renewals"
-msgstr "कुल नवीनीकरण"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:710
 msgid "Total number of ensembles"
@@ -6594,6 +6592,10 @@ msgstr "समष्टि के साथ प्रदर्शन करन�
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:709
 msgid "Total number of performers"
 msgstr "कलाकारों की कुल संख्या"
+
+#: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:22
+msgid "Total renewals"
+msgstr "कुल नवीनीकरण"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:857
 msgid "Track configuration"
@@ -6711,6 +6713,10 @@ msgstr "यूनिफॉर्म रिसोर्स पहचानकर�
 msgid "Uniform Title"
 msgstr "सार्वभौम शीर्षक"
 
+#: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:30
+msgid "Uniform resource identifier"
+msgstr "यूनिफॉर्म रिसोर्स पहचानकर्ता"
+
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/authorities_normal_marc21.yml:auth_subfield_structure:3:row:406
 msgid "Uniform title"
 msgstr "सार्वभौम शीर्षक"
@@ -6757,7 +6763,7 @@ msgstr "संदर्भ शब्द का प्रयोग करें--
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:6:row:6
 msgid "Use restrictions"
-msgstr "प्रतिबंधों का उपयोग करें"
+msgstr "उपयोग प्रतिबंध"
 
 #: installer/data/mysql/en/marcflavour/marc21/mandatory/marc21_framework_DEFAULT.yml:marc_subfield_structure:8:row:4092
 msgid "Use restrictions [LOCAL, KOHA]"

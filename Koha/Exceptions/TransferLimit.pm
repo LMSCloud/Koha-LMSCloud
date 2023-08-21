@@ -17,10 +17,12 @@ package Koha::Exceptions::TransferLimit;
 
 use Modern::Perl;
 
+use Koha::Exception;
+
 use Exception::Class (
 
     'Koha::Exceptions::TransferLimit::Exception' => {
-        description => 'Something went wrong!',
+        isa => 'Koha::Exception',
     },
 
     'Koha::Exceptions::TransferLimit::Duplicate' => {

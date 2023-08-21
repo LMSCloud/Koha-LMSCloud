@@ -1,3 +1,4 @@
+[% USE raw %]
 [% SET footerjs = 1 %]
     [% INCLUDE 'doc-head-open.inc' %]
     <title>[% IF ( profile_id ) %]Edit ([% profile_id | html %])[% ELSE %]New[% END%] &rsaquo; Profiles &rsaquo; Patron card creator &rsaquo; Tools &rsaquo; Koha</title>
@@ -5,34 +6,30 @@
 </head>
 
 <body id="pcard_edit-profile" class="tools pcard">
-    [% INCLUDE 'header.inc' %]
+    [% WRAPPER 'header.inc' %]
     [% INCLUDE 'cat-search.inc' %]
+[% END %]
 
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-        <ol>
-            <li>
-                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-            </li>
-            <li>
+    [% WRAPPER 'sub-header.inc' %]
+        [% WRAPPER breadcrumbs %]
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
-            </li>
-            <li>
+            [% END %]
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/patroncards/home.pl">Patron card creator</a>
-            </li>
-            <li>
+            [% END %]
+            [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/patroncards/manage.pl?card_element=profile">Profiles</a>
-            </li>
-            <li>
-                <a href="#" aria-current="page">
-                    [% IF ( profile_id ) %]
-                        Edit ([% profile_id | html %])
-                    [% ELSE %]
-                        New
-                    [% END%]
-                </a>
-            </li>
-        </ol>
-    </nav>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% IF ( profile_id ) %]
+                    <span>Edit ([% profile_id | html %])</span>
+                [% ELSE %]
+                    <span>New</span>
+                [% END%]
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
+    [% END #/ WRAPPER sub-header.inc %]
 
     <div class="main container-fluid">
         <div class="row">
@@ -41,7 +38,14 @@
 
                     [% INCLUDE 'patroncards-toolbar.inc' %]
 
-                            <h3>[% IF (profile_id) %]Edit[% ELSE %]Create[% END%] printer profile[% IF (profile_id) %] ([% profile_id | html %])[% END %]</h3>
+                            <h1>
+                                [% IF (profile_id) %]
+                                    <span>Edit printer profile</span>
+                                [% ELSE %]
+                                    <span>Create printer profile</span>
+                                [% END%]
+                                [% IF (profile_id) %] ([% profile_id | html %])[% END %]
+                            </h1>
                                     <form name="input" action="/cgi-bin/koha/patroncards/edit-profile.pl" method="get">
                                     <fieldset class="rows"><legend>Profile settings</legend>
                                         <ol>
@@ -107,7 +111,7 @@
                                         </ol>
                                     </fieldset>
                                     <fieldset class="action">
-                                        <input type="submit" value="Save" />
+                                        <input type="submit" class="btn btn-primary" value="Save" />
                                         <a href="/cgi-bin/koha/patroncards/manage.pl?card_element=profile" class="cancel">Cancel</a>
                                         <input type="hidden" name="op" value="save" />
                                         <input type="hidden" name="profile_id" value="[% profile_id | html %]" />
@@ -127,7 +131,7 @@
 [% MACRO jsinclude BLOCK %]
     <script>
         $(document).ready(function(){
-            var selectedUnit = $("#units option:selected").attr("value");
+            var selectedUnit = $("#units option:selected").val();
             var unitfields = $("#offset_horz,#offset_vert,#creep_horz,#creep_vert");
             $(unitfields).after("<span class=\"unit\">"+getUnit(selectedUnit)+"</span>");
             $("#units").change(function(){

@@ -7,14 +7,10 @@
 use strict;
 use warnings;
 
-BEGIN {
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
-
 use Koha::Script;
-use C4::Biblio;
-use Getopt::Long;
+use C4::Biblio qw( ModBiblio );
+use Koha::Biblios;
+use Getopt::Long qw( GetOptions );
 
 sub _read_marc_code {
     my $input = shift;
@@ -38,7 +34,7 @@ GetOptions(
     'date-created-marc|c:s'  => \$date_created_marc,
     'date-modified-marc|m:s' => \$date_modified_marc,
 );
-my $debug = $ENV{DEBUG};
+my $debug = 0; # FIXME pass an option for that?
 $verbose = 1 if $debug;
 
 # display help ?
@@ -88,10 +84,11 @@ my $sth_prepared;
 
 sub updateMarc {
     my $id     = shift;
-    my $biblio = GetMarcBiblio({ biblionumber => $id });
+    my $biblio = Koha::Biblios->find($id);
+    $biblio  &&= $biblio->metadata->record;
 
     unless ($biblio) {
-        $debug and warn '[ERROR] GetMarcBiblio did not return any biblio.';
+        $debug and warn '[ERROR] Biblio not found.';
         return;
     }
 

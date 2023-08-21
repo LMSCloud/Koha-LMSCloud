@@ -3,7 +3,7 @@
 [% USE KohaDates %]
 [% USE Price %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha online[% END %] catalog &rsaquo; Renew your card</title>
+<title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha online[% END %] catalog &rsaquo; Renew your library card</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>
@@ -21,7 +21,7 @@
                 <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
             </li>
             <li class="breadcrumb-item" aria-current="page">
-                <a href="#">Renew your card</a>
+                <a href="#">Renew your library card</a>
             </li>
         </ul>
     </nav>
@@ -45,7 +45,7 @@
                                     Library card renewal is not enabled for your patron category (code: [% BORROWER_INFO.categorycode %]).
                                 [% END %]
                                 [% IF ( errors.0 == 'maximum_lead_time_exceeded' ) %]
-                                    You may renew your card at most [% errors.1 %] days before its expiry.
+                                    You may renew your library card at most [% errors.1 %] days before its expiry.
                                 [% END %]
                                 [% IF ( errors.0 == 'enrolment_period_invalid' ) %]
                                     The enrollment period of your patron category seems not to be defined.

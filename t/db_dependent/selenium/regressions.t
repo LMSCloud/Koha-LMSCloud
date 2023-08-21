@@ -20,12 +20,12 @@ use utf8;
 
 use C4::Context;
 
-use Test::More tests => 8;
+use Test::More;
 use Test::MockModule;
 
 use C4::Context;
 use C4::Biblio qw( AddBiblio );
-use C4::Circulation;
+use C4::Circulation qw( AddIssue );
 use Koha::AuthUtils;
 use t::lib::Mocks;
 use t::lib::Selenium;
@@ -33,7 +33,11 @@ use t::lib::TestBuilder;
 use t::lib::Mocks;
 
 eval { require Selenium::Remote::Driver; };
-skip "Selenium::Remote::Driver is needed for selenium tests.", 7 if $@;
+if ( $@ ) {
+    plan skip_all => "Selenium::Remote::Driver is needed for selenium tests.";
+} else {
+    plan tests => 8;
+}
 
 my $s = t::lib::Selenium->new;
 
@@ -89,46 +93,40 @@ subtest 'OPAC - Bibliographic record detail page must contain the data-biblionum
         $biblionumber, "#catalogue_detail_biblio contains data-biblionumber" );
 
     push @cleanup, $biblio;
-  };
+};
 
-subtest 'OPAC - Remove from cart' => sub {
-    plan tests => 4;
+subtest 'Bibliographic record detail page must not explode even with invalid metadata' => sub {
+    plan tests => 2;
 
-    # We need to prevent scrolling to prevent the floating toolbar from overlapping buttons we are testing
-    my $window_size = $driver->get_window_size();
-    $driver->set_window_size(1920,10800);
+    my $builder = t::lib::TestBuilder->new;
+    my $patron = $builder->build_object({ class => 'Koha::Patrons', value => { flags => 0 }});
 
-    $driver->get( $opac_base_url . "opac-search.pl?q=d" );
+    my $mainpage = $s->base_url . q|mainpage.pl|;
+    $driver->get($mainpage . q|?logout.x=1|);
+    like( $driver->get_title(), qr(Log in to Koha), );
+    $s->auth;
 
-    # A better way to do that would be to modify the way we display the basket count
-    # We should show/hide the count instead or recreate the node
-    my @basket_count_elts = $driver->find_elements('//span[@id="basketcount"]/span');
-    is( scalar(@basket_count_elts), 0, 'Basket should be empty');
+    my ( $biblionumber, $biblioitemnumber ) = add_biblio();
+    my $biblio = Koha::Biblios->find($biblionumber);
 
-    # This will fail if nothing is indexed, but at this point we should have everything setup correctly
-    my @checkboxes = $driver->find_elements('//input[@type="checkbox"][@name="biblionumber"]');
-    my $biblionumber1 = $checkboxes[0]->get_value();
-    my $biblionumber3 = $checkboxes[2]->get_value();
-    my $biblionumber5 = $checkboxes[4]->get_value();
+    # Note that there are several "non xml chars" in the control fields
+    my $invalid_data = qq{<?xml version="1.0" encoding="UTF-8"?>
+    <record
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.loc.gov/MARC21/slim http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd"
+        xmlns="http://www.loc.gov/MARC21/slim">
+    <leader>00772nam0a2200277   4500</leader>
+    <controlfield tag="001">00aD000015937</controlfield>
+    <controlfield tag="004">00satmrnu0</controlfield>
+    <controlfield tag="008">00ar19881981bdkldan</controlfield>
+    </record>};
+    $biblio->metadata->metadata($invalid_data)->store();
 
-    $driver->find_element('//a[@class="btn btn-link btn-sm addtocart cart cart'.$biblionumber1.'"]')->click;
-    my $basket_count_elt = $driver->find_element('//span[@id="basketcount"]/span');
-    is( $basket_count_elt->get_text(),
-        1, 'One element should have been added to the cart' );
+    $driver->get( $base_url . "/catalogue/detail.pl?biblionumber=$biblionumber" );
 
-    $driver->find_element('//a[@class="btn btn-link btn-sm addtocart cart cart'.$biblionumber3.'"]')->click;
-    $driver->find_element('//a[@class="btn btn-link btn-sm addtocart cart cart'.$biblionumber5.'"]')->click;
-    $basket_count_elt = $driver->find_element('//span[@id="basketcount"]/span');
-    is( $basket_count_elt->get_text(),
-        3, '3 elements should have been added to the cart' );
-
-    $driver->find_element('//a[@class="btn btn-link btn-sm remove cartRemove cartR'.$biblionumber3.'"]')->click;
-    $basket_count_elt = $driver->find_element('//span[@id="basketcount"]/span');
-    is( $basket_count_elt->get_text(),
-        2, '1 element should have been removed from the cart' );
-
-    # Reset window size
-    $driver->set_window_size($window_size->{'height'}, $window_size->{'width'});
+    my $biberror = $driver->find_element('//span[@class="biberror"]')->get_text();
+    is( $biberror, "There is an error with this bibliographic record, the view may be degraded.");
+    push @cleanup, $biblio;
 };
 
 subtest 'Play sound on the circulation page' => sub {
@@ -162,10 +160,12 @@ subtest 'Display circulation table correctly' => sub {
     );
 
     my ( $biblionumber, $biblioitemnumber ) = add_biblio();
+    my $item_type = $builder->build_object({ class => 'Koha::ItemTypes' });
     my $item = $builder->build_sample_item(
         {
             biblionumber => $biblionumber,
             library      => $library->branchcode,
+            itype        => $item_type->itemtype,
         }
     );
     my $context = Test::MockModule->new('C4::Context');
@@ -219,7 +219,7 @@ subtest 'XSS vulnerabilities in pagination' => sub {
             {
                 class => 'Koha::Virtualshelves',
                 value => {
-                    category                 => 2,
+                    public                   => 1,
                     allow_change_from_owner  => 1,
                     allow_change_from_others => 0,
                     owner                    => $patron->borrowernumber
@@ -233,7 +233,7 @@ subtest 'XSS vulnerabilities in pagination' => sub {
     $patron->set_password({ password => $password });
     $s->opac_auth( $patron->userid, $password );
 
-    my $public_lists = $s->opac_base_url . q|opac-shelves.pl?op=list&category=2|;
+    my $public_lists = $s->opac_base_url . q|opac-shelves.pl?op=list&public=1|;
     $driver->get($public_lists);
 
     $s->remove_error_handler;
@@ -242,7 +242,7 @@ subtest 'XSS vulnerabilities in pagination' => sub {
     is( $alert_text, undef, 'No alert box displayed' );
 
     my $booh_alert = 'booh!';
-    $public_lists = $s->opac_base_url . qq|opac-shelves.pl?op=list&category=2"><script>alert('$booh_alert')</script>|;
+    $public_lists = $s->opac_base_url . qq|opac-shelves.pl?op=list&public=1"><script>alert('$booh_alert')</script>|;
     $driver->get($public_lists);
 
     $s->remove_error_handler;
@@ -251,7 +251,7 @@ subtest 'XSS vulnerabilities in pagination' => sub {
     is( $alert_text, undef, 'No alert box displayed, even if evil intent' );
 
     my $second_page = $driver->find_element('//div[@class="pages"]/span[@class="currentPage"]/following-sibling::a');
-    like( $second_page->get_attribute('href'), qr{(?|&)category=2(&|$)}, 'The second page should display category without the invalid value' );
+    like( $second_page->get_attribute('href'), qr{(?|&)public=1(&|$)}, 'The second page should display category without the invalid value' );
 
     push @cleanup, $patron, $patron->category, $patron->library;
 
@@ -355,7 +355,7 @@ subtest 'OPAC - Suggest for purchase' => sub {
     $driver->get( $opac_base_url . "opac-detail.pl?biblionumber=$biblionumber" );
 
     $s->click({ href => '/opac-suggestions.pl?op=add&biblionumber=' . $biblionumber });
-    is( $driver->find_element('//input[@id="title"]')->get_value(),
+    is( $driver->find_element('//a[@id="title"]')->get_text(),
         $biblio->title,
         "Suggestion's title correctly filled in with biblio's title" );
 

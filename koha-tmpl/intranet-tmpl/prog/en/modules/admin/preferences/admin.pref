@@ -35,12 +35,12 @@ Administration:
                   1: Some
                   2: All
         -
-            - "Show itemtype icons in the staff interface: "
             - pref: noItemTypeImages
               default: 0
               choices:
-                  1: "No"
-                  0: "Yes"
+                  1: "Don't show"
+                  0: "Show"
+            - "itemtype icons in the staff interface."
         -
             - "Default separator for columns in an exported CSV file: "
             - pref: CSVDelimiter
@@ -76,6 +76,14 @@ Administration:
               choices:
                   1: "The logged-in library"
                   0: "All libraries"
+
+        -
+            - pref: EmailOverduesNoEmail
+              choices:
+                  1: "Send"
+                  0: "Don't send"
+            - "overdue notices for patrons without email address to staff."
+
     Login options:
         -
             - "Inactivity timeout in seconds to automatically log out users: "
@@ -155,6 +163,7 @@ Administration:
         -
             - "URL of the Central Authentication Service (CAS) server: "
             - pref: casServerUrl
+              class: url
         -
             - "Version of the CAS server Koha will connect to: "
             - pref: casServerVersion
@@ -430,6 +439,7 @@ Administration:
         -
             - "The library URL to be shown on the Hea Community website: "
             - pref: UsageStatsLibraryUrl
+              class: url
             - <br><strong>NOTE:</strong> This value has no effect if the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=UsageStats">UsageStats</a> system preference is set to "No" (don't share).
         -
             - "The library type to be shown on the Hea Community website: "

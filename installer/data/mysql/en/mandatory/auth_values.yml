@@ -50,6 +50,11 @@ tables:
           lib: "Creditcard via SIP2"
           lib_opac: "Creditcard"
 
+        - category: "PAYMENT_TYPE"
+          authorised_value: "CASH"
+          lib: "Cash"
+          lib_opac: "Cash"
+
   - authorised_values:
       translatable: [ lib ]
       multiline: []
@@ -57,3 +62,4583 @@ tables:
         - category: "HSBND_FREQ"
           authorised_value: "EW"
           lib: "Every week"
+      #ERM
+        - category: "ERM_AGREEMENT_STATUS"
+          authorised_value: "active"
+          lib: "Active"
+
+        - category: "ERM_AGREEMENT_STATUS"
+          authorised_value: "in_negotiation"
+          lib: "In negotiation"
+
+        - category: "ERM_AGREEMENT_STATUS"
+          authorised_value: "closed"
+          lib: "Closed"
+
+        - category: "ERM_AGREEMENT_CLOSURE_REASON"
+          authorised_value: "expired"
+          lib: "Expired"
+
+        - category: "ERM_AGREEMENT_CLOSURE_REASON"
+          authorised_value: "cancelled"
+          lib: "Cancelled"
+
+        - category: "ERM_AGREEMENT_RENEWAL_PRIORITY"
+          authorised_value: "for_review"
+          lib: "For review"
+
+        - category: "ERM_AGREEMENT_RENEWAL_PRIORITY"
+          authorised_value: "renew"
+          lib: "Renew"
+
+        - category: "ERM_AGREEMENT_RENEWAL_PRIORITY"
+          authorised_value: "cancel"
+          lib: "Cancel"
+
+        - category: "ERM_USER_ROLES"
+          authorised_value: "librarian"
+          lib: "ERM librarian"
+
+        - category: "ERM_USER_ROLES"
+          authorised_value: "subject_specialist"
+          lib: "Subject specialist"
+
+        - category: "ERM_LICENSE_TYPE"
+          authorised_value: "local"
+          lib: "Local"
+
+        - category: "ERM_LICENSE_TYPE"
+          authorised_value: "consortial"
+          lib: "Consortial"
+
+        - category: "ERM_LICENSE_TYPE"
+          authorised_value: "national"
+          lib: "National"
+
+        - category: "ERM_LICENSE_TYPE"
+          authorised_value: "alliance"
+          lib: "Alliance"
+
+        - category: "ERM_LICENSE_STATUS"
+          authorised_value: "in_negotiation"
+          lib: "In negotiation"
+
+        - category: "ERM_LICENSE_STATUS"
+          authorised_value: "not_yet_active"
+          lib: "Not yet active"
+
+        - category: "ERM_LICENSE_STATUS"
+          authorised_value: "active"
+          lib: "Active"
+
+        - category: "ERM_LICENSE_STATUS"
+          authorised_value: "rejected"
+          lib: "Rejected"
+
+        - category: "ERM_LICENSE_STATUS"
+          authorised_value: "expired"
+          lib: "Expired"
+
+        - category: "ERM_AGREEMENT_LICENSE_STATUS"
+          authorised_value: "controlling"
+          lib: "Controlling"
+
+        - category: "ERM_AGREEMENT_LICENSE_STATUS"
+          authorised_value: "future"
+          lib: "Future"
+
+        - category: "ERM_AGREEMENT_LICENSE_STATUS"
+          authorised_value: "history"
+          lib: "Historic"
+
+        - category: "ERM_AGREEMENT_LICENSE_LOCATION"
+          authorised_value: "filing_cabinet"
+          lib: "Filing cabinet"
+
+        - category: "ERM_AGREEMENT_LICENSE_LOCATION"
+          authorised_value: "cupboard"
+          lib: "Cupboard"
+
+        - category: "ERM_PACKAGE_TYPE"
+          authorised_value: "local"
+          lib: "Local"
+
+        - category: "ERM_PACKAGE_TYPE"
+          authorised_value: "complete"
+          lib: "Complete"
+
+        - category: "ERM_PACKAGE_CONTENT_TYPE"
+          authorised_value: "AggregatedFullText"
+          lib: "Aggregated full"
+
+        - category: "ERM_PACKAGE_CONTENT_TYPE"
+          authorised_value: "AbstractAndIndex"
+          lib: "Abstract and index"
+
+        - category: "ERM_PACKAGE_CONTENT_TYPE"
+          authorised_value: "EBook"
+          lib: "E-book"
+
+        - category: "ERM_PACKAGE_CONTENT_TYPE"
+          authorised_value: "MixedContent"
+          lib: "Mixed content"
+
+        - category: "ERM_PACKAGE_CONTENT_TYPE"
+          authorised_value: "EJournal"
+          lib: "E-journal"
+
+        - category: "ERM_PACKAGE_CONTENT_TYPE"
+          authorised_value: "OnlineReference"
+          lib: "Online reference"
+
+        - category: "ERM_PACKAGE_CONTENT_TYPE"
+          authorised_value: "Print"
+          lib: "Print"
+
+        - category: "ERM_PACKAGE_CONTENT_TYPE"
+          authorised_value: "StreamingMedia"
+          lib: "Streaming media"
+
+        - category: "ERM_PACKAGE_CONTENT_TYPE"
+          authorised_value: "Unknown"
+          lib: "Unknown"
+
+        - category: "ERM_TITLE_PUBLICATION_TYPE"
+          authorised_value: "journal"
+          lib: "Journal"
+
+        - category: "ERM_TITLE_PUBLICATION_TYPE"
+          authorised_value: "newsletter"
+          lib: "Newsletter"
+
+        - category: "ERM_TITLE_PUBLICATION_TYPE"
+          authorised_value: "report"
+          lib: "Report"
+
+        - category: "ERM_TITLE_PUBLICATION_TYPE"
+          authorised_value: "proceedings"
+          lib: "Proceedings"
+
+        - category: "ERM_TITLE_PUBLICATION_TYPE"
+          authorised_value: "website"
+          lib: "Website"
+
+        - category: "ERM_TITLE_PUBLICATION_TYPE"
+          authorised_value: "newspaper"
+          lib: "Newspaper"
+
+        - category: "ERM_TITLE_PUBLICATION_TYPE"
+          authorised_value: "unspecified"
+          lib: "Unspecified"
+
+        - category: "ERM_TITLE_PUBLICATION_TYPE"
+          authorised_value: "book"
+          lib: "Book"
+
+        - category: "ERM_TITLE_PUBLICATION_TYPE"
+          authorised_value: "ebook"
+          lib: "E-book"
+
+        - category: "ERM_TITLE_PUBLICATION_TYPE"
+          authorised_value: "bookseries"
+          lib: "Bookseries"
+
+        - category: "ERM_TITLE_PUBLICATION_TYPE"
+          authorised_value: "database"
+          lib: "Database"
+
+        - category: "ERM_TITLE_PUBLICATION_TYPE"
+          authorised_value: "thesisdissertation"
+          lib: "Thesis/Dissertation"
+
+        - category: "ERM_TITLE_PUBLICATION_TYPE"
+          authorised_value: "streamingaudio"
+          lib: "Streaming audio"
+
+        - category: "ERM_TITLE_PUBLICATION_TYPE"
+          authorised_value: "streamingvideo"
+          lib: "Streaming video"
+
+        - category: "ERM_TITLE_PUBLICATION_TYPE"
+          authorised_value: "audiobook"
+          lib: "Audiobook"
+
+  # Country codes
+  - authorised_values:
+      translatable: [ lib, lib_opac ]
+      multiline: []
+      rows:
+        - category: "COUNTRY"
+          authorised_value: "AD"
+          lib: "Andorra"
+          lib_opac: "Andorra"
+
+        - category: "COUNTRY"
+          authorised_value: "AE"
+          lib: "United Arab Emirates"
+          lib_opac: "United Arab Emirates"
+
+        - category: "COUNTRY"
+          authorised_value: "AF"
+          lib: "Afghanistan"
+          lib_opac: "Afghanistan"
+
+        - category: "COUNTRY"
+          authorised_value: "AG"
+          lib: "Antigua & Barbuda"
+          lib_opac: "Antigua & Barbuda"
+
+        - category: "COUNTRY"
+          authorised_value: "AI"
+          lib: "Anguilla"
+          lib_opac: "Anguilla"
+
+        - category: "COUNTRY"
+          authorised_value: "AL"
+          lib: "Albania"
+          lib_opac: "Albania"
+
+        - category: "COUNTRY"
+          authorised_value: "AM"
+          lib: "Armenia"
+          lib_opac: "Armenia"
+
+        - category: "COUNTRY"
+          authorised_value: "AO"
+          lib: "Angola"
+          lib_opac: "Angola"
+
+        - category: "COUNTRY"
+          authorised_value: "AQ"
+          lib: "Antarctica"
+          lib_opac: "Antarctica"
+
+        - category: "COUNTRY"
+          authorised_value: "AR"
+          lib: "Argentina"
+          lib_opac: "Argentina"
+
+        - category: "COUNTRY"
+          authorised_value: "AS"
+          lib: "American Samoa"
+          lib_opac: "American Samoa"
+
+        - category: "COUNTRY"
+          authorised_value: "AT"
+          lib: "Austria"
+          lib_opac: "Austria"
+
+        - category: "COUNTRY"
+          authorised_value: "AU"
+          lib: "Australia"
+          lib_opac: "Australia"
+
+        - category: "COUNTRY"
+          authorised_value: "AW"
+          lib: "Aruba"
+          lib_opac: "Aruba"
+
+        - category: "COUNTRY"
+          authorised_value: "AX"
+          lib: "Åland Islands"
+          lib_opac: "Åland Islands"
+
+        - category: "COUNTRY"
+          authorised_value: "AZ"
+          lib: "Azerbaijan"
+          lib_opac: "Azerbaijan"
+
+        - category: "COUNTRY"
+          authorised_value: "BA"
+          lib: "Bosnia & Herzegovina"
+          lib_opac: "Bosnia & Herzegovina"
+
+        - category: "COUNTRY"
+          authorised_value: "BB"
+          lib: "Barbados"
+          lib_opac: "Barbados"
+
+        - category: "COUNTRY"
+          authorised_value: "BD"
+          lib: "Bangladesh"
+          lib_opac: "Bangladesh"
+
+        - category: "COUNTRY"
+          authorised_value: "BE"
+          lib: "Belgium"
+          lib_opac: "Belgium"
+
+        - category: "COUNTRY"
+          authorised_value: "BF"
+          lib: "Burkina Faso"
+          lib_opac: "Burkina Faso"
+
+        - category: "COUNTRY"
+          authorised_value: "BG"
+          lib: "Bulgaria"
+          lib_opac: "Bulgaria"
+
+        - category: "COUNTRY"
+          authorised_value: "BH"
+          lib: "Bahrain"
+          lib_opac: "Bahrain"
+
+        - category: "COUNTRY"
+          authorised_value: "BI"
+          lib: "Burundi"
+          lib_opac: "Burundi"
+
+        - category: "COUNTRY"
+          authorised_value: "BJ"
+          lib: "Benin"
+          lib_opac: "Benin"
+
+        - category: "COUNTRY"
+          authorised_value: "BL"
+          lib: "St. Barthélemy"
+          lib_opac: "St. Barthélemy"
+
+        - category: "COUNTRY"
+          authorised_value: "BM"
+          lib: "Bermuda"
+          lib_opac: "Bermuda"
+
+        - category: "COUNTRY"
+          authorised_value: "BN"
+          lib: "Brunei"
+          lib_opac: "Brunei"
+
+        - category: "COUNTRY"
+          authorised_value: "BO"
+          lib: "Bolivia"
+          lib_opac: "Bolivia"
+
+        - category: "COUNTRY"
+          authorised_value: "BQ"
+          lib: "Caribbean Netherlands"
+          lib_opac: "Caribbean Netherlands"
+
+        - category: "COUNTRY"
+          authorised_value: "BR"
+          lib: "Brazil"
+          lib_opac: "Brazil"
+
+        - category: "COUNTRY"
+          authorised_value: "BS"
+          lib: "Bahamas"
+          lib_opac: "Bahamas"
+
+        - category: "COUNTRY"
+          authorised_value: "BT"
+          lib: "Bhutan"
+          lib_opac: "Bhutan"
+
+        - category: "COUNTRY"
+          authorised_value: "BV"
+          lib: "Bouvet Island"
+          lib_opac: "Bouvet Island"
+
+        - category: "COUNTRY"
+          authorised_value: "BW"
+          lib: "Botswana"
+          lib_opac: "Botswana"
+
+        - category: "COUNTRY"
+          authorised_value: "BY"
+          lib: "Belarus"
+          lib_opac: "Belarus"
+
+        - category: "COUNTRY"
+          authorised_value: "BZ"
+          lib: "Belize"
+          lib_opac: "Belize"
+
+        - category: "COUNTRY"
+          authorised_value: "CA"
+          lib: "Canada"
+          lib_opac: "Canada"
+
+        - category: "COUNTRY"
+          authorised_value: "CC"
+          lib: "Cocos (Keeling) Islands"
+          lib_opac: "Cocos (Keeling) Islands"
+
+        - category: "COUNTRY"
+          authorised_value: "CD"
+          lib: "Congo - Kinshasa"
+          lib_opac: "Congo - Kinshasa"
+
+        - category: "COUNTRY"
+          authorised_value: "CF"
+          lib: "Central African Republic"
+          lib_opac: "Central African Republic"
+
+        - category: "COUNTRY"
+          authorised_value: "CG"
+          lib: "Congo - Brazzaville"
+          lib_opac: "Congo - Brazzaville"
+
+        - category: "COUNTRY"
+          authorised_value: "CH"
+          lib: "Switzerland"
+          lib_opac: "Switzerland"
+
+        - category: "COUNTRY"
+          authorised_value: "CI"
+          lib: "Côte d’Ivoire"
+          lib_opac: "Côte d’Ivoire"
+
+        - category: "COUNTRY"
+          authorised_value: "CK"
+          lib: "Cook Islands"
+          lib_opac: "Cook Islands"
+
+        - category: "COUNTRY"
+          authorised_value: "CL"
+          lib: "Chile"
+          lib_opac: "Chile"
+
+        - category: "COUNTRY"
+          authorised_value: "CM"
+          lib: "Cameroon"
+          lib_opac: "Cameroon"
+
+        - category: "COUNTRY"
+          authorised_value: "CN"
+          lib: "China"
+          lib_opac: "China"
+
+        - category: "COUNTRY"
+          authorised_value: "CO"
+          lib: "Colombia"
+          lib_opac: "Colombia"
+
+        - category: "COUNTRY"
+          authorised_value: "CR"
+          lib: "Costa Rica"
+          lib_opac: "Costa Rica"
+
+        - category: "COUNTRY"
+          authorised_value: "CU"
+          lib: "Cuba"
+          lib_opac: "Cuba"
+
+        - category: "COUNTRY"
+          authorised_value: "CV"
+          lib: "Cape Verde"
+          lib_opac: "Cape Verde"
+
+        - category: "COUNTRY"
+          authorised_value: "CW"
+          lib: "Curaçao"
+          lib_opac: "Curaçao"
+
+        - category: "COUNTRY"
+          authorised_value: "CX"
+          lib: "Christmas Island"
+          lib_opac: "Christmas Island"
+
+        - category: "COUNTRY"
+          authorised_value: "CY"
+          lib: "Cyprus"
+          lib_opac: "Cyprus"
+
+        - category: "COUNTRY"
+          authorised_value: "CZ"
+          lib: "Czechia"
+          lib_opac: "Czechia"
+
+        - category: "COUNTRY"
+          authorised_value: "DE"
+          lib: "Germany"
+          lib_opac: "Germany"
+
+        - category: "COUNTRY"
+          authorised_value: "DJ"
+          lib: "Djibouti"
+          lib_opac: "Djibouti"
+
+        - category: "COUNTRY"
+          authorised_value: "DK"
+          lib: "Denmark"
+          lib_opac: "Denmark"
+
+        - category: "COUNTRY"
+          authorised_value: "DM"
+          lib: "Dominica"
+          lib_opac: "Dominica"
+
+        - category: "COUNTRY"
+          authorised_value: "DO"
+          lib: "Dominican Republic"
+          lib_opac: "Dominican Republic"
+
+        - category: "COUNTRY"
+          authorised_value: "DZ"
+          lib: "Algeria"
+          lib_opac: "Algeria"
+
+        - category: "COUNTRY"
+          authorised_value: "EC"
+          lib: "Ecuador"
+          lib_opac: "Ecuador"
+
+        - category: "COUNTRY"
+          authorised_value: "EE"
+          lib: "Estonia"
+          lib_opac: "Estonia"
+
+        - category: "COUNTRY"
+          authorised_value: "EG"
+          lib: "Egypt"
+          lib_opac: "Egypt"
+
+        - category: "COUNTRY"
+          authorised_value: "EH"
+          lib: "Western Sahara"
+          lib_opac: "Western Sahara"
+
+        - category: "COUNTRY"
+          authorised_value: "ER"
+          lib: "Eritrea"
+          lib_opac: "Eritrea"
+
+        - category: "COUNTRY"
+          authorised_value: "ES"
+          lib: "Spain"
+          lib_opac: "Spain"
+
+        - category: "COUNTRY"
+          authorised_value: "ET"
+          lib: "Ethiopia"
+          lib_opac: "Ethiopia"
+
+        - category: "COUNTRY"
+          authorised_value: "FI"
+          lib: "Finland"
+          lib_opac: "Finland"
+
+        - category: "COUNTRY"
+          authorised_value: "FJ"
+          lib: "Fiji"
+          lib_opac: "Fiji"
+
+        - category: "COUNTRY"
+          authorised_value: "FK"
+          lib: "Falkland Islands"
+          lib_opac: "Falkland Islands"
+
+        - category: "COUNTRY"
+          authorised_value: "FM"
+          lib: "Micronesia"
+          lib_opac: "Micronesia"
+
+        - category: "COUNTRY"
+          authorised_value: "FO"
+          lib: "Faroe Islands"
+          lib_opac: "Faroe Islands"
+
+        - category: "COUNTRY"
+          authorised_value: "FR"
+          lib: "France"
+          lib_opac: "France"
+
+        - category: "COUNTRY"
+          authorised_value: "GA"
+          lib: "Gabon"
+          lib_opac: "Gabon"
+
+        - category: "COUNTRY"
+          authorised_value: "GB"
+          lib: "United Kingdom"
+          lib_opac: "United Kingdom"
+
+        - category: "COUNTRY"
+          authorised_value: "GD"
+          lib: "Grenada"
+          lib_opac: "Grenada"
+
+        - category: "COUNTRY"
+          authorised_value: "GE"
+          lib: "Georgia"
+          lib_opac: "Georgia"
+
+        - category: "COUNTRY"
+          authorised_value: "GF"
+          lib: "French Guiana"
+          lib_opac: "French Guiana"
+
+        - category: "COUNTRY"
+          authorised_value: "GG"
+          lib: "Guernsey"
+          lib_opac: "Guernsey"
+
+        - category: "COUNTRY"
+          authorised_value: "GH"
+          lib: "Ghana"
+          lib_opac: "Ghana"
+
+        - category: "COUNTRY"
+          authorised_value: "GI"
+          lib: "Gibraltar"
+          lib_opac: "Gibraltar"
+
+        - category: "COUNTRY"
+          authorised_value: "GL"
+          lib: "Greenland"
+          lib_opac: "Greenland"
+
+        - category: "COUNTRY"
+          authorised_value: "GM"
+          lib: "Gambia"
+          lib_opac: "Gambia"
+
+        - category: "COUNTRY"
+          authorised_value: "GN"
+          lib: "Guinea"
+          lib_opac: "Guinea"
+
+        - category: "COUNTRY"
+          authorised_value: "GP"
+          lib: "Guadeloupe"
+          lib_opac: "Guadeloupe"
+
+        - category: "COUNTRY"
+          authorised_value: "GQ"
+          lib: "Equatorial Guinea"
+          lib_opac: "Equatorial Guinea"
+
+        - category: "COUNTRY"
+          authorised_value: "GR"
+          lib: "Greece"
+          lib_opac: "Greece"
+
+        - category: "COUNTRY"
+          authorised_value: "GS"
+          lib: "South Georgia & South Sandwich Islands"
+          lib_opac: "South Georgia & South Sandwich Islands"
+
+        - category: "COUNTRY"
+          authorised_value: "GT"
+          lib: "Guatemala"
+          lib_opac: "Guatemala"
+
+        - category: "COUNTRY"
+          authorised_value: "GU"
+          lib: "Guam"
+          lib_opac: "Guam"
+
+        - category: "COUNTRY"
+          authorised_value: "GW"
+          lib: "Guinea-Bissau"
+          lib_opac: "Guinea-Bissau"
+
+        - category: "COUNTRY"
+          authorised_value: "GY"
+          lib: "Guyana"
+          lib_opac: "Guyana"
+
+        - category: "COUNTRY"
+          authorised_value: "HK"
+          lib: "Hong Kong"
+          lib_opac: "Hong Kong"
+
+        - category: "COUNTRY"
+          authorised_value: "HM"
+          lib: "Heard & McDonald Islands"
+          lib_opac: "Heard & McDonald Islands"
+
+        - category: "COUNTRY"
+          authorised_value: "HN"
+          lib: "Honduras"
+          lib_opac: "Honduras"
+
+        - category: "COUNTRY"
+          authorised_value: "HR"
+          lib: "Croatia"
+          lib_opac: "Croatia"
+
+        - category: "COUNTRY"
+          authorised_value: "HT"
+          lib: "Haiti"
+          lib_opac: "Haiti"
+
+        - category: "COUNTRY"
+          authorised_value: "HU"
+          lib: "Hungary"
+          lib_opac: "Hungary"
+
+        - category: "COUNTRY"
+          authorised_value: "ID"
+          lib: "Indonesia"
+          lib_opac: "Indonesia"
+
+        - category: "COUNTRY"
+          authorised_value: "IE"
+          lib: "Ireland"
+          lib_opac: "Ireland"
+
+        - category: "COUNTRY"
+          authorised_value: "IL"
+          lib: "Israel"
+          lib_opac: "Israel"
+
+        - category: "COUNTRY"
+          authorised_value: "IM"
+          lib: "Isle of Man"
+          lib_opac: "Isle of Man"
+
+        - category: "COUNTRY"
+          authorised_value: "IN"
+          lib: "India"
+          lib_opac: "India"
+
+        - category: "COUNTRY"
+          authorised_value: "IO"
+          lib: "British Indian Ocean Territory"
+          lib_opac: "British Indian Ocean Territory"
+
+        - category: "COUNTRY"
+          authorised_value: "IQ"
+          lib: "Iraq"
+          lib_opac: "Iraq"
+
+        - category: "COUNTRY"
+          authorised_value: "IR"
+          lib: "Iran"
+          lib_opac: "Iran"
+
+        - category: "COUNTRY"
+          authorised_value: "IS"
+          lib: "Iceland"
+          lib_opac: "Iceland"
+
+        - category: "COUNTRY"
+          authorised_value: "IT"
+          lib: "Italy"
+          lib_opac: "Italy"
+
+        - category: "COUNTRY"
+          authorised_value: "JE"
+          lib: "Jersey"
+          lib_opac: "Jersey"
+
+        - category: "COUNTRY"
+          authorised_value: "JM"
+          lib: "Jamaica"
+          lib_opac: "Jamaica"
+
+        - category: "COUNTRY"
+          authorised_value: "JO"
+          lib: "Jordan"
+          lib_opac: "Jordan"
+
+        - category: "COUNTRY"
+          authorised_value: "JP"
+          lib: "Japan"
+          lib_opac: "Japan"
+
+        - category: "COUNTRY"
+          authorised_value: "KE"
+          lib: "Kenya"
+          lib_opac: "Kenya"
+
+        - category: "COUNTRY"
+          authorised_value: "KG"
+          lib: "Kyrgyzstan"
+          lib_opac: "Kyrgyzstan"
+
+        - category: "COUNTRY"
+          authorised_value: "KH"
+          lib: "Cambodia"
+          lib_opac: "Cambodia"
+
+        - category: "COUNTRY"
+          authorised_value: "KI"
+          lib: "Kiribati"
+          lib_opac: "Kiribati"
+
+        - category: "COUNTRY"
+          authorised_value: "KM"
+          lib: "Comoros"
+          lib_opac: "Comoros"
+
+        - category: "COUNTRY"
+          authorised_value: "KN"
+          lib: "St. Kitts & Nevis"
+          lib_opac: "St. Kitts & Nevis"
+
+        - category: "COUNTRY"
+          authorised_value: "KP"
+          lib: "North Korea"
+          lib_opac: "North Korea"
+
+        - category: "COUNTRY"
+          authorised_value: "KR"
+          lib: "South Korea"
+          lib_opac: "South Korea"
+
+        - category: "COUNTRY"
+          authorised_value: "KW"
+          lib: "Kuwait"
+          lib_opac: "Kuwait"
+
+        - category: "COUNTRY"
+          authorised_value: "KY"
+          lib: "Cayman Islands"
+          lib_opac: "Cayman Islands"
+
+        - category: "COUNTRY"
+          authorised_value: "KZ"
+          lib: "Kazakhstan"
+          lib_opac: "Kazakhstan"
+
+        - category: "COUNTRY"
+          authorised_value: "LA"
+          lib: "Laos"
+          lib_opac: "Laos"
+
+        - category: "COUNTRY"
+          authorised_value: "LB"
+          lib: "Lebanon"
+          lib_opac: "Lebanon"
+
+        - category: "COUNTRY"
+          authorised_value: "LC"
+          lib: "St. Lucia"
+          lib_opac: "St. Lucia"
+
+        - category: "COUNTRY"
+          authorised_value: "LI"
+          lib: "Liechtenstein"
+          lib_opac: "Liechtenstein"
+
+        - category: "COUNTRY"
+          authorised_value: "LK"
+          lib: "Sri Lanka"
+          lib_opac: "Sri Lanka"
+
+        - category: "COUNTRY"
+          authorised_value: "LR"
+          lib: "Liberia"
+          lib_opac: "Liberia"
+
+        - category: "COUNTRY"
+          authorised_value: "LS"
+          lib: "Lesotho"
+          lib_opac: "Lesotho"
+
+        - category: "COUNTRY"
+          authorised_value: "LT"
+          lib: "Lithuania"
+          lib_opac: "Lithuania"
+
+        - category: "COUNTRY"
+          authorised_value: "LU"
+          lib: "Luxembourg"
+          lib_opac: "Luxembourg"
+
+        - category: "COUNTRY"
+          authorised_value: "LV"
+          lib: "Latvia"
+          lib_opac: "Latvia"
+
+        - category: "COUNTRY"
+          authorised_value: "LY"
+          lib: "Libya"
+          lib_opac: "Libya"
+
+        - category: "COUNTRY"
+          authorised_value: "MA"
+          lib: "Morocco"
+          lib_opac: "Morocco"
+
+        - category: "COUNTRY"
+          authorised_value: "MC"
+          lib: "Monaco"
+          lib_opac: "Monaco"
+
+        - category: "COUNTRY"
+          authorised_value: "MD"
+          lib: "Moldova"
+          lib_opac: "Moldova"
+
+        - category: "COUNTRY"
+          authorised_value: "ME"
+          lib: "Montenegro"
+          lib_opac: "Montenegro"
+
+        - category: "COUNTRY"
+          authorised_value: "MF"
+          lib: "St. Martin"
+          lib_opac: "St. Martin"
+
+        - category: "COUNTRY"
+          authorised_value: "MG"
+          lib: "Madagascar"
+          lib_opac: "Madagascar"
+
+        - category: "COUNTRY"
+          authorised_value: "MH"
+          lib: "Marshall Islands"
+          lib_opac: "Marshall Islands"
+
+        - category: "COUNTRY"
+          authorised_value: "MK"
+          lib: "North Macedonia"
+          lib_opac: "North Macedonia"
+
+        - category: "COUNTRY"
+          authorised_value: "ML"
+          lib: "Mali"
+          lib_opac: "Mali"
+
+        - category: "COUNTRY"
+          authorised_value: "MM"
+          lib: "Myanmar (Burma)"
+          lib_opac: "Myanmar (Burma)"
+
+        - category: "COUNTRY"
+          authorised_value: "MN"
+          lib: "Mongolia"
+          lib_opac: "Mongolia"
+
+        - category: "COUNTRY"
+          authorised_value: "MO"
+          lib: "Macao"
+          lib_opac: "Macao"
+
+        - category: "COUNTRY"
+          authorised_value: "MP"
+          lib: "Northern Mariana Islands"
+          lib_opac: "Northern Mariana Islands"
+
+        - category: "COUNTRY"
+          authorised_value: "MQ"
+          lib: "Martinique"
+          lib_opac: "Martinique"
+
+        - category: "COUNTRY"
+          authorised_value: "MR"
+          lib: "Mauritania"
+          lib_opac: "Mauritania"
+
+        - category: "COUNTRY"
+          authorised_value: "MS"
+          lib: "Montserrat"
+          lib_opac: "Montserrat"
+
+        - category: "COUNTRY"
+          authorised_value: "MT"
+          lib: "Malta"
+          lib_opac: "Malta"
+
+        - category: "COUNTRY"
+          authorised_value: "MU"
+          lib: "Mauritius"
+          lib_opac: "Mauritius"
+
+        - category: "COUNTRY"
+          authorised_value: "MV"
+          lib: "Maldives"
+          lib_opac: "Maldives"
+
+        - category: "COUNTRY"
+          authorised_value: "MW"
+          lib: "Malawi"
+          lib_opac: "Malawi"
+
+        - category: "COUNTRY"
+          authorised_value: "MX"
+          lib: "Mexico"
+          lib_opac: "Mexico"
+
+        - category: "COUNTRY"
+          authorised_value: "MY"
+          lib: "Malaysia"
+          lib_opac: "Malaysia"
+
+        - category: "COUNTRY"
+          authorised_value: "MZ"
+          lib: "Mozambique"
+          lib_opac: "Mozambique"
+
+        - category: "COUNTRY"
+          authorised_value: "NA"
+          lib: "Namibia"
+          lib_opac: "Namibia"
+
+        - category: "COUNTRY"
+          authorised_value: "NC"
+          lib: "New Caledonia"
+          lib_opac: "New Caledonia"
+
+        - category: "COUNTRY"
+          authorised_value: "NE"
+          lib: "Niger"
+          lib_opac: "Niger"
+
+        - category: "COUNTRY"
+          authorised_value: "NF"
+          lib: "Norfolk Island"
+          lib_opac: "Norfolk Island"
+
+        - category: "COUNTRY"
+          authorised_value: "NG"
+          lib: "Nigeria"
+          lib_opac: "Nigeria"
+
+        - category: "COUNTRY"
+          authorised_value: "NI"
+          lib: "Nicaragua"
+          lib_opac: "Nicaragua"
+
+        - category: "COUNTRY"
+          authorised_value: "NL"
+          lib: "Netherlands"
+          lib_opac: "Netherlands"
+
+        - category: "COUNTRY"
+          authorised_value: "NO"
+          lib: "Norway"
+          lib_opac: "Norway"
+
+        - category: "COUNTRY"
+          authorised_value: "NP"
+          lib: "Nepal"
+          lib_opac: "Nepal"
+
+        - category: "COUNTRY"
+          authorised_value: "NR"
+          lib: "Nauru"
+          lib_opac: "Nauru"
+
+        - category: "COUNTRY"
+          authorised_value: "NU"
+          lib: "Niue"
+          lib_opac: "Niue"
+
+        - category: "COUNTRY"
+          authorised_value: "NZ"
+          lib: "New Zealand"
+          lib_opac: "New Zealand"
+
+        - category: "COUNTRY"
+          authorised_value: "OM"
+          lib: "Oman"
+          lib_opac: "Oman"
+
+        - category: "COUNTRY"
+          authorised_value: "PA"
+          lib: "Panama"
+          lib_opac: "Panama"
+
+        - category: "COUNTRY"
+          authorised_value: "PE"
+          lib: "Peru"
+          lib_opac: "Peru"
+
+        - category: "COUNTRY"
+          authorised_value: "PF"
+          lib: "French Polynesia"
+          lib_opac: "French Polynesia"
+
+        - category: "COUNTRY"
+          authorised_value: "PG"
+          lib: "Papua New Guinea"
+          lib_opac: "Papua New Guinea"
+
+        - category: "COUNTRY"
+          authorised_value: "PH"
+          lib: "Philippines"
+          lib_opac: "Philippines"
+
+        - category: "COUNTRY"
+          authorised_value: "PK"
+          lib: "Pakistan"
+          lib_opac: "Pakistan"
+
+        - category: "COUNTRY"
+          authorised_value: "PL"
+          lib: "Poland"
+          lib_opac: "Poland"
+
+        - category: "COUNTRY"
+          authorised_value: "PM"
+          lib: "St. Pierre & Miquelon"
+          lib_opac: "St. Pierre & Miquelon"
+
+        - category: "COUNTRY"
+          authorised_value: "PN"
+          lib: "Pitcairn Islands"
+          lib_opac: "Pitcairn Islands"
+
+        - category: "COUNTRY"
+          authorised_value: "PR"
+          lib: "Puerto Rico"
+          lib_opac: "Puerto Rico"
+
+        - category: "COUNTRY"
+          authorised_value: "PS"
+          lib: "Palestinian Territories"
+          lib_opac: "Palestinian Territories"
+
+        - category: "COUNTRY"
+          authorised_value: "PT"
+          lib: "Portugal"
+          lib_opac: "Portugal"
+
+        - category: "COUNTRY"
+          authorised_value: "PW"
+          lib: "Palau"
+          lib_opac: "Palau"
+
+        - category: "COUNTRY"
+          authorised_value: "PY"
+          lib: "Paraguay"
+          lib_opac: "Paraguay"
+
+        - category: "COUNTRY"
+          authorised_value: "QA"
+          lib: "Qatar"
+          lib_opac: "Qatar"
+
+        - category: "COUNTRY"
+          authorised_value: "RE"
+          lib: "Réunion"
+          lib_opac: "Réunion"
+
+        - category: "COUNTRY"
+          authorised_value: "RO"
+          lib: "Romania"
+          lib_opac: "Romania"
+
+        - category: "COUNTRY"
+          authorised_value: "RS"
+          lib: "Serbia"
+          lib_opac: "Serbia"
+
+        - category: "COUNTRY"
+          authorised_value: "RU"
+          lib: "Russia"
+          lib_opac: "Russia"
+
+        - category: "COUNTRY"
+          authorised_value: "RW"
+          lib: "Rwanda"
+          lib_opac: "Rwanda"
+
+        - category: "COUNTRY"
+          authorised_value: "SA"
+          lib: "Saudi Arabia"
+          lib_opac: "Saudi Arabia"
+
+        - category: "COUNTRY"
+          authorised_value: "SB"
+          lib: "Solomon Islands"
+          lib_opac: "Solomon Islands"
+
+        - category: "COUNTRY"
+          authorised_value: "SC"
+          lib: "Seychelles"
+          lib_opac: "Seychelles"
+
+        - category: "COUNTRY"
+          authorised_value: "SD"
+          lib: "Sudan"
+          lib_opac: "Sudan"
+
+        - category: "COUNTRY"
+          authorised_value: "SE"
+          lib: "Sweden"
+          lib_opac: "Sweden"
+
+        - category: "COUNTRY"
+          authorised_value: "SG"
+          lib: "Singapore"
+          lib_opac: "Singapore"
+
+        - category: "COUNTRY"
+          authorised_value: "SH"
+          lib: "St. Helena"
+          lib_opac: "St. Helena"
+
+        - category: "COUNTRY"
+          authorised_value: "SI"
+          lib: "Slovenia"
+          lib_opac: "Slovenia"
+
+        - category: "COUNTRY"
+          authorised_value: "SJ"
+          lib: "Svalbard & Jan Mayen"
+          lib_opac: "Svalbard & Jan Mayen"
+
+        - category: "COUNTRY"
+          authorised_value: "SK"
+          lib: "Slovakia"
+          lib_opac: "Slovakia"
+
+        - category: "COUNTRY"
+          authorised_value: "SL"
+          lib: "Sierra Leone"
+          lib_opac: "Sierra Leone"
+
+        - category: "COUNTRY"
+          authorised_value: "SM"
+          lib: "San Marino"
+          lib_opac: "San Marino"
+
+        - category: "COUNTRY"
+          authorised_value: "SN"
+          lib: "Senegal"
+          lib_opac: "Senegal"
+
+        - category: "COUNTRY"
+          authorised_value: "SO"
+          lib: "Somalia"
+          lib_opac: "Somalia"
+
+        - category: "COUNTRY"
+          authorised_value: "SR"
+          lib: "Suriname"
+          lib_opac: "Suriname"
+
+        - category: "COUNTRY"
+          authorised_value: "SS"
+          lib: "South Sudan"
+          lib_opac: "South Sudan"
+
+        - category: "COUNTRY"
+          authorised_value: "ST"
+          lib: "São Tomé & Príncipe"
+          lib_opac: "São Tomé & Príncipe"
+
+        - category: "COUNTRY"
+          authorised_value: "SV"
+          lib: "El Salvador"
+          lib_opac: "El Salvador"
+
+        - category: "COUNTRY"
+          authorised_value: "SX"
+          lib: "Sint Maarten"
+          lib_opac: "Sint Maarten"
+
+        - category: "COUNTRY"
+          authorised_value: "SY"
+          lib: "Syria"
+          lib_opac: "Syria"
+
+        - category: "COUNTRY"
+          authorised_value: "SZ"
+          lib: "Eswatini"
+          lib_opac: "Eswatini"
+
+        - category: "COUNTRY"
+          authorised_value: "TC"
+          lib: "Turks & Caicos Islands"
+          lib_opac: "Turks & Caicos Islands"
+
+        - category: "COUNTRY"
+          authorised_value: "TD"
+          lib: "Chad"
+          lib_opac: "Chad"
+
+        - category: "COUNTRY"
+          authorised_value: "TF"
+          lib: "French Southern Territories"
+          lib_opac: "French Southern Territories"
+
+        - category: "COUNTRY"
+          authorised_value: "TG"
+          lib: "Togo"
+          lib_opac: "Togo"
+
+        - category: "COUNTRY"
+          authorised_value: "TH"
+          lib: "Thailand"
+          lib_opac: "Thailand"
+
+        - category: "COUNTRY"
+          authorised_value: "TJ"
+          lib: "Tajikistan"
+          lib_opac: "Tajikistan"
+
+        - category: "COUNTRY"
+          authorised_value: "TK"
+          lib: "Tokelau"
+          lib_opac: "Tokelau"
+
+        - category: "COUNTRY"
+          authorised_value: "TL"
+          lib: "Timor-Leste"
+          lib_opac: "Timor-Leste"
+
+        - category: "COUNTRY"
+          authorised_value: "TM"
+          lib: "Turkmenistan"
+          lib_opac: "Turkmenistan"
+
+        - category: "COUNTRY"
+          authorised_value: "TN"
+          lib: "Tunisia"
+          lib_opac: "Tunisia"
+
+        - category: "COUNTRY"
+          authorised_value: "TO"
+          lib: "Tonga"
+          lib_opac: "Tonga"
+
+        - category: "COUNTRY"
+          authorised_value: "TR"
+          lib: "Turkey"
+          lib_opac: "Turkey"
+
+        - category: "COUNTRY"
+          authorised_value: "TT"
+          lib: "Trinidad & Tobago"
+          lib_opac: "Trinidad & Tobago"
+
+        - category: "COUNTRY"
+          authorised_value: "TV"
+          lib: "Tuvalu"
+          lib_opac: "Tuvalu"
+
+        - category: "COUNTRY"
+          authorised_value: "TW"
+          lib: "Taiwan"
+          lib_opac: "Taiwan"
+
+        - category: "COUNTRY"
+          authorised_value: "TZ"
+          lib: "Tanzania"
+          lib_opac: "Tanzania"
+
+        - category: "COUNTRY"
+          authorised_value: "UA"
+          lib: "Ukraine"
+          lib_opac: "Ukraine"
+
+        - category: "COUNTRY"
+          authorised_value: "UG"
+          lib: "Uganda"
+          lib_opac: "Uganda"
+
+        - category: "COUNTRY"
+          authorised_value: "UM"
+          lib: "U.S. Outlying Islands"
+          lib_opac: "U.S. Outlying Islands"
+
+        - category: "COUNTRY"
+          authorised_value: "US"
+          lib: "United States"
+          lib_opac: "United States"
+
+        - category: "COUNTRY"
+          authorised_value: "UY"
+          lib: "Uruguay"
+          lib_opac: "Uruguay"
+
+        - category: "COUNTRY"
+          authorised_value: "UZ"
+          lib: "Uzbekistan"
+          lib_opac: "Uzbekistan"
+
+        - category: "COUNTRY"
+          authorised_value: "VA"
+          lib: "Vatican City"
+          lib_opac: "Vatican City"
+
+        - category: "COUNTRY"
+          authorised_value: "VC"
+          lib: "St. Vincent & Grenadines"
+          lib_opac: "St. Vincent & Grenadines"
+
+        - category: "COUNTRY"
+          authorised_value: "VE"
+          lib: "Venezuela"
+          lib_opac: "Venezuela"
+
+        - category: "COUNTRY"
+          authorised_value: "VG"
+          lib: "British Virgin Islands"
+          lib_opac: "British Virgin Islands"
+
+        - category: "COUNTRY"
+          authorised_value: "VI"
+          lib: "U.S. Virgin Islands"
+          lib_opac: "U.S. Virgin Islands"
+
+        - category: "COUNTRY"
+          authorised_value: "VN"
+          lib: "Vietnam"
+          lib_opac: "Vietnam"
+
+        - category: "COUNTRY"
+          authorised_value: "VU"
+          lib: "Vanuatu"
+          lib_opac: "Vanuatu"
+
+        - category: "COUNTRY"
+          authorised_value: "WF"
+          lib: "Wallis & Futuna"
+          lib_opac: "Wallis & Futuna"
+
+        - category: "COUNTRY"
+          authorised_value: "WS"
+          lib: "Samoa"
+          lib_opac: "Samoa"
+
+        - category: "COUNTRY"
+          authorised_value: "YE"
+          lib: "Yemen"
+          lib_opac: "Yemen"
+
+        - category: "COUNTRY"
+          authorised_value: "YT"
+          lib: "Mayotte"
+          lib_opac: "Mayotte"
+
+        - category: "COUNTRY"
+          authorised_value: "ZA"
+          lib: "South Africa"
+          lib_opac: "South Africa"
+
+        - category: "COUNTRY"
+          authorised_value: "ZM"
+          lib: "Zambia"
+          lib_opac: "Zambia"
+
+        - category: "COUNTRY"
+          authorised_value: "ZW"
+          lib: "Zimbabwe"
+          lib_opac: "Zimbabwe"
+
+  # Language codes (ISO 639-2) (source: https://www.loc.gov/standards/iso639-2/php/code_list.php)
+  - authorised_values:
+      translatable: [ lib, lib_opac ]
+      multiline: []
+      rows:
+        - category: "LANG"
+          authorised_value: "aar"
+          lib: "Afar"
+          lib_opac: "Afar"
+
+        - category: "LANG"
+          authorised_value: "abk"
+          lib: "Abkhazian"
+          lib_opac: "Abkhazian"
+
+        - category: "LANG"
+          authorised_value: "ace"
+          lib: "Achinese"
+          lib_opac: "Achinese"
+
+        - category: "LANG"
+          authorised_value: "ach"
+          lib: "Acoli"
+          lib_opac: "Acoli"
+
+        - category: "LANG"
+          authorised_value: "ada"
+          lib: "Adangme"
+          lib_opac: "Adangme"
+
+        - category: "LANG"
+          authorised_value: "ady"
+          lib: "Adyghe; Adygei"
+          lib_opac: "Adyghe; Adygei"
+
+        - category: "LANG"
+          authorised_value: "afa"
+          lib: "Afro-Asiatic languages"
+          lib_opac: "Afro-Asiatic languages"
+
+        - category: "LANG"
+          authorised_value: "afh"
+          lib: "Afrihili"
+          lib_opac: "Afrihili"
+
+        - category: "LANG"
+          authorised_value: "afr"
+          lib: "Afrikaans"
+          lib_opac: "Afrikaans"
+
+        - category: "LANG"
+          authorised_value: "ain"
+          lib: "Ainu"
+          lib_opac: "Ainu"
+
+        - category: "LANG"
+          authorised_value: "aka"
+          lib: "Akan"
+          lib_opac: "Akan"
+
+        - category: "LANG"
+          authorised_value: "akk"
+          lib: "Akkadian"
+          lib_opac: "Akkadian"
+
+        - category: "LANG"
+          authorised_value: "alb"
+          lib: "Albanian"
+          lib_opac: "Albanian"
+
+        - category: "LANG"
+          authorised_value: "ale"
+          lib: "Aleut"
+          lib_opac: "Aleut"
+
+        - category: "LANG"
+          authorised_value: "alg"
+          lib: "Algonquian languages"
+          lib_opac: "Algonquian languages"
+
+        - category: "LANG"
+          authorised_value: "alt"
+          lib: "Southern Altai"
+          lib_opac: "Southern Altai"
+
+        - category: "LANG"
+          authorised_value: "amh"
+          lib: "Amharic"
+          lib_opac: "Amharic"
+
+        - category: "LANG"
+          authorised_value: "ang"
+          lib: "English, Old (ca.450-1100)"
+          lib_opac: "English, Old (ca.450-1100)"
+
+        - category: "LANG"
+          authorised_value: "anp"
+          lib: "Angika"
+          lib_opac: "Angika"
+
+        - category: "LANG"
+          authorised_value: "apa"
+          lib: "Apache languages"
+          lib_opac: "Apache languages"
+
+        - category: "LANG"
+          authorised_value: "ara"
+          lib: "Arabic"
+          lib_opac: "Arabic"
+
+        - category: "LANG"
+          authorised_value: "arc"
+          lib: "Official Aramaic (700-300 BCE); Imperial Aramaic (700-300 BCE)"
+          lib_opac: "Official Aramaic (700-300 BCE); Imperial Aramaic (700-300 BCE)"
+
+        - category: "LANG"
+          authorised_value: "arg"
+          lib: "Aragonese"
+          lib_opac: "Aragonese"
+
+        - category: "LANG"
+          authorised_value: "arm"
+          lib: "Armenian"
+          lib_opac: "Armenian"
+
+        - category: "LANG"
+          authorised_value: "arn"
+          lib: "Mapudungun; Mapuche"
+          lib_opac: "Mapudungun; Mapuche"
+
+        - category: "LANG"
+          authorised_value: "arp"
+          lib: "Arapaho"
+          lib_opac: "Arapaho"
+
+        - category: "LANG"
+          authorised_value: "art"
+          lib: "Artificial languages"
+          lib_opac: "Artificial languages"
+
+        - category: "LANG"
+          authorised_value: "arw"
+          lib: "Arawak"
+          lib_opac: "Arawak"
+
+        - category: "LANG"
+          authorised_value: "asm"
+          lib: "Assamese"
+          lib_opac: "Assamese"
+
+        - category: "LANG"
+          authorised_value: "ast"
+          lib: "Asturian; Bable; Leonese; Asturleonese"
+          lib_opac: "Asturian; Bable; Leonese; Asturleonese"
+
+        - category: "LANG"
+          authorised_value: "ath"
+          lib: "Athapascan languages"
+          lib_opac: "Athapascan languages"
+
+        - category: "LANG"
+          authorised_value: "aus"
+          lib: "Australian languages"
+          lib_opac: "Australian languages"
+
+        - category: "LANG"
+          authorised_value: "ava"
+          lib: "Avaric"
+          lib_opac: "Avaric"
+
+        - category: "LANG"
+          authorised_value: "ave"
+          lib: "Avestan"
+          lib_opac: "Avestan"
+
+        - category: "LANG"
+          authorised_value: "awa"
+          lib: "Awadhi"
+          lib_opac: "Awadhi"
+
+        - category: "LANG"
+          authorised_value: "aym"
+          lib: "Aymara"
+          lib_opac: "Aymara"
+
+        - category: "LANG"
+          authorised_value: "aze"
+          lib: "Azerbaijani"
+          lib_opac: "Azerbaijani"
+
+        - category: "LANG"
+          authorised_value: "bad"
+          lib: "Banda languages"
+          lib_opac: "Banda languages"
+
+        - category: "LANG"
+          authorised_value: "bai"
+          lib: "Bamileke languages"
+          lib_opac: "Bamileke languages"
+
+        - category: "LANG"
+          authorised_value: "bak"
+          lib: "Bashkir"
+          lib_opac: "Bashkir"
+
+        - category: "LANG"
+          authorised_value: "bal"
+          lib: "Baluchi"
+          lib_opac: "Baluchi"
+
+        - category: "LANG"
+          authorised_value: "bam"
+          lib: "Bambara"
+          lib_opac: "Bambara"
+
+        - category: "LANG"
+          authorised_value: "ban"
+          lib: "Balinese"
+          lib_opac: "Balinese"
+
+        - category: "LANG"
+          authorised_value: "baq"
+          lib: "Basque"
+          lib_opac: "Basque"
+
+        - category: "LANG"
+          authorised_value: "bas"
+          lib: "Basa"
+          lib_opac: "Basa"
+
+        - category: "LANG"
+          authorised_value: "bat"
+          lib: "Baltic languages"
+          lib_opac: "Baltic languages"
+
+        - category: "LANG"
+          authorised_value: "bej"
+          lib: "Beja; Bedawiyet"
+          lib_opac: "Beja; Bedawiyet"
+
+        - category: "LANG"
+          authorised_value: "bel"
+          lib: "Belarusian"
+          lib_opac: "Belarusian"
+
+        - category: "LANG"
+          authorised_value: "bem"
+          lib: "Bemba"
+          lib_opac: "Bemba"
+
+        - category: "LANG"
+          authorised_value: "ben"
+          lib: "Bengali"
+          lib_opac: "Bengali"
+
+        - category: "LANG"
+          authorised_value: "ber"
+          lib: "Berber languages"
+          lib_opac: "Berber languages"
+
+        - category: "LANG"
+          authorised_value: "bho"
+          lib: "Bhojpuri"
+          lib_opac: "Bhojpuri"
+
+        - category: "LANG"
+          authorised_value: "bih"
+          lib: "Bihari languages"
+          lib_opac: "Bihari languages"
+
+        - category: "LANG"
+          authorised_value: "bik"
+          lib: "Bikol"
+          lib_opac: "Bikol"
+
+        - category: "LANG"
+          authorised_value: "bin"
+          lib: "Bini; Edo"
+          lib_opac: "Bini; Edo"
+
+        - category: "LANG"
+          authorised_value: "bis"
+          lib: "Bislama"
+          lib_opac: "Bislama"
+
+        - category: "LANG"
+          authorised_value: "bla"
+          lib: "Siksika"
+          lib_opac: "Siksika"
+
+        - category: "LANG"
+          authorised_value: "bnt"
+          lib: "Bantu languages"
+          lib_opac: "Bantu languages"
+
+        - category: "LANG"
+          authorised_value: "bos"
+          lib: "Bosnian"
+          lib_opac: "Bosnian"
+
+        - category: "LANG"
+          authorised_value: "bra"
+          lib: "Braj"
+          lib_opac: "Braj"
+
+        - category: "LANG"
+          authorised_value: "bre"
+          lib: "Breton"
+          lib_opac: "Breton"
+
+        - category: "LANG"
+          authorised_value: "btk"
+          lib: "Batak languages"
+          lib_opac: "Batak languages"
+
+        - category: "LANG"
+          authorised_value: "bua"
+          lib: "Buriat"
+          lib_opac: "Buriat"
+
+        - category: "LANG"
+          authorised_value: "bug"
+          lib: "Buginese"
+          lib_opac: "Buginese"
+
+        - category: "LANG"
+          authorised_value: "bul"
+          lib: "Bulgarian"
+          lib_opac: "Bulgarian"
+
+        - category: "LANG"
+          authorised_value: "bur"
+          lib: "Burmese"
+          lib_opac: "Burmese"
+
+        - category: "LANG"
+          authorised_value: "byn"
+          lib: "Blin; Bilin"
+          lib_opac: "Blin; Bilin"
+
+        - category: "LANG"
+          authorised_value: "cad"
+          lib: "Caddo"
+          lib_opac: "Caddo"
+
+        - category: "LANG"
+          authorised_value: "cai"
+          lib: "Central American Indian languages"
+          lib_opac: "Central American Indian languages"
+
+        - category: "LANG"
+          authorised_value: "car"
+          lib: "Galibi Carib"
+          lib_opac: "Galibi Carib"
+
+        - category: "LANG"
+          authorised_value: "cat"
+          lib: "Catalan; Valencian"
+          lib_opac: "Catalan; Valencian"
+
+        - category: "LANG"
+          authorised_value: "cau"
+          lib: "Caucasian languages"
+          lib_opac: "Caucasian languages"
+
+        - category: "LANG"
+          authorised_value: "ceb"
+          lib: "Cebuano"
+          lib_opac: "Cebuano"
+
+        - category: "LANG"
+          authorised_value: "cel"
+          lib: "Celtic languages"
+          lib_opac: "Celtic languages"
+
+        - category: "LANG"
+          authorised_value: "cha"
+          lib: "Chamorro"
+          lib_opac: "Chamorro"
+
+        - category: "LANG"
+          authorised_value: "chb"
+          lib: "Chibcha"
+          lib_opac: "Chibcha"
+
+        - category: "LANG"
+          authorised_value: "che"
+          lib: "Chechen"
+          lib_opac: "Chechen"
+
+        - category: "LANG"
+          authorised_value: "chg"
+          lib: "Chagatai"
+          lib_opac: "Chagatai"
+
+        - category: "LANG"
+          authorised_value: "chi"
+          lib: "Chinese"
+          lib_opac: "Chinese"
+
+        - category: "LANG"
+          authorised_value: "chk"
+          lib: "Chuukese"
+          lib_opac: "Chuukese"
+
+        - category: "LANG"
+          authorised_value: "chm"
+          lib: "Mari"
+          lib_opac: "Mari"
+
+        - category: "LANG"
+          authorised_value: "chn"
+          lib: "Chinook jargon"
+          lib_opac: "Chinook jargon"
+
+        - category: "LANG"
+          authorised_value: "cho"
+          lib: "Choctaw"
+          lib_opac: "Choctaw"
+
+        - category: "LANG"
+          authorised_value: "chp"
+          lib: "Chipewyan; Dene Suline"
+          lib_opac: "Chipewyan; Dene Suline"
+
+        - category: "LANG"
+          authorised_value: "chr"
+          lib: "Cherokee"
+          lib_opac: "Cherokee"
+
+        - category: "LANG"
+          authorised_value: "chu"
+          lib: "Church Slavic; Old Slavonic; Church Slavonic; Old Bulgarian; Old Church Slavonic"
+          lib_opac: "Church Slavic; Old Slavonic; Church Slavonic; Old Bulgarian; Old Church Slavonic"
+
+        - category: "LANG"
+          authorised_value: "chv"
+          lib: "Chuvash"
+          lib_opac: "Chuvash"
+
+        - category: "LANG"
+          authorised_value: "chy"
+          lib: "Cheyenne"
+          lib_opac: "Cheyenne"
+
+        - category: "LANG"
+          authorised_value: "cmc"
+          lib: "Chamic languages"
+          lib_opac: "Chamic languages"
+
+        - category: "LANG"
+          authorised_value: "cnr"
+          lib: "Montenegrin"
+          lib_opac: "Montenegrin"
+
+        - category: "LANG"
+          authorised_value: "cop"
+          lib: "Coptic"
+          lib_opac: "Coptic"
+
+        - category: "LANG"
+          authorised_value: "cor"
+          lib: "Cornish"
+          lib_opac: "Cornish"
+
+        - category: "LANG"
+          authorised_value: "cos"
+          lib: "Corsican"
+          lib_opac: "Corsican"
+
+        - category: "LANG"
+          authorised_value: "cpe"
+          lib: "Creoles and pidgins, English based"
+          lib_opac: "Creoles and pidgins, English based"
+
+        - category: "LANG"
+          authorised_value: "cpf"
+          lib: "Creoles and pidgins, French-based"
+          lib_opac: "Creoles and pidgins, French-based"
+
+        - category: "LANG"
+          authorised_value: "cpp"
+          lib: "Creoles and pidgins, Portuguese-based"
+          lib_opac: "Creoles and pidgins, Portuguese-based"
+
+        - category: "LANG"
+          authorised_value: "cre"
+          lib: "Cree"
+          lib_opac: "Cree"
+
+        - category: "LANG"
+          authorised_value: "crh"
+          lib: "Crimean Tatar; Crimean Turkish"
+          lib_opac: "Crimean Tatar; Crimean Turkish"
+
+        - category: "LANG"
+          authorised_value: "crp"
+          lib: "Creoles and pidgins"
+          lib_opac: "Creoles and pidgins"
+
+        - category: "LANG"
+          authorised_value: "csb"
+          lib: "Kashubian"
+          lib_opac: "Kashubian"
+
+        - category: "LANG"
+          authorised_value: "cus"
+          lib: "Cushitic languages"
+          lib_opac: "Cushitic languages"
+
+        - category: "LANG"
+          authorised_value: "cze"
+          lib: "Czech"
+          lib_opac: "Czech"
+
+        - category: "LANG"
+          authorised_value: "dak"
+          lib: "Dakota"
+          lib_opac: "Dakota"
+
+        - category: "LANG"
+          authorised_value: "dan"
+          lib: "Danish"
+          lib_opac: "Danish"
+
+        - category: "LANG"
+          authorised_value: "dar"
+          lib: "Dargwa"
+          lib_opac: "Dargwa"
+
+        - category: "LANG"
+          authorised_value: "day"
+          lib: "Land Dayak languages"
+          lib_opac: "Land Dayak languages"
+
+        - category: "LANG"
+          authorised_value: "del"
+          lib: "Delaware"
+          lib_opac: "Delaware"
+
+        - category: "LANG"
+          authorised_value: "den"
+          lib: "Slave (Athapascan)"
+          lib_opac: "Slave (Athapascan)"
+
+        - category: "LANG"
+          authorised_value: "dgr"
+          lib: "Dogrib"
+          lib_opac: "Dogrib"
+
+        - category: "LANG"
+          authorised_value: "din"
+          lib: "Dinka"
+          lib_opac: "Dinka"
+
+        - category: "LANG"
+          authorised_value: "div"
+          lib: "Divehi; Dhivehi; Maldivian"
+          lib_opac: "Divehi; Dhivehi; Maldivian"
+
+        - category: "LANG"
+          authorised_value: "doi"
+          lib: "Dogri"
+          lib_opac: "Dogri"
+
+        - category: "LANG"
+          authorised_value: "dra"
+          lib: "Dravidian languages"
+          lib_opac: "Dravidian languages"
+
+        - category: "LANG"
+          authorised_value: "dsb"
+          lib: "Lower Sorbian"
+          lib_opac: "Lower Sorbian"
+
+        - category: "LANG"
+          authorised_value: "dua"
+          lib: "Duala"
+          lib_opac: "Duala"
+
+        - category: "LANG"
+          authorised_value: "dum"
+          lib: "Dutch, Middle (ca.1050-1350)"
+          lib_opac: "Dutch, Middle (ca.1050-1350)"
+
+        - category: "LANG"
+          authorised_value: "dut"
+          lib: "Dutch; Flemish"
+          lib_opac: "Dutch; Flemish"
+
+        - category: "LANG"
+          authorised_value: "dyu"
+          lib: "Dyula"
+          lib_opac: "Dyula"
+
+        - category: "LANG"
+          authorised_value: "dzo"
+          lib: "Dzongkha"
+          lib_opac: "Dzongkha"
+
+        - category: "LANG"
+          authorised_value: "efi"
+          lib: "Efik"
+          lib_opac: "Efik"
+
+        - category: "LANG"
+          authorised_value: "egy"
+          lib: "Egyptian (Ancient)"
+          lib_opac: "Egyptian (Ancient)"
+
+        - category: "LANG"
+          authorised_value: "eka"
+          lib: "Ekajuk"
+          lib_opac: "Ekajuk"
+
+        - category: "LANG"
+          authorised_value: "elx"
+          lib: "Elamite"
+          lib_opac: "Elamite"
+
+        - category: "LANG"
+          authorised_value: "eng"
+          lib: "English"
+          lib_opac: "English"
+
+        - category: "LANG"
+          authorised_value: "enm"
+          lib: "English, Middle (1100-1500)"
+          lib_opac: "English, Middle (1100-1500)"
+
+        - category: "LANG"
+          authorised_value: "epo"
+          lib: "Esperanto"
+          lib_opac: "Esperanto"
+
+        - category: "LANG"
+          authorised_value: "est"
+          lib: "Estonian"
+          lib_opac: "Estonian"
+
+        - category: "LANG"
+          authorised_value: "ewe"
+          lib: "Ewe"
+          lib_opac: "Ewe"
+
+        - category: "LANG"
+          authorised_value: "ewo"
+          lib: "Ewondo"
+          lib_opac: "Ewondo"
+
+        - category: "LANG"
+          authorised_value: "fan"
+          lib: "Fang"
+          lib_opac: "Fang"
+
+        - category: "LANG"
+          authorised_value: "fao"
+          lib: "Faroese"
+          lib_opac: "Faroese"
+
+        - category: "LANG"
+          authorised_value: "fat"
+          lib: "Fanti"
+          lib_opac: "Fanti"
+
+        - category: "LANG"
+          authorised_value: "fij"
+          lib: "Fijian"
+          lib_opac: "Fijian"
+
+        - category: "LANG"
+          authorised_value: "fil"
+          lib: "Filipino; Pilipino"
+          lib_opac: "Filipino; Pilipino"
+
+        - category: "LANG"
+          authorised_value: "fin"
+          lib: "Finnish"
+          lib_opac: "Finnish"
+
+        - category: "LANG"
+          authorised_value: "fiu"
+          lib: "Finno-Ugrian languages"
+          lib_opac: "Finno-Ugrian languages"
+
+        - category: "LANG"
+          authorised_value: "fon"
+          lib: "Fon"
+          lib_opac: "Fon"
+
+        - category: "LANG"
+          authorised_value: "fre"
+          lib: "French"
+          lib_opac: "French"
+
+        - category: "LANG"
+          authorised_value: "frm"
+          lib: "French, Middle (ca.1400-1600)"
+          lib_opac: "French, Middle (ca.1400-1600)"
+
+        - category: "LANG"
+          authorised_value: "fro"
+          lib: "French, Old (842-ca.1400)"
+          lib_opac: "French, Old (842-ca.1400)"
+
+        - category: "LANG"
+          authorised_value: "frr"
+          lib: "Northern Frisian"
+          lib_opac: "Northern Frisian"
+
+        - category: "LANG"
+          authorised_value: "frs"
+          lib: "Eastern Frisian"
+          lib_opac: "Eastern Frisian"
+
+        - category: "LANG"
+          authorised_value: "fry"
+          lib: "Western Frisian"
+          lib_opac: "Western Frisian"
+
+        - category: "LANG"
+          authorised_value: "ful"
+          lib: "Fulah"
+          lib_opac: "Fulah"
+
+        - category: "LANG"
+          authorised_value: "fur"
+          lib: "Friulian"
+          lib_opac: "Friulian"
+
+        - category: "LANG"
+          authorised_value: "gaa"
+          lib: "Ga"
+          lib_opac: "Ga"
+
+        - category: "LANG"
+          authorised_value: "gay"
+          lib: "Gayo"
+          lib_opac: "Gayo"
+
+        - category: "LANG"
+          authorised_value: "gba"
+          lib: "Gbaya"
+          lib_opac: "Gbaya"
+
+        - category: "LANG"
+          authorised_value: "gem"
+          lib: "Germanic languages"
+          lib_opac: "Germanic languages"
+
+        - category: "LANG"
+          authorised_value: "geo"
+          lib: "Georgian"
+          lib_opac: "Georgian"
+
+        - category: "LANG"
+          authorised_value: "ger"
+          lib: "German"
+          lib_opac: "German"
+
+        - category: "LANG"
+          authorised_value: "gez"
+          lib: "Geez"
+          lib_opac: "Geez"
+
+        - category: "LANG"
+          authorised_value: "gil"
+          lib: "Gilbertese"
+          lib_opac: "Gilbertese"
+
+        - category: "LANG"
+          authorised_value: "gla"
+          lib: "Gaelic; Scottish Gaelic"
+          lib_opac: "Gaelic; Scottish Gaelic"
+
+        - category: "LANG"
+          authorised_value: "gle"
+          lib: "Irish"
+          lib_opac: "Irish"
+
+        - category: "LANG"
+          authorised_value: "glg"
+          lib: "Galician"
+          lib_opac: "Galician"
+
+        - category: "LANG"
+          authorised_value: "glv"
+          lib: "Manx"
+          lib_opac: "Manx"
+
+        - category: "LANG"
+          authorised_value: "gmh"
+          lib: "German, Middle High (ca.1050-1500)"
+          lib_opac: "German, Middle High (ca.1050-1500)"
+
+        - category: "LANG"
+          authorised_value: "goh"
+          lib: "German, Old High (ca.750-1050)"
+          lib_opac: "German, Old High (ca.750-1050)"
+
+        - category: "LANG"
+          authorised_value: "gon"
+          lib: "Gondi"
+          lib_opac: "Gondi"
+
+        - category: "LANG"
+          authorised_value: "gor"
+          lib: "Gorontalo"
+          lib_opac: "Gorontalo"
+
+        - category: "LANG"
+          authorised_value: "got"
+          lib: "Gothic"
+          lib_opac: "Gothic"
+
+        - category: "LANG"
+          authorised_value: "grb"
+          lib: "Grebo"
+          lib_opac: "Grebo"
+
+        - category: "LANG"
+          authorised_value: "grc"
+          lib: "Greek, Ancient (to 1453)"
+          lib_opac: "Greek, Ancient (to 1453)"
+
+        - category: "LANG"
+          authorised_value: "gre"
+          lib: "Greek, Modern (1453-)"
+          lib_opac: "Greek, Modern (1453-)"
+
+        - category: "LANG"
+          authorised_value: "grn"
+          lib: "Guarani"
+          lib_opac: "Guarani"
+
+        - category: "LANG"
+          authorised_value: "gsw"
+          lib: "Swiss German; Alemannic; Alsatian"
+          lib_opac: "Swiss German; Alemannic; Alsatian"
+
+        - category: "LANG"
+          authorised_value: "guj"
+          lib: "Gujarati"
+          lib_opac: "Gujarati"
+
+        - category: "LANG"
+          authorised_value: "gwi"
+          lib: "Gwich'in"
+          lib_opac: "Gwich'in"
+
+        - category: "LANG"
+          authorised_value: "hai"
+          lib: "Haida"
+          lib_opac: "Haida"
+
+        - category: "LANG"
+          authorised_value: "hat"
+          lib: "Haitian; Haitian Creole"
+          lib_opac: "Haitian; Haitian Creole"
+
+        - category: "LANG"
+          authorised_value: "hau"
+          lib: "Hausa"
+          lib_opac: "Hausa"
+
+        - category: "LANG"
+          authorised_value: "haw"
+          lib: "Hawaiian"
+          lib_opac: "Hawaiian"
+
+        - category: "LANG"
+          authorised_value: "heb"
+          lib: "Hebrew"
+          lib_opac: "Hebrew"
+
+        - category: "LANG"
+          authorised_value: "her"
+          lib: "Herero"
+          lib_opac: "Herero"
+
+        - category: "LANG"
+          authorised_value: "hil"
+          lib: "Hiligaynon"
+          lib_opac: "Hiligaynon"
+
+        - category: "LANG"
+          authorised_value: "him"
+          lib: "Himachali languages; Western Pahari languages"
+          lib_opac: "Himachali languages; Western Pahari languages"
+
+        - category: "LANG"
+          authorised_value: "hin"
+          lib: "Hindi"
+          lib_opac: "Hindi"
+
+        - category: "LANG"
+          authorised_value: "hit"
+          lib: "Hittite"
+          lib_opac: "Hittite"
+
+        - category: "LANG"
+          authorised_value: "hmn"
+          lib: "Hmong; Mong"
+          lib_opac: "Hmong; Mong"
+
+        - category: "LANG"
+          authorised_value: "hmo"
+          lib: "Hiri Motu"
+          lib_opac: "Hiri Motu"
+
+        - category: "LANG"
+          authorised_value: "hrv"
+          lib: "Croatian"
+          lib_opac: "Croatian"
+
+        - category: "LANG"
+          authorised_value: "hsb"
+          lib: "Upper Sorbian"
+          lib_opac: "Upper Sorbian"
+
+        - category: "LANG"
+          authorised_value: "hun"
+          lib: "Hungarian"
+          lib_opac: "Hungarian"
+
+        - category: "LANG"
+          authorised_value: "hup"
+          lib: "Hupa"
+          lib_opac: "Hupa"
+
+        - category: "LANG"
+          authorised_value: "iba"
+          lib: "Iban"
+          lib_opac: "Iban"
+
+        - category: "LANG"
+          authorised_value: "ibo"
+          lib: "Igbo"
+          lib_opac: "Igbo"
+
+        - category: "LANG"
+          authorised_value: "ice"
+          lib: "Icelandic"
+          lib_opac: "Icelandic"
+
+        - category: "LANG"
+          authorised_value: "ido"
+          lib: "Ido"
+          lib_opac: "Ido"
+
+        - category: "LANG"
+          authorised_value: "iii"
+          lib: "Sichuan Yi; Nuosu"
+          lib_opac: "Sichuan Yi; Nuosu"
+
+        - category: "LANG"
+          authorised_value: "ijo"
+          lib: "Ijo languages"
+          lib_opac: "Ijo languages"
+
+        - category: "LANG"
+          authorised_value: "iku"
+          lib: "Inuktitut"
+          lib_opac: "Inuktitut"
+
+        - category: "LANG"
+          authorised_value: "ile"
+          lib: "Interlingue; Occidental"
+          lib_opac: "Interlingue; Occidental"
+
+        - category: "LANG"
+          authorised_value: "ilo"
+          lib: "Iloko"
+          lib_opac: "Iloko"
+
+        - category: "LANG"
+          authorised_value: "ina"
+          lib: "Interlingua (International Auxiliary Language Association)"
+          lib_opac: "Interlingua (International Auxiliary Language Association)"
+
+        - category: "LANG"
+          authorised_value: "inc"
+          lib: "Indic languages"
+          lib_opac: "Indic languages"
+
+        - category: "LANG"
+          authorised_value: "ind"
+          lib: "Indonesian"
+          lib_opac: "Indonesian"
+
+        - category: "LANG"
+          authorised_value: "ine"
+          lib: "Indo-European languages"
+          lib_opac: "Indo-European languages"
+
+        - category: "LANG"
+          authorised_value: "inh"
+          lib: "Ingush"
+          lib_opac: "Ingush"
+
+        - category: "LANG"
+          authorised_value: "ipk"
+          lib: "Inupiaq"
+          lib_opac: "Inupiaq"
+
+        - category: "LANG"
+          authorised_value: "ira"
+          lib: "Iranian languages"
+          lib_opac: "Iranian languages"
+
+        - category: "LANG"
+          authorised_value: "iro"
+          lib: "Iroquoian languages"
+          lib_opac: "Iroquoian languages"
+
+        - category: "LANG"
+          authorised_value: "ita"
+          lib: "Italian"
+          lib_opac: "Italian"
+
+        - category: "LANG"
+          authorised_value: "jav"
+          lib: "Javanese"
+          lib_opac: "Javanese"
+
+        - category: "LANG"
+          authorised_value: "jbo"
+          lib: "Lojban"
+          lib_opac: "Lojban"
+
+        - category: "LANG"
+          authorised_value: "jpn"
+          lib: "Japanese"
+          lib_opac: "Japanese"
+
+        - category: "LANG"
+          authorised_value: "jpr"
+          lib: "Judeo-Persian"
+          lib_opac: "Judeo-Persian"
+
+        - category: "LANG"
+          authorised_value: "jrb"
+          lib: "Judeo-Arabic"
+          lib_opac: "Judeo-Arabic"
+
+        - category: "LANG"
+          authorised_value: "kaa"
+          lib: "Kara-Kalpak"
+          lib_opac: "Kara-Kalpak"
+
+        - category: "LANG"
+          authorised_value: "kab"
+          lib: "Kabyle"
+          lib_opac: "Kabyle"
+
+        - category: "LANG"
+          authorised_value: "kac"
+          lib: "Kachin; Jingpho"
+          lib_opac: "Kachin; Jingpho"
+
+        - category: "LANG"
+          authorised_value: "kal"
+          lib: "Kalaallisut; Greenlandic"
+          lib_opac: "Kalaallisut; Greenlandic"
+
+        - category: "LANG"
+          authorised_value: "kam"
+          lib: "Kamba"
+          lib_opac: "Kamba"
+
+        - category: "LANG"
+          authorised_value: "kan"
+          lib: "Kannada"
+          lib_opac: "Kannada"
+
+        - category: "LANG"
+          authorised_value: "kar"
+          lib: "Karen languages"
+          lib_opac: "Karen languages"
+
+        - category: "LANG"
+          authorised_value: "kas"
+          lib: "Kashmiri"
+          lib_opac: "Kashmiri"
+
+        - category: "LANG"
+          authorised_value: "kau"
+          lib: "Kanuri"
+          lib_opac: "Kanuri"
+
+        - category: "LANG"
+          authorised_value: "kaw"
+          lib: "Kawi"
+          lib_opac: "Kawi"
+
+        - category: "LANG"
+          authorised_value: "kaz"
+          lib: "Kazakh"
+          lib_opac: "Kazakh"
+
+        - category: "LANG"
+          authorised_value: "kbd"
+          lib: "Kabardian"
+          lib_opac: "Kabardian"
+
+        - category: "LANG"
+          authorised_value: "kha"
+          lib: "Khasi"
+          lib_opac: "Khasi"
+
+        - category: "LANG"
+          authorised_value: "khi"
+          lib: "Khoisan languages"
+          lib_opac: "Khoisan languages"
+
+        - category: "LANG"
+          authorised_value: "khm"
+          lib: "Central Khmer"
+          lib_opac: "Central Khmer"
+
+        - category: "LANG"
+          authorised_value: "kho"
+          lib: "Khotanese; Sakan"
+          lib_opac: "Khotanese; Sakan"
+
+        - category: "LANG"
+          authorised_value: "kik"
+          lib: "Kikuyu; Gikuyu"
+          lib_opac: "Kikuyu; Gikuyu"
+
+        - category: "LANG"
+          authorised_value: "kin"
+          lib: "Kinyarwanda"
+          lib_opac: "Kinyarwanda"
+
+        - category: "LANG"
+          authorised_value: "kir"
+          lib: "Kirghiz; Kyrgyz"
+          lib_opac: "Kirghiz; Kyrgyz"
+
+        - category: "LANG"
+          authorised_value: "kmb"
+          lib: "Kimbundu"
+          lib_opac: "Kimbundu"
+
+        - category: "LANG"
+          authorised_value: "kok"
+          lib: "Konkani"
+          lib_opac: "Konkani"
+
+        - category: "LANG"
+          authorised_value: "kom"
+          lib: "Komi"
+          lib_opac: "Komi"
+
+        - category: "LANG"
+          authorised_value: "kon"
+          lib: "Kongo"
+          lib_opac: "Kongo"
+
+        - category: "LANG"
+          authorised_value: "kor"
+          lib: "Korean"
+          lib_opac: "Korean"
+
+        - category: "LANG"
+          authorised_value: "kos"
+          lib: "Kosraean"
+          lib_opac: "Kosraean"
+
+        - category: "LANG"
+          authorised_value: "kpe"
+          lib: "Kpelle"
+          lib_opac: "Kpelle"
+
+        - category: "LANG"
+          authorised_value: "krc"
+          lib: "Karachay-Balkar"
+          lib_opac: "Karachay-Balkar"
+
+        - category: "LANG"
+          authorised_value: "krl"
+          lib: "Karelian"
+          lib_opac: "Karelian"
+
+        - category: "LANG"
+          authorised_value: "kro"
+          lib: "Kru languages"
+          lib_opac: "Kru languages"
+
+        - category: "LANG"
+          authorised_value: "kru"
+          lib: "Kurukh"
+          lib_opac: "Kurukh"
+
+        - category: "LANG"
+          authorised_value: "kua"
+          lib: "Kuanyama; Kwanyama"
+          lib_opac: "Kuanyama; Kwanyama"
+
+        - category: "LANG"
+          authorised_value: "kum"
+          lib: "Kumyk"
+          lib_opac: "Kumyk"
+
+        - category: "LANG"
+          authorised_value: "kur"
+          lib: "Kurdish"
+          lib_opac: "Kurdish"
+
+        - category: "LANG"
+          authorised_value: "kut"
+          lib: "Kutenai"
+          lib_opac: "Kutenai"
+
+        - category: "LANG"
+          authorised_value: "lad"
+          lib: "Ladino"
+          lib_opac: "Ladino"
+
+        - category: "LANG"
+          authorised_value: "lah"
+          lib: "Lahnda"
+          lib_opac: "Lahnda"
+
+        - category: "LANG"
+          authorised_value: "lam"
+          lib: "Lamba"
+          lib_opac: "Lamba"
+
+        - category: "LANG"
+          authorised_value: "lao"
+          lib: "Lao"
+          lib_opac: "Lao"
+
+        - category: "LANG"
+          authorised_value: "lat"
+          lib: "Latin"
+          lib_opac: "Latin"
+
+        - category: "LANG"
+          authorised_value: "lav"
+          lib: "Latvian"
+          lib_opac: "Latvian"
+
+        - category: "LANG"
+          authorised_value: "lez"
+          lib: "Lezghian"
+          lib_opac: "Lezghian"
+
+        - category: "LANG"
+          authorised_value: "lim"
+          lib: "Limburgan; Limburger; Limburgish"
+          lib_opac: "Limburgan; Limburger; Limburgish"
+
+        - category: "LANG"
+          authorised_value: "lin"
+          lib: "Lingala"
+          lib_opac: "Lingala"
+
+        - category: "LANG"
+          authorised_value: "lit"
+          lib: "Lithuanian"
+          lib_opac: "Lithuanian"
+
+        - category: "LANG"
+          authorised_value: "lol"
+          lib: "Mongo"
+          lib_opac: "Mongo"
+
+        - category: "LANG"
+          authorised_value: "loz"
+          lib: "Lozi"
+          lib_opac: "Lozi"
+
+        - category: "LANG"
+          authorised_value: "ltz"
+          lib: "Luxembourgish; Letzeburgesch"
+          lib_opac: "Luxembourgish; Letzeburgesch"
+
+        - category: "LANG"
+          authorised_value: "lua"
+          lib: "Luba-Lulua"
+          lib_opac: "Luba-Lulua"
+
+        - category: "LANG"
+          authorised_value: "lub"
+          lib: "Luba-Katanga"
+          lib_opac: "Luba-Katanga"
+
+        - category: "LANG"
+          authorised_value: "lug"
+          lib: "Ganda"
+          lib_opac: "Ganda"
+
+        - category: "LANG"
+          authorised_value: "lui"
+          lib: "Luiseno"
+          lib_opac: "Luiseno"
+
+        - category: "LANG"
+          authorised_value: "lun"
+          lib: "Lunda"
+          lib_opac: "Lunda"
+
+        - category: "LANG"
+          authorised_value: "luo"
+          lib: "Luo (Kenya and Tanzania)"
+          lib_opac: "Luo (Kenya and Tanzania)"
+
+        - category: "LANG"
+          authorised_value: "lus"
+          lib: "Lushai"
+          lib_opac: "Lushai"
+
+        - category: "LANG"
+          authorised_value: "mac"
+          lib: "Macedonian"
+          lib_opac: "Macedonian"
+
+        - category: "LANG"
+          authorised_value: "mad"
+          lib: "Madurese"
+          lib_opac: "Madurese"
+
+        - category: "LANG"
+          authorised_value: "mag"
+          lib: "Magahi"
+          lib_opac: "Magahi"
+
+        - category: "LANG"
+          authorised_value: "mah"
+          lib: "Marshallese"
+          lib_opac: "Marshallese"
+
+        - category: "LANG"
+          authorised_value: "mai"
+          lib: "Maithili"
+          lib_opac: "Maithili"
+
+        - category: "LANG"
+          authorised_value: "mak"
+          lib: "Makasar"
+          lib_opac: "Makasar"
+
+        - category: "LANG"
+          authorised_value: "mal"
+          lib: "Malayalam"
+          lib_opac: "Malayalam"
+
+        - category: "LANG"
+          authorised_value: "man"
+          lib: "Mandingo"
+          lib_opac: "Mandingo"
+
+        - category: "LANG"
+          authorised_value: "mao"
+          lib: "Maori"
+          lib_opac: "Maori"
+
+        - category: "LANG"
+          authorised_value: "map"
+          lib: "Austronesian languages"
+          lib_opac: "Austronesian languages"
+
+        - category: "LANG"
+          authorised_value: "mar"
+          lib: "Marathi"
+          lib_opac: "Marathi"
+
+        - category: "LANG"
+          authorised_value: "mas"
+          lib: "Masai"
+          lib_opac: "Masai"
+
+        - category: "LANG"
+          authorised_value: "may"
+          lib: "Malay"
+          lib_opac: "Malay"
+
+        - category: "LANG"
+          authorised_value: "mdf"
+          lib: "Moksha"
+          lib_opac: "Moksha"
+
+        - category: "LANG"
+          authorised_value: "mdr"
+          lib: "Mandar"
+          lib_opac: "Mandar"
+
+        - category: "LANG"
+          authorised_value: "men"
+          lib: "Mende"
+          lib_opac: "Mende"
+
+        - category: "LANG"
+          authorised_value: "mga"
+          lib: "Irish, Middle (900-1200)"
+          lib_opac: "Irish, Middle (900-1200)"
+
+        - category: "LANG"
+          authorised_value: "mic"
+          lib: "Mi'kmaq; Micmac"
+          lib_opac: "Mi'kmaq; Micmac"
+
+        - category: "LANG"
+          authorised_value: "min"
+          lib: "Minangkabau"
+          lib_opac: "Minangkabau"
+
+        - category: "LANG"
+          authorised_value: "mis"
+          lib: "Uncoded languages"
+          lib_opac: "Uncoded languages"
+
+        - category: "LANG"
+          authorised_value: "mkh"
+          lib: "Mon-Khmer languages"
+          lib_opac: "Mon-Khmer languages"
+
+        - category: "LANG"
+          authorised_value: "mlg"
+          lib: "Malagasy"
+          lib_opac: "Malagasy"
+
+        - category: "LANG"
+          authorised_value: "mlt"
+          lib: "Maltese"
+          lib_opac: "Maltese"
+
+        - category: "LANG"
+          authorised_value: "mnc"
+          lib: "Manchu"
+          lib_opac: "Manchu"
+
+        - category: "LANG"
+          authorised_value: "mni"
+          lib: "Manipuri"
+          lib_opac: "Manipuri"
+
+        - category: "LANG"
+          authorised_value: "mno"
+          lib: "Manobo languages"
+          lib_opac: "Manobo languages"
+
+        - category: "LANG"
+          authorised_value: "moh"
+          lib: "Mohawk"
+          lib_opac: "Mohawk"
+
+        - category: "LANG"
+          authorised_value: "mon"
+          lib: "Mongolian"
+          lib_opac: "Mongolian"
+
+        - category: "LANG"
+          authorised_value: "mos"
+          lib: "Mossi"
+          lib_opac: "Mossi"
+
+        - category: "LANG"
+          authorised_value: "mul"
+          lib: "Multiple languages"
+          lib_opac: "Multiple languages"
+
+        - category: "LANG"
+          authorised_value: "mun"
+          lib: "Munda languages"
+          lib_opac: "Munda languages"
+
+        - category: "LANG"
+          authorised_value: "mus"
+          lib: "Creek"
+          lib_opac: "Creek"
+
+        - category: "LANG"
+          authorised_value: "mwl"
+          lib: "Mirandese"
+          lib_opac: "Mirandese"
+
+        - category: "LANG"
+          authorised_value: "mwr"
+          lib: "Marwari"
+          lib_opac: "Marwari"
+
+        - category: "LANG"
+          authorised_value: "myn"
+          lib: "Mayan languages"
+          lib_opac: "Mayan languages"
+
+        - category: "LANG"
+          authorised_value: "myv"
+          lib: "Erzya"
+          lib_opac: "Erzya"
+
+        - category: "LANG"
+          authorised_value: "nah"
+          lib: "Nahuatl languages"
+          lib_opac: "Nahuatl languages"
+
+        - category: "LANG"
+          authorised_value: "nai"
+          lib: "North American Indian languages"
+          lib_opac: "North American Indian languages"
+
+        - category: "LANG"
+          authorised_value: "nap"
+          lib: "Neapolitan"
+          lib_opac: "Neapolitan"
+
+        - category: "LANG"
+          authorised_value: "nau"
+          lib: "Nauru"
+          lib_opac: "Nauru"
+
+        - category: "LANG"
+          authorised_value: "nav"
+          lib: "Navajo; Navaho"
+          lib_opac: "Navajo; Navaho"
+
+        - category: "LANG"
+          authorised_value: "nbl"
+          lib: "Ndebele, South; South Ndebele"
+          lib_opac: "Ndebele, South; South Ndebele"
+
+        - category: "LANG"
+          authorised_value: "nde"
+          lib: "Ndebele, North; North Ndebele"
+          lib_opac: "Ndebele, North; North Ndebele"
+
+        - category: "LANG"
+          authorised_value: "ndo"
+          lib: "Ndonga"
+          lib_opac: "Ndonga"
+
+        - category: "LANG"
+          authorised_value: "nds"
+          lib: "Low German; Low Saxon; German, Low; Saxon, Low"
+          lib_opac: "Low German; Low Saxon; German, Low; Saxon, Low"
+
+        - category: "LANG"
+          authorised_value: "nep"
+          lib: "Nepali"
+          lib_opac: "Nepali"
+
+        - category: "LANG"
+          authorised_value: "new"
+          lib: "Nepal Bhasa; Newari"
+          lib_opac: "Nepal Bhasa; Newari"
+
+        - category: "LANG"
+          authorised_value: "nia"
+          lib: "Nias"
+          lib_opac: "Nias"
+
+        - category: "LANG"
+          authorised_value: "nic"
+          lib: "Niger-Kordofanian languages"
+          lib_opac: "Niger-Kordofanian languages"
+
+        - category: "LANG"
+          authorised_value: "niu"
+          lib: "Niuean"
+          lib_opac: "Niuean"
+
+        - category: "LANG"
+          authorised_value: "nno"
+          lib: "Norwegian Nynorsk; Nynorsk, Norwegian"
+          lib_opac: "Norwegian Nynorsk; Nynorsk, Norwegian"
+
+        - category: "LANG"
+          authorised_value: "nob"
+          lib: "Bokmål, Norwegian; Norwegian Bokmål"
+          lib_opac: "Bokmål, Norwegian; Norwegian Bokmål"
+
+        - category: "LANG"
+          authorised_value: "nog"
+          lib: "Nogai"
+          lib_opac: "Nogai"
+
+        - category: "LANG"
+          authorised_value: "non"
+          lib: "Norse, Old"
+          lib_opac: "Norse, Old"
+
+        - category: "LANG"
+          authorised_value: "nor"
+          lib: "Norwegian"
+          lib_opac: "Norwegian"
+
+        - category: "LANG"
+          authorised_value: "nqo"
+          lib: "N'Ko"
+          lib_opac: "N'Ko"
+
+        - category: "LANG"
+          authorised_value: "nso"
+          lib: "Pedi; Sepedi; Northern Sotho"
+          lib_opac: "Pedi; Sepedi; Northern Sotho"
+
+        - category: "LANG"
+          authorised_value: "nub"
+          lib: "Nubian languages"
+          lib_opac: "Nubian languages"
+
+        - category: "LANG"
+          authorised_value: "nwc"
+          lib: "Classical Newari; Old Newari; Classical Nepal Bhasa"
+          lib_opac: "Classical Newari; Old Newari; Classical Nepal Bhasa"
+
+        - category: "LANG"
+          authorised_value: "nya"
+          lib: "Chichewa; Chewa; Nyanja"
+          lib_opac: "Chichewa; Chewa; Nyanja"
+
+        - category: "LANG"
+          authorised_value: "nym"
+          lib: "Nyamwezi"
+          lib_opac: "Nyamwezi"
+
+        - category: "LANG"
+          authorised_value: "nyn"
+          lib: "Nyankole"
+          lib_opac: "Nyankole"
+
+        - category: "LANG"
+          authorised_value: "nyo"
+          lib: "Nyoro"
+          lib_opac: "Nyoro"
+
+        - category: "LANG"
+          authorised_value: "nzi"
+          lib: "Nzima"
+          lib_opac: "Nzima"
+
+        - category: "LANG"
+          authorised_value: "oci"
+          lib: "Occitan (post 1500)"
+          lib_opac: "Occitan (post 1500)"
+
+        - category: "LANG"
+          authorised_value: "oji"
+          lib: "Ojibwa"
+          lib_opac: "Ojibwa"
+
+        - category: "LANG"
+          authorised_value: "ori"
+          lib: "Oriya"
+          lib_opac: "Oriya"
+
+        - category: "LANG"
+          authorised_value: "orm"
+          lib: "Oromo"
+          lib_opac: "Oromo"
+
+        - category: "LANG"
+          authorised_value: "osa"
+          lib: "Osage"
+          lib_opac: "Osage"
+
+        - category: "LANG"
+          authorised_value: "oss"
+          lib: "Ossetian; Ossetic"
+          lib_opac: "Ossetian; Ossetic"
+
+        - category: "LANG"
+          authorised_value: "ota"
+          lib: "Turkish, Ottoman (1500-1928)"
+          lib_opac: "Turkish, Ottoman (1500-1928)"
+
+        - category: "LANG"
+          authorised_value: "oto"
+          lib: "Otomian languages"
+          lib_opac: "Otomian languages"
+
+        - category: "LANG"
+          authorised_value: "paa"
+          lib: "Papuan languages"
+          lib_opac: "Papuan languages"
+
+        - category: "LANG"
+          authorised_value: "pag"
+          lib: "Pangasinan"
+          lib_opac: "Pangasinan"
+
+        - category: "LANG"
+          authorised_value: "pal"
+          lib: "Pahlavi"
+          lib_opac: "Pahlavi"
+
+        - category: "LANG"
+          authorised_value: "pam"
+          lib: "Pampanga; Kapampangan"
+          lib_opac: "Pampanga; Kapampangan"
+
+        - category: "LANG"
+          authorised_value: "pan"
+          lib: "Panjabi; Punjabi"
+          lib_opac: "Panjabi; Punjabi"
+
+        - category: "LANG"
+          authorised_value: "pap"
+          lib: "Papiamento"
+          lib_opac: "Papiamento"
+
+        - category: "LANG"
+          authorised_value: "pau"
+          lib: "Palauan"
+          lib_opac: "Palauan"
+
+        - category: "LANG"
+          authorised_value: "peo"
+          lib: "Persian, Old (ca.600-400 B.C.)"
+          lib_opac: "Persian, Old (ca.600-400 B.C.)"
+
+        - category: "LANG"
+          authorised_value: "per"
+          lib: "Persian"
+          lib_opac: "Persian"
+
+        - category: "LANG"
+          authorised_value: "phi"
+          lib: "Philippine languages"
+          lib_opac: "Philippine languages"
+
+        - category: "LANG"
+          authorised_value: "phn"
+          lib: "Phoenician"
+          lib_opac: "Phoenician"
+
+        - category: "LANG"
+          authorised_value: "pli"
+          lib: "Pali"
+          lib_opac: "Pali"
+
+        - category: "LANG"
+          authorised_value: "pol"
+          lib: "Polish"
+          lib_opac: "Polish"
+
+        - category: "LANG"
+          authorised_value: "pon"
+          lib: "Pohnpeian"
+          lib_opac: "Pohnpeian"
+
+        - category: "LANG"
+          authorised_value: "por"
+          lib: "Portuguese"
+          lib_opac: "Portuguese"
+
+        - category: "LANG"
+          authorised_value: "pra"
+          lib: "Prakrit languages"
+          lib_opac: "Prakrit languages"
+
+        - category: "LANG"
+          authorised_value: "pro"
+          lib: "Provençal, Old (to 1500);Occitan, Old (to 1500)"
+          lib_opac: "Provençal, Old (to 1500);Occitan, Old (to 1500)"
+
+        - category: "LANG"
+          authorised_value: "pus"
+          lib: "Pushto; Pashto"
+          lib_opac: "Pushto; Pashto"
+
+        - category: "LANG"
+          authorised_value: "qaa-qtz"
+          lib: "Reserved for local use"
+          lib_opac: "Reserved for local use"
+
+        - category: "LANG"
+          authorised_value: "que"
+          lib: "Quechua"
+          lib_opac: "Quechua"
+
+        - category: "LANG"
+          authorised_value: "raj"
+          lib: "Rajasthani"
+          lib_opac: "Rajasthani"
+
+        - category: "LANG"
+          authorised_value: "rap"
+          lib: "Rapanui"
+          lib_opac: "Rapanui"
+
+        - category: "LANG"
+          authorised_value: "rar"
+          lib: "Rarotongan; Cook Islands Maori"
+          lib_opac: "Rarotongan; Cook Islands Maori"
+
+        - category: "LANG"
+          authorised_value: "roa"
+          lib: "Romance languages"
+          lib_opac: "Romance languages"
+
+        - category: "LANG"
+          authorised_value: "roh"
+          lib: "Romansh"
+          lib_opac: "Romansh"
+
+        - category: "LANG"
+          authorised_value: "rom"
+          lib: "Romany"
+          lib_opac: "Romany"
+
+        - category: "LANG"
+          authorised_value: "rum"
+          lib: "Romanian; Moldavian; Moldovan"
+          lib_opac: "Romanian; Moldavian; Moldovan"
+
+        - category: "LANG"
+          authorised_value: "run"
+          lib: "Rundi"
+          lib_opac: "Rundi"
+
+        - category: "LANG"
+          authorised_value: "rup"
+          lib: "Aromanian; Arumanian; Macedo-Romanian"
+          lib_opac: "Aromanian; Arumanian; Macedo-Romanian"
+
+        - category: "LANG"
+          authorised_value: "rus"
+          lib: "Russian"
+          lib_opac: "Russian"
+
+        - category: "LANG"
+          authorised_value: "sad"
+          lib: "Sandawe"
+          lib_opac: "Sandawe"
+
+        - category: "LANG"
+          authorised_value: "sag"
+          lib: "Sango"
+          lib_opac: "Sango"
+
+        - category: "LANG"
+          authorised_value: "sah"
+          lib: "Yakut"
+          lib_opac: "Yakut"
+
+        - category: "LANG"
+          authorised_value: "sai"
+          lib: "South American Indian languages"
+          lib_opac: "South American Indian languages"
+
+        - category: "LANG"
+          authorised_value: "sal"
+          lib: "Salishan languages"
+          lib_opac: "Salishan languages"
+
+        - category: "LANG"
+          authorised_value: "sam"
+          lib: "Samaritan Aramaic"
+          lib_opac: "Samaritan Aramaic"
+
+        - category: "LANG"
+          authorised_value: "san"
+          lib: "Sanskrit"
+          lib_opac: "Sanskrit"
+
+        - category: "LANG"
+          authorised_value: "sas"
+          lib: "Sasak"
+          lib_opac: "Sasak"
+
+        - category: "LANG"
+          authorised_value: "sat"
+          lib: "Santali"
+          lib_opac: "Santali"
+
+        - category: "LANG"
+          authorised_value: "scn"
+          lib: "Sicilian"
+          lib_opac: "Sicilian"
+
+        - category: "LANG"
+          authorised_value: "sco"
+          lib: "Scots"
+          lib_opac: "Scots"
+
+        - category: "LANG"
+          authorised_value: "sel"
+          lib: "Selkup"
+          lib_opac: "Selkup"
+
+        - category: "LANG"
+          authorised_value: "sem"
+          lib: "Semitic languages"
+          lib_opac: "Semitic languages"
+
+        - category: "LANG"
+          authorised_value: "sga"
+          lib: "Irish, Old (to 900)"
+          lib_opac: "Irish, Old (to 900)"
+
+        - category: "LANG"
+          authorised_value: "sgn"
+          lib: "Sign Languages"
+          lib_opac: "Sign Languages"
+
+        - category: "LANG"
+          authorised_value: "shn"
+          lib: "Shan"
+          lib_opac: "Shan"
+
+        - category: "LANG"
+          authorised_value: "sid"
+          lib: "Sidamo"
+          lib_opac: "Sidamo"
+
+        - category: "LANG"
+          authorised_value: "sin"
+          lib: "Sinhala; Sinhalese"
+          lib_opac: "Sinhala; Sinhalese"
+
+        - category: "LANG"
+          authorised_value: "sio"
+          lib: "Siouan languages"
+          lib_opac: "Siouan languages"
+
+        - category: "LANG"
+          authorised_value: "sit"
+          lib: "Sino-Tibetan languages"
+          lib_opac: "Sino-Tibetan languages"
+
+        - category: "LANG"
+          authorised_value: "sla"
+          lib: "Slavic languages"
+          lib_opac: "Slavic languages"
+
+        - category: "LANG"
+          authorised_value: "slo"
+          lib: "Slovak"
+          lib_opac: "Slovak"
+
+        - category: "LANG"
+          authorised_value: "slv"
+          lib: "Slovenian"
+          lib_opac: "Slovenian"
+
+        - category: "LANG"
+          authorised_value: "sma"
+          lib: "Southern Sami"
+          lib_opac: "Southern Sami"
+
+        - category: "LANG"
+          authorised_value: "sme"
+          lib: "Northern Sami"
+          lib_opac: "Northern Sami"
+
+        - category: "LANG"
+          authorised_value: "smi"
+          lib: "Sami languages"
+          lib_opac: "Sami languages"
+
+        - category: "LANG"
+          authorised_value: "smj"
+          lib: "Lule Sami"
+          lib_opac: "Lule Sami"
+
+        - category: "LANG"
+          authorised_value: "smn"
+          lib: "Inari Sami"
+          lib_opac: "Inari Sami"
+
+        - category: "LANG"
+          authorised_value: "smo"
+          lib: "Samoan"
+          lib_opac: "Samoan"
+
+        - category: "LANG"
+          authorised_value: "sms"
+          lib: "Skolt Sami"
+          lib_opac: "Skolt Sami"
+
+        - category: "LANG"
+          authorised_value: "sna"
+          lib: "Shona"
+          lib_opac: "Shona"
+
+        - category: "LANG"
+          authorised_value: "snd"
+          lib: "Sindhi"
+          lib_opac: "Sindhi"
+
+        - category: "LANG"
+          authorised_value: "snk"
+          lib: "Soninke"
+          lib_opac: "Soninke"
+
+        - category: "LANG"
+          authorised_value: "sog"
+          lib: "Sogdian"
+          lib_opac: "Sogdian"
+
+        - category: "LANG"
+          authorised_value: "som"
+          lib: "Somali"
+          lib_opac: "Somali"
+
+        - category: "LANG"
+          authorised_value: "son"
+          lib: "Songhai languages"
+          lib_opac: "Songhai languages"
+
+        - category: "LANG"
+          authorised_value: "sot"
+          lib: "Sotho, Southern"
+          lib_opac: "Sotho, Southern"
+
+        - category: "LANG"
+          authorised_value: "spa"
+          lib: "Spanish; Castilian"
+          lib_opac: "Spanish; Castilian"
+
+        - category: "LANG"
+          authorised_value: "srd"
+          lib: "Sardinian"
+          lib_opac: "Sardinian"
+
+        - category: "LANG"
+          authorised_value: "srn"
+          lib: "Sranan Tongo"
+          lib_opac: "Sranan Tongo"
+
+        - category: "LANG"
+          authorised_value: "srp"
+          lib: "Serbian"
+          lib_opac: "Serbian"
+
+        - category: "LANG"
+          authorised_value: "srr"
+          lib: "Serer"
+          lib_opac: "Serer"
+
+        - category: "LANG"
+          authorised_value: "ssa"
+          lib: "Nilo-Saharan languages"
+          lib_opac: "Nilo-Saharan languages"
+
+        - category: "LANG"
+          authorised_value: "ssw"
+          lib: "Swati"
+          lib_opac: "Swati"
+
+        - category: "LANG"
+          authorised_value: "suk"
+          lib: "Sukuma"
+          lib_opac: "Sukuma"
+
+        - category: "LANG"
+          authorised_value: "sun"
+          lib: "Sundanese"
+          lib_opac: "Sundanese"
+
+        - category: "LANG"
+          authorised_value: "sus"
+          lib: "Susu"
+          lib_opac: "Susu"
+
+        - category: "LANG"
+          authorised_value: "sux"
+          lib: "Sumerian"
+          lib_opac: "Sumerian"
+
+        - category: "LANG"
+          authorised_value: "swa"
+          lib: "Swahili"
+          lib_opac: "Swahili"
+
+        - category: "LANG"
+          authorised_value: "swe"
+          lib: "Swedish"
+          lib_opac: "Swedish"
+
+        - category: "LANG"
+          authorised_value: "syc"
+          lib: "Classical Syriac"
+          lib_opac: "Classical Syriac"
+
+        - category: "LANG"
+          authorised_value: "syr"
+          lib: "Syriac"
+          lib_opac: "Syriac"
+
+        - category: "LANG"
+          authorised_value: "tah"
+          lib: "Tahitian"
+          lib_opac: "Tahitian"
+
+        - category: "LANG"
+          authorised_value: "tai"
+          lib: "Tai languages"
+          lib_opac: "Tai languages"
+
+        - category: "LANG"
+          authorised_value: "tam"
+          lib: "Tamil"
+          lib_opac: "Tamil"
+
+        - category: "LANG"
+          authorised_value: "tat"
+          lib: "Tatar"
+          lib_opac: "Tatar"
+
+        - category: "LANG"
+          authorised_value: "tel"
+          lib: "Telugu"
+          lib_opac: "Telugu"
+
+        - category: "LANG"
+          authorised_value: "tem"
+          lib: "Timne"
+          lib_opac: "Timne"
+
+        - category: "LANG"
+          authorised_value: "ter"
+          lib: "Tereno"
+          lib_opac: "Tereno"
+
+        - category: "LANG"
+          authorised_value: "tet"
+          lib: "Tetum"
+          lib_opac: "Tetum"
+
+        - category: "LANG"
+          authorised_value: "tgk"
+          lib: "Tajik"
+          lib_opac: "Tajik"
+
+        - category: "LANG"
+          authorised_value: "tgl"
+          lib: "Tagalog"
+          lib_opac: "Tagalog"
+
+        - category: "LANG"
+          authorised_value: "tha"
+          lib: "Thai"
+          lib_opac: "Thai"
+
+        - category: "LANG"
+          authorised_value: "tib"
+          lib: "Tibetan"
+          lib_opac: "Tibetan"
+
+        - category: "LANG"
+          authorised_value: "tig"
+          lib: "Tigre"
+          lib_opac: "Tigre"
+
+        - category: "LANG"
+          authorised_value: "tir"
+          lib: "Tigrinya"
+          lib_opac: "Tigrinya"
+
+        - category: "LANG"
+          authorised_value: "tiv"
+          lib: "Tiv"
+          lib_opac: "Tiv"
+
+        - category: "LANG"
+          authorised_value: "tkl"
+          lib: "Tokelau"
+          lib_opac: "Tokelau"
+
+        - category: "LANG"
+          authorised_value: "tlh"
+          lib: "Klingon; tlhIngan-Hol"
+          lib_opac: "Klingon; tlhIngan-Hol"
+
+        - category: "LANG"
+          authorised_value: "tli"
+          lib: "Tlingit"
+          lib_opac: "Tlingit"
+
+        - category: "LANG"
+          authorised_value: "tmh"
+          lib: "Tamashek"
+          lib_opac: "Tamashek"
+
+        - category: "LANG"
+          authorised_value: "tog"
+          lib: "Tonga (Nyasa)"
+          lib_opac: "Tonga (Nyasa)"
+
+        - category: "LANG"
+          authorised_value: "ton"
+          lib: "Tonga (Tonga Islands)"
+          lib_opac: "Tonga (Tonga Islands)"
+
+        - category: "LANG"
+          authorised_value: "tpi"
+          lib: "Tok Pisin"
+          lib_opac: "Tok Pisin"
+
+        - category: "LANG"
+          authorised_value: "tsi"
+          lib: "Tsimshian"
+          lib_opac: "Tsimshian"
+
+        - category: "LANG"
+          authorised_value: "tsn"
+          lib: "Tswana"
+          lib_opac: "Tswana"
+
+        - category: "LANG"
+          authorised_value: "tso"
+          lib: "Tsonga"
+          lib_opac: "Tsonga"
+
+        - category: "LANG"
+          authorised_value: "tuk"
+          lib: "Turkmen"
+          lib_opac: "Turkmen"
+
+        - category: "LANG"
+          authorised_value: "tum"
+          lib: "Tumbuka"
+          lib_opac: "Tumbuka"
+
+        - category: "LANG"
+          authorised_value: "tup"
+          lib: "Tupi languages"
+          lib_opac: "Tupi languages"
+
+        - category: "LANG"
+          authorised_value: "tur"
+          lib: "Turkish"
+          lib_opac: "Turkish"
+
+        - category: "LANG"
+          authorised_value: "tut"
+          lib: "Altaic languages"
+          lib_opac: "Altaic languages"
+
+        - category: "LANG"
+          authorised_value: "tvl"
+          lib: "Tuvalu"
+          lib_opac: "Tuvalu"
+
+        - category: "LANG"
+          authorised_value: "twi"
+          lib: "Twi"
+          lib_opac: "Twi"
+
+        - category: "LANG"
+          authorised_value: "tyv"
+          lib: "Tuvinian"
+          lib_opac: "Tuvinian"
+
+        - category: "LANG"
+          authorised_value: "udm"
+          lib: "Udmurt"
+          lib_opac: "Udmurt"
+
+        - category: "LANG"
+          authorised_value: "uga"
+          lib: "Ugaritic"
+          lib_opac: "Ugaritic"
+
+        - category: "LANG"
+          authorised_value: "uig"
+          lib: "Uighur; Uyghur"
+          lib_opac: "Uighur; Uyghur"
+
+        - category: "LANG"
+          authorised_value: "ukr"
+          lib: "Ukrainian"
+          lib_opac: "Ukrainian"
+
+        - category: "LANG"
+          authorised_value: "umb"
+          lib: "Umbundu"
+          lib_opac: "Umbundu"
+
+        - category: "LANG"
+          authorised_value: "und"
+          lib: "Undetermined"
+          lib_opac: "Undetermined"
+
+        - category: "LANG"
+          authorised_value: "urd"
+          lib: "Urdu"
+          lib_opac: "Urdu"
+
+        - category: "LANG"
+          authorised_value: "uzb"
+          lib: "Uzbek"
+          lib_opac: "Uzbek"
+
+        - category: "LANG"
+          authorised_value: "vai"
+          lib: "Vai"
+          lib_opac: "Vai"
+
+        - category: "LANG"
+          authorised_value: "ven"
+          lib: "Venda"
+          lib_opac: "Venda"
+
+        - category: "LANG"
+          authorised_value: "vie"
+          lib: "Vietnamese"
+          lib_opac: "Vietnamese"
+
+        - category: "LANG"
+          authorised_value: "vol"
+          lib: "Volapük"
+          lib_opac: "Volapük"
+
+        - category: "LANG"
+          authorised_value: "vot"
+          lib: "Votic"
+          lib_opac: "Votic"
+
+        - category: "LANG"
+          authorised_value: "wak"
+          lib: "Wakashan languages"
+          lib_opac: "Wakashan languages"
+
+        - category: "LANG"
+          authorised_value: "wal"
+          lib: "Wolaitta; Wolaytta"
+          lib_opac: "Wolaitta; Wolaytta"
+
+        - category: "LANG"
+          authorised_value: "war"
+          lib: "Waray"
+          lib_opac: "Waray"
+
+        - category: "LANG"
+          authorised_value: "was"
+          lib: "Washo"
+          lib_opac: "Washo"
+
+        - category: "LANG"
+          authorised_value: "wel"
+          lib: "Welsh"
+          lib_opac: "Welsh"
+
+        - category: "LANG"
+          authorised_value: "wen"
+          lib: "Sorbian languages"
+          lib_opac: "Sorbian languages"
+
+        - category: "LANG"
+          authorised_value: "wln"
+          lib: "Walloon"
+          lib_opac: "Walloon"
+
+        - category: "LANG"
+          authorised_value: "wol"
+          lib: "Wolof"
+          lib_opac: "Wolof"
+
+        - category: "LANG"
+          authorised_value: "xal"
+          lib: "Kalmyk; Oirat"
+          lib_opac: "Kalmyk; Oirat"
+
+        - category: "LANG"
+          authorised_value: "xho"
+          lib: "Xhosa"
+          lib_opac: "Xhosa"
+
+        - category: "LANG"
+          authorised_value: "yao"
+          lib: "Yao"
+          lib_opac: "Yao"
+
+        - category: "LANG"
+          authorised_value: "yap"
+          lib: "Yapese"
+          lib_opac: "Yapese"
+
+        - category: "LANG"
+          authorised_value: "yid"
+          lib: "Yiddish"
+          lib_opac: "Yiddish"
+
+        - category: "LANG"
+          authorised_value: "yor"
+          lib: "Yoruba"
+          lib_opac: "Yoruba"
+
+        - category: "LANG"
+          authorised_value: "ypk"
+          lib: "Yupik languages"
+          lib_opac: "Yupik languages"
+
+        - category: "LANG"
+          authorised_value: "zap"
+          lib: "Zapotec"
+          lib_opac: "Zapotec"
+
+        - category: "LANG"
+          authorised_value: "zbl"
+          lib: "Blissymbols; Blissymbolics; Bliss"
+          lib_opac: "Blissymbols; Blissymbolics; Bliss"
+
+        - category: "LANG"
+          authorised_value: "zen"
+          lib: "Zenaga"
+          lib_opac: "Zenaga"
+
+        - category: "LANG"
+          authorised_value: "zgh"
+          lib: "Standard Moroccan Tamazight"
+          lib_opac: "Standard Moroccan Tamazight"
+
+        - category: "LANG"
+          authorised_value: "zha"
+          lib: "Zhuang; Chuang"
+          lib_opac: "Zhuang; Chuang"
+
+        - category: "LANG"
+          authorised_value: "znd"
+          lib: "Zande languages"
+          lib_opac: "Zande languages"
+
+        - category: "LANG"
+          authorised_value: "zul"
+          lib: "Zulu"
+          lib_opac: "Zulu"
+
+        - category: "LANG"
+          authorised_value: "zun"
+          lib: "Zuni"
+          lib_opac: "Zuni"
+
+        - category: "LANG"
+          authorised_value: "zxx"
+          lib: "No linguistic content; Not applicable"
+          lib_opac: "No linguistic content; Not applicable"
+
+        - category: "LANG"
+          authorised_value: "zza"
+          lib: "Zaza; Dimili; Dimli; Kirdki; Kirmanjki; Zazaki"
+          lib_opac: "Zaza; Dimili; Dimli; Kirdki; Kirmanjki; Zazaki"
+
+  # UNIMARC relator codes (update 2020)
+  - authorised_values:
+      translatable: [ lib, lib_opac ]
+      multiline: []
+      rows:
+        - category: "qualif"
+          authorised_value: "000"
+          lib: "Undetermined function"
+          lib_opac: "Undetermined function"
+
+        - category: "qualif"
+          authorised_value: "005"
+          lib: "Actor"
+          lib_opac: "Actor"
+
+        - category: "qualif"
+          authorised_value: "010"
+          lib: "Adapter"
+          lib_opac: "Adapter"
+
+        - category: "qualif"
+          authorised_value: "015"
+          lib: "Agency making a reproduction available"
+          lib_opac: "Agency making a reproduction available"
+
+        - category: "qualif"
+          authorised_value: "018"
+          lib: "Animator"
+          lib_opac: "Animator"
+
+        - category: "qualif"
+          authorised_value: "020"
+          lib: "Annotator"
+          lib_opac: "Annotator"
+
+        - category: "qualif"
+          authorised_value: "030"
+          lib: "Arranger"
+          lib_opac: "Arranger"
+
+        - category: "qualif"
+          authorised_value: "040"
+          lib: "Artist"
+          lib_opac: "Artist"
+
+        - category: "qualif"
+          authorised_value: "050"
+          lib: "Assignee"
+          lib_opac: "Assignee"
+
+        - category: "qualif"
+          authorised_value: "060"
+          lib: "Associated name"
+          lib_opac: "Associated name"
+
+        - category: "qualif"
+          authorised_value: "062"
+          lib: "Author, attributed"
+          lib_opac: "Author, attributed"
+
+        - category: "qualif"
+          authorised_value: "065"
+          lib: "Auctioneer"
+          lib_opac: "Auctioneer"
+
+        - category: "qualif"
+          authorised_value: "070"
+          lib: "Author"
+          lib_opac: "Author"
+
+        - category: "qualif"
+          authorised_value: "072"
+          lib: "Author in quotations or text extracts"
+          lib_opac: "Author in quotations or text extracts"
+
+        - category: "qualif"
+          authorised_value: "075"
+          lib: "Author of afterword, postface, colophon, etc."
+          lib_opac: "Author of afterword, postface, colophon, etc."
+
+        - category: "qualif"
+          authorised_value: "080"
+          lib: "Author of introduction, etc."
+          lib_opac: "Author of introduction, etc."
+
+        - category: "qualif"
+          authorised_value: "090"
+          lib: "Author of dialogue"
+          lib_opac: "Author of dialogue"
+
+        - category: "qualif"
+          authorised_value: "100"
+          lib: "Bibliographic antecedent"
+          lib_opac: "Bibliographic antecedent"
+
+        - category: "qualif"
+          authorised_value: "110"
+          lib: "Binder an agent who binds an item."
+          lib_opac: "Binder an agent who binds an item."
+
+        - category: "qualif"
+          authorised_value: "120"
+          lib: "Binding designer"
+          lib_opac: "Binding designer"
+
+        - category: "qualif"
+          authorised_value: "130"
+          lib: "Book designer"
+          lib_opac: "Book designer"
+
+        - category: "qualif"
+          authorised_value: "140"
+          lib: "Bookjacket designer"
+          lib_opac: "Bookjacket designer"
+
+        - category: "qualif"
+          authorised_value: "150"
+          lib: "Bookplate designer"
+          lib_opac: "Bookplate designer"
+
+        - category: "qualif"
+          authorised_value: "160"
+          lib: "Bookseller"
+          lib_opac: "Bookseller"
+
+        - category: "qualif"
+          authorised_value: "170"
+          lib: "Calligrapher"
+          lib_opac: "Calligrapher"
+
+        - category: "qualif"
+          authorised_value: "180"
+          lib: "Cartographer"
+          lib_opac: "Cartographer"
+
+        - category: "qualif"
+          authorised_value: "190"
+          lib: "Censor"
+          lib_opac: "Censor"
+
+        - category: "qualif"
+          authorised_value: "195"
+          lib: "Choral director"
+          lib_opac: "Choral director"
+
+        - category: "qualif"
+          authorised_value: "200"
+          lib: "Choreographer"
+          lib_opac: "Choreographer"
+
+        - category: "qualif"
+          authorised_value: "202"
+          lib: "Circus performer"
+          lib_opac: "Circus performer"
+
+        - category: "qualif"
+          authorised_value: "205"
+          lib: "Collaborator"
+          lib_opac: "Collaborator"
+
+        - category: "qualif"
+          authorised_value: "206"
+          lib: "Collector of field material"
+          lib_opac: "Collector of field material"
+
+        - category: "qualif"
+          authorised_value: "207"
+          lib: "Comedian"
+          lib_opac: "Comedian"
+
+        - category: "qualif"
+          authorised_value: "210"
+          lib: "Commentator"
+          lib_opac: "Commentator"
+
+        - category: "qualif"
+          authorised_value: "212"
+          lib: "Commentator for written text"
+          lib_opac: "Commentator for written text"
+
+        - category: "qualif"
+          authorised_value: "220"
+          lib: "Compiler"
+          lib_opac: "Compiler"
+
+        - category: "qualif"
+          authorised_value: "230"
+          lib: "Composer"
+          lib_opac: "Composer"
+
+        - category: "qualif"
+          authorised_value: "233"
+          lib: "Composer of adapted work"
+          lib_opac: "Composer of adapted work"
+
+        - category: "qualif"
+          authorised_value: "236"
+          lib: "Composer of main musical work"
+          lib_opac: "Composer of main musical work"
+
+        - category: "qualif"
+          authorised_value: "240"
+          lib: "Compositor"
+          lib_opac: "Compositor"
+
+        - category: "qualif"
+          authorised_value: "245"
+          lib: "Conceptor"
+          lib_opac: "Conceptor"
+
+        - category: "qualif"
+          authorised_value: "250"
+          lib: "Conductor"
+          lib_opac: "Conductor"
+
+        - category: "qualif"
+          authorised_value: "255"
+          lib: "Consultant to a project"
+          lib_opac: "Consultant to a project"
+
+        - category: "qualif"
+          authorised_value: "257"
+          lib: "Continuator"
+          lib_opac: "Continuator"
+
+        - category: "qualif"
+          authorised_value: "260"
+          lib: "Copyright holder"
+          lib_opac: "Copyright holder"
+
+        - category: "qualif"
+          authorised_value: "270"
+          lib: "Corrector"
+          lib_opac: "Corrector"
+
+        - category: "qualif"
+          authorised_value: "273"
+          lib: "Curator of an exhibition"
+          lib_opac: "Curator of an exhibition"
+
+        - category: "qualif"
+          authorised_value: "275"
+          lib: "Dancer"
+          lib_opac: "Dancer"
+
+        - category: "qualif"
+          authorised_value: "280"
+          lib: "Dedicatee"
+          lib_opac: "Dedicatee"
+
+        - category: "qualif"
+          authorised_value: "290"
+          lib: "Dedicator"
+          lib_opac: "Dedicator"
+
+        - category: "qualif"
+          authorised_value: "295"
+          lib: "Degree-grantor"
+          lib_opac: "Degree-grantor"
+
+        - category: "qualif"
+          authorised_value: "300"
+          lib: "Director"
+          lib_opac: "Director"
+
+        - category: "qualif"
+          authorised_value: "303"
+          lib: "Disc jockey"
+          lib_opac: "Disc jockey"
+
+        - category: "qualif"
+          authorised_value: "305"
+          lib: "Dissertant"
+          lib_opac: "Dissertant"
+
+        - category: "qualif"
+          authorised_value: "310"
+          lib: "Distributor"
+          lib_opac: "Distributor"
+
+        - category: "qualif"
+          authorised_value: "320"
+          lib: "Donor"
+          lib_opac: "Donor"
+
+        - category: "qualif"
+          authorised_value: "330"
+          lib: "Dubious author"
+          lib_opac: "Dubious author"
+
+        - category: "qualif"
+          authorised_value: "340"
+          lib: "Editor"
+          lib_opac: "Editor"
+
+        - category: "qualif"
+          authorised_value: "350"
+          lib: "Engraver"
+          lib_opac: "Engraver"
+
+        - category: "qualif"
+          authorised_value: "355"
+          lib: "Epitomator"
+          lib_opac: "Epitomator"
+
+        - category: "qualif"
+          authorised_value: "360"
+          lib: "Etcher"
+          lib_opac: "Etcher"
+
+        - category: "qualif"
+          authorised_value: "365"
+          lib: "Expert"
+          lib_opac: "Expert"
+
+        - category: "qualif"
+          authorised_value: "370"
+          lib: "Film editor"
+          lib_opac: "Film editor"
+
+        - category: "qualif"
+          authorised_value: "380"
+          lib: "Forger"
+          lib_opac: "Forger"
+
+        - category: "qualif"
+          authorised_value: "385"
+          lib: "Former Attributed author"
+          lib_opac: "Former attributed author"
+
+        - category: "qualif"
+          authorised_value: "390"
+          lib: "Former owner"
+          lib_opac: "Former owner"
+
+        - category: "qualif"
+          authorised_value: "395"
+          lib: "Founder"
+          lib_opac: "Founder"
+
+        - category: "qualif"
+          authorised_value: "400"
+          lib: "Funder"
+          lib_opac: "Funder"
+
+        - category: "qualif"
+          authorised_value: "405"
+          lib: "Game designer"
+          lib_opac: "Game designer"
+
+        - category: "qualif"
+          authorised_value: "407"
+          lib: "Glossator"
+          lib_opac: "Glossator"
+
+        - category: "qualif"
+          authorised_value: "410"
+          lib: "Graphic technician"
+          lib_opac: "Graphic technician"
+
+        - category: "qualif"
+          authorised_value: "420"
+          lib: "Honoree"
+          lib_opac: "Honoree"
+
+        - category: "qualif"
+          authorised_value: "430"
+          lib: "Illuminator"
+          lib_opac: "Illuminator"
+
+        - category: "qualif"
+          authorised_value: "440"
+          lib: "Illustrator"
+          lib_opac: "Illustrator"
+
+        - category: "qualif"
+          authorised_value: "445"
+          lib: "Impresario"
+          lib_opac: "Impresario"
+
+        - category: "qualif"
+          authorised_value: "450"
+          lib: "Inscriber"
+          lib_opac: "Inscriber"
+
+        - category: "qualif"
+          authorised_value: "460"
+          lib: "Interviewee"
+          lib_opac: "Interviewee"
+
+        - category: "qualif"
+          authorised_value: "470"
+          lib: "Interviewer"
+          lib_opac: "Interviewer"
+
+        - category: "qualif"
+          authorised_value: "475"
+          lib: "Issuing body"
+          lib_opac: "Issuing body"
+
+        - category: "qualif"
+          authorised_value: "480"
+          lib: "Librettist"
+          lib_opac: "Librettist"
+
+        - category: "qualif"
+          authorised_value: "490"
+          lib: "Licensee"
+          lib_opac: "Licensee"
+
+        - category: "qualif"
+          authorised_value: "500"
+          lib: "Licensor"
+          lib_opac: "Licensor"
+
+        - category: "qualif"
+          authorised_value: "510"
+          lib: "Lithographer"
+          lib_opac: "Lithographer"
+
+        - category: "qualif"
+          authorised_value: "520"
+          lib: "Lyricist"
+          lib_opac: "Lyricist"
+
+        - category: "qualif"
+          authorised_value: "530"
+          lib: "Metal-engraver"
+          lib_opac: "Metal-engraver"
+
+        - category: "qualif"
+          authorised_value: "535"
+          lib: "Mime artist"
+          lib_opac: "Mime artist"
+
+        - category: "qualif"
+          authorised_value: "540"
+          lib: "Monitor"
+          lib_opac: "Monitor"
+
+        - category: "qualif"
+          authorised_value: "545"
+          lib: "Musician"
+          lib_opac: "Musician"
+
+        - category: "qualif"
+          authorised_value: "550"
+          lib: "Narrator"
+          lib_opac: "Narrator"
+
+        - category: "qualif"
+          authorised_value: "552"
+          lib: "Notary"
+          lib_opac: "Notary"
+
+        - category: "qualif"
+          authorised_value: "555"
+          lib: "Opponent"
+          lib_opac: "Opponent"
+
+        - category: "qualif"
+          authorised_value: "557"
+          lib: "Organiser"
+          lib_opac: "Organiser"
+
+        - category: "qualif"
+          authorised_value: "560"
+          lib: "Originator"
+          lib_opac: "Originator"
+
+        - category: "qualif"
+          authorised_value: "570"
+          lib: "Other"
+          lib_opac: "Other"
+
+        - category: "qualif"
+          authorised_value: "580"
+          lib: "Papermaker"
+          lib_opac: "Papermaker"
+
+        - category: "qualif"
+          authorised_value: "582"
+          lib: "Patent applicant"
+          lib_opac: "Patent applicant"
+
+        - category: "qualif"
+          authorised_value: "584"
+          lib: "Patent inventor"
+          lib_opac: "Patent inventor"
+
+        - category: "qualif"
+          authorised_value: "587"
+          lib: "Patentee"
+          lib_opac: "Patentee"
+
+        - category: "qualif"
+          authorised_value: "590"
+          lib: "Performer"
+          lib_opac: "Performer"
+
+        - category: "qualif"
+          authorised_value: "595"
+          lib: "Performer of research"
+          lib_opac: "Performer of research"
+
+        - category: "qualif"
+          authorised_value: "600"
+          lib: "Photographer"
+          lib_opac: "Photographer"
+
+        - category: "qualif"
+          authorised_value: "605"
+          lib: "Presenter"
+          lib_opac: "Presenter"
+
+        - category: "qualif"
+          authorised_value: "610"
+          lib: "Printer"
+          lib_opac: "Printer"
+
+        - category: "qualif"
+          authorised_value: "620"
+          lib: "Printer of plates"
+          lib_opac: "Printer of plates"
+
+        - category: "qualif"
+          authorised_value: "630"
+          lib: "Producer"
+          lib_opac: "Producer"
+
+        - category: "qualif"
+          authorised_value: "640"
+          lib: "Proof-reader"
+          lib_opac: "Proof-reader"
+
+        - category: "qualif"
+          authorised_value: "650"
+          lib: "Publisher"
+          lib_opac: "Publisher"
+
+        - category: "qualif"
+          authorised_value: "651"
+          lib: "Publishing director"
+          lib_opac: "Publishing director"
+
+        - category: "qualif"
+          authorised_value: "655"
+          lib: "Puppeteer"
+          lib_opac: "Puppeteer"
+
+        - category: "qualif"
+          authorised_value: "660"
+          lib: "Recipient of letters"
+          lib_opac: "Recipient of letters"
+
+        - category: "qualif"
+          authorised_value: "665"
+          lib: "Record producer"
+          lib_opac: "Record producer"
+
+        - category: "qualif"
+          authorised_value: "670"
+          lib: "Recording engineer"
+          lib_opac: "Recording engineer"
+
+        - category: "qualif"
+          authorised_value: "672"
+          lib: "Remixer"
+          lib_opac: "Remixer"
+
+        - category: "qualif"
+          authorised_value: "673"
+          lib: "Research team head"
+          lib_opac: "Research team head"
+
+        - category: "qualif"
+          authorised_value: "677"
+          lib: "Research team member"
+          lib_opac: "Research team member"
+
+        - category: "qualif"
+          authorised_value: "675"
+          lib: "Reviewer"
+          lib_opac: "Reviewer"
+
+        - category: "qualif"
+          authorised_value: "678"
+          lib: "Restorationist"
+          lib_opac: "Restorationist"
+
+        - category: "qualif"
+          authorised_value: "680"
+          lib: "Rubricator"
+          lib_opac: "Rubricator"
+
+        - category: "qualif"
+          authorised_value: "690"
+          lib: "Scenarist"
+          lib_opac: "Scenarist"
+
+        - category: "qualif"
+          authorised_value: "695"
+          lib: "Scientific advisor"
+          lib_opac: "Scientific advisor"
+
+        - category: "qualif"
+          authorised_value: "700"
+          lib: "Scribe"
+          lib_opac: "Scribe"
+
+        - category: "qualif"
+          authorised_value: "705"
+          lib: "Sculptor"
+          lib_opac: "Sculptor"
+
+        - category: "qualif"
+          authorised_value: "710"
+          lib: "Secretary"
+          lib_opac: "Secretary"
+
+        - category: "qualif"
+          authorised_value: "720"
+          lib: "Signer"
+          lib_opac: "Signer"
+
+        - category: "qualif"
+          authorised_value: "721"
+          lib: "Singer"
+          lib_opac: "Singer"
+
+        - category: "qualif"
+          authorised_value: "723"
+          lib: "Sponsor"
+          lib_opac: "Sponsor"
+
+        - category: "qualif"
+          authorised_value: "725"
+          lib: "Standards body"
+          lib_opac: "Standards body"
+
+        - category: "qualif"
+          authorised_value: "726"
+          lib: "Stunt performer"
+          lib_opac: "Stunt performer"
+
+        - category: "qualif"
+          authorised_value: "727"
+          lib: "Thesis advisor"
+          lib_opac: "Thesis advisor"
+
+        - category: "qualif"
+          authorised_value: "730"
+          lib: "Translator"
+          lib_opac: "Translator"
+
+        - category: "qualif"
+          authorised_value: "735"
+          lib: "Transliterator"
+          lib_opac: "Transliterator"
+
+        - category: "qualif"
+          authorised_value: "740"
+          lib: "Type designer"
+          lib_opac: "Type designer"
+
+        - category: "qualif"
+          authorised_value: "750"
+          lib: "Typographer"
+          lib_opac: "Typographer"
+
+        - category: "qualif"
+          authorised_value: "753"
+          lib: "Vendor"
+          lib_opac: "Vendor"
+
+        - category: "qualif"
+          authorised_value: "755"
+          lib: "Vocalist"
+          lib_opac: "Vocalist"
+
+        - category: "qualif"
+          authorised_value: "760"
+          lib: "Wood-engraver"
+          lib_opac: "Wood-engraver"
+
+        - category: "qualif"
+          authorised_value: "770"
+          lib: "Writer of accompanying material"
+          lib_opac: "Writer of accompanying material"

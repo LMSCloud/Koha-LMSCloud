@@ -40,9 +40,9 @@ The first, traditional OO interface provides the following functions:
 
 use strict;
 use warnings;
-use Carp;
-use Scalar::Util qw(blessed);
-use Module::Load::Conditional qw(can_load);
+use Carp qw( croak );
+use Scalar::Util qw( blessed );
+use Module::Load::Conditional qw( can_load );
 use Sereal::Encoder;
 use Sereal::Decoder;
 
@@ -74,8 +74,6 @@ sub new {
 
     my $subnamespace = $params->{subnamespace} // '';
 
-    $ENV{DEBUG} && carp "Default caching system: $self->{'default_type'}";
-
     $self->{'timeout'}   ||= 0;
     # Should we continue to support MEMCACHED ENV vars?
     $self->{'namespace'} ||= $ENV{MEMCACHED_NAMESPACE};
@@ -93,8 +91,6 @@ sub new {
         $self->{'cache'} = $self->{'memcached_cache'};
     }
 
-    $ENV{DEBUG} && carp "Selected caching system: " . ($self->{'cache'} // 'none');
-
     return
       bless $self,
       $class;
@@ -105,11 +101,6 @@ sub _initialize_memcached {
 
     return unless @servers;
 
-    $ENV{DEBUG}
-      && carp "Memcached server settings: "
-      . join( ', ', @servers )
-      . " with "
-      . $self->{'namespace'};
     # Cache::Memcached::Fast::Safe doesn't allow a default expire time to be set
     # so we force it on setting.
     my $memcached = Cache::Memcached::Fast::Safe->new(
@@ -178,7 +169,6 @@ sub set_in_cache {
 
     my $cache = $options->{cache} || 'cache';
     croak "No key" unless $key;
-    $ENV{DEBUG} && carp "set_in_cache for $key";
 
     return unless ( $self->{$cache} && ref( $self->{$cache} ) =~ m/^Cache::/ );
     my $expiry = $options->{expiry};
@@ -247,7 +237,6 @@ sub get_from_cache {
     my $unsafe = $options->{unsafe} || 0;
     $key =~ s/[\x00-\x20]/_/g;
     croak "No key" unless $key;
-    $ENV{DEBUG} && carp "get_from_cache for $key";
     return unless ( $self->{$cache} && ref( $self->{$cache} ) =~ m/^Cache::/ );
 
     # Return L1 cache value if exists

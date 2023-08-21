@@ -96,12 +96,11 @@ h3.collapsed i.fa.fa-caret-down::before {
 	font-weight: normal;
 }
 
-#yui-main {
-	margin-bottom:2em;
-}
 #toolbar.floating {
-    box-shadow: 0 3px 2px 0 rgba(0, 0, 0, 0.5);
     border-radius: 0;
+    box-shadow: 0 0 2px 1px rgba(0,0,0,.4);
+    margin-top: 0;
+    z-index: 100;
 }
 
 .loading {
@@ -177,14 +176,8 @@ span.overridden {
     color: #666;
 }
 #menu ul li.active a.pref_sublink {
-    background: #FFF none;
-    border: 0;
-    color: #004D99;
-    font-size: 100%;
     hyphens:  auto;
     margin: 0;
-    padding: .2em .5em;
-    text-align: right;
 }
 
 #menu ul ul {

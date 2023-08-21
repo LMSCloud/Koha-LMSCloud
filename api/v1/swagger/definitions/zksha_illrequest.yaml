@@ -1,0 +1,171 @@
+---
+type: object
+properties:
+  Art:
+    type:
+      - string
+      - 'null'
+    description: '''RLV-Bestellung'''
+  BestellID:
+    type:
+      - string
+      - 'null'
+    description: zksh_item_order.id (serial)
+  ItemOrderExtid:
+    type:
+      - string
+      - 'null'
+    description: zksh_item_order.extid (UUID) used in CGI calls
+  Bestellnummer:
+    type:
+      - string
+      - 'null'
+    description: zksh_order_item.id (serial)
+  VerfuegbarkeitsSuche:
+    type:
+      - string
+      - 'null'
+    description: JSON containing the search parameters of the availability search
+  BZID:
+    type:
+      - string
+      - 'null'
+    description: title ID of Buechereizentrale Schleswig-Holstein
+  Titel:
+    type:
+      - string
+      - 'null'
+    description: text of ordered title
+  Verfasser:
+    type:
+      - string
+      - 'null'
+    description: author of ordered title
+  ISBD:
+    type:
+      - string
+      - 'null'
+    description: ISBD of ordered title
+  Serientitel:
+    type:
+      - string
+      - 'null'
+    description: series title of ordered title
+  ISBN:
+    type:
+      - string
+      - 'null'
+    description: ISBN/ISSN/EAN of ordered title
+  ISNTyp:
+    type:
+      - string
+      - 'null'
+    description: type of IS*-number of ordered title
+  Medienart:
+    type:
+      - string
+      - 'null'
+    description: the requested media type
+  Interessenkreis:
+    type:
+      - string
+      - 'null'
+    description: the main topic of the requested title
+  VerlagJahrSonst:
+    type:
+      - string
+      - 'null'
+    description: publisher, year or other 
+  LeserName:
+    type:
+      - string
+      - 'null'
+    description: name of ordering borrower
+  LeserNummer:
+    type:
+      - string
+      - 'null'
+    description: number of ordering borrower
+  LeserEmail:
+    type:
+      - string
+      - 'null'
+    description: email of ordering borrower
+  LeserTelNr:
+    type:
+      - string
+      - 'null'
+    description: phone number of ordering borrower
+  LeserAnmerkung:
+    type:
+      - string
+      - 'null'
+    description: note to the of ordering borrower
+  URLzkshBase:
+    type:
+      - string
+      - 'null'
+    description: ZKSH URL base
+  URLzksh:
+    type:
+      - string
+      - 'null'
+    description: ZKSH URL
+  BestelltAm:
+    type:
+      - string
+      - 'null'
+    description: order date
+  BestelltBeiSigel:
+    type:
+      - string
+      - 'null'
+    description: sigel of the library the request gos to
+  BestelltBeiName:
+    type:
+      - string
+      - 'null'
+    description: ordered at
+  BestelltVonSigel:
+    type:
+      - string
+      - 'null'
+    description: sigel of the requesting library
+  BestelltVonName:
+    type:
+      - string
+      - 'null'
+    description: ordered by
+  LieferungGeplant:
+    type:
+      - string
+      - 'null'
+    description: geplantes Datum der Lieferung an die nehmende Bibliothek
+  Lieferweg:
+    type:
+      - string
+      - 'null'
+    description: delivery path
+  VerfuegbarkeitDatum:
+    type:
+      - string
+      - 'null'
+    description: date of delivery
+  VerfuegbarkeitText:
+    type:
+      - string
+      - 'null'
+    description: delivery note
+  Laufzettel:
+    type:
+      - string
+      - 'null'
+    description: processing slip
+additionalProperties: false
+required:
+  - Art
+  - BestellID
+  - ItemOrderExtid
+  - Bestellnummer
+  - BZID
+  - LeserName

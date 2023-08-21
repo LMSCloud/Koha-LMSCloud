@@ -22,11 +22,11 @@ use C4::Context;
 use C4::Biblio qw( AddBiblio );
 use Koha::Database;
 use Koha::Libraries;
-use C4::Calendar;
+use C4::Calendar qw( new insert_single_holiday );
 use Koha::Patrons;
 use Koha::Holds;
 use Koha::Item;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string );
 use t::lib::TestBuilder;
 
 use Test::More tests => 35;

@@ -19,14 +19,13 @@ package Koha::Biblios;
 
 use Modern::Perl;
 
-use Carp;
 
 use Koha::Database;
 
 use Koha::Biblio;
 use Koha::Libraries;
 
-use base qw(Koha::Objects);
+use base qw(Koha::Objects Koha::Objects::Record::Collections);
 
 =head1 NAME
 
@@ -41,12 +40,18 @@ Koha::Biblios - Koha Biblio object set class
     my $biblios = Koha::Biblios->search(...);
     my $pickup_locations = $biblios->pickup_locations({ patron => $patron });
 
-For a given resultset, it returns all the pickup locations
+For a given resultset, it returns all the pickup locations.
+
+Throws a I<Koha::Exceptions::MissingParameter> exception if the B<mandatory> parameter I<patron>
+is not passed.
 
 =cut
 
 sub pickup_locations {
     my ( $self, $params ) = @_;
+
+    Koha::Exceptions::MissingParameter->throw( parameter => 'patron' )
+      unless exists $params->{patron};
 
     my $patron = $params->{patron};
 

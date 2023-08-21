@@ -23,7 +23,6 @@
 
 [% BLOCK jsinclude %]
 <script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/plugins/jquery.deserialize.min.js"></script>
-<script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/plugins/jquery.cookie.min.js"></script>
 <script type="text/javascript">//<![CDATA[
 	function startSearch() {
 

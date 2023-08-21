@@ -7,29 +7,24 @@
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="admin_checkmarc" class="admin">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'prefs-admin-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'prefs-admin-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                MARC check
-                [% IF ( total ) %]
-                    : [% total | html %] errors found
-                [% ELSE %]
-                    : Configuration OK!
-                [% END %]
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            [% IF ( total ) %]
+                <span>MARC check: [% total | html %] errors found</span>
+            [% ELSE %]
+                <span>MARC check: Configuration OK!</span>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
@@ -37,6 +32,8 @@
             <main>
 
 <h1>MARC bibliographic framework test</h1>
+
+<div class="page-section">
 <table>
     <tr>
         <th>Test</th>
@@ -286,6 +283,7 @@
 [% ELSE %]
     </table>
         <p><strong>Configuration OK, you don't have errors in your MARC parameters table</strong></p>
+    </div> <!-- /.page-section -->
 [% END %]
 
             </main>

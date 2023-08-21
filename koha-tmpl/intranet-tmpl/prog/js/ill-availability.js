@@ -1,5 +1,16 @@
 $(document).ready(function() {
 
+    var getLinks = function(row) {
+        if (!row.links || row.links.length === 0) {
+            return false;
+        }
+        return row.links.map(function(link) {
+            return '<a href="' + link.url + '" target="_blank">' +
+                link.text +
+                '</a>';
+        });
+    };
+
     window.doSearch = function() {
         // In case the source doesn't supply data required for DT to calculate
         // pagination, we need to do it ourselves
@@ -51,9 +62,16 @@ $(document).ready(function() {
         // Here we store them
         var renders = {
             title: function(data, type, row) {
-                return row.url ?
-                    '<a href="'+row.url+'" target="_blank">'+row.title+'</a>' :
-                    row.title;
+                var links = getLinks(row);
+                if (links) {
+                    return row.title + ' - ' + links.join(', ');
+                } else if (row.url) {
+                    return '<a href="' + row.url  + '" target="_blank">' +
+                        row.title +
+                        '</a>';
+                } else {
+                    return row.title;
+                }
             },
             source: function(data, type, row) {
                 return row.opac_url ?
@@ -170,51 +188,53 @@ $(document).ready(function() {
             // Initialise the table
             // Since we're not able to use the columns settings in core,
             // we need to mock the object that it would return
-            var columns_settings = [
-				{
-					cannot_be_modified: 0,
-					cannot_be_toggled: 0,
-					columnname: 'source',
-					is_hidden: 0
-				},
-				{
-					cannot_be_modified: 0,
-					cannot_be_toggled: 0,
-					columnname: 'title',
-					is_hidden: 0
-				},
-				{
-					cannot_be_modified: 0,
-					cannot_be_toggled: 0,
-					columnname: 'author',
-					is_hidden: 0
-				},
-				{
-					cannot_be_modified: 0,
-					cannot_be_toggled: 0,
-					columnname: 'isbn',
-					is_hidden: 0
-				},
-				{
-					cannot_be_modified: 0,
-					cannot_be_toggled: 0,
-					columnname: 'issn',
-					is_hidden: 0
-				},
-				{
-					cannot_be_modified: 0,
-					cannot_be_toggled: 0,
-					columnname: 'date',
-					is_hidden: 0
-				}
-            ];
+            var table_settings = {
+                "columns": [
+                    {
+                        cannot_be_modified : 0,
+                        cannot_be_toggled  : 0,
+                        columnname         : 'source',
+                        is_hidden          : 0
+                    },
+                    {
+                        cannot_be_modified : 0,
+                        cannot_be_toggled  : 0,
+                        columnname         : 'title',
+                        is_hidden          : 0
+                    },
+                    {
+                        cannot_be_modified : 0,
+                        cannot_be_toggled  : 0,
+                        columnname         : 'author',
+                        is_hidden          : 0
+                    },
+                    {
+                        cannot_be_modified : 0,
+                        cannot_be_toggled  : 0,
+                        columnname         : 'isbn',
+                        is_hidden          : 0
+                    },
+                    {
+                        cannot_be_modified : 0,
+                        cannot_be_toggled  : 0,
+                        columnname         : 'issn',
+                        is_hidden          : 0
+                    },
+                    {
+                        cannot_be_modified : 0,
+                        cannot_be_toggled  : 0,
+                        columnname         : 'date',
+                        is_hidden          : 0
+                    }
+                ]
+            };
             // Hide pagination buttons if appropriate
             tableDef.drawCallback = function() {
                 var pagination = $(this).closest('.dataTables_wrapper')
                     .find('.dataTables_paginate');
                 pagination.toggle(this.api().page.info().pages > 1);
             }
-            KohaTable(service.id, tableDef, columns_settings);
+            KohaTable(service.id, tableDef, table_settings);
         });
     }
 

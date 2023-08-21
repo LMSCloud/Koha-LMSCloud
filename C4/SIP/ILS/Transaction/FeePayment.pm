@@ -21,16 +21,15 @@ use warnings;
 use strict;
 
 use C4::Context;
+use Try::Tiny;
 
 use Koha::Account;
 use Koha::Account::Lines;
 
 use C4::CashRegisterManagement;
-use C4::SIP::Sip qw(siplog);
+use C4::SIP::Sip qw( siplog );
 
 use parent qw(C4::SIP::ILS::Transaction);
-
-our $debug = 0;
 
 my %fields = ();
 
@@ -89,21 +88,27 @@ sub pay {
         }
     }
 
+    my $ok = 1;
     my $pay_response;
-    eval {
-            $pay_response = $account->pay($pay_options);
-    };
-    
-    if ( $@ ) {
-        siplog("LOG_DEBUG", "pay fee error: %s", $@);
-        return {
-            ok           => 0,
-        };
+    my $error;
+    try {
+        $pay_response = $account->pay($pay_options);
     }
+    catch {
+        $ok = 0;
+
+        if ( ref($_) =~ /^Koha::Exceptions/ ) {
+            $error = $_->description;
+        }
+        else {
+            $_->rethrow;
+        }
+    };
 
     return {
-        ok           => 1,
-        pay_response => $pay_response
+        ok           => $ok,
+        pay_response => $pay_response,
+        error        => $error,
     };
 }
 

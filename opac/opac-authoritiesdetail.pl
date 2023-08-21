@@ -38,17 +38,18 @@ parameters tables.
 
 use Modern::Perl;
 
-use C4::AuthoritiesMarc;
-use C4::Auth;
-use C4::Biblio qw(GetMarcUrls);
+use C4::Auth qw( get_template_and_user );
+use C4::Biblio qw( GetMarcUrls );
 use C4::Context;
-use C4::Output;
+use C4::Languages;
+use C4::Output qw( output_html_with_http_headers );
+use C4::AuthoritiesMarc qw( GetAuthority BuildSummary GetTagsLabels GenerateHierarchy );
 use CGI qw ( -utf8 );
-use MARC::Record;
 use C4::Koha;
 
 use Koha::Authorities;
 use Koha::Authority::Types;
+use Koha::XSLT::Base;
 
 my $query = CGI->new;
 
@@ -65,7 +66,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $query,
         type            => "opac",
         authnotrequired => ( C4::Context->preference("OpacPublic") ? 1 : 0 ),
-        debug           => 1,
     }
 );
 
@@ -100,7 +100,7 @@ $template->param(
 
 # find the marc field/subfield used in biblio by this authority
 if ($show_marc) {
-    my $tagslib = &GetTagsLabels( 0, $authtypecode );
+    my $tagslib = GetTagsLabels( 0, $authtypecode );
     my $sth =
         $dbh->prepare(
                 "select distinct tagfield from marc_subfield_structure where authtypecode=?"
@@ -168,8 +168,31 @@ if ($show_marc) {
     }
     $template->param( "Tab0XX" => \@loop_data );
 } else {
-    my $summary = BuildSummary($record, $authid, $authtypecode);
-    $template->{VARS}->{'summary'} = $summary;
+    my $AuthorityXSLTOpacDetailsDisplay = C4::Context->preference('AuthorityXSLTOpacDetailsDisplay');
+    if ($AuthorityXSLTOpacDetailsDisplay) {
+        my $lang = C4::Languages::getlanguage();
+
+        my $xsl = $AuthorityXSLTOpacDetailsDisplay;
+
+        $xsl =~ s/\{langcode\}/$lang/g;
+        $xsl =~ s/\{authtypecode\}/$authtypecode/g;
+        my $xslt_engine = Koha::XSLT::Base->new;
+        my $output = $xslt_engine->transform({ xml => $authority->marcxml, file => $xsl });
+        if ($xslt_engine->err) {
+            warn "XSL transformation failed ($xsl): " . $xslt_engine->err;
+            next;
+        }
+        $template->param(html => $output);
+    } else {
+        my $summary = BuildSummary($record, $authid, $authtypecode);
+        $template->param(summary => $summary);
+    }
+
+    if ( C4::Context->preference('OPACAuthorIdentifiers') ) {
+        my $authority = Koha::Authorities->find($authid);
+        my $identifiers = $authority->get_identifiers;
+        $template->param( author_identifiers => $identifiers );
+    }
 }
 
 output_html_with_http_headers $query, $cookie, $template->output;

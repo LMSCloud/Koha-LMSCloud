@@ -17,12 +17,10 @@ package Koha::Report;
 
 use Modern::Perl;
 
-use Carp;
 
 use Koha::Database;
-use JSON;
 use Koha::Reports;
-use Koha::DateUtils qw( dt_from_string output_pref );
+#use Koha::DateUtils qw( dt_from_string output_pref );
 
 use base qw(Koha::Object);
 #
@@ -161,15 +159,15 @@ sub prep_report {
 
         # if there are special regexp chars, we must \ them
         $split[ $i * 2 + 1 ] =~ s/(\||\?|\.|\*|\(|\)|\%)/\\$1/g;
-        if ( $split[ $i * 2 + 1 ] =~ /\|\s*date\s*$/ ) {
-            $quoted = output_pref(
-                {
-                    dt         => dt_from_string($quoted),
-                    dateformat => 'iso',
-                    dateonly   => 1
-                }
-            ) if $quoted;
-        }
+        #if ( $split[ $i * 2 + 1 ] =~ /\|\s*date\s*$/ ) {
+        #    $quoted = output_pref(
+        #        {
+        #            dt         => dt_from_string($quoted),
+        #            dateformat => 'iso',
+        #            dateonly   => 1
+        #        }
+        #    ) if $quoted;
+        #}
         unless ( $split[ $i * 2 + 1 ] =~ /\|\s*list\s*$/ && $quoted ) {
             $quoted = C4::Context->dbh->quote($quoted);
         }
@@ -184,6 +182,8 @@ sub prep_report {
         }
         $sql =~ s/<<$split[$i*2+1]>>/$quoted/;
     }
+
+    $sql = "$sql /* saved_sql.id: ${\( $self->id )} */";
     return $sql, $headers;
 }
 

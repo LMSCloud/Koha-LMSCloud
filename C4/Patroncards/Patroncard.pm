@@ -21,12 +21,16 @@ use strict;
 use warnings;
 
 use autouse 'Data::Dumper' => qw(Dumper);
-use Text::Wrap qw(wrap);
 #use Font::TTFMetrics;
 
-use C4::Creators::Lib qw(get_font_types get_unit_values);
+use C4::Creators::Lib qw( get_unit_values );
 use C4::Creators::PDF qw(StrWidth);
-use C4::Patroncards::Lib qw(unpack_UTF8 text_alignment leading box get_borrower_attributes);
+use C4::Patroncards::Lib qw(
+    box
+    get_borrower_attributes
+    leading
+    text_alignment
+);
 
 =head1 NAME
 
@@ -260,11 +264,11 @@ sub draw_text {
         if (($string_width + $text_attribs->{'llx'}) > $self->{'width'}) {
             # counter for a breaking condition to prevent endless looping
             my $innerwhile = 0;
+            my $cur_line = "";
             WRAP_LINES:
             while (1) {
 #                $line =~ m/^.*(\s\b.*\b\s*|\s&|\<\b.*\b\>)$/; # original regexp... can be removed after dev stage is over
                 $line =~ m/^.*(\s.*\s*|\s&|\<.*\>)$/;
-                warn sprintf('Line wrap failed. DEBUG INFO: Data: \'%s\'\n Method: C4::Patroncards->draw_text Additional Information: Line wrap regexp failed. (Please file in this information in a bug report at http://bugs.koha-community.org', $line) and last WRAP_LINES if !$1;
                 $trim = $1 . $trim;
                 #Sanitize the input into this regular expression so regex metacharacters are escaped as literal values (https://bugs.koha-community.org/bugzilla3/show_bug.cgi?id=22429)
                 $line =~ s/\Q$1\E$//;
@@ -288,6 +292,12 @@ sub draw_text {
                         push @lines, {line=> $line, Tx => $Tx, Ty => $Ty, Tw => $Tw};
                         last WRAP_LINES;
                     }
+                } else {
+                    # We only split lines on spaces - it seems if we push a line too far, it can end
+                    # never getting short enough in which case we need to escape and the malformed PDF
+                    # will indicate the layout problem
+                    last WRAP_LINES if $cur_line eq $line;
+                    $cur_line = $line;
                 }
                 if ( ++$innerwhile == 1000 ) {
                     warn "Patroncard.pm => draw_text: Leaving inner while draw_text with innerwhile ($innerwhile): line is: $line\n";

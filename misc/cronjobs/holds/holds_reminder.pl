@@ -17,26 +17,19 @@
 
 use Modern::Perl;
 
-BEGIN {
-
-    # find Koha's Perl modules
-    # test carefully before changing this
-    use FindBin;
-    eval { require "$FindBin::Bin/../kohalib.pl" };
-}
-
-use Getopt::Long;
-use Pod::Usage;
-use Text::CSV_XS;
+use Getopt::Long qw( GetOptions );
+use Pod::Usage qw( pod2usage );
 use DateTime;
 use DateTime::Duration;
 
 use C4::Context;
 use C4::Letters;
-use C4::Log;
-use Koha::DateUtils;
+use C4::Log qw( cronlogaction );
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Calendar;
 use Koha::Libraries;
+use Koha::Notice::Templates;
+use Koha::Patrons;
 use Koha::Script -cron;
 
 =head1 NAME
@@ -61,7 +54,7 @@ holds_reminder.pl
    -lettercode   <lettercode>     predefined notice to use, default is HOLD_REMINDER
    -library      <branchname>     only deal with holds from this library (repeatable : several libraries can be given)
    -holidays                      use the calendar to not count holidays as waiting days
-   -mtt          <message_transport_type> type of messages to send, default is to use patrons messaging preferences for Hold filled
+   -mtt          <message_transport_type> type of messages to send, default is to use patrons messaging preferences for Hold reminder
                                   populating this will force send even if patron has not chosen to receive hold notices
                                   email and sms will fallback to print if borrower does not have an address/phone
    -date                          Send notices as would have been sent on a specific date
@@ -138,7 +131,7 @@ holds.
 =head2 Configuration
 
 This script sends reminders to patrons with waiting holds using a notice
-defined in the Tools->Notices & slips module within Koha. The lettercode
+defined in the Tools > Notices and slips module within Koha. The lettercode
 is passed into this script and, along with other options, determine the content
 of the notices sent to patrons.
 
@@ -183,6 +176,8 @@ my $date_input;
 my $opt_out = 0;
 my @mtts;
 
+my $command_line_options = join(" ",@ARGV);
+
 GetOptions(
     'help|?'         => \$help,
     'man'            => \$man,
@@ -201,7 +196,7 @@ pod2usage( -verbose => 2 ) if $man;
 
 $lettercode ||= 'HOLD_REMINDER';
 
-cronlogaction();
+cronlogaction({ info => $command_line_options });
 
 # Unless a delay is specified by the user we target all waiting holds
 unless (defined $days) {
@@ -235,8 +230,17 @@ my $waiting_date_static = $date_to_run->clone->subtract( days => $days );
 # Loop through each branch
 foreach my $branchcode (@branchcodes) { #BEGIN BRANCH LOOP
     # Check that this branch has the letter code specified or skip this branch
-    my $letter = C4::Letters::getletter( 'reserves', $lettercode , $branchcode );
-    unless ($letter) {
+
+    # FIXME What if we don't want to default if the translated template does not exist?
+    my $template_exists = Koha::Notice::Templates->find_effective_template(
+        {
+            module     => 'reserves',
+            code       => $lettercode,
+            branchcode => $branchcode,
+            lang       => 'default',
+        }
+    );
+    unless ($template_exists) {
         $verbose and print qq|Message '$lettercode' content not found for $branchcode\n|;
         next;
     }
@@ -258,6 +262,7 @@ foreach my $branchcode (@branchcodes) { #BEGIN BRANCH LOOP
     my $reserves = Koha::Holds->search({
         waitingdate => {$comparator => $waiting_since },
         'me.branchcode'  => $branchcode,
+        '-or' => [ expirationdate => undef, expirationdate => { '>' => \'CURDATE()' } ]
     },{ prefetch => 'patron' });
 
     $verbose and warn "No reserves found for $branchcode waiting since $waiting_since\n" unless $reserves->count;
@@ -268,8 +273,8 @@ foreach my $branchcode (@branchcodes) { #BEGIN BRANCH LOOP
     my %done;
 
     # If passed message transports we force use those, otherwise we will use the patrons preferences
-    # for the 'Hold_Filled' notice
-    my $sending_params = @mtts ? { message_transports => \@mtts } : { message_name => "Hold_Filled" };
+    # for the 'Hold_Reminder' notice
+    my $sending_params = @mtts ? { message_transports => \@mtts } : { message_name => "Hold_Reminder" };
 
 
     my %patrons;
@@ -310,3 +315,5 @@ foreach my $branchcode (@branchcodes) { #BEGIN BRANCH LOOP
 
 
 } #END BRANCH LOOP
+
+cronlogaction({ action => 'End', info => "COMPLETED" });

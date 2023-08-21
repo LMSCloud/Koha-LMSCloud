@@ -22,9 +22,9 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use C4::Auth qw(get_template_and_user);
-use C4::Output qw(output_html_with_http_headers);
-use C4::Creators;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
+use C4::Creators qw( get_all_profiles get_unit_values );
 use C4::Labels;
 
 my $cgi = CGI->new;
@@ -34,7 +34,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $cgi,
         type            => "intranet",
         flagsrequired   => { catalogue => 1 },
-        debug           => 1,
     }
 );
 
@@ -47,7 +46,7 @@ my $units = get_unit_values();
 
 if ($op eq 'edit') {
     $label_template = C4::Labels::Template->retrieve(template_id => $template_id);
-    $profile_list = get_all_profiles({ fields => [ qw( profile_id printer_name paper_bin ) ], filters => { template_id => [ $template_id, '' ] } } );
+    $profile_list = get_all_profiles({ fields => [ qw( profile_id printer_name paper_bin ) ], filters => { template_id => [ $template_id, '' ], creator => 'Labels'} } );
     push @$profile_list, {paper_bin => 'N/A', profile_id => 0, printer_name => 'No Profile'};
     foreach my $profile (@$profile_list) {
         if ($profile->{'profile_id'} == $label_template->get_attr('profile_id')) {
@@ -114,7 +113,7 @@ elsif ($op eq 'save') {
 }
 else {  # if we get here, this is a new layout
     $label_template = C4::Labels::Template->new();
-    $profile_list = get_all_profiles({ fields => [ qw( profile_id printer_name paper_bin ) ], filters => { template_id => [''] } });
+    $profile_list = get_all_profiles({ fields => [ qw( profile_id printer_name paper_bin ) ], filters => { template_id => [''], creator => 'Labels' } });
     push @$profile_list, {paper_bin => 'N/A', profile_id => 0, printer_name => 'No Profile'};
     foreach my $profile (@$profile_list) {
         if ($profile->{'profile_id'} == 0) {

@@ -24,13 +24,15 @@ use Test::MockModule;
 use Test::Warn;
 use File::Temp qw(tempdir);
 
+use t::lib::Mocks::Logger;
+
 use utf8;
 use CGI qw(-utf8 );
 use C4::Context;
 
 BEGIN {
     if ( check_install( module => 'Test::DBIx::Class' ) ) {
-        plan tests => 17;
+        plan tests => 18;
     }
     else {
         plan skip_all => "Need Test::DBIx::Class";
@@ -45,7 +47,8 @@ use Test::DBIx::Class {
 # Mock Variables
 my $matchpoint = 'userid';
 my $autocreate = 0;
-my $sync = 0;
+my $welcome    = 0;
+my $sync       = 0;
 my %mapping    = (
     'userid'       => { 'is' => 'uid' },
     'surname'      => { 'is' => 'sn' },
@@ -53,13 +56,15 @@ my %mapping    = (
     'categorycode' => { 'is' => 'cat' },
     'address'      => { 'is' => 'add' },
     'city'         => { 'is' => 'city' },
+    'emailpro'     => { 'is' => 'emailpro' },
 );
-$ENV{'uid'}  = "test1234";
-$ENV{'sn'}   = undef;
-$ENV{'exp'}  = undef;
-$ENV{'cat'}  = undef;
-$ENV{'add'}  = undef;
-$ENV{'city'} = undef;
+$ENV{'uid'}      = "test1234";
+$ENV{'sn'}       = undef;
+$ENV{'exp'}      = undef;
+$ENV{'cat'}      = undef;
+$ENV{'add'}      = undef;
+$ENV{'city'}     = undef;
+$ENV{'emailpro'} = undef;
 
 # Setup Mocks
 ## Mock Context
@@ -86,13 +91,34 @@ my $database = Test::MockModule->new('Koha::Database');
 ### Mock ->schema
 $database->mock( 'schema', \&mockedSchema );
 
+### Mock Letters
+my $mocked_letters = Test::MockModule->new('C4::Letters');
+# we want to test the params
+$mocked_letters->mock( 'GetPreparedLetter', sub {
+    warn "GetPreparedLetter called";
+    return 1;
+});
+# we don't care about EnqueueLetter for now
+$mocked_letters->mock( 'EnqueueLetter', sub {
+    warn "EnqueueLetter called";
+    # return a 'message_id'
+    return 42;
+});
+# we don't care about EnqueueLetter for now
+$mocked_letters->mock( 'SendQueuedMessages', sub {
+    my $params = shift;
+    warn "SendQueuedMessages called with message_id: $params->{message_id}";
+    return 1;
+});
+
 # Tests
 ##############################################################
 
+my $logger = t::lib::Mocks::Logger->new();
+
 # Can module load
-use C4::Auth_with_shibboleth;
+use C4::Auth_with_shibboleth qw( shib_ok login_shib_url get_login_shib checkpw_shib );
 require_ok('C4::Auth_with_shibboleth');
-$C4::Auth_with_shibboleth::debug = '0';
 
 # Subroutine tests
 ## shib_ok
@@ -117,7 +143,7 @@ subtest "shib_ok tests" => sub {
     is( $result, '0', "bad config" );
 
     # add test for undefined shibboleth block
-
+    $logger->clear;
     reset_config();
 };
 
@@ -172,34 +198,24 @@ subtest "login_shib_url tests" => sub {
 
 ## get_login_shib
 subtest "get_login_shib tests" => sub {
-    plan tests => 4;
+
+    plan tests => 3;
+
     my $login;
 
-    # good config
-    ## debug off
-    $C4::Auth_with_shibboleth::debug = '0';
-    warnings_are { $login = get_login_shib() }[],
-      "good config with debug off, no warnings received";
-    is( $login, "test1234",
-        "good config with debug off, attribute value returned" );
+    $login = get_login_shib();
 
-    ## debug on
-    $C4::Auth_with_shibboleth::debug = '1';
-    warnings_are { $login = get_login_shib() }[
-        "koha borrower field to match: userid",
-        "shibboleth attribute to match: uid",
-        "uid value: test1234"
-    ],
-      "good config with debug enabled, correct warnings received";
-    is( $login, "test1234",
-        "good config with debug enabled, attribute value returned" );
+    $logger->debug_is("koha borrower field to match: userid", "borrower match field debug info")
+           ->debug_is("shibboleth attribute to match: uid",   "shib match attribute debug info")
+           ->clear();
 
-# bad config - with shib_ok implemented, we should never reach this sub with a bad config
+    is( $login, "test1234", "good config, attribute value returned" );
 };
 
 ## checkpw_shib
 subtest "checkpw_shib tests" => sub {
-    plan tests => 24;
+
+    plan tests => 34;
 
     my $shib_login;
     my ( $retval, $retcard, $retuserid );
@@ -216,79 +232,86 @@ subtest "checkpw_shib tests" => sub {
       ],
       'Installed some custom fixtures via the Populate fixture class';
 
-    # debug off
-    $C4::Auth_with_shibboleth::debug = '0';
-
     # good user
     $shib_login = "test1234";
-    warnings_are {
-        ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
-    }
-    [], "good user with no debug";
+    ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
+
+    is( $logger->count(), 2,          "Two debugging entries");
     is( $retval,    "1",              "user authenticated" );
     is( $retcard,   "testcardnumber", "expected cardnumber returned" );
     is( $retuserid, "test1234",       "expected userid returned" );
+    $logger->debug_is("koha borrower field to match: userid", "borrower match field debug info")
+           ->debug_is("shibboleth attribute to match: uid",   "shib match attribute debug info")
+           ->clear();
 
     # bad user
     $shib_login = 'martin';
-    warnings_are {
-        ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
-    }
-    [], "bad user with no debug";
+    ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
     is( $retval, "0", "user not authenticated" );
+    $logger->debug_is("koha borrower field to match: userid", "borrower match field debug info")
+           ->debug_is("shibboleth attribute to match: uid",   "shib match attribute debug info")
+           ->clear();
 
     # duplicated matchpoint
     $matchpoint = 'email';
     $mapping{'email'} = { is => 'email' };
     $shib_login = 'kid@clamp.io';
-    warnings_are {
-        ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
-    }
-    [], "bad user with no debug";
+    ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
     is( $retval, "0", "user not authenticated if duplicated matchpoint" );
-    $C4::Auth_with_shibboleth::debug = '1';
+    $logger->debug_is("koha borrower field to match: email",  "borrower match field debug info")
+           ->debug_is("shibboleth attribute to match: email", "shib match attribute debug info")
+           ->clear();
+
+    ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
+    $logger->debug_is("koha borrower field to match: email",  "borrower match field debug info")
+           ->debug_is("shibboleth attribute to match: email", "shib match attribute debug info")
+           ->warn_is('There are several users with email of kid@clamp.io, matchpoints must be unique', "duplicated matchpoint warned with debug")
+           ->clear();
+
+    reset_config();
+
+    # autocreate user (welcome)
+    $autocreate      = 1;
+    $welcome         = 1;
+    $shib_login      = 'test4321';
+    $ENV{'uid'}      = 'test4321';
+    $ENV{'sn'}       = "pika";
+    $ENV{'exp'}      = "2017";
+    $ENV{'cat'}      = "S";
+    $ENV{'add'}      = 'Address';
+    $ENV{'city'}     = 'City';
+    $ENV{'emailpro'} = 'me@myemail.com';
+
     warnings_are {
         ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
     }
     [
-        q/checkpw_shib/,
-        q/koha borrower field to match: email/,
-        q/shibboleth attribute to match: email/,
-        q/User Shibboleth-authenticated as: kid@clamp.io/,
-        q/There are several users with email of kid@clamp.io, matchpoints must be unique/
-    ], "duplicated matchpoint warned with debug";
-    $C4::Auth_with_shibboleth::debug = '0';
-    reset_config();
-
-    # autocreate user
-    $autocreate  = 1;
-    $shib_login  = 'test4321';
-    $ENV{'uid'}  = 'test4321';
-    $ENV{'sn'}   = "pika";
-    $ENV{'exp'}  = "2017";
-    $ENV{'cat'}  = "S";
-    $ENV{'add'}  = 'Address';
-    $ENV{'city'} = 'City';
-    warnings_are {
-        ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
-    }
-    [], "new user added with no debug";
+        'GetPreparedLetter called',
+        'EnqueueLetter called',
+        'SendQueuedMessages called with message_id: 42'
+    ],
+      "WELCOME notice Prepared, Enqueued and Send";
     is( $retval,    "1",        "user authenticated" );
     is( $retuserid, "test4321", "expected userid returned" );
+    $logger->debug_is("koha borrower field to match: userid", "borrower match field debug info")
+           ->debug_is("shibboleth attribute to match: uid",   "shib match attribute debug info")
+           ->clear();
+
     ok my $new_user = ResultSet('Borrower')
       ->search( { 'userid' => 'test4321' }, { rows => 1 } ), "new user found";
     is_fields [qw/surname dateexpiry address city/], $new_user->next,
       [qw/pika 2017 Address City/],
       'Found $new_users surname';
     $autocreate = 0;
+    $welcome    = 0;
 
     # sync user
     $sync = 1;
     $ENV{'city'} = 'AnotherCity';
-    warnings_are {
-        ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
-    }
-    [], "good user with sync";
+    ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
+    $logger->debug_is("koha borrower field to match: userid", "borrower match field debug info")
+           ->debug_is("shibboleth attribute to match: uid",   "shib match attribute debug info")
+           ->clear();
 
     ok my $sync_user = ResultSet('Borrower')
       ->search( { 'userid' => 'test4321' }, { rows => 1 } ), "sync user found";
@@ -298,40 +321,21 @@ subtest "checkpw_shib tests" => sub {
       'Found $sync_user synced city';
     $sync = 0;
 
-    # debug on
-    $C4::Auth_with_shibboleth::debug = '1';
-
     # good user
     $shib_login = "test1234";
-    warnings_exist {
-        ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
-    }
-    [
-        qr/checkpw_shib/,
-        qr/koha borrower field to match: userid/,
-        qr/shibboleth attribute to match: uid/,
-        qr/User Shibboleth-authenticated as:/
-    ],
-      "good user with debug enabled";
+    ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
     is( $retval,    "1",              "user authenticated" );
     is( $retcard,   "testcardnumber", "expected cardnumber returned" );
     is( $retuserid, "test1234",       "expected userid returned" );
+    $logger->debug_is("koha borrower field to match: userid", "borrower match field debug info")
+           ->debug_is("shibboleth attribute to match: uid",   "shib match attribute debug info")
+           ->clear();
 
     # bad user
     $shib_login = "martin";
-    warnings_exist {
-        ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
-    }
-    [
-        qr/checkpw_shib/,
-        qr/koha borrower field to match: userid/,
-        qr/shibboleth attribute to match: uid/,
-        qr/User Shibboleth-authenticated as:/,
-        qr/not a valid Koha user/
-    ],
-      "bad user with debug enabled";
+    ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
     is( $retval, "0", "user not authenticated" );
-
+    $logger->info_is("There are several users with userid of martin, matchpoints must be unique", "Duplicated matchpoint warned to info");
 };
 
 ## _get_uri - opac
@@ -339,24 +343,26 @@ $OPACBaseURL = "testopac.com";
 is( C4::Auth_with_shibboleth::_get_uri(),
     "https://testopac.com", "https opac uri returned" );
 
+$logger->clear;
+
 $OPACBaseURL = "http://testopac.com";
-my $result;
-warnings_are { $result = C4::Auth_with_shibboleth::_get_uri() }[
-    "shibboleth interface: $interface",
-"Shibboleth requires OPACBaseURL/staffClientBaseURL to use the https protocol!"
-],
-  "improper protocol - received expected warning";
+my $result = C4::Auth_with_shibboleth::_get_uri();
 is( $result, "https://testopac.com", "https opac uri returned" );
+$logger->warn_is("Shibboleth requires OPACBaseURL/staffClientBaseURL to use the https protocol!", "Improper protocol logged to warn")
+       ->clear();
 
 $OPACBaseURL = "https://testopac.com";
 is( C4::Auth_with_shibboleth::_get_uri(),
     "https://testopac.com", "https opac uri returned" );
 
+$logger->clear();
+
 $OPACBaseURL = undef;
-warnings_are { $result = C4::Auth_with_shibboleth::_get_uri() }
-[ "shibboleth interface: $interface", "OPACBaseURL not set!" ],
-  "undefined OPACBaseURL - received expected warning";
+$result = C4::Auth_with_shibboleth::_get_uri();
 is( $result, "https://", "https $interface uri returned" );
+
+$logger->warn_is("Syspref staffClientBaseURL or OPACBaseURL not set!", "undefined OPACBaseURL - received expected warning")
+       ->clear();
 
 ## _get_uri - intranet
 $interface = 'intranet';
@@ -364,23 +370,25 @@ $staffClientBaseURL = "teststaff.com";
 is( C4::Auth_with_shibboleth::_get_uri(),
     "https://teststaff.com", "https $interface uri returned" );
 
+
+$logger->clear;
+
 $staffClientBaseURL = "http://teststaff.com";
-warnings_are { $result = C4::Auth_with_shibboleth::_get_uri() }[
-    "shibboleth interface: $interface",
-"Shibboleth requires OPACBaseURL/staffClientBaseURL to use the https protocol!"
-],
-  "improper protocol - received expected warning";
+$result = C4::Auth_with_shibboleth::_get_uri();
 is( $result, "https://teststaff.com", "https $interface uri returned" );
+$logger->warn_is("Shibboleth requires OPACBaseURL/staffClientBaseURL to use the https protocol!")
+       ->clear;
 
 $staffClientBaseURL = "https://teststaff.com";
 is( C4::Auth_with_shibboleth::_get_uri(),
     "https://teststaff.com", "https $interface uri returned" );
+is( $logger->count(), 0, 'No logging' );
 
 $staffClientBaseURL = undef;
-warnings_are { $result = C4::Auth_with_shibboleth::_get_uri() }
-[ "shibboleth interface: $interface", "staffClientBaseURL not set!" ],
-  "undefined staffClientBaseURL - received expected warning";
+$result = C4::Auth_with_shibboleth::_get_uri();
 is( $result, "https://", "https $interface uri returned" );
+$logger->warn_is("Syspref staffClientBaseURL or OPACBaseURL not set!", "undefined staffClientBaseURL - received expected warning")
+       ->clear;
 
 ## _get_shib_config
 # Internal helper function, covered in tests above
@@ -390,6 +398,7 @@ sub mockedConfig {
 
     my %shibboleth = (
         'autocreate' => $autocreate,
+        'welcome'    => $welcome,
         'sync'       => $sync,
         'matchpoint' => $matchpoint,
         'mapping'    => \%mapping
@@ -410,6 +419,14 @@ sub mockedPref {
         $return = $staffClientBaseURL;
     }
 
+    if ( $param eq 'AutoEmailPrimaryAddress' ) {
+        $return = 'OFF';
+    }
+
+    if ( $param eq 'EmailFieldPrecedence' ) {
+        $return = 'emailpro';
+    }
+
     return $return;
 }
 
@@ -425,21 +442,24 @@ sub mockedSchema {
 sub reset_config {
     $matchpoint = 'userid';
     $autocreate = 0;
+    $welcome = 0;
     $sync = 0;
-    %mapping    = (
+    %mapping = (
         'userid'       => { 'is' => 'uid' },
         'surname'      => { 'is' => 'sn' },
         'dateexpiry'   => { 'is' => 'exp' },
         'categorycode' => { 'is' => 'cat' },
         'address'      => { 'is' => 'add' },
         'city'         => { 'is' => 'city' },
+        'emailpro'     => { 'is' => 'emailpro' },
     );
-    $ENV{'uid'}  = "test1234";
-    $ENV{'sn'}   = undef;
-    $ENV{'exp'}  = undef;
-    $ENV{'cat'}  = undef;
-    $ENV{'add'}  = undef;
-    $ENV{'city'} = undef;
+    $ENV{'uid'}      = "test1234";
+    $ENV{'sn'}       = undef;
+    $ENV{'exp'}      = undef;
+    $ENV{'cat'}      = undef;
+    $ENV{'add'}      = undef;
+    $ENV{'city'}     = undef;
+    $ENV{'emailpro'} = undef;
 
     return 1;
 }

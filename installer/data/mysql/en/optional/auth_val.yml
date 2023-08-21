@@ -33,15 +33,27 @@ tables:
 
         - category: "SUGGEST"
           authorised_value: "SCD"
-          lib: "Shelf Copy Damaged"
+          lib: "Shelf copy damaged"
 
         - category: "SUGGEST"
           authorised_value: "LCL"
-          lib: "Library Copy Lost"
+          lib: "Library copy lost"
 
         - category: "SUGGEST"
           authorised_value: "AVILL"
           lib: "Available via ILL"
+
+        - category: "SUGGEST"
+          authorised_value: "Budget"
+          lib: "Insufficient budget"
+
+        - category: "SUGGEST"
+          authorised_value: "Expensive"
+          lib: "Document too expensive"
+
+        - category: "SUGGEST"
+          authorised_value: "Poldoc"
+          lib: "Document not corresponding to our acquisition policy"
 
   - authorised_values:
       translatable: [ lib, lib_opac ]
@@ -60,8 +72,8 @@ tables:
 
         - category: "SUGGEST_FORMAT"
           authorised_value: "EBOOK"
-          lib: "EBook"
-          lib_opac: "Ebook"
+          lib: "E-book"
+          lib_opac: "E-book"
 
         - category: "SUGGEST_FORMAT"
           authorised_value: "AUDIOBOOK"
@@ -80,7 +92,7 @@ tables:
         # availability statuses
         - category: "LOST"
           authorised_value: "2"
-          lib: "Long Overdue (Lost)"
+          lib: "Long overdue (lost)"
 
         - category: "LOST"
           authorised_value: "1"
@@ -88,11 +100,15 @@ tables:
 
         - category: "LOST"
           authorised_value: "3"
-          lib : "Lost and Paid For"
+          lib : "Lost and paid for"
 
         - category: "LOST"
           authorised_value: "4"
           lib : "Missing"
+
+        - category: "LOST"
+          authorised_value: "5"
+          lib : "Missing from bundle"
 
         # damaged status of an item
         - category: "DAMAGED"
@@ -106,27 +122,27 @@ tables:
 
         - category: "LOC"
           authorised_value: "CHILD"
-          lib: "Children's Area"
+          lib: "Children's area"
 
         - category: "LOC"
           authorised_value: "DISPLAY"
-          lib: "On Display"
+          lib: "On display"
 
         - category: "LOC"
           authorised_value: "NEW"
-          lib: "New Materials Shelf"
+          lib: "New materials shelf"
 
         - category: "LOC"
           authorised_value: "STAFF"
-          lib: "Staff Office"
+          lib: "Staff office"
 
         - category: "LOC"
           authorised_value: "GEN"
-          lib: "General Stacks"
+          lib: "General stacks"
 
         - category: "LOC"
           authorised_value: "AV"
-          lib: "Audio Visual"
+          lib: "Audio visual"
 
         - category: "LOC"
           authorised_value: "REF"
@@ -134,11 +150,11 @@ tables:
 
         - category: "LOC"
           authorised_value: "CART"
-          lib: "Book Cart"
+          lib: "Book cart"
 
         - category: "LOC"
           authorised_value: "PROC"
-          lib: "Processing Center"
+          lib: "Processing center"
 
         # collection codes for an item
         - category: "CCODE"
@@ -165,21 +181,25 @@ tables:
 
         - category: "NOT_LOAN"
           authorised_value: "1"
-          lib: "Not For Loan"
+          lib: "Not for loan"
 
         - category: "NOT_LOAN"
           authorised_value: "2"
-          lib: "Staff Collection"
+          lib: "Staff collection"
+
+        - category: "NOT_LOAN"
+          authorised_value: "3"
+          lib: "Added to bundle"
 
         # restricted status of an item,linked to items.restricted
         - category: "RESTRICTED"
           authorised_value: "1"
-          lib: "Restricted Access"
+          lib: "Restricted access"
 
         # custom borrower notes
         - category: "BOR_NOTES"
           authorised_value: "ADDR"
-          lib: "Address Notes"
+          lib: "Address notes"
 
   - authorised_values:
       translatable: [ lib, lib_opac ]
@@ -300,3 +320,16 @@ tables:
         - category: "HOLD_CANCELLATION"
           authorised_value: "DAMAGED"
           lib: "Item was found to be too damaged to fill hold"
+
+        # article request cancellations
+        - category: "AR_CANCELLATION"
+          authorised_value: "NOT_FOUND"
+          lib: "Item could not be located on shelves"
+
+        - category: "AR_CANCELLATION"
+          authorised_value: "DAMAGED"
+          lib: "Item was found to be too damaged to fill article request"
+
+        - category: "AR_CANCELLATION"
+          authorised_value: "OPAC"
+          lib: "Cancelled from the OPAC user page"

@@ -31,7 +31,6 @@ use Template;
 
 use Koha::Script -cron;
 use C4::Context;
-use Time::Local;
 use POSIX;
 
 my $dbh     = C4::Context->dbh;

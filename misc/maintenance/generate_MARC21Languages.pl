@@ -19,10 +19,10 @@
 #
 
 use Modern::Perl;
-use XML::Simple;
-use Pod::Usage;
-use Getopt::Long;
-use Carp;
+use XML::Simple qw( XMLin );
+use Pod::Usage qw( pod2usage );
+use Getopt::Long qw( GetOptions );
+use Carp qw( croak );
 
 use open ':std', ':encoding(UTF-8)';
 
@@ -56,7 +56,7 @@ my $out_handle;
 if (defined $outfile) {
     open( $out_handle, ">", $outfile ) || croak("Cannot open output file");
 } else {
-    open( $out_handle, ">&STDOUT" ) || croak("Couldn't duplicate STDOUT: $!");
+    open( $out_handle, q{>}, "&STDOUT" ) || croak("Couldn't duplicate STDOUT: $!");
 }
 generate_header($out_handle);
 generate_body($out_handle, $languages);

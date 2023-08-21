@@ -16,13 +16,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
-use CGI::Carp qw(fatalsToBrowser warningsToBrowser);
 use Modern::Perl;
-use C4::Auth;
+use C4::Auth qw( get_template_and_user );
 use CGI qw ( -utf8 );
-use C4::Output;
-use C4::Reports::Guided;
-use Koha::DateUtils;
+use C4::Output qw( output_html_with_http_headers );
+use C4::Reports::Guided qw( get_from_dictionary get_columns get_column_type get_distinct_values save_dictionary delete_definition get_report_areas );
+use Koha::DateUtils qw( dt_from_string output_pref );
 
 =head1 NAME
 
@@ -45,7 +44,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         query           => $input,
         type            => "intranet",
         flagsrequired   => { reports => '*' },
-        debug           => 1,
     }
 	);
 
@@ -139,9 +137,6 @@ elsif ( $phase eq 'New Term step 5' ) {
             $tmp_hash{'name'}  = $crit;
             $tmp_hash{'value'} = $value;
             push @criteria_loop, \%tmp_hash;
-            my $value_dt = eval { dt_from_string( $value ) };
-            $value = output_pref( { dt => $value_dt, dateonly => 1, dateformat => 'iso' } )
-                if ( $value_dt );
 
             $query_criteria .= " AND $crit='$value'";
         }
@@ -153,9 +148,6 @@ elsif ( $phase eq 'New Term step 5' ) {
                     $tmp_hash{'name'}  = "$crit Start";
                     $tmp_hash{'value'} = $value;
                     push @criteria_loop, \%tmp_hash;
-                    my $value_dt = eval { dt_from_string( $value ) };
-                    $value = output_pref( { dt => $value_dt, dateonly => 1, dateformat => 'iso' } )
-                        if ( $value_dt );
 
                     $query_criteria .= " AND $crit >= '$value'";
                 }
@@ -165,9 +157,6 @@ elsif ( $phase eq 'New Term step 5' ) {
                     $tmp_hash{'name'}  = "$crit End";
                     $tmp_hash{'value'} = $value;
                     push @criteria_loop, \%tmp_hash;
-                    my $value_dt = eval { dt_from_string( $value ) };
-                    $value = output_pref( { dt => $value_dt, dateonly => 1, dateformat => 'iso' } )
-                        if ( $value_dt );
 
                     $query_criteria .= " AND $crit <= '$value'";
                 }

@@ -62,8 +62,6 @@ $(document).ready(function() {
         }
         return true;
     });
-
-    $(".datepicker").datepicker();
 });
 //]]>
 </script>
@@ -80,35 +78,35 @@ $(document).ready(function() {
 }</style>
 </head>
 <body id="ser_serials-edit" class="ser">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'serials-search.inc' %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'serials-search.inc' %]
+[% END %]
 
-<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-    <ol>
-        <li>
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        </li>
-        <li>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/serials/serials-home.pl">Serials</a>
-        </li>
-        <li>
-            <a href="#" aria-current="page">
-                Serial edition <em>[% bibliotitle | html %] [% IF ( callnumber ) %]([% callnumber | html %])[% END %]</em>
-            </a>
-        </li>
-    </ol>
-</nav>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=[% subscriptionid | uri %]"><em>[% bibliotitle | html %]</em></a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Serial edition</span> [% IF ( callnumber ) %]<em>([% callnumber | html %]</em>)[% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
         <div class="col-sm-10 col-sm-push-2">
             <main>
 
-    [% INCLUDE 'modals/serials_multi_receiving.inc' %]
-
 <h1>Serial edition <em>[% bibliotitle | html %]</em>
     [% IF location %] ([% AuthorisedValues.GetByCode('LOC', location) | html %])[% END %]
     [% IF ( callnumber ) %] callnumber: [% callnumber | html %][% END %]</h1>
+
+    [% INCLUDE 'modals/serials_multi_receiving.inc' %]
+
 [% IF internalnotes %]<p>Nonpublic note: [% internalnotes | html | html_line_break %]</p>[% END %]
 <form method="post" name="f" class="noEnterSubmit" action="serials-edit.pl" id="serials_edit">
 
@@ -143,13 +141,13 @@ $(document).ready(function() {
             Issue <input type="text" name="serialseq" id="serialseq[% serialslis.serialid | html %]" value="[% serialslis.serialseq | html %]" size="20" maxlength="100" />
         </td>
         <td>
-            <input type="text" name="publisheddate" value="[% serialslis.publisheddate | html %]" size="10" maxlength="15" class="datepicker" />
+            <input type="text" name="publisheddate" value="[% serialslis.publisheddate | html %]" size="10" maxlength="15" class="flatpickr" />
         </td>
         <td>
             <input type="text" name="publisheddatetext" value="[% serialslis.publisheddatetext | html %]" size="10" maxlength="100" />
         </td>
         <td>
-            <input type="text" name="planneddate" value="[% serialslis.planneddate | html %]" size="10" maxlength="15" class="datepicker" />
+            <input type="text" name="planneddate" value="[% serialslis.planneddate | html %]" size="10" maxlength="15" class="flatpickr" />
         </td>
         <td>
             [% IF ( serialslis.editdisable ) %]
@@ -231,8 +229,19 @@ $(document).ready(function() {
   [% IF ( serialslis.serialsadditems ) %]
           <tr>
           <td colspan="6">
-      <a id="label[% serialslis.subscriptionid | html %][% serialslis.serialid | html %]" style="color: grey; font-size: 80%; cursor: pointer;"  onclick="unHideItems('items[% serialslis.subscriptionid | html %][% serialslis.serialid | html %]','label[% serialslis.subscriptionid | html %][% serialslis.serialid | html %]',  '[% serialslis.serialid | html %]');setStatus([% serialslis.serialid | html %]);">
-             Click to add item</a>
+          [% SET item_count = 0 %]
+          [% FOREACH item IN serialslis.items %]
+              [% IF ( item.itemnumber ) %]
+                  [% item_count = item_count + 1 %]
+              [% END %]
+          [% END %]
+          [% IF item_count > 0 %]
+      <a id="label[% serialslis.subscriptionid | html %][% serialslis.serialid | html %]" class="btn btn-default btn-sm" onclick="unHideItems('items[% serialslis.subscriptionid | html %][% serialslis.serialid | html %]','label[% serialslis.subscriptionid | html %][% serialslis.serialid | html %]',  '[% serialslis.serialid | html %]');setStatus([% serialslis.serialid | html %]);">
+        Edit item</a>
+          [% ELSE %]
+      <a id="label[% serialslis.subscriptionid | html %][% serialslis.serialid | html %]" class="btn btn-default btn-sm" onclick="unHideItems('items[% serialslis.subscriptionid | html %][% serialslis.serialid | html %]','label[% serialslis.subscriptionid | html %][% serialslis.serialid | html %]',  '[% serialslis.serialid | html %]');setStatus([% serialslis.serialid | html %]);">
+        Add item</a>
+         [% END %]
         <fieldset class="rows" style="display:none;" id="items[% serialslis.subscriptionid | html %][% serialslis.serialid | html %]">
         <legend><a style="cursor: pointer;"  onclick="HideItems('items[% serialslis.subscriptionid | html %][% serialslis.serialid | html %]','label[% serialslis.subscriptionid | html %][% serialslis.serialid | html %]')">
                 Item</a>
@@ -248,7 +257,7 @@ $(document).ready(function() {
                     <label>[% iteminformatio.subfield | html %] - [% iteminformatio.marc_lib | $raw %]</label>
                 [% END %]
                 [% IF ( iteminformatio.marc_value.type == 'select' ) %]
-                  <select name="field_value" class="select2">
+                  <select name="field_value" class="select2 input_marceditor">
                   [% FOREACH value IN iteminformatio.marc_value.values %]
                     [% IF ( value == iteminformatio.marc_value.default ) %]
                       <option value="[% value | html %]" selected="selected">[% iteminformatio.marc_value.labels.$value | html %]</option>
@@ -306,13 +315,13 @@ $(document).ready(function() {
             Supplemental issue <input type="text" name="serialseq" id="serialseq[% newserialloo.serialid | html %]" value="" size="20" maxlength="100" onchange="if (this.value!=''){unHideItems('items[% newserialloo.subscriptionid | html %][% newserialloo.serialid | html %]','label[% newserialloo.subscriptionid | html %][% newserialloo.serialid | html %]', '[% newserialloo.serialid | html %]')} else {HideItems('items[% newserialloo.subscriptionid | html %][% newserialloo.serialid | html %]','label[% newserialloo.subscriptionid | html %][% newserialloo.serialid | html %]')}" />
         </td>
         <td>
-            <input type="text" name="publisheddate" value="[% newserialloo.publisheddate | html %]" size="10" maxlength="15"  class="datepicker" />
+            <input type="text" name="publisheddate" value="[% newserialloo.publisheddate | html %]" size="10" maxlength="15"  class="flatpickr" />
         </td>
         <td>
             <input type="text" name="publisheddatetext" value="[% newserialloo.publisheddatetext | html %]" size="10" maxlength="100" />
         </td>
         <td>
-            <input type="text" name="planneddate" value="[% newserialloo.planneddate | html %]" size="10" maxlength="15" class="datepicker" />
+            <input type="text" name="planneddate" value="[% newserialloo.planneddate | html %]" size="10" maxlength="15" class="flatpickr" />
         </td>
         <td>
             <select name="status" id="addstatus[% newserialloo.serialid | html %]" onchange="if (this.value==2){unHideItems('items'+'[% newserialloo.subscriptionid | html %][% newserialloo.serialid | html %]','label[% newserialloo.subscriptionid | html %][% newserialloo.serialid | html %]','[% newserialloo.serialid | html %]'); changeDate(this, '[% newserialloo.arriveddate | html %]')} else if (this.value==7){changeDate(this, '[% newserialloo.arriveddate | html %]')} else { HideItems('items'+'[% newserialloo.subscriptionid | html %]'+[% newserialloo.serialid | html %],'label[% serialslis.subscriptionid | html %][% serialslis.serialid | html %]'); changeDate(this, '[% serialslis.planneddate | html %]')}" >
@@ -384,8 +393,8 @@ $(document).ready(function() {
   [% IF ( newserialloo.serialsadditems ) %]
           <tr>
           <td colspan="6">
-      <a id="label[% newserialloo.subscriptionid | html %][% newserialloo.serialid | html %]" style="color: grey; font-size: 80%; cursor: pointer;"  onclick="unHideItems('items[% newserialloo.subscriptionid | html %][% newserialloo.serialid | html %]','label[% newserialloo.subscriptionid | html %][% newserialloo.serialid | html %]', '[% newserialloo.serialid | html %]')">
-             Click to add item</a>
+      <a id="label[% newserialloo.subscriptionid | html %][% newserialloo.serialid | html %]" class="btn btn-default btn-sm" onclick="unHideItems('items[% newserialloo.subscriptionid | html %][% newserialloo.serialid | html %]','label[% newserialloo.subscriptionid | html %][% newserialloo.serialid | html %]', '[% newserialloo.serialid | html %]')">
+             Add item</a>
         <fieldset  class="rows" style="display:none;" id="items[% newserialloo.subscriptionid | html %][% newserialloo.serialid | html %]">
         <legend><a style="cursor: pointer;"  onclick="HideItems('items[% newserialloo.subscriptionid | html %][% newserialloo.serialid | html %]','label[% newserialloo.subscriptionid | html %][% newserialloo.serialid | html %]')">
                 Item</a>
@@ -400,7 +409,7 @@ $(document).ready(function() {
                     <label>[% iteminformatio.subfield | html %] - [% iteminformatio.marc_lib | $raw %]</label>
                 [% END %]
                 [% IF ( iteminformatio.marc_value.type == 'select' ) %]
-                  <select name="field_value">
+                  <select name="field_value" class="select2 input_marceditor">
                   [% FOREACH value IN iteminformatio.marc_value.values %]
                     [% IF ( value == iteminformatio.marc_value.default ) %]
                       <option value="[% value | html %]" selected="selected">[% iteminformatio.marc_value.labels.$value | html %]</option>
@@ -463,17 +472,21 @@ $(document).ready(function() {
         <div class="col-sm-2 col-sm-pull-10">
             <aside>
                 [% INCLUDE 'serials-menu.inc' %]
-                <ul>
-                    [% FOREACH subscription IN subscriptions %]
-                        <li><a href="serials-collection.pl?subscriptionid=[% subscription.subscriptionid | uri %]" title="serial collection for [% subscription.bibliotitle | uri %]">Serial collection #[% subscription.subscriptionid | html %]</a></li>
-                        <li><a href="subscription-detail.pl?subscriptionid=[% subscription.subscriptionid | uri %]" title="detail of the subscription">Subscription #[% subscription.subscriptionid | html %]</a></li>
-                        [% IF ( subscription.abouttoexpire ) %]
-                            [% UNLESS subscription.closed %]
-                                <li><a href="#" onclick="javascript:popup([% subscription.subscriptionid | html %])">Renew #[% subscription.subscriptionid | html %]</a></li>
+                <div id="serialmenu">
+                    <h5>Serial links</h5>
+                    <ul>
+                        [% FOREACH subscription IN subscriptions %]
+                            <li><a href="serials-collection.pl?subscriptionid=[% subscription.subscriptionid | uri %]" title="Serial collection for [% subscription.subscriptionid | html %]">Serial collection #[% subscription.subscriptionid | html %]</a></li>
+                            <li><a href="subscription-detail.pl?subscriptionid=[% subscription.subscriptionid | uri %]" title="Detail of the subscription">Subscription #[% subscription.subscriptionid | html %]</a></li>
+                            [% IF ( subscription.abouttoexpire ) %]
+                                [% UNLESS subscription.closed %]
+                                    <li><a href="#" onclick="javascript:popup([% subscription.subscriptionid | html %])">Renew #[% subscription.subscriptionid | html %]</a></li>
+                                [% END %]
                             [% END %]
                         [% END %]
-                    [% END %]
-                    <li><a href="/cgi-bin/koha/catalogue/[% default_bib_view | uri %].pl?biblionumber=[% biblionumber | uri %]" title="go to [% bibliotitle | html %]">Show biblio</a></li></ul>
+                        <li><a href="[% PROCESS biblio_a_href biblionumber => biblionumber %]" title="Go to [% bibliotitle | html %]">Show bibliographic record</a></li>
+                    </ul>
+                </div>
             </aside>
         </div> <!-- /.col-sm-2.col-sm-pull-10 -->
      </div> <!-- /.row -->

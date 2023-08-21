@@ -18,13 +18,12 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use URI::Escape;
+use URI::Escape qw( uri_escape uri_unescape );
 use CGI qw ( -utf8 );
 
 use C4::Context;
-use C4::Auth;
-use C4::Output;
-use C4::Members;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_and_exit_if_error output_and_exit output_html_with_http_headers );
 use C4::Accounts;
 use C4::Koha;
 use C4::CashRegisterManagement qw(passCashRegisterCheck);
@@ -35,8 +34,10 @@ use Koha::Patron::Categories;
 use Koha::AuthorisedValues;
 use Koha::Account;
 use Koha::Account::DebitTypes;
+use Koha::Account::Lines;
+use Koha::AdditionalFields;
 use Koha::Token;
-use Koha::DateUtils;
+use Koha::DateUtils qw( output_pref );
 
 my $input = CGI->new();
 
@@ -52,7 +53,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => 'intranet',
         flagsrequired   => { borrowers => 'edit_borrowers', updatecharges => $updatecharges_permissions },
-        debug           => 1,
     }
 );
 
@@ -62,7 +62,6 @@ my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 my $patron         = Koha::Patrons->find( $borrowernumber );
 output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
-my $borrower       = $patron->unblessed;
 my $account        = $patron->account;
 my $category       = $patron->category;
 my $user           = $input->remote_user;
@@ -102,10 +101,10 @@ if ( $pay_individual || $writeoff_individual || $cancel_individual) {
         debit_type_code    => $debit_type_code,
         debit_type         => Koha::Account::DebitTypes->find($debit_type_code),
         accountlines_id    => $accountlines_id,
-        amount             => $amount,
-        amountoutstanding  => $amountoutstanding,
+        amount            => $amount,
+        amountoutstanding => $amountoutstanding,
         title_desc         => $title,
-        itemnumber         => $itemnumber,
+        itemnumber        => $itemnumber,
         individual_description => $description,
         payment_note       => $payment_note,
     );
@@ -134,7 +133,7 @@ if ( $selected_accts ) {
     @selected_accountlines = Koha::Account::Lines->search(
         $search_params,
         { order_by => 'date' }
-    );
+    )->as_list;
 
     my $sum = Koha::Account::Lines->search(
         $search_params,
@@ -190,6 +189,23 @@ if ( $total_paid and $total_paid ne '0.00' ) {
             );
             $payment_id = $pay_result->{payment_id};
 
+            my @additional_fields;
+            my $accountline_fields = Koha::AdditionalFields->search({ tablename => 'accountlines:credit' });
+            while ( my $field = $accountline_fields->next ) {
+                my $value = $input->param('additional_field_' . $field->id);
+                if (defined $value) {
+                    push @additional_fields, {
+                        id => $field->id,
+                        value => $value,
+                    };
+                }
+            }
+            if (@additional_fields) {
+                my $payment = Koha::Account::Lines->find($payment_id);
+                $payment->set_additional_fields(\@additional_fields);
+            }
+
+
             $url = "/cgi-bin/koha/members/pay.pl";
         } else {
             if ($selected_accts) {
@@ -233,6 +249,22 @@ if ( $total_paid and $total_paid ne '0.00' ) {
             }
             $payment_id = $pay_result->{payment_id};
 
+            my @additional_fields;
+            my $accountline_fields = Koha::AdditionalFields->search({ tablename => 'accountlines:credit' });
+            while ( my $field = $accountline_fields->next ) {
+                my $value = $input->param('additional_field_' . $field->id);
+                if (defined $value) {
+                    push @additional_fields, {
+                        id => $field->id,
+                        value => $value,
+                    };
+                }
+            }
+            if (@additional_fields) {
+                my $payment = Koha::Account::Lines->find($payment_id);
+                $payment->set_additional_fields(\@additional_fields);
+            }
+
             $url = "/cgi-bin/koha/members/boraccount.pl";
         }
         # It's possible renewals took place, parse any renew results
@@ -256,11 +288,6 @@ if ( $total_paid and $total_paid ne '0.00' ) {
     $total_paid = '0.00';    #TODO not right with pay_individual
 }
 
-# The following can produce wrong results if %$borrower contains 
-# paramters like lang.
-delete $borrower->{lang} if ( exists($borrower->{lang}) );
-$template->param(%$borrower);
-
 if ( $input->param('error_over') ) {
     $template->param( error_over => 1, total_due => scalar $input->param('amountoutstanding') );
 }
@@ -274,6 +301,7 @@ $template->param(
     total          => $total_due,
     finesview      => 1,
     csrf_token => Koha::Token->new->generate_csrf( { session_id => scalar $input->cookie('CGISESSID') } ),
+    available_additional_fields => [ Koha::AdditionalFields->search({ tablename => 'accountlines:credit' })->as_list ],
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

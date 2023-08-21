@@ -5,14 +5,23 @@
 <!--
   Set Net::Server::PreFork runtime parameters
   syslog_ident will identify SIP2 Koha server entries in syslog
+  See documentation for Net::Server
+  user and group select what user the service should run as
+  if started as root (e.g. in server startup ) the server will switch to
+  this user after binding to the socket it is listening on
   For OpenSolaris, add: syslog_logsock=stream
 -->
   <server-params
     min_servers='1'
     min_spare_servers='0'
+    max_servers='1'
     log_file='Sys::Syslog'
     syslog_ident='koha_sip'
     syslog_facility='local6'
+    setsid="1"
+    user='koha'
+    group='koha'
+    pid_file='/var/run/sipserver.pid'
   />
 
   <listeners>
@@ -62,8 +71,18 @@
              hide_fields="BD,BE,BF,PB"
              register_id=''
              holds_block_checkin="0"
+             holds_get_captured="1"
              prevcheckout_block_checkout="0"
-             overdues_block_checkout="1">
+             overdues_block_checkout="1"
+             format_due_date="0"
+             inhouse_item_types=""
+             inhouse_patron_categories=""
+             seen_on_item_information="mark_found"> <!-- could be "keep_lost", empty to disable -->
+             <!-- lost_block_checkout sets flag if patron has more than the given current checkouts that are lost ( itemlost > 0 by default ) -->
+             <!-- lost_block_checkout_value determines the minimum lost item value to count ( that is, the value in items.itemlost ) -->
+          <!-- Refer to syspref SIP2SortBinMapping for full explanation of sort bin mapping -->
+          <sort_bin_mapping mapping="CPL:itype:eq:BK:1"/>
+          <sort_bin_mapping mapping="CPL:location:eq:OFFICE:2"/>
           <screen_msg_regex find="Greetings from Koha." replace="Welcome to your library!" />
           <screen_msg_regex find="Invalid patron barcode." replace="Barcode not found, are you sure this is your library card?" />
           <patron_attribute field="XY" code="CODE" />
@@ -72,6 +91,7 @@
               <AllFinesNeedOverride>0</AllFinesNeedOverride>
           </syspref_overrides>
           <custom_patron_field field="DE" template="[% patron.dateexpiry %]" />
+          <custom_item_field field="IN" template="[% item.itemnumber %]" />
       </login>
   </accounts>
 
@@ -120,5 +140,4 @@ in our case "ILS".
 <syspref_overrides>
       <AllFinesNeedOverride>0</AllFinesNeedOverride>
 </syspref_overrides>
-
 </acsconfig>
