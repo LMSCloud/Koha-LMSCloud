@@ -28,6 +28,9 @@ return {
             WHERE updated_on IS NULL
         });
         say $out sprintf('Updated all NULL values of borrowers.updated_on to GREATEST(date_renewed, dateenrolled, lastseen): %d rows updated', $rv);
+        
+        $rv = $dbh->do(q{UPDATE borrowers SET date_renewed=NULL WHERE date_renewed='0000-00-00'});
+        say $out sprintf('Updated 0000-00-00 values of borrowers.date_renewed to NULL: %d rows updated', $rv);
 
         $dbh->do(q{
             ALTER TABLE borrowers
