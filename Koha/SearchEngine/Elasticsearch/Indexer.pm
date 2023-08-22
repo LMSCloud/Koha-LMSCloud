@@ -269,11 +269,7 @@ sub update_mappings {
     try {
         my $response = $elasticsearch->indices->put_mapping(
             index => $self->index_name,
-            type => 'data',
-            include_type_name => JSON::true(),
-            body => {
-                data => $mappings
-            }
+            body => $mappings
         );
     } catch {
         $self->set_index_status_recreate_required();
