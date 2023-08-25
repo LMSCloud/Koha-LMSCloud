@@ -97,12 +97,14 @@ CREATE TABLE `account_offsets` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'unique identifier for each offset',
   `credit_id` int(11) DEFAULT NULL COMMENT 'The id of the accountline the increased the patron''s balance',
   `debit_id` int(11) DEFAULT NULL COMMENT 'The id of the accountline that decreased the patron''s balance',
-  `type` enum('CREATE','APPLY','VOID','OVERDUE_INCREASE','OVERDUE_DECREASE') NOT NULL COMMENT 'The type of offset this is',
+  `type` enum('CREATE','APPLY','VOID','OVERDUE_INCREASE','OVERDUE_DECREASE','REVERSED') NOT NULL COMMENT 'The type of offset this is',
   `amount` decimal(26,6) NOT NULL COMMENT 'The amount of the change',
   `created_on` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `account_offsets_ibfk_p` (`credit_id`),
   KEY `account_offsets_ibfk_f` (`debit_id`),
+  KEY `account_offsets_ibfk_t` (`type`),
+  KEY `account_offsets_ibk_co` (`created_on`),
   CONSTRAINT `account_offsets_ibfk_f` FOREIGN KEY (`debit_id`) REFERENCES `accountlines` (`accountlines_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `account_offsets_ibfk_p` FOREIGN KEY (`credit_id`) REFERENCES `accountlines` (`accountlines_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
