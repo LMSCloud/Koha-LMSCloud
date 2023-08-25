@@ -38,9 +38,14 @@ return {
 
         $dbh->do(q{
                 ALTER TABLE `account_offsets`
-                MODIFY COLUMN `type` enum( 'CREATE', 'APPLY', 'VOID', 'OVERDUE_INCREASE', 'OVERDUE_DECREASE' ) NOT NULL
+                MODIFY COLUMN `type` enum( 'CREATE', 'APPLY', 'VOID', 'OVERDUE_INCREASE', 'OVERDUE_DECREASE', 'REVERSED' ) NOT NULL
         });
         say $out "Ensure NOT NULL on account_offsets.type";
+        
+        unless ( index_exists('account_offsets', 'account_offsets_ibk_co') ) {
+            $dbh->do(q{CREATE INDEX account_offsets_ibk_co ON account_offsets ( created_on )});
+            say $out "Added new index on account_offsets.created_on";
+        }
 
         $dbh->do(q{
                 ALTER TABLE `additional_contents`
