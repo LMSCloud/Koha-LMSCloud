@@ -34,7 +34,7 @@
 
 [% MACRO showCashRegisterOverview BLOCK -%]
 <h4 style="margin-top:20px">Cash position</h4>
-<table id="cashpaymentoverview">
+<table id="cashpaymentoverview" class="table-bordered">
     <thead>
         <tr>
             <th>Cash register</th>

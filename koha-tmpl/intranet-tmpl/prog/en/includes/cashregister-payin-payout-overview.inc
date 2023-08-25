@@ -24,7 +24,7 @@
 
 [% showCashRegisterOverview %]
 <h4 style="margin-top:20px;">Inpayment overview ([% cash_register.cash_register_name %])</h4>
-<table id="inpaymentoverview">
+<table id="inpaymentoverview" class="table-bordered">
     <thead>
         <tr>
             <th>Inpayment type</th>
@@ -52,7 +52,7 @@
     </tfoot>
 </table>
 <h4 style="margin-top:20px;">Outpayment overview ([% cash_register.cash_register_name %])</h4>
-<table id="outpaymentoverview">
+<table id="outpaymentoverview" class="table-bordered">
     <thead>
         <tr>
             <th>Outpayment type</th>
@@ -85,7 +85,7 @@
 
 [% IF !(finesstats.overview.data.account.mapped || finesstats.overview.data.account.unmapped) %]
 <h4 style="margin-top:20px">Paid fines by account</h4>
-<table id="mappedaccountoverview">
+<table id="mappedaccountoverview" class="table-bordered">
     <thead>
         <tr>
             <th>Payment type</th>
@@ -104,7 +104,7 @@
 
 [% IF (finesstats.overview.data.mapaccount) %]
 <h4 style="margin-top:20px">Paid fines by account</h4>
-<table id="mappedaccountoverview">
+<table id="mappedaccountoverview" class="table-bordered">
     <thead>
         <tr>
             <th>Payment type</th>
@@ -204,7 +204,7 @@
 <h3 style="margin-top:30px">Account management fees</h3>
 
 <h4 style="margin-top:20px">Paid account management fee by borrower category</h4>
-<table id="accountmanagementfeebyborrowertype">
+<table id="accountmanagementfeebyborrowertype" class="table-bordered">
     <thead>
         <tr>
             <th>Payment type</th>
@@ -252,7 +252,7 @@
     The following payment overview lists detailed outpayments (without reverse payments) of the selected branch during the selected period.
 </p>
 
-<table id="finesbydate">
+<table id="finesbydate" class="table-bordered">
     <thead>
         <tr>
             <th class="title-string">Day</th>

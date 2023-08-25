@@ -23,7 +23,7 @@
     [% END %]
     [% showCashRegisterOverview %]
     <h4 style="margin-top:20px;">Inpayment overview ([% cash_register.cash_register_name %])</h4>
-    <table id="inpaymentoverview">
+    <table id="inpaymentoverview" class="table-bordered">
         <thead>
             <tr>
                 <th>Inpayment type</th>
@@ -51,7 +51,7 @@
         </tfoot>
     </table>
     <h4 style="margin-top:20px;">Outpayment overview ([% cash_register.cash_register_name %])</h4>
-    <table id="outpaymentoverview">
+    <table id="outpaymentoverview" class="table-bordered">
         <thead>
             <tr>
                 <th>Outpayment type</th>
@@ -133,7 +133,7 @@
     [% IF (finesstats.data.account.mapped || finesstats.data.account.unmapped) %]
         [% IF (finesstats.data.account.mapped) %]
         <h4 style="margin-top:20px">Paid fines by account</h4>
-        <table id="mappedaccountoverview">
+        <table id="mappedaccountoverview" class="table-bordered">
             <thead>
                 <tr>
                     <th>Account</th>
@@ -160,7 +160,7 @@
         [% ELSE %]
         <h4 style="margin-top:20px">Paid fines</h4>
         [% END %]
-        <table id="unmappedaccountoverview">
+        <table id="unmappedaccountoverview" class="table-bordered">
             <thead>
                 <tr>
 					[% IF (finesstats.data.account.mapped) %]
@@ -192,7 +192,7 @@
     
     [% IF ( finesstats.data.paidtype.keys.sort.size > 0 ) %]
     <h4 style="margin-top:20px">Paid fines overview by fine type</h4>
-    <table id="finestypeoverview">
+    <table id="finestypeoverview" class="table-bordered">
         <thead>
             <tr>
                 <th>Payment type</th>
@@ -293,7 +293,7 @@
     
     [% IF ( finesstats.data.paid.keys.sort.size > 0 ) %]
     <h4 style="margin-top:20px">Paid fines overview by fine type and item type</h4>
-    <table id="finesoverview">
+    <table id="finesoverview" class="table-bordered">
         <thead>
             <tr>
                 <th>Payment type</th>
@@ -406,7 +406,7 @@
     
     [% FOREACH cashreg IN finesstats.data.cashregister.keys.sort %]
     <h4 style="margin-top:20px">Cash register: [% cashreg %]</h4>
-    <table class="cashregoverview">
+    <table class="cashregoverview" class="table-bordered">
         <thead>
             <tr>
                 <th class="colpaymenttype">Payment type</th>
@@ -441,7 +441,7 @@
     
     [% IF (finesstats.data.accountfee.borrower_type) %]
     <h4 style="margin-top:20px">Paid account management fee by borrower category</h4>
-    <table id="accountmanagementfeebyborrowertype">
+    <table id="accountmanagementfeebyborrowertype" class="table-bordered">
         <thead>
             <tr>
                 <th class="colpaymenttype">Payment type</th>
@@ -468,7 +468,7 @@
     
     [% IF (finesstats.data.accountfee.borrower_town) %]
     <h4 style="margin-top:20px">Paid account management fee by borrower town</h4>
-    <table id="accountmanagementfeebyborrowertown">
+    <table id="accountmanagementfeebyborrowertown" class="table-bordered">
         <thead>
             <tr>
                 <th class="colpaymenttype">Payment type</th>
@@ -513,7 +513,7 @@
         The following payment overview lists detailed payments of the selected branch during the selected period. It includes all cash payments, deposits and adjustments of cash registers during the selected period.
     </p>
     [% END %]
-    <table id="finesbydate">
+    <table id="finesbydate" class="table-bordered">
         <thead>
             <tr>
                 <th class="title-string" >Day</th>
