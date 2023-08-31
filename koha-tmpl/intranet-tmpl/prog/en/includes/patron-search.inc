@@ -883,8 +883,8 @@
             $("body").on("click",".add_user",function(e){
                 e.preventDefault();
                 var borrowernumber = $(this).data("borrowernumber");
-                var firstname = $(this).data("firstname");
-                var surname = $(this).data("surname");
+                var firstname = decodeURIComponent($(this).data("firstname"));
+                var surname = decodeURIComponent($(this).data("surname"));
                 add_user( borrowernumber, firstname + " " + surname );
             });
 
