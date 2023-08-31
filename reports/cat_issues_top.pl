@@ -180,7 +180,8 @@ sub calculate {
     my $colfield;
     my $colorder;
     if ($column){
-        $column = "old_issues.".$column if (($column=~/branchcode/) or ($column=~/issuedate/));
+        $column = "old_issues.".$column if ( $column=~/issuedate/ );
+        $column = "old_issues.branchcode" if ( $column=~/branch/ );
         if($column=~/itemtype/){
             $column = C4::Context->preference('item-level_itypes') ? "items.itype": "biblioitems.itemtype";
         }
@@ -209,6 +210,11 @@ sub calculate {
             $column = "old_issues.issuedate";
             $colfield .="dayname($column)";  
             $colorder .="weekday($column)";
+        } elsif ($column eq "Week") {
+            #Display by Week
+            $column = "old_issues.issuedate";
+            $colfield .="week($column)";  
+            $colorder .="week($column)";
         } elsif ($column eq "Month") {
             #Display by Month
             $column = "old_issues.issuedate";
@@ -249,8 +255,8 @@ sub calculate {
         my $sth2 = $dbh->prepare( $strsth2 );
         if (( @colfilter ) and ($colfilter[1])){
             $sth2->execute("'".$colfilter[0]."'","'".$colfilter[1]."'");
-        } elsif ($colfilter[0]) {
-            $sth2->execute($colfilter[0]);
+        #} elsif ($colfilter[0]) {
+        #    $sth2->execute($colfilter[0]);
         } else {
             $sth2->execute;
         }
@@ -336,7 +342,7 @@ sub calculate {
     $dbcalc->execute;
     my %indice;
     while (my  @data = $dbcalc->fetchrow) {
-        my ($row, $rank, $id, $callnum, $ccode, $loc, $col )=@data;
+        my ($row, $rank, $id, $col )=@data;
         $col = "zzEMPTY" if (!defined($col));
         $indice{$col}=1 if (not($indice{$col}));
         $table[$indice{$col}]->{$col}->{'name'}=$row;
