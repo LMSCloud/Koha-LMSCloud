@@ -608,7 +608,7 @@
                             [% END %]
                             <select name="currency" id="currency">
                                 [% FOREACH c IN currencies %]
-                                    [% IF suggestionid and suggestion.currency == c.currency or not suggestionid and c.active %]
+                                    [% IF (suggestionid and suggestion.currency == c.currency) or (suggestionid and not suggestion.currency and c.active) or (not suggestionid and c.active)%]
                                         <option value="[% c.currency | html %]" selected="selected">[% c.currency | html %]</option>
                                     [% ELSIF not c.archived %]
                                         <option value="[% c.currency | html %]">[% c.currency | html %]</option>
