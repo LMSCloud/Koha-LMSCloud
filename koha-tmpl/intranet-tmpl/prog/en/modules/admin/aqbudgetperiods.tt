@@ -201,7 +201,7 @@
 
     <fieldset class="action">
         <input type="submit" class="btn btn-primary" value="Save" />
-        <a class="cancel" href="/cgi-bin/koha/admin/aqbudgets.pl?budget_period_id=[% budget_period_id | html %]">Cancel</a>
+        <a class="cancel" href="/cgi-bin/koha/admin/aqbudgetperiods.pl?budget_period_id=[% budget_period_id | html %]">Cancel</a>
     </fieldset>
 
 </form>
@@ -276,7 +276,7 @@
         <!-- ###################################### -->
         <input type="submit" class="btn btn-primary" value="Save" />
         [% IF ( budget_period_id ) %]
-            <a href="/cgi-bin/koha/admin/aqbudgets.pl?budget_period_id=[% budget_period_id | uri %]" class="cancel">Cancel</a>
+            <a href="/cgi-bin/koha/admin/aqbudgetperiods.pl?budget_period_id=[% budget_period_id | uri %]" class="cancel">Cancel</a>
         [% ELSE %]
             <a href="/cgi-bin/koha/admin/aqbudgetperiods.pl" class="cancel">Cancel</a>
         [% END %]
