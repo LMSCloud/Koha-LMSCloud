@@ -873,7 +873,7 @@
                         
 						[% IF ( Koha.Preference('DivibibEnabled') ) %]
 							<li role="presentation">
-								<a id="divibib-issues-tab" href="#divibib-issues" aria-controls="clubs-tab" role="tab" data-toggle="tab">
+								<a id="divibib-issues-tab" href="#divibib-issues" aria-controls="divibib-issues" role="tab" data-toggle="tab">
 								    Onleihe(n)
 								</a>
 							</li>
