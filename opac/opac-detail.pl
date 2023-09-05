@@ -699,8 +699,10 @@ if (C4::Context->preference('DivibibEnabled') && $record->field("001") && $recor
             $useitem->{'date_due_sql'}  = $divitem->{'date_due_sql'};
             $useitem->{'datedue'} = $divitem->{'datedue'};
             $useitem->{'overdue'} = $divitem->{'overdue'};
+            if ( $divitem->{'datedue'} ) {
+                $useitem->{'checkout'}->{'date_due'} = $divitem->{'datedue'}
+            }
             
-            $useitem->{'itemnumber'} = $divitem->{'itemnumber'};
             $useitem->{'itemSource'} = $divitem->{'itemSource'};;
             $useitem->{'this_branch'} = $divitem->{'this_branch'};
             $useitem->{'available'} = $divitem->{'available'};
@@ -794,7 +796,7 @@ else {
             $item_info->{serial} = $serial if $serial;
         }
 
-        $item_info->{checkout} = $item->checkout;
+        $item_info->{checkout} = $item->checkout if (! exists($item_info->{'onleihe'}));
         $item_info->{object} = $item;
 
 
