@@ -655,11 +655,8 @@
                                 <a href="#checkouts" aria-controls="checkouts" role="tab" data-toggle="tab">Checkouts ([% issuecount || 0 | html %])</a>
                             </li>
                             [% IF ( Koha.Preference('DivibibEnabled') ) %]
-                                [% SET divibib_issues_show_tab = 1 %]
-                            [% END %]
-                            [% IF ( divibib_issues_show_tab ) %]
-                                <li>
-                                    <a href="#divibib-issues" id="divibib-issues-tab">Onleihen</a>
+                                <li role="presentation">
+                                    <a href="#divibib-issues" id="divibib-issues-tab" aria-controls="divibib-issues" role="tab" data-toggle="tab">Onleihe(n)</a>
                                 </li>
                             [% END %]
                             [% IF relatives_issues_count %]
@@ -736,7 +733,7 @@
                         <div class="tab-content">
                             [% INCLUDE "checkouts-table.inc" %]
                             
-							[% IF ( divibib_issues_show_tab ) %]
+							[% IF ( Koha.Preference('DivibibEnabled') ) %]
 								<div id="divibib-issues" role="tabpanel" class="tab-pane">
 									<table id="divibib-issues-table" style="width: 100% !Important;">
 										<thead>

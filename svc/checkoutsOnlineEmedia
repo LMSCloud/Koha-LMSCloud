@@ -30,7 +30,7 @@ use C4::Context;
 use C4::Divibib::NCIPService;
 use C4::Items;
 
-use Koha::DateUtils;
+use Koha::DateUtils qw(output_pref dt_from_string);
 use Koha::Libraries;
 use Koha::ItemTypes;
 use Koha::Biblios;
