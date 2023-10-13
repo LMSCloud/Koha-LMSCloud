@@ -235,7 +235,7 @@ my ( $self, $biblionumber, $ref_best_item_status, $ref_best_itemnumber, $ref_bes
         my $itemnumber = $itemrecord->{'itemnumber'};
         
         if ($itemrecord->{'notforloan'} ||
-            $itemrecord->{'damaged'} ||
+            ( $itemrecord->{'damaged'} && $itemrecord->{'damaged'} > 0 ) ||
             $itemrecord->{'itemlost'} ||
             $itemrecord->{'withdrawn'} ||
             $itemrecord->{'restricted'})
