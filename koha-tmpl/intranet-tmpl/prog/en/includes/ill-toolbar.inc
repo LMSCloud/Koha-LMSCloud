@@ -165,6 +165,12 @@
                         case "title":
                             labeltext =  _("Title");
                         break;
+                        case "checkedBy":
+                            labeltext =  _("Checked by");
+                        break;
+                        case "isil":
+                            labeltext =  _("ISIL");
+                        break;
                         default:
                             labeltext =  requestmetadatakey;
                         break;
