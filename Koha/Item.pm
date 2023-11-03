@@ -487,7 +487,7 @@ sub holds {
 
 =head3 bookings
 
-  my $bookings = $item->bookings();
+    my $bookings = $item->bookings();
 
 Returns the bookings attached to this item.
 
@@ -496,7 +496,7 @@ Returns the bookings attached to this item.
 sub bookings {
     my ( $self, $params ) = @_;
     my $bookings_rs = $self->_result->bookings->search($params);
-    return Koha::Bookings->_new_from_dbic( $bookings_rs );
+    return Koha::Bookings->_new_from_dbic($bookings_rs);
 }
 
 =head3 find_booking
@@ -537,9 +537,7 @@ sub find_booking {
                 end_date   => { '>' => $dtf->format_datetime($due_date) }
             }
         ],
-        {
-            order_by => { '-asc' => 'start_date' }
-        }
+        { order_by => { '-asc' => 'start_date' } }
     );
 
     my $checkouts      = {};
@@ -548,8 +546,7 @@ sub find_booking {
     while ( my $item = $bookable_items->next ) {
         $loanable_items->{ $item->itemnumber } = 1;
         if ( my $checkout = $item->checkout ) {
-            $checkouts->{ $item->itemnumber } =
-              dt_from_string( $checkout->date_due );
+            $checkouts->{ $item->itemnumber } = dt_from_string( $checkout->date_due );
         }
     }
 
@@ -580,8 +577,8 @@ sub find_booking {
 
 =head3 check_booking
 
-  my $bookable =
-    $item->check_booking( { start_date => $datetime, end_date => $datetime, [ booking_id => $booking_id ] } );
+    my $bookable =
+        $item->check_booking( { start_date => $datetime, end_date => $datetime, [ booking_id => $booking_id ] } );
 
 Returns a boolean denoting whether the passed booking can be made without clashing.
 
@@ -590,7 +587,7 @@ Optionally, you may pass a booking id to exclude from the checks; This is helpfu
 =cut
 
 sub check_booking {
-    my ($self, $params) = @_;
+    my ( $self, $params ) = @_;
 
     my $start_date = dt_from_string( $params->{start_date} );
     my $end_date   = dt_from_string( $params->{end_date} );
@@ -601,6 +598,7 @@ sub check_booking {
     }
 
     my $dtf = Koha::Database->new->schema->storage->datetime_parser;
+
     my $existing_bookings = $self->bookings(
         [
             start_date => {
@@ -623,10 +621,9 @@ sub check_booking {
     );
 
     my $bookings_count =
-      defined($booking_id)
-      ? $existing_bookings->search( { booking_id => { '!=' => $booking_id } } )
-      ->count
-      : $existing_bookings->count;
+        defined($booking_id)
+        ? $existing_bookings->search( { booking_id => { '!=' => $booking_id } } )->count
+        : $existing_bookings->count;
 
     return $bookings_count ? 0 : 1;
 }
@@ -654,8 +651,7 @@ sub place_booking {
     my @mandatory = ( 'start_date', 'end_date', 'patron' );
     for my $param (@mandatory) {
         unless ( defined( $params->{$param} ) ) {
-            Koha::Exceptions::MissingParameter->throw(
-                error => "The $param parameter is mandatory" );
+            Koha::Exceptions::MissingParameter->throw( error => "The $param parameter is mandatory" );
         }
     }
     my $patron = $params->{patron};
@@ -663,11 +659,11 @@ sub place_booking {
     # New booking object
     my $booking = Koha::Booking->new(
         {
-            start_date     => $params->{start_date},
-            end_date       => $params->{end_date},
-            patron_id      => $patron->borrowernumber,
-            biblio_id      => $self->biblionumber,
-            item_id        => $self->itemnumber,
+            start_date => $params->{start_date},
+            end_date   => $params->{end_date},
+            patron_id  => $patron->borrowernumber,
+            biblio_id  => $self->biblionumber,
+            item_id    => $self->itemnumber,
         }
     )->store();
     return $booking;
