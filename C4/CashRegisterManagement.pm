@@ -2681,6 +2681,11 @@ sub getFinesOverview {
                 my $paytype      = $row->{'paytype'};
                 my $count        = $row->{'count'};
                 my $description  = $row->{'description'} || '';
+
+                # LMSCloud hotfix 2023-12-04: Some payment actions set account_offsets.type to 'Payment' not only for the record representing the credit, but also for the records that represent the debits.
+                if ( $paytype eq 'Payment' ) {
+                    $paytype = 'Credit Applied';    # avoid splitting by account_offsets.type in this case
+                }
                 
                 $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{amount} += $amount;
                 $result->{data}->{accountfee}->{$accoutfeegroup}->{$paytype}->{$description}->{count}  += $count;
