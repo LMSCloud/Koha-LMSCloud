@@ -21,21 +21,22 @@ use Modern::Perl;
 use CGI;
 use Data::Dumper;
 $CGI::LIST_CONTEXT_WARN = 0;
+use File::Spec qw( catdir catpath);
 
-use C4::Auth qw( get_template_and_user haspermission get_user_subpermissions );
-use C4::Output qw( output_with_http_headers );
-use C4::Letters;
+use C4::Auth qw( get_template_and_user );
+use C4::Context qw( config dbh mybranch preference );
+use C4::Letters qw( EnqueueLetter GetMessagesById GetPreparedLetter );    # also using not exported functions  _send_message_by_email _set_message_status
 use C4::Members;
-use C4::Overdues;
-use C4::Context;
-use Koha::Acquisition::Currencies;
-use Koha::Libraries;
-use Koha::DateUtils qw( output_pref dt_from_string );
-use Koha::Notice::Templates;
 use C4::NoticeFees;
+use C4::Output qw( output_with_http_headers );
+use C4::Overdues;
+use C4::Templates qw( gettemplate );
+use Koha::Acquisition::Currencies qw( get_active );
+use Koha::DateUtils qw( output_pref dt_from_string );
+use Koha::Libraries;
+use Koha::Notice::Templates qw( find_effective_template );
+
 use Locale::Currency::Format 1.28;
-use Koha::DateUtils;
-use File::Spec;
 
 print STDERR "svc/ill/genIllDeliverySlip START\n";
 my $input = new CGI;
@@ -59,7 +60,7 @@ my $params = {
         itemnumber      => scalar $input->param('itemnumber'),
         duedate         => scalar $input->param('duedate'),
     };
-my $result = genIllDeliverySlip($params);
+my $result = &genIllDeliverySlip($params);
 print STDERR "svc/ill/genIllDeliverySlip result->printedfile:" . $result->{printedfile} . ":\n";
 
 $template->param(
@@ -70,7 +71,7 @@ $template->param(
     printedfile    => $result->{printedfile}
 );
 
-output_with_http_headers $input, $cookie, $template->output, 'json';
+C4::Output::output_with_http_headers $input, $cookie, $template->output, 'json';
 
 sub genIllDeliverySlip {
     my $params = shift;
@@ -100,7 +101,7 @@ print STDERR "svc/ill/genIllDeliverySlip::genIllDeliverySlip START biblionumber:
     my $printfilename  = '';
     my @printmessages = ();
     my @emailmessages = ();
-    my $today = output_pref( { dt => dt_from_string(), dateonly => 0, dateformat => 'iso' } );
+    my $today = Koha::DateUtils::output_pref( { dt => Koha::DateUtils::dt_from_string(), dateonly => 0, dateformat => 'iso' } );
     
     if ($lettercode) {    
 
@@ -143,8 +144,8 @@ print STDERR "svc/ill/genIllDeliverySlip::genIllDeliverySlip START biblionumber:
             my $transport_type = 'print';
             
             my $substitute = { bib => $library->branchname, 'count' => 1 };
-            $substitute->{today} = output_pref( { dt => dt_from_string, dateonly => 1} );
-            $substitute->{illreqattr_duedate} = output_pref( { dt => dt_from_string($duedate), dateonly => 1} );
+            $substitute->{today} = Koha::DateUtils::output_pref( { dt => Koha::DateUtils::dt_from_string, dateonly => 1} );
+            $substitute->{illreqattr_duedate} = Koha::DateUtils::output_pref( { dt => Koha::DateUtils::dt_from_string($duedate), dateonly => 1} );
             if ( exists($lettertemplates->{$transport_type}) ) {
                 my $repeat = {};
                 #my $borrowernumber = $illrequest->borrowernumber();    # would be viable, but $borrowernumber is already set via $borrowernumbers[1]
@@ -189,10 +190,10 @@ print STDERR "svc/ill/genIllDeliverySlip::genIllDeliverySlip after C4::Letters::
     $letter_mailed = scalar @emailmessages;
     
     if ( $letter_printed ) {
-        $printfilename = CreatePrintOutput( { lettercode => $lettercode, printmessages => \@printmessages } );
+        $printfilename = &CreatePrintOutput( { lettercode => $lettercode, printmessages => \@printmessages } );
     }
     if ( $letter_mailed ) {
-        SendMailMessages( { lettercode => $lettercode, emailmessages => \@emailmessages } );
+        &SendMailMessages( { lettercode => $lettercode, emailmessages => \@emailmessages } );
     }
 
     return  {
@@ -211,7 +212,7 @@ sub SendMailMessages {
     @messageIDs = @{$params->{emailmessages}} if ( $params->{emailmessages} );
     my $lettercode = $params->{lettercode} if ( $params->{lettercode} );
 
-    my @messages = @{ GetMessagesById( { message_id => \@messageIDs } ) };
+    my @messages = @{ C4::Letters::GetMessagesById( { message_id => \@messageIDs } ) };
     
     foreach my $message ( @messages ) {
         C4::Letters::_send_message_by_email( $message );
@@ -227,7 +228,7 @@ sub CreatePrintOutput {
 print STDERR "svc/ill/genIllDeliverySlip::CreatePrintOutput START; lettercode:$lettercode: count messageIDs:" . scalar @messageIDs . ":\n";
 print STDERR "svc/ill/genIllDeliverySlip::CreatePrintOutput START; messageIDs:", @messageIDs, ":\n";
     
-    my @messages = @{ GetMessagesById( { message_id => \@messageIDs } ) };
+    my @messages = @{ C4::Letters::GetMessagesById( { message_id => \@messageIDs } ) };
 print STDERR "svc/ill/genIllDeliverySlip::CreatePrintOutput count found messages:" . scalar @messages . ":\n";
     
     foreach my $message (@messages) {
@@ -247,7 +248,7 @@ print STDERR "svc/ill/genIllDeliverySlip::CreatePrintOutput count found messages
     my $generatefilename = File::Spec->catdir( $outputdir, $printfilename );
 print STDERR "svc/ill/genIllDeliverySlip::CreatePrintOutput after File::Spec->catdir() generatefilename:$generatefilename:\n";
     
-    Generate_html({
+    &Generate_html({
                 lettercode => $lettercode,
                 messages => \@messages,
                 filepath => $generatefilename,
@@ -275,7 +276,7 @@ sub Generate_html {
       C4::Templates::gettemplate( 'ill/ill-print-notices.tt', 'intranet',
         new CGI );
 
-    my $today_syspref = output_pref( { dt => dt_from_string, dateonly => 1 } );
+    my $today_syspref = Koha::DateUtils::output_pref( { dt => Koha::DateUtils::dt_from_string, dateonly => 1 } );
     my $stylesheet = C4::Context->preference("NoticeCSS");
     # If the letter.code ends with '_NOCSS' or '_NOCSS_CHARGE', then no NoticeCSS content should be transferred in param 'stylesheet'.
     if ( $lettercode =~ /^.*_NOCSS$/ || $lettercode =~ /^.*_NOCSS_CHARGE$/ ) {

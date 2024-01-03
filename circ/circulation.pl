@@ -6,6 +6,7 @@
 # copyright 2010 BibLibre
 # Copyright 2011 PTFS-Europe Ltd.
 # Copyright 2012 software.coop and MJ Ray
+# Copyright 2022-2024 (C) LMSCloud GmbH
 #
 # This file is part of Koha.
 #
@@ -33,7 +34,7 @@ use Scalar::Util qw( looks_like_number );
 use C4::Output qw( output_and_exit_if_error output_and_exit output_html_with_http_headers );
 use C4::Auth qw( get_session get_template_and_user );
 use C4::Koha;
-use C4::Circulation qw( barcodedecode CanBookBeIssued AddIssue );
+use C4::Circulation qw( barcodedecode CanBookBeIssued AddIssue AddReturn );
 use C4::Members;
 use C4::Biblio qw( TransformMarcToKoha );
 use C4::Search qw( new_record_from_zebra );
@@ -677,7 +678,7 @@ if ( scalar @issuesDone > 0 ) {
                     eval {
                         my $shippingBackRequired = $illrequest->_backend_capability( "isShippingBackRequired", $illrequest );
                         if ( ! $shippingBackRequired ) {
-                            AddReturn($item->unblessed->{barcode}, C4::Context->userenv->{'branch'});
+                            C4::Circulation::AddReturn($item->unblessed->{barcode}, C4::Context->userenv->{'branch'});
                         }
                     };
                 }
@@ -685,6 +686,7 @@ if ( scalar @issuesDone > 0 ) {
         }
     }
 }
+@itemsFound = ();
 
 # Generate CSRF token for upload and delete image buttons
 $template->param(

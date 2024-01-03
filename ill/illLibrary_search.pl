@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2018 LMSCloud GmbH
+# Copyright 2018-2024 (C) LMSCloud GmbH
 #
 # This file is part of Koha.
 #
@@ -20,8 +20,8 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Members;
 
 use Koha::Patron::Categories;
@@ -38,6 +38,10 @@ foreach my $catcode (@illPatronCategories) {
     }
 }
 my $searchmember = $input->param('searchmember');
+my @attribute_type_codes = ( 'Sigel' );
+if ( C4::Context->preference('ExtendedPatronAttributes') ) {
+    push @attribute_type_codes, @{[ Koha::Patron::Attribute::Types->search( { staff_searchable => 1 } )->get_column('code') ]};
+}
 
 my ( $template, $loggedinuser, $cookie, $staff_flags ) = get_template_and_user(
     {   template_name   => "ill/illLibrary_search.tt",
@@ -49,16 +53,14 @@ my ( $template, $loggedinuser, $cookie, $staff_flags ) = get_template_and_user(
 );
 
 $template->param(
-    view => ( $input->request_method() eq "GET" ) ? "show_form" : "show_results",
-    columns => ['cardnumber', 'name', 'borr_attr_attribute_SIGEL', 'city', 'action' ],
-    json_template => 'members/tables/illLibrary_results.tt',
+    columns => ['cardnumber', 'name', 'city', 'extended_attribute_SIGEL', 'category', 'action' ],
+    default_sort_column => 'name',
     selection_type => 'select',
-    return_borrower_attributes => 'SIGEL',
-    alphabet        => ( C4::Context->preference('alphabet') || join ' ', 'A' .. 'Z' ),
-    patrontype      => $patrontype,
-    categories      => $kohaIllPatronCategories,
-    searchmember    => $searchmember,
-    aaSorting       => 1,
+    ill_patronclass_lmsc => 'ILL_library',
+    ill_patrontype_lmsc => $patrontype,
+    categories => $kohaIllPatronCategories,
+    searchmember => $searchmember,
+    attribute_type_codes => \@attribute_type_codes,
 );
 
 output_html_with_http_headers( $input, $cookie, $template->output );

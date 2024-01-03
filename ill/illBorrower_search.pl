@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2019 LMSCloud GmbH
+# Copyright 2018-2024 (C) LMSCloud GmbH
 #
 # This file is part of Koha.
 #
@@ -21,15 +21,14 @@ use Modern::Perl;
 use Data::Dumper;
 
 use CGI qw ( -utf8 );
-use C4::Auth;
-use C4::Output;
+use C4::Auth qw( get_template_and_user );
+use C4::Output qw( output_html_with_http_headers );
 use C4::Members;
 
 use Koha::Patron::Categories;
 
 my $input = new CGI;
 #print STDERR "ill::illBorrower_search input:", Dumper($input), ":\n";
-my $searchfieldstype = $input->param('searchfieldstype');
 my $searchmember = $input->param('searchmember');
 
 my ( $template, $loggedinuser, $cookie, $staff_flags ) = get_template_and_user(
@@ -43,16 +42,11 @@ my ( $template, $loggedinuser, $cookie, $staff_flags ) = get_template_and_user(
 
 my $patron_categories = Koha::Patron::Categories->search_with_library_limits;
 $template->param(
-    view => ( $input->request_method() eq "GET" ) ? "show_form" : "show_results",
-    #columns => ['cardnumber', 'name', 'dateofbirth', 'address', 'action' ],    # based on guarantor_search.tt
-    columns => ['cardnumber', 'name', 'dateofbirth', 'branch', 'category', 'action' ],    # based on members_results.tt
-    json_template => 'members/tables/illBorrower_results.tt',
+    columns => ['cardnumber', 'name-address', 'dateofbirth', 'branch', 'category', 'action' ],
+    default_sort_column => 'name-address',
     selection_type => 'select',
-    alphabet        => ( C4::Context->preference('alphabet') || join ' ', 'A' .. 'Z' ),
-    categories      => $patron_categories,
-    searchfieldstype => $searchfieldstype,
-    searchmember    => $searchmember,
-    aaSorting       => 1,
+    categories => $patron_categories,
+    searchmember => $searchmember,
 );
 
 output_html_with_http_headers( $input, $cookie, $template->output );

@@ -117,7 +117,7 @@ $(document).ready(function() {
             let status_sub_or = [];
             let subquery_and = [];
 
-            // only in Standard Koha, but not in LMSCloud Koha:
+            // only in standard Koha, but not in LMSCloud Koha:
             //if (!patron && !status) return "";
 
             if(patron){
@@ -159,12 +159,12 @@ $(document).ready(function() {
 
             // added by LMSCloud: add infilter, supporting SQL patterns: "AND ... IN ( ... )"  and  "AND ... NOT IN ( ... )"
             // As the standard Koha developers made no provisions for the SQL 'IN (...)'or 'NOT IN (...)' construct in datatables.js function build_query(col, value){...},
-            // LMSCloud reduces infilter 'field,-in,A,B,C,...' to [field]:{"=":"A"} and 'field,-not_in,A,B,C,...' to [field]:{"!=":"A"}.
+            // LMSCloud reduces infilter 'field,-in,A,B,C,...' to [field]:{"=":"A"} and 'field,-not_in,A,B,C,...' to [field]:{"!=":"A"}. (i.e. ",B,C" are ignored! )
             // Reasons:
-            //   This is sufficient for our specific application until now. (Otherwise we could build 'or' subqueries,
-            //   but at the moment we avoid the resulting performance penalties.))
+            //   This is sufficient for our specific application until now, because currently only 1 value is required for the IN-clause.
+            //   (Otherwise we could build 'or' subqueries, but at the moment we avoid the resulting performance penalties.)
             //   We do not want to spend effort in extending build_query() based on the fear that
-            //   in the next Koha version the datatables.js implementation is again reworked from scratch
+            //   in the next Koha version the datatables.js implementation is again reworked from scratch.
             let additional_infilter_sub = [];
             for (let additional_infilt_key in additional_infilter) {
                 let vals = additional_infilter[additional_infilt_key][1].split(",");
@@ -190,7 +190,8 @@ $(document).ready(function() {
             return filters;
         },
         "me.placed": function(){
-            if ( Object.keys(additional_prefilters).length ) return "";
+            //if ( Object.keys(additional_prefilters).length ) return "";    # This is used in standard Koha to suppress selection for 'placed' if selecting by borrowernumber. LMSCloud had to replace that by:
+            if (borrower_prefilter) return "";
             let placed_start = $('#illfilter_dateplaced_start').get(0)._flatpickr.selectedDates[0];
             let placed_end = $('#illfilter_dateplaced_end').get(0)._flatpickr.selectedDates[0];
             if (!placed_start && !placed_end) return "";
@@ -201,7 +202,8 @@ $(document).ready(function() {
             }
         },
         "me.updated": function(){
-            if (Object.keys(additional_prefilters).length) return "";
+            //if (Object.keys(additional_prefilters).length) return "";    # This is used in standard Koha to suppress selection for 'updated' if selecting by borrowernumber. LMSCloud had to replace that by:
+            if (borrower_prefilter) return "";
             let updated_start = $('#illfilter_datemodified_start').get(0)._flatpickr.selectedDates[0];
             let updated_end = $('#illfilter_datemodified_end').get(0)._flatpickr.selectedDates[0];
             if (!updated_start && !updated_end) return "";

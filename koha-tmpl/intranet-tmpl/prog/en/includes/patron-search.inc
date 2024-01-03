@@ -25,7 +25,11 @@
 [% BLOCK patron_search_filters %]
     <form id="patron_search_form">
         <fieldset class="brief">
-            <h3>Search for patron</h3>
+            [% IF ill_patronclass_lmsc == 'ILL_library' %]
+                <h3>Search for ILL library</h3>
+            [% ELSE %]
+                <h3>Search for patron</h3>
+            [% END %]
             <fieldset class="action">
                 <input type="submit" class="btn btn-primary" value="Search" />
                 <input type="button" value="Clear" class="clear_search" />
@@ -55,9 +59,12 @@
                         <li>
                             <label for="categorycode_filter">Category:</label>
                             <select id="categorycode_filter">
-                                <option value="">Any</option>
+                                [% nothing_selected = 1 %]
+                                [% IF ill_patronclass_lmsc != 'ILL_library' %]
+                                    <option value="">Any</option>
+                                [% END %]
                                 [% FOREACH category IN categories %]
-                                    <option value="[% category.categorycode | html %]">[% category.description | html %]</option>
+                                    <option value="[% category.categorycode | html %]"[% IF (ill_patronclass_lmsc == 'ILL_library' && nothing_selected) %] selected[% nothing_selected = 0 %][% END %]>[% category.description | html %]</option>
                                 [% END %]
                             </select>
                         </li>
@@ -264,6 +271,8 @@
                             [% CASE 'phone' %]<th>Phone</th>
                             [% CASE 'checkouts' %]<th>Checkouts</th>
                             [% CASE 'account_balance' %]<th>Fines</th>
+                            [% CASE 'extended_attribute_SIGEL' %]<th>ISIL</th>
+                            [% CASE 'city' %]<th>City</th>
                             [% CASE 'action' %]<th>&nbsp;</th>
                         [% END %]
                     [% END %]
@@ -333,7 +342,7 @@
             return map;
         }, {});
 
-        [% IF Koha.Preference('ExtendedPatronAttributes') && extended_attribute_types %]
+        [% IF ( Koha.Preference('ExtendedPatronAttributes') || ill_patronclass_lmsc == 'ILL_library' ) && extended_attribute_types %]
             let extended_attribute_types = [% To.json(extended_attribute_types || []) | $raw %];
         [% END %]
 
@@ -823,6 +832,24 @@
                                     return r;
                                 }
                             }
+                            [% CASE 'extended_attribute_SIGEL' %]
+                            {
+                                "data": "", // both 'Sigel' and 'SIGEL' are used by our customers (derived from borrower_attributes)
+                                "searchable": false,
+                                "orderable": false,
+                                "render": function( data, type, row, meta ) {
+                                    return display_extended_attribute(row, 'Sigel');    // 'Sigel' will be uppercased before comparision
+                                }
+                            }
+                            [% CASE 'city' %]
+                            {
+                                "data": "city",
+                                "searchable": true,
+                                "orderable": true,
+                                "render": function( data, type, row, meta ) {
+                                    return escape_str(data);
+                                }
+                            }
 
                             [% CASE 'action' %]
                             {
@@ -921,6 +948,20 @@
             getSearchByLocation( false );
 
         });
+
+    function display_extended_attribute(row, type) {
+        return escape_str(get_extended_attribute(row, type));
+    }
+
+    function get_extended_attribute(row, type) {
+        var ret = '';
+        var arr = $.grep(row.extended_attributes, ( x => x.type.toUpperCase() === type.toUpperCase() ));
+        if (arr.length > 0) {
+            ret = arr[0].value;
+        }
+
+        return ret;
+    }
 
         function getSearchByLocation( setstate ){
             /* Check to see if the URL contains a search parameter */
@@ -1153,7 +1194,7 @@
                 [%  IF callback %]
                     p.[% callback | html %](borrowernumber, data);
                 [%  ELSE %]
-                    p.select_user(borrowernumber, data);
+                    p.select_user(borrowernumber, data[% IF ill_patrontype_lmsc.length %], '[% ill_patrontype_lmsc %]'[% END %]);
                 [% END %]
             }
             window.close();
