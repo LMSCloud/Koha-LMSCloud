@@ -1,6 +1,6 @@
 package C4::AggregatedStatistics::DBS;
 
-# Copyright 2018-2019 (C) LMSCloud GmbH
+# Copyright 2018-2024 (C) LMSCloud GmbH
 #
 # This file is part of Koha.
 #
@@ -86,7 +86,7 @@ $as_values->{'med_nonbook_tot_issues'} = { 'id' => '', 'name' => 'med_nonbook_to
 #$as_values->{'med_nonbook_other_issues'} = { 'id' => '', 'name' => 'med_nonbook_other_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_nonbook_other_issues'] };            # DBS2017:33 (dropped since DBS 2019)
 $as_values->{'med_virtsupply_stock'} = { 'id' => '', 'name' => 'med_virtsupply_stock', 'value' => '', 'type' => 'int' };                                                                                        # DBS2017:34
 $as_values->{'med_virtconsort_stock'} = { 'id' => '', 'name' => 'med_virtconsort_stock', 'value' => '', 'type' => 'int' };                                                                                      # DBS2017:34.1
-$as_values->{'med_consort_libcount'} = { 'id' => '', 'name' => 'med_consort_libcount', 'value' => '', 'type' => 'int' };                                                                                        # DBS2017:34.2
+#$as_values->{'med_consort_libcount'} = { 'id' => '', 'name' => 'med_consort_libcount', 'value' => '', 'type' => 'int' };                                                                                        # DBS2017:34.2 (dropped since DBS 2023)
 $as_values->{'med_virtsupply_issues'} = { 'id' => '', 'name' => 'med_virtsupply_issues', 'value' => '', 'type' => 'int' };                                                                                      # DBS2017:35
 $as_values->{'med_access_units'} = { 'id' => '', 'name' => 'med_access_units', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_access_units'] };                                    # DBS2017:36
 $as_values->{'med_access_units_donated'} = { 'id' => '', 'name' => 'med_access_units_donated', 'value' => '', 'type' => 'int' };                                                                                # DBS2022:36.1
@@ -244,7 +244,7 @@ $as_values->{'slb_libedu_evt_libuse'} = { 'id' => '', 'name' => 'slb_libedu_evt_
 $as_values->{'slb_libedu_evt_meduse'} = { 'id' => '', 'name' => 'slb_libedu_evt_meduse', 'value' => '', 'type' => 'int' };                                                                                      # DBS2021:526
 $as_values->{'slb_libedu_evt_visits'} = { 'id' => '', 'name' => 'slb_libedu_evt_visits', 'value' => '', 'type' => 'int' };                                                                                      # DBS2021:527
 $as_values->{'slb_expenses_tot'} = { 'id' => '', 'name' => 'slb_expenses_tot', 'value' => '', 'type' => 'float' };                                                                                              # DBS2021:528
-$as_values->{'slb_combined_cnt'} = { 'id' => '', 'name' => 'slb_combined_cnt', 'value' => '', 'type' => 'int' };                                                                                                # DBS2021:529
+#$as_values->{'slb_combined_cnt'} = { 'id' => '', 'name' => 'slb_combined_cnt', 'value' => '', 'type' => 'int' };                                                                                                # DBS2021:529 (dropped since DBS 2023)
 
 # services for associated school libraries / 11. SCHULBIBLIOTHEKARISCHE DIENSTLEISTUNGEN FÜR VERBUND-SCHULBIBLIOTHEKEN
 $as_values->{'sls_assoc_lib_cnt'} = { 'id' => '', 'name' => 'sls_assoc_lib_cnt', 'value' => '', 'type' => 'int' };                                                                                              # DBS2021:550
