@@ -1,4 +1,5 @@
 use Modern::Perl;
+use Term::ANSIColor;
 
 return {
     bug_number => "BUG_NUMBER",
@@ -20,5 +21,16 @@ return {
         say $out "Added new permission 'XXX'";
         # letters
         say $out "Added new letter 'XXX' (TRANSPORT)";
+        # HTML customizations
+        say $out "Added 'XXX' HTML customization";
+
+        # HTML customizations
+        say $out "Added 'XXX' HTML customization";
+
+        # Other information
+        say $out colored("Use red for danger/failure", 'red');
+        say $out colored("Use green for success", 'green');
+        say $out colored("Use yellow for warning/a call to action", 'yellow');
+        say $out colored("Use blue for further information", 'blue');
     },
 };
