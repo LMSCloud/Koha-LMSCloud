@@ -388,6 +388,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('IssuingStatsOnIntranetResultPageYears','3',NULL,'Number of years backward from now to show as statistical counts of the issuing history (checkouts and renewals) for items on the intranet search catalog result page.','Integer'),
 ('IssuingStatsOnIntranetResultPageIgnoredItypes','ebook|evideo|eaudio|emusic|elearning|epaper',NULL,'Excluded item types which will not be used to calculate the issuing history for items on the intranet catalog result result page.','Free'),
 ('item-level_itypes','1','','If ON, enables Item-level Itemtype / Issuing Rules','YesNo'),
+('item-level_booking','1','','If ON, enables Item-level for future booking feature','YesNo'),
 ('itemBarcodeFallbackSearch','0',NULL,'If set, uses scanned item barcodes as a catalogue search if not found as barcodes','YesNo'),
 ('itemBarcodeInputFilter','','whitespace|T-prefix|cuecat|libsuite8|EAN13','If set, allows specification of a item barcode input filter','Choice'),
 ('itemcallnumber','',NULL,'The MARC field/subfield that is used to calculate the itemcallnumber (Dewey would be 082ab or 092ab; LOC would be 050ab or 090ab) could be 852hi from an item record','free'),
