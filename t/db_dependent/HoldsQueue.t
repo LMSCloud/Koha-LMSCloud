@@ -1998,3 +1998,56 @@ subtest "GetItemsAvailableToFillHoldsRequestsForBib" => sub {
     is_deeply( [$items->[0]->{itemnumber},$items->[1]->{itemnumber}],[$item_2->itemnumber,$item_3->itemnumber],"Correct two items retrieved");
 
 };
+
+subtest "Canceled holds should be removed from the holds queue" => sub {
+
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'LocalHoldsPriority',     0 );
+    t::lib::Mocks::mock_preference( 'UseTransportCostMatrix', 0 );
+
+    my $branch1  = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $category = $builder->build_object( { class => 'Koha::Patron::Categories' } );
+    my $patron   = $builder->build_object(
+        {
+            class => "Koha::Patrons",
+            value => {
+                branchcode   => $branch1->branchcode,
+                categorycode => $category->categorycode
+            }
+        }
+    );
+
+    my $biblio = $builder->build_sample_biblio();
+    my $item1  = $builder->build_sample_item(
+        {
+            biblionumber => $biblio->biblionumber,
+            library      => $branch1->branchcode,
+        }
+    );
+
+    my $reserve_id = AddReserve(
+        {
+            branchcode     => $branch1->branchcode,
+            borrowernumber => $patron->borrowernumber,
+            biblionumber   => $biblio->biblionumber,
+            priority       => 1,
+        }
+    );
+
+    C4::HoldsQueue::CreateQueue();
+    my $rs = $schema->resultset('TmpHoldsqueue');
+
+    is( $rs->search( { biblionumber => $biblio->biblionumber } )->count, 1, "Found the hold in the holds queue" );
+
+    Koha::Holds->find($reserve_id)->cancel();
+
+    is(
+        $rs->search( { biblionumber => $biblio->biblionumber } )->count, 0,
+        "Hold is no longer found in the holds queue after cancellation"
+    );
+
+    $schema->storage->txn_rollback;
+};
