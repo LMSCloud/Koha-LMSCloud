@@ -1403,11 +1403,6 @@ biblios:
         marc_type: marc21
         sort: ~
         suggestible: ''
-      - facet: 0
-        marc_field: 264c
-        marc_type: normarc
-        sort: ~
-        suggestible: ''
     type: ''
   copynumber:
     label: copynumber
@@ -2938,11 +2933,6 @@ biblios:
       - facet: ''
         marc_field: 100a_/9-12
         marc_type: unimarc
-        sort: 1
-        suggestible: 1
-      - facet: ''
-        marc_field: 008_/7-10
-        marc_type: normarc
         sort: 1
         suggestible: 1
     type: year
