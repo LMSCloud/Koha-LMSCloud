@@ -932,6 +932,7 @@
         table_settings_issues_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'issues-table', 'json' ) | $raw %]
         table_settings_relatives_issues_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'relatives-issues-table', 'json' ) | $raw %]
 
+        var bookings_table;
         $(document).ready(function() {
 
             $("#info_digests").tooltip();
@@ -959,7 +960,6 @@
             });
 
             // Bookings
-            var bookings_table;
             // Load bookings table on tab selection
             $('[data-tabname="bookings"]').on( "click", function(){
                 if ( !bookings_table ) {
@@ -1039,8 +1039,6 @@
                     }, [], 0, { patron_id: "[% patron.borrowernumber | html %]", end_date: { ">=": today.toISOString() } });
                 };
             });
-            // Bookings
-
          });
 
         function uncheck_sibling(me){
