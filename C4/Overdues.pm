@@ -680,7 +680,7 @@ returns a list of branch codes for branches with overdue rules defined.
 
 sub GetBranchcodesWithOverdueRules {
     my $dbh               = C4::Context->dbh;
-    my $branchcodes;
+    my $branchcodes = [];
     
     if (!C4::Context->preference('BookMobileSupportEnabled') ||
         !C4::Context->preference('BookMobileStationOverdueRulesActive')) 
@@ -716,7 +716,7 @@ sub GetBranchcodesWithOverdueRules {
             ORDER BY branchcode
         |);
     }
-    if ( $branchcodes->[0] eq '' ) {
+    if ( $branchcodes && scalar(@$branchcodes) && $branchcodes->[0] eq '' ) {
         # If a default rule exists, all branches should be returned
         my $searchlibparams = {};
         $searchlibparams = { -or => [ mobilebranch => undef, mobilebranch => '' ] }
