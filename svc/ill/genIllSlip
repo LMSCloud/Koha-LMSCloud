@@ -21,14 +21,18 @@ use Modern::Perl;
 use CGI;
 use Data::Dumper;
 $CGI::LIST_CONTEXT_WARN = 0;
+use File::Spec qw( catdir catpath);
 
-use C4::Auth qw( get_template_and_user haspermission get_user_subpermissions );
-use C4::Output qw( output_with_http_headers );
-use C4::Letters;
+use C4::Auth qw( get_template_and_user );
+use C4::Context qw( config dbh mybranch preference );
+use C4::Letters qw( EnqueueLetter GetMessagesById GetPreparedLetter );    # also using not exported functions  _send_message_by_email _set_message_status
 use C4::Members;
-use Koha::Libraries;
+use C4::Output qw( output_with_http_headers );
+use C4::Templates qw( gettemplate );
+use Koha::Acquisition::Currencies qw( get_active );
 use Koha::DateUtils qw( output_pref dt_from_string );
-use Koha::Notice::Templates;
+use Koha::Libraries;
+use Koha::Notice::Templates qw( find_effective_template );
 
 my $input = new CGI;
 
@@ -37,7 +41,7 @@ my $selectslipprint = scalar $input->param('selectslipprint');
 my $templatenameSinglePrint = scalar $input->param('templatenameSinglePrint') ? scalar $input->param('templatenameSinglePrint') : 'ill/print_ILL_slips.tt';
 my $templatenameMultiplePrint = scalar $input->param('templatenameMultiplePrint') ? scalar $input->param('templatenameMultiplePrint') : 'ill/ILLZKSHA_slips.tt';
 
-my ($template, $user, $cookie) = get_template_and_user({
+my ($template, $user, $cookie) = C4::Auth::get_template_and_user({
     template_name   => "ill/sendIllSlip.tt",
     query           => $input,
     type            => "intranet",
@@ -59,7 +63,7 @@ if ( $selectslipprint == 1 ) {
         templatename    => $templatenameSinglePrint,
     };
     # generate a single slip
-    my $result = genIllSlip($params);
+    my $result = &genIllSlip($params);
 
     # generate the response for the ajax call
     $template->param(
@@ -71,7 +75,7 @@ if ( $selectslipprint == 1 ) {
     );
 
     # return the response for the ajax call
-    output_with_http_headers $input, $cookie, $template->output, 'json';
+    C4::Output::output_with_http_headers $input, $cookie, $template->output, 'json';
 
 } else {
     # create one batch output file for each slip
@@ -89,7 +93,7 @@ if ( $selectslipprint == 1 ) {
             filenameid      => $filenameid,
             templatename    => $templatenameSinglePrint,
         };
-        my $result = genIllSlip($params);
+        my $result = &genIllSlip($params);
         
         push @generatedSlips, { illrequestid => $illrequestIdOrdered, filename => $result->{printedfile} };
         
@@ -99,7 +103,7 @@ if ( $selectslipprint == 1 ) {
     my $replacefunction = sub {
         my ($str) = @_;
         if ( $$str ) {
-            $$str =~ s/body{display:none !important;}/body{display:initial !important;}/g;
+            $$str =~ s/body\{display:none !important;\}/body\{display:initial !important;\}/g;
         } else {
             $$str = '';
         }
@@ -107,7 +111,7 @@ if ( $selectslipprint == 1 ) {
     };
     my $filenameid = sprintf("_%s_%03d", $user, 0);
     # generate a set of slips
-    my $printfilename = CreatePrintOutput( { lettercode => scalar $input->param('use_letter'), generatedSlips => \@generatedSlips, filenameid => $filenameid, templatename => $templatenameMultiplePrint, modtemplateoutput => $replacefunction } );
+    my $printfilename = &CreatePrintOutput( { lettercode => scalar $input->param('use_letter'), generatedSlips => \@generatedSlips, filenameid => $filenameid, templatename => $templatenameMultiplePrint, modtemplateoutput => $replacefunction } );
 
     my $result = {};
     $result->{letters} = [];
@@ -127,7 +131,7 @@ if ( $selectslipprint == 1 ) {
     );
 
     # return the response for the ajax call
-    output_with_http_headers $input, $cookie, $template->output, 'json';
+    C4::Output::output_with_http_headers $input, $cookie, $template->output, 'json';
 }
 
 sub genIllSlip {
@@ -152,7 +156,7 @@ sub genIllSlip {
     my $printfilename  = '';
     my @printmessages = ();
     my @emailmessages = ();
-    my $today = output_pref( { dt => dt_from_string(), dateonly => 0, dateformat => 'iso' } );
+    my $today = Koha::DateUtils::output_pref( { dt => Koha::DateUtils::dt_from_string(), dateonly => 0, dateformat => 'iso' } );
     
     if ($lettercode) {    
 
@@ -195,7 +199,7 @@ sub genIllSlip {
             my $transport_type = 'print';
             
             my $substitute = { bib => $library->branchname, 'count' => 1 };
-            $substitute->{today} = output_pref( { dt => dt_from_string, dateonly => 1} );
+            $substitute->{today} = Koha::DateUtils::output_pref( { dt => Koha::DateUtils::dt_from_string, dateonly => 1} );
 
             if ( exists($lettertemplates->{$transport_type}) ) {
                 my $repeat = {};
@@ -249,10 +253,10 @@ sub genIllSlip {
     $letter_mailed = scalar @emailmessages;
     
     if ( $letter_printed ) {
-        $printfilename = CreatePrintOutput( { lettercode => $lettercode, printmessages => \@printmessages, filenameid => $filenameid, templatename => $templatename } );
+        $printfilename = &CreatePrintOutput( { lettercode => $lettercode, printmessages => \@printmessages, filenameid => $filenameid, templatename => $templatename } );
     }
     if ( $letter_mailed ) {
-        SendMailMessages( { lettercode => $lettercode, emailmessages => \@emailmessages } );
+        &SendMailMessages( { lettercode => $lettercode, emailmessages => \@emailmessages } );
     }
 
     return  {
@@ -272,7 +276,7 @@ sub SendMailMessages {
     @messageIDs = @{$params->{emailmessages}} if ( $params->{emailmessages} );
     my $lettercode = $params->{lettercode} if ( $params->{lettercode} );
 
-    my @messages = @{ GetMessagesById( { message_id => \@messageIDs } ) };
+    my @messages = @{ C4::Letters::GetMessagesById( { message_id => \@messageIDs } ) };
     
     foreach my $message ( @messages ) {
         C4::Letters::_send_message_by_email( $message );
@@ -291,7 +295,7 @@ sub CreatePrintOutput {
     
     my @messages = ();
     if ( @messageIDs ) {
-        @messages = @{ GetMessagesById( { message_id => \@messageIDs } ) };
+        @messages = @{ C4::Letters::GetMessagesById( { message_id => \@messageIDs } ) };
         
         foreach my $message (@messages) {
             $message->{'content'} =~ s/\r//g;
@@ -311,7 +315,7 @@ sub CreatePrintOutput {
     $outputdir = File::Spec->catpath( "", $outputdir, "batchprint" );
     my $generatefilename = File::Spec->catdir( $outputdir, $printfilename );
     
-    Generate_html(
+    &Generate_html(
         {   messages => \@messages,
             generatedSlips => \@generatedSlips,
             filepath => $generatefilename,
@@ -344,7 +348,7 @@ sub Generate_html {
       C4::Templates::gettemplate( $templatename, 'intranet',
         new CGI );
 
-    my $today_syspref = output_pref( { dt => dt_from_string, dateonly => 1 } );
+    my $today_syspref = Koha::DateUtils::output_pref( { dt => Koha::DateUtils::dt_from_string, dateonly => 1 } );
 
     $template->param(
         stylesheet => C4::Context->preference("NoticeCSS"),

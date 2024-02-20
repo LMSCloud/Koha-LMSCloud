@@ -22,13 +22,17 @@ use strict;
 use CGI;
 use Data::Dumper;
 $CGI::LIST_CONTEXT_WARN = 0;
+use File::Spec qw( catdir catpath);
 
-use C4::Auth qw( get_template_and_user haspermission get_user_subpermissions );
+use C4::Auth qw( get_template_and_user );
+use C4::Context qw( config dbh mybranch preference );
+use C4::Letters qw( EnqueueLetter GetMessagesById GetPreparedLetter );    # also using not exported functions  _send_message_by_email _set_message_status
 use C4::Output qw( output_with_http_headers );
-use C4::Letters;
-use Koha::Libraries;
+use C4::Templates qw( gettemplate );
+use Koha::Acquisition::Currencies qw( get_active );
 use Koha::DateUtils qw( output_pref dt_from_string );
-use Koha::Notice::Templates;
+use Koha::Libraries;
+use Koha::Notice::Templates qw( find_effective_template );
 
 # If not artificially introducing this *named* subroutine nonAnonymousSub, an outer *anonymous* subroutine would automatically be implied
 # during run time, that will not yet have been created when the 'real' subroutines defined here are compiled,
@@ -62,7 +66,7 @@ sub nonAnonymousSub {
         my $printfilename  = '';
         my @printmessages = ();
         my @emailmessages = ();
-        my $today = output_pref( { dt => dt_from_string(), dateonly => 0, dateformat => 'iso' } );
+        my $today = Koha::DateUtils::output_pref( { dt => Koha::DateUtils::dt_from_string(), dateonly => 0, dateformat => 'iso' } );
 
         if ($lettercode) {
 
@@ -106,7 +110,7 @@ sub nonAnonymousSub {
                 my $transport_type = 'print';
 
                 my $substitute = { bib => $library->branchname, 'count' => 1 };
-                $substitute->{today} = output_pref( { dt => dt_from_string, dateonly => 1} );
+                $substitute->{today} = Koha::DateUtils::output_pref( { dt => Koha::DateUtils::dt_from_string, dateonly => 1} );
 
                 if ( exists($lettertemplates->{$transport_type}) ) {
                     my $repeat = {};
@@ -152,10 +156,10 @@ sub nonAnonymousSub {
         $letter_mailed = scalar @emailmessages;
 
         if ( $letter_printed ) {
-            $printfilename = CreatePrintOutput( { lettercode => $lettercode, printmessages => \@printmessages, filenameid => $filenameid, templatename => $templatename } );
+            $printfilename = &CreatePrintOutput( { lettercode => $lettercode, printmessages => \@printmessages, filenameid => $filenameid, templatename => $templatename } );
         }
         if ( $letter_mailed ) {
-            SendMailMessages( { lettercode => $lettercode, emailmessages => \@emailmessages } );
+            &SendMailMessages( { lettercode => $lettercode, emailmessages => \@emailmessages } );
         }
 
         my $retHash = {
@@ -177,7 +181,7 @@ sub nonAnonymousSub {
         @messageIDs = @{$params->{emailmessages}} if ( $params->{emailmessages} );
         my $lettercode = $params->{lettercode} if ( $params->{lettercode} );
 
-        my @messages = @{ GetMessagesById( { message_id => \@messageIDs } ) };
+        my @messages = @{ C4::Letters::GetMessagesById( { message_id => \@messageIDs } ) };
 
         foreach my $message ( @messages ) {
             C4::Letters::_send_message_by_email( $message );
@@ -197,7 +201,7 @@ sub nonAnonymousSub {
 
         my @messages = ();
         if ( @messageIDs ) {
-            @messages = @{ GetMessagesById( { message_id => \@messageIDs } ) };
+            @messages = @{ C4::Letters::GetMessagesById( { message_id => \@messageIDs } ) };
 
             foreach my $message (@messages) {
                 $message->{'content'} =~ s/\r//g;
@@ -218,7 +222,7 @@ sub nonAnonymousSub {
         my $generatefilename = File::Spec->catdir( $outputdir, $printfilename );
         $logger->debug("svc/ill/genIllDeliverySlipZKSHA::CreatePrintOutput() generatefilename:$generatefilename:");
 
-        Generate_html(
+        &Generate_html(
             {   messages => \@messages,
                 generatedSlips => \@generatedSlips,
                 filepath => $generatefilename,
@@ -253,7 +257,7 @@ sub nonAnonymousSub {
           C4::Templates::gettemplate( $templatename, 'intranet',
             new CGI );
 
-        my $today_syspref = output_pref( { dt => dt_from_string, dateonly => 1 } );
+        my $today_syspref = Koha::DateUtils::output_pref( { dt => Koha::DateUtils::dt_from_string, dateonly => 1 } );
 
         $template->param(
             stylesheet => C4::Context->preference("NoticeCSS"),
@@ -314,7 +318,7 @@ sub nonAnonymousSub {
         );
 
         # return the response for the ajax call
-        output_with_http_headers $input, $cookie, $template->output, 'json';
+        C4::Output::output_with_http_headers $input, $cookie, $template->output, 'json';
 
     } else {
         # create one batch output file for each slip
@@ -350,7 +354,7 @@ sub nonAnonymousSub {
             return $$str;
         };
         my $filenameid = sprintf("_%s_%03d", $user, 0);
-        my $printfilename = CreatePrintOutput( { lettercode => scalar $input->param('use_letter'), generatedSlips => \@generatedSlips, filenameid => $filenameid, templatename => 'ill/ILLZKSHA_slips.tt', modtemplateoutput => $replacefunction } );
+        my $printfilename = &CreatePrintOutput( { lettercode => scalar $input->param('use_letter'), generatedSlips => \@generatedSlips, filenameid => $filenameid, templatename => 'ill/ILLZKSHA_slips.tt', modtemplateoutput => $replacefunction } );
 
         my $result = {};
         $result->{letters} = [];
@@ -369,9 +373,9 @@ sub nonAnonymousSub {
             printedfile    => $result->{printedfile}
         );
 
-        $logger->debug("svc/ill/genIllDeliverySlipZKSHA.pl End; now calling output_with_http_headers with  printfilename:$printfilename:");
+        $logger->debug("svc/ill/genIllDeliverySlipZKSHA.pl End; now calling C4::Output::output_with_http_headers with  printfilename:$printfilename:");
         # return the response for the ajax call
-        output_with_http_headers $input, $cookie, $template->output, 'json';
+        C4::Output::output_with_http_headers $input, $cookie, $template->output, 'json';
     }
 
 }    # end of sub nonAnonymousSub

@@ -1,6 +1,6 @@
 package C4::External::BZSH::ItemAvailabilitySearch_BZSH;
 
-# Copyright 2019 (C) LMSCLoud GmbH
+# Copyright 2019-2024 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -80,9 +80,9 @@ sub new {
     }
 
     $self->{searcher} = Koha::SearchEngine::Search->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
-    
+
     bless $self, $class;
-    
+
     return $self;
 }
 
@@ -171,7 +171,7 @@ sub search_title_with_best_item_status {
                         if ($error || $@) {
                             warn "C4::External::BZSH::ItemAvailabilitySearch_BZSH::search_title_with_best_item_status() query:$query: error from simple_search_compat:$error $@";
                         }
-            
+
                         if (defined $error) {
                             my $log_str = sprintf("ItemAvailabilitySearch_BZSH: search for ISBN/EAN:%s: returned error:%d/%s:\n", $selISBN[$i],$error,$error);
                             carp $log_str;
@@ -195,7 +195,6 @@ sub search_title_with_best_item_status {
     # status 2 (item on loan) is the second best.
     for (my $i = 0; $i < $hits and defined $marcresults->[$i] and $best_item_status != 1; $i++)
     {
-        
         eval {
             $marcrecord =  C4::Search::new_record_from_zebra( 'biblioserver', $marcresults->[$i] )
         };
@@ -221,45 +220,48 @@ my ( $self, $biblionumber, $ref_best_item_status, $ref_best_itemnumber, $ref_bes
     # 3    # im Buchhandel bestellt / ordered at a supplier (not used here)
     # 4    # nicht ausleihbar / item not for loan
 
-    for my $item ( Koha::Items->search({ biblionumber => $biblionumber }) )    # read items of this biblio number
-    {
-        my $itemrecord = $item->unblessed;
-        if ( $self->{selbranchcodecheck} && !defined($self->{selbranchcodehash}->{$itemrecord->{'homebranch'}}) ) {
-            next;    # not in the set of relevant items
-        }
-        if ( $self->{illItemtypeCheck} && $self->{illItemtypeCheck}->{$itemrecord->{'itype'}} ) {
-            next;    # it is an ILL item, so it is not in the set of relevant items
-        }
-
-        # check if this item has a "better" status
-        my $itemnumber = $itemrecord->{'itemnumber'};
-        
-        if ($itemrecord->{'notforloan'} ||
-            ( $itemrecord->{'damaged'} && $itemrecord->{'damaged'} > 0 ) ||
-            $itemrecord->{'itemlost'} ||
-            $itemrecord->{'withdrawn'} ||
-            $itemrecord->{'restricted'})
+    my $items_rs = Koha::Items->search({ biblionumber => $biblionumber });    # read all items having this biblionumber
+    if ( $items_rs ) {
+        while ( my $item = $items_rs->next() )
         {
-            if ($$ref_best_itemnumber == 0) 
+            my $itemrecord = $item->unblessed;
+            if ( $self->{selbranchcodecheck} && !defined($self->{selbranchcodehash}->{$itemrecord->{'homebranch'}}) ) {
+                next;    # not in the set of relevant items
+            }
+            if ( $self->{illItemtypeCheck} && $self->{illItemtypeCheck}->{$itemrecord->{'itype'}} ) {
+                next;    # it is an ILL item, so it is not in the set of relevant items
+            }
+
+            # check if this item has a "better" status
+            my $itemnumber = $itemrecord->{'itemnumber'};
+
+            if ($itemrecord->{'notforloan'} ||
+                ( $itemrecord->{'damaged'} && $itemrecord->{'damaged'} > 0 ) ||
+                $itemrecord->{'itemlost'} ||
+                $itemrecord->{'withdrawn'} ||
+                $itemrecord->{'restricted'})
             {
-                $$ref_best_item_status = 4;  # item exists but is not for loan
+                if ($$ref_best_itemnumber == 0)
+                {
+                    $$ref_best_item_status = 4;  # item exists but is not for loan
+                    $$ref_best_itemnumber = $itemnumber;
+                    $$ref_best_biblionumber = $biblionumber;
+                }
+                next;
+            }
+            my $item_onloan = $itemrecord->{'onloan'};
+            if ($item_onloan && length($item_onloan) > 0 && $$ref_best_item_status != 1)
+            {
+                $$ref_best_item_status = 2;     # this is the second best status of all: item on loan
                 $$ref_best_itemnumber = $itemnumber;
                 $$ref_best_biblionumber = $biblionumber;
+                next;                           # continue; maybe an item with better status exists
             }
-            next;
-        }
-        my $item_onloan = $itemrecord->{'onloan'};
-        if ($item_onloan && length($item_onloan) > 0 && $$ref_best_item_status != 1)
-        {
-            $$ref_best_item_status = 2;     # this is the second best status of all: item on loan
+            $$ref_best_item_status = 1;         # this is the best status of all: item available
             $$ref_best_itemnumber = $itemnumber;
             $$ref_best_biblionumber = $biblionumber;
-            next;                           # continue; maybe an item with better status exists
+            last;                               # break; no better status possible
         }
-        $$ref_best_item_status = 1;         # this is the best status of all: item available
-        $$ref_best_itemnumber = $itemnumber;
-        $$ref_best_biblionumber = $biblionumber;
-        last;                               # break; no better status possible
     }
 }
 
@@ -268,7 +270,7 @@ my ( $self, $biblionumber, $ref_best_item_status, $ref_best_itemnumber, $ref_bes
 sub genISBD {
     my $self = shift;
     my $koharecord = shift;
-    
+
     # get title / author info (ISBD Area 1)
     my $field = $koharecord->field('245');
     my $titleblock;
@@ -276,7 +278,7 @@ sub genISBD {
         my $title = $field->subfield('a');
         my $subtitle = $field->subfield('b');
         my $author = $field->subfield('c');
-    
+
         $titleblock = $title;
         if ( $subtitle ) {
             $titleblock .= ': ' . $subtitle;
@@ -292,12 +294,12 @@ sub genISBD {
     $field = $koharecord->field('250');
     if ( $field ) {
         my $edition = $field->subfield('a');
-    
+
         if ( $edition ) {
             $titleblock .= ' - ' . $edition;
             if ( $titleblock !~ /\.$/ ) {
                 $titleblock .= '.';
-            } 
+            }
         }
     }
     # get publication info (ISBD Area 4)
@@ -309,7 +311,7 @@ sub genISBD {
         my $location = $field->subfield('a');
         my $publisher = $field->subfield('b');
         my $year = $field->subfield('c');
-    
+
         my $publisherblock = $location;
         if ( $publisherblock && ( defined($publisher) || defined($year) )) {
             $publisherblock .= ': ';
@@ -330,25 +332,25 @@ sub genISBD {
             }
         }
     }
-    
+
     # get physical description info (ISBD Area 5)
     my @physicaldescription = ();
     foreach $field ($koharecord->field('300')) {
         my $pagescnt = $field->subfield('a');
         my $dimensions = $field->subfield('c');
-    
+
         if ( $dimensions && length($dimensions) > 0 ) {
             $pagescnt .= ' ' . $dimensions;
         }
         push @physicaldescription, $pagescnt if $pagescnt;
     }
-    
+
     # get series statement info (ISBD Area 6)
     my @seriesstatement = ();
     foreach $field ($koharecord->field('490')) {
         my $seriesstmnt = $field->subfield('a');
         my $volumedesig = $field->subfield('v');
-    
+
         if ( $volumedesig && length($volumedesig) > 0 ) {
             $seriesstmnt =~ s/\s*;\s*$//;
             $seriesstmnt =~ s/\s*$//;
@@ -356,7 +358,7 @@ sub genISBD {
         }
         push @seriesstatement, $seriesstmnt if $seriesstmnt;
     }
-    
+
     # get ISBN / EAN info (ISBD Area 8)
     my @isbns = ();
     foreach $field ($koharecord->field('020')) {
@@ -380,9 +382,9 @@ sub genISBD {
         }
         push @eans, $ean if $ean;
     }
-    
-    
-    
+
+
+
     # ISBD Area 1, 2, 4: title / author / edition / publication info
     my $isbd = $titleblock;
 
@@ -394,8 +396,8 @@ sub genISBD {
     for ( my $i = 0; $i < @physicaldescription; $i++) {
         $isbd .= " ; " if ( $i > 0 );
         $isbd .= $physicaldescription[$i];
-    } 
-    
+    }
+
     # ISBD Area 6: series statement
     if ( @seriesstatement > 0 ) {
          $isbd .= ". - " if ( @physicaldescription > 0);    # separator between series statement and physical description
@@ -406,7 +408,7 @@ sub genISBD {
 
     # ISBD Area 7: not used here, but it forces a new line nevertheless
     $isbd .= "\n";
-    
+
     # ISBD Area 8: ISBN / EAN
     for ( my $i=0; $i < @isbns; $i++) {
         $isbd .= ". - " if ( $i > 0 );
@@ -419,7 +421,7 @@ sub genISBD {
 
     $isbd .= "\n";
     $isbd =~ s/[\x{0098}\x{009c}]//g;                       # removing non-sort characters
-    
+
     return $isbd;
 }
 
@@ -436,7 +438,7 @@ sub get_date_due_of_item
     if ( $item->biblionumber == $biblionumber ) {    # should always be true
         $date_due = $item->onloan();
     }
-    
+
     return $date_due;
 }
 

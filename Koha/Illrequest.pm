@@ -1957,10 +1957,6 @@ sub TO_JSON {
     my $object = $self->SUPER::TO_JSON();
     $object->{id_prefix} = $self->id_prefix;
 
-    # Augment the request response with additional illrequest.update date, formatted corresponding to locale
-    my $dt = dt_from_string( $self->updated(), 'iso' );
-    $object->{updatedFormatted} = output_pref({ dt => $dt, dateonly => 0 });
-
     if ( scalar (keys %$embed) ) {
         # Augment the request response with patron details if appropriate
         if ( $embed->{patron} ) {

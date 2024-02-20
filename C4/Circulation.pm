@@ -2,6 +2,7 @@ package C4::Circulation;
 
 # Copyright 2000-2002 Katipo Communications
 # copyright 2010 BibLibre
+# Copyright 2018-2024 (C) LMSCloud GmbH
 #
 # This file is part of Koha.
 #
@@ -799,20 +800,19 @@ sub CanBookBeIssued {
     my $patron_unblessed = $patron->unblessed;
 
 
-    # TODO LMSCLOUD MERGE: test compatibility with V22.11
-    # # check if it is an ILL item and if an alternative datedue is stored in the Illbackend
-    # my ( $itisanillitem, $illrequest ) = ( 0, undef );
-    # if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
-    #     eval {
-    #         ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item_unblessed);
-    #         if ( $itisanillitem && $illrequest ) {
-    #             my $datedueIllbackendString = $illrequest->_backend_capability( "getIllrequestDateDue", $illrequest );
-    #             if ( $datedueIllbackendString ) {
-    #                 $duedate = dt_from_string($datedueIllbackendString, 'sql');
-    #             }
-    #         }
-    #     };
-    # }
+    # LMSCloud: check if it is an ILL item and if an alternative datedue is stored in the Illbackend
+    my ( $itisanillitem, $illrequest ) = ( 0, undef );
+    if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+        eval {
+            ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item_unblessed);
+            if ( $itisanillitem && $illrequest ) {
+                my $datedueIllbackendString = $illrequest->_backend_capability( "getIllrequestDateDue", $illrequest );
+                if ( $datedueIllbackendString ) {
+                    $duedate = dt_from_string($datedueIllbackendString, 'sql');
+                }
+            }
+        };
+    }
     my $circ_library = Koha::Libraries->find( _GetCircControlBranch($item_unblessed, $patron_unblessed) );
 
     my $now = dt_from_string();
@@ -1584,22 +1584,21 @@ sub AddIssue {
             );
         }
         else {
-            # TODO LMSCLOUD MERGE: test compatibility with V22.11
-            # # check if it is an ILL item and if an alternative datedue is stored in the Illbackend
-            # my ( $itisanillitem, $illrequest ) = ( 0, undef );
-            # if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
-            #     eval {
-            #         ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item_unblessed);
-            #         if ( ! $datedue ) {    # explicitly set datedue has higher priority than the datedue that is stored in the Illbackend
-            #             if ( $itisanillitem && $illrequest ) {
-            #                 my $datedueIllbackendString = $illrequest->_backend_capability( "getIllrequestDateDue", $illrequest );
-            #                 if ( $datedueIllbackendString ) {
-            #                     $datedue = dt_from_string($datedueIllbackendString, 'sql');
-            #                 }
-            #             }
-            #         }
-            #     };
-            # }
+            # LMSCloud: check if it is an ILL item and if an alternative datedue is stored in the Illbackend
+            my ( $itisanillitem, $illrequest ) = ( 0, undef );
+            if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+                eval {
+                    ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item_unblessed);
+                    if ( ! $datedue ) {    # explicitly set datedue has higher priority than the datedue that is stored in the Illbackend
+                        if ( $itisanillitem && $illrequest ) {
+                            my $datedueIllbackendString = $illrequest->_backend_capability( "getIllrequestDateDue", $illrequest );
+                            if ( $datedueIllbackendString ) {
+                                $datedue = dt_from_string($datedueIllbackendString, 'sql');
+                            }
+                        }
+                    }
+                };
+            }
             
             unless ($datedue) {
                 my $itype = $item_object->effective_itemtype;
@@ -1607,7 +1606,7 @@ sub AddIssue {
 
             }
 
-            # Check if we need to use an exact due date set by the ILL module
+            # Standard Koha: Check if we need to use an exact due date set by the ILL module
             if ( C4::Context->preference('ILLModule') ) {
                 # Check if there is an ILL connected with the biblio of the item we are issuing
                 my $ill_request = Koha::Illrequests->search({
@@ -1801,17 +1800,16 @@ sub AddIssue {
                 }
             }
 
-            # TODO LMSCLOUD MERGE: test compatibility with V22.11
-            # # if it is an ILL item then update also the ILL backend status
-            # if ( $itisanillitem && $illrequest ) {
-            #     eval {
-            #         # It is necessary to read the illrequest record a second time here, because meanwhile it may have been updated by AddReturn() called a few lines above. 
-            #         ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item_unblessed);
-            #         if ( $itisanillitem && $illrequest ) {    # for safety's sake only, of course this always should be true
-            #             $illrequest->_backend_capability( "itemCheckedOut", $illrequest );
-            #         }
-            #     }
-            # }
+            # LMSCloud: if it is an ILL item then update also the ILL backend status
+            if ( $itisanillitem && $illrequest ) {
+                eval {
+                    # It is necessary to read the illrequest record a second time here, because meanwhile it may have been updated by AddReturn() called a few lines above.
+                    ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item_unblessed);
+                    if ( $itisanillitem && $illrequest ) {    # for safety's sake only, of course this always should be true
+                        $illrequest->_backend_capability( "itemCheckedOut", $illrequest );
+                    }
+                }
+            }
 
             # Record the fact that this book was issued.
             C4::Stats::UpdateStats(
@@ -1867,7 +1865,6 @@ sub AddIssue {
                 }
             ) if C4::Context->preference('RealTimeHoldsQueue');
             
-            # TODO LMSCLOUD MERGE: check whether the following comment still applies
             # The automatic AddReturn() call for certain types of ILL items had to be moved from here to circ/circulation.pl to avoid access to an otherwise already deleted issues record.
 
         }
@@ -2553,18 +2550,17 @@ sub AddReturn {
         }
     }
 
-    # TODO LMSCLOUD MERGE: test compatibility with V22.11
-    # # check if it is an ILL item and update also the ILL backend status
-    # my ( $itisanillitem, $illrequest ) = ( 0, undef );
-    # if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
-    #     eval {
-    #         ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item->unblessed);
-    #         if ( $itisanillitem && $illrequest ) {
-    #             # update also the ILL backend status
-    #             $illrequest->_backend_capability( "itemCheckedIn", $illrequest );
-    #         }
-    #     };
-    # }
+    # check if it is an ILL item and update also the ILL backend status
+    my ( $itisanillitem, $illrequest ) = ( 0, undef );
+    if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+        eval {
+            ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item->unblessed);
+            if ( $itisanillitem && $illrequest ) {
+                # update also the ILL backend status
+                $illrequest->_backend_capability( "itemCheckedIn", $illrequest );
+            }
+        };
+    }
     
     # Check for bundle status
     if ( $item->in_bundle ) {

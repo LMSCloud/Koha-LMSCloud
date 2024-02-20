@@ -91,6 +91,7 @@
 
                         <tbody>
                             <tr>
+                                <!-- row index 000 -->
                                 <td>0</td>
                                 <td>DBS-ID der Bibliothek</td>
                                 <td>
@@ -171,6 +172,7 @@
                             </tr>
 
                             <tr>
+                                <!-- row index 010 -->
                                 <td>7.2</td>
                                 <td>Haben Sie im Berichtsjahr zusätzliche Angebote wie z.B. Click and Collect, Bringdienste o.ä. angeboten?</td>
                                 <td>
@@ -275,6 +277,7 @@
 
                         <tbody>
                             <tr>
+                                <!-- row index 020 -->
                                 <td>13</td>
                                 <td>Medien insgesamt - physischer Bestand</td>
                                 <td>
@@ -355,6 +358,7 @@
                             </tr>
 
                             <tr>
+                                <!-- row index 030 -->
                                 <td>28</td>
                                 <td>Non-Prints und Sonstiges - Bestand</td>
                                 <td>
@@ -383,14 +387,6 @@
                                 <td>E-Medien im Verbund</td>
                                 <td>
                                     <input type="number" id="st_med_virtconsort_stock" name="st_med_virtconsort_stock" min="0" size="12" maxlength="12" value="[% st.med_virtconsort_stock %]" />
-                                </td>
-                            </tr>
-
-                            <tr>
-                                <td>34.2</td>
-                                <td>Bibliotheken im Verbund</td>
-                                <td>
-                                    <input type="number" id="st_med_consort_libcount" name="st_med_consort_libcount" min="0" size="12" maxlength="12" value="[% st.med_consort_libcount %]" />
                                 </td>
                             </tr>
 
@@ -443,6 +439,7 @@
                             </tr>
 
                             <tr>
+                                <!-- row index 040 -->
                                 <td>39</td>
                                 <td>Laufende Zeitungs- und Zeitschriftenabos in Printform</td>
                                 <td>
@@ -537,6 +534,7 @@
                             </tr>
 
                             <tr>
+                                <!-- row index 050 -->
                                 <td>53</td>
                                 <td>Einmalige Investitionen</td>
                                 <td>
@@ -617,6 +615,7 @@
                             </tr>
 
                             <tr>
+                                <!-- row index 060 -->
                                 <td>63</td>
                                 <td>Eigene Einnahmen</td>
                                 <td>
@@ -711,6 +710,7 @@
                             </tr>
 
                             <tr>
+                                <!-- row index 070 -->
                                 <td>76</td>
                                 <td>Personalkapazität des ehrenamtl. Personals (VZÄ)</td>
                                 <td>
@@ -817,6 +817,7 @@
                             </tr>
 
                             <tr>
+                                <!-- row index 080 -->
                                 <td>88</td>
                                 <td>... Auskunftsdienst per E-Mail</td>
                                 <td>
@@ -917,6 +918,7 @@
                             </tr>
 
                             <tr>
+                                <!-- row index 090 -->
                                 <td>96</td>
                                 <td>... davon: für Kinder und Jugendliche</td>
                                 <td>
@@ -966,7 +968,7 @@
 
                             <tr>
                                 <td>100</td>
-                                <td>Schulbibliothekarische Dienstleistungen</td>
+                                <td>Schulbibliothekarische Dienstleistungen (Anzahl der betreuten Einrichtungen)</td>
                                 <td>
                                     <input type="number" id="st_srv_school_libs" name="st_srv_school_libs" min="0" size="12" maxlength="12" value="[% st.srv_school_libs %]" />
                                 </td>
@@ -1001,6 +1003,7 @@
                             </tr>
 
                             <tr>
+                                <!-- row index 100 -->
                                 <td>104</td>
                                 <td>Stellen Sie mobile Endgeräte zur Verfügung?</td>
                                 <td>
@@ -1107,6 +1110,7 @@
                             </tr>
 
                             <tr>
+                                <!-- row index 110 -->
                                 <td>208</td>
                                 <td>Ausleihe von Abspielgeräten (Hardware)</td>
                                 <td>
@@ -1223,6 +1227,7 @@
 
                         <tbody>
                             <tr>
+                                <!-- row index 120 -->
                                 <td>400</td>
                                 <td>Noten - Bestand</td>
                                 <td>
@@ -1303,6 +1308,7 @@
                             </tr>
 
                             <tr>
+                                <!-- row index 130 -->
                                 <td>410</td>
                                 <td>Musik-Videos (VHS) - Bestand</td>
                                 <td>
@@ -1383,6 +1389,7 @@
                             </tr>
 
                             <tr>
+                                <!-- row index 140 -->
                                 <td>420</td>
                                 <td>Abspielungen von Tonträgern</td>
                                 <td>
@@ -1473,6 +1480,7 @@
                             </tr>
 
                             <tr>
+                                <!-- row index 150 -->
                                 <td>508</td>
                                 <td>Publikumsfläche gesamt (m²)</td>
                                 <td>
@@ -1561,6 +1569,7 @@
                             </tr>
 
                             <tr>
+                                <!-- row index 160 -->
                                 <td>518</td>
                                 <td>Anzahl Arbeitsplätze mit Internet</td>
                                 <td>
@@ -1641,18 +1650,11 @@
                             </tr>
 
                             <tr>
+                                <!-- row index 170 -->
                                 <td>528</td>
                                 <td>Ausgaben für Erwerbung (inkl. Einband und Lizenzen)</td>
                                 <td>
                                     <input type="text" id="st_slb_expenses_tot" name="st_slb_expenses_tot" value="[% st.slb_expenses_tot | $Price %]"  oninput="floatInput(document.DBS_edit.st_slb_expenses_tot,2)"  onchange="moneyFormat(document.DBS_edit.st_slb_expenses_tot)" />
-                                </td>
-                            </tr>
-
-                            <tr>
-                                <td>529</td>
-                                <td>Anzahl der kombinierten ÖB- und Schulbibliotheken</td>
-                                <td>
-                                    <input type="number" id="st_slb_combined_cnt" name="st_slb_combined_cnt" min="0" size="12" maxlength="12" value="[% st.slb_combined_cnt %]" />
                                 </td>
                             </tr>
                         </tbody>
@@ -1747,6 +1749,7 @@
                             </tr>
 
                             <tr>
+                                <!-- row index 178 -->
                                 <td>557</td>
                                 <td>Ausleihbares Angebot (Medienkisten, Bücher-Rucksäcke etc.)</td>
                                 <td>
@@ -1939,7 +1942,7 @@
                 //     length dbs_incl_school_lib: 175 fields (index 0 - 179, but not exported: index 13-17)
 
                 // since DBS 2022:
-                //     old fields, dropped for export: query 38.1, 38.2 (index: 39, 40)
+                //     old fields, dropped for export: query 38.1, 38.2 (index at this time: 39, 40)
                 //     added fields (base questionaire): query 36.1 (index: 37 )
                 //     default length total (all fields): 181
                 //     length dbs_base_questionaire: 96 (index 0 - 102, but not exported: index 13-17, 39-40)
@@ -1948,18 +1951,22 @@
                 //     length dbs_incl_music_lib: 136 fields (index 0 - 142, but not exported: index 13-17, 39-40)
                 //     length dbs_incl_school_lib: 174 fields (index 0 - 180, but not exported: index 13-17, 39-40)
 
-                var valuesNew = (values.slice(0,13).get()) . concat(values.slice(18,39).get()) . concat(values.slice(41,181).get());
+                // since DBS 2023:
+                //     old fields, dropped from display and for export: query 34.2, 529 (index at this time: 34, 172)
+                //     (So the earlier index of var 'values' 35-171 now becomes 34-170, and 173-180 becomes 171-178.), 
+
+                var valuesNew = (values.slice(0,13).get()) . concat(values.slice(18,38).get()) . concat(values.slice(40,179).get());
                 if ( format == "dbs_base_questionaire" ) {
-                    valuesNew = valuesNew.slice(0,96);    // index 0..95 corresponds to index 0..102 of var 'values', but excluding index 13-17,39-40,  of var 'values')
+                    valuesNew = valuesNew.slice(0,95);    // index 0..94 corresponds to index 0..101 of var 'values', but excluding index 13-17,38-39,  of var 'values')
                 } else if ( format == "dbs_incl_patients_lib" ) {
-                    valuesNew = valuesNew.slice(0,107);    // index 0..106 corresponds to index 0..113 of var 'values', but excluding index 13-17,39-40 of var 'values')
+                    valuesNew = valuesNew.slice(0,106);    // index 0..105 corresponds to index 0..112 of var 'values', but excluding index 13-17,38-39 of var 'values')
                 } else if ( format == "dbs_incl_mobile_lib" ) {
-                    valuesNew = valuesNew.slice(0,114);    // index 0-113 corresponds to index 0 - 120 of var 'values', but excluding index 13-17,39-40 of var 'values')
+                    valuesNew = valuesNew.slice(0,113);    // index 0-112 corresponds to index 0 - 119 of var 'values', but excluding index 13-17,38-39 of var 'values')
                 } else if ( format == "dbs_incl_music_lib" ) {
-                    valuesNew = valuesNew.slice(0,136);    // index 0-135 corresponds to index 0 - 142 of var 'values', but excluding index 13-17,39-40 of var 'values')
+                    valuesNew = valuesNew.slice(0,135);    // index 0-134 corresponds to index 0 - 141 of var 'values', but excluding index 13-17,38-39 of var 'values')
                 } else if ( format == "dbs_incl_school_lib" ) {
-                    // valuesNew needs not be sliced, because in this case valuesNew == valuesNew.slice(0,174) already
-                    //valuesNew = valuesNew.slice(0,174);    // index 0-173 corresponds to index 0 - 180 of var 'values', but excluding index 13-17,39-40 of var 'values')
+                    // valuesNew needs not be sliced, because in this case valuesNew == valuesNew.slice(0,172) already
+                    //valuesNew = valuesNew.slice(0,172);    // index 0-171 corresponds to index 0 - 178 of var 'values', but excluding index 13-17,38-39 of var 'values')
                 }
 
                 csv += '"' + valuesNew.join(tmpColDelim)
