@@ -165,6 +165,7 @@ sub get_template_and_user {
 
     # Get shibboleth login attribute
     my $shib = C4::Context->config('useshibboleth') && shib_ok();
+    $shib = 0 if ( $shib && $in->{'type'} eq 'opac' && C4::Context->preference("OPACShibDisabled") );
     my $shib_login = $shib ? get_login_shib() : undef;
 
     C4::Context->interface( $in->{type} );
@@ -788,10 +789,6 @@ sub _timeout_syspref {
 sub checkauth {
     my $query = shift;
 
-    # Get shibboleth login attribute
-    my $shib = C4::Context->config('useshibboleth') && shib_ok();
-    my $shib_login = $shib ? get_login_shib() : undef;
-
     # $authnotrequired will be set for scripts which will run without authentication
     my $authnotrequired = shift;
     my $flagsrequired   = shift;
@@ -799,6 +796,11 @@ sub checkauth {
     my $emailaddress    = shift;
     my $template_name   = shift;
     $type = 'opac' unless $type;
+    
+    # Get shibboleth login attribute
+    my $shib = C4::Context->config('useshibboleth') && shib_ok();
+    $shib = 0 if ( $shib && $type eq 'opac' && C4::Context->preference("OPACShibDisabled") );
+    my $shib_login = $shib ? get_login_shib() : undef;
 
     if ( $type eq 'opac' && !C4::Context->preference("OpacPublic") ) {
         my @allowed_scripts_for_private_opac = qw(
