@@ -19,7 +19,7 @@ package C4::VolumeData;
 
 use Modern::Perl;
 
-use C4::Search;
+use C4::Search qw( searchResults );
 use C4::Languages;
 use C4::Context;
 
@@ -102,6 +102,7 @@ sub GetVolumeData {
             $searchstring .= ' OR ' if ( $searchstring ne '');
             $searchstring .= "Control-number:($linknumber)";
         }
+        $searchstring = "cna:($marcOrgCode) AND ( " . $searchstring . " )" if ( $searchstring && $marcOrgCode);
         ($error,$linkedRecordData) = SearchVolumeData($searchstring,$lang,'opac',$biblionumber);
         
         # print STDERR $searchstring,"\n";
