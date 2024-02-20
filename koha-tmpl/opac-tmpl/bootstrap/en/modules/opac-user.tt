@@ -402,6 +402,10 @@
                                                             [% IF ( SyndeticsEnabled && SyndeticsCoverImages ) %]
                                                                 <img src="https://secure.syndetics.com/index.aspx?isbn=[% ISSUE.normalized_isbn | html %]/[% SyndeticsCoverImageSize | uri %].GIF&amp;client=[% SyndeticsClientCode | html %]&amp;type=xw10&amp;upc=[% ISSUE.normalized_upc | html %]&amp;oclc=[% ISSUE.normalized_oclc | html %]" alt="" class="item-thumbnail" />
                                                             [% END %]
+                                                            
+                                                            [% IF ( ISSUE.titlecoverurl ) %]
+                                                                <img src="[% ISSUE.titlecoverurl | html %]" class="ekzcover" title="[% ISSUE.biblionumber |url %]" alt="Cover" />
+                                                            [% END %]
                                                         </td>
                                                     [% END # / IF JacketImages %]
 
@@ -426,7 +430,7 @@
                                                                 <img src="[% ISSUE.itype_imageurl | html %]" title="[% ISSUE.description | html %]" alt="[% ISSUE.description | html %]" />
                                                             [% END %] [% ISSUE.description | html %]
                                                         [% ELSE %]
-                                                            [% IF ( OVERDUE.imageurl  && !Koha.Preference('OpacNoItemTypeImages') ) %]
+                                                            [% IF ( ISSUE.imageurl  && !Koha.Preference('OpacNoItemTypeImages') ) %]
                                                                 <img src="[% ISSUE.imageurl | html %]" title="[% ISSUE.description | html %]" alt="[% ISSUE.description | html %]" />
                                                             [% END %] [% ISSUE.description | html %]
                                                         [% END %]
@@ -624,15 +628,15 @@
 
                             </div> <!-- / .opac-user-checkouts -->
                         
-                            <div id="opac-user-divibibcheckouts">
-                                [% IF ( divibib_issues_count ) %]
+                            [% IF ( divibib_issues_count ) %]
+                                <div id="opac-user-divibibcheckouts" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-divibibcheckouts-tab">
                                     <table id="divibibcheckoutst" class="table table-bordered table-striped">
                                         <caption>[% divibib_issues_count %] Item(s) checked out</caption>
                                         <thead>
                                             <tr>
                                                 <th>Item type</th>
 
-                                                [% IF ( JacketImages ) %]<th class="nosort">&nbsp;</th>[% END %]
+                                                <th class="nosort">&nbsp;</th>
 
                                                 <th class="anti-the">Title</th>
                                                 
@@ -689,43 +693,12 @@
                                                             [% ISSUE.description %]
                                                         [% END %]
                                                     </td>
-
-                                                    [% IF ( JacketImages ) %]<td class="jacketcell">
-
-                                                        [% IF ( OPACAmazonCoverImages ) %]
-                                                            [% IF ( ISSUE.normalized_isbn ) %]
-                                                                <a href="http://www.amazon.com/gp/reader/[% ISSUE.normalized_isbn %][% AmazonAssocTag %]#reader-link" title="View on Amazon.com"><img src="https://images-na.ssl-images-amazon.com/images/P/[% ISSUE.normalized_isbn %].01.THUMBZZZ.jpg" alt="View on Amazon.com" class="item-thumbnail"/></a>
-                                                            [% ELSE %]
-                                                                <a href="#"><span class="no-image">No cover image available</span></a>
-                                                            [% END %]
+                                                    
+                                                    <td class="jacketcell">
+                                                        [% IF ( ISSUE.titlecoverurl ) %]
+                                                            <img src="[% ISSUE.titlecoverurl | html %]" class="ekzcover" title="[% ISSUE.biblionumber |url %]" alt="Onleihe-Cover" />
                                                         [% END %]
-
-                                                        [% IF ( GoogleJackets ) %]
-                                                            [% IF ( ISSUE.normalized_isbn ) %]
-                                                                <div style="display:block;" title="Click to view in Google Books" class="[% ISSUE.normalized_isbn %]" id="gbs-thumbnail[% loop.count %]"></div>
-                                                            [% ELSE %]
-                                                                <a href="http://books.google.com/books?q=[% ISSUE.title |url %]"><span class="no-image">No cover image available</span></a>
-                                                            [% END %]
-                                                        [% END %]
-
-                                                        [% IF ( BakerTaylorEnabled ) %]
-                                                            [% bt_id = ( ISSUE.normalized_upc || ISSUE.normalized_isbn ) %]
-                                                            [% IF ( bt_id ) %]
-                                                                <a href="https://[% BakerTaylorBookstoreURL |html %][% bt_id %]"><img alt="See Baker &amp; Taylor" src="[% BakerTaylorImageURL |html %][% bt_id %]" /></a>
-                                                            [% ELSE %]
-                                                                <span class="no-image">No cover image available</span><!-- BakerTaylor needs normalized_upc or normalized_isbn! -->
-                                                            [% END %]
-                                                        [% END %]
-
-                                                        [% IF ( SyndeticsEnabled && SyndeticsCoverImages ) %]
-                                                            [% IF ( using_https ) %]
-                                                                <img src="https://secure.syndetics.com/index.aspx?isbn=[% ISSUE.normalized_isbn %]/SC.GIF&amp;client=[% SyndeticsClientCode %]&amp;type=xw10&amp;upc=[% ISSUE.normalized_upc %]&amp;oclc=[% ISSUE.normalized_oclc %]" alt="" class="item-thumbnail" />
-                                                            [% ELSE %]
-                                                                <img src="http://www.syndetics.com/index.aspx?isbn=[% ISSUE.normalized_isbn %]/SC.GIF&amp;client=[% SyndeticsClientCode %]&amp;type=xw10&amp;upc=[% ISSUE.normalized_upc %]&amp;oclc=[% ISSUE.normalized_oclc %]" alt="" class="item-thumbnail" />
-                                                            [% END %]
-                                                        [% END %]
-
-                                                    </td>[% END # / IF JacketImages %]
+                                                    </td>
 
                                                     <td class="title">
                                                         <a class="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% ISSUE.biblionumber %]">[% ISSUE.title |html %] [% FOREACH subtitl IN ISSUE.subtitle %] [% subtitl.subfield %][% END %]</a>
@@ -787,8 +760,8 @@
                                             [% END # /FOREACH DIVIBIB_ISSUES %]
                                         </tbody>
                                     </table>
-                                [% END # IF divibib_issues_count %]
-                            </div> <!-- / .opac-user-divibibcheckouts -->
+                                </div> <!-- / .opac-user-divibibcheckouts -->
+                            [% END # IF divibib_issues_count %]
 
 
                             [% IF borrower_club_enrollments.count || borrower_enrollable_clubs.count %]
@@ -947,7 +920,9 @@
                                                     <th>Library</th>
                                                 [% END %]
                                                 [% IF ( show_barcode ) %]<th>Barcode</th>[% END %]
-                                                <th>Call number</th>
+                                                [% IF ( Koha.Preference('OPACMySummaryCallNumber') ) %]
+                                                    <th>Call number</th>
+                                                [% END %]
                                                 <th class="psort">Due</th>
                                                 [% IF ( OPACMySummaryHTML ) %]
                                                     <th class="nosort">Links</th>
@@ -989,8 +964,20 @@
                                                                 <span class="no-image">No cover image available</span><!-- BakerTaylor needs normalized_upc or normalized_isbn! -->
                                                             [% END %]
                                                         [% END %]
+
+                                                        [% IF Koha.Preference('OPACCustomCoverImages') AND Koha.Preference('CustomCoverImagesURL') %]
+                                                            [% SET custom_cover_image_url = OVERDUE.biblio_object.custom_cover_image_url %]
+                                                            [% IF custom_cover_image_url %]
+                                                                <a class="custom_cover_image" href="[% custom_cover_image_url | url %]"><img alt="Cover image" src="[% custom_cover_image_url | url %]" /></a>
+                                                            [% END %]
+                                                        [% END %]
+                                                            
                                                         [% IF ( SyndeticsCoverImages ) %]
                                                             <img src="https://secure.syndetics.com/index.aspx?isbn=[% OVERDUE.normalized_isbn | html %]/[% SyndeticsCoverImageSize | uri %].GIF&amp;client=[% SyndeticsClientCode | html %]&amp;upc=[% OVERDUE.normalized_upc | html %]&amp;oclc=[% OVERDUE.normalized_oclc | html %]&amp;type=xw10" alt="" class="item-thumbnail" />
+                                                        [% END %]
+                                                        
+                                                        [% IF ( OVERDUE.titlecoverurl ) %]
+                                                            <img src="[% OVERDUE.titlecoverurl | html %]" class="ekzcover" title="[% OVERDUE.biblionumber |url %]" alt="Cover" />
                                                         [% END %]
                                                         </td>
                                                     [% END # /IF jacketcell %]
@@ -1331,6 +1318,10 @@
             }
         }
         $(document).ready(function(){
+            var tab = $(location).attr('hash');
+            if ( tab.length ) {
+                $("#opac-user-views a[href='" + tab + "']").tab("show");
+            }
             $('#opac-user-article-requests caption .count').html(AR_CAPTION_COUNT.format('[% current_article_requests.size | html %]'));
 
             $(".modal-nojs").addClass("modal").addClass("hide").removeClass("modal-nojs");
@@ -1439,7 +1430,7 @@
                 );
             });
 
-            var dTables = $("#checkoutst,#holdst,#overduest,#opac-user-relative-issues-table");
+            var dTables = $("#checkoutst,#holdst,#overduest,#opac-user-relative-issues-table,#divibibcheckoutst");
             dTables.each(function(){
                 var thIndex = $(this).find("th.psort").index();
                 $(this).on("init.dt", function() {
