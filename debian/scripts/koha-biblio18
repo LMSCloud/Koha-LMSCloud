@@ -1,0 +1,296 @@
+#!/bin/bash
+
+# koha-biblio18 - Start and Stop biblio18 Server
+#              Copyright 2023 LMSCloud GmbH
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+set -e
+
+. /lib/lsb/init-functions
+
+# Read configuration variable file if it is present
+[ -r /etc/default/koha-common ] && . /etc/default/koha-common
+
+# include helper functions
+if [ -f "/usr/share/koha/bin/koha-functions.sh" ]; then
+    . "/usr/share/koha/bin/koha-functions.sh"
+else
+    echo "Error: /usr/share/koha/bin/koha-functions.sh not present." 1>&2
+    exit 1
+fi
+
+usage()
+{
+    local scriptname=$(basename $0)
+
+    cat <<EOF
+$scriptname
+
+This script lets start and stop Biblio18 of your Koha instances.
+
+Usage:
+$scriptname [--start|--stop|--restart] instancename1 [instancename2...]
+$scriptname -h|--help
+
+    --start               Start the Biblio18 server for the specified instance(s)
+    --stop                Stop the Biblio18 server for the specified instance(s)
+    --restart             Restart the Biblio18 server for the specified instance(s)
+    --status              Show the status of the Biblio18 server for the specified instance(s)
+    --verbose|-v          Display progress and actions messages
+    --help|-h             Display this help message
+
+EOF
+}
+
+is_biblio18_running()
+{
+    local instancename=$1
+
+    if daemon --name="$instancename-koha-biblio18" \
+            --pidfiles="/var/run/koha/$instancename/" \
+            --user="$instancename-koha.$instancename-koha" \
+            --running ; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+start_biblio18()
+{
+    local name=$1
+
+    _check_and_fix_perms $name
+
+    if ! is_biblio18_running $name; then
+        if [ ! -f "/etc/koha/sites/${name}/Biblio18.conf" ] ; then
+            echo "You do not have a Biblio18.conf file for Koha instance ${name}."
+        else
+            export KOHA_HOME PERL5LIB
+
+            if [ "$DEV_INSTALL" = "" ]; then
+                LIBDIR=$KOHA_HOME/lib
+            else
+                LIBDIR=$KOHA_HOME
+            fi
+            
+            DAEMONOPTS="--name=${name}-koha-biblio18 \
+                    --errlog=/var/log/koha/${name}/biblio18-error.log \
+                    --stdout=/var/log/koha/${name}/biblio18.log \
+                    --output=/var/log/koha/${name}/biblio18-output.log \
+                    --verbose=1 \
+                    --respawn \
+                    --delay=30 \
+                    --pidfiles=/var/run/koha/${name} \
+                    --user=${name}-koha.${name}-koha"
+
+            BIBLIO18_PARAMS="$LIBDIR/C4/External/Biblio18/biblio18Service.pl"
+
+            [ "$verbose" != "no" ] && \
+                log_daemon_msg "Starting Biblio18 server for ${name}"
+
+            if daemon $DAEMONOPTS -- hypnotoad -f $BIBLIO18_PARAMS; then
+                ([ "$verbose" != "no" ] && \
+                    log_end_msg 0) || return 0
+            else
+                ([ "$verbose" != "no" ] && \
+                    log_end_msg 1) || return 1
+            fi
+        fi
+    else
+        if [ "$verbose" != "no" ]; then
+            log_daemon_msg "Warning: Biblio18 server already running for ${name}"
+            log_end_msg 0
+        else
+            return 0
+        fi
+    fi
+}
+
+stop_biblio18()
+{
+    local name=$1
+
+    if is_biblio18_running $name; then
+
+        DAEMONOPTS="--name=${name}-koha-biblio18 \
+                    --errlog=/var/log/koha/${name}/biblio18-error.log \
+                    --stdout=/var/log/koha/${name}/biblio18.log \
+                    --output=/var/log/koha/${name}/biblio18-output.log \
+                    --verbose=1 \
+                    --respawn \
+                    --delay=30 \
+                    --pidfiles=/var/run/koha/${name} \
+                    --user=${name}-koha.${name}-koha"
+
+        [ "$verbose" != "no" ] && \
+            log_daemon_msg "Stopping Biblio18 server for ${name}"
+
+        if daemon $DAEMONOPTS --stop; then
+            ([ "$verbose" != "no" ] && \
+                log_end_msg 0) || return 0
+        else
+            ([ "$verbose" != "no" ] && \
+                log_end_msg 1) || return 1
+        fi
+    else
+        if [ "$verbose" != "no" ]; then
+            log_daemon_msg "Warning: Biblio18 server not running for ${name}"
+            log_end_msg 0
+        else
+            return 0
+        fi
+    fi
+}
+
+restart_biblio18()
+{
+    local name=$1
+
+    if is_biblio18_running ${name}; then
+        local noLF="-n"
+        [ "$verbose" != "no" ] && noLF=""
+        echo $noLF `stop_biblio18 ${name}`
+
+        MAX_ITERATION=10
+        while is_biblio18_running ${name}; do
+            i=$((i+1))
+            if [ $MAX_ITERATION -lt $i ]; then
+                break
+            fi
+            sleep 1;
+
+        done
+        echo $noLF `stop_biblio18 ${name}`
+    else
+        if [ "$verbose" != "no" ]; then
+            log_daemon_msg "Warning: Biblio18 server not running for ${name}"
+            log_end_msg 0
+        else
+            return 0
+        fi
+    fi
+}
+
+biblio18_status()
+{
+    local name=$1
+
+    if is_biblio18_running ${name}; then
+        log_daemon_msg "Biblio18 server running for ${name}"
+        log_end_msg 0
+    else
+        log_daemon_msg "Biblio18 server not running for ${name}"
+        log_end_msg 3
+    fi
+}
+
+_check_and_fix_perms()
+{
+    local name=$1
+
+    local files="/var/log/koha/${name}/biblio18-error.log \
+                 /var/log/koha/${name}/biblio18.log \
+                 /var/log/koha/${name}/biblio18-output.log"
+
+    for file in ${files}
+    do
+        if [ ! -e "${file}" ]; then
+            touch ${file}
+        fi
+        chown "${name}-koha":"${name}-koha" ${file}
+    done
+}
+
+set_action()
+{
+    if [ "$op" = "" ]; then
+        op=$1
+    else
+        die "Error: only one action can be specified."
+    fi
+}
+
+op=""
+verbose="no"
+
+# Read command line parameters
+while [ $# -gt 0 ]; do
+
+    case "$1" in
+        -h|--help)
+            usage ; exit 0 ;;
+        -v|--verbose)
+            verbose="yes"
+            shift ;;
+        --start)
+            set_action "start"
+            shift ;;
+        --stop)
+            set_action "stop"
+            shift ;;
+        --restart)
+            set_action "restart"
+            shift ;;
+        --status)
+            set_action "status"
+            shift ;;
+        -*)
+            die "Error: invalid option switch ($1)" ;;
+        *)
+            # We expect the remaining stuff are the instance names
+            break ;;
+    esac
+
+done
+
+if [ $# -gt 0 ]; then
+    # We have at least one instance name
+    for name in "$@"; do
+
+        if is_instance $name; then
+
+            export KOHA_CONF="/etc/koha/sites/$name/koha-conf.xml"
+
+            case $op in
+                "start")
+                    start_biblio18 $name
+                    ;;
+                "stop")
+                    stop_biblio18 $name
+                    ;;
+                "restart")
+                    restart_biblio18 $name
+                    ;;
+                "status")
+                    biblio18_status $name
+                    ;;
+            esac
+
+        else
+            if [ "$verbose" != "no" ]; then
+                log_daemon_msg "Error: Invalid instance name $name"
+                log_end_msg 1
+            fi
+        fi
+
+    done
+else
+    if [ "$verbose" != "no" ]; then
+        warn "Error: you must provide at least one instance name"
+    fi
+fi
+
+exit 0
