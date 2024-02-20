@@ -3037,7 +3037,7 @@ sub CanBookBeRenewed {
         );
 
         return ( 0, "too_many" )
-          if not $issuing_rule->{renewalsallowed} or $issuing_rule->{renewalsallowed} <= $issue->renewals;
+          if not $issuing_rule->{renewalsallowed} or $issuing_rule->{renewalsallowed} <= $issue->renewals_count;
 
         return ( 0, "too_unseen" )
           if C4::Context->preference('UnseenRenewals') &&
