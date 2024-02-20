@@ -227,7 +227,6 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('ekzAqbudgetperiodsDescription','',NULL,'Name of the budget that will be used if a sent ekz webservice request does not contain Koha budget information.','Free'),
 ('ekzAqbudgetsCode','',NULL,'Code of the fund that will be used if a sent ekz webservice request does not contain Koha fund information.','Free'),
 ('EKZCover','0',NULL,'Enable/Disable to display covers from the German library service company EKZ','YesNo'),
-('EKZCoverURL','http://cover.ekz.de/',NULL,'Base URL to read covers from EKZ service.','Free'),
 ('ekzDeliveryNoteWSLastRunDate','',NULL,'Date of last effective execution of the ekz web service handling delivery note information.','Free'),
 ('ekzInvoiceCloseWhenCreated','0',NULL,'If enabled, the ekz invoice synchronisation will automatically close the invoice it has inserted in Koha.','YesNo'),
 ('ekzInvoiceSkipAdditionalCosts','0',NULL,'If enabled, additional costs transferred in invoice data (e.g. handling costs) are ignored, otherwise are added to the item price.','YesNo'),

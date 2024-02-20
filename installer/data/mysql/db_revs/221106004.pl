@@ -6,7 +6,7 @@ return {
     up => sub {
         my ($args) = @_;
         my ($dbh, $out) = @$args{qw(dbh out)};
-        for my $pref_name ( qw( RecordedBooksClientSecret RecordedBooksDomain RecordedBooksLibraryID ) ) {
+        for my $pref_name ( qw( RecordedBooksClientSecret RecordedBooksDomain RecordedBooksLibraryID EKZCoverURL ) ) {
             $dbh->do(q{
                 DELETE FROM systempreferences
                 WHERE variable=?

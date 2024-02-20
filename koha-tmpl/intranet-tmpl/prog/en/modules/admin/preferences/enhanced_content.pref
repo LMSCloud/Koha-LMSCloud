@@ -538,9 +538,6 @@ Enhanced content:
                   1: Enable
                   0: "Don't enable"
             - cover display from the German library service company EKZ.
-        -
-            - Base URL to read covers from EKZ service:
-            - pref: EKZCoverURL
     Bibtip recommendations:
         -
             - pref: BibtipEnabled
