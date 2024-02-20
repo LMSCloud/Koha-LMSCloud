@@ -747,7 +747,7 @@ else {
 
         # Get opac_info from Additional contents for home and holding library
         my ( $opac_info_home, $opac_info_holding );
-        $opac_info_holding = $library_info->{ $item->holdingbranch } // $item->holding_branch->opac_info({ lang => $lang });
+        $opac_info_holding = $library_info->{ $item->holdingbranch } // $item->holding_branch->opac_info({ lang => $lang }) if ($item->holdingbranch);
         $library_info->{ $item->holdingbranch } = $opac_info_holding;
         $opac_info_home = $library_info->{ $item->homebranch } // $item->home_branch->opac_info({ lang => $lang });
         $library_info->{ $item->homebranch } = $opac_info_home;
@@ -777,10 +777,12 @@ else {
         }
 
         my $itemtype = $item->itemtype;
-        $item_info->{'imageurl'} = getitemtypeimagelocation( 'opac',
-            $itemtypes->{ $itemtype->itemtype }->{'imageurl'} );
-        $item_info->{'description'} =
-          $itemtypes->{ $itemtype->itemtype }->{translated_description};
+        if ( $itemtype ) {
+            $item_info->{'imageurl'} = getitemtypeimagelocation( 'opac',
+                $itemtypes->{ $itemtype }->{'imageurl'} );
+            $item_info->{'description'} =
+              $itemtypes->{ $itemtype }->{translated_description};
+        }
 
         foreach my $field (
             qw(ccode materials enumchron copynumber itemnotes location_description uri)
@@ -809,7 +811,7 @@ else {
             $item_info->{course_reserves} = GetItemCourseReservesInfo( itemnumber => $item->itemnumber );
         }
 
-        $item_info->{holding_branch} = $item->holding_branch;
+        $item_info->{holding_branch} = $item->holding_branch if ($item->holdingbranch);
         $item_info->{home_branch}    = $item->home_branch;
 
         my $itembranch = $item->$separatebranch;
