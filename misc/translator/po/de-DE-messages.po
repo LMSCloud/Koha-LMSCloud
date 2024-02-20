@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 22.11\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-08-18 12:33+0200\n"
+"POT-Creation-Date: 2024-02-20 19:09+0100\n"
 "PO-Revision-Date: 2023-08-18 14:53+0200\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: Koha Translation Team\n"
@@ -314,7 +314,7 @@ msgstr "Ausweisnummer"
 msgid "Check for previous checkouts"
 msgstr "Auf vorherige Ausleihen überprüfen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/patron-search.inc:639
+#: koha-tmpl/intranet-tmpl/prog/en/includes/patron-search.inc:648
 msgid "Check out"
 msgstr "Ausleihe"
 

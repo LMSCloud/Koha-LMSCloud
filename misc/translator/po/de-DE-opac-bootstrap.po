@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 22.11\n"
-"POT-Creation-Date: 2024-02-20 18:27+0100\n"
+"POT-Creation-Date: 2024-02-20 19:09+0100\n"
 "PO-Revision-Date: 2024-02-20 18:30+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: Koha Translation Team\n"
@@ -16,8 +16,8 @@ msgstr ""
 "X-Pootle-Revision: 1\n"
 "X-POOTLE-MTIME: 1686919597.861023\n"
 
-#. %1$s:  END
-#. %2$s:  END
+#. %1$s:  END 
+#. %2$s:  END 
 #. %3$s:  BLOCK biblio_a_href -
 #. %4$s: - IF Koha.Preference('BiblioDefaultView') == 'marc' -
 #. %5$s: - SET this_biblio_href = "/cgi-bin/koha/opac-MARCdetail.pl?biblionumber=" -
@@ -26,12 +26,12 @@ msgstr ""
 #. %8$s: - ELSE -
 #. %9$s: - SET this_biblio_href = "/cgi-bin/koha/opac-detail.pl?biblionumber=" -
 #. %10$s: - END -
-#. %11$s: - this_biblio_href | url
+#. %11$s: - this_biblio_href | url 
 #. %12$s:  biblionumber | url -
-#. %13$s: - END
-#. %14$s:  # BOOTSTRAP TAB WRAPPER USAGE
-#. %15$s:  #     [ WRAPPER tabs id= "tabs_container_id" ]
-#. %16$s:  #         [ WRAPPER tabs_nav ]
+#. %13$s: - END 
+#. %14$s:  # BOOTSTRAP TAB WRAPPER USAGE                                                                         
+#. %15$s:  #     [ WRAPPER tabs id= "tabs_container_id" ]                                                        
+#. %16$s:  #         [ WRAPPER tabs_nav ]                                                                        
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/html_helpers.inc:22
 #, c-format
 msgid ""
@@ -41,10 +41,10 @@ msgstr ""
 "%s %s %s %s %s %s %s %s %s %s %s%s %s %s %s %s [%% # [ WRAPPER tab_item "
 "tabname= \"tab_name_1\" bt_active= 1 ] "
 
-#. %1$s:  END
-#. %2$s:  IF ( subscription_LOO.letter )
-#. %3$s:  IF ( loggedinusername )
-#. %4$s:  IF ( subscription_LOO.hasalert )
+#. %1$s:  END 
+#. %2$s:  IF ( subscription_LOO.letter ) 
+#. %3$s:  IF ( loggedinusername ) 
+#. %4$s:  IF ( subscription_LOO.hasalert ) 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-serial-issues.tt:156
 #, c-format
 msgid "%s %s %s %s You have subscribed to email notification on new issues "
@@ -56,15 +56,15 @@ msgstr ""
 #. %1$s: # First line will be summary, second line will be description. Avoid indenting. Var newline added to avoid translating problems. -
 #. %2$s: - newline="\n" | html -
 #. %3$s: - IF overdue == 1 -
-#. %4$s:  title | html
+#. %4$s:  title | html 
 #. %5$s: - newline | html -
-#. %6$s:  title | html
-#. %7$s:  barcode | html
+#. %6$s:  title | html 
+#. %7$s:  barcode | html 
 #. %8$s: - ELSE -
-#. %9$s:  title | html
+#. %9$s:  title | html 
 #. %10$s: - newline | html -
-#. %11$s:  title | html
-#. %12$s:  barcode | html
+#. %11$s:  title | html 
+#. %12$s:  barcode | html 
 #. %13$s: - END -
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-ics.tt:1
 #, c-format
@@ -76,22 +76,22 @@ msgstr ""
 "überfällig %s %s ist fällig %sIhre Ausleihe von %s (Barcode %s) ist heute "
 "fällig %s "
 
-#. %1$s:  IF ( Koha.Preference('OpacFavicon') )
-#. %2$s:  Koha.Preference('OpacFavicon') | url
-#. %3$s:  ELSE
-#. %4$s:  Koha.Preference('OPACBaseURL') | url
-#. %5$s:  interface | url
-#. %6$s:  theme | url
-#. %7$s:  END
+#. %1$s:  IF ( Koha.Preference('OpacFavicon') ) 
+#. %2$s:  Koha.Preference('OpacFavicon') | url 
+#. %3$s:  ELSE 
+#. %4$s:  Koha.Preference('OPACBaseURL') | url 
+#. %5$s:  interface | url 
+#. %6$s:  theme | url 
+#. %7$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-opensearch.tt:10
 #, c-format
 msgid "%s %s %s %s%s/%s/images/favicon.ico %s "
 msgstr "%s %s %s %s%s/%s/images/favicon.ico %s "
 
-#. %1$s:  IF ( opacRenewCardConfirmationText )
-#. %2$s:  opacRenewCardConfirmationText
-#. %3$s:  ELSE
-#. %4$s:  END # /IF opacRenewCardConfirmationText
+#. %1$s:  IF ( opacRenewCardConfirmationText ) 
+#. %2$s:  opacRenewCardConfirmationText 
+#. %3$s:  ELSE 
+#. %4$s:  END # /IF opacRenewCardConfirmationText 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-renewcard.tt:102
 #, c-format
 msgid ""
@@ -103,10 +103,10 @@ msgstr ""
 "belastet wird.%s "
 
 #. For the first occurrence,
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/masthead-sci.inc:12
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/masthead-sco.inc:12
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/masthead.inc:19
@@ -114,37 +114,37 @@ msgstr ""
 msgid "%s %s %s Koha online %s "
 msgstr "%s %s %s Koha %s "
 
-#. %1$s:  IF ( biblio.title )
-#. %2$s:  biblio.title | html
-#. %3$s:  ELSE
-#. %4$s:  END
-#. %5$s:  FOREACH subtitle IN biblio.subtitle.split(' \| ')
-#. %6$s:  IF Koha.Preference('marcflavour')=='UNIMARC'
-#. %7$s:  END
-#. %8$s:  subtitle | html
-#. %9$s:  END
-#. %10$s:  part_numbers = biblio.part_number.split(' \\| ')
-#. %11$s:  part_names = biblio.part_name.split(' \\| ')
-#. %12$s:  i = 0
-#. %13$s:  WHILE ( part_numbers.$i.defined || part_names.$i.defined )
-#. %14$s:  IF ( part_numbers.$i.defined )
-#. %15$s:  part_numbers.$i | html
-#. %16$s:  END
-#. %17$s:  IF ( part_names.$i.defined )
-#. %18$s:  part_names.$i | html
-#. %19$s:  END
-#. %20$s:  i = i + 1
-#. %21$s:  END
+#. %1$s:  IF ( biblio.title ) 
+#. %2$s:  biblio.title | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
+#. %5$s:  FOREACH subtitle IN biblio.subtitle.split(' \| ') 
+#. %6$s:  IF Koha.Preference('marcflavour')=='UNIMARC' 
+#. %7$s:  END 
+#. %8$s:  subtitle | html 
+#. %9$s:  END 
+#. %10$s:  part_numbers = biblio.part_number.split(' \\| ') 
+#. %11$s:  part_names = biblio.part_name.split(' \\| ') 
+#. %12$s:  i = 0 
+#. %13$s:  WHILE ( part_numbers.$i.defined || part_names.$i.defined ) 
+#. %14$s:  IF ( part_numbers.$i.defined ) 
+#. %15$s:  part_numbers.$i | html 
+#. %16$s:  END 
+#. %17$s:  IF ( part_names.$i.defined ) 
+#. %18$s:  part_names.$i | html 
+#. %19$s:  END 
+#. %20$s:  i = i + 1 
+#. %21$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/biblio-title-head.inc:1
 #, c-format
 msgid "%s %s %s No title %s %s%s,%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s "
 msgstr ""
 "%s %s %s Kein Titel %s %s%s,%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s "
 
-#. %1$s:  END
-#. %2$s:  END # / FOREACH ERROR
-#. %3$s:  IF ( WINDOW_CLOSE )
-#. %4$s:  END
+#. %1$s:  END 
+#. %2$s:  END # / FOREACH ERROR 
+#. %3$s:  IF ( WINDOW_CLOSE ) 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-review.tt:31
 #, c-format
 msgid "%s %s %s Note: this window will close automatically in 5 seconds. %s "
@@ -159,94 +159,94 @@ msgstr ""
 msgid "%s %s %s [%%~ SET line_break = \""
 msgstr "%s %s %s [%%~ SET line_break = \""
 
-#. %1$s:  END # / bibitemloo.holdable
+#. %1$s:  END # / bibitemloo.holdable 
 #. %2$s:  INCLUDE 'biblio-title.inc' biblio=bibitemloo link=> 1
-#. %3$s:  IF ( bibitemloo.author )
-#. %4$s:  bibitemloo.author | html
-#. %5$s:  END
+#. %3$s:  IF ( bibitemloo.author ) 
+#. %4$s:  bibitemloo.author | html 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:190
 #, c-format
 msgid "%s %s %s, by %s%s "
 msgstr "%s %s %s, von %s%s "
 
-#. %1$s:  IF RestrictedPageTitle
-#. %2$s:  RestrictedPageTitle | html
-#. %3$s:  END
-#. %4$s:  IF ( LibraryNameTitle )
-#. %5$s:  LibraryNameTitle | html
-#. %6$s:  ELSE
-#. %7$s:  END
+#. %1$s:  IF RestrictedPageTitle 
+#. %2$s:  RestrictedPageTitle | html 
+#. %3$s:  END 
+#. %4$s:  IF ( LibraryNameTitle ) 
+#. %5$s:  LibraryNameTitle | html 
+#. %6$s:  ELSE 
+#. %7$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-restrictedpage.tt:7
 #, c-format
 msgid "%s %s &rsaquo; %s %s %s %s Koha online %s catalog "
 msgstr "%s %s &rsaquo; %s %s %s %s Koha %s - Katalog "
 
-#. %1$s:  IF ( library )
-#. %2$s:  library.branchname | html
-#. %3$s:  END
-#. %4$s:  IF ( LibraryNameTitle )
-#. %5$s:  LibraryNameTitle | html
-#. %6$s:  ELSE
-#. %7$s:  END
+#. %1$s:  IF ( library ) 
+#. %2$s:  library.branchname | html 
+#. %3$s:  END 
+#. %4$s:  IF ( LibraryNameTitle ) 
+#. %5$s:  LibraryNameTitle | html 
+#. %6$s:  ELSE 
+#. %7$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-library.tt:10
 #, c-format
 msgid "%s %s &rsaquo; %s Libraries &rsaquo; %s %s %s Koha online %s catalog "
 msgstr "%s %s &rsaquo; %s Bibliotheken &rsaquo; %s %s %s Koha %s - Katalog "
 
-#. %1$s:  ELSE
-#. %2$s:  MY_TAG.term | html
-#. %3$s:  END
+#. %1$s:  ELSE 
+#. %2$s:  MY_TAG.term | html 
+#. %3$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-tags.tt:156
 #, c-format
 msgid "%s %s (not approved) %s "
 msgstr "%s %s (nicht genehmigt) %s "
 
-#. %1$s:  ELSE
-#. %2$s:  SET ctrl_preload = ' controls preload=none' #translatability
-#. %3$s:  HTML5MediaParent _ ctrl_preload | html
-#. %4$s:  HTML5MediaSet.child | html
-#. %5$s:  HTML5MediaSet.srcblock | url
-#. %6$s:  HTML5MediaSet.typeblock | html
+#. %1$s:  ELSE 
+#. %2$s:  SET ctrl_preload = ' controls preload=none' #translatability 
+#. %3$s:  HTML5MediaParent _ ctrl_preload | html 
+#. %4$s:  HTML5MediaSet.child | html 
+#. %5$s:  HTML5MediaSet.srcblock | url 
+#. %6$s:  HTML5MediaSet.typeblock | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:972
 #, c-format
 msgid "%s %s <%s > <%s src=\"%s\" %s /> "
 msgstr "%s %s <%s > <%s src=\"%s\" %s /> "
 
-#. %1$s:  END
-#. %2$s:  IF ( koha_spsuggest )
+#. %1$s:  END 
+#. %2$s:  IF ( koha_spsuggest ) 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:159
 #, c-format
 msgid "%s %s Did you mean: "
 msgstr "%s %s Meinten Sie: "
 
 #. For the first occurrence,
-#. %1$s:  END
-#. %2$s:  IF debarred_date && debarred_date != '9999-12-31'
+#. %1$s:  END 
+#. %2$s:  IF debarred_date && debarred_date != '9999-12-31' 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:63
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:193
 #, c-format
 msgid "%s %s End date: "
 msgstr "%s %s Enddatum: "
 
-#. %1$s:  END
-#. %2$s:  ELSE
-#. %3$s:  END
+#. %1$s:  END 
+#. %2$s:  ELSE 
+#. %3$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-authoritiessearchresultlist.tt:86
 #, c-format
 msgid "%s %s No results found. %s "
 msgstr "%s %s Keine Titel gefunden. %s "
 
-#. %1$s:  IF ( searchdesc )
-#. %2$s:  IF ( ms_value )
-#. %3$s:  ms_value | html
-#. %4$s:  ELSE
-#. %5$s:  END
-#. %6$s:  ELSE
-#. %7$s:  END
-#. %8$s:  IF ( LibraryNameTitle )
-#. %9$s:  LibraryNameTitle | html
-#. %10$s:  ELSE
-#. %11$s:  END
+#. %1$s:  IF ( searchdesc ) 
+#. %2$s:  IF ( ms_value ) 
+#. %3$s:  ms_value | html 
+#. %4$s:  ELSE 
+#. %5$s:  END 
+#. %6$s:  ELSE 
+#. %7$s:  END 
+#. %8$s:  IF ( LibraryNameTitle ) 
+#. %9$s:  LibraryNameTitle | html 
+#. %10$s:  ELSE 
+#. %11$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:12
 #, c-format
 msgid ""
@@ -256,10 +256,10 @@ msgstr ""
 "%s %s Ergebnisse der Suche nach '%s' %s Suchergebnisse %s %s Es wurden keine "
 "Suchkriterien angegeben. %s &rsaquo; %s%s%sKoha %s - Katalog "
 
-#. %1$s:  END
-#. %2$s:  ELSE
-#. %3$s:  END
-#. %4$s:  END
+#. %1$s:  END 
+#. %2$s:  ELSE 
+#. %3$s:  END 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-serial-issues.tt:167
 #, c-format
 msgid ""
@@ -269,75 +269,75 @@ msgstr ""
 "%s %s Sie müssen sich anmelden, um E-Mail-Benachrichtigungen über neue "
 "Zeitschriftenhefte abonnieren zu können %s %s "
 
-#. %1$s:  INCLUDE 'biblio-title.inc' biblio=review link=> 1
-#. %2$s:  IF ( review.author )
+#. %1$s:  INCLUDE 'biblio-title.inc' biblio=review link=> 1 
+#. %2$s:  IF ( review.author ) 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-showreviews.tt:46
 #, c-format
 msgid "%s %s by "
 msgstr "%s %s von "
 
-#. %1$s:  i.title | html
-#. %2$s:  IF i.author
-#. %3$s:  i.author | html
-#. %4$s:  END
+#. %1$s:  i.title | html 
+#. %2$s:  IF i.author 
+#. %3$s:  i.author | html 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves-rss.tt:12
 #, c-format
 msgid "%s %s by %s %s "
 msgstr "%s %s von %s %s "
 
-#. %1$s:  INCLUDE 'biblio-title.inc' biblio=MY_TAG link=> 1
-#. %2$s:  IF ( MY_TAG.author )
-#. %3$s:  MY_TAG.author | html
-#. %4$s:  END
-#. %5$s:  END # /IF MY_TAG.XSLTBloc
-#. %6$s:  INCLUDE 'title-actions-menu.inc' items=MY_TAG
+#. %1$s:  INCLUDE 'biblio-title.inc' biblio=MY_TAG link=> 1 
+#. %2$s:  IF ( MY_TAG.author ) 
+#. %3$s:  MY_TAG.author | html 
+#. %4$s:  END 
+#. %5$s:  END # /IF MY_TAG.XSLTBloc 
+#. %6$s:  INCLUDE 'title-actions-menu.inc' items=MY_TAG 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-tags.tt:165
 #, c-format
 msgid "%s %s by %s %s %s %s "
 msgstr "%s %s von %s %s %s %s "
 
-#. %1$s:  r.firstname | html
-#. %2$s:  r.surname | html
+#. %1$s:  r.firstname | html 
+#. %2$s:  r.surname | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:816
 #, c-format
 msgid "%s %s currently owes fines and charges amounting to:"
 msgstr "%s %s hat zur Zeit offene Gebühren in Höhe von:"
 
-#. %1$s:  IF ( enrolment_period )
-#. %2$s:  enrolment_period
-#. %3$s:  ELSE
-#. %4$s:  END # /IF enrolment_period
+#. %1$s:  IF ( enrolment_period ) 
+#. %2$s:  enrolment_period 
+#. %3$s:  ELSE 
+#. %4$s:  END # /IF enrolment_period 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-renewcard.tt:81
 #, c-format
 msgid "%s %s months %s not defined %s "
 msgstr "%s %s Monate %s nicht definiert %s "
 
-#. %1$s:  firstname | $raw
-#. %2$s:  surname | $raw
+#. %1$s:  firstname | $raw 
+#. %2$s:  surname | $raw 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasket.tt:16
 #, c-format
 msgid "%s %s sent you a cart from our online catalog."
 msgstr "%s %s hat Ihnen eine Titelliste geschickt."
 
-#. %1$s:  firstname | $raw
-#. %2$s:  surname | $raw
-#. %3$s:  shelfname | $raw
+#. %1$s:  firstname | $raw 
+#. %2$s:  surname | $raw 
+#. %3$s:  shelfname | $raw 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:14
 #, c-format
 msgid "%s %s sent you from our online catalog, the list called : %s."
 msgstr "%s %s hat Ihnen aus dem Online-Katalog die Liste %s geschickt."
 
-#. %1$s:  END
-#. %2$s:  END
-#. %3$s:  END
-#. %4$s:  END
+#. %1$s:  END 
+#. %2$s:  END 
+#. %3$s:  END 
+#. %4$s:  END 
 #. %5$s: - ELSE -
-#. %6$s:  item.gencover| escape_quotes | remove_special_character
-#. %7$s:  END
-#. %8$s:  item.browser_normalized_upc | escape_quotes | remove_special_character
-#. %9$s:  item.browser_normalized_oclc | escape_quotes | remove_special_character
-#. %10$s:  item.browser_normalized_isbn | escape_quotes | remove_special_character
-#. %11$s:  item.browser_normalized_ean | escape_quotes | remove_special_character
+#. %6$s:  item.gencover| escape_quotes | remove_special_character 
+#. %7$s:  END 
+#. %8$s:  item.browser_normalized_upc | escape_quotes | remove_special_character 
+#. %9$s:  item.browser_normalized_oclc | escape_quotes | remove_special_character 
+#. %10$s:  item.browser_normalized_isbn | escape_quotes | remove_special_character 
+#. %11$s:  item.browser_normalized_ean | escape_quotes | remove_special_character 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/coverflow-item.json.inc:69
 #, c-format
 msgid ""
@@ -349,66 +349,66 @@ msgstr ""
 "\"normalized_oclc_number\": \"%s\", \"normalized_isbn\": \"%s\", "
 "\"normalized_ean\": \"%s\" }"
 
-#. %1$s:  END
-#. %2$s:  IF Koha.Preference('URLLinkText')
-#. %3$s:  Koha.Preference('URLLinkText') | html
-#. %4$s:  ELSE
-#. %5$s:  END
+#. %1$s:  END 
+#. %2$s:  IF Koha.Preference('URLLinkText') 
+#. %3$s:  Koha.Preference('URLLinkText') | html 
+#. %4$s:  ELSE 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1452
 #, c-format
 msgid "%s %s%s%sLink to resource%s "
 msgstr "%s%s%s%sLink zur Ressource%s "
 
-#. %1$s:  r.patron.firstname | html
-#. %2$s:  r.patron.surname | html
+#. %1$s:  r.patron.firstname | html 
+#. %2$s:  r.patron.surname | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:94
 #, c-format
 msgid "%s %s's fines and charges"
 msgstr "Gebühren und Entgelte von %s %s"
 
-#. %1$s:  added_count | html
-#. %2$s:  IF ( added_count == 1 )
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  added_count | html 
+#. %2$s:  IF ( added_count == 1 ) 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-tags.tt:127
 #, c-format
 msgid "%s %stag%stags%s successfully added."
 msgstr "%s %sTag%sTags%s hinzugefügt."
 
-#. %1$s:  deleted_count | html
-#. %2$s:  IF ( deleted_count == 1 )
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  deleted_count | html 
+#. %2$s:  IF ( deleted_count == 1 ) 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-tags.tt:130
 #, c-format
 msgid "%s %stag%stags%s successfully deleted."
 msgstr "%s%sTag%sTags%s gelöscht."
 
-#. %1$s:  IF loop.index == 0
-#. %2$s:  ELSE
-#. %3$s:  END
+#. %1$s:  IF loop.index == 0 
+#. %2$s:  ELSE 
+#. %3$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-advsearch.tt:49
 #, c-format
 msgid "%s &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; %s and %s "
 msgstr "%s &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; %s und %s "
 
-#. %1$s:  bibliotitle | html
-#. %2$s:  biblio.biblionumber | html
+#. %1$s:  bibliotitle | html 
+#. %2$s:  biblio.biblionumber | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-MARCdetail.tt:34
 #, c-format
 msgid "%s (Record no. %s)"
 msgstr "%s (Titelsatznr. %s)"
 
 #. For the first occurrence,
-#. %1$s:  Koha.Preference('OPACnumSearchResults') | html
+#. %1$s:  Koha.Preference('OPACnumSearchResults') | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:215
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:217
 #, c-format
 msgid "%s (default)"
 msgstr "%s (Voreinstellung)"
 
-#. %1$s:  ELSE
-#. %2$s:  END
+#. %1$s:  ELSE 
+#. %2$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-authoritiessearchresultlist.tt:121
 #, c-format
 msgid "%s 0 records %s "
@@ -420,16 +420,16 @@ msgstr "%s 0 Datensätze %s "
 msgid "%s <?xml version=\"1.0\"?> "
 msgstr "%s <?xml version=\"1.0\"?> "
 
-#. %1$s:  IF ( OVERDUE.debarred )
-#. %2$s:  ELSIF ( OVERDUE.status )
-#. %3$s:  IF ( canrenew )
+#. %1$s:  IF ( OVERDUE.debarred ) 
+#. %2$s:  ELSIF ( OVERDUE.status ) 
+#. %3$s:  IF ( canrenew ) 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:1033
 #, c-format
 msgid "%s Account frozen %s %s "
 msgstr "%sKonto gesperrt %s %s "
 
-#. %1$s:  IF message.code == "unable_to_generate_pdf"
-#. %2$s:  END
+#. %1$s:  IF message.code == "unable_to_generate_pdf" 
+#. %2$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-discharge.tt:36
 #, c-format
 msgid ""
@@ -439,8 +439,8 @@ msgstr ""
 "%s Es ist ein Fehler bei der Erstellung der PDF-Datei aufgetreten. Bitte "
 "informieren Sie die Bibliothek, damit das Problem behoben werden kann. %s "
 
-#. %1$s:  ELSE
-#. %2$s:  END
+#. %1$s:  ELSE 
+#. %2$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/clubs-tab.tt:28
 #, c-format
 msgid "%s Contact your library to be disenrolled from this club. %s "
@@ -448,39 +448,39 @@ msgstr ""
 "%s Bitte kontaktieren Sie Ihre Bibliothek um sich von diesem Club "
 "abzumelden. %s "
 
-#. %1$s:  IF ( context == "list" )
-#. %2$s:  ELSE
-#. %3$s:  END
+#. %1$s:  IF ( context == "list" ) 
+#. %2$s:  ELSE 
+#. %3$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves.tt:17
 #, c-format
 msgid "%s Delete %s Delete list %s "
 msgstr "%s Löschen %s Liste löschen %s "
 
-#. %1$s:  END
-#. %2$s:  HOLDS.count | html
+#. %1$s:  END 
+#. %2$s:  HOLDS.count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:290
 #, c-format
 msgid "%s Holds (%s) "
 msgstr "%s Vormerkungen (%s) "
 
-#. %1$s:  IF ( GetAvailability )
-#. %2$s:  ELSIF ( GetRecords )
-#. %3$s:  ELSIF ( GetAuthorityRecords )
-#. %4$s:  ELSIF ( LookupPatron )
-#. %5$s:  ELSIF ( AuthenticatePatron )
-#. %6$s:  ELSIF ( GetPatronInfo )
-#. %7$s:  ELSIF ( GetPatronStatus )
-#. %8$s:  ELSIF ( GetServices )
-#. %9$s:  ELSIF ( RenewLoan )
-#. %10$s:  ELSIF ( HoldTitle )
-#. %11$s:  ELSIF ( HoldItem )
-#. %12$s:  ELSIF ( CancelHold )
-#. %13$s:  ELSE
-#. %14$s:  END
-#. %15$s:  IF ( LibraryNameTitle )
-#. %16$s:  LibraryNameTitle | html
-#. %17$s:  ELSE
-#. %18$s:  END
+#. %1$s:  IF ( GetAvailability ) 
+#. %2$s:  ELSIF ( GetRecords ) 
+#. %3$s:  ELSIF ( GetAuthorityRecords ) 
+#. %4$s:  ELSIF ( LookupPatron ) 
+#. %5$s:  ELSIF ( AuthenticatePatron ) 
+#. %6$s:  ELSIF ( GetPatronInfo ) 
+#. %7$s:  ELSIF ( GetPatronStatus ) 
+#. %8$s:  ELSIF ( GetServices ) 
+#. %9$s:  ELSIF ( RenewLoan ) 
+#. %10$s:  ELSIF ( HoldTitle ) 
+#. %11$s:  ELSIF ( HoldItem ) 
+#. %12$s:  ELSIF ( CancelHold ) 
+#. %13$s:  ELSE 
+#. %14$s:  END 
+#. %15$s:  IF ( LibraryNameTitle ) 
+#. %16$s:  LibraryNameTitle | html 
+#. %17$s:  ELSE 
+#. %18$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/ilsdi.tt:5
 #, c-format
 msgid ""
@@ -499,21 +499,21 @@ msgstr ""
 "&rsaquo; CancelHold %s ILS-DI %s &rsaquo; %s%s%sKoha %s - Katalog "
 
 #. For the first occurrence,
-#. %1$s:  IF ( Koha.Preference( 'ReplytoDefault' ) )
+#. %1$s:  IF ( Koha.Preference( 'ReplytoDefault' ) ) 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/maintenance.tt:44
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/maintenance.tt:46
 #, c-format
 msgid "%s If you have any questions, please contact the "
 msgstr "%s Wenn Sie irgendwelche Fragen haben, kontaktieren Sie bitte den "
 
-#. %1$s:  SEARCH_RESULT.num_critics | html
+#. %1$s:  SEARCH_RESULT.num_critics | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:501
 #, c-format
 msgid "%s Internet user critics"
 msgstr "%s Bewertungen von Internetbenutzern"
 
-#. %1$s:  IF not(Koha.Preference("AllowCheckoutNotes"))
-#. %2$s:  ELSE
+#. %1$s:  IF not(Koha.Preference("AllowCheckoutNotes")) 
+#. %2$s:  ELSE 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-issue-note.tt:39
 #, c-format
 msgid "%s Issue notes have not been enabled. Please contact the library. %s "
@@ -521,36 +521,36 @@ msgstr ""
 "%s Ausleihnotizen sind nicht aktiviert. Kontaktieren Sie bitte die "
 "Bibliothek. %s "
 
-#. %1$s:  ELSE
+#. %1$s:  ELSE 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/holds-table.inc:143
 #, c-format
 msgid "%s Item in transit to "
 msgstr "%s Exemplar unterwegs nach "
 
-#. %1$s:  IF ( HOLD.is_at_destination )
+#. %1$s:  IF ( HOLD.is_at_destination ) 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/holds-table.inc:133
 #, c-format
 msgid "%s Item waiting at "
 msgstr "%s Exemplar abholbereit in "
 
 #. For the first occurrence,
-#. %1$s:  issues_count | html
+#. %1$s:  issues_count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:333
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:634
 #, c-format
 msgid "%s Item(s) checked out"
 msgstr "%s Exemplar(e) ausgeliehen"
 
-#. %1$s:  IF ( errors.0 == 'patron_category_not_enabled' )
-#. %2$s:  BORROWER_INFO.categorycode
-#. %3$s:  END
-#. %4$s:  IF ( errors.0 == 'maximum_lead_time_exceeded' )
-#. %5$s:  errors.1
-#. %6$s:  END
-#. %7$s:  IF ( errors.0 == 'enrolment_period_invalid' )
-#. %8$s:  END
-#. %9$s:  IF ( errors.0 == 'CardRenewalFailed' )
-#. %10$s:  END
+#. %1$s:  IF ( errors.0 == 'patron_category_not_enabled' ) 
+#. %2$s:  BORROWER_INFO.categorycode 
+#. %3$s:  END 
+#. %4$s:  IF ( errors.0 == 'maximum_lead_time_exceeded' ) 
+#. %5$s:  errors.1 
+#. %6$s:  END 
+#. %7$s:  IF ( errors.0 == 'enrolment_period_invalid' ) 
+#. %8$s:  END 
+#. %9$s:  IF ( errors.0 == 'CardRenewalFailed' ) 
+#. %10$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-renewcard.tt:43
 #, c-format
 msgid ""
@@ -566,13 +566,13 @@ msgstr ""
 "konfiguriert.%s %s Die Verlängerung Ihres Bibliotheksausweises scheiterte "
 "kläglich. %s "
 
-#. %1$s:  IF Koha.Preference( 'opacuserlogin' ) == 1
-#. %2$s:  ELSE
-#. %3$s:  END
-#. %4$s:  IF ( LibraryNameTitle )
-#. %5$s:  LibraryNameTitle | html
-#. %6$s:  ELSE
-#. %7$s:  END
+#. %1$s:  IF Koha.Preference( 'opacuserlogin' ) == 1 
+#. %2$s:  ELSE 
+#. %3$s:  END 
+#. %4$s:  IF ( LibraryNameTitle ) 
+#. %5$s:  LibraryNameTitle | html 
+#. %6$s:  ELSE 
+#. %7$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-auth.tt:9
 #, c-format
 msgid ""
@@ -583,8 +583,8 @@ msgstr ""
 "&rsaquo; %s%s%sKoha %s - Katalog "
 
 #. For the first occurrence,
-#. %1$s:  END
-#. %2$s:  provider.description | html
+#. %1$s:  END 
+#. %2$s:  provider.description | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-auth.tt:174
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:237
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/masthead.inc:407
@@ -592,82 +592,82 @@ msgstr ""
 msgid "%s Log in with %s "
 msgstr "%s Anmelden mit %s "
 
-#. %1$s:  IF !holds
-#. %2$s:  ELSE
-#. %3$s:  SET show_itemtype_column = Koha.Preference('AllowHoldItemTypeSelection')
+#. %1$s:  IF !holds 
+#. %2$s:  ELSE 
+#. %3$s:  SET show_itemtype_column = Koha.Preference('AllowHoldItemTypeSelection') 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-holdshistory.tt:69
 #, c-format
 msgid "%s No data available %s %s "
 msgstr "%s Keine Daten verfügbar %s %s "
 
-#. %1$s:  IF ( searchdesc )
-#. %2$s:  LibraryName | html
+#. %1$s:  IF ( searchdesc ) 
+#. %2$s:  LibraryName | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:65
 #, c-format
 msgid "%s No results found for that in %s catalog. "
 msgstr "%s Keine Treffer hierfür im Katalog von %s. "
 
-#. %1$s:  ELSE
-#. %2$s:  END # / IF results
+#. %1$s:  ELSE 
+#. %2$s:  END # / IF results 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-topissues.tt:138
 #, c-format
 msgid "%s No results, try to change filters. %s "
 msgstr "%s Keine Ergebnisse, versuchen Sie andere Filtereinstellungen. %s "
 
-#. %1$s:  ELSE
-#. %2$s:  END
-#. %3$s:  FOREACH subtitle IN biblio.subtitle.split(' \| ')
-#. %4$s:  IF Koha.Preference('marcflavour')=='UNIMARC'
-#. %5$s:  END
+#. %1$s:  ELSE 
+#. %2$s:  END 
+#. %3$s:  FOREACH subtitle IN biblio.subtitle.split(' \| ') 
+#. %4$s:  IF Koha.Preference('marcflavour')=='UNIMARC' 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/biblio-title.inc:6
 #, c-format
 msgid "%s No title %s %s%s,%s "
 msgstr "%s Kein Titel %s %s%s,%s "
 
-#. %1$s:  ELSIF ( OVERDUE.norenew_overdue )
+#. %1$s:  ELSIF ( OVERDUE.norenew_overdue ) 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:1045
 #, c-format
 msgid "%s Not allowed "
 msgstr "%s Nicht erlaubt "
 
-#. %1$s:  SEARCH_RESULT.num_critics_pro | html
+#. %1$s:  SEARCH_RESULT.num_critics_pro | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:504
 #, c-format
 msgid "%s Professional critics"
 msgstr "%s Professionelle Bewertungen"
 
-#. %1$s:  SEARCH_RESULT.num_quotations | html
+#. %1$s:  SEARCH_RESULT.num_quotations | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:510
 #, c-format
 msgid "%s Quotations"
 msgstr "%s Zitate"
 
-#. %1$s:  ELSIF ( ISSUE.item_denied_renewal )
-#. %2$s:  END
+#. %1$s:  ELSIF ( ISSUE.item_denied_renewal ) 
+#. %2$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:534
 #, c-format
 msgid "%s Renewal not allowed %s "
 msgstr "%s Keine Verlängerung erlaubt %s "
 
 #. For the first occurrence,
-#. %1$s:  IF debarred_comment.search('OVERDUES_PROCESS')
-#. %2$s:  debarred_comment.remove('OVERDUES_PROCESS ') | html_line_break
-#. %3$s:  ELSE
-#. %4$s:  debarred_comment | html_line_break
-#. %5$s:  END
+#. %1$s:  IF debarred_comment.search('OVERDUES_PROCESS') 
+#. %2$s:  debarred_comment.remove('OVERDUES_PROCESS ') | html_line_break 
+#. %3$s:  ELSE 
+#. %4$s:  debarred_comment | html_line_break 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:56
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:186
 #, c-format
 msgid "%s Restriction added by overdues process %s %s %s %s "
 msgstr "%s Automatische Benutzersperre wegen Überfälligkeit %s %s %s %s "
 
-#. %1$s:  LibraryName | html
-#. %2$s:  IF ( query_desc )
-#. %3$s:  query_desc | html
-#. %4$s:  END
-#. %5$s:  IF ( limit_desc )
-#. %6$s:  limit_desc | html
-#. %7$s:  END
+#. %1$s:  LibraryName | html 
+#. %2$s:  IF ( query_desc ) 
+#. %3$s:  query_desc | html 
+#. %4$s:  END 
+#. %5$s:  IF ( limit_desc ) 
+#. %6$s:  limit_desc | html 
+#. %7$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-opensearch.tt:87
 #, c-format
 msgid "%s Search %sfor '%s'%s%s&nbsp;with limit(s):&nbsp;'%s'%s"
@@ -678,19 +678,19 @@ msgstr "%s Suche %snach '%s'%s%s&nbsp;mit Eingrenzung(en):&nbsp;'%s'%s"
 msgid "%s Search RSS feed"
 msgstr "%s RSS-Feed"
 
-#. %1$s:  LibraryName | html
+#. %1$s:  LibraryName | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sci/sci-main.tt:62
 #, c-format
 msgid "%s Self check-in"
 msgstr "%s Selbstständige Rückgabe"
 
-#. %1$s:  LibraryName | html
+#. %1$s:  LibraryName | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:47
 #, c-format
 msgid "%s Self checkout system"
 msgstr "%s Selbstverbuchungssystem"
 
-#. %1$s:  ELSIF (errLinkNotValid)
+#. %1$s:  ELSIF (errLinkNotValid) 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-password-recovery.tt:108
 #, c-format
 msgid "%s The link you clicked is either invalid, or expired. "
@@ -698,72 +698,72 @@ msgstr ""
 "%s Der Link ist entweder ungültig oder die Gültigkeitszeit ist "
 "überschritten. "
 
-#. %1$s:  ELSIF (errPassNotMatch)
-#. %2$s:  ELSIF password_too_short
+#. %1$s:  ELSIF (errPassNotMatch) 
+#. %2$s:  ELSIF password_too_short 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-password-recovery.tt:100
 #, c-format
 msgid "%s The passwords do not match. %s "
 msgstr "%s Die Passwörter stimmen nicht überein. %s "
 
-#. %1$s:  IF error
-#. %2$s:  ELSE
-#. %3$s:  FOREACH role IN content
+#. %1$s:  IF error 
+#. %2$s:  ELSE 
+#. %3$s:  FOREACH role IN content 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-idref.tt:19
 #, c-format
 msgid "%s This ppn is not found on the idref service. %s %s "
 msgstr "%s Diese PPN wurde nicht im IdRef-Service gefunden . %s %s "
 
-#. %1$s:  ELSE
-#. %2$s:  END
+#. %1$s:  ELSE 
+#. %2$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-basket.tt:269
 #, c-format
 msgid "%s This record has no items. %s "
 msgstr "%s Dieser Titel hat keine physischen Exemplare. %s "
 
-#. %1$s:  SEARCH_RESULT.num_videos | html
+#. %1$s:  SEARCH_RESULT.num_videos | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:507
 #, c-format
 msgid "%s Video extracts"
 msgstr "%s Filmausschnitte"
 
-#. %1$s:  IF ( ISSUE.charges )
-#. %2$s:  ELSE
-#. %3$s:  END
+#. %1$s:  IF ( ISSUE.charges ) 
+#. %2$s:  ELSE 
+#. %3$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:744
 #, c-format
 msgid "%s Yes %s No %s "
 msgstr "%s Ja %s Nein %s "
 
-#. %1$s:  ELSE
-#. %2$s:  END
+#. %1$s:  ELSE 
+#. %2$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:70
 #, c-format
 msgid "%s You did not specify any search criteria. %s "
 msgstr "%s Sie haben keine Suchkriterien eingegeben. %s "
 
-#. %1$s:  IF READING_RECORD.size == 0
-#. %2$s:  ELSE
+#. %1$s:  IF READING_RECORD.size == 0 
+#. %2$s:  ELSE 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:48
 #, c-format
 msgid "%s You have never borrowed anything from this library. %s "
 msgstr "%s Sie haben noch nie etwas aus dieser Bibliothek ausgeliehen. %s "
 
-#. %1$s:  Branches.GetLoggedInBranchname | html
+#. %1$s:  Branches.GetLoggedInBranchname | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:412
 #, c-format
 msgid "%s holdings"
 msgstr "%s Exemplare"
 
 #. For the first occurrence,
-#. %1$s:  acquisition_details.total_quantity | html
+#. %1$s:  acquisition_details.total_quantity | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:577
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:606
 #, c-format
 msgid "%s items are on order."
 msgstr "%s Exemplare sind bestellt."
 
-#. %1$s:  hits_to_paginate | html
-#. %2$s:  total | html
+#. %1$s:  hits_to_paginate | html 
+#. %2$s:  total | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/page-numbers.inc:5
 #, c-format
 msgid "%s of %s results loaded, refine your search to view other records"
@@ -771,52 +771,52 @@ msgstr ""
 "%s von %s Treffern geladen, verfeinern Sie Ihre Suche um weitere Datensätze "
 "zu sehen"
 
-#. %1$s:  ISSUE.itemtype_object.rentalcharge_daily | $Price
+#. %1$s:  ISSUE.itemtype_object.rentalcharge_daily | $Price 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:482
 #, c-format
 msgid "%s per day"
 msgstr "%s am Tag"
 
-#. %1$s:  ISSUE.itemtype_object.rentalcharge_hourly | $Price
+#. %1$s:  ISSUE.itemtype_object.rentalcharge_hourly | $Price 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:485
 #, c-format
 msgid "%s per hour"
 msgstr "%s pro Stunde"
 
-#. %1$s:  age
+#. %1$s:  age 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-advsearch.tt:234
 #, c-format
 msgid "%s years"
 msgstr "%s Jahre"
 
-#. %1$s:  summary.mainentry | html
-#. %2$s:  IF authtypetext
-#. %3$s:  authtypetext | html
-#. %4$s:  END
-#. %5$s:  IF ( LibraryNameTitle )
-#. %6$s:  LibraryNameTitle | html
-#. %7$s:  ELSE
-#. %8$s:  END
+#. %1$s:  summary.mainentry | html 
+#. %2$s:  IF authtypetext 
+#. %3$s:  authtypetext | html 
+#. %4$s:  END 
+#. %5$s:  IF ( LibraryNameTitle ) 
+#. %6$s:  LibraryNameTitle | html 
+#. %7$s:  ELSE 
+#. %8$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-auth-detail.tt:9
 #, c-format
 msgid ""
 "%s%s (%s)%s &rsaquo; Authority search &rsaquo; %s%s%sKoha online%s catalog"
 msgstr "%s%s (%s)%s &rsaquo; Normdatensuche &rsaquo; %s%s%sKoha %s - Katalog"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-entrypages.tt:3
 #, c-format
 msgid "%s%s%sKoha %s - Browse Catalog"
 msgstr "%s%s%sKoha %s - Katalog durchstöbern"
 
 #. For the first occurrence,
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/maintenance.tt:6
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:17
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-registration-confirmation.tt:8
@@ -825,10 +825,10 @@ msgstr "%s%s%sKoha %s - Katalog durchstöbern"
 msgid "%s%s%sKoha online%s catalog"
 msgstr "%s%s%sKoha %s - Katalog"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-renewcard.tt:6
 #, c-format
 msgid "%s%s%sKoha online%s catalog &rsaquo; Renew your library card"
@@ -839,78 +839,78 @@ msgstr "%s%s%sKoha%s - Katalog &rsaquo; Bibliotheksausweis verlängern"
 msgid "%s%s%sKoha online%s catalog recent comments"
 msgstr "%s%s%sKoha %s - Katalog &rsaquo; Neue Kommentare"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-opensearch.tt:7
 #, c-format
 msgid "%s%s%sLibrary catalog%s"
 msgstr "%s%s%sBibliothekskatalog%s"
 
-#. %1$s:  IF meta.value
-#. %2$s:  meta.value | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF meta.value 
+#. %2$s:  meta.value | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-illrequests.tt:236
 #, c-format
 msgid "%s%s%sN/A%s"
 msgstr "%s%s%sn.v.%s"
 
-#. %1$s:  IF page
-#. %2$s:  page.title | html
-#. %3$s:  ELSE
-#. %4$s:  END
-#. %5$s:  IF ( LibraryNameTitle )
-#. %6$s:  LibraryNameTitle | html
-#. %7$s:  ELSE
-#. %8$s:  END
+#. %1$s:  IF page 
+#. %2$s:  page.title | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
+#. %5$s:  IF ( LibraryNameTitle ) 
+#. %6$s:  LibraryNameTitle | html 
+#. %7$s:  ELSE 
+#. %8$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-page.tt:8
 #, c-format
 msgid "%s%s%sPage error%s &rsaquo; %s%s%sKoha online%s catalog"
 msgstr "%s%s%sSeitenfehler%s &rsaquo; %s%s%sKoha %s - Katalog"
 
-#. %1$s:  USE KohaDates # XML declaration should have no white space before it
-#. %2$s:  USE Koha
+#. %1$s:  USE KohaDates # XML declaration should have no white space before it 
+#. %2$s:  USE Koha 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-showreviews-rss.tt:1
 #, c-format
 msgid "%s%s<?xml version=\"1.0\" encoding=\"utf-8\"?> "
 msgstr "%s%s<?xml version=\"1.0\" encoding=\"utf-8\"?> "
 
-#. %1$s:  LibraryNameTitle | html
-#. %2$s:  ELSE
-#. %3$s:  END
+#. %1$s:  LibraryNameTitle | html 
+#. %2$s:  ELSE 
+#. %3$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-account-pay-error.tt:5
 #, c-format
 msgid "%s%sKoha online%s catalog"
 msgstr "%s%sKoha %s - Katalog"
 
-#. %1$s:  IF ( dateformat == "us" )
-#. %2$s:  ELSIF ( dateformat == "metric" )
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( dateformat == "us" ) 
+#. %2$s:  ELSIF ( dateformat == "metric" ) 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/date-format.inc:1
 #, c-format
 msgid "%s(MM/DD/YYYY)%s(DD/MM/YYYY)%s(YYYY-MM-DD)%s"
 msgstr "%s(MM/TT/JJJJ)%s(TT/MM/JJJJ)%s(JJJJ-MM-TT)%s"
 
-#. %1$s:  IF ( HOLD.desk_id )
-#. %2$s:  HOLD.desk.desk_name | html
-#. %3$s:  END
-#. %4$s:  IF ( HOLD.waitingdate )
-#. %5$s:  HOLD.waitingdate | $KohaDates
-#. %6$s:  IF HOLD.expirationdate
-#. %7$s:  HOLD.expirationdate | $KohaDates
-#. %8$s:  END
-#. %9$s:  END
+#. %1$s:  IF ( HOLD.desk_id ) 
+#. %2$s:  HOLD.desk.desk_name | html 
+#. %3$s:  END 
+#. %4$s:  IF ( HOLD.waitingdate ) 
+#. %5$s:  HOLD.waitingdate | $KohaDates 
+#. %6$s:  IF HOLD.expirationdate 
+#. %7$s:  HOLD.expirationdate | $KohaDates 
+#. %8$s:  END 
+#. %9$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/holds-table.inc:135
 #, c-format
 msgid "%s, %s,%s %s since %s %s until %s %s %s "
 msgstr "%s, %s,%s %s seit %s %s bis %s %s %s "
 
 #. For the first occurrence,
-#. %1$s:  OPACBaseURL | url
-#. %2$s:  SEARCH_RESULT.biblionumber | uri
+#. %1$s:  OPACBaseURL | url 
+#. %2$s:  SEARCH_RESULT.biblionumber | uri 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-opensearch.tt:76
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-opensearch.tt:116
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves-rss.tt:18
@@ -918,70 +918,70 @@ msgstr "%s, %s,%s %s seit %s %s bis %s %s %s "
 msgid "%s/cgi-bin/koha/opac-detail.pl?biblionumber=%s"
 msgstr "%s/cgi-bin/koha/opac-detail.pl?biblionumber=%s"
 
-#. %1$s:  OPACBaseURL | html
-#. %2$s:  review.biblionumber | html
+#. %1$s:  OPACBaseURL | html 
+#. %2$s:  review.biblionumber | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-showreviews-rss.tt:12
 #, c-format
 msgid "%s/cgi-bin/koha/opac-detail.pl?biblionumber=%s#comments"
 msgstr "%s/cgi-bin/koha/opac-detail.pl?biblionumber=%s#comments"
 
-#. %1$s:  OPACBaseURL | html
-#. %2$s:  review.biblionumber | html
-#. %3$s:  review.reviewid | html
+#. %1$s:  OPACBaseURL | html 
+#. %2$s:  review.biblionumber | html 
+#. %3$s:  review.reviewid | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-showreviews-rss.tt:38
 #, c-format
 msgid "%s/cgi-bin/koha/opac-detail.pl?biblionumber=%s&amp;reviewid=%s"
 msgstr "%s/cgi-bin/koha/opac-detail.pl?biblionumber=%s&amp;reviewid=%s"
 
-#. %1$s:  OPACBaseURL | html
+#. %1$s:  OPACBaseURL | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-news-rss.tt:7
 #, c-format
 msgid "%s/cgi-bin/koha/opac-main.pl"
 msgstr "%s/cgi-bin/koha/opac-main.pl"
 
-#. %1$s:  OPACBaseURL | html
-#. %2$s:  newsitem.idnew | html
+#. %1$s:  OPACBaseURL | html 
+#. %2$s:  newsitem.idnew | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-news-rss.tt:13
 #, c-format
 msgid "%s/cgi-bin/koha/opac-main.pl#newsitem%s"
 msgstr "%s/cgi-bin/koha/opac-main.pl#newsitem%s"
 
-#. %1$s:  OPACBaseURL | url
-#. %2$s:  query_cgi | html
-#. %3$s:  limit_cgi | html
+#. %1$s:  OPACBaseURL | url 
+#. %2$s:  query_cgi | html 
+#. %3$s:  limit_cgi | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-opensearch.tt:86
 #, c-format
 msgid "%s/cgi-bin/koha/opac-search.pl?%s%s&amp;format=atom"
 msgstr "%s/cgi-bin/koha/opac-search.pl?%s%s&amp;format=atom"
 
-#. %1$s:  OPACBaseURL | html
-#. %2$s:  query_cgi | html
-#. %3$s:  limit_cgi | html
+#. %1$s:  OPACBaseURL | html 
+#. %2$s:  query_cgi | html 
+#. %3$s:  limit_cgi | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-opensearch.tt:29
 #, c-format
 msgid "%s/cgi-bin/koha/opac-search.pl?%s%s&amp;format=rss"
 msgstr "%s/cgi-bin/koha/opac-search.pl?%s%s&amp;format=rss"
 
-#. %1$s:  OPACBaseURL | html
-#. %2$s:  shelf.shelfnumber | html
+#. %1$s:  OPACBaseURL | html 
+#. %2$s:  shelf.shelfnumber | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves-rss.tt:7
 #, c-format
 msgid "%s/cgi-bin/koha/opac-shelves.pl?rss=1&amp;viewshelf=%s"
 msgstr "%s/cgi-bin/koha/opac-shelves.pl?rss=1&amp;viewshelf=%s"
 
-#. %1$s:  OPACBaseURL | html
+#. %1$s:  OPACBaseURL | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-showreviews-rss.tt:5
 #, c-format
 msgid "%s/cgi-bin/koha/opac-showreviews.pl&amp;format=rss2"
 msgstr "%s/cgi-bin/koha/opac-showreviews.pl&amp;format=rss2"
 
-#. %1$s:  IF ( total )
-#. %2$s:  ELSE
-#. %3$s:  END
-#. %4$s:  IF ( LibraryNameTitle )
-#. %5$s:  LibraryNameTitle | html
-#. %6$s:  ELSE
-#. %7$s:  END
+#. %1$s:  IF ( total ) 
+#. %2$s:  ELSE 
+#. %3$s:  END 
+#. %4$s:  IF ( LibraryNameTitle ) 
+#. %5$s:  LibraryNameTitle | html 
+#. %6$s:  ELSE 
+#. %7$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-authoritiessearchresultlist.tt:41
 #, c-format
 msgid ""
@@ -991,27 +991,27 @@ msgstr ""
 "%sErgebnisse der Normdatensuche%sKeine Ergebnisse gefunden%s &rsaquo; %s%s"
 "%sKoha %s - Katalog"
 
-#. %1$s:  IF op == 'view'
-#. %2$s:  shelf.shelfname | html
-#. %3$s:  ELSE
-#. %4$s:  END
-#. %5$s:  IF ( LibraryNameTitle )
-#. %6$s:  LibraryNameTitle | html
-#. %7$s:  ELSE
-#. %8$s:  END
+#. %1$s:  IF op == 'view' 
+#. %2$s:  shelf.shelfname | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
+#. %5$s:  IF ( LibraryNameTitle ) 
+#. %6$s:  LibraryNameTitle | html 
+#. %7$s:  ELSE 
+#. %8$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves.tt:28
 #, c-format
 msgid "%sContents of %s%sYour lists%s &rsaquo; %s%s%sKoha online%s catalog"
 msgstr "%sInhalt von %s%sIhre Listen%s &rsaquo; %s%s%sKoha %s - Katalog"
 
-#. %1$s:  IF ( op_add )
-#. %2$s:  END
-#. %3$s:  IF ( op_else )
-#. %4$s:  END
-#. %5$s:  IF ( LibraryNameTitle )
-#. %6$s:  LibraryNameTitle | html
-#. %7$s:  ELSE
-#. %8$s:  END
+#. %1$s:  IF ( op_add ) 
+#. %2$s:  END 
+#. %3$s:  IF ( op_else ) 
+#. %4$s:  END 
+#. %5$s:  IF ( LibraryNameTitle ) 
+#. %6$s:  LibraryNameTitle | html 
+#. %7$s:  ELSE 
+#. %8$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:12
 #, c-format
 msgid ""
@@ -1021,13 +1021,13 @@ msgstr ""
 "%sNeuer Anschaffungsvorschlag%s %sAnschaffungsvorschläge %s &rsaquo; %s%s"
 "%sKoha %s - Katalog"
 
-#. %1$s:  IF ( typeissue )
-#. %2$s:  ELSIF ( typeissuecancel )
-#. %3$s:  END
-#. %4$s:  IF ( LibraryNameTitle )
-#. %5$s:  LibraryNameTitle | html
-#. %6$s:  ELSE
-#. %7$s:  END
+#. %1$s:  IF ( typeissue ) 
+#. %2$s:  ELSIF ( typeissuecancel ) 
+#. %3$s:  END 
+#. %4$s:  IF ( LibraryNameTitle ) 
+#. %5$s:  LibraryNameTitle | html 
+#. %6$s:  ELSE 
+#. %7$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-alert-subscribe.tt:3
 #, c-format
 msgid ""
@@ -1037,27 +1037,27 @@ msgstr ""
 "%sE-Mail zu neuen Heften abonnieren %s E-Mail-Abonnement über neue Hefte "
 "löschen %s &rsaquo; %s%s%sKoha %s - Katalog"
 
-#. %1$s:  ELSE
-#. %2$s:  END
+#. %1$s:  ELSE 
+#. %2$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-auth-detail.tt:75
 #, c-format
 msgid "%sThis authority is not used in any records.%s "
 msgstr "%sDieser Normdatensatz wird nirgends verwendet.%s "
 
-#. %1$s:  ELSE
-#. %2$s:  END
+#. %1$s:  ELSE 
+#. %2$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-basket.tt:340
 #, c-format
 msgid "%sThis record has no items.%s "
 msgstr "%s Dieser Datensatz hat keine Exemplare.%s "
 
-#. %1$s:  IF action == 'edit'
-#. %2$s:  ELSE
-#. %3$s:  END
-#. %4$s:  IF ( LibraryNameTitle )
-#. %5$s:  LibraryNameTitle | html
-#. %6$s:  ELSE
-#. %7$s:  END
+#. %1$s:  IF action == 'edit' 
+#. %2$s:  ELSE 
+#. %3$s:  END 
+#. %4$s:  IF ( LibraryNameTitle ) 
+#. %5$s:  LibraryNameTitle | html 
+#. %6$s:  ELSE 
+#. %7$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-memberentry.tt:35
 #, c-format
 msgid ""
@@ -1067,16 +1067,16 @@ msgstr ""
 "%sPersönliche Daten aktualisieren%sNeues Benutzerkonto anlegen%s &rsaquo; %s"
 "%s%sKoha %s - Katalog"
 
-#. %1$s:  IF ar.toc_request
-#. %2$s:  END
+#. %1$s:  IF ar.toc_request 
+#. %2$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:1206
 #, c-format
 msgid "%sYes%s "
 msgstr "%sJa%s "
 
-#. %1$s:  IF ( ISSUE.charges )
-#. %2$s:  ELSE
-#. %3$s:  END
+#. %1$s:  IF ( ISSUE.charges ) 
+#. %2$s:  ELSE 
+#. %3$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:379
 #, c-format
 msgid "%sYes%sNo%s "
@@ -1630,8 +1630,8 @@ msgstr ""
 "RecordNotFound&lt;/code&gt; &lt;/record&gt; &lt;record&gt; &lt;code&gt;"
 "RecordNotFound&lt;/code&gt; &lt;/record&gt; &lt;/GetAuthorityRecords&gt;"
 
-#. %1$s:  SEARCH_RESULT.score_avg | html
-#. %2$s:  SEARCH_RESULT.num_scores | html
+#. %1$s:  SEARCH_RESULT.score_avg | html 
+#. %2$s:  SEARCH_RESULT.num_scores | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:498
 #, c-format
 msgid "&nbsp;&nbsp; %s / 5 (on %s rates)"
@@ -1707,7 +1707,7 @@ msgstr "&nbsp;&nbsp;&nbsp;&nbsp; Schlagwort, Phrase"
 msgid "&nbsp;&nbsp;&nbsp;&nbsp; Title phrase"
 msgstr "&nbsp;&nbsp;&nbsp;&nbsp; Titel, Phrase"
 
-#. %1$s:  SEARCH_RESULT.ratings.count | html
+#. %1$s:  SEARCH_RESULT.ratings.count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:575
 #, c-format
 msgid "&nbsp;&nbsp;(%s votes)"
@@ -1740,12 +1740,12 @@ msgid "&raquo; Next"
 msgstr "&raquo; Vor"
 
 #. For the first occurrence,
-#. %1$s:  ISSUE.renewsleft | html
-#. %2$s:  ISSUE.renewsallowed | html
-#. %3$s:  IF Koha.Preference('UnseenRenewals') && ISSUE.unseenallowed
-#. %4$s:  ISSUE.unseenleft | html
-#. %5$s:  ISSUE.unseenallowed | html
-#. %6$s:  END
+#. %1$s:  ISSUE.renewsleft | html 
+#. %2$s:  ISSUE.renewsallowed | html 
+#. %3$s:  IF Koha.Preference('UnseenRenewals') && ISSUE.unseenallowed 
+#. %4$s:  ISSUE.unseenleft | html 
+#. %5$s:  ISSUE.unseenallowed | html 
+#. %6$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:487
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:505
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:513
@@ -1760,14 +1760,14 @@ msgstr ""
 "( %s von %s Verlängerungen verbleiben %s / %s von %s Verlängerungen bis das "
 "Exemplar in der Bibliothek vorgelegt werden muss %s )"
 
-#. %1$s:  LEVEL_LOO.number | html
+#. %1$s:  LEVEL_LOO.number | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-browser.tt:67
 #, c-format
 msgid "(%s biblios)"
 msgstr "(%s Titel)"
 
 #. For the first occurrence,
-#. %1$s:  MYENTRY.number
+#. %1$s:  MYENTRY.number 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-browser-asb.tt:48
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-browser-asb.tt:77
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-browser-asb.tt:79
@@ -1806,7 +1806,7 @@ msgid "(%s titles)"
 msgstr "(%s Titel)"
 
 #. For the first occurrence,
-#. %1$s:  overdues_count | html
+#. %1$s:  overdues_count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:912
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:1308
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:304
@@ -2081,7 +2081,7 @@ msgstr "(Auswahl von _MAX_ Einträgen)"
 msgid "(on hold)"
 msgstr "(Vorgemerkt)"
 
-#. %1$s:  ar.item.barcode | html
+#. %1$s:  ar.item.barcode | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:1179
 #, c-format
 msgid "(only %s)"
@@ -2094,24 +2094,24 @@ msgid "(overdue)"
 msgstr "(überfällig)"
 
 #. For the first occurrence,
-#. %1$s:  priority | html
+#. %1$s:  priority | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:587
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1479
 #, c-format
 msgid "(priority %s)"
 msgstr "(Priorität %s)"
 
-#. %1$s:  FOREACH relate IN related
-#. %2$s:  relate.related_search | html
-#. %3$s:  END
+#. %1$s:  FOREACH relate IN related 
+#. %2$s:  relate.related_search | html 
+#. %3$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:35
 #, c-format
 msgid "(related searches: %s%s%s)"
 msgstr "(ähnliche Suchen: %s%s%s)"
 
-#. %1$s:  FOREACH relate IN related
-#. %2$s:  relate.related_search | html
-#. %3$s:  END
+#. %1$s:  FOREACH relate IN related 
+#. %2$s:  relate.related_search | html 
+#. %3$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:134
 #, c-format
 msgid "(related searches:%s %s%s)."
@@ -2147,8 +2147,8 @@ msgstr "-- Format wählen --"
 msgid "-- none -- "
 msgstr "-- keine -- "
 
-#. %1$s:  CASE 'account_locked'
-#. %2$s:  IF Categories.can_any_reset_password && Koha.Preference('OpacBaseURL')
+#. %1$s:  CASE 'account_locked' 
+#. %2$s:  IF Categories.can_any_reset_password && Koha.Preference('OpacBaseURL') 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reset-password.tt:54
 #, c-format
 msgid ". %s This account has been locked! %s "
@@ -2181,9 +2181,9 @@ msgstr ""
 ". Bitte kontaktieren Sie die Bibliothek, um mehr Informationen zu erhalten "
 "oder "
 
-#. %1$s:  ELSE
-#. %2$s:  END
-#. %3$s:  END
+#. %1$s:  ELSE 
+#. %2$s:  END 
+#. %3$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:213
 #, c-format
 msgid ".%sYou have fines.%s %s "
@@ -2295,7 +2295,7 @@ msgstr "Ein Bestätigungsmail wird in Kürze an folgende Adresse gesendet: "
 msgid "A copy is available on the "
 msgstr "Titel digital verfügbar ab dem "
 
-#. %1$s:  ITEM_RESULT.datedue | $KohaDates
+#. %1$s:  ITEM_RESULT.datedue | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1394
 #, c-format
 msgid "A copy is available on the %s. Click here to place a hold."
@@ -2313,7 +2313,7 @@ msgstr ""
 msgid "A librarian"
 msgstr "Einen Bibliotheksmitarbeitenden"
 
-#. %1$s:  message_value | html
+#. %1$s:  message_value | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-account.tt:54
 #, c-format
 msgid ""
@@ -2436,8 +2436,8 @@ msgstr "Aktionen"
 msgid "Add"
 msgstr "Hinzufügen"
 
-#. %1$s:  total | html
-#. %2$s:  IF ( singleshelf )
+#. %1$s:  total | html 
+#. %2$s:  IF ( singleshelf ) 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-addbybiblionumber.tt:15
 #, c-format
 msgid "Add %s items to %s"
@@ -2464,7 +2464,7 @@ msgstr "Tag hinzufügen"
 msgid "Add tag(s)"
 msgstr "Tag(s) hinzufügen"
 
-#. %1$s:  IF ( singleshelf )
+#. %1$s:  IF ( singleshelf ) 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-addbybiblionumber.tt:17
 #, c-format
 msgid "Add to %s"
@@ -2495,22 +2495,22 @@ msgstr "Der Liste hinzufügen:"
 msgid "Add to your cart"
 msgstr "Meinem Korb hinzufügen"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-addbybiblionumber.tt:2
 #, c-format
 msgid "Add to your list &rsaquo; %s%s%sKoha online%s catalog"
 msgstr "Zu Ihrer Liste hinzufügen &rsaquo; %s%s%sKoha online%s - Katalog"
 
-#. %1$s:  review.datereviewed | $KohaDates
+#. %1$s:  review.datereviewed | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-showreviews.tt:92
 #, c-format
 msgid "Added %s by"
 msgstr "Hinzugefügt am %s von"
 
-#. %1$s:  review.datereviewed | $KohaDates
+#. %1$s:  review.datereviewed | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-showreviews.tt:89
 #, c-format
 msgid "Added %s by you"
@@ -2563,10 +2563,10 @@ msgstr "Erinnerungsbenachrichtigung"
 msgid "Advanced search"
 msgstr "Erweiterte Suche"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-advsearch.tt:6
 #, c-format
 msgid "Advanced search &rsaquo; %s%s%sKoha online%s catalog"
@@ -2733,10 +2733,10 @@ msgstr "Offener Betrag"
 msgid "Amount to pay: "
 msgstr "Zu bezahlender Betrag: "
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/errors/errorpage.tt:5
 #, c-format
 msgid "An error has occurred &rsaquo; %s%s%sKoha online%s catalog"
@@ -2763,7 +2763,7 @@ msgstr ""
 msgid "An error has occurred."
 msgstr "Es ist ein Fehler aufgetreten."
 
-#. %1$s:  shelfname | html
+#. %1$s:  shelfname | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves.tt:197
 #, c-format
 msgid "An error occurred when creating the list. The name %s already exists."
@@ -3011,7 +3011,7 @@ msgstr "Artikelbestellungen"
 msgid "Article requests "
 msgstr "Artikelbestellungen "
 
-#. %1$s:  current_article_requests.size || 0 | html
+#. %1$s:  current_article_requests.size || 0 | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:314
 #, c-format
 msgid "Article requests (%s)"
@@ -3048,7 +3048,7 @@ msgid "At least one item is available at this library"
 msgstr "Mindestens ein Exemplar in dieser Biblothek verfügbar"
 
 #. For the first occurrence,
-#. %1$s:  Branches.GetName( subscription.branchcode ) | html
+#. %1$s:  Branches.GetName( subscription.branchcode ) | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:745
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:748
 #, c-format
@@ -3135,21 +3135,21 @@ msgid "Author(s)"
 msgstr "Verfasser"
 
 #. For the first occurrence,
-#. %1$s:  IF ( BIBLIO_RESULT.author )
-#. %2$s:  BIBLIO_RESULT.author | $raw
-#. %3$s:  END
-#. %4$s:  IF ( BIBLIO_RESULT.MARCAUTHORS )
-#. %5$s:  IF ( BIBLIO_RESULT.author )
-#. %6$s:  END
-#. %7$s:  FOREACH MARCAUTHOR IN BIBLIO_RESULT.MARCAUTHORS
-#. %8$s:  FOREACH MARCAUTHOR_SUBFIELDS_LOO IN MARCAUTHOR.MARCAUTHOR_SUBFIELDS_LOOP
-#. %9$s:  MARCAUTHOR_SUBFIELDS_LOO.separator | $raw
-#. %10$s:  MARCAUTHOR_SUBFIELDS_LOO.value | $raw
-#. %11$s:  END
-#. %12$s:  UNLESS ( loop.last )
-#. %13$s:  END
-#. %14$s:  END
-#. %15$s:  END
+#. %1$s:  IF ( BIBLIO_RESULT.author ) 
+#. %2$s:  BIBLIO_RESULT.author | $raw 
+#. %3$s:  END 
+#. %4$s:  IF ( BIBLIO_RESULT.MARCAUTHORS ) 
+#. %5$s:  IF ( BIBLIO_RESULT.author ) 
+#. %6$s:  END 
+#. %7$s:  FOREACH MARCAUTHOR IN BIBLIO_RESULT.MARCAUTHORS 
+#. %8$s:  FOREACH MARCAUTHOR_SUBFIELDS_LOO IN MARCAUTHOR.MARCAUTHOR_SUBFIELDS_LOOP 
+#. %9$s:  MARCAUTHOR_SUBFIELDS_LOO.separator | $raw 
+#. %10$s:  MARCAUTHOR_SUBFIELDS_LOO.value | $raw 
+#. %11$s:  END 
+#. %12$s:  UNLESS ( loop.last ) 
+#. %13$s:  END 
+#. %14$s:  END 
+#. %15$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasket.tt:47
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:47
 #, c-format
@@ -3180,10 +3180,10 @@ msgstr "Normdaten"
 msgid "Authority search"
 msgstr "Suche in Normdaten"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-authorities-home.tt:6
 #, c-format
 msgid "Authority search &rsaquo; %s%s%sKoha online%s catalog"
@@ -3258,7 +3258,7 @@ msgstr "Verfügbarkeit: "
 msgid "Available"
 msgstr "Verfügbar"
 
-#. %1$s:  IF restricted_lib
+#. %1$s:  IF restricted_lib 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/item-status.inc:142
 #, c-format
 msgid "Available %s"
@@ -3332,7 +3332,7 @@ msgstr "Verfügbare Hefte"
 msgid "Available on the "
 msgstr "Verfügbar ab dem "
 
-#. %1$s:  ITEM_RESULT.datedue | $KohaDates
+#. %1$s:  ITEM_RESULT.datedue | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1399
 #, c-format
 msgid "Available on the %s. Reservable for logged in users."
@@ -3341,8 +3341,8 @@ msgstr ""
 "Exemplar reservieren."
 
 #. For the first occurrence,
-#. %1$s:  rating_avg | html
-#. %2$s:  ratings.count | html
+#. %1$s:  rating_avg | html 
+#. %2$s:  ratings.count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:373
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/user-star-ratings.inc:52
 #, c-format
@@ -3423,7 +3423,7 @@ msgstr "Barcodes"
 msgid "Based on your checkout history we recommend ..."
 msgstr "Anhand Ihrer Ausleihhistorie empfehlen wir ..."
 
-#. %1$s:  END
+#. %1$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-password-recovery.tt:111
 #, c-format
 msgid ""
@@ -3438,7 +3438,7 @@ msgstr ""
 msgid "Becomes available as digital version on "
 msgstr "Ein Exemplar ist online verfügbar ab dem "
 
-#. %1$s:  ITEM_RESULT.datedue | $KohaDates
+#. %1$s:  ITEM_RESULT.datedue | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1397
 #, c-format
 msgid ""
@@ -3593,10 +3593,10 @@ msgid "Browse our catalog"
 msgstr "Stöbern in unserem Katalog"
 
 #. For the first occurrence,
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-browser-asb.tt:5
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-browser-kab.tt:3
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-browser-sfb.tt:5
@@ -3606,10 +3606,10 @@ msgid "Browse our catalog &rsaquo; %s%s%sKoha %s - Catalog"
 msgstr "Im Katalog stöbern &rsaquo; %s%s%sKoha %s - Katalog"
 
 #. For the first occurrence,
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-browse.tt:8
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-browser.tt:6
 #, c-format
@@ -3636,7 +3636,7 @@ msgstr "Alphabetisch suchen"
 msgid "Browse shelf"
 msgstr "Regal durchstöbern"
 
-#. %1$s:  starting_homebranch | html
+#. %1$s:  starting_homebranch | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:5
 #, c-format
 msgid "Browsing %s shelves"
@@ -3674,7 +3674,7 @@ msgid "CSV"
 msgstr "CSV"
 
 #. For the first occurrence,
-#. %1$s:  csv_profile.profile | html
+#. %1$s:  csv_profile.profile | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-basket.tt:41
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-downloadcart.tt:21
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-downloadshelf.tt:71
@@ -3748,7 +3748,7 @@ msgstr "Signatur (Z-A)"
 msgid "Call number:"
 msgstr "Signatur:"
 
-#. %1$s:  subscription.callnumber | html
+#. %1$s:  subscription.callnumber | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:758
 #, c-format
 msgid "Call number: %s"
@@ -3865,7 +3865,7 @@ msgstr "Storniert "
 msgid "Cancelled charge"
 msgstr "Stornierte Gebühr"
 
-#. %1$s:  RECALL.completed_date | $KohaDates
+#. %1$s:  RECALL.completed_date | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recalls.tt:94
 #, c-format
 msgid "Cancelled on %s"
@@ -3911,20 +3911,20 @@ msgid "Cannot find logged in username element."
 msgstr ""
 "Das HTML-Element der Anzeige das Benutzernamens kann nicht gefunden werden."
 
-#. %1$s:  maxlength_cardnumber | html
+#. %1$s:  maxlength_cardnumber | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-memberentry.tt:239
 #, c-format
 msgid "Card number can be up to %s characters."
 msgstr "Die Ausweisnummer kann bis zu %s Zeichen lang sein."
 
-#. %1$s:  minlength_cardnumber | html
-#. %2$s:  maxlength_cardnumber | html
+#. %1$s:  minlength_cardnumber | html 
+#. %2$s:  maxlength_cardnumber | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-memberentry.tt:235
 #, c-format
 msgid "Card number must be between %s and %s characters."
 msgstr "Die Ausweisnummer muss zwischen %s und %s Zeichen lang sein."
 
-#. %1$s:  minlength_cardnumber | html
+#. %1$s:  minlength_cardnumber | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-memberentry.tt:231
 #, c-format
 msgid "Card number must be exactly %s characters."
@@ -3990,10 +3990,10 @@ msgstr "Passwort ändern"
 msgid "Change your password "
 msgstr "Passwort ändern "
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-passwd.tt:8
 #, c-format
 msgid "Change your password &rsaquo; %s%s%sKoha online%s catalog"
@@ -4019,7 +4019,7 @@ msgid "Charges"
 msgstr "Gebühren"
 
 #. For the first occurrence,
-#. %1$s:  amountoutstanding | $Price
+#. %1$s:  amountoutstanding | $Price 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:279
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:296
 #, c-format
@@ -4074,7 +4074,7 @@ msgstr "Zurückgegeben"
 msgid "Checked out"
 msgstr "Ausgeliehen"
 
-#. %1$s:  issues_count | html
+#. %1$s:  issues_count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:259
 #, c-format
 msgid "Checked out (%s)"
@@ -4085,11 +4085,11 @@ msgstr "Ausgeliehen (%s)"
 msgid "Checked out on"
 msgstr "Ausleihdatum"
 
-#. %1$s:  checkout_patron.firstname | html
-#. %2$s:  checkout_patron.surname | html
-#. %3$s:  IF ( checkout_patron.cardnumber )
-#. %4$s:  checkout_patron.cardnumber | html
-#. %5$s:  END
+#. %1$s:  checkout_patron.firstname | html 
+#. %2$s:  checkout_patron.surname | html 
+#. %3$s:  IF ( checkout_patron.cardnumber ) 
+#. %4$s:  checkout_patron.cardnumber | html 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/item-status.inc:60
 #, c-format
 msgid "Checked out to %s %s %s(%s)%s"
@@ -4119,13 +4119,13 @@ msgstr "Ausleihmitteilung"
 msgid "Checkouts"
 msgstr "Ausleihen"
 
-#. %1$s:  issues_count | html
+#. %1$s:  issues_count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:285
 #, c-format
 msgid "Checkouts (%s)"
 msgstr "Ausleihen (%s)"
 
-#. %1$s:  borrowername | html
+#. %1$s:  borrowername | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:304
 #, c-format
 msgid "Checkouts for %s "
@@ -4170,7 +4170,7 @@ msgid "Classification"
 msgstr "Klassifikation"
 
 #. For the first occurrence,
-#. %1$s:  BIBLIO_RESULT.classification | $raw
+#. %1$s:  BIBLIO_RESULT.classification | $raw 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasket.tt:125
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:128
 #, c-format
@@ -4213,7 +4213,7 @@ msgstr "Löschen Sie das Datum, um unbefristet auszusetzen"
 msgid "Clear filter"
 msgstr "Filter löschen"
 
-#. %1$s:  INCLUDE 'patron-title.inc' patron = logged_in_user
+#. %1$s:  INCLUDE 'patron-title.inc' patron = logged_in_user 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:65
 #, c-format
 msgid "Click here if you're not %s"
@@ -4306,8 +4306,8 @@ msgstr "Fenster schließen"
 msgid "Clubs"
 msgstr "Clubs"
 
-#. %1$s:  borrower_club_enrollments.count || 0 | html
-#. %2$s:  borrower_enrollable_clubs.count || 0 | html
+#. %1$s:  borrower_club_enrollments.count || 0 | html 
+#. %2$s:  borrower_enrollable_clubs.count || 0 | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:296
 #, c-format
 msgid "Clubs (%s/%s) "
@@ -4374,7 +4374,7 @@ msgid "Collection: %s"
 msgstr "Sammlung: %s"
 
 #. For the first occurrence,
-#. %1$s:  BIBLIO_RESULT.seriestitle | $raw
+#. %1$s:  BIBLIO_RESULT.seriestitle | $raw 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasket.tt:83
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:86
 #, c-format
@@ -4402,7 +4402,7 @@ msgid "Columns settings"
 msgstr "Tabellenkonfiguration"
 
 #. For the first occurrence,
-#. %1$s:  review.patron.firstname | html
+#. %1$s:  review.patron.firstname | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:883
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:885
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:889
@@ -4410,16 +4410,16 @@ msgstr "Tabellenkonfiguration"
 msgid "Comment by %s"
 msgstr "Kommentar von %s"
 
-#. %1$s:  review.patron.firstname | html
-#. %2$s:  review.patron.surname|truncate(2,'.') | html
+#. %1$s:  review.patron.firstname | html 
+#. %2$s:  review.patron.surname|truncate(2,'.') | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:887
 #, c-format
 msgid "Comment by %s %s"
 msgstr "Kommentar von %s %s"
 
-#. %1$s:  review.patron.title | html
-#. %2$s:  review.patron.firstname | html
-#. %3$s:  review.patron.surname | html
+#. %1$s:  review.patron.title | html 
+#. %2$s:  review.patron.firstname | html 
+#. %3$s:  review.patron.surname | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:881
 #, c-format
 msgid "Comment by %s %s %s"
@@ -4442,17 +4442,17 @@ msgstr "Kommentare"
 msgid "Comments on "
 msgstr "Kommentare zu "
 
-#. %1$s:  INCLUDE 'biblio-title-head.inc'
-#. %2$s:  IF ( LibraryNameTitle )
-#. %3$s:  LibraryNameTitle | html
-#. %4$s:  ELSE
-#. %5$s:  END
+#. %1$s:  INCLUDE 'biblio-title-head.inc' 
+#. %2$s:  IF ( LibraryNameTitle ) 
+#. %3$s:  LibraryNameTitle | html 
+#. %4$s:  ELSE 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-review.tt:2
 #, c-format
 msgid "Comments on %s &rsaquo; %s%s%sKoha online%s catalog"
 msgstr "Kommentare zu %s &rsaquo; %s%s%sKoha %s - Katalog"
 
-#. %1$s:  ' ( ' _ (reviews.size || 0) _ ' )' | html
+#. %1$s:  ' ( ' _ (reviews.size || 0) _ ' )' | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:493
 #, c-format
 msgid "Comments%s"
@@ -4474,7 +4474,7 @@ msgstr "Gesamtbestand"
 msgid "Completed"
 msgstr "Abgeschlossen"
 
-#. %1$s:  ComponentParts.size | html
+#. %1$s:  ComponentParts.size | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:442
 #, c-format
 msgid "Components (%s)"
@@ -4490,8 +4490,8 @@ msgstr "Bestätigen"
 msgid "Confirm hold"
 msgstr "Vormerkung bestätigen"
 
-#. %1$s:  INCLUDE 'patron-title.inc' patron = logged_in_user
-#. %2$s:  logged_in_user.cardnumber | html
+#. %1$s:  INCLUDE 'patron-title.inc' patron = logged_in_user 
+#. %2$s:  logged_in_user.cardnumber | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:141
 #, c-format
 msgid "Confirm holds for:%s (%s)"
@@ -4513,8 +4513,8 @@ msgstr "Passwort bestätigen:"
 msgid "Confirm primary email:"
 msgstr "1. E-Mail-Adresse bestätigen:"
 
-#. %1$s:  INCLUDE 'patron-title.inc' patron = logged_in_user
-#. %2$s:  logged_in_user.cardnumber | html
+#. %1$s:  INCLUDE 'patron-title.inc' patron = logged_in_user 
+#. %2$s:  logged_in_user.cardnumber | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recall.tt:39
 #, c-format
 msgid "Confirm recalls for: %s (%s)"
@@ -4626,7 +4626,7 @@ msgid "Copyright or publication year, for example: 2022"
 msgstr "Copyright- oder Publikationsjahr, zum Beispiel: 2022"
 
 #. For the first occurrence,
-#. %1$s:  BIBLIO_RESULT.copyrightdate | $raw
+#. %1$s:  BIBLIO_RESULT.copyrightdate | $raw 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasket.tt:95
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:98
 #, c-format
@@ -4670,11 +4670,11 @@ msgstr "Semesterapparate"
 msgid "Course reserves for "
 msgstr "Titel im Semesterapparat für "
 
-#. %1$s:  course.course_name | html
-#. %2$s:  IF ( LibraryNameTitle )
-#. %3$s:  LibraryNameTitle | html
-#. %4$s:  ELSE
-#. %5$s:  END
+#. %1$s:  course.course_name | html 
+#. %2$s:  IF ( LibraryNameTitle ) 
+#. %3$s:  LibraryNameTitle | html 
+#. %4$s:  ELSE 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-course-details.tt:11
 #, c-format
 msgid "Course reserves for %s &rsaquo; %s%s%sKoha online%s catalog"
@@ -4692,10 +4692,10 @@ msgstr "Semesterapparat für &nbsp;"
 msgid "Courses"
 msgstr "Kurse"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-course-reserves.tt:9
 #, c-format
 msgid "Courses &rsaquo; %s%s%sKoha online%s catalog"
@@ -4785,7 +4785,7 @@ msgstr "Gutschrift wurde ungültig gemacht"
 msgid "Credits"
 msgstr "Guthaben"
 
-#. %1$s:  amountoutstanding * -1 | $Price
+#. %1$s:  amountoutstanding * -1 | $Price 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:284
 #, c-format
 msgid "Credits (%s)"
@@ -4833,11 +4833,11 @@ msgstr "Aktuell verfügbar"
 msgid "Currently in local use"
 msgstr "Zur Zeit in Benutzung vor Ort"
 
-#. %1$s:  checkout_patron.firstname | html
-#. %2$s:  checkout_patron.surname | html
-#. %3$s:  IF ( checkout_patron.cardnumber )
-#. %4$s:  checkout_patron.cardnumber | html
-#. %5$s:  END
+#. %1$s:  checkout_patron.firstname | html 
+#. %2$s:  checkout_patron.surname | html 
+#. %3$s:  IF ( checkout_patron.cardnumber ) 
+#. %4$s:  checkout_patron.cardnumber | html 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/item-status.inc:54
 #, c-format
 msgid "Currently in local use by %s %s %s(%s)%s"
@@ -5079,7 +5079,7 @@ msgid "Details"
 msgstr "Details"
 
 #. For the first occurrence,
-#. %1$s:  bibliotitle | html
+#. %1$s:  bibliotitle | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-alert-subscribe.tt:17
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-full-serial-issues.tt:68
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-serial-issues.tt:28
@@ -5093,24 +5093,24 @@ msgid "Details for: "
 msgstr "Details zu: "
 
 #. For the first occurrence,
-#. %1$s:  biblio.title | html
+#. %1$s:  biblio.title | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recall.tt:22
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-request-article.tt:26
 #, c-format
 msgid "Details for: %s"
 msgstr "Details für: %s"
 
-#. %1$s:  INCLUDE 'biblio-title-head.inc'
-#. %2$s:  IF ( LibraryNameTitle )
-#. %3$s:  LibraryNameTitle | html
-#. %4$s:  ELSE
-#. %5$s:  END
+#. %1$s:  INCLUDE 'biblio-title-head.inc' 
+#. %2$s:  IF ( LibraryNameTitle ) 
+#. %3$s:  LibraryNameTitle | html 
+#. %4$s:  ELSE 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:31
 #, c-format
 msgid "Details for: %s &rsaquo; %s%s%sKoha online%s catalog"
 msgstr "Details zu: %s &rsaquo; %s%s%sKoha %s - Katalog"
 
-#. %1$s:  request.backend | html
+#. %1$s:  request.backend | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-illrequests.tt:232
 #, c-format
 msgid "Details from %s"
@@ -5127,7 +5127,7 @@ msgid "Dewey"
 msgstr "Dewey"
 
 #. For the first occurrence,
-#. %1$s:  BIBLIO_RESULT.dewey | $raw
+#. %1$s:  BIBLIO_RESULT.dewey | $raw 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasket.tt:119
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:122
 #, c-format
@@ -5166,10 +5166,10 @@ msgstr "Verzeichnisse"
 msgid "Discharge"
 msgstr "Entlastung"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-discharge.tt:6
 #, c-format
 msgid "Discharge &rsaquo; %s%s%sKoha online%s catalog"
@@ -5248,10 +5248,10 @@ msgstr "Für angemeldete Benutzer zum Download verfügbar."
 msgid "Download cart"
 msgstr "Korb herunterladen"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-downloadcart.tt:2
 #, c-format
 msgid "Download cart &rsaquo; %s%s%sKoha online%s catalog"
@@ -5263,11 +5263,11 @@ msgstr "Korb herunterladen &rsaquo; %s%s%sKoha %s - Katalog"
 msgid "Download list "
 msgstr "Liste herunterladen "
 
-#. %1$s:  shelf.shelfname | html
-#. %2$s:  IF ( LibraryNameTitle )
-#. %3$s:  LibraryNameTitle | html
-#. %4$s:  ELSE
-#. %5$s:  END
+#. %1$s:  shelf.shelfname | html 
+#. %2$s:  IF ( LibraryNameTitle ) 
+#. %3$s:  LibraryNameTitle | html 
+#. %4$s:  ELSE 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-downloadshelf.tt:7
 #, c-format
 msgid "Download list %s &rsaquo; %s%s%sKoha online%s catalog"
@@ -5293,7 +5293,7 @@ msgid "Due"
 msgstr "Fällig"
 
 #. For the first occurrence,
-#. %1$s:  item.checkout.date_due | $KohaDates as_due_date => 1
+#. %1$s:  item.checkout.date_due | $KohaDates as_due_date => 1 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recall.tt:131
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:445
 #, c-format
@@ -5311,7 +5311,7 @@ msgstr "Fälligkeitsdatum"
 msgid "Due date is not valid."
 msgstr "Fälligkeitsdatum ist ungültig."
 
-#. %1$s:  RECALL.checkout.date_due | $KohaDates as_due_date => 1
+#. %1$s:  RECALL.checkout.date_due | $KohaDates as_due_date => 1 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recalls.tt:104
 #, c-format
 msgid "Due to be returned by %s"
@@ -5333,13 +5333,13 @@ msgstr ""
 msgid "ERROR: No record ID specified. "
 msgstr "FEHLER: Keine Titelsatznummer angegeben. "
 
-#. %1$s:  bad_biblionumber | html
+#. %1$s:  bad_biblionumber | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:87
 #, c-format
 msgid "ERROR: No record found for record ID %s. "
 msgstr "FEHLER: Es wurde kein Titelsatz mit Titelsatznummer %s gefunden. "
 
-#. %1$s:  ERROR.failed_delete | html
+#. %1$s:  ERROR.failed_delete | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-tags.tt:73
 #, c-format
 msgid "ERROR: You cannot delete the tag %s."
@@ -5350,7 +5350,7 @@ msgstr "FEHLER: Sie können das Tag %s nicht löschen."
 msgid "ERROR: You must log in to complete that action."
 msgstr "FEHLER: Sie müssen angemeldet sein, um diese Aktion auszuführen."
 
-#. %1$s:  ERROR.badparam | html
+#. %1$s:  ERROR.badparam | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-tags.tt:69
 #, c-format
 msgid "ERROR: illegal parameter %s"
@@ -5395,19 +5395,19 @@ msgid "Editing "
 msgstr "Bearbeiten "
 
 #. For the first occurrence,
-#. %1$s:  title | html
-#. %2$s:  author | html
+#. %1$s:  title | html 
+#. %2$s:  author | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-issue-note.tt:25
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-issue-note.tt:39
 #, c-format
 msgid "Editing issue note for %s %s"
 msgstr "Ausleihnotiz für %s %s"
 
-#. %1$s:  title | html
-#. %2$s:  IF ( LibraryNameTitle )
-#. %3$s:  LibraryNameTitle | html
-#. %4$s:  ELSE
-#. %5$s:  END
+#. %1$s:  title | html 
+#. %2$s:  IF ( LibraryNameTitle ) 
+#. %3$s:  LibraryNameTitle | html 
+#. %4$s:  ELSE 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-issue-note.tt:8
 #, c-format
 msgid "Editing issue note for %s &rsaquo; %s%s%sKoha online%s catalog"
@@ -5508,8 +5508,8 @@ msgstr "Neuen Anschaffungsvorschlag machen"
 msgid "Enter search terms"
 msgstr "Suchbegriffe eingeben"
 
-#. %1$s:  IF ( SelfCheckoutByLogin )
-#. %2$s:  END
+#. %1$s:  IF ( SelfCheckoutByLogin ) 
+#. %2$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/help.tt:47
 #, c-format
 msgid ""
@@ -5520,18 +5520,18 @@ msgstr ""
 "über die Schaltfläche oder durch die Eingabetaste."
 
 #. For the first occurrence,
-#. %1$s:  authtypetext | html
+#. %1$s:  authtypetext | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-auth-MARCdetail.tt:30
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-auth-MARCdetail.tt:63
 #, c-format
 msgid "Entry %s"
 msgstr "Eintrag %s"
 
-#. %1$s:  authtypetext | html
-#. %2$s:  IF ( LibraryNameTitle )
-#. %3$s:  LibraryNameTitle | html
-#. %4$s:  ELSE
-#. %5$s:  END
+#. %1$s:  authtypetext | html 
+#. %2$s:  IF ( LibraryNameTitle ) 
+#. %3$s:  LibraryNameTitle | html 
+#. %4$s:  ELSE 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-auth-MARCdetail.tt:9
 #, c-format
 msgid "Entry %s &rsaquo; %s%s%sKoha online%s catalog"
@@ -5549,7 +5549,7 @@ msgid "Error"
 msgstr "Fehler"
 
 #. For the first occurrence,
-#. %1$s:  errno | html
+#. %1$s:  errno | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/errors/errorpage.tt:19
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/errors/errorpage.tt:38
 #, c-format
@@ -5650,7 +5650,7 @@ msgstr "Fehler:"
 msgid "Error: "
 msgstr "Fehler: "
 
-#. %1$s:  fail | html
+#. %1$s:  fail | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:112
 #, c-format
 msgid "Error: %s"
@@ -5752,7 +5752,7 @@ msgstr "Ablaufdatum:"
 msgid "Expiration:"
 msgstr "Ablauf:"
 
-#. %1$s:  RECALL.expiration_date | $KohaDates
+#. %1$s:  RECALL.expiration_date | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recalls.tt:92
 #, c-format
 msgid "Expired on %s"
@@ -5801,8 +5801,8 @@ msgstr "Fax:"
 msgid "Fax: "
 msgstr "Fax: "
 
-#. %1$s:  ItemTypes.GetDescription( ISSUE.renewalitemtype) | html
-#. %2$s:  ISSUE.renewalfee | $Price
+#. %1$s:  ItemTypes.GetDescription( ISSUE.renewalitemtype) | html 
+#. %2$s:  ISSUE.renewalfee | $Price 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:479
 #, c-format
 msgid "Fee for item type '%s': %s"
@@ -5954,10 +5954,10 @@ msgstr "Passwort vergessen?"
 msgid "Forgotten password recovery"
 msgstr "Passwort vergessen"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-password-recovery.tt:7
 #, c-format
 msgid "Forgotten password recovery &rsaquo; %s%s%sKoha online%s catalog"
@@ -6016,17 +6016,17 @@ msgstr "Vollständige Historie"
 msgid "Full subscription history"
 msgstr "Vollständige Historie"
 
-#. %1$s:  bibliotitle | html
+#. %1$s:  bibliotitle | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-full-serial-issues.tt:104
 #, c-format
 msgid "Full subscription history for %s"
 msgstr "Vollständige Historie für %s"
 
-#. %1$s:  bibliotitle | html
-#. %2$s:  IF ( LibraryNameTitle )
-#. %3$s:  LibraryNameTitle | html
-#. %4$s:  ELSE
-#. %5$s:  END
+#. %1$s:  bibliotitle | html 
+#. %2$s:  IF ( LibraryNameTitle ) 
+#. %3$s:  LibraryNameTitle | html 
+#. %4$s:  ELSE 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-full-serial-issues.tt:9
 #, c-format
 msgid "Full subscription history for %s &rsaquo; %s%s%sKoha online%s catalog"
@@ -6245,26 +6245,26 @@ msgstr "Gruppen"
 msgid "Groups of libraries"
 msgstr "Bibliotheksgruppen"
 
-#. %1$s:  FOREACH gr IN patron.guarantor_relationships
-#. %2$s:  SET g = gr.guarantor
-#. %3$s:  g.firstname | html
-#. %4$s:  g.middle_name | html
-#. %5$s:  g.surname | html
-#. %6$s: - IF ! loop.last
-#. %7$s:  END
-#. %8$s:  END
+#. %1$s:  FOREACH gr IN patron.guarantor_relationships 
+#. %2$s:  SET g = gr.guarantor 
+#. %3$s:  g.firstname | html 
+#. %4$s:  g.middle_name | html 
+#. %5$s:  g.surname | html 
+#. %6$s: - IF ! loop.last 
+#. %7$s:  END 
+#. %8$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-memberentry.tt:185
 #, c-format
 msgid "Guaranteed by %s %s %s %s %s %s, %s %s "
 msgstr "Verbürgt von %s %s %s %s %s %s, %s %s "
 
-#. %1$s:  FOREACH gr IN borrower.guarantor_relationships
-#. %2$s:  SET g = gr.guarantor
-#. %3$s:  g.firstname | html
-#. %4$s:  g.surname | html
-#. %5$s: - IF ! loop.last
-#. %6$s:  END
-#. %7$s:  END
+#. %1$s:  FOREACH gr IN borrower.guarantor_relationships 
+#. %2$s:  SET g = gr.guarantor 
+#. %3$s:  g.firstname | html 
+#. %4$s:  g.surname | html 
+#. %5$s: - IF ! loop.last 
+#. %6$s:  END 
+#. %7$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-privacy.tt:138
 #, c-format
 msgid "Guaranteed by %s %s %s %s %s, %s %s "
@@ -6305,7 +6305,7 @@ msgstr "Ansetzungen aufsteigend"
 msgid "Heading descendant"
 msgstr "Ansetzungen absteigend"
 
-#. %1$s:  INCLUDE 'patron-title.inc' patron = logged_in_user
+#. %1$s:  INCLUDE 'patron-title.inc' patron = logged_in_user 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:63
 #, c-format
 msgid "Hello, %s "
@@ -6444,7 +6444,7 @@ msgstr "Vormerkungen"
 msgid "Holds "
 msgstr "Vormerkungen "
 
-#. %1$s:  RESERVES.count | html
+#. %1$s:  RESERVES.count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:304
 #, c-format
 msgid "Holds (%s)"
@@ -6613,10 +6613,10 @@ msgstr "ISBD"
 msgid "ISBD view"
 msgstr "ISBD"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-ISBDdetail.tt:4
 #, c-format
 msgid "ISBD view &rsaquo; %s%s%sKoha online%s catalog"
@@ -6632,23 +6632,23 @@ msgstr "ISBD-Sicht &rsaquo; %s%s%sKoha %s - Katalog"
 msgid "ISBN"
 msgstr "ISBN"
 
-#. %1$s:  BIBLIO_RESULT.ISBN | $raw
+#. %1$s:  BIBLIO_RESULT.ISBN | $raw 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasket.tt:62
 #, c-format
 msgid "ISBN: %s "
 msgstr "ISBN: %s "
 
-#. %1$s:  FOREACH isbn IN BIBLIO_RESULT.ISBN
-#. %2$s:  isbn | $raw
-#. %3$s:  UNLESS ( loop.last )
-#. %4$s:  END
-#. %5$s:  END
+#. %1$s:  FOREACH isbn IN BIBLIO_RESULT.ISBN 
+#. %2$s:  isbn | $raw 
+#. %3$s:  UNLESS ( loop.last ) 
+#. %4$s:  END 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:62
 #, c-format
 msgid "ISBN: %s %s %s; %s %s "
 msgstr "ISBN: %s %s %s; %s %s "
 
-#. %1$s:  SEARCH_RESULT.isbn | html
+#. %1$s:  SEARCH_RESULT.isbn | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-opensearch.tt:44
 #, c-format
 msgid "ISBN:%s"
@@ -6714,7 +6714,7 @@ msgid "If you did not receive this email, you can request a new one: "
 msgstr ""
 "Wenn Sie diese E-Mail nicht erhalten haben, können Sie eine Neue anfordern: "
 
-#. %1$s:  SelfCheckTimeout | html
+#. %1$s:  SelfCheckTimeout | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/help.tt:58
 #, c-format
 msgid ""
@@ -6876,18 +6876,18 @@ msgstr "Cover von Syndetics"
 msgid "Images"
 msgstr "Bilder"
 
-#. %1$s:  INCLUDE 'biblio-title.inc' link=> 1
-#. %2$s:  biblio.author | html
+#. %1$s:  INCLUDE 'biblio-title.inc' link=> 1 
+#. %2$s:  biblio.author | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-imageviewer.tt:71
 #, c-format
 msgid "Images for %s %s "
 msgstr "Bilder für %s %s "
 
-#. %1$s:  INCLUDE 'biblio-title-head.inc'
-#. %2$s:  IF ( LibraryNameTitle )
-#. %3$s:  LibraryNameTitle | html
-#. %4$s:  ELSE
-#. %5$s:  END
+#. %1$s:  INCLUDE 'biblio-title-head.inc' 
+#. %2$s:  IF ( LibraryNameTitle ) 
+#. %3$s:  LibraryNameTitle | html 
+#. %4$s:  ELSE 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-imageviewer.tt:6
 #, c-format
 msgid "Images for: %s &rsaquo; %s%s%sKoha online%s catalog"
@@ -6932,8 +6932,8 @@ msgid "In bundle: "
 msgstr "Im Paket: "
 
 #. For the first occurrence,
-#. %1$s:  OPACBaseURL | $raw
-#. %2$s:  BIBLIO_RESULT.biblionumber | html
+#. %1$s:  OPACBaseURL | $raw 
+#. %2$s:  BIBLIO_RESULT.biblionumber | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasket.tt:156
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:158
 #, c-format
@@ -6955,9 +6955,9 @@ msgid "In transit"
 msgstr "Unterwegs"
 
 #. For the first occurrence,
-#. %1$s:  Branches.GetName( item.get_transfer.frombranch ) | html
-#. %2$s:  Branches.GetName( item.get_transfer.tobranch ) | html
-#. %3$s:  item.get_transfer.datesent | $KohaDates
+#. %1$s:  Branches.GetName( item.get_transfer.frombranch ) | html 
+#. %2$s:  Branches.GetName( item.get_transfer.tobranch ) | html 
+#. %3$s:  item.get_transfer.datesent | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recall.tt:133
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:447
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/item-status.inc:74
@@ -6966,7 +6966,7 @@ msgid "In transit from %s to %s since %s"
 msgstr "Unterwegs von %s nach %s seit %s"
 
 #. For the first occurrence,
-#. %1$s:  RECALL.library.branchname | html
+#. %1$s:  RECALL.library.branchname | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recalls.tt:86
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:1125
 #, c-format
@@ -6979,19 +6979,19 @@ msgstr "Unterwegs nach %s"
 msgid "In your cart"
 msgstr "In Ihrem Korb"
 
-#. %1$s:  IF BIBLIO_RESULT.HOSTITEMENTRIES
+#. %1$s:  IF BIBLIO_RESULT.HOSTITEMENTRIES 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-basket.tt:314
 #, c-format
 msgid "In: %s "
 msgstr "In: %s "
 
 #. For the first occurrence,
-#. %1$s:  IF BIBLIO_RESULT.HOSTITEMENTRIES.biblionumber
-#. %2$s:  INCLUDE 'biblio-title.inc' biblio=BIBLIO_RESULT.HOSTITEMENTRIES
-#. %3$s:  BIBLIO_RESULT.RELATEDPARTS | $raw
-#. %4$s:  ELSE
-#. %5$s:  BIBLIO_RESULT.HOSTITEMENTRIES | html
-#. %6$s:  END
+#. %1$s:  IF BIBLIO_RESULT.HOSTITEMENTRIES.biblionumber 
+#. %2$s:  INCLUDE 'biblio-title.inc' biblio=BIBLIO_RESULT.HOSTITEMENTRIES 
+#. %3$s:  BIBLIO_RESULT.RELATEDPARTS | $raw 
+#. %4$s:  ELSE 
+#. %5$s:  BIBLIO_RESULT.HOSTITEMENTRIES | html 
+#. %6$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasket.tt:137
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:140
 #, c-format
@@ -7089,10 +7089,10 @@ msgstr "Heft:"
 msgid "Issues for a subscription"
 msgstr "Hefte eines Abonnements"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-serial-issues.tt:7
 #, c-format
 msgid "Issues for a subscription &rsaquo; %s%s%sKoha online%s catalog"
@@ -7184,7 +7184,7 @@ msgstr "Vormerkungen"
 msgid "Item in processing"
 msgstr "Exemplar in Bearbeitung"
 
-#. %1$s:  branch_name| $raw
+#. %1$s:  branch_name| $raw 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/holds-table.inc:151
 #, c-format
 msgid "Item in transit from %s since"
@@ -7206,7 +7206,7 @@ msgstr "Exemplar vermisst"
 msgid "Item must be checked out at a circulation desk."
 msgstr "Das Exemplar muss an der Ausleihtheke ausgeliehen werden."
 
-#. %1$s:  ISSUE.renewsleft | html
+#. %1$s:  ISSUE.renewsleft | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:498
 #, c-format
 msgid "Item must be renewed at the library. %s renewals remaining"
@@ -7226,13 +7226,13 @@ msgstr ""
 msgid "Item not renewed"
 msgstr "Exemplar nicht verlängert"
 
-#. %1$s:  HOLD.item.barcode | html
+#. %1$s:  HOLD.item.barcode | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/holds-table.inc:63
 #, c-format
 msgid "Item on hold: %s"
 msgstr "Vorgemerktes Exemplar: %s"
 
-#. %1$s:  RECALL.item.barcode | html
+#. %1$s:  RECALL.item.barcode | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:1093
 #, c-format
 msgid "Item recalled: %s"
@@ -7374,7 +7374,7 @@ msgid "LCCN:"
 msgstr "LCCN:"
 
 #. For the first occurrence,
-#. %1$s:  BIBLIO_RESULT.lccn | $raw
+#. %1$s:  BIBLIO_RESULT.lccn | $raw 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasket.tt:131
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:134
 #, c-format
@@ -7695,15 +7695,15 @@ msgstr "Standort und Verfügbarkeit:"
 msgid "Location(s) (Status)"
 msgstr "Standort(e) (Status)"
 
-#. %1$s:  AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => subscription_LOO.location, opac => 1 ) | html
+#. %1$s:  AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => subscription_LOO.location, opac => 1 ) | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-serial-issues.tt:135
 #, c-format
 msgid "Location: %s"
 msgstr "Standort: %s"
 
-#. %1$s:  AuthorisedValues.GetByCode( 'LOC', subscription.location, 1 ) | html
-#. %2$s:  END
-#. %3$s:  IF ( subscription.callnumber )
+#. %1$s:  AuthorisedValues.GetByCode( 'LOC', subscription.location, 1 ) | html 
+#. %2$s:  END 
+#. %3$s:  IF ( subscription.callnumber ) 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:755
 #, c-format
 msgid "Location: %s %s %s "
@@ -7921,11 +7921,11 @@ msgstr "MARC-Ansicht"
 msgid "MARC details"
 msgstr "MARC-Details"
 
-#. %1$s:  biblio.biblionumber | html
-#. %2$s:  IF ( LibraryNameTitle )
-#. %3$s:  LibraryNameTitle | html
-#. %4$s:  ELSE
-#. %5$s:  END
+#. %1$s:  biblio.biblionumber | html 
+#. %2$s:  IF ( LibraryNameTitle ) 
+#. %3$s:  LibraryNameTitle | html 
+#. %4$s:  ELSE 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-MARCdetail.tt:4
 #, c-format
 msgid "MARC details for record no. %s &rsaquo; %s%s%sKoha online%s catalog"
@@ -7941,7 +7941,7 @@ msgstr "MARC-Details zu Titelsatz %s &rsaquo; %s%s%sKoha %s - Katalog"
 msgid "MARC view"
 msgstr "MARC"
 
-#. %1$s:  bibliotitle | html
+#. %1$s:  bibliotitle | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-MARCdetail.tt:17
 #, c-format
 msgid "MARC view: %s"
@@ -8110,7 +8110,7 @@ msgstr "Fehlt (nicht erhalten)"
 msgid "Missing (sold out)"
 msgstr "Fehlt (vergriffen)"
 
-#. %1$s:  subscription.missinglist | html | html_line_break
+#. %1$s:  subscription.missinglist | html | html_line_break 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:778
 #, c-format
 msgid "Missing issues: %s "
@@ -8174,10 +8174,10 @@ msgstr "Beliebteste Titel"
 msgid "Most popular titles"
 msgstr "Beliebteste Titel"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-topissues.tt:9
 #, c-format
 msgid "Most popular titles &rsaquo; %s%s%sKoha online%s catalog"
@@ -8255,8 +8255,8 @@ msgstr "Niemals"
 msgid "Never expires "
 msgstr "Läuft nie ab "
 
-#. %1$s:  END
-#. %2$s:  ELSE
+#. %1$s:  END 
+#. %2$s:  ELSE 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/holds-table.inc:77
 #, c-format
 msgid "Never expires %s %s "
@@ -8284,7 +8284,7 @@ msgstr "Neu"
 msgid "New card"
 msgstr "Neuer Ausweis"
 
-#. %1$s:  INCLUDE 'biblio-title-head.inc' biblio=review
+#. %1$s:  INCLUDE 'biblio-title-head.inc' biblio=review 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-showreviews-rss.tt:11
 #, c-format
 msgid "New comment on %s"
@@ -8359,10 +8359,10 @@ msgstr "Neuer Tag:"
 msgid "News"
 msgstr "Nachrichten"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-news-rss.tt:6
 #, c-format
 msgid "News from %s%s%sthe library%s"
@@ -8616,7 +8616,7 @@ msgstr "Es wurden keine Rückrufe gemacht."
 msgid "No record was removed."
 msgstr "Kein Datensatz entfernt."
 
-#. %1$s:  ISSUE.soonestrenewdate | $KohaDates  as_due_date => 1
+#. %1$s:  ISSUE.soonestrenewdate | $KohaDates  as_due_date => 1 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:520
 #, c-format
 msgid "No renewal before %s"
@@ -8767,7 +8767,7 @@ msgstr "Nicht erlaubt "
 msgid "Not available"
 msgstr "Nicht verfügbar"
 
-#. %1$s:  PROCESS error_message messages=error.messages
+#. %1$s:  PROCESS error_message messages=error.messages 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sci/sci-main.tt:97
 #, c-format
 msgid "Not checked in %s"
@@ -8785,7 +8785,7 @@ msgid "Not for loan"
 msgstr "Nicht ausleihbar"
 
 #. For the first occurrence,
-#. %1$s:  IF restricted_lib
+#. %1$s:  IF restricted_lib 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/item-status.inc:101
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/item-status.inc:105
 #, c-format
@@ -8793,7 +8793,7 @@ msgid "Not for loan %s"
 msgstr "Nicht ausleihbar %s"
 
 #. For the first occurrence,
-#. %1$s:  item.notforloan | html
+#. %1$s:  item.notforloan | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recall.tt:139
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:455
 #, c-format
@@ -8938,7 +8938,7 @@ msgid "Notes"
 msgstr "Hinweise"
 
 #. For the first occurrence,
-#. %1$s:  BIBLIO_RESULT.notes | $raw
+#. %1$s:  BIBLIO_RESULT.notes | $raw 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasket.tt:101
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:104
 #, c-format
@@ -9007,7 +9007,7 @@ msgid "Number of holds: "
 msgstr "Anzahl der Vormerkungen: "
 
 #. For the first occurrence,
-#. %1$s:  count | html
+#. %1$s:  count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-auth-MARCdetail.tt:64
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-auth-detail.tt:75
 #, c-format
@@ -9042,14 +9042,14 @@ msgstr "ORCID: "
 msgid "On hold"
 msgstr "Vorgemerkt"
 
-#. %1$s:  Branches.GetName( itemLoo.ExpectedAtLibrary ) | html
+#. %1$s:  Branches.GetName( itemLoo.ExpectedAtLibrary ) | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:465
 #, c-format
 msgid "On hold for patron expected at %s"
 msgstr "Vorgemerkt und erwartet am %s"
 
-#. %1$s:  Branches.GetName( itemLoo.ExpectedAtLibrary ) | html
-#. %2$s:  itemLoo.reservedate | $KohaDates
+#. %1$s:  Branches.GetName( itemLoo.ExpectedAtLibrary ) | html 
+#. %2$s:  itemLoo.reservedate | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:463
 #, c-format
 msgid "On hold for patron expected at %s since %s"
@@ -9092,7 +9092,7 @@ msgstr "Onleihe-Cover von %s"
 msgid "Onleihe-Cover"
 msgstr "Onleihe-Cover"
 
-#. %1$s:  divibib_issues_count
+#. %1$s:  divibib_issues_count 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:273
 #, c-format
 msgid "Onleihen (%s)"
@@ -9113,7 +9113,7 @@ msgstr "Verfügbar zum Online-Download."
 msgid "Online resources:"
 msgstr "Online-Ressourcen:"
 
-#. %1$s:  ComponentParts.size | html
+#. %1$s:  ComponentParts.size | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:669
 #, c-format
 msgid "Only %s results are shown: "
@@ -9191,7 +9191,7 @@ msgstr "Andere Auflagen dieses Werkes"
 msgid "Other forms:"
 msgstr "Weitere Formen:"
 
-#. %1$s:  ' ( ' _ (otheritemloop.size || 0) _ ' )' | html
+#. %1$s:  ' ( ' _ (otheritemloop.size || 0) _ ' )' | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:427
 #, c-format
 msgid "Other holdings %s"
@@ -9234,30 +9234,30 @@ msgid "OverDrive account"
 msgstr "OverDrive-Konto"
 
 #. For the first occurrence,
-#. %1$s:  q | html
+#. %1$s:  q | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-overdrive-search.tt:24
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-overdrive-search.tt:38
 #, c-format
 msgid "OverDrive search for '%s'"
 msgstr "OverDrive-Suche für '%s'"
 
-#. %1$s:  q | html
-#. %2$s:  IF ( LibraryNameTitle )
-#. %3$s:  LibraryNameTitle | html
-#. %4$s:  ELSE
-#. %5$s:  END
+#. %1$s:  q | html 
+#. %2$s:  IF ( LibraryNameTitle ) 
+#. %3$s:  LibraryNameTitle | html 
+#. %4$s:  ELSE 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-overdrive-search.tt:8
 #, c-format
 msgid "OverDrive search for '%s' &rsaquo; %s%s%sKoha online%s catalog"
 msgstr "OverDrive-Suche nach '%s' &rsaquo; %s%s%sKoha %s - Katalog"
 
-#. %1$s:  priority | html
+#. %1$s:  priority | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:589
 #, c-format
 msgid "Overall queue priority: %s"
 msgstr "Rang in Vormerkungen: %s"
 
-#. %1$s:  overdues_count | html
+#. %1$s:  overdues_count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:268
 #, c-format
 msgid "Overdue (%s)"
@@ -9343,7 +9343,7 @@ msgstr "Seiten:"
 msgid "Parameters"
 msgstr "Parameter"
 
-#. %1$s:  VolumeData.size
+#. %1$s:  VolumeData.size 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-detail-volumes.inc:7
 #, c-format
 msgid "Parts of the work (%s)"
@@ -9362,7 +9362,7 @@ msgid "Password contains leading and/or trailing spaces"
 msgstr "Das Passwort enthält am Anfang und/oder Ende Leerzeichen."
 
 #. For the first occurrence,
-#. %1$s:  patron.category.effective_min_password_length | html
+#. %1$s:  patron.category.effective_min_password_length | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-memberentry.tt:107
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-passwd.tt:49
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-password-recovery.tt:104
@@ -9458,7 +9458,7 @@ msgstr "Patentdokument"
 msgid "Patron barcode"
 msgstr "Anzeige des Bibliotheksausweises"
 
-#. %1$s:  review.datereviewed | $KohaDates
+#. %1$s:  review.datereviewed | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:894
 #, c-format
 msgid "Patron comment on %s"
@@ -9497,7 +9497,7 @@ msgstr "Zahlungsmethode"
 msgid "Pending"
 msgstr "Offen"
 
-#. %1$s:  ItemTypes.GetDescription( HOLD.itemtype ) | html
+#. %1$s:  ItemTypes.GetDescription( HOLD.itemtype ) | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/holds-table.inc:159
 #, c-format
 msgid "Pending for next available item of item type '%s'"
@@ -9540,7 +9540,7 @@ msgstr "Telefon: "
 msgid "Photocopy"
 msgstr "Fotokopie"
 
-#. %1$s:  RECALL.expiration_date | $KohaDates
+#. %1$s:  RECALL.expiration_date | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recalls.tt:106
 #, c-format
 msgid "Pick up by %s"
@@ -9608,7 +9608,7 @@ msgstr "Rückruf auf "
 msgid "Place article request"
 msgstr "Artikel bestellen"
 
-#. %1$s:  biblio.title | html
+#. %1$s:  biblio.title | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-request-article.tt:46
 #, c-format
 msgid "Place article request for %s"
@@ -9658,10 +9658,10 @@ msgstr "Orte"
 msgid "Placing a hold"
 msgstr "Vormerken"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:8
 #, c-format
 msgid "Placing a hold &rsaquo; %s%s%sKoha online%s catalog"
@@ -9727,10 +9727,10 @@ msgstr "Ausleihe bitte bestätigen:"
 msgid "Please confirm your registration"
 msgstr "Bitte bestätigen Sie die Kontoeröffnung"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-registration-email-sent.tt:6
 #, c-format
 msgid "Please confirm your registration &rsaquo; %s%s%sKoha online%s catalog"
@@ -10028,7 +10028,7 @@ msgstr "Beliebtheit (absteigend)"
 msgid "Post your comments on this title. "
 msgstr "Verfassen oder bearbeiten Sie Kommentare zu diesem Titel. "
 
-#. %1$s:  IF template.name.match('opac-main.tt')
+#. %1$s:  IF template.name.match('opac-main.tt') 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-bottom.inc:36
 #, c-format
 msgid "Powered by %s "
@@ -10149,11 +10149,11 @@ msgstr "Liste drucken"
 msgid "Print receipt and end session"
 msgstr "Quittung drucken und Sitzung beenden"
 
-#. %1$s:  borrowernumber | html
-#. %2$s:  IF ( LibraryNameTitle )
-#. %3$s:  LibraryNameTitle | html
-#. %4$s:  ELSE
-#. %5$s:  END
+#. %1$s:  borrowernumber | html 
+#. %2$s:  IF ( LibraryNameTitle ) 
+#. %3$s:  LibraryNameTitle | html 
+#. %4$s:  ELSE 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/printslip.tt:5
 #, c-format
 msgid "Print receipt for %s &rsaquo; Self checkout &rsaquo; %s%s%sKoha %s"
@@ -10309,32 +10309,32 @@ msgstr "Erscheinungsjahr: ältestes bis neuestes"
 msgid "Publication:"
 msgstr "Veröffentlichung:"
 
-#. %1$s:  BIBLIO_RESULT.publishercode | $raw
-#. %2$s:  IF ( BIBLIO_RESULT.publicationyear )
-#. %3$s:  BIBLIO_RESULT.publicationyear | $raw
-#. %4$s:  END
+#. %1$s:  BIBLIO_RESULT.publishercode | $raw 
+#. %2$s:  IF ( BIBLIO_RESULT.publicationyear ) 
+#. %3$s:  BIBLIO_RESULT.publicationyear | $raw 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasket.tt:69
 #, c-format
 msgid "Published by: %s %s in %s %s"
 msgstr "Veröffentlicht von: %s %s in %s %s"
 
-#. %1$s:  BIBLIO_RESULT.publishercode | $raw
-#. %2$s:  IF ( BIBLIO_RESULT.publicationyear )
-#. %3$s:  BIBLIO_RESULT.publicationyear | $raw
-#. %4$s:  END
-#. %5$s:  IF ( BIBLIO_RESULT.pages )
-#. %6$s:  BIBLIO_RESULT.pages | $raw
-#. %7$s:  END
-#. %8$s:  IF BIBLIO_RESULT.item('size')
-#. %9$s:  BIBLIO_RESULT.item('size') | html
-#. %10$s:  END
+#. %1$s:  BIBLIO_RESULT.publishercode | $raw 
+#. %2$s:  IF ( BIBLIO_RESULT.publicationyear ) 
+#. %3$s:  BIBLIO_RESULT.publicationyear | $raw 
+#. %4$s:  END 
+#. %5$s:  IF ( BIBLIO_RESULT.pages ) 
+#. %6$s:  BIBLIO_RESULT.pages | $raw 
+#. %7$s:  END 
+#. %8$s:  IF BIBLIO_RESULT.item('size') 
+#. %9$s:  BIBLIO_RESULT.item('size') | html 
+#. %10$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:71
 #, c-format
 msgid "Published by: %s %s in %s %s %s , %s %s %s , %s %s "
 msgstr "Veröffentlicht von: %s %s in %s %s %s , %s %s %s , %s %s "
 
-#. %1$s:  koha_new.published_on | $KohaDates
-#. %2$s:  IF ( show_author && koha_new.author )
+#. %1$s:  koha_new.published_on | $KohaDates 
+#. %2$s:  IF ( show_author && koha_new.author ) 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:144
 #, c-format
 msgid "Published on %s %s by "
@@ -10416,13 +10416,13 @@ msgstr "RLV-gebend"
 msgid "RLV-passive"
 msgstr "RLV-nehmend"
 
-#. %1$s:  Branches.GetName( branchcode ) | html
+#. %1$s:  Branches.GetName( branchcode ) | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:170
 #, c-format
 msgid "RSS feed for %s and system-wide library news"
 msgstr "RSS-Feed für %s und systemweite Bibliotheksnachrichten"
 
-#. %1$s:  Branches.GetName( branchcode ) | html
+#. %1$s:  Branches.GetName( branchcode ) | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:164
 #, c-format
 msgid "RSS feed for %s library news"
@@ -10433,7 +10433,7 @@ msgstr "RSS-Feed für Bibliotheksnachrichten von %s"
 msgid "RSS feed for library news"
 msgstr "RSS-Feed für Bibliotheksnachrichten"
 
-#. %1$s:  shelf.shelfname | html
+#. %1$s:  shelf.shelfname | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves-rss.tt:8
 #, c-format
 msgid "RSS feed for public list %s"
@@ -10503,10 +10503,10 @@ msgstr ""
 msgid "Recall"
 msgstr "Rückruf"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recall.tt:8
 #, c-format
 msgid "Recall &rsaquo; %s%s%sKoha online%s catalog"
@@ -10538,7 +10538,7 @@ msgstr "Rückruf nicht mehr benötigt ab:"
 msgid "RecallItem "
 msgstr "RecallItem "
 
-#. %1$s:  Branches.GetName( item.recall.pickup_library_id ) | html
+#. %1$s:  Branches.GetName( item.recall.pickup_library_id ) | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recall.tt:147
 #, c-format
 msgid "Recalled by patron expected at %s"
@@ -10549,7 +10549,7 @@ msgstr "Zurückgerufen und erwartet am %s"
 msgid "Recalls "
 msgstr "Rückrufe  "
 
-#. %1$s:  RECALLS.count | html
+#. %1$s:  RECALLS.count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:309
 #, c-format
 msgid "Recalls (%s)"
@@ -10584,10 +10584,10 @@ msgstr "Neue Kommentare"
 msgid "Recent comments "
 msgstr "Neue Kommentare "
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-showreviews.tt:7
 #, c-format
 msgid "Recent comments &rsaquo; %s%s%sKoha online%s catalog"
@@ -10600,10 +10600,10 @@ msgstr "Neue Kommentare &rsaquo; %s%s%sKoha %s - Katalog"
 msgid "Recommendations"
 msgstr "Empfehlungen"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user-recommendations.tt:4
 #, c-format
 msgid "Recommendations &rsaquo; %s%s%sKoha online%s catalog"
@@ -10614,10 +10614,10 @@ msgstr "Empfehlungen &rsaquo; %s%s%sKoha %s - Katalog"
 msgid "Record URL"
 msgstr "Titel-URL"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-blocked.tt:3
 #, c-format
 msgid "Record blocked &rsaquo; %s %s %s Koha online %s catalog "
@@ -10860,10 +10860,10 @@ msgstr "Leihgebühr"
 msgid "Report a problem"
 msgstr "Problem melden"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reportproblem.tt:6
 #, c-format
 msgid "Report a problem &rsaquo; %s%s%sKoha online%s catalog"
@@ -10891,10 +10891,10 @@ msgstr "Bestell-ID:"
 msgid "Request article"
 msgstr "Artikel bestellen"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-request-article.tt:9
 #, c-format
 msgid "Request article &rsaquo; %s%s%sKoha online%s catalog"
@@ -11078,10 +11078,10 @@ msgstr "Angemeldete Benutzer können ein Exemplar reservieren."
 msgid "Reset your password"
 msgstr "Passwort zurücksetzen"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reset-password.tt:7
 #, c-format
 msgid "Reset your password &rsaquo; %s%s%sKoha online%s catalog "
@@ -11111,15 +11111,15 @@ msgstr "Liste neu sortieren"
 msgid "Results"
 msgstr "Ergebnisse"
 
-#. %1$s:  from | html
-#. %2$s:  to | html
-#. %3$s:  total | html
+#. %1$s:  from | html 
+#. %2$s:  to | html 
+#. %3$s:  total | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-authoritiessearchresultlist.tt:86
 #, c-format
 msgid "Results %s to %s of %s"
 msgstr "Ergebnisse %s bis %s von %s"
 
-#. %1$s:  ms_value | html
+#. %1$s:  ms_value | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:47
 #, c-format
 msgid "Results of search for '%s'"
@@ -11157,7 +11157,7 @@ msgstr "Zurück"
 msgid "Return this item"
 msgstr "Dieses Exemplar zurückgeben"
 
-#. %1$s:  biblio.title | html
+#. %1$s:  biblio.title | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recall.tt:44
 #, c-format
 msgid "Return to %s"
@@ -11495,10 +11495,10 @@ msgstr "Suchergebnisse"
 msgid "Search suggestions"
 msgstr "Anschaffungsvorschlag suchen"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-opensearch.tt:8
 #, c-format
 msgid "Search the %s%s%sKoha library%s catalog"
@@ -11696,10 +11696,10 @@ msgstr "Titel für Suche auswählen"
 msgid "Select titles to: "
 msgstr "Ausgewählte Titel: "
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sci/sci-main.tt:27
 #, c-format
 msgid "Self check-in &rsaquo; %s%s%sKoha %s"
@@ -11710,10 +11710,10 @@ msgstr "Selbst-Rückgabe &rsaquo; %s%s%sKoha %s"
 msgid "Self check-in help"
 msgstr "Hilfe zur Selbstverbuchung"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:9
 #, c-format
 msgid "Self checkout &rsaquo; %s%s%sKoha %s"
@@ -11724,10 +11724,10 @@ msgstr "Selbst-Ausleihe &rsaquo; %s%s%sKoha %s"
 msgid "Self checkout help"
 msgstr "Hilfe zur Selbstverbuchung"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/help.tt:7
 #, c-format
 msgid "Self checkout help &rsaquo; %s%s%sKoha %s"
@@ -11766,10 +11766,10 @@ msgstr "An Gerät übertragen"
 msgid "Sending your cart"
 msgstr "Ihren Korb versenden"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasketform.tt:3
 #, c-format
 msgid "Sending your cart &rsaquo; %s%s%sKoha online%s catalog"
@@ -11780,10 +11780,10 @@ msgstr "Korb versenden &rsaquo; %s%s%sKoha %s - Katalog"
 msgid "Sending your list"
 msgstr "Ihre Liste versenden"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelfform.tt:3
 #, c-format
 msgid "Sending your list &rsaquo; %s%s%sKoha online%s catalog"
@@ -11810,7 +11810,7 @@ msgid "Serial collections"
 msgstr "Zeitschriftenbestand"
 
 #. For the first occurrence,
-#. %1$s:  BIBLIO_RESULT.serial | $raw
+#. %1$s:  BIBLIO_RESULT.serial | $raw 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasket.tt:113
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:116
 #, c-format
@@ -11856,10 +11856,10 @@ msgstr "Teilen"
 msgid "Share a list"
 msgstr "Eine Liste teilen"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shareshelf.tt:6
 #, c-format
 msgid "Share a list &rsaquo; %s%s%sKoha online%s catalog"
@@ -12012,8 +12012,8 @@ msgstr "Zeige Jahr: "
 msgid "Show/Hide appearences"
 msgstr "Fundstellen anzeigen/ausblenden"
 
-#. %1$s:  resultcount | html
-#. %2$s:  total | html
+#. %1$s:  resultcount | html 
+#. %2$s:  total | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-authoritiessearchresultlist.tt:84
 #, c-format
 msgid "Showing %s of about %s results"
@@ -12075,7 +12075,7 @@ msgstr ""
 msgid "Something else"
 msgstr "Etwas anderes"
 
-#. %1$s:  failaddress | html
+#. %1$s:  failaddress | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shareshelf.tt:109
 #, c-format
 msgid ""
@@ -12233,7 +12233,7 @@ msgstr "Entschuldigung, Sie können dieser Liste nichts hinzufügen."
 msgid "Sorry, you cannot place holds."
 msgstr "Leider können können Sie keine Vormerkungen durchführen."
 
-#. %1$s:  too_many_reserves | html
+#. %1$s:  too_many_reserves | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:81
 #, c-format
 msgid "Sorry, you cannot place more than %s holds. "
@@ -12386,8 +12386,8 @@ msgstr "Status"
 msgid "Status:"
 msgstr "Status:"
 
-#. %1$s:  IF ( SelfCheckoutByLogin )
-#. %2$s:  END
+#. %1$s:  IF ( SelfCheckoutByLogin ) 
+#. %2$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/help.tt:45
 #, c-format
 msgid "Step one: Enter your user ID%s and password%s"
@@ -12447,10 +12447,10 @@ msgstr "Schlagwort"
 msgid "Subject cloud"
 msgstr "Themenwolke"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-tags_subject.tt:6
 #, c-format
 msgid "Subject cloud &rsaquo; %s%s%sKoha online%s catalog"
@@ -12467,7 +12467,7 @@ msgid "Subject: "
 msgstr "Schlagwort: "
 
 #. For the first occurrence,
-#. %1$s:  BIBLIO_RESULT.subject | $raw
+#. %1$s:  BIBLIO_RESULT.subject | $raw 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasket.tt:89
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:92
 #, c-format
@@ -12579,17 +12579,17 @@ msgstr "Abonnement"
 msgid "Subscription alerts"
 msgstr "E-Mail-Benachrichtigungen zu Heften"
 
-#. %1$s:  subscription.histstartdate | $KohaDates
-#. %2$s:  IF ( subscription.histenddate )
-#. %3$s:  subscription.histenddate | $KohaDates
-#. %4$s:  ELSE
-#. %5$s:  END
+#. %1$s:  subscription.histstartdate | $KohaDates 
+#. %2$s:  IF ( subscription.histenddate ) 
+#. %3$s:  subscription.histenddate | $KohaDates 
+#. %4$s:  ELSE 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:763
 #, c-format
 msgid "Subscription from: %s to:%s %s %s now (current)%s"
 msgstr "Abonnement von %s bis %s %s %s heute (laufend)%s"
 
-#. %1$s:  subscription_LOO.bibliotitle | html
+#. %1$s:  subscription_LOO.bibliotitle | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-serial-issues.tt:60
 #, c-format
 msgid "Subscription information for %s"
@@ -12610,7 +12610,7 @@ msgstr "Abonnement: "
 msgid "Subscriptions"
 msgstr "Abonnements"
 
-#. %1$s:  subscriptionsnumber | html
+#. %1$s:  subscriptionsnumber | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:486
 #, c-format
 msgid "Subscriptions ( %s )"
@@ -12806,10 +12806,10 @@ msgstr "Tag: "
 msgid "Tags"
 msgstr "Tags"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-tags.tt:8
 #, c-format
 msgid "Tags &rsaquo; %s%s%sKoha online%s catalog"
@@ -12886,23 +12886,23 @@ msgstr ""
 "Die Berechtigung \"Nur Bibliothekspersonal\" hat keinen Effekt, während "
 "diese Liste privat ist."
 
-#. %1$s:  subscription.opacdisplaycount | html
+#. %1$s:  subscription.opacdisplaycount | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:784
 #, c-format
 msgid "The %s latest issues for this subscription:"
 msgstr "Die letzten %s Hefte für dieses Abonnement:"
 
-#. %1$s:  limit | html
-#. %2$s:  IF selected_itemtype
-#. %3$s:  ItemTypes.GetDescription(selected_itemtype) | html
-#. %4$s:  END
-#. %5$s:  IF ( branch )
-#. %6$s:  Branches.GetName( branch ) | html
-#. %7$s:  END
-#. %8$s:  IF ( timeLimit != 999 )
-#. %9$s:  timeLimitFinite | html
-#. %10$s:  ELSE
-#. %11$s:  END
+#. %1$s:  limit | html 
+#. %2$s:  IF selected_itemtype 
+#. %3$s:  ItemTypes.GetDescription(selected_itemtype) | html 
+#. %4$s:  END 
+#. %5$s:  IF ( branch ) 
+#. %6$s:  Branches.GetName( branch ) | html 
+#. %7$s:  END 
+#. %8$s:  IF ( timeLimit != 999 ) 
+#. %9$s:  timeLimitFinite | html 
+#. %10$s:  ELSE 
+#. %11$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-topissues.tt:73
 #, c-format
 msgid ""
@@ -12912,10 +12912,10 @@ msgstr ""
 "Die %s meist entliehenen %s %s %s %s in %s %s %s Titel der vergangenen %s "
 "Monate %s seit Aufzeichnung%s "
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/maintenance.tt:44
 #, c-format
 msgid ""
@@ -12959,7 +12959,7 @@ msgstr ""
 "konfiguriert. Weitere Informationen über Funktionsweise und Konfiguration "
 "finden Sie im "
 
-#. %1$s:  email_add | html
+#. %1$s:  email_add | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasketform.tt:18
 #, c-format
 msgid "The cart was sent to: %s"
@@ -12975,7 +12975,7 @@ msgstr "Der gewählte Abholort ist nicht erlaubt"
 msgid "The curbside pickup feature is not enabled for this library."
 msgstr "Die Funktion für Abholungen ist für diese Bibliothek nicht aktiviert."
 
-#. %1$s:  subscription_LOO.startdate | html
+#. %1$s:  subscription_LOO.startdate | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-serial-issues.tt:62
 #, c-format
 msgid "The current subscription began on %s and is issued"
@@ -13016,7 +13016,7 @@ msgstr "Die eingegebene Kartennummer hat die falsche Länge."
 msgid "The feature of sharing lists is not in use in this library."
 msgstr "Diese Bibliothek unterstützt das Teilen von Listen nicht."
 
-#. %1$s:  subscription_LOO.histstartdate | html
+#. %1$s:  subscription_LOO.histstartdate | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-serial-issues.tt:128
 #, c-format
 msgid "The first subscription was started on %s"
@@ -13076,7 +13076,7 @@ msgstr "Der Link ist nicht mehr gültig und die Seite existiert nicht mehr."
 msgid "The link is invalid."
 msgstr "Der Link ist ungültig."
 
-#. %1$s:  email | html
+#. %1$s:  email | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelfform.tt:17
 #, c-format
 msgid "The list was sent to: %s"
@@ -13097,7 +13097,7 @@ msgstr "Der neue Besitzer konnte nicht mehr gefunden werden."
 msgid "The new owner has no share for this list."
 msgstr "Diese Liste wurde mit dem neuen Besitzer nicht geteilt."
 
-#. %1$s:  op | html
+#. %1$s:  op | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shareshelf.tt:51
 #, c-format
 msgid "The operation %s is not supported."
@@ -13110,7 +13110,7 @@ msgstr ""
 "Die Resultate der Bearbeitung werden für jeden eingegebenen Barcode "
 "angezeigt."
 
-#. %1$s:  username | html
+#. %1$s:  username | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-password-recovery.tt:182
 #, c-format
 msgid "The password has been changed for user \"%s\"."
@@ -13149,7 +13149,7 @@ msgstr "Die Freigabe wurde zurückgenommen."
 msgid "The share has not been removed."
 msgstr "Die Freigabe wurde nicht entfernt."
 
-#. %1$s:  subscription_LOO.histenddate | html
+#. %1$s:  subscription_LOO.histenddate | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-serial-issues.tt:130
 #, c-format
 msgid "The subscription expired on %s"
@@ -13164,8 +13164,8 @@ msgstr ""
 "Der Anschaffungsvorschlag wurde nicht hinzugefügt. Ein Vorschlag mit diesem "
 "Titel existiert bereits."
 
-#. %1$s:  Koha.Preference('MaxTotalSuggestions') | html
-#. %2$s:  Koha.Preference('NumberOfSuggestionDays') | html
+#. %1$s:  Koha.Preference('MaxTotalSuggestions') | html 
+#. %2$s:  Koha.Preference('NumberOfSuggestionDays') | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:321
 #, c-format
 msgid ""
@@ -13176,7 +13176,7 @@ msgstr ""
 "Anzahl der Anschaffungsvorschläge erreicht, die Sie zurzeit machen können "
 "(%s in %s Tagen)."
 
-#. %1$s:  Koha.Preference('MaxOpenSuggestions') | html
+#. %1$s:  Koha.Preference('MaxOpenSuggestions') | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:323
 #, c-format
 msgid ""
@@ -13194,7 +13194,7 @@ msgstr ""
 msgid "The system does not recognize this barcode."
 msgstr "Das System erkennt diesen Barcode nicht."
 
-#. %1$s:  ERROR.scrubbed | html
+#. %1$s:  ERROR.scrubbed | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-tags.tt:77
 #, c-format
 msgid "The tag was added as &quot;%s&quot;."
@@ -13210,7 +13210,7 @@ msgstr "Der Titel ist Teil des folgenden Werkes"
 msgid "The title is part fo the following works"
 msgstr "Der Titel ist Teil der folgenden Werke"
 
-#. %1$s:  message_value | html
+#. %1$s:  message_value | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-account.tt:57
 #, c-format
 msgid "The transaction ID '%s' for this payment is invalid."
@@ -13221,7 +13221,7 @@ msgstr "Die Transaktions-ID '%s' ist für diese Zahlung ungültig."
 msgid "The userid "
 msgstr "Die Benutzerkennung "
 
-#. %1$s:  subscriptionsnumber | html
+#. %1$s:  subscriptionsnumber | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:741
 #, c-format
 msgid "There are %s subscription(s) associated with this title."
@@ -13459,7 +13459,7 @@ msgstr "Dieser Bibliotheksausweis wurde als verloren gemeldet."
 msgid "This link is valid for 2 days starting now. "
 msgstr "Der Link ist zwei Tage lang gültig. "
 
-#. %1$s:  contents.count | html
+#. %1$s:  contents.count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves.tt:219
 #, c-format
 msgid "This list contains %s titles"
@@ -13512,7 +13512,7 @@ msgstr "Diese Seite existiert nicht. "
 msgid "This patron does not have waiting holds."
 msgstr "Dieser Benutzer hat keine abholbereiten Vormerkungen."
 
-#. %1$s:  items_count | html
+#. %1$s:  items_count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:567
 #, c-format
 msgid "This record has many physical items (%s). "
@@ -13620,7 +13620,7 @@ msgstr "Titel (A-Z)"
 msgid "Title (Z-A)"
 msgstr "Titel (Z-A)"
 
-#. %1$s:  title_notes_count | html
+#. %1$s:  title_notes_count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:437
 #, c-format
 msgid "Title notes ( %s )"
@@ -13723,7 +13723,7 @@ msgstr "Gebühren insgesamt"
 msgid "Total due if credit(s) applied:"
 msgstr "Gesamtbetrag mit eingerechnetem Guthaben:"
 
-#. %1$s:  holds_count | html
+#. %1$s:  holds_count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:583
 #, c-format
 msgid "Total holds: %s"
@@ -13736,7 +13736,7 @@ msgstr "Anzahl Vormerkungen: %s"
 msgid "Transfer"
 msgstr "Transfer"
 
-#. %1$s:  shelf.shelfname | html
+#. %1$s:  shelf.shelfname | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves.tt:654
 #, c-format
 msgid "Transfer ownership of shared list '%s'"
@@ -13782,7 +13782,7 @@ msgid "URL(s)"
 msgstr "URL(s)"
 
 #. For the first occurrence,
-#. %1$s:  BIBLIO_RESULT.url | html
+#. %1$s:  BIBLIO_RESULT.url | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasket.tt:148
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:151
 #, c-format
@@ -13804,7 +13804,7 @@ msgstr "Es können keine weiteren Tags hinzugefügt werden."
 msgid "Unable to cancel enrollment!"
 msgstr "Anmeldung kann nicht gelöscht werden!"
 
-#. %1$s:  INCLUDE 'patron-title.inc' patron=m.patron
+#. %1$s:  INCLUDE 'patron-title.inc' patron=m.patron 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-curbside-pickups.tt:138
 #, c-format
 msgid "Unable to check the items out to %s"
@@ -13843,7 +13843,7 @@ msgid "Unified title"
 msgstr "Einheitssachtitel"
 
 #. For the first occurrence,
-#. %1$s:  BIBLIO_RESULT.unititle | $raw
+#. %1$s:  BIBLIO_RESULT.unititle | $raw 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendbasket.tt:107
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:110
 #, c-format
@@ -13905,10 +13905,10 @@ msgstr "Aktualisieren Sie Ihre Kontaktdaten"
 msgid "Updated"
 msgstr "Aktualisiert"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-memberentry-update-submitted.tt:6
 #, c-format
 msgid "Updates submitted &rsaquo; %s%s%sKoha online%s catalog"
@@ -13991,7 +13991,7 @@ msgstr "VIAF: "
 msgid "Valid until:"
 msgstr "Gültig bis:"
 
-#. %1$s:  extended_unique_id_failed_value | html
+#. %1$s:  extended_unique_id_failed_value | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-memberentry.tt:201
 #, c-format
 msgid "Value is already in use (%s)"
@@ -14096,21 +14096,21 @@ msgstr "Abholbereit"
 msgid "Waiting date"
 msgstr "Wartedatum"
 
-#. %1$s:  Branches.GetName( item.recall.pickup_library_id ) | html
+#. %1$s:  Branches.GetName( item.recall.pickup_library_id ) | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recall.tt:145
 #, c-format
 msgid "Waiting for patron at %s"
 msgstr "Abholbereit in %s "
 
-#. %1$s:  Branches.GetName( itemLoo.ExpectedAtLibrary ) | html
-#. %2$s:  itemLoo.waitingdate | $KohaDates
+#. %1$s:  Branches.GetName( itemLoo.ExpectedAtLibrary ) | html 
+#. %2$s:  itemLoo.waitingdate | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:461
 #, c-format
 msgid "Waiting for patron at %s since %s"
 msgstr "Bereitgestellt in %s seit %s"
 
-#. %1$s:  Branches.GetName( hold.branchcode ) | html
-#. %2$s:  hold.waitingdate | $KohaDates
+#. %1$s:  Branches.GetName( hold.branchcode ) | html 
+#. %2$s:  hold.waitingdate | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recall.tt:151
 #, c-format
 msgid "Waiting for patron at %s since %s. "
@@ -14148,7 +14148,7 @@ msgstr "Webseite"
 msgid "Welcome, "
 msgstr "Willkommen, "
 
-#. %1$s:  INCLUDE 'patron-title.inc' patron = logged_in_user no_html = 1
+#. %1$s:  INCLUDE 'patron-title.inc' patron = logged_in_user no_html = 1 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/masthead.inc:96
 #, c-format
 msgid "Welcome, %s"
@@ -14202,8 +14202,8 @@ msgstr "Möchten Sie eine Quittung drucken?"
 msgid "Writeoff"
 msgstr "Erlassen"
 
-#. %1$s:  message.message_date | $KohaDates
-#. %2$s:  Branches.GetName(message.branchcode) | html
+#. %1$s:  message.message_date | $KohaDates 
+#. %2$s:  Branches.GetName(message.branchcode) | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-note.inc:8
 #, c-format
 msgid "Written on %s by %s"
@@ -14367,7 +14367,7 @@ msgstr "Sie haben keine Berechtigung zum Aufruf dieser Seite."
 msgid "You are from a different library"
 msgstr "Sie sind aus einer anderen Bibliothek"
 
-#. %1$s:  borrowername | html
+#. %1$s:  borrowername | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:227
 #, c-format
 msgid "You are logged in as %s."
@@ -14497,7 +14497,7 @@ msgstr "Sie können keine weiteren Anschaffungsvorschläge einreichen."
 msgid "You cannot renew this item again."
 msgstr "Sie können dieses Medium kein weiteres Mal verlängern."
 
-#. %1$s:  IF ( renewal_blocked_fines ) > 0
+#. %1$s:  IF ( renewal_blocked_fines ) > 0  
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:213
 #, c-format
 msgid "You cannot renew your books online. Reason: %sYour fines exceed "
@@ -14576,8 +14576,8 @@ msgid "You don't have waiting holds at this library"
 msgstr "Sie haben keine abholbereiten Vormerkungen in dieser Bibliothek"
 
 #. For the first occurrence,
-#. %1$s:  IF Koha.Preference('FailedLoginAttempts')
-#. %2$s:  END
+#. %1$s:  IF Koha.Preference('FailedLoginAttempts') 
+#. %2$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-auth.tt:76
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reset-password.tt:51
 #, c-format
@@ -14671,7 +14671,7 @@ msgstr "Sie haben die maximale Anzahl an Ausleihen erreicht."
 msgid "You have reached the maximum number of recalls on this record."
 msgstr "Maximale Anzahl an Rückrufen für diesen Titel erreicht."
 
-#. %1$s:  Koha.Preference('MaxOpenSuggestions') | html
+#. %1$s:  Koha.Preference('MaxOpenSuggestions') | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:377
 #, c-format
 msgid ""
@@ -14680,7 +14680,7 @@ msgstr ""
 "Sie haben die maximale Anzahl der Anschaffungsvorschläge erreicht, die Sie "
 "zurzeit machen können (%s)."
 
-#. %1$s:  Koha.Preference('MaxOpenSuggestions') | html
+#. %1$s:  Koha.Preference('MaxOpenSuggestions') | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:55
 #, c-format
 msgid ""
@@ -14730,7 +14730,7 @@ msgstr "Sie haben erfolgreich ein neues Konto eröffnet."
 msgid "You have too many holds already"
 msgstr "Sie haben bereits zu viele Vormerkungen"
 
-#. %1$s:  too_much_oweing | $Price
+#. %1$s:  too_much_oweing | $Price 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:75
 #, c-format
 msgid "You have unpaid fines. Amount: %s. "
@@ -14755,8 +14755,8 @@ msgstr ""
 "länger vorhanden ist."
 
 #. For the first occurrence,
-#. %1$s:  Koha.Preference('MaxTotalSuggestions') | html
-#. %2$s:  Koha.Preference('NumberOfSuggestionDays') | html
+#. %1$s:  Koha.Preference('MaxTotalSuggestions') | html 
+#. %2$s:  Koha.Preference('NumberOfSuggestionDays') | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:52
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:375
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:512
@@ -14878,13 +14878,13 @@ msgstr ""
 "Sie haben die Zeichenfolge nicht korrekt eingegeben. Bitte versuchen Sie es "
 "erneut."
 
-#. %1$s:  bibitemloo.reserve_charge | $Price
+#. %1$s:  bibitemloo.reserve_charge | $Price 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:177
 #, c-format
 msgid "You will be charged a hold fee of %s for placing this hold"
 msgstr "Für die Vormerkung wird eine Gebühr von %s erhoben"
 
-#. %1$s:  bibitemloo.reserve_charge | $Price
+#. %1$s:  bibitemloo.reserve_charge | $Price 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:175
 #, c-format
 msgid "You will be charged a hold fee of %s when you collect this item"
@@ -14929,7 +14929,7 @@ msgid "Your account"
 msgstr "Benutzerkonto"
 
 #. For the first occurrence,
-#. %1$s:  IF debarred_comment
+#. %1$s:  IF debarred_comment 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:51
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:182
 #, c-format
@@ -14941,7 +14941,7 @@ msgstr "Ihr Konto wurde gesperrt. %s Kommentar: "
 msgid "Your account has been suspended."
 msgstr "Ihr Bibliothekskonto wurde gesperrt."
 
-#. %1$s:  borrower.warnexpired | $KohaDates
+#. %1$s:  borrower.warnexpired | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:140
 #, c-format
 msgid ""
@@ -14951,7 +14951,7 @@ msgstr ""
 "Ihr Benutzerkonto ist am %s abgelaufen. Falls Sie es verlängern möchten "
 "kontaktieren Sie bitte die Bibliothek oder "
 
-#. %1$s:  borrower.warnexpired | $KohaDates
+#. %1$s:  borrower.warnexpired | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:142
 #, c-format
 msgid ""
@@ -14974,7 +14974,7 @@ msgstr ""
 "Ihr Benutzerkonto ist abgelaufen. Bitte kontaktieren Sie die Bibliothek, um "
 "mehr Informationen zu erhalten."
 
-#. %1$s:  amountoutstanding | $Price
+#. %1$s:  amountoutstanding | $Price 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:122
 #, c-format
 msgid ""
@@ -15013,10 +15013,10 @@ msgstr "Ihr Korb"
 msgid "Your cart "
 msgstr "Ihr Korb "
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-basket.tt:11
 #, c-format
 msgid "Your cart &rsaquo; %s%s%sKoha online%s catalog"
@@ -15038,10 +15038,10 @@ msgstr "Ihre Suchhistorie (Katalogdaten) ist leer."
 msgid "Your charges"
 msgstr "Gebühren und Entgelte"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-account.tt:13
 #, c-format
 msgid "Your charges &rsaquo; %s%s%sKoha online%s catalog"
@@ -15052,10 +15052,10 @@ msgstr "Gebühren &rsaquo; %s%s%sKoha %s - Katalog"
 msgid "Your checkout history"
 msgstr "Ausleihverlauf"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:10
 #, c-format
 msgid "Your checkout history &rsaquo; %s%s%sKoha online%s catalog"
@@ -15076,7 +15076,7 @@ msgstr "Kommentare"
 msgid "Your comment (preview, pending approval)"
 msgstr "Ihr Kommentar (Vorschau, wartet auf Moderation)"
 
-#. %1$s:  gdpr_proc_consent | $KohaDates with_hours => 1
+#. %1$s:  gdpr_proc_consent | $KohaDates with_hours => 1 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-patron-consent.tt:60
 #, c-format
 msgid "Your consent was registered on %s."
@@ -15088,10 +15088,10 @@ msgstr "Ihre Zustimmung wurde am %s registriert."
 msgid "Your consents"
 msgstr "Zustimmungen"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-patron-consent.tt:8
 #, c-format
 msgid "Your consents &rsaquo; %s%s%sKoha online%s catalog"
@@ -15111,10 +15111,10 @@ msgstr ""
 "Ihre Änderungen wurden der Bibliothek mitgeteilt und Ihr Datensatz wird "
 "baldmöglichst aktualisiert."
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-curbside-pickups.tt:10
 #, c-format
 msgid "Your curbside pickups &rsaquo; %s%s%sKoha online%s catalog"
@@ -15167,19 +15167,19 @@ msgstr "Ihre Vormerkhistorie wurde gelöscht."
 msgid "Your holds history"
 msgstr "Vormerkhistorie"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-holdshistory.tt:12
 #, c-format
 msgid "Your holds history &rsaquo; %s%s%sKoha online%s catalog"
 msgstr "Vormerkhistorie &rsaquo; %s%s%sKoha %s - Katalog"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-illrequests.tt:10
 #, c-format
 msgid "Your interlibrary loan requests &rsaquo; %s%s%sKoha online%s catalog"
@@ -15200,7 +15200,7 @@ msgstr "Ihr Bibliotheksausweis wurde als verloren oder gestohlen gemeldet."
 msgid "Your library card has been marked as lost or stolen. "
 msgstr "Ihr Bibliotheksausweis wurde als verloren oder gestohlen gemeldet. "
 
-#. %1$s:  BORROWER_INFO.dateexpiry | $KohaDates
+#. %1$s:  BORROWER_INFO.dateexpiry | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-renewcard.tt:62
 #, c-format
 msgid "Your library card has been renewed. Now your card is valid until %s. "
@@ -15222,16 +15222,16 @@ msgstr ""
 msgid "Your library card will expire on "
 msgstr "Ihr Bibliotheksausweis läuft ab: "
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:18
 #, c-format
 msgid "Your library home &rsaquo; %s%s%sKoha online%s catalog"
 msgstr "Benutzerkonto &rsaquo; %s%s%sKoha %s - Katalog"
 
-#. %1$s:  shelfname | $raw
+#. %1$s:  shelfname | $raw 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-sendshelf.tt:4
 #, c-format
 msgid "Your list : %s "
@@ -15260,10 +15260,10 @@ msgstr "Verlängerung der Ausleihe gescheitert: "
 msgid "Your messaging settings"
 msgstr "Ihre Benachrichtigungen"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-messaging.tt:6
 #, c-format
 msgid "Your messaging settings &rsaquo; %s%s%sKoha online%s catalog"
@@ -15311,7 +15311,7 @@ msgid "Your password has successfully been updated"
 msgstr "Ihr Passwort wurde erfolgreich aktualisiert."
 
 #. For the first occurrence,
-#. %1$s:  patron.category.effective_min_password_length | html
+#. %1$s:  patron.category.effective_min_password_length | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-memberentry.tt:915
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-passwd.tt:73
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-password-recovery.tt:151
@@ -15320,7 +15320,7 @@ msgid "Your password must be at least %s characters long."
 msgstr "Ihr Passwort muss mindestens %s Zeichen lang sein."
 
 #. For the first occurrence,
-#. %1$s:  patron.category.effective_min_password_length | html
+#. %1$s:  patron.category.effective_min_password_length | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-memberentry.tt:913
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-passwd.tt:71
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-password-recovery.tt:149
@@ -15338,7 +15338,7 @@ msgstr ""
 msgid "Your payment"
 msgstr "Ihre Zahlung"
 
-#. %1$s:  message_value | html
+#. %1$s:  message_value | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-account.tt:52
 #, c-format
 msgid "Your payment of $%s has been processed successfully!"
@@ -15367,10 +15367,10 @@ msgstr "Ihre Priorität: "
 msgid "Your privacy management"
 msgstr "Datenschutzoptionen"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-privacy.tt:6
 #, c-format
 msgid "Your privacy management &rsaquo; %s%s%sKoha online%s catalog"
@@ -15400,15 +15400,15 @@ msgid "Your purchase suggestions"
 msgstr "Anschaffungsvorschläge"
 
 #. For the first occurrence,
-#. %1$s:  my_rating.rating_value | html
+#. %1$s:  my_rating.rating_value | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:366
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/user-star-ratings.inc:44
 #, c-format
 msgid "Your rating: %s."
 msgstr "Ihre Bewertung: %s."
 
-#. %1$s:  due_interval | html
-#. %2$s:  due_date | $KohaDates
+#. %1$s:  due_interval | html 
+#. %2$s:  due_date | $KohaDates 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recall.tt:61
 #, c-format
 msgid ""
@@ -15424,10 +15424,10 @@ msgstr ""
 msgid "Your recalls history"
 msgstr "Rückrufverlauf"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-recalls.tt:4
 #, c-format
 msgid "Your recalls history &rsaquo; %s%s%sKoha online%s catalog"
@@ -15443,28 +15443,28 @@ msgstr "Ihre Anforderung enthielt keine Medienrückgaben."
 msgid "Your routing lists"
 msgstr "Ihre Umlauflisten"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-routing-lists.tt:9
 #, c-format
 msgid "Your routing lists &rsaquo; %s%s%sKoha online%s catalog"
 msgstr "Umlauflisten &rsaquo; %s%s%sKoha %s - Katalog"
 
-#. %1$s:  IF hash
-#. %2$s:  hash | html
-#. %3$s:  END
+#. %1$s:  IF hash 
+#. %2$s:  hash | html 
+#. %3$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-retrieve-file.tt:4
 #, c-format
 msgid "Your search %sfor %s%s was not successful. "
 msgstr "Ihre Suche %snach %s%s war nicht erfolgreich. "
 
-#. %1$s:  unimarc3 | html
-#. %2$s:  IF ( LibraryNameTitle )
-#. %3$s:  LibraryNameTitle | html
-#. %4$s:  ELSE
-#. %5$s:  END
+#. %1$s:  unimarc3 | html 
+#. %2$s:  IF ( LibraryNameTitle ) 
+#. %3$s:  LibraryNameTitle | html 
+#. %4$s:  ELSE 
+#. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-idref.tt:2
 #, c-format
 msgid "Your search IDREF for ppn %s &rsaquo; %s%s%sKoha online%s catalog"
@@ -15475,16 +15475,16 @@ msgstr "Ihre IDREF-Suche nach PPN %s &rsaquo; %s%s%sKoha %s - Katalog"
 msgid "Your search history"
 msgstr "Suchhistorie"
 
-#. %1$s:  IF ( LibraryNameTitle )
-#. %2$s:  LibraryNameTitle | html
-#. %3$s:  ELSE
-#. %4$s:  END
+#. %1$s:  IF ( LibraryNameTitle ) 
+#. %2$s:  LibraryNameTitle | html 
+#. %3$s:  ELSE 
+#. %4$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-search-history.tt:9
 #, c-format
 msgid "Your search history &rsaquo; %s%s%sKoha online%s catalog"
 msgstr "Suchhistorie &rsaquo; %s%s%sKoha %s - Katalog"
 
-#. %1$s:  total | html
+#. %1$s:  total | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:127
 #, c-format
 msgid "Your search returned %s results. "
@@ -15541,16 +15541,16 @@ msgstr ""
 msgid "ZIP/Postal code:"
 msgstr "PLZ:"
 
-#. %1$s:  #             ...
-#. %2$s:  #         [ END ]
-#. %3$s:  #         [ WRAPPER tab_panels ]
-#. %4$s:  #             [ WRAPPER tab_panel tabname="tab_name_1" bt_active= 1 ] Panel contents 1 [ END ]
-#. %5$s:  #             [ WRAPPER tab_panel tabname="tab_name_2" ] Panel contents 2 [ END ]
-#. %6$s:  #             ...
-#. %7$s:  #         [ END ]
-#. %8$s:  #     [ END ]
-#. %9$s:  BLOCK tabs
-#. %10$s:  IF ( id )
+#. %1$s:  #             ...                                                                                     
+#. %2$s:  #         [ END ]                                                                                     
+#. %3$s:  #         [ WRAPPER tab_panels ]                                                                      
+#. %4$s:  #             [ WRAPPER tab_panel tabname="tab_name_1" bt_active= 1 ] Panel contents 1 [ END ]        
+#. %5$s:  #             [ WRAPPER tab_panel tabname="tab_name_2" ] Panel contents 2 [ END ]                     
+#. %6$s:  #             ...                                                                                     
+#. %7$s:  #         [ END ]                                                                                     
+#. %8$s:  #     [ END ]                                                                                         
+#. %9$s:  BLOCK tabs 
+#. %10$s:  IF ( id ) 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/html_helpers.inc:41
 #, c-format
 msgid "[ END ] %%] %s %s %s %s %s %s %s %s %s %s "
@@ -15561,7 +15561,7 @@ msgstr "[ END ] %%] %s %s %s %s %s %s %s %s %s %s "
 msgid "[ END ] %%] [%% # [ WRAPPER tab_item tabname= \"tab_name_2\" ] "
 msgstr "[ END ] %%] [%% # [ WRAPPER tab_item tabname= \"tab_name_2\" ] "
 
-#. %1$s:  HTML5MediaParent | html
+#. %1$s:  HTML5MediaParent | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:977
 #, c-format
 msgid "[%s tag not supported by your browser.]"
@@ -15694,7 +15694,7 @@ msgstr ""
 "%s&rft.btitle=%s&rft.date=%s&rft.tpages=%s&rft.isbn=%s&rft.aucorp=&rft.place="
 "%s&rft.pub=%s&rft.edition=%s&rft.series=%s&rft.genre="
 
-#. %1$s:  generated_cover_image_source
+#. %1$s:  generated_cover_image_source 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/svc/covergen.tt:1
 #, c-format
 msgid "data:image/png;base64,%s"
@@ -15814,19 +15814,19 @@ msgstr "filmfriend Filmportal ("
 msgid "firstname"
 msgstr "firstname"
 
-#. %1$s:  subscription_LOO.numberlength | html
+#. %1$s:  subscription_LOO.numberlength | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-serial-issues.tt:124
 #, c-format
 msgid "for %s issues"
 msgstr "für %s Hefte"
 
-#. %1$s:  subscription_LOO.monthlength | html
+#. %1$s:  subscription_LOO.monthlength | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-serial-issues.tt:126
 #, c-format
 msgid "for %s months"
 msgstr "für %s Monate"
 
-#. %1$s:  subscription_LOO.weeklength | html
+#. %1$s:  subscription_LOO.weeklength | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-serial-issues.tt:125
 #, c-format
 msgid "for %s weeks"
@@ -15850,7 +15850,7 @@ msgstr ""
 msgid "here"
 msgstr "hier"
 
-#. %1$s:  IF ( total )
+#. %1$s:  IF ( total ) 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:145
 #, c-format
 msgid "hits %s"
@@ -16547,13 +16547,13 @@ msgstr ""
 msgid "width=device-width, initial-scale=1"
 msgstr "width=device-width, initial-scale=1"
 
-#. %1$s:  approvedaddress | html
+#. %1$s:  approvedaddress | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shareshelf.tt:106
 #, c-format
 msgid "will be sent shortly to %s."
 msgstr "wird in Kürze gesendet an %s."
 
-#. %1$s:  new_reserves_allowed | html
+#. %1$s:  new_reserves_allowed | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:146
 #, c-format
 msgid ""
@@ -16563,48 +16563,48 @@ msgstr ""
 "Sie können nur noch %s weitere Vormerkungen machen. Bitte wählen Sie die "
 "Titel ab, die Sie nicht vormerken möchten. "
 
-#. %1$s:  payment | html
+#. %1$s:  payment | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-account.tt:69
 #, c-format
 msgid "your payment of %s has been applied to your account"
 msgstr "Ihre Zahlung von %s wurde Ihrem Konto gutgeschrieben."
 
-#. %1$s:  item.biblionumber
+#. %1$s:  item.biblionumber 
 #. %2$s:  FILTER escape_quotes = replace('"', '\"') ~
 #. %3$s:  FILTER remove_special_character = replace('([\t\r\n\f\b]|\s{3,})','') ~
-#. %4$s:  item.titleblock
-#. %5$s: ~ END
-#. %6$s: ~ END
-#. %7$s:  item.title | escape_quotes | remove_special_character
-#. %8$s:  item.subtitle | escape_quotes | remove_special_character
-#. %9$s:  item.medium | escape_quotes | remove_special_character
-#. %10$s:  item.part_number | escape_quotes | remove_special_character
-#. %11$s:  item.part_name | escape_quotes | remove_special_character
-#. %12$s:  item.year | escape_quotes | remove_special_character
-#. %13$s:  item.edition | escape_quotes | remove_special_character
-#. %14$s:  item.publisher | escape_quotes | remove_special_character
-#. %15$s:  item.place | escape_quotes | remove_special_character
-#. %16$s:  item.author | escape_quotes | remove_special_character
-#. %17$s:  IF item.itemnumber
-#. %18$s:  item.itemnumber
-#. %19$s:  END
-#. %20$s:  IF item.cn_sort
-#. %21$s:  item.cn_sort
-#. %22$s:  END
-#. %23$s:  IF item.itemcallnumber
-#. %24$s:  item.itemcallnumber | escape_quotes | remove_special_character
-#. %25$s:  END
-#. %26$s: - IF item.coverurl
-#. %27$s:  item.coverurl | escape_quotes | remove_special_character
-#. %28$s: - ELSIF ( (OPACLocalCoverImages && item.local_immage_count > 0) || OPACAmazonCoverImages || ( SyndeticsEnabled && SyndeticsCoverImages ) || GoogleJackets || BakerTaylorEnabled || ( Koha.Preference('OpacCoce') && Koha.Preference('CoceProviders') ) || ( Koha.Preference('OPACCustomCoverImages') AND Koha.Preference('CustomCoverImagesURL') ) )
-#. %29$s:  FILTER remove_special_character
-#. %30$s:  FILTER escape_quotes
+#. %4$s:  item.titleblock 
+#. %5$s: ~ END 
+#. %6$s: ~ END 
+#. %7$s:  item.title | escape_quotes | remove_special_character 
+#. %8$s:  item.subtitle | escape_quotes | remove_special_character 
+#. %9$s:  item.medium | escape_quotes | remove_special_character 
+#. %10$s:  item.part_number | escape_quotes | remove_special_character 
+#. %11$s:  item.part_name | escape_quotes | remove_special_character 
+#. %12$s:  item.year | escape_quotes | remove_special_character 
+#. %13$s:  item.edition | escape_quotes | remove_special_character 
+#. %14$s:  item.publisher | escape_quotes | remove_special_character 
+#. %15$s:  item.place | escape_quotes | remove_special_character 
+#. %16$s:  item.author | escape_quotes | remove_special_character 
+#. %17$s:  IF item.itemnumber 
+#. %18$s:  item.itemnumber 
+#. %19$s:  END 
+#. %20$s:  IF item.cn_sort 
+#. %21$s:  item.cn_sort 
+#. %22$s:  END 
+#. %23$s:  IF item.itemcallnumber 
+#. %24$s:  item.itemcallnumber | escape_quotes | remove_special_character 
+#. %25$s:  END 
+#. %26$s: - IF item.coverurl 
+#. %27$s:  item.coverurl | escape_quotes | remove_special_character 
+#. %28$s: - ELSIF ( (OPACLocalCoverImages && item.local_immage_count > 0) || OPACAmazonCoverImages || ( SyndeticsEnabled && SyndeticsCoverImages ) || GoogleJackets || BakerTaylorEnabled || ( Koha.Preference('OpacCoce') && Koha.Preference('CoceProviders') ) || ( Koha.Preference('OPACCustomCoverImages') AND Koha.Preference('CustomCoverImagesURL') ) ) 
+#. %29$s:  FILTER remove_special_character 
+#. %30$s:  FILTER escape_quotes 
 #. %31$s: - IF ( item.title ) -
-#. %32$s:  img_title = item.title
+#. %32$s:  img_title = item.title 
 #. %33$s: - ELSE -
-#. %34$s:  img_title = item.biblionumber
-#. %35$s: - END
-#. %36$s:  IF ( OPACLocalCoverImages && item.local_immage_count > 0 )
+#. %34$s:  img_title = item.biblionumber 
+#. %35$s: - END 
+#. %36$s:  IF ( OPACLocalCoverImages && item.local_immage_count > 0 ) 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/coverflow-item.json.inc:1
 #, c-format
 msgid ""
@@ -16623,38 +16623,38 @@ msgstr ""
 "\", %s \"coverhtml\": \"%s%s %s %s %s %s %s %s "
 
 #. For the first occurrence,
-#. %1$s:  count | html
-#. %2$s: - FOREACH item IN items
+#. %1$s:  count | html 
+#. %2$s: - FOREACH item IN items 
 #. %3$s: - INCLUDE 'coverflow-item.json.inc' item = item -
 #. %4$s: - UNLESS loop.last -
 #. %5$s: - END -
-#. %6$s:  END
+#. %6$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/svc/coverflowbybib.tt:1
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/svc/user-recommendations.tt:1
 #, c-format
 msgid "{ \"countItems\": %s, \"items\": [ %s %s %s,%s %s ] }"
 msgstr "{ \"countItems\": %s, \"items\": [ %s %s %s,%s %s ] }"
 
-#. %1$s:  count | html
-#. %2$s:  starting_homebranch.code
-#. %3$s:  starting_homebranch.description
-#. %4$s:  starting_location.code
-#. %5$s:  starting_location.description
-#. %6$s:  starting_ccode.code
-#. %7$s:  starting_ccode.description
-#. %8$s:  IF ( shelfbrowser_prev_item && shelfbrowser_prev_item.biblionumber )
-#. %9$s:  shelfbrowser_prev_item.biblionumber
-#. %10$s:  shelfbrowser_prev_item.itemnumber
-#. %11$s:  END
-#. %12$s:  IF ( shelfbrowser_prev_item && shelfbrowser_next_item.biblionumber )
-#. %13$s:  shelfbrowser_next_item.biblionumber
-#. %14$s:  shelfbrowser_next_item.itemnumber
-#. %15$s:  END
-#. %16$s: - FOREACH item IN items
+#. %1$s:  count | html 
+#. %2$s:  starting_homebranch.code 
+#. %3$s:  starting_homebranch.description 
+#. %4$s:  starting_location.code 
+#. %5$s:  starting_location.description 
+#. %6$s:  starting_ccode.code 
+#. %7$s:  starting_ccode.description 
+#. %8$s:  IF ( shelfbrowser_prev_item && shelfbrowser_prev_item.biblionumber ) 
+#. %9$s:  shelfbrowser_prev_item.biblionumber 
+#. %10$s:  shelfbrowser_prev_item.itemnumber 
+#. %11$s:  END 
+#. %12$s:  IF ( shelfbrowser_prev_item && shelfbrowser_next_item.biblionumber ) 
+#. %13$s:  shelfbrowser_next_item.biblionumber 
+#. %14$s:  shelfbrowser_next_item.itemnumber 
+#. %15$s:  END 
+#. %16$s: - FOREACH item IN items 
 #. %17$s: - INCLUDE 'coverflow-item.json.inc' item = item -
 #. %18$s: - UNLESS loop.last -
 #. %19$s: - END -
-#. %20$s:  END
+#. %20$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/svc/coverflowbyshelfitem.tt:1
 #, c-format
 msgid ""
@@ -16672,19 +16672,19 @@ msgstr ""
 "%s, \"itemnumber\": %s },%s%s \"shelfbrowser_next_item\": { \"biblionumber"
 "\": %s, \"itemnumber\": %s },%s \"items\": [ %s %s %s,%s %s ] }"
 
-#. %1$s:  count | html
-#. %2$s:  totalcount | html
-#. %3$s:  offset | html
+#. %1$s:  count | html 
+#. %2$s:  totalcount | html 
+#. %3$s:  offset | html 
 #. %4$s:  FILTER escape_quotes = replace('"', '\"') ~
 #. %5$s:  FILTER remove_special_character = replace('([\t\r\n\f\b]|\s{3,})','') ~
-#. %6$s:  query
-#. %7$s: ~ END
-#. %8$s: ~ END
-#. %9$s: - FOREACH item IN items
+#. %6$s:  query 
+#. %7$s: ~ END 
+#. %8$s: ~ END 
+#. %9$s: - FOREACH item IN items 
 #. %10$s: - INCLUDE 'coverflow-item.json.inc' item = item -
 #. %11$s: - UNLESS loop.last -
 #. %12$s: - END -
-#. %13$s:  END
+#. %13$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/svc/coverflowbyquery.tt:1
 #, c-format
 msgid ""
