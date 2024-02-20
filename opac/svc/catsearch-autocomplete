@@ -81,6 +81,9 @@ if ( C4::Context->preference("SearchEngine") eq 'Elasticsearch' ) {
         $option =~ s/ [\-+;|] / /g;
         $option =~ s/["*()~]//g;
         $option =~ s/\?/\\?/g;
+        if ($option =~ /\b(not|and|or)\b/i ) {
+            $option = '"' . $option . '"';
+        }
         push @resultlist, { label => $label, value => $option };
     }
 }
