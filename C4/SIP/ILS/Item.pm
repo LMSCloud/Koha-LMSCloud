@@ -112,7 +112,7 @@ sub new {
         $self->{due_date} = dt_from_string( $issue->date_due, 'sql' )->truncate( to => 'minute' );
         my $patron = Koha::Patrons->find( $issue->borrowernumber );
         $self->{patron} = $patron->cardnumber;
-        $self->{issue_renewals} = $issue->renewals;
+        $self->{issue_renewals} = $issue->renewals_count;
         $self->{issue_library} = $issue->branchcode;
         $self->{borrowernumber} = $patron->borrowernumber;
     }
