@@ -159,7 +159,6 @@ if ( $op eq "action" ) {
                 }
             }
         }
-    }
 
         my $params = {
             record_ids                        => \@itemnumbers,
