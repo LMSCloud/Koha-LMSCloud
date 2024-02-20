@@ -54,8 +54,8 @@ Circulation:
             - pref: todaysIssuesDefaultSortOrder
               type: choice
               choices:
-                  asc: latest to earliest
-                  desc: earliest to latest
+                  asc: earliest to latest
+                  desc: latest to earliest
             - checkout time.
         -
             - pref: SpecifyDueDate
