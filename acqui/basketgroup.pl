@@ -408,7 +408,7 @@ if ( $op eq "add" ) {
     
 } elsif ( $op eq 'ediprint') {
     my $basketgroupid = $input->param('basketgroupid');
-    if ($template->param( 'ediaccount' )) {
+    if ( $rs->count > 0 ) {
         generate_edifact_orders( $basketgroupid );
         exit;
     } else {
