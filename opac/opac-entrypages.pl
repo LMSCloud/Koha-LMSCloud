@@ -32,6 +32,7 @@ use DateTime;
 use C4::Auth qw( get_template_and_user );
 use C4::Context;
 use C4::Output qw( output_html_with_http_headers );
+use Koha::DateUtils qw( dt_from_string output_pref );
 use CGI qw ( -utf8 );
 use Koha::AdditionalContents;
 
@@ -99,7 +100,8 @@ if ( defined($query->param('shownews')) ) {
             $homebranch = "";
         }
         
-		my $koha_news = Koha::AdditionalContents->search_for_display(
+        my $koha_news = [];
+		my $news = Koha::AdditionalContents->search_for_display(
 			{
 				category   => 'news',
 				location   => ['opac_only', 'staff_and_opac'],
@@ -107,10 +109,21 @@ if ( defined($query->param('shownews')) ) {
 				library_id => $homebranch,
 			}
 		);
+        while ( my $item = $news->next ) {
+            my $news_item = $item->unblessed;
+            
+            # $news_item->{date} = $item->published_on;
+            $news_item->{newdate} = output_pref({ dt => dt_from_string( $item->published_on ), dateonly => 1 });
+            $news_item->{author_title} = $item->author->title;
+            $news_item->{author_firstname}  = $item->author->firstname;
+            $news_item->{author_surname} = $item->author->surname;
+            
+            push @$koha_news, $news_item;
+        }
 
         $template->param(
             koha_news           => $koha_news,
-            koha_news_count     => $koha_news->count
+            koha_news_count     => scalar( @$koha_news )
         );
     }
 }
