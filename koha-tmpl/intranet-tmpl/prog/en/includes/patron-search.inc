@@ -749,7 +749,7 @@
                                     let comment = escape_str(row.restriction_comment);
                                     let r = '';
                                     if ( restricted == true ) {
-                                        r = '<div class="restricted">Restricted';
+                                        r = '<div class="restricted">' + _("Restricted: ");
                                         if ( row.patron_card_lost == true ) {
                                             comment = _("Patron card lost. ") + comment;
                                         }
@@ -757,7 +757,7 @@
                                             comment = _("Incomplete patron address. ") + comment;
                                         }
                                         if ( comment && comment.length > 0 ) {
-                                            r += ": " + comment;
+                                            r += comment;
                                         }
                                         r += '</div>';
                                     }
@@ -796,7 +796,7 @@
                                 "orderable": false,
                                 "render": function( data, type, row, meta ) {
                                     if ( row.overdues_count ) {
-                                        return "<span class='overdue'><strong>"+row.overdues_count + "</strong></span>";
+                                        return "<span class='overdue'><strong>"+row.overdues_count + "</strong></span> / " + row.checkouts_count;
                                     } else {
                                         return "0 / " + row.checkouts_count;
                                     }
