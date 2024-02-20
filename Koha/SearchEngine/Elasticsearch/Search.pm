@@ -255,7 +255,7 @@ sub search_auth_compat {
         }
         push @records, \%result;
     }
-    return ( \@records, $hits->{'total'}->{'value'} );
+    return ( \@records, $hits->{'total'} );
 }
 
 =head2 count_auth_use
@@ -387,7 +387,8 @@ sub decode_record_from_result {
     # and first element will be $result
     my ( $self, $result, $isAuth ) = @_;
     if ($result->{marc_format} eq 'base64ISO2709') {
-        my $record = MARC::Record->new_from_usmarc(decode_base64($result->{marc_data}));
+        my $record;
+        eval { $record = MARC::Record->new_from_usmarc(decode_base64($result->{marc_data})); };
         if ( !$isAuth && !($record && $record->subfield('999', 'c')) && exists($result->{biblioitemnumber}) ) {
 			my $biblio = Koha::Biblios->find( $result->{biblioitemnumber}->[0] );
             $record = $biblio ? $biblio->metadata->record({ embed_items => 1 }) : undef;
