@@ -66,6 +66,11 @@ authorities:
         sort: ~
         suggestible: ''
       - facet: ''
+        marc_field: 153(acefhjk)
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: ''
         marc_field: 155(avxyz)
         marc_type: marc21
         sort: ~
@@ -161,6 +166,11 @@ authorities:
         suggestible: ''
       - facet: ''
         marc_field: 151a
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: ''
+        marc_field: 153a
         marc_type: marc21
         sort: ~
         suggestible: ''
@@ -629,6 +639,11 @@ authorities:
         sort: ~
         suggestible: ''
       - facet: ''
+        marc_field: 453(acefhjk)
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: ''
         marc_field: 455(avxyz)
         marc_type: marc21
         sort: ~
@@ -796,11 +811,6 @@ authorities:
         suggestible: ''
       - facet: ''
         marc_field: 455(avxyz)
-        marc_type: marc21
-        sort: ~
-        suggestible: ''
-      - facet: ''
-        marc_field: 450(abcdefghklmnoprstvxyz)
         marc_type: marc21
         sort: ~
         suggestible: ''
