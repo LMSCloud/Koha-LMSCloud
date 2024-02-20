@@ -118,7 +118,7 @@
         [% koha_news_count = newsfiltercount                                %]
         [% koha_news = newsfilter                                           %]
 
-        [% IF koha_news.count %]
+        [% IF koha_news.size %]
 
             [% IF single_news_error %]
 
