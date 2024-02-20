@@ -854,7 +854,7 @@ sub _parseletter_sth {
     ($table eq 'reserves'     )    ? "SELECT * FROM $table WHERE borrowernumber = ? and biblionumber = ?"             :
     ($table eq 'borrowers'    )    ? "SELECT * FROM $table WHERE borrowernumber = ?"                                  :
     ($table eq 'account'      )    ? "SELECT * FROM borrowers WHERE borrowernumber = ?"                               :
-    ($table eq 'branches'     )    ? "SELECT * FROM $table WHERE     branchcode = ?"                                  :
+    ($table eq 'branches'     )    ? "SELECT $table.*,IFNULL(ad.content,'') AS opac_info FROM $table LEFT JOIN additional_contents ad ON (ad.category = 'html_customizations' AND ad.location='OpacLibraryInfo' AND ad.branchcode=$table.branchcode AND lang='default')  WHERE $table.branchcode = ?"                                  :
     ($table eq 'suggestions'  )    ? "SELECT * FROM $table WHERE   suggestionid = ?"                                  :
     ($table eq 'aqbooksellers')    ? "SELECT * FROM $table WHERE             id = ?"                                  :
     ($table eq 'aqorders'     )    ? "SELECT * FROM $table WHERE    ordernumber = ?"                                  :
