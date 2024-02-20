@@ -143,6 +143,7 @@ sub _get_barcode_data {
     my $match_kohatable = join(
         '|',
         (
+            ('homebranch_description','holdingbranch_description','ccode_description','location_description','permanent_location_description'),
             @{ $kohatables->{'biblio'} },
             @{ $kohatables->{'biblioitems'} },
             @{ $kohatables->{'items'} },
