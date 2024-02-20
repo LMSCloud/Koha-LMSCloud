@@ -219,7 +219,7 @@ if (C4::Context->preference('DivibibEnabled')) {
     if ( $divibib_issues ) {
         foreach my $issue ( sort { $b->{date_due}->datetime() cmp $a->{date_due}->datetime() } @{$divibib_issues} ) {
             my $biblio_object = Koha::Biblios->find($issue->{biblionumber});
-            my $marcrecord = $biblio_object->metadata->record;
+            my $record = $biblio_object->metadata->record;
             
             my $itemtype = $issue->{'itemtype'};                
             if ( !exists($itemtypes->{$itemtype}) ) {
@@ -240,7 +240,7 @@ if (C4::Context->preference('DivibibEnabled')) {
             
             my $isbn = GetNormalizedISBN($issue->{'isbn'});
             $issue->{normalized_isbn} = $isbn;
-            $issue->{normalized_upc} = GetNormalizedUPC( $marcrecord, C4::Context->preference('marcflavour') );
+            $issue->{normalized_upc} = GetNormalizedUPC( $record, C4::Context->preference('marcflavour') );
 
             # My Summary HTML
             if (my $my_summary_html = C4::Context->preference('OPACMySummaryHTML')){
@@ -251,6 +251,29 @@ if (C4::Context->preference('DivibibEnabled')) {
                 $issue->{isbn} ? $my_summary_html =~ s/{ISBN}/$isbn/g : $my_summary_html =~ s/{ISBN}//g;
                 $issue->{biblionumber} ? $my_summary_html =~ s/{BIBLIONUMBER}/$issue->{biblionumber}/g : $my_summary_html =~ s/{BIBLIONUMBER}//g;
                 $issue->{MySummaryHTML} = $my_summary_html;
+            }
+            
+            # EKZ and Onleihe Cover
+            if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled")) {
+                my $record = $biblio_object->metadata->record( { embed_items => 1, opac => 1, patron => $patron, } );
+                my $titlecoverurl;
+                my $coverfound = 0;
+                foreach my $tag( $record->field('856') ) {
+                    if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
+                        my $link = $tag->subfield('u');
+                        $link =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
+                        $link =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
+                        if (    ( C4::Context->preference("DivibibEnabled") && $link =~ /\.onleihe\.de/i ) 
+                             or ( C4::Context->preference("EKZCover") && $link =~ /cover\.ekz\.de/i )  
+                             or ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled") ) ) 
+                        {
+                            $titlecoverurl = $link;
+                            $coverfound = 1;
+                            last;
+                        }
+                    }
+                }
+                $issue->{titlecoverurl} = $titlecoverurl if ($coverfound); 
             }
             
             push @divibib_issuedat, $issue;
@@ -380,6 +403,29 @@ if ( $pending_checkouts->count ) { # Useless test
             $issue->{normalized_upc}  = GetNormalizedUPC( $marcrecord, C4::Context->preference('marcflavour') );
             $issue->{normalized_oclc} = GetNormalizedOCLCNumber( $marcrecord, C4::Context->preference('marcflavour') );
         }
+        
+        # EKZ and Onleihe Cover
+        if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled")) {
+            my $record = $biblio_object->metadata->record( { embed_items => 1, opac => 1, patron => $patron, } );
+            my $titlecoverurl;
+            my $coverfound = 0;
+            foreach my $tag( $record->field('856') ) {
+                if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
+                    my $link = $tag->subfield('u');
+                    $link =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
+                    $link =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
+                    if (    ( C4::Context->preference("DivibibEnabled") && $link =~ /\.onleihe\.de/i ) 
+                         or ( C4::Context->preference("EKZCover") && $link =~ /cover\.ekz\.de/i )  
+                         or ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled") ) ) 
+                    {
+                        $titlecoverurl = $link;
+                        $coverfound = 1;
+                        last;
+                    }
+                }
+            }
+            $issue->{titlecoverurl} = $titlecoverurl if ($coverfound); 
+        }
 
         # My Summary HTML
         if (my $my_summary_html = C4::Context->preference('OPACMySummaryHTML')){
@@ -448,6 +494,7 @@ if (C4::Context->preference("OPACAmazonCoverImages") or
     C4::Context->preference("GoogleJackets") or
     C4::Context->preference("BakerTaylorEnabled") or
     C4::Context->preference("SyndeticsCoverImages") or
+    C4::Context->preference("EKZCover") or
     ( C4::Context->preference('OPACCustomCoverImages') and C4::Context->preference('CustomCoverImagesURL') )
 ) {
         $template->param(JacketImages=>1);
