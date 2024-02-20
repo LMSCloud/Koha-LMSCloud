@@ -33,7 +33,7 @@ use Koha::DateUtils qw( output_pref dt_from_string );
 use Koha::Notice::Templates;
 use C4::Log; # logaction
 use C4::Letters;
-use C4::Overdues;
+use C4::Overdues qw( GetFine );
 use Koha::Acquisition::Currencies;
 
 use vars qw(@ISA @EXPORT);
