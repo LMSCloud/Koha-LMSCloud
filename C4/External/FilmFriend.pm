@@ -82,13 +82,13 @@ sub new {
     bless $self, $class;
     
     $self->{'traceEnabled'} = 0;
-    $self->{'traceEnabled'} = 1 if (C4::Context->preference('FilmfriendTraceEnabled'));
+    $self->{'traceEnabled'} = 1 ; #if (C4::Context->preference('FilmfriendTraceEnabled'));
 
     $self->{'customerID'}   = C4::Context->preference('FilmfriendCustomerID');
     $self->{'providerID'}   = C4::Context->preference('FilmfriendProviderID');
     
-    $self->{'filmFriendBaseURL'}         = 'https://api.vod.filmwerte.de/api/v1';
-    $self->{'filmFriendAuthURL'}         = 'https://api.vod.filmwerte.de/connect/authorize-external';
+    $self->{'filmFriendBaseURL'}         = 'https://api.tenant.frontend.vod.filmwerte.de/v11';
+    $self->{'filmFriendAuthURL'}         = 'https://api.tenant.frontend.vod.filmwerte.de/connect/authorize-external';
     
     
     $self->{'filmFriendTenantGroupIdDE'} = 'fba2f8b5-6a3a-4da3-b555-21613a88d3ef';
@@ -97,6 +97,13 @@ sub new {
     
     $self->{'baseURL'} = 'https://filmfriend.de/de/';
     
+    my $language = C4::Languages::getlanguage();
+    if ( $language =~ /^(de|fr|es|en)/ ) {
+        $language = $1;
+    } else {
+        $language = "en";
+    }
+                
     my $instanceURL = C4::Context->preference('FilmfriendCustomerURL');
     if ( $instanceURL ) {
         $instanceURL =~ s/^\s+//;
@@ -107,14 +114,6 @@ sub new {
                 $instanceURL =~ m|(?:([^:/?#]+):)?(?://([^/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?|;
             $scheme = "https" if (! $scheme );
             $authority = "filmfriend.de" if (! $authority );
-            if (! $path ) {
-                my $lang = C4::Languages::getlanguage();
-                if ( $lang =~ /^(de|fr)/ ) {
-                    $path = "/$1/";
-                } else {
-                    $path = "/en/";
-                }
-            }
             $instanceURL = "${scheme}://${authority}${path}";
             $instanceURL .= "/" if ( $instanceURL !~ /\/$/ );
             print "$instanceURL\n";
@@ -139,7 +138,7 @@ sub new {
     
     if ( $self->{'customerID'} ) {
         $self->{'filmFriendSearchURL'} = $self->{'filmFriendBaseURL'}
-                                         . '/customers(tenant)/' 
+                                         . '/' 
                                          . $self->{'customerID'}
                                          . '/search?';
     } else {
@@ -159,7 +158,7 @@ sub new {
                                          . '/search?';
     }
     
-    my @header = ( 'Accept' => 'application/json' );
+    my @header = ( 'Accept' => 'application/json', 'Accept-Language' => "$language" );
     
     $self->{'requestHeader'} = \@header;
     $self->{'scrubber'} = C4::Scrubber->new();
@@ -334,10 +333,10 @@ sub simpleSearch {
         my $url = $self->{'filmFriendSearchURL'};
         
         if ( $searchtype eq 'Movie' ) {
-            $url .= 'kinds=Video&videoKinds=Movie';
+            $url .= 'kinds=Movie';
         }
         elsif ( $searchtype eq 'Episode' ) {
-            $url .= 'kinds=Video&videoKinds=Episode';
+            $url .= 'kinds=Episode';
         }
         elsif ( $searchtype eq 'Video' ) {
             $url .= 'kinds=Video';
@@ -374,6 +373,7 @@ sub simpleSearch {
         $url .= '&languageIsoCode=DE';
         $url .= '&orderBy=Score';
         $url .= '&sortDirection=Descending';
+        $url .= '&totalCount=true';
         
         my @header = @{$self->{'requestHeader'}};
         
@@ -466,18 +466,22 @@ sub sanitizeResultStructure {
                     $hit = $hit->{result} if ( $hit->{result} );
                     
                     $hitType = $hit->{kind} if ( exists($hit->{kind}) && $hit->{kind} );
+                    my $hitentry = $hitType;
+                    $hitentry =~ s/^(.)(.*)$/lc($1).$2/es;
+                    
+                    $hit = $hit->{$hitentry} if ( $hit->{$hitentry} );
                     
                     $hit->{actors}= [];
                     $hit->{regie}= []; 
                     
                     if ( exists($hit->{imdbId}) && $hit->{imdbId}) {
-                        $hit->{IMDbLinkLink} = $self->{'IMDbLink'} . $hit->{imdbId};
+                        $hit->{IMDbLinkLink} = $hit->{imdbUrl};
                     }
                     if ( exists($hit->{filmportalId}) && $hit->{filmportalId}) {
-                        $hit->{FilmPortalLink} = $self->{'FilmPortalLink'} . $hit->{filmportalId};
+                        $hit->{FilmPortalLink} = $hit->{filmportalUrl};
                     }
                     if ( exists($hit->{tmdbId}) && $hit->{tmdbId}) {
-                        $hit->{MovieDatabaseLink} = $self->{'MovieDatabaseLink'} . $hit->{tmdbId};
+                        $hit->{MovieDatabaseLink} = $hit->{tmdbUrl};
                     }
                     
                     if ( exists($hit->{motionPictureContentRating}) && $hit->{motionPictureContentRating} =~ /^Fsk([0-9]+)/ ) {
@@ -540,7 +544,13 @@ sub sanitizeResultStructure {
                         $hit->{filmfriendLink} = $self->getLink($hitType,$hit->{id},$useAuth);
                     }
                     
-                    $self->setLanguageElement($hit,'Synopsis',$hit,'synopsis');
+                    if ( exists($hit->{synopsis}) && $hit->{synopsis}) {
+                        $hit->{Synopsis} = $hit->{synopsis};
+                    }
+                    
+                    if ( exists($hit->{teaser}) && $hit->{teaser}) {
+                        $hit->{Teaser} = $hit->{teaser};
+                    }
                     
                     if ( exists($hit->{productionCountries}) && reftype($hit->{productionCountries}) && reftype($hit->{productionCountries}) eq 'ARRAY' ) {
                         $self->setLanguageListElement($hit->{productionCountries},'Name',$hit,'production');
@@ -560,38 +570,30 @@ sub sanitizeResultStructure {
                     if ( exists($hit->{releaseDate}) && $hit->{releaseDate} =~ /^([0-9]{4})-/ ) {
                         $hit->{releaseYear} = $1;
                     }
-                    if ( exists($hit->{artworks}) && reftype($hit->{artworks}) && reftype($hit->{artworks}) eq 'ARRAY' ) {
-                        foreach my $artwork(@{$hit->{artworks}}) {
+                    if ( exists($hit->{artworkUris}) && reftype($hit->{artworkUris}) && reftype($hit->{artworkUris}) eq 'ARRAY' ) {
+                        foreach my $artwork(@{$hit->{artworkUris}}) {
                             if ( exists($artwork->{kind}) && $artwork->{kind} eq 'Thumbnail' ) {
-                                if ( exists($artwork->{uri}) ) {
-                                    foreach my $uri($artwork->{uri}) {
-                                        if ( exists($uri->{thumbnail1x}) && $uri->{thumbnail1x} ) {
-                                            $hit->{thumbnail} = $uri->{thumbnail1x} if ( !exists($hit->{thumbnail}) );
-                                            $hit->{thumbnails} = [] if ( !exists($hit->{thumbnails}) );
-                                            push @{ $hit->{thumbnails} }, $uri->{thumbnail1x};
-                                        }
-                                        elsif ( exists($uri->{resolution1x}) && $uri->{resolution1x} ) {
-                                            $hit->{thumbnail} = $uri->{resolution1x}  if ( !exists($hit->{thumbnail}) );
-                                            $hit->{thumbnails} = [] if ( !exists($hit->{thumbnails}) );
-                                            push @{ $hit->{thumbnails} }, $uri->{thumbnail1x};
-                                        }
-                                    }
+                                if ( exists($artwork->{thumbnail}) && $artwork->{thumbnail} ) {
+                                    $hit->{thumbnail} = $artwork->{thumbnail} if ( !exists($hit->{thumbnail}) );
+                                    $hit->{thumbnails} = [] if ( !exists($hit->{thumbnails}) );
+                                    push @{ $hit->{thumbnails} }, $artwork->{thumbnail1x};
+                                }
+                                elsif ( exists($artwork->{resolution1x}) && $artwork->{resolution1x} ) {
+                                    $hit->{thumbnail} = $artwork->{resolution1x}  if ( !exists($hit->{thumbnail}) );
+                                    $hit->{thumbnails} = [] if ( !exists($hit->{thumbnails}) );
+                                    push @{ $hit->{thumbnails} }, $artwork->{thumbnail1x};
                                 }
                             }
                         }
-                        COVER: foreach my $artwork(@{$hit->{artworks}}) {
+                        COVER: foreach my $artwork(@{$hit->{artworkUris}}) {
                             if ( exists($artwork->{kind}) && $artwork->{kind} eq 'CoverPortrait' ) {
-                                if ( exists($artwork->{uri}) ) {
-                                    foreach my $uri($artwork->{uri}) {
-                                        if ( exists($uri->{thumbnail1x}) && $uri->{thumbnail1x} ) {
-                                            $hit->{cover} = $uri->{thumbnail1x};
-                                            last COVER;
-                                        }
-                                        if ( exists($uri->{resolution1x}) && $uri->{resolution1x} ) {
-                                            $hit->{cover} = $uri->{resolution1x};
-                                            last COVER;
-                                        }
-                                    }
+                                if ( exists($artwork->{thumbnail}) && $artwork->{thumbnail} ) {
+                                    $hit->{cover} = $artwork->{thumbnail};
+                                    last COVER;
+                                }
+                                if ( exists($artwork->{resolution1x}) && $artwork->{resolution1x} ) {
+                                    $hit->{cover} = $artwork->{resolution1x};
+                                    last COVER;
                                 }
                             }
                         }
@@ -636,9 +638,9 @@ sub sanitizeResultStructure {
                         $hit->{duration} = "${mins}min";
                     }
                 }
-                if ( exists($hit->{kind}) && exists($self->{'useFields'}->{$hit->{kind}}) ) {
+                if ( hitType && exists($self->{'useFields'}->{hitType}) ) {
                     my $newhit = {};
-                    foreach my $key ( @{ $self->{'useFields'}->{$hit->{kind}} } ) {
+                    foreach my $key ( @{ $self->{'useFields'}->{hitType} } ) {
                         $newhit->{$key} = $hit->{$key};
                     }
                     $hit = $newhit;
@@ -651,7 +653,7 @@ sub sanitizeResultStructure {
     return $result;
 }
            
-sub setLanguageListElement {
+sub setListElement {
     my $self        = shift;
     my $elemGet     = shift;
     my $elemGetName = shift;
@@ -663,13 +665,15 @@ sub setLanguageListElement {
     
     if ( reftype($elemGet) && reftype($elemGet) eq 'ARRAY' ) {
         foreach my $elem( @{$elemGet}) {
-            my $value = $self->getLanguageElement($elem,$elemGetName);
-            if ( $value ) {
-                if ( !exists($elemSet->{$elemSetName}) ) {
-                    $elemSet->{$elemSetName} = [];
+            if ( exists($elem->{$elemGetName}) ) {
+                my $value = $elem->{$elemGetName}
+                if ( $value ) {
+                    if ( !exists($elemSet->{$elemSetName}) ) {
+                        $elemSet->{$elemSetName} = [];
+                    }
+                    push @{$elemSet->{$elemSetName}}, $value;
+                    $ret = 1;
                 }
-                push @{$elemSet->{$elemSetName}}, $value;
-                $ret = 1;
             }
         }
     }
@@ -747,5 +751,7 @@ sub normalizeSearchRequest {
 1;
 
 #
-# my $filmfriendService = C4::External::FilmFriend->new();
-# $filmfriendService->simpleSearch(1,"Maetzig",["Movie","Person"],10,0);
+my $filmfriendService = C4::External::FilmFriend->new();
+my $result = $filmfriendService->simpleSearch(1,"Maetzig",["Movie","Person"],10,0);
+use Data::Dumper;
+print Dumper($result);
