@@ -105,9 +105,8 @@ foreach my $issue ( @{$issues} ) {
                     my $link = $tag->subfield('u');
                     $link =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
                     $link =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
-                    if (    ( C4::Context->preference("DivibibEnabled") && $link =~ /\.onleihe\.de/i ) 
-                         or ( C4::Context->preference("EKZCover") && $link =~ /cover\.ekz\.de/i )  
-                         or ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled") ) ) 
+                    if (  ( C4::Context->preference("DivibibEnabled") && $link =~ /\.onleihe\.de/i ) 
+                         or C4::Context->preference("EKZCover") )
                     {
                         push @$titlecoverurls,$link;
                         $coverfound = 1;
