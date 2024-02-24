@@ -1160,6 +1160,7 @@ END_SQL
                     message_transport_type => 'email',
                     attachments            => [$attachment],
                     to_address             => $branch_email_address,
+                    branchcode             => $usebranch,
                 }
             ) unless $test_mode;
         }
