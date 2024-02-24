@@ -27,6 +27,17 @@ use C4::Koha;
 use C4::Context;
 use Koha::Cache::Memory::Lite;
 use Koha::Libraries;
+use Koha::AdditionalContents;
+
+sub new {
+    my ($class, $context) = @_;
+
+    my $self = {
+        _CONTEXT => $context,
+    };
+
+    return bless $self, $class;
+}
 
 sub GetName {
     my ( $self, $branchcode ) = @_;
@@ -89,6 +100,12 @@ sub all {
       ? Koha::Libraries->search( $search_params, { order_by => ['branchname'] } )->unblessed
       : Koha::Libraries->search_filtered( $search_params, { order_by => ['branchname'] } )->unblessed;
 
+    my $lang = 'default';
+    eval {
+        my $stash = $self->{_CONTEXT}->stash();
+        $lang = $stash->get('lang');
+    };
+    
     for my $l (@$libraries) {
         if ( grep { $l->{branchcode} eq $_ } @selected
             or  not @selected
@@ -98,6 +115,15 @@ sub all {
         {
              $l->{selected} = 1;
         }
+        eval {
+            my $opac_info = Koha::AdditionalContents->find_best_match({
+                                    category => 'html_customizations',
+                                    location => 'OpacLibraryInfo',
+                                    lang => $lang,
+                                    library_id => $l->{branchcode},
+                                });
+            $l->{opac_info} = $opac_info->content if ($opac_info);
+        };
     }
 
 
