@@ -25,7 +25,7 @@ use Locale::Currency::Format;
 use Koha::NoticeFeeRule;
 use Koha::NoticeFeeRules;
 use Koha::Account;
-use Koha::DateUtils qw( dt_from_string );
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Notice::Templates;
 use C4::Log; # logaction
 
