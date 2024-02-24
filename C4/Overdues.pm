@@ -686,7 +686,7 @@ sub GetBranchcodesWithOverdueRules {
         !C4::Context->preference('BookMobileStationOverdueRulesActive')) 
     {
         $branchcodes = $dbh->selectcol_arrayref(q|
-            SELECT DISTINCT(b.branchcode)
+            SELECT DISTINCT(o.branchcode)
             FROM overduerules o LEFT JOIN branches b ON o.branchcode = b.branchcode
             WHERE o.delay1 IS NOT NULL
             AND (b.mobilebranch is NULL OR b.mobilebranch = '')
@@ -694,7 +694,7 @@ sub GetBranchcodesWithOverdueRules {
         |);
     } else {
         $branchcodes = $dbh->selectcol_arrayref(q|
-            SELECT DISTINCT(b.branchcode)
+            SELECT DISTINCT(o.branchcode)
             FROM overduerules o LEFT JOIN branches b ON o.branchcode = b.branchcode
             WHERE o.delay1 IS NOT NULL
             UNION
