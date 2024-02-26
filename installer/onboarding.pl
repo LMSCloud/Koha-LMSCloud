@@ -282,6 +282,8 @@ if ( $step == 5 ) {
                 recall_due_date_interval         => undef,
                 recall_overdue_fine              => undef,
                 recall_shelf_time                => undef,
+                bookings_lead_period             => undef,
+                bookings_trail_period            => undef,
               }
         };
 
