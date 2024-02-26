@@ -211,6 +211,12 @@ our $RULE_KINDS = {
     recall_shelf_time => {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
     },
+    bookings_lead_period => {
+        scope => [ 'branchcode', 'itemtype' ],
+    },
+    bookings_trail_period => {
+        scope => [ 'branchcode', 'itemtype' ],
+    },
     # Not included (deprecated?):
     #   * accountsent
     #   * reservecharge
