@@ -22,6 +22,7 @@
           enum:
             - +strings
             - biblio
+            - effective_bookable
         collectionFormat: csv
       - $ref: "../swagger.yaml#/parameters/match"
       - $ref: "../swagger.yaml#/parameters/order_by"
@@ -89,6 +90,7 @@
           type: string
           enum:
             - +strings
+            - effective_bookable
         collectionFormat: csv
     consumes:
       - application/json
