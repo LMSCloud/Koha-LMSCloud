@@ -80,7 +80,9 @@ return {
             ('ps', 'language', 'Pashto', now()),
             ('ti', 'language', 'Tigrinya', now()),
             ('so', 'language', 'Somali', now()),
-            ('syr', 'language', 'Syriac', now())
+            ('syr', 'language', 'Syriac', now()),
+            ('nds', 'language', 'Low German', now()),
+            ('frr', 'language', 'North Frisian', now())
         });
 
         $dbh->do(q{
@@ -148,7 +150,13 @@ return {
             ('so', 'language', 'de', 'Somali'),
             ('syr', 'language', 'en', 'Syriac'),
             ('syr', 'language', 'syr', 'ܠܫܢܐ ܣܘܪܝܝܐ'),
-            ('syr', 'language', 'de', 'Syrisch')
+            ('syr', 'language', 'de', 'Syrisch'),
+            ('nds', 'language', 'en', 'Low German'),
+            ('nds', 'language', 'ndr', 'Niederdeutsch/Plattdeutsch'),
+            ('nds', 'language', 'de', 'Niederdeutsch/Plattdeutsch'),
+            ('frr', 'language', 'en', 'North Frisian'),
+            ('frr', 'language', 'frr', 'Nordfriesisch'),
+            ('frr', 'language', 'de', 'Nordfriesisch')
         });
 
         $dbh->do(q{
@@ -174,7 +182,9 @@ return {
             ('ps','pus'),
             ('ti','tir'),
             ('so','som'),
-            ('syr','syr')
+            ('syr','syr'),
+            ('nds','nds'),
+            ('frr','frr')
         });
     },
 }
