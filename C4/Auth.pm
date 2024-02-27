@@ -1130,6 +1130,27 @@ sub checkauth {
             {
                 $return = 0;
             }
+            
+            # Restrict local staff interface logins with activated Shibboleth Authentication to userids 
+            # listed in staffShibLocalAccounts if the system preference is set
+            if (
+                   $shib
+                && !$shibSuccess
+                && $type eq 'intranet'
+                && C4::Context->preference('staffShibLocalAccounts')
+                && $return && $return > 0
+              )
+            {
+                my %localAccounts;
+                foreach my $localUserID( split(/\|/,C4::Context->preference('staffShibLocalAccounts')) ) {
+                    $localAccounts{$localUserID}=1 if ( $localUserID );
+                }
+                if (! exists($localAccounts{$userid}) ) {
+                    my $redirect_url = login_shib_url( $query );
+                    print $query->redirect( -uri => "$redirect_url", -status => 303 );
+                    safe_exit;
+                }
+            }
 
             # $return: 1 = valid user
             if( $return && $return > 0 ) {
