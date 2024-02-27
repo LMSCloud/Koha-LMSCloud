@@ -3261,6 +3261,114 @@ sub getFinesOverview {
             };
         }
     }
+	elsif ( $type eq 'writeoffbyday' || $type eq 'writeoffbymanager' || $type eq 'writeoffbytype' ) {
+    
+        my ($fmtfrom,$fmtto);
+        # get the accountlines statistics by type
+        $fmtfrom = DateTime::Format::MySQL->format_datetime($date_from);
+        $fmtto = DateTime::Format::MySQL->format_datetime($date_to);
+
+        # get the accountlines statistics by type
+        my $query = qq{
+            SELECT  2 as entrytype,
+                    DATE(a.date) as date, 
+                    a.credit_type_code as credit_type_code, 
+                    a.amount * -1 as amount,
+                    a.borrowernumber as borrowernumber,
+                    CONCAT(
+                            TRIM(a.description),
+                            IF(LENGTH(TRIM(a.description))>0 AND LENGTH(TRIM(a.note))>0,' - ',''),
+                            TRIM(a.note)
+                           ) as description,
+                    a.manager_id as manager_id,
+                    '' as reason
+            FROM    branches br, accountlines a
+            WHERE   a.credit_type_code IS NOT NULL
+                AND a.date >= ? and a.date <= ?
+                AND a.credit_type_code IN ('WRITEOFF','CANCELLATION','FORGIVEN')
+                AND a.branchcode = br.branchcode $branchselect
+            ORDER BY date, borrowernumber
+           }; 
+        
+        my @params = ($fmtfrom, $fmtto);
+
+        $query =~ s/^\s+/ /mg;
+        
+        my $sth = $dbh->prepare($query);
+        
+        my %borrowers = ();
+
+        my $query_bor = q{
+            SELECT b.borrowernumber, b.firstname, b.surname, b.cardnumber
+            FROM borrowers b
+            WHERE b.borrowernumber = ? };
+        my $sth_bor = $dbh->prepare($query_bor);
+        
+        my $query_delbor = q{
+            SELECT b.borrowernumber, b.firstname, b.surname, b.cardnumber
+            FROM deletedborrowers b
+            WHERE b.borrowernumber = ? };
+        my $sth_delbor = $dbh->prepare($query_delbor);
+
+        $sth->execute(@params);
+
+        my $rownum = 0;
+        while (my $row = $sth->fetchrow_hashref) {
+            my $amount = $row->{amount};
+            my $credit_type_code = $row->{credit_type_code};
+            my $credit_type = $row->{credit_type_code};
+            $credit_type = $credit_types{$credit_type} if ( exists($credit_types{$credit_type_code}) );
+            
+            # read required record from borrowers or deletedborrowers for getting manager_name and patron_name
+            foreach my $borr ( { id => 'manager_id', desig_name => 'manager_name', desig_cardno => 'manager_cardnumber', desig_isdel => 'manager_is_deleted' }, { id => 'borrowernumber', desig_name => 'patron_name', desig_cardno => 'cardnumber', desig_isdel => 'patron_is_deleted' } ) {
+                if ( $row->{$borr->{id}} ) {
+                    if ( ! exists $borrowers{$row->{$borr->{id}}} ) {
+                        my $borrower_is_deleted = 0;
+                        $sth_bor->execute($row->{$borr->{id}});
+                        my $row_bor = $sth_bor->fetchrow_hashref;
+                        if ( ! $row_bor  ) {
+                            $borrower_is_deleted = 1;
+                            $sth_delbor->execute($row->{$borr->{id}});
+                            $row_bor = $sth_delbor->fetchrow_hashref;
+                        }
+                        if ( $row_bor ) {
+                            $borrowers{$row->{$borr->{id}}}->{fullname} = length($row_bor->{firstname}) ? $row_bor->{firstname} . ' ' . $row_bor->{surname} : $row_bor->{surname};
+                            $borrowers{$row->{$borr->{id}}}->{cardnumber} = $row_bor->{cardnumber};
+                        } else {
+                            $borrowers{$row->{$borr->{id}}}->{fullname} = '';
+                            $borrowers{$row->{$borr->{id}}}->{cardnumber} = '';
+                        }
+                        $borrowers{$row->{$borr->{id}}}->{borrower_is_deleted} = $borrower_is_deleted;
+                    }
+                    $row->{$borr->{desig_name}} = $borrowers{$row->{$borr->{id}}}->{fullname};
+                    $row->{$borr->{desig_cardno}} = $borrowers{$row->{$borr->{id}}}->{cardnumber};
+                    $row->{$borr->{desig_isdel}} = $borrowers{$row->{$borr->{id}}}->{borrower_is_deleted};
+                } else {
+                    $row->{$borr->{desig_name}} = '';
+                    $row->{$borr->{desig_cardno}} = '';
+                    $row->{$borr->{desig_isdel}} = 1;
+                }
+            }
+            
+            $result->{data}->[$rownum++] = {
+                entrytype => $row->{entrytype},
+                reason => $row->{reason},
+                date => $row->{date},
+                credit_type => $credit_type,
+                credit_type_code => $row->{credit_type_code},
+                amount => $amount,
+                fines_amount => sprintf('%.2f', $amount),
+                fines_amount_formatted => $self->formatAmountWithCurrency($amount),
+                description => $row->{description},
+                borrowernumber => $row->{borrowernumber},
+                patron_name => $row->{patron_name},             # constructed from %borrowers
+                cardnumber => $row->{cardnumber},               # constructed from %borrowers
+                patron_is_deleted => $row->{patron_is_deleted}, # constructed from %borrowers
+                manager_id => $row->{manager_id},
+                manager_name => $row->{manager_name}            # constructed from %borrowers
+            };
+        }
+    }
     
     return ($result,output_pref({dt => dt_from_string($date_from), dateformat => 'iso', dateonly => 0}),output_pref({dt => dt_from_string($date_to), dateformat => 'iso', dateonly => 0}));
 }

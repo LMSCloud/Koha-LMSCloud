@@ -15,6 +15,8 @@
 [%        CASE 'PAYOUT'          %]Cash payment
 [%        CASE 'DEPOSIT'         %]Deposit
 [%        CASE 'CREDIT'          %]Credit
+[%        CASE 'WRITEOFF'        %]Write off
+[%        CASE 'CANCELLATION'    %]Cancellation
 [%        CASE %][% action %]
 [%    END %]
 [% END-%]

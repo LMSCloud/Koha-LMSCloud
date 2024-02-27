@@ -88,7 +88,7 @@
                     <li>
                         Fines overview <input type="text" size="16" id="journalfrom" name="journalfrom" value="[% journalfrom %]" class="flatpickr" data-flatpickr-enable-time="true" />
                         to <input type="text" size="16" id="journalto" name="journalto" value="[% journalto %]" class="flatpickr" data-flatpickr-enable-time="true" />
-                        [% seltypes = [ 'paidfinesbytype', 'paidfinesbymanager', 'paidfinesbyday', 'finesoverview', 'finesbytype', 'finesbymanager', 'finesbyday', 'paymentsbytype', 'paymentsbymanager', 'paymentsbyday'] %]
+                        [% seltypes = [ 'paidfinesbytype', 'paidfinesbymanager', 'paidfinesbyday', 'finesoverview', 'finesbytype', 'finesbymanager', 'finesbyday', 'paymentsbytype', 'paymentsbymanager', 'paymentsbyday', 'writeoffbyday', 'writeoffbymanager', 'writeoffbytype'] %]
                         <select name="finestype">
                             [% FOREACH seltype IN seltypes %]
                                 [% IF (finesstats.type == seltype) %]
@@ -107,6 +107,9 @@
                                 [% CASE 'paymentsbytype' %]Detailed payments by type
                                 [% CASE 'paymentsbymanager' %]Detailed payments by manager
                                 [% CASE 'paymentsbyday' %]Detailed payments by day
+                                [% CASE 'writeoffbytype' %]Detailed write offs and cancellations by type
+                                [% CASE 'writeoffbymanager' %]Detailed write offs and cancellations by manager
+                                [% CASE 'writeoffbyday' %]Detailed write offs and cancellations by day
                                 [% CASE %][% seltype %]
                                 [%- END -%]
                                 </option>
@@ -493,7 +496,7 @@
     </table>
     [% END %]
     [% END %]
-[% ELSIF (finesstats.type == 'paidfinesbyday' || finesstats.type == 'paidfinesbymanager' || finesstats.type == 'paidfinesbytype' || finesstats.type == 'finesbyday' || finesstats.type == 'finesbymanager' || finesstats.type == 'finesbytype' || finesstats.type == 'paymentsbyday' || finesstats.type == 'paymentsbymanager' || finesstats.type == 'paymentsbytype') %]
+[% ELSIF (finesstats.type == 'paidfinesbyday' || finesstats.type == 'paidfinesbymanager' || finesstats.type == 'paidfinesbytype' || finesstats.type == 'finesbyday' || finesstats.type == 'finesbymanager' || finesstats.type == 'finesbytype' || finesstats.type == 'paymentsbyday' || finesstats.type == 'paymentsbymanager' || finesstats.type == 'paymentsbytype' || finesstats.type == 'writeoffbyday' || finesstats.type == 'writeoffbymanager' || finesstats.type == 'writeoffbytype') %]
     <h3 style="margin-top:20px">
         [% SWITCH finesstats.type %]
         [% CASE 'paidfinesbytype' %]Detailed paid fines by type
@@ -505,6 +508,9 @@
         [% CASE 'paymentsbytype' %]Detailed payments by type
         [% CASE 'paymentsbymanager' %]Detailed payments by manager
         [% CASE 'paymentsbyday' %]Detailed payments by day
+		[% CASE 'writeoffbytype' %]Detailed write offs and cancellations by type
+		[% CASE 'writeoffbymanager' %]Detailed write offs and cancellations by manager
+		[% CASE 'writeoffbyday' %]Detailed write offs and cancellations by day
         [% CASE %][% seltype %]
         [%- END -%]
     </h4>
@@ -519,7 +525,9 @@
                 <th class="title-string" >Day</th>
                 <th>Amount</th>
                 <th>
-                    [% IF (finesstats.type == 'paidfinesbyday' || finesstats.type == 'paidfinesbymanager' || finesstats.type == 'paidfinesbytype' || finesstats.type == 'finesbyday' || finesstats.type == 'finesbymanager' || finesstats.type == 'finesbytype' ) %]Fine type[% ELSE %]Payment type[% END %]
+                    [% IF (finesstats.type == 'paidfinesbyday' || finesstats.type == 'paidfinesbymanager' || finesstats.type == 'paidfinesbytype' || finesstats.type == 'finesbyday' || finesstats.type == 'finesbymanager' || finesstats.type == 'finesbytype') %]Fine type
+                    [% ELSIF (finesstats.type == 'writeoffbyday' || finesstats.type == 'writeoffbymanager' || finesstats.type == 'writeoffbytype') %]Write off type
+                    [% ELSE %]Payment type[% END %]
                 </th>
                 <th>Patron/Barcode</th>
                 <th>Description</th>
@@ -725,10 +733,10 @@
             $("#finesoverview_wrapper .pager").removeClass("pager");
             $("#finestypeoverview_wrapper .pager").removeClass("pager");
 
-            [% IF (finesstats && ( finesstats.type == 'paidfinesbyday' || finesstats.type == 'paidfinesbytype' ||  finesstats.type == 'paidfinesbymanager' || finesstats.type == 'finesbyday' || finesstats.type == 'finesbytype' ||  finesstats.type == 'finesbymanager' || finesstats.type == 'paymentsbyday' || finesstats.type == 'paymentsbytype' ||  finesstats.type == 'paymentsbymanager')) %]
-            [% IF    ( finesstats.type == 'paidfinesbyday' || finesstats.type == 'finesbyday' || finesstats.type == 'paymentsbyday')     %][% groupcol = '0' %][% sortdir = 'desc' %]
-            [% ELSIF ( finesstats.type == 'paidfinesbytype' || finesstats.type == 'finesbytype' || finesstats.type == 'paymentsbytype')    %][% groupcol = '2' %][% sortdir = 'asc' %]
-            [% ELSIF ( finesstats.type == 'paidfinesbymanager' || finesstats.type == 'finesbymanager' || finesstats.type == 'paymentsbymanager') %][% groupcol = '5' %][% sortdir = 'asc' %]
+            [% IF (finesstats && ( finesstats.type == 'paidfinesbyday' || finesstats.type == 'paidfinesbytype' ||  finesstats.type == 'paidfinesbymanager' || finesstats.type == 'finesbyday' || finesstats.type == 'finesbytype' ||  finesstats.type == 'finesbymanager' || finesstats.type == 'paymentsbyday' || finesstats.type == 'paymentsbytype' ||  finesstats.type == 'paymentsbymanager' || finesstats.type == 'writeoffbyday' || finesstats.type == 'writeoffbymanager' || finesstats.type == 'writeoffbytype')) %]
+            [% IF    ( finesstats.type == 'paidfinesbyday' || finesstats.type == 'finesbyday' || finesstats.type == 'paymentsbyday' || finesstats.type == 'writeoffbyday')     %][% groupcol = '0' %][% sortdir = 'desc' %]
+            [% ELSIF ( finesstats.type == 'paidfinesbytype' || finesstats.type == 'finesbytype' || finesstats.type == 'paymentsbytype' || finesstats.type == 'writeoffbytype')    %][% groupcol = '2' %][% sortdir = 'asc' %]
+            [% ELSIF ( finesstats.type == 'paidfinesbymanager' || finesstats.type == 'finesbymanager' || finesstats.type == 'paymentsbymanager' || finesstats.type == 'writeoffbymanager') %][% groupcol = '5' %][% sortdir = 'asc' %]
             [% END %]
             $("#finesbydate").dataTable($.extend(true, {}, dataTablesDefaults, {
                 "bAutoWidth": false,
