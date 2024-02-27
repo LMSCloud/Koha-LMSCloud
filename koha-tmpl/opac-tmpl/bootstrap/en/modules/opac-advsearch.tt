@@ -355,8 +355,8 @@
                         <div id="pubrange" class="advsearch_limit">
                             <!-- PUB RANGE OPTION -->
                             <fieldset>
-                                <label for="limit-yr">Publication date range</label>
-                                <input type="text" size="30" id="limit-yr" name="limit-yr" title="Enter search terms" value="" />
+                                <label for="limit-copydate">Publication date range</label>
+                                <input type="text" size="30" id="limit-copydate" name="limit-copydate" title="Enter search terms" value="" />
                                 <div class="hint">For example:  1999-2001.  You could also use "-1987" for everything published in and before 1987 or "2008-" for everything published in 2008 and after.</div>
                             </fieldset>
                             <!-- /PUB RANGE OPTION -->
