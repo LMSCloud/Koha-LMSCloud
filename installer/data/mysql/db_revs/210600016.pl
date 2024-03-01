@@ -83,9 +83,16 @@ return {
         }
 
         my $contents = $dbh->selectall_arrayref(q|SELECT * FROM additional_contents|, { Slice => {} });
+        
+        my $contentSettings = {};
+        my $contentValues = {};
+        my ($defaultLang) = split(/,/,C4::Context->preference("OPACLanguages"),2);
+        $defaultLang = '' if (! defined($defaultLang));
+        
         for my $c ( @$contents ) {
-            my ( $category, $location, $new_lang );
-            if ( $c->{lang} eq '' ) {
+			my ( $category, $location, $new_lang, $create_default );
+			$create_default = 0;
+			if ( $c->{lang} eq '' ) {
                 $category = 'news';
                 $location = 'staff_and_opac';
                 $new_lang = 'default';
@@ -99,39 +106,73 @@ return {
                 $new_lang = 'default';
             } elsif ( $c->{lang} =~ m|_| ) {
                 ( $location, $new_lang ) = split '_', $c->{lang};
-                $category = 'html_customizations'
+                $category = 'html_customizations';
+                if ( !exists($contentValues->{$location}) ) {
+					$contentValues->{$location}->{muldipleIDs} = 0;
+					$contentValues->{$location}->{firstID} = $c->{idnew};
+				}
+                if ( exists($contentValues->{$location}->{languages}->{$new_lang}) ) {
+					$contentValues->{$location}->{muldipleIDs}++;
+				}
+				else {
+					$contentValues->{$location}->{languages}->{$new_lang} = $c->{idnew};
+					$contentValues->{$location}->{firstID} = $c->{idnew} if ( $defaultLang eq $new_lang );
+				}
+				$create_default = 1 if ( $new_lang ne 'default' );
             } else {
                 $category = 'news';
                 $location = 'opac_only';
-                $new_lang = $c->{lang};
+                $new_lang = 'default';
+                # $new_lang = $c->{lang};
+                # $create_default = 1 if ( $new_lang ne 'default' );
             }
-
             die "There is something wrong here, we didn't find a valid category for idnew=" . $c->{idnew} unless $category;
+            my $idnew = $c->{idnew};
+            my $code = ( grep {$_ eq $location} qw( staff_and_opac staff_only opac_only slip ) ) ? "${location}_$idnew" : "News_$idnew";
+            
+            $contentSettings->{$c->{idnew}} = { category => $category, location => $location, lang => $new_lang, code => $code, create_default => $create_default };
+		}
+		
+		foreach my $location ( %$contentValues ) {
+			if (! $contentValues->{$location}->{muldipleIDs} ) {
+				my $firstID = $contentValues->{$location}->{firstID};
+				foreach my $lang(keys %{$contentValues->{$location}->{languages}}) {
+					my $newsID = $contentValues->{$location}->{languages}->{$lang};
+					if ( $newsID ne $firstID ) {
+						$contentSettings->{$newsID}->{code} = $contentSettings->{$firstID}->{code};
+						$contentSettings->{$newsID}->{create_default} = 0;
+					}
+				}
+			}
+		}
+		
+        
+        for my $c ( @$contents ) {
+			my $settings = $contentSettings->{$c->{idnew}};
+			my $category = $settings->{category};
+			my $location = $settings->{location};
+			my $new_lang = $settings->{lang};
+			my $code     = $settings->{code};
 
             # Now this is getting weird
             # We are adding an extra news with the same code when the lang is not "default" (/"en")
 
             my $sth_update = $dbh->prepare(q|
                 UPDATE additional_contents
-                SET category=?, location=?, lang=?
+                SET category=?, location=?, lang=?, code=? 
                 WHERE idnew=?
             |);
 
             my $parent_idnew;
-            if ( $new_lang ne 'default' ) {
+            if ( $settings->{create_default} ) {
                 $dbh->do(q|
                     INSERT INTO additional_contents(category, code, location, branchcode, title, content, lang, published_on, updated_on, expirationdate, number, borrowernumber)
                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                |, undef, $category, 'tmp_code', $location, $c->{branchcode}, $c->{title}, '', 'default', $c->{published_on}, $c->{updated_on}, $c->{expirationdate}, $c->{number}, $c->{borrowernumber});
+                |, undef, $category, $code, $location, $c->{branchcode}, $c->{title}, '', 'default', $c->{published_on}, $c->{updated_on}, $c->{expirationdate}, $c->{number}, $c->{borrowernumber});
 
                 $parent_idnew = $dbh->last_insert_id(undef, undef, 'additional_contents', undef);
             }
-            $sth_update->execute($category, $location, $new_lang, $c->{idnew});
-
-            my $idnew = $parent_idnew || $c->{idnew};
-            my $code = ( grep {$_ eq $location} qw( staff_and_opac staff_only opac_only slip ) ) ? "${location}_$idnew" : "News_$idnew";
-            $dbh->do(q|UPDATE additional_contents SET code=? WHERE idnew = ?|, undef, $code, $parent_idnew) if $parent_idnew;
-            $dbh->do(q|UPDATE additional_contents SET code=? WHERE idnew = ?|, undef, $code, $c->{idnew});
+            $sth_update->execute($category, $location, $new_lang, $code, $c->{idnew});
         }
 
         $dbh->do(q|
