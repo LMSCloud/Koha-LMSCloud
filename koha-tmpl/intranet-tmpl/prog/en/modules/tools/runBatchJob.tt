@@ -202,7 +202,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                         </tr>
                                         <tr>
                                             <td><label for="overdue_notices_senddate">Run date. If set, the program runs not for the current but the provided date and creates notices for items that match with the configured overdue triggers on that date.</label></td>
-                                            <td><input type="text" size="13" id="overdue_notices_senddate" name="overdue_notices_senddate" value="" readonly="readonly" /></td>
+                                            <td><input type="text" size="10" id="overdue_notices_senddate" name="overdue_notices_senddate" value="" class="flatpickr"/></td>
                                         </tr>
                                         
                                     </table>
@@ -333,11 +333,11 @@ produced by other features of Koha. The message queue must be processed regularl
                                         </tr>
                                         <tr>
                                             <td><label for="delete_patrons_not_borrowed_since">Delete patrons who have not borrowed since this date.</label></td>
-                                            <td><input type="text" size="13" id="delete_patrons_not_borrowed_since" name="delete_patrons_not_borrowed_since" value="" readonly="readonly" /></td>
+                                            <td><input type="text" size="10" id="delete_patrons_not_borrowed_since" name="delete_patrons_not_borrowed_since" value="" class="flatpickr"/></td>
                                         </tr>
                                         <tr>
                                             <td><label for="delete_patrons_expired_before">Delete patrons with an account expired before this date.</label></td>
-                                            <td><input type="text" size="13" id="delete_patrons_expired_before" name="delete_patrons_expired_before" value="" readonly="readonly" /></td>
+                                            <td><input type="text" size="10" id="delete_patrons_expired_before" name="delete_patrons_expired_before" value="" class="flatpickr"/></td>
                                         </tr>
                                     </table>
                                 </td>
@@ -436,49 +436,6 @@ produced by other features of Koha. The message queue must be processed regularl
             document.getElementById('jobcmd').value = func;
             document.runJob.submit();
         }
-
-        $(document).ready(function() {
-                $("#delete_patrons_not_borrowed_since").datepicker( 
-                    { 
-                        autoclose: true, 
-                        maxDate: -1 ,
-                        showOn: "both",
-                        changeMonth: true,
-                        changeYear: true,
-                        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-                        buttonImageOnly: true,
-                        showButtonPanel: true,
-                        showOtherMonths: true,
-                        selectOtherMonths: true
-                    });
-                $("#delete_patrons_expired_before").datepicker( 
-                    { 
-                        autoclose: true, 
-                        maxDate: -1 ,
-                        showOn: "both",
-                        changeMonth: true,
-                        changeYear: true,
-                        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-                        buttonImageOnly: true,
-                        showButtonPanel: true,
-                        showOtherMonths: true,
-                        selectOtherMonths: true
-                    });
-                $("#overdue_notices_senddate").datepicker( 
-                    { 
-                        autoclose: true, 
-                        maxDate: +100 ,
-                        minDate: 0,
-                        showOn: "both",
-                        changeMonth: true,
-                        changeYear: true,
-                        buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-                        buttonImageOnly: true,
-                        showButtonPanel: true,
-                        showOtherMonths: true,
-                        selectOtherMonths: true
-                    });
-        });
     </script>
 [% END %]
 
