@@ -1125,7 +1125,7 @@ sub has_family_overdues {
     if ( $familyCardId ) {
         if ( my $chief = Koha::Patrons->find( $familyCardId ) ) {
             $overdues = $chief->has_overdues;
-            my @guarantees =  $chief->guarantee_relationships->guarantees;
+            my @guarantees =  $chief->guarantee_relationships->guarantees->as_list;
             foreach my $family_member(@guarantees) {
                 $overdues += $family_member->has_overdues;
             }
@@ -1383,7 +1383,7 @@ sub family_checkout_count {
     if ( $familyCardId ) {
         if ( my $chief = Koha::Patrons->find( $familyCardId ) ) {
             $checkoutcount = $chief->checkout_count;
-            my @guarantees =  $chief->guarantee_relationships->guarantees;
+            my @guarantees =  $chief->guarantee_relationships->guarantees->as_list;
             foreach my $family_member(@guarantees) {
                 $checkoutcount += $family_member->checkout_count;
             }
@@ -1570,7 +1570,7 @@ sub get_family_account_balance {
     if ( $familyCardId ) {
         if ( my $chief = Koha::Patrons->find( $familyCardId ) ) {
             $balance = $chief->get_account_balance;
-            my @guarantees =  $chief->guarantee_relationships->guarantees;
+            my @guarantees =  $chief->guarantee_relationships->guarantees->as_list;
             foreach my $family_member(@guarantees) {
                 $balance += $family_member->get_account_balance;
             }
