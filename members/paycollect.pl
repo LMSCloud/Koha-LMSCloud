@@ -26,7 +26,7 @@ use C4::Auth qw( get_template_and_user );
 use C4::Output qw( output_and_exit_if_error output_and_exit output_html_with_http_headers );
 use C4::Accounts;
 use C4::Koha;
-use C4::CashRegisterManagement qw(passCashRegisterCheck);
+use C4::CashRegisterManagement qw(passCashRegisterCheck getOpenedCashRegister);
 
 use Koha::Cash::Registers;
 use Koha::Patrons;
@@ -79,6 +79,7 @@ my $payment_note = uri_unescape scalar $input->param('payment_note');
 my $payment_type = scalar $input->param('payment_type');
 my $accountlines_id;
 my $checkCashRegisterOk = passCashRegisterCheck($library_id,$loggedinuser);
+my $openedCashRegister = getOpenedCashRegister($library_id,$loggedinuser);
 
 my $cash_register_id = $input->param('cash_register');
 if ( $pay_individual || $writeoff_individual || $cancel_individual) {
@@ -295,6 +296,7 @@ if ( $input->param('error_over') ) {
 $template->param(
     payment_id => $payment_id,
     checkCashRegisterFailed   => (! $checkCashRegisterOk),
+    openedCashRegister => $openedCashRegister,
     type           => $type,
     borrowernumber => $borrowernumber,    # some templates require global
     patron         => $patron,

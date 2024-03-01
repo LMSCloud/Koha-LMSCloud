@@ -152,7 +152,15 @@
     <input type="hidden" name="collected" id="collected" value="[% total | html %]" />
     <input type="hidden" name="total" id="total" value="[% amountoutstanding %]" />
     <input type="hidden" name="paid" id="paid" value="[% amountoutstanding %]" />
-    <input type="hidden" name="payment_type" id="payment_type" value="CASH" />
+    [% IF (openedCashRegister && openedCashRegister.name == Koha.Preference('SepaDirectDebitCashRegisterName')) %]
+		<input type="hidden" name="payment_type" id="payment_type" value="SEPA" />
+	[% ELSIF (openedCashRegister && openedCashRegister.name == Koha.Preference('PaymentsOnlineCashRegisterName')) %]
+		<input type="hidden" name="payment_type" id="payment_type" value="ONLINE" />
+	[% ELSIF (openedCashRegister && openedCashRegister.name == Koha.Preference('SIPCashRegisterName')) %]
+		<input type="hidden" name="payment_type" id="payment_type" value="SEPA00" />
+	[% ELSE %]
+		<input type="hidden" name="payment_type" id="payment_type" value="CASH" />
+	[% END %]
 
 <fieldset class="rows">
     <legend>Pay an individual charge</legend>
@@ -190,9 +198,21 @@
         <!-- default to paying all (default amount handed out == amountoutstanding, so default returnAmount == 0.00) -->
         <input disabled type="text" name="returnAmount" id="returnAmount" value="[% 0.00 | $Price %]" />
     </li>
-
+    
+    [% IF (openedCashRegister && openedCashRegister.name) %]
+    <li>
+		<label for="cash_register">Opened cash register: </label>
+        <div>[% IF (openedCashRegister.name == Koha.Preference('SepaDirectDebitCashRegisterName')) %]<i class="fa fa-university" aria-hidden="true"></i> 
+			 [% ELSIF (openedCashRegister.name == Koha.Preference('PaymentsOnlineCashRegisterName')) %]<i class="fa fa-credit-card" aria-hidden="true"></i> 
+			 [% ELSIF (openedCashRegister.name == Koha.Preference('SIPCashRegisterName')) %]<i class="fa fa-money" aria-hidden="true"></i> 
+			 [% ELSE %]<i class="fa fa-eur" aria-hidden="true"></i> [% END %]
+             [% openedCashRegister.name %]</div>
+    </li>
+    [% END %]
+    
+    <!--
     [% INCLUDE 'transaction_types.inc' type="payment" %]
-
+    -->
     [% IF Koha.Preference('UseCashRegisters') %]
     <li>
         [% IF Koha.Preference('RequireCashRegister') %]
@@ -380,7 +400,15 @@
     <input type="hidden" name="total" id="total" value="[% total %]" />
     <input type="hidden" name="collected" id="collected" value="[% total %]" />
     [% IF (type != 'WRITEOFF' && type != 'CANCELLATION') %]
-    <input type="hidden" name="payment_type" id="payment_type" value="CASH" />
+		[% IF (openedCashRegister && openedCashRegister.name == Koha.Preference('SepaDirectDebitCashRegisterName')) %]
+			<input type="hidden" name="payment_type" id="payment_type" value="SEPA" />
+		[% ELSIF (openedCashRegister && openedCashRegister.name == Koha.Preference('PaymentsOnlineCashRegisterName')) %]
+			<input type="hidden" name="payment_type" id="payment_type" value="ONLINE" />
+		[% ELSIF (openedCashRegister && openedCashRegister.name == Koha.Preference('SIPCashRegisterName')) %]
+			<input type="hidden" name="payment_type" id="payment_type" value="SEPA00" />
+		[% ELSE %]
+			<input type="hidden" name="payment_type" id="payment_type" value="CASH" />
+		[% END %]
     [% END %]
 
     <fieldset class="rows">
@@ -425,7 +453,9 @@
         [% END %]
 
     [% IF (type != 'WRITEOFF' && type != 'CANCELLATION') && Koha.Preference('UseCashRegisters') %]
+    <!--
     [% INCLUDE 'transaction_types.inc' type="payment" %]
+    -->
     <li>
         <label for="cash_register">Cash register: </label>
         <select name="cash_register" id="cash_register">
@@ -438,6 +468,16 @@
         <label for="selected_accts_notes">Note: </label>
         <textarea name="selected_accts_notes" id="selected_accts_notes">[% selected_accts_notes | html %]</textarea>
     </li>
+    [% IF (openedCashRegister && openedCashRegister.name) %]
+    <li>
+		<label for="cash_register">Opened cash register: </label>
+        <div>[% IF (openedCashRegister.name == Koha.Preference('SepaDirectDebitCashRegisterName')) %]<i class="fa fa-university" aria-hidden="true"></i> 
+			 [% ELSIF (openedCashRegister.name == Koha.Preference('PaymentsOnlineCashRegisterName')) %]<i class="fa fa-credit-card" aria-hidden="true"></i> 
+			 [% ELSIF (openedCashRegister.name == Koha.Preference('SIPCashRegisterName')) %]<i class="fa fa-money" aria-hidden="true"></i> 
+			 [% ELSE %]<i class="fa fa-eur" aria-hidden="true"></i> [% END %]
+             [% openedCashRegister.name %]</div>
+    </li>
+    [% END %]
     </ol>
     </fieldset>
 
@@ -493,7 +533,6 @@
             [% IF ( pay_individual ) %]
                 updateReturnAmount($("#collected"));
                 recalculatePaidAmount($("#payindivfine"));
-                $('#payment_type').val('CASH');
             [% ELSIF ( writeoff_individual || cancel_individual ) %]
                 // The form woindivfine/cancelindivfine does not contain fields 'collected' or 'paid', so no special event listener required in this case.
                 moneyFormat(document.woindivfine.towriteoff,'writeoff');

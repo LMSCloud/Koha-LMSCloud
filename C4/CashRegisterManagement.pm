@@ -47,8 +47,8 @@ use vars qw(@ISA @EXPORT @EXPORT_OK);
 
 BEGIN {
     @ISA       = qw(Exporter);
-    @EXPORT    = qw(passCashRegisterCheck);
-    @EXPORT_OK = qw(passCashRegisterCheck);
+    @EXPORT    = qw(passCashRegisterCheck getOpenedCashRegister);
+    @EXPORT_OK = qw(passCashRegisterCheck getOpenedCashRegister);
 }
 
 
