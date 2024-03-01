@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 22.11\n"
 "POT-Creation-Date: 2024-03-01 18:38+0100\n"
-"PO-Revision-Date: 2024-03-01 18:58+0100\n"
+"PO-Revision-Date: 2024-03-01 20:52+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: Koha Translation Team\n"
 "Language: de\n"
@@ -937,8 +937,8 @@ msgid ""
 msgstr ""
 "%s %s %sGebührenübersicht %sBeglichene Gebühren nach Gebührenart gruppiert %sBeglichene Gebühren nach Mitarbeiter gruppiert %sBeglichene Gebühren nach Tag gruppiert "
 "%sAngefallene Gebühren nach Typ gruppiert %sAngefallene Gebühren nach Mitarbeiter gruppiert %sAngefallene Gebühren nach Tag gruppiert %sEin- und Auszahlungen nach Typ "
-"gruppiert %sEin- und Auszahlungen nach Mitarbeiter gruppiert %sEin- und Auszahlungen nach Tag gruppiert %sErlasse und Stornierungen nach Tag nach Typ gruppiert "
-"%sErlasse und Stornierungen nach Tag nach Mitarbeiter gruppiert %sErlasse und Stornierungen nach Tag nach Tag gruppiert %s%s %s "
+"gruppiert %sEin- und Auszahlungen nach Mitarbeiter gruppiert %sEin- und Auszahlungen nach Tag gruppiert %sErlasse und Stornierungen nach Typ gruppiert %sErlasse und "
+"Stornierungen nach Mitarbeiter gruppiert %sErlasse und Stornierungen Tag nach Tag gruppiert %s%s %s "
 
 #. %1$s:  jno = 0
 #. %2$s:  IF (showstat.cash_register_journalno)
@@ -1731,8 +1731,8 @@ msgid ""
 msgstr ""
 "%s %sBeglichene Gebühren nach Typ gruppiert %sBeglichene Gebühren nach Mitarbeiter gruppiert %sBeglichene Gebühren nach Tag gruppiert %sAngefallene Gebühren nach Typ "
 "gruppiert %sAngefallene Gebühren nach Mitarbeiter gruppiert %sAngefallene Gebühren nach Tag gruppiert %sEin- und Auszahlungen nach Typ gruppiert %sEin- und Auszahlungen "
-"nach Mitarbeiter gruppiert %sEin- und Auszahlungen nach Tag gruppiert %sErlasse und Stornierungen nach Tag nach Typ gruppiert %sErlasse und Stornierungen nach Tag nach "
-"Mitarbeiter gruppiert %sErlasse und Stornierungen nach Tag nach Tag gruppiert %s%s %s"
+"nach Mitarbeiter gruppiert %sEin- und Auszahlungen nach Tag gruppiert %sErlasse und Stornierungen nach Typ gruppiert %sErlasse und Stornierungen nach Mitarbeiter "
+"gruppiert %sErlasse und Stornierungen nach Tag gruppiert %s%s %s"
 
 #. %1$s:  END
 #. %2$s:  IF ( errornoitem )
