@@ -1027,7 +1027,7 @@ sub checkauth {
                 my $retuserid;
 
                 # Do not pass password here, else shib will not be checked in checkpw.
-                ( $return, $cardnumber, $retuserid ) = checkpw( $q_userid, undef, $query );
+                ( $return, $cardnumber, $retuserid ) = checkpw( $q_userid, undef, $query, $type );
                 $userid      = $retuserid;
                 $shibSuccess = $return;
                 $info{'invalidShibLogin'} = 1 unless ($return);
@@ -2025,6 +2025,9 @@ sub checkpw {
             my ( $retval, $retcard, $retuserid ) = C4::Auth_with_shibboleth::checkpw_shib($shib_login);    # EXTERNAL AUTH
             if ( $retval ) {
                 @return = ( $retval, $retcard, $retuserid );
+                $patron = Koha::Patrons->find({ userid => $retuserid });
+                $patron = Koha::Patrons->find({ cardnumber => $retcard }) unless $patron;
+                $userid = $retuserid;
             }
             $passwd_ok = $retval;
         }
