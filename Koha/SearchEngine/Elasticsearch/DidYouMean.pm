@@ -144,7 +144,7 @@ sub _build_query {
         # string_plus indexed fields should contain a trigram and 
         # reverse index which are necessary to build suggestions.
         
-        @fields = $self->get_didyoumean_fields();
+        @fields = $self->SUPER::get_didyoumean_fields();
     }
     
     if ( $field ) {
