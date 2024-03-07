@@ -109,6 +109,13 @@ properties:
       - string
       - "null"
     description: related mobile branch if it is a mobile branch station.
+  pickup_items:
+    type:
+      - array
+      - 'null'
+    description: Array of items available for pickup at this library if the library is marked as a pickup location
+    items:
+      type: integer
   public:
     type: boolean
     description: If the library is visible to the public
