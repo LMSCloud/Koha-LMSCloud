@@ -271,6 +271,7 @@ sub normalizeSearchRequest {
     
     if ( defined($search) ) {
         
+        $search =~ s/&quot;//g;
         $search =~ s/(\x{0098}|\x{009c}|\x{00ac})//g;
         $search =~ s/(,\s*)?(homebranch|itype|mc-itype|ccode|mc-ccode|mc-loc|location|datelastborrowed|acqdate|callnum|age|anta|antc|ff7-00|yr|barcode|bib-level|rcn|aud)(,(wrdl|phr|ext|rtrn|ltrn|st-date-normalized|ge|le|st-numeric))*\s*[:=]\s*(["']+[\w&\.\- ]+["']+|[\w&\.\-]+)(\s+(and|or))?//ig;
         
