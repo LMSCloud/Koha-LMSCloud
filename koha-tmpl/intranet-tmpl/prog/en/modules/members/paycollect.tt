@@ -157,7 +157,7 @@
 	[% ELSIF (openedCashRegister && openedCashRegister.name == Koha.Preference('PaymentsOnlineCashRegisterName')) %]
 		<input type="hidden" name="payment_type" id="payment_type" value="ONLINE" />
 	[% ELSIF (openedCashRegister && openedCashRegister.name == Koha.Preference('SIPCashRegisterName')) %]
-		<input type="hidden" name="payment_type" id="payment_type" value="SEPA00" />
+		<input type="hidden" name="payment_type" id="payment_type" value="SIP00" />
 	[% ELSE %]
 		<input type="hidden" name="payment_type" id="payment_type" value="CASH" />
 	[% END %]
@@ -405,7 +405,7 @@
 		[% ELSIF (openedCashRegister && openedCashRegister.name == Koha.Preference('PaymentsOnlineCashRegisterName')) %]
 			<input type="hidden" name="payment_type" id="payment_type" value="ONLINE" />
 		[% ELSIF (openedCashRegister && openedCashRegister.name == Koha.Preference('SIPCashRegisterName')) %]
-			<input type="hidden" name="payment_type" id="payment_type" value="SEPA00" />
+			<input type="hidden" name="payment_type" id="payment_type" value="SIP00" />
 		[% ELSE %]
 			<input type="hidden" name="payment_type" id="payment_type" value="CASH" />
 		[% END %]
