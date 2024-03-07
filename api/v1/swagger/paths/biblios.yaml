@@ -315,6 +315,7 @@
           enum:
             - item
             - patron
+            - pickup_library
         collectionFormat: csv
     consumes:
       - application/json
@@ -389,7 +390,8 @@
         collectionFormat: csv
       - name: checked_in
         in: query
-        description: By default, current checkouts are returned, when this is true then
+        description:
+          By default, current checkouts are returned, when this is true then
           checked in checkouts are returned as result.
         type: boolean
     produces:
@@ -713,7 +715,7 @@
                 - integer
                 - "null"
           required:
-              - rating
+            - rating
           additionalProperties: false
     produces:
       - application/json
