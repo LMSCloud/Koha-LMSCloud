@@ -1482,7 +1482,7 @@ sub get_didyoumean_fields {
     my ($self) = @_;
 
     my @didyoumean_fields;
-    for my $field (  Koha::SearchFields->search( { type => 'string_plus' }, { order_by => ['name'] } ) ) {
+    for my $field (  Koha::SearchFields->search( { type => 'string_plus' }, { order_by => ['name'] } )->as_list ) {
         push @didyoumean_fields, $field->name;
     }
     # This could certainly be improved
