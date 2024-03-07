@@ -82,13 +82,13 @@ sub new {
     bless $self, $class;
     
     $self->{'traceEnabled'} = 0;
-    $self->{'traceEnabled'} = 1 ; #if (C4::Context->preference('FilmfriendTraceEnabled'));
+    $self->{'traceEnabled'} = 1 if (C4::Context->preference('FilmfriendTraceEnabled'));
 
     $self->{'customerID'}   = C4::Context->preference('FilmfriendCustomerID');
     $self->{'providerID'}   = C4::Context->preference('FilmfriendProviderID');
     
     $self->{'filmFriendBaseURL'}         = 'https://api.tenant.frontend.vod.filmwerte.de/v11';
-    $self->{'filmFriendAuthURL'}         = 'https://api.tenant.frontend.vod.filmwerte.de/connect/authorize-external';
+    $self->{'filmFriendAuthURL'}         = 'https://api.vod.filmwerte.de/connect/authorize-external';
     
     
     $self->{'filmFriendTenantGroupIdDE'} = 'fba2f8b5-6a3a-4da3-b555-21613a88d3ef';
@@ -144,11 +144,14 @@ sub new {
     } else {
         my $lang = C4::Languages::getlanguage();
         my $tenantGroup = C4::Context->preference('FilmfriendTenantGroup');
-         
+        
+        $self->{'language'} = 'de-DE';
+        
         if ( !$tenantGroup && $lang ) {
             $tenantGroup = 'CH' if ( $lang eq 'de-CH' );
             $tenantGroup = 'AT' if ( $lang eq 'de-AT' );
             $tenantGroup = 'DE' if ( $lang eq 'de-DE' );
+            $self->{'language'} = $lang;
         }
         $tenantGroup = 'DE' if (! $tenantGroup );
         
@@ -163,7 +166,7 @@ sub new {
     $self->{'requestHeader'} = \@header;
     $self->{'scrubber'} = C4::Scrubber->new();
     
-    $self->{'useFields'}->{Video} = [ qw{ id filmfriendLink filmportalId title colorTechnology country genre category actors audio subtitle duration regie releaseYear originalTitle thumbnail thumbnails cover synopsis isActive runtime genres aspectRatio production fsk kind categories IMDbLinkLink FilmPortalLink MovieDatabaseLink furtherTitles} ];
+    $self->{'useFields'}->{Video} = [ qw{ id filmfriendLink filmportalId title colorTechnology country genre category actors audio subtitle duration regie releaseYear originalTitle thumbnail thumbnails cover synopsis isActive runtime genres aspectRatio production fsk kind categories IMDbLinkLink FilmPortalLink MovieDatabaseLink furtherTitles description} ];
     $self->{'useFields'}->{Movie} = $self->{'useFields'}->{Video};
     
     my $ua = LWP::UserAgent->new;
@@ -210,7 +213,7 @@ sub getAuth {
             
             $auth = $json->decode( $response->content );
             
-            carp "C4::External::FilmFriend->getAuth() result: " . Dumper($auth) if ( $self->{'FilmfriendTraceEnabled'} );
+            carp "C4::External::FilmFriend->getAuth() result: " . Dumper($auth) if ( $self->{'traceEnabled'} );
             
             if ( $auth && exists($auth->{access_token}) && exists($auth->{expires_in}) && exists($auth->{token_type}) && exists($auth->{refresh_token}) ) {
                 return $auth;
@@ -219,7 +222,7 @@ sub getAuth {
             }
         }
         else {
-            carp "C4::External::FilmFriend->getAuth() with URL $url and params " . Dumper($params) . " returned with HTTP error code " . $response->error_as_HTML if (C4::Context->preference('FilmfriendTraceEnabled'));   
+            carp "C4::External::FilmFriend->getAuth() with URL $url and params " . Dumper($params) . " returned with HTTP error code " . $response->error_as_HTML if ( $self->{'traceEnabled'} );   
         }
     }
     return $auth;
@@ -332,32 +335,42 @@ sub simpleSearch {
     
         my $url = $self->{'filmFriendSearchURL'};
         
+        my $orderBy = "Score";
+        my $sortDirection = "Descending";
+        
         if ( $searchtype eq 'Movie' ) {
             $url .= 'kinds=Movie';
         }
         elsif ( $searchtype eq 'Episode' ) {
             $url .= 'kinds=Episode';
         }
-        elsif ( $searchtype eq 'Video' ) {
-            $url .= 'kinds=Video';
+        elsif ( $searchtype eq 'SportsVideo' ) {
+            $url .= 'kinds=SportsVideo';
         }
         elsif ( $searchtype eq 'Season' ) {
             $url .= 'kinds=Season';
         }
         elsif ( $searchtype eq 'Series' ) {
             $url .= 'kinds=Series';
+            $orderBy = "Title";
+            $sortDirection = "Ascending";
         }
         elsif ( $searchtype eq 'Person' ) {
             $url .= 'kinds=Person';
+            $orderBy = "Title";
+            $sortDirection = "Ascending";
         }
         elsif ( $searchtype eq 'Collection' ) {
             $url .= 'kinds=Collection';
+            $orderBy = "Title";
+            $sortDirection = "Ascending";
         }
         else {
             next;
         }
          
         $url .= '&search='. uri_escape_utf8($searchtext);
+        $url .= '&mode=All';
         
         if ( $maxcount ) {
             $url .= '&take=' . $maxcount;
@@ -370,10 +383,11 @@ sub simpleSearch {
             $url .= '&skip=' . $offset;
         }
         
-        $url .= '&languageIsoCode=DE';
-        $url .= '&orderBy=Score';
-        $url .= '&sortDirection=Descending';
+
+        $url .= "&orderBy=$orderBy";
+        $url .= "&sortDirection=$sortDirection";
         $url .= '&totalCount=true';
+        $url .= '&includeDetails=true';
         
         my @header = @{$self->{'requestHeader'}};
         
@@ -391,7 +405,6 @@ sub simpleSearch {
             my $json = JSON->new->utf8->allow_nonref;
             
             my $data = $self->sanitizeResultStructure( $self->scrubData($json->decode( $response->content )), $withAuth, $searchtype, $offset, $patronFsk);
-            #my $data = $self->scrubData($json->decode( $response->content ));
             $data->{searchType} = $searchtype;
             $data->{search} = $searchtext;
             $data->{searchUrl} = $url;
@@ -477,33 +490,56 @@ sub sanitizeResultStructure {
                     if ( exists($hit->{imdbId}) && $hit->{imdbId}) {
                         $hit->{IMDbLinkLink} = $hit->{imdbUrl};
                     }
-                    if ( exists($hit->{filmportalId}) && $hit->{filmportalId}) {
+                    if ( exists($hit->{filmportalUrl}) && $hit->{filmportalUrl}) {
                         $hit->{FilmPortalLink} = $hit->{filmportalUrl};
                     }
                     if ( exists($hit->{tmdbId}) && $hit->{tmdbId}) {
                         $hit->{MovieDatabaseLink} = $hit->{tmdbUrl};
                     }
                     
-                    if ( exists($hit->{motionPictureContentRating}) && $hit->{motionPictureContentRating} =~ /^Fsk([0-9]+)/ ) {
-                        $hit->{fsk} = $1;
+                    if ( exists($hit->{ageRatings}) && reftype($hit->{ageRatings}) && reftype($hit->{ageRatings}) eq 'ARRAY') {
+                        $self->setListElement($hit->{ageRatings},'minimumAge',$hit,'fskList');
+                        if ( exists($hit->{fskList}) ) {
+                            $hit->{fsk} = $hit->{fskList}->[0];
+                        }
                     }
+                    #if ( exists($hit->{ageRatings}) && exists($hit->{ageRatings}->[0]->{name}) && $hit->{ageRatings}->[0]->{name} =~ /^Fsk([0-9]+)/ ) {
+                    #    $hit->{fsk} = $1;
+                    #}
                     
                     if ( $hitType eq 'Season' && exists($hit->{series}) ) {
-                        $self->setLanguageElement($hit->{series},'Title',$hit,'title');
+                        $hit->{seriestitle} = $hit->{series}->{title} if ( exists($hit->{series}->{title}) );
                         
-                        if ( exists($hit->{seasonNumber}) && $hit->{seasonNumber}) {
-                            $hit->{title} .= ', Staffel ' . $hit->{seasonNumber};
+                        if ( exists($hit->{seriestitle}) && $hit->{seriestitle} && exists($hit->{seasonNumber}) && $hit->{seasonNumber}) {
+                            if ( $self->{'language'} =~ /^de/ ) {
+                                $hit->{seriestitle} .= ', Staffel ' . $hit->{seasonNumber};
+                            }
+                            elsif ( $self->{'language'} =~ /^fr/ ) {
+                                $hit->{seriestitle} .= ', Saison ' . $hit->{seasonNumber};
+                            }
+                            else {
+                                $hit->{seriestitle} .= ', Season ' . $hit->{seasonNumber};
+                            }
+                        }
+                        
+                        if ( exists($hit->{seriestitle}) && $hit->{seriestitle} ) {
+                            if ( exists($hit->{title}) &&  $hit->{title} ) {
+                                $hit->{title} = $hit->{seriestitle} . ': ' . $hit->{title};
+                            }
+                            else {
+                                $hit->{title} = $hit->{seriestitle};
+                            }
                         }
                         
                         if ( exists($hit->{series}->{genres}) && reftype($hit->{series}->{genres}) && reftype($hit->{series}->{genres}) eq 'ARRAY') {
-                            $self->setLanguageListElement($hit->{series}->{genres},'Name',$hit,'genre');
+                            $self->setListElement($hit->{series}->{genres},'name',$hit,'genre');
                         }
                         if ( exists($hit->{series}->{categories}) && reftype($hit->{series}->{categories}) && reftype($hit->{series}->{categories}) eq 'ARRAY') {
-                            $self->setLanguageListElement($hit->{series}->{categories},'Name',$hit,'category');
+                            $self->setListElement($hit->{series}->{categories},'name',$hit,'category');
                         }
                     }
 
-                    $self->setLanguageElement($hit,'Title',$hit,'title');
+                    
                     
                     if ( $hitType eq 'Episode' && exists($hit->{season}) && exists($hit->{season}->{series}) ) {
                         if ( exists($hit->{season}->{releaseDate}) && $hit->{season}->{releaseDate} =~ /^([0-9]{4})-/ ) {
@@ -512,11 +548,28 @@ sub sanitizeResultStructure {
                         if ( exists($hit->{season}->{motionPictureContentRating}) && $hit->{season}->{motionPictureContentRating} =~ /^Fsk([0-9]+)/ ) {
                             $hit->{fsk} = $1;
                         }
-                        $self->setLanguageElement($hit->{season}->{series},'Title',$hit,'seriestitle');
+                        $hit->{seriestitle} = $hit->{season}->{series}->{title} if ( exists($hit->{season}->{series}->{title}) );
+                        
                         if ( exists($hit->{seriestitle}) && $hit->{seriestitle} && exists($hit->{season}->{seasonNumber}) && $hit->{season}->{seasonNumber}) {
-                            $hit->{seriestitle} .= ', Staffel ' . $hit->{season}->{seasonNumber};
+                            if ( $self->{'language'} =~ /^de/ ) {
+                                $hit->{seriestitle} .= ', Staffel ' . $hit->{season}->{seasonNumber};
+                            }
+                            elsif ( $self->{'language'} =~ /^fr/ ) {
+                                $hit->{seriestitle} .= ', Saison ' . $hit->{season}->{seasonNumber};
+                            }
+                            else {
+                                $hit->{seriestitle} .= ', Season ' . $hit->{season}->{seasonNumber};
+                            }
                             if ( exists($hit->{episodeNumber}) && $hit->{episodeNumber} ) {
-                                $hit->{seriestitle} .= ', Folge ' . $hit->{episodeNumber};
+                                if ( $self->{'language'} =~ /^de/ ) {
+                                    $hit->{seriestitle} .= ', Folge ' . $hit->{episodeNumber};
+                                }
+                                elsif ( $self->{'language'} =~ /^fr/ ) {
+                                    $hit->{seriestitle} .= ', Èpisode ' . $hit->{episodeNumber};
+                                }
+                                else {
+                                    $hit->{seriestitle} .= ', Episode ' . $hit->{season}->{seasonNumber};
+                                }
                             }
                         }
                         if ( exists($hit->{seriestitle}) && $hit->{seriestitle} ) {
@@ -529,10 +582,10 @@ sub sanitizeResultStructure {
                         }
                         
                         if ( exists($hit->{season}->{series}->{genres}) && reftype($hit->{season}->{series}->{genres}) && reftype($hit->{season}->{series}->{genres}) eq 'ARRAY') {
-                            $self->setLanguageListElement($hit->{season}->{series}->{genres},'Name',$hit,'genre');
+                            $self->setListElement($hit->{season}->{series}->{genres},'name',$hit,'genre');
                         }
                         if ( exists($hit->{season}->{series}->{categories}) && reftype($hit->{season}->{series}->{categories}) && reftype($hit->{season}->{series}->{categories}) eq 'ARRAY') {
-                            $self->setLanguageListElement($hit->{season}->{series}->{categories},'Name',$hit,'category');
+                            $self->setListElement($hit->{season}->{series}->{categories},'name',$hit,'category');
                         }
                     }
                     
@@ -553,24 +606,36 @@ sub sanitizeResultStructure {
                     }
                     
                     if ( exists($hit->{productionCountries}) && reftype($hit->{productionCountries}) && reftype($hit->{productionCountries}) eq 'ARRAY' ) {
-                        $self->setLanguageListElement($hit->{productionCountries},'Name',$hit,'production');
+                        $self->setListElement($hit->{productionCountries},'name',$hit,'production');
                     }
                     if ( exists($hit->{genres}) && reftype($hit->{genres}) && reftype($hit->{genres}) eq 'ARRAY') {
-                        $self->setLanguageListElement($hit->{genres},'Name',$hit,'genre');
+                        $self->setListElement($hit->{genres},'name',$hit,'genre');
                     }
                     if ( exists($hit->{categories}) && reftype($hit->{categories}) && reftype($hit->{categories}) eq 'ARRAY') {
-                        $self->setLanguageListElement($hit->{categories},'Name',$hit,'category');
+                        $self->setListElement($hit->{categories},'name',$hit,'category');
                     }
                     if ( exists($hit->{audioLanguages}) && reftype($hit->{audioLanguages}) && reftype($hit->{audioLanguages}) eq 'ARRAY' ) {
-                        $self->setLanguageListElement($hit->{audioLanguages},'Name',$hit,'audio');
+                        $self->setListElement($hit->{audioLanguages},'name',$hit,'audio');
                     }
                     if ( exists($hit->{subtitleLanguages}) && reftype($hit->{subtitleLanguages}) && reftype($hit->{subtitleLanguages}) eq 'ARRAY' ) {
-                        $self->setLanguageListElement($hit->{subtitleLanguages},'Name',$hit,'subtitle');
+                        $self->setListElement($hit->{subtitleLanguages},'name',$hit,'subtitle');
                     }
                     if ( exists($hit->{releaseDate}) && $hit->{releaseDate} =~ /^([0-9]{4})-/ ) {
                         $hit->{releaseYear} = $1;
                     }
                     if ( exists($hit->{artworkUris}) && reftype($hit->{artworkUris}) && reftype($hit->{artworkUris}) eq 'ARRAY' ) {
+                        COVER: foreach my $artwork(@{$hit->{artworkUris}}) {
+                            if ( exists($artwork->{kind}) && $artwork->{kind} eq 'CoverPortrait' ) {
+                                if ( exists($artwork->{thumbnail}) && $artwork->{thumbnail} ) {
+                                    $hit->{cover} = $artwork->{thumbnail};
+                                    last COVER;
+                                }
+                                if ( exists($artwork->{resolution1x}) && $artwork->{resolution1x} ) {
+                                    $hit->{cover} = $artwork->{resolution1x};
+                                    last COVER;
+                                }
+                            }
+                        }
                         foreach my $artwork(@{$hit->{artworkUris}}) {
                             if ( exists($artwork->{kind}) && $artwork->{kind} eq 'Thumbnail' ) {
                                 if ( exists($artwork->{thumbnail}) && $artwork->{thumbnail} ) {
@@ -585,21 +650,9 @@ sub sanitizeResultStructure {
                                 }
                             }
                         }
-                        COVER: foreach my $artwork(@{$hit->{artworkUris}}) {
-                            if ( exists($artwork->{kind}) && $artwork->{kind} eq 'CoverPortrait' ) {
-                                if ( exists($artwork->{thumbnail}) && $artwork->{thumbnail} ) {
-                                    $hit->{cover} = $artwork->{thumbnail};
-                                    last COVER;
-                                }
-                                if ( exists($artwork->{resolution1x}) && $artwork->{resolution1x} ) {
-                                    $hit->{cover} = $artwork->{resolution1x};
-                                    last COVER;
-                                }
-                            }
-                        }
                     }
-                    if ( exists($hit->{participations}) && reftype($hit->{participations}) && reftype($hit->{participations}) eq 'ARRAY' ) {
-                        foreach my $person(@{$hit->{participations}}) {
+                    if ( exists($hit->{participants}) && reftype($hit->{participants}) && reftype($hit->{participants}) eq 'ARRAY' ) {
+                        foreach my $person(@{$hit->{participants}}) {
                             if ( exists($person->{person}->{id}) && $person->{person}->{id}) {
                                 $person->{filmfriendLink}= $self->getLink('Person',$person->{person}->{id},$withAuth);
                             }
@@ -616,13 +669,21 @@ sub sanitizeResultStructure {
                 }
                 elsif ( $hitType && $hitType eq 'Person' ) {
                     $hit = $hit->{result} if ( $hit->{result} );
+                    
+                    my $hitentry = 'person';
+                    $hit = $hit->{$hitentry} if ( $hit->{$hitentry} );
                     $hit->{kind} = 'Person';
+                    
+                    $hit->{name} = $hit->{lastName};
+                    if ( exists($hit->{firstName}) && $hit->{firstName}) {
+                        $hit->{name} = $hit->{firstName} . ' ' . $hit->{name};
+                    }
                     
                     if ( exists($hit->{id}) && $hit->{id}) {
                         $hit->{filmfriendLink}= $self->getLink($hitType,$hit->{id},$withAuth);
                     }
                     
-                    $self->setLanguageElement($hit,'Biography',$hit,'description');
+                    $hit->{description} = $hit->{biography};
                 }
                 if ( exists($hit->{runtime}) && $hit->{runtime}) {
                     my $mins = POSIX::ceil($hit->{runtime}/60);
@@ -638,9 +699,9 @@ sub sanitizeResultStructure {
                         $hit->{duration} = "${mins}min";
                     }
                 }
-                if ( hitType && exists($self->{'useFields'}->{hitType}) ) {
+                if ( $hitType && exists($self->{'useFields'}->{$hitType}) ) {
                     my $newhit = {};
-                    foreach my $key ( @{ $self->{'useFields'}->{hitType} } ) {
+                    foreach my $key ( @{ $self->{'useFields'}->{$hitType} } ) {
                         $newhit->{$key} = $hit->{$key};
                     }
                     $hit = $newhit;
@@ -666,7 +727,7 @@ sub setListElement {
     if ( reftype($elemGet) && reftype($elemGet) eq 'ARRAY' ) {
         foreach my $elem( @{$elemGet}) {
             if ( exists($elem->{$elemGetName}) ) {
-                my $value = $elem->{$elemGetName}
+                my $value = $elem->{$elemGetName};
                 if ( $value ) {
                     if ( !exists($elemSet->{$elemSetName}) ) {
                         $elemSet->{$elemSetName} = [];
@@ -681,47 +742,13 @@ sub setListElement {
     return $ret;
 }
 
-sub setLanguageElement {
-    my $self        = shift;
-    my $elemGet     = shift;
-    my $elemGetName = shift;
-    my $elemSet     = shift;
-    my $elemSetName = shift;
-    
-    return 0 if ( !$elemGet || !$elemSet);
-    
-    my $value = $self->getLanguageElement($elemGet,$elemGetName);
-    
-    if ( $value ) {
-        $elemSet->{$elemSetName} = $value;
-        return 1;
-    }
-
-    return 0;
-}
-
-sub getLanguageElement {
-    my $self     = shift;
-    my $elem     = shift;
-    my $entry = shift;
-    
-    foreach my $language ( @{ $self->{languages} } ) {
-        my $keyname = $language.$entry;
-        
-        if ( exists($elem->{$keyname}) && $elem->{$keyname}) {
-            return $elem->{$keyname};
-        }
-    }
-    
-    return undef;
-}
-
 sub normalizeSearchRequest {
     my $self = shift;
     my $search = shift;
     
     if ( defined($search) ) {
         
+        $search =~ s/&quot;//g;
         $search =~ s/(\x{0098}|\x{009c}|\x{00ac})//g;
         $search =~ s/(,\s*)?(homebranch|itype|mc-itype|ccode|mc-ccode|mc-loc|location|datelastborrowed|acqdate|callnum|age|anta|antc|ff7-00|yr|barcode|bib-level|rcn|aud)(,(wrdl|phr|ext|rtrn|ltrn|st-date-normalized|ge|le|st-numeric))*\s*[:=]\s*(["']+[\w&\.\- ]+["']+|[\w&\.\-]+)(\s+(and|or))?//ig;
         
@@ -749,9 +776,3 @@ sub normalizeSearchRequest {
 }
 
 1;
-
-#
-my $filmfriendService = C4::External::FilmFriend->new();
-my $result = $filmfriendService->simpleSearch(1,"Maetzig",["Movie","Person"],10,0);
-use Data::Dumper;
-print Dumper($result);

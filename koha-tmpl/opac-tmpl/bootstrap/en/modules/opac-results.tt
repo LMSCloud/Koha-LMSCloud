@@ -782,7 +782,7 @@
                 getMunzingerFacet(query_desc,[% Koha.Preference('MunzingerNumSearchResults') or 20 %], _("Prev &laquo;"), _("Next &raquo;"), _("Appearence: "), _("Show/Hide appearences"), _("Top-Hit") );
             [% END %]
             [% IF ( Koha.Preference( 'FilmfriendSearchActive' ) ) %]
-                getFilmfriendFacet(query_desc,[% Koha.Preference('FilmfriendNumSearchResults') %], _("Prev &laquo;"), _("Next &raquo;"), _("Read more »"), _("« Read less") );
+                getFilmfriendFacet(query_desc,[% Koha.Preference('FilmfriendNumSearchResults') %], _("Prev &laquo;"), _("Next &raquo;"), _("Read more »"), _("« Read less"), _("by/with "), _("Language: "), _("Subtitle language: ") );
             [% END %]
 
             $(".moretoggle").click(function(e){

@@ -23,8 +23,11 @@ var maxHitCountFilmfriend;
 var targetLinkFilmfriend = "_blank";
 var readMoreFilmfriend = "Read more »";
 var readLessFilmfriend = "« Read less";
+var authorByFilmfriend = "by/with ";
+var languageFilmfriend = "Language: ";
+var subtitleLanguageFilmfriend = "Subtitle language: ";
 
-function getFilmfriendFacet(query_desc,maxHitCount,prevPageText,nextPageText,readMore,readLess) {
+function getFilmfriendFacet(query_desc,maxHitCount,prevPageText,nextPageText,readMore,readLess,madeby, languages, subtitles) {
     if (!origResultHeaderFilmfriend) {
         origResultHeaderFilmfriend = $('#numresults').html();
     }
@@ -32,6 +35,9 @@ function getFilmfriendFacet(query_desc,maxHitCount,prevPageText,nextPageText,rea
     nextPageTextFilmfriend = nextPageText;
     readMoreFilmfriend     = readMore;
     readLessFilmfriend     = readLess;
+    authorByFilmfriend     = madeby;
+    languageFilmfriend     = languages;
+    subtitleLanguageFilmfriend = subtitles;
     maxHitCountFilmfriend  = maxHitCount;
     $.ajax({
     url: "/cgi-bin/koha/opac-filmfriend.pl",
@@ -149,6 +155,7 @@ function showFilmfriendResult(facetID) {
     if ( $("#userresults").css("display") != "none" ){
         $('#encyclopediaresults').toggle();
         $('#userresults').toggle();
+        $('#overdrive-results').toggle();
     }
     $('#encyclopediahits').html(content);
     if ( pagination.length == 0 ) {
@@ -231,6 +238,7 @@ function showCatalogHitListFilmfriend() {
         $('#numresults').html(origResultHeaderFilmfriend);
         $('#userresults').toggle();
         $('#encyclopediaresults').toggle();
+        $('#overdrive-results').toggle();
     }
 }
 function generateFilmfriendEntryPerson(facetID,entryID) {
@@ -238,9 +246,11 @@ function generateFilmfriendEntryPerson(facetID,entryID) {
 
     var rowElement = document.createElement("tr");
     var colElement = document.createElement("td");
+    /*
     colElement.setAttribute('class','bibliocol');
     rowElement.appendChild(colElement);
-    
+    */
+
     colElement = document.createElement("td");
     colElement.setAttribute('class','bibliocol');
     var txtElement = document.createElement("a");
@@ -298,7 +308,7 @@ function generateFilmfriendEntryMovie(facetID,entryID) {
     {
         var persons = document.createElement("p");
 	persons.setAttribute('class','persons');
-        persons.appendChild(document.createTextNode("von/mit "));
+        persons.appendChild(document.createTextNode(authorByFilmfriend));
         var x = 0;
         if ( filmfriendData.results[facetID].hitList[entryID].regie ) {
             for (var s=0;s<filmfriendData.results[facetID].hitList[entryID].regie.length;s++) {
@@ -441,7 +451,7 @@ function generateFilmfriendEntryMovie(facetID,entryID) {
             if ( s > 0 ) {
                 elList.appendChild(document.createTextNode(", "));
             } else {
-                elList.appendChild(document.createTextNode("Sprache: "));
+                elList.appendChild(document.createTextNode(languageFilmfriend));
             }
             elList.appendChild(elAdd);
         }
@@ -464,7 +474,7 @@ function generateFilmfriendEntryMovie(facetID,entryID) {
             if ( s > 0 ) {
                 elList.appendChild(document.createTextNode(", "));
             } else {
-                elList.appendChild(document.createTextNode("Untertitel: "));
+                elList.appendChild(document.createTextNode(subtitleLanguageFilmfriend));
             }
             elList.appendChild(elAdd);
         }
