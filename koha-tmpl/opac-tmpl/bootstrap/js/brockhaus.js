@@ -132,6 +132,7 @@ function showBrockhausResult(facetID) {
     if ( $("#userresults").css("display") != "none" ){
         $('#encyclopediaresults').toggle();
         $('#userresults').toggle();
+        $('#overdrive-results').toggle();
     }
     $('#encyclopediahits').html(content);
     if ( pagination.length == 0 ) {
@@ -206,6 +207,7 @@ function showCatalogHitListBrockhaus() {
         $('#numresults').html(origResultHeaderBrockhaus);
         $('#userresults').toggle();
         $('#encyclopediaresults').toggle();
+        $('#overdrive-results').toggle();
     }
 }
 function generateBrockhausEntry(facetID,entryID) {

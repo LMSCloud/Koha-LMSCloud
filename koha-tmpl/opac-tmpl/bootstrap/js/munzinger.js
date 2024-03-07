@@ -114,6 +114,7 @@ function showMunzingerResult(facetID) {
     if ( $("#userresults").css("display") != "none" ){
         $('#encyclopediaresults').toggle();
         $('#userresults').toggle();
+        $('#overdrive-results').toggle();
     }
     $('#encyclopediahits').html(content);
     if ( pagination.length == 0 ) {
@@ -194,6 +195,7 @@ function showCatalogHitListMunzinger() {
         $('#numresults').html(origResultHeaderMunzinger);
         $('#userresults').toggle();
         $('#encyclopediaresults').toggle();
+        $('#overdrive-results').toggle();
     }
 }
 
