@@ -119,7 +119,7 @@ my $budgets_ref = GetBudgetHierarchy(
 );
 
 # build categories list
-my $sth = $dbh->prepare("select distinct category from authorised_values where category like 'A%' ");
+my $sth = $dbh->prepare("select distinct category from authorised_values where category like 'Asort%' ");
 $sth->execute;
 
 # the list
