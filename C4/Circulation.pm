@@ -3258,18 +3258,21 @@ sub CanBookBeRenewed {
     return ( 0, $auto_renew, { soonest_renew_date => $soonest } ) if $auto_renew =~ 'too_soon';#$auto_renew ne "no" && $auto_renew ne "ok";
 
     # CHECK FOR BOOKINGS
-    my $startdate =
-        ( C4::Context->preference('RenewalPeriodBase') eq 'date_due' )
-        ? dt_from_string( $issue->date_due, 'sql' )
-        : dt_from_string();
-    my $datedue = CalcDateDue( $startdate, $item->effective_itemtype, $branchcode, $patron, 'is a renewal' );
-    if (
-        my $booking = $item->find_booking(
-            { checkout_date => $startdate, due_date => $datedue, patron_id => $patron->borrowernumber }
-        )
-        )
-    {
-        return ( 0, 'booked' ) unless ( $booking->patron_id == $patron->borrowernumber );
+    if( $item->bookings->count ){
+        my $startdate =
+            ( C4::Context->preference('RenewalPeriodBase') eq 'date_due' )
+            ? dt_from_string( $issue->date_due, 'sql' )
+            : dt_from_string();
+        my $datedue = CalcDateDue( $startdate, $item->effective_itemtype, $branchcode, $patron, 'is a renewal' );
+        if (
+            my $booking = $item->find_booking(
+                { checkout_date => $startdate, due_date => $datedue, patron_id => $patron->borrowernumber }
+            )
+            )
+        {
+            return ( 0, 'booked' ) unless ( $booking->patron_id == $patron->borrowernumber );
+        }
+
     }
 
     if ( $auto_renew eq 'auto_too_soon' ) {
