@@ -3258,7 +3258,7 @@ sub CanBookBeRenewed {
     return ( 0, $auto_renew, { soonest_renew_date => $soonest } ) if $auto_renew =~ 'too_soon';#$auto_renew ne "no" && $auto_renew ne "ok";
 
     # CHECK FOR BOOKINGS
-    if( $item->bookings->count ){
+    if ( $item->bookings->count ) {
         my $startdate =
             ( C4::Context->preference('RenewalPeriodBase') eq 'date_due' )
             ? dt_from_string( $issue->date_due, 'sql' )
