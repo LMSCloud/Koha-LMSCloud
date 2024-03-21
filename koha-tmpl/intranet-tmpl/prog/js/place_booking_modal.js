@@ -238,7 +238,17 @@ $('#placeBookingModal').on('show.bs.modal', function(e) {
                     // Populate item select (NOTE: Do we still need this check for pre-existing select option here?)
                     if (!($('#booking_item_id').find("option[value='" + item.item_id + "']").length)) {
                         // Create a DOM Option and de-select by default
-                        let newOption = new Option(escape_str(item.external_id), item.item_id, false, false);
+                        let newOption = new Option(
+                            escape_str(item.external_id),
+                            item.item_id,
+                            false,
+                            false
+                        );
+                        newOption.setAttribute(
+                            "data-available",
+                            true
+                        );
+
                         // Append it to the select
                         $('#booking_item_id').append(newOption);
                     }
@@ -380,9 +390,13 @@ $('#placeBookingModal').on('show.bs.modal', function(e) {
                         let option = $(this);
                         let item_id = option.val();
                         if (valid_items.includes(parseInt(item_id))) {
-                            option.prop("disabled", false);
+                            option.attr("data-pickup", true);
+                            if (option.data("available")) {
+                                option.prop("disabled", false);
+                            }
                         } else {
                             option.prop("disabled", true);
+                            option.attr("data-pickup", false);
                         }
                     });
                     $("#booking_item_id").trigger("change.select2");
@@ -417,22 +431,36 @@ $('#placeBookingModal').on('show.bs.modal', function(e) {
                             });
                             $("#booking_item_id > option").each(function() {
                                 let option = $(this);
-                                if ( booking_item_id && booking_item_id == option.val() ) {
-                                    option.prop('disabled',false);
-                                } else if ( booked_items.some(function(booked_item){
-                                    return option.val() == booked_item.item_id;
-                                }) ) {
-                                    option.prop('disabled',true);
+                                if (
+                                    booking_item_id &&
+                                    booking_item_id == option.val()
+                                ) {
+                                    option.prop("disabled", false);
+                                } else if (
+                                    booked_items.some(function (booked_item) {
+                                        return (
+                                            option.val() == booked_item.item_id
+                                        );
+                                    })
+                                ) {
+                                    option.attr("data-available", false);
+                                    option.prop("disabled", true);
                                 } else {
-                                    option.prop('disabled',false);
+                                    option.attr("data-available", true);
+                                    if (option.data("pickup")) {
+                                        option.prop("disabled", false);
+                                    }
                                 }
                             });
                             $('#booking_item_id').trigger('change.select2');
                         }
                         // Range not set, reset field options
                         else {
-                            $('#booking_item_id > option').each(function() {
-                                $(this).prop('disabled', false);
+                            $("#booking_item_id > option").each(function () {
+                                let option = $(this);
+                                if (option.data("pickup")) {
+                                    option.prop("disabled", false);
+                                }
                             });
                             $('#booking_item_id').trigger('change.select2');
                         }
@@ -635,9 +663,11 @@ $("#placeBookingForm").on('submit', function(e) {
 $("#placeBookingModal").on("hidden.bs.modal", function (e) {
     $("#booking_patron_id").val(null).trigger("change");
     $("#booking_patron_id").empty();
+    booking_patron = undefined;
     $("#booking_item_id").val(0).trigger("change");
     $("#pickup_library_id").val(null).trigger("change");
     $("#pickup_library_id").empty();
+    $("#pickup_library_id").prop("disabled", true);
     $("#period").get(0)._flatpickr.clear();
     $("#booking_start_date").val("");
     $("#booking_end_date").val("");
