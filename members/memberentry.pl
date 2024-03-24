@@ -118,7 +118,7 @@ foreach my $id ( @delete_guarantor ) {
 
 ## Deal with debarments
 $template->param(
-    restriction_types => scalar Koha::Patron::Restriction::Types->search()
+    restriction_types => scalar Koha::Patron::Restriction::Types->search()->as_list
 );
 my @debarments_to_remove = $input->multi_param('remove_debarment');
 foreach my $d ( @debarments_to_remove ) {
