@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: Koha 22.11\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2024-03-12 12:57+0100\n"
+"PO-Revision-Date: 2024-03-20 13:46+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: Koha Translation Team\n"
 "Language: de\n"
@@ -11562,7 +11562,7 @@ msgstr ""
 
 # Acquisitions > Policy
 msgid "opac.pref#EmailPatronRegistrations# EmailAddressForPatronRegistrations"
-msgstr " "
+msgstr " EmailAddressForPatronRegistrations"
 
 # Acquisitions > Policy
 msgid "opac.pref#EmailPatronRegistrations# KohaAdminEmailAddress"
