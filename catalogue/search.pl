@@ -426,7 +426,7 @@ my $limit_copydate;
 my $limit_copydate_value;
 if ($params->{'limit-copydate'}) {
     if ($params->{'limit-copydate'} =~ /\d{4}/) {
-        $limit_copydate = "copydate,st-numeric=$params->{'limit-copydate'}";
+        $limit_copydate = "copydate,st-numeric:$params->{'limit-copydate'}";
         $limit_copydate_value = $params->{'limit-copydate'};
     }
     push @limits,$limit_copydate;
