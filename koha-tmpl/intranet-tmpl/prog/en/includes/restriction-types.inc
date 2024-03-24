@@ -2,7 +2,7 @@
 [%- BLOCK restriction_type_description -%]
     [%- ddisplay = restriction_type.display_text -%]
     [%- SWITCH ddisplay -%]
-        [%- CASE 'Manual' -%][% t("Manual") | html %]
+        [%- CASE 'Manual' -%]Manual
         [%- CASE 'Overdues' -%][% t("Overdues") | html %]
         [%- CASE 'Suspension' -%][% t("Suspension") | html %]
         [%- CASE 'Discharge' -%][% t("Discharge") | html %]
