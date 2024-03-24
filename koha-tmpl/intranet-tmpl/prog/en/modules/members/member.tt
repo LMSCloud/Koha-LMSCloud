@@ -196,7 +196,7 @@
     [% Asset.js("js/members-menu.js") | $raw %]
     <script>
         function showPatronSelections( number ){
-            $("#patron_search_selected").show().find("span").text(_("Patrons selected: " + number ) );
+            $("#patron_search_selected").show().find("span").text( _("Patrons selected: ") + number );
         }
 
         $(document).ready(function() {
