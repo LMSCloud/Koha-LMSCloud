@@ -96,6 +96,8 @@ $(document).ready(function() {
 
     // Handle renewals and returns
     $("#RenewCheckinChecked").on("click",function(){
+
+        let refresh_table = true;
         $(".checkin:checked:visible").each(function() {
             itemnumber = $(this).val();
 
@@ -125,6 +127,7 @@ $(document).ready(function() {
                     } else {
                         content = __("Unable to check in");
                         $(id).parent().parent().addClass('warn');
+                        refresh_table = false;
                     }
 
                     $(id).replaceWith( content );
@@ -198,11 +201,14 @@ $(document).ready(function() {
                             content += __("Not allowed: patron restricted");
                         } else if ( data.error == "overdue" ) {
                             content += __("Not allowed: overdue");
+                        } else if ( data.error == 'no_open_days' ) {
+                            content += __('Unable to find an open day');
                         } else if ( data.error ) {
                             content += data.error;
                         } else {
                             content += __("reason unknown");
                         }
+                        refresh_table = false;
                     }
 
                     $(id).replaceWith( content );
@@ -215,6 +221,10 @@ $(document).ready(function() {
         // Refocus on barcode field if it exists
         if ( $("#barcode").length ) {
             $("#barcode").focus();
+        }
+
+        if ( refresh_table ) {
+            RefreshIssuesTable();
         }
 
         // Prevent form submit
@@ -245,10 +255,6 @@ $(document).ready(function() {
         LoadIssuesTable();
         barcodefield.focus();
         return false;
-    });
-
-    $('#RenewCheckinChecked').on('click', function(){
-        RefreshIssuesTable();
     });
 
     if ( Cookies.get("issues-table-load-immediately-" + script) == "true" ) {
@@ -349,7 +355,7 @@ $(document).ready(function() {
                             if ( flatpickr.formatDate( new Date(oObj.issuedate), "Y-m-d" ) == ymd ){
                                 span_class = "circ-hlt";
                             }
-                            title += " - <span class='" + span_class + " item-note-public'>" + oObj.itemnotes.escapeHtml() + "</span>";
+                            title += "<span class='divider-dash'> - </span><span class='" + span_class + " item-note-public'>" + oObj.itemnotes.escapeHtml() + "</span>";
                         }
 
                         if ( oObj.itemnotes_nonpublic ) {
@@ -357,7 +363,7 @@ $(document).ready(function() {
                             if ( flatpickr.formatDate( new Date(oObj.issuedate), "Y-m-d" ) == ymd ){
                                 span_class = "circ-hlt";
                             }
-                            title += " - <span class='" + span_class + " item-note-nonpublic'>" + oObj.itemnotes_nonpublic.escapeHtml() + "</span>";
+                            title += "<span class='divider-dash'> - </span><span class='" + span_class + " item-note-nonpublic'>" + oObj.itemnotes_nonpublic.escapeHtml() + "</span>";
                         }
 
                         var onsite_checkout = '';
@@ -366,7 +372,7 @@ $(document).ready(function() {
                         }
 
                         if ( oObj.recalled == 1 ) {
-                             title += " - <span class='circ-hlt item-recalled'>" +  __("This item has been recalled and the due date updated") + ".</span>";
+                             title += "<span class='divider-dash'> - </span><span class='circ-hlt item-recalled'>" +  __("This item has been recalled and the due date updated") + ".</span>";
                         }
 
                         title += " "
@@ -1077,16 +1083,28 @@ $(document).ready(function() {
                         }
                     },
                     {
+                        "mDataProp": "created_on",
+                        "bVisible": false,
+                    },
+                    {
+                        "orderData": 4,
                         "mDataProp": function ( oObj ) {
-                            let created_on = new Date( oObj.created_on );
-                            return created_on.toLocaleDateString();
+                            if ( oObj.created_on ) {
+                                return $date(oObj.created_on, { no_tz_adjust: true });;
+                            } else {
+                                return "";
+                            }
                         }
                     },
                     {
+                        "mDataProp": "updated_on",
+                        "bVisible": false,
+                    },
+                    {
+                        "orderData": 6,
                         "mDataProp": function ( oObj ) {
                             if ( oObj.updated_on ) {
-                                let updated_on = new Date( oObj.updated_on );
-                                return updated_on.toLocaleDateString();
+                                return $date(oObj.updated_on, { no_tz_adjust: true });
                             } else {
                                 return "";
                             }

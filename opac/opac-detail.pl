@@ -62,7 +62,7 @@ use C4::External::Syndetics qw(
 use C4::Members;
 use C4::XSLT qw( XSLTParse4Display );
 use C4::ShelfBrowser qw( GetNearbyItems );
-use C4::Reserves qw( GetReserveStatus );
+use C4::Reserves qw( GetReserveStatus IsAvailableForItemLevelRequest );
 use C4::Charset qw( SetUTF8Flag );
 use MARC::Field;
 use List::MoreUtils qw( any );
@@ -644,7 +644,7 @@ $variables->{show_analytics_link} = $show_analytics;
 $template->param(
     XSLTBloc => XSLTParse4Display({
         biblionumber   => $biblionumber,
-        record         => $record,
+        record         => $record->clone(),
         xsl_syspref    => 'OPACXSLTDetailsDisplay',
         fix_amps       => 1,
         xslt_variables => $variables,
@@ -715,7 +715,7 @@ if (C4::Context->preference('DivibibEnabled') && $record->field("001") && $recor
     } 
 }
 
-my $allow_onshelf_holds;
+my $can_item_be_reserved = 0;
 my ( $itemloop_has_images, $otheritemloop_has_images );
 if ( not $viewallitems and $items->count > $max_items_to_display ) {
     $template->param(
@@ -754,9 +754,7 @@ else {
         $item_info->{holding_library_info} = $opac_info_holding->content if $opac_info_holding;
         $item_info->{home_library_info} = $opac_info_home->content if $opac_info_home;
 
-        $allow_onshelf_holds = Koha::CirculationRules->get_onshelfholds_policy(
-            { item => $item, patron => $patron } )
-          unless $allow_onshelf_holds;
+        $can_item_be_reserved = $can_item_be_reserved || $patron && IsAvailableForItemLevelRequest($item, $patron, undef);
 
         # get collection code description, too
         my $ccode = $item->ccode;
@@ -834,7 +832,7 @@ else {
     }
 }
 
-if( $allow_onshelf_holds || $enabledNotForLoanStatus || CountItemsIssued($biblionumber) || $biblio->has_items_waiting_or_intransit ) {
+if( $enabledNotForLoanStatus || $can_item_be_reserved || CountItemsIssued($biblionumber) || $biblio->has_items_waiting_or_intransit ) {
     $template->param( ReservableItems => 1 );
 }
 

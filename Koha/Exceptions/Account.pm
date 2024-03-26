@@ -47,6 +47,14 @@ use Exception::Class (
     'Koha::Exceptions::Account::RegisterRequired' => {
         isa         => 'Koha::Exceptions::Account',
         description => 'Account transaction requires a cash register'
+    },
+    'Koha::Exceptions::Account::PaymentTypeRequired' => {
+        isa         => 'Koha::Exceptions::Account',
+        description => 'Account transaction requires a payment type'
+    },
+    'Koha::Exceptions::Account::InvalidPaymentType' => {
+        isa         => 'Koha::Exceptions::Account',
+        description => 'Invalid payment type'
     }
 );
 

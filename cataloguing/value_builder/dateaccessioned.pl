@@ -39,12 +39,9 @@ my $builder = sub {
     });
 });
 
-function Focus$function_name(event) {
-    set_to_today(event.data.id);
-}
-
 function Click$function_name(event) {
     set_to_today(event.data.id, 1);
+    return false;
 }
 
 function set_to_today( id, force ) {

@@ -13,30 +13,42 @@ class HttpClient {
         headers = {},
         options = {},
         return_response = false,
-        mark_submitting = false,
+        mark_submitting = false
     ) {
         let res, error;
-        if ( mark_submitting) submitting()
+        if (mark_submitting) submitting();
         await fetch(this._baseURL + endpoint, {
             ...options,
             headers: { ...this._headers, ...headers },
         })
-            .then((response) => this.checkError(response, return_response))
-            .then(
-                (result) => {
-                    res = result;
-                },
-                (err) => {
-                    error = err;
-                    setError(err.toString());
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        let message;
+                        if (text) {
+                            let json = JSON.parse(text);
+                            message =
+                                json.error ||
+                                json.errors.map(e => e.message).join("\n") ||
+                                json;
+                        } else {
+                            message = response.statusText;
+                        }
+                        throw new Error(message);
+                    });
                 }
-            )
-            .catch((err) => {
+                return return_response ? response : response.json();
+            })
+            .then(result => {
+                res = result;
+            })
+            .catch(err => {
                 error = err;
                 setError(err);
-            }).then(() => {
-              if (mark_submitting) submitted()})
-            ;
+            })
+            .then(() => {
+                if (mark_submitting) submitted();
+            });
 
         if (error) throw Error(error);
 
@@ -52,11 +64,13 @@ class HttpClient {
 
     getAll(params = {}) {
         let url =
-            params.endpoint + "?" +
+            params.endpoint +
+            "?" +
             new URLSearchParams({
                 _per_page: -1,
+                ...(params.params && params.params),
                 ...(params.query && { q: JSON.stringify(params.query) }),
-            })
+            });
         return this._fetchJSON(url, params.headers, {
             ...params.options,
             method: "GET",
@@ -69,11 +83,17 @@ class HttpClient {
                 ? params.body
                 : JSON.stringify(params.body)
             : undefined;
-        return this._fetchJSON(params.endpoint, params.headers, {
-            ...params.options,
-            body,
-            method: "POST",
-        }, false, true);
+        return this._fetchJSON(
+            params.endpoint,
+            params.headers,
+            {
+                ...params.options,
+                body,
+                method: "POST",
+            },
+            false,
+            true
+        );
     }
 
     put(params = {}) {
@@ -82,11 +102,17 @@ class HttpClient {
                 ? params.body
                 : JSON.stringify(params.body)
             : undefined;
-        return this._fetchJSON(params.endpoint, params.headers, {
-            ...params.options,
-            body,
-            method: "PUT",
-        }, false, true);
+        return this._fetchJSON(
+            params.endpoint,
+            params.headers,
+            {
+                ...params.options,
+                body,
+                method: "PUT",
+            },
+            false,
+            true
+        );
     }
 
     delete(params = {}) {
@@ -98,21 +124,20 @@ class HttpClient {
                 ...params.options,
                 method: "DELETE",
             },
-            true, true
+            true,
+            true
         );
     }
 
     count(params = {}) {
         let res;
         return this._fetchJSON(params.endpoint, params.headers, {}, 1).then(
-            (response) => {
+            response => {
                 if (response) {
                     return response.headers.get("X-Total-Count");
                 }
             },
-            (error) => {
-                setError(error.toString());
-            }
+            error => {}
         );
     }
 
@@ -127,16 +152,6 @@ class HttpClient {
             body,
             method: "PATCH",
         });
-    }
-
-    checkError(response, return_response = 0) {
-        if (response.status >= 200 && response.status <= 299) {
-            return return_response ? response : response.json();
-        } else {
-            console.log("Server returned an error:");
-            console.log(response);
-            throw Error("%s (%s)".format(response.statusText, response.status));
-        }
     }
 }
 

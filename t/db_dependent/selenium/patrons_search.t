@@ -18,6 +18,8 @@
 use Modern::Perl;
 
 our @cleanup;
+our $DT_delay = 1;
+
 END {
     unless ( @cleanup ) { say "WARNING: Cleanup failed!" }
     $_->delete for @cleanup;
@@ -74,6 +76,7 @@ subtest 'Search patrons' => sub {
         { class => 'Koha::Libraries', value => { branchname => $branchname } }
     );
     my $default_patron_search_fields = C4::Context->preference('DefaultPatronSearchFields');
+    my $default_patron_search_method = C4::Context->preference('DefaultPatronSearchMethod');
     my $default_patron_per_page = C4::Context->preference('PatronsPerPage');
     for my $i ( 1 .. 25 ) {
         push @patrons,
@@ -155,6 +158,7 @@ subtest 'Search patrons' => sub {
 
     $s->auth;
     C4::Context->set_preference('DefaultPatronSearchFields',"");
+    C4::Context->set_preference('DefaultPatronSearchMethod',"contains");
     my $PatronsPerPage = 15;
     my $nb_standard_fields = 13;
     C4::Context->set_preference('PatronsPerPage', $PatronsPerPage);
@@ -186,7 +190,7 @@ subtest 'Search patrons' => sub {
     $s->submit_form;
     my $first_patron = $patrons[0];
 
-    $s->wait_for_ajax;
+    sleep $DT_delay && $s->wait_for_ajax;
     my @td = $driver->find_elements('//table[@id="'.$table_id.'"]/tbody/tr/td');
     like ($td[2]->get_text, qr[\Q$firstname\E],
         'Column "Name" should be the 3rd and contain the firstname correctly filtered'
@@ -221,20 +225,20 @@ subtest 'Search patrons' => sub {
     $driver->get( $base_url . "/members/members-home.pl" );
     $s->fill_form( { search_patron_filter => 'test_patron' } );
     $s->submit_form;
-    $s->wait_for_ajax;
+    sleep $DT_delay && $s->wait_for_ajax;
 
     $s->driver->find_element('//*[@id="'.$table_id.'_filter"]//input')->send_keys('test_patron');
-    $s->wait_for_ajax;
+    sleep $DT_delay && $s->wait_for_ajax;
     is( $driver->find_element('//div[@id="'.$table_id.'_info"]')->get_text, sprintf('Showing 1 to %s of %s entries (filtered from %s total entries)', $PatronsPerPage, 26, $total_number_of_patrons), 'Searching in standard brings back correct results' );
 
     $s->driver->find_element('//table[@id="'.$table_id.'"]//th[@data-filter="libraries"]/select/option[@value="'.$library->branchcode.'"]')->click;
-    $s->wait_for_ajax;
+    sleep $DT_delay && $s->wait_for_ajax;
     is( $driver->find_element('//div[@id="'.$table_id.'_info"]')->get_text, sprintf('Showing 1 to %s of %s entries (filtered from %s total entries)', $PatronsPerPage, 25, $total_number_of_patrons), 'Filtering on library works in combination with main search' );
 
     # Reset the filters
     $driver->find_element('//form[@id="patron_search_form"]//*[@id="clear_search"]')->click();
     $s->submit_form;
-    $s->wait_for_ajax;
+    sleep $DT_delay && $s->wait_for_ajax;
 
     # And make sure all the patrons are present
     is( $driver->find_element('//div[@id="'.$table_id.'_info"]')->get_text, sprintf('Showing 1 to %s of %s entries', $PatronsPerPage, $total_number_of_patrons), 'Resetting filters works as expected' );
@@ -243,16 +247,16 @@ subtest 'Search patrons' => sub {
     $s->fill_form( { search_patron_filter => 'test patron' } );
     $s->submit_form;
 
-    $s->wait_for_ajax;
+    sleep $DT_delay && $s->wait_for_ajax;
     is( $driver->find_element('//div[@id="'.$table_id.'_info"]')->get_text, sprintf('Showing 1 to %s of %s entries (filtered from %s total entries)', $PatronsPerPage, 26, $total_number_of_patrons) );
     $driver->find_element('//form[@id="patron_search_form"]//*[@id="clear_search"]')->click();
     $s->submit_form;
-    $s->wait_for_ajax;
+    sleep $DT_delay && $s->wait_for_ajax;
 
     # Search on non-searchable attribute, we expect no result!
     $s->fill_form( { search_patron_filter => 'test_attr_1' } );
     $s->submit_form;
-    $s->wait_for_ajax;
+    sleep $DT_delay && $s->wait_for_ajax;
 
     is( $driver->find_element('//div[@id="'.$table_id.'_info"]')->get_text, sprintf('No entries to show (filtered from %s total entries)', $total_number_of_patrons), 'Searching on a non-searchable attribute returns no results' );
 
@@ -261,20 +265,20 @@ subtest 'Search patrons' => sub {
     # Search on searchable attribute, we expect 2 patrons
     $s->fill_form( { search_patron_filter => 'test_attr_2' } );
     $s->submit_form;
-    $s->wait_for_ajax;
+    sleep $DT_delay && $s->wait_for_ajax;
 
     is( $driver->find_element('//div[@id="'.$table_id.'_info"]')->get_text, sprintf('Showing 1 to %s of %s entries (filtered from %s total entries)', 2, 2, $total_number_of_patrons), 'Searching on a searchable attribute returns correct results' );
 
     # Refine search and search for test_patron in all the data using the DT global search
     # No change in result expected, still 2 patrons
     $s->driver->find_element('//*[@id="'.$table_id.'_filter"]//input')->send_keys('test_patron');
-    $s->wait_for_ajax;
+    sleep $DT_delay && $s->wait_for_ajax;
     is( $driver->find_element('//div[@id="'.$table_id.'_info"]')->get_text, sprintf('Showing 1 to %s of %s entries (filtered from %s total entries)', 2, 2, $total_number_of_patrons), 'Refining with DataTables search works to further filter the original query' );
 
     # Adding the surname of the first patron in the "Name" column
     # We expect only 1 result
     $s->driver->find_element('//table[@id="'.$table_id.'"]//input[@placeholder="Name search"]')->send_keys($patrons[0]->surname);
-    $s->wait_for_ajax;
+    sleep $DT_delay && $s->wait_for_ajax;
     is( $driver->find_element('//div[@id="'.$table_id.'_info"]')->get_text, sprintf('Showing 1 to %s of %s entries (filtered from %s total entries)', 1, 1, $total_number_of_patrons), 'Refining with header filters works to further filter the original query' );
 
     subtest 'remember_search' => sub {
@@ -285,7 +289,7 @@ subtest 'Search patrons' => sub {
         $driver->get( $base_url . "/members/members-home.pl" );
         $s->fill_form( { search_patron_filter => 'test_patron' } );
         $s->submit_form;
-        $s->wait_for_ajax;
+        sleep $DT_delay && $s->wait_for_ajax;
         my $patron_selected_text = $driver->find_element('//div[@id="patron_search_selected"]/span')->get_text;
         is( $patron_selected_text, "", "Patrons selected is not displayed" );
 
@@ -300,7 +304,7 @@ subtest 'Search patrons' => sub {
         is( $patron_selected_text, "Patrons selected: 2", "Two patrons are selected" );
 
         $driver->find_element('//*[@id="memberresultst_next"]')->click;
-        $s->wait_for_ajax;
+        sleep $DT_delay && $s->wait_for_ajax;
         @checkboxes = $driver->find_elements(
             '//input[@type="checkbox"][@name="borrowernumber"]');
         $checkboxes[0]->click;
@@ -312,7 +316,7 @@ subtest 'Search patrons' => sub {
         $driver->get( $base_url . "/members/members-home.pl" );
         $s->fill_form( { search_patron_filter => 'test_patron' } );
         $s->submit_form;
-        $s->wait_for_ajax;
+        sleep $DT_delay && $s->wait_for_ajax;
         $patron_selected_text = $driver->find_element('//div[@id="patron_search_selected"]/span')->get_text;
         is( $patron_selected_text, "Patrons selected: 3", "Tree patrons still selected" );
 
@@ -321,7 +325,7 @@ subtest 'Search patrons' => sub {
         my $patron_list_name = "my new list";
         $driver->find_element('//input[@id="new_patron_list"]')->send_keys($patron_list_name);
         $driver->find_element('//button[@id="add_to_patron_list_submit"]')->click;
-        $s->wait_for_ajax;
+        sleep $DT_delay && $s->wait_for_ajax;
         is( $driver->find_element('//*[@id="patron_list_dialog"]')->get_text, "Added 3 patrons to $patron_list_name." );
         my $patron_list = $schema->resultset('PatronList')->search({ name => $patron_list_name })->next;
         is( $schema->resultset('PatronListPatron')->search({ patron_list_id => $patron_list->patron_list_id })->count, 3 );
@@ -335,6 +339,7 @@ subtest 'Search patrons' => sub {
     push @cleanup, $patron_category;
     push @cleanup, $attribute_type, $attribute_type_searchable;
     C4::Context->set_preference('DefaultPatronSearchFields',$default_patron_search_fields);
+    C4::Context->set_preference('DefaultPatronSearchMethod',$default_patron_search_method);
     C4::Context->set_preference('PatronsPerPage',$default_patron_per_page);
 
     $driver->quit();

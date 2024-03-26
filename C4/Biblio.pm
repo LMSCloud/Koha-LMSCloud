@@ -94,6 +94,7 @@ use C4::Charset qw(
     nsb_clean
     SetMarcUnicodeFlag
     SetUTF8Flag
+    StripNonXmlChars
 );
 use C4::Languages;
 use C4::Linker;
@@ -230,8 +231,7 @@ sub AddBiblio {
                     part_name     => $olddata->{part_name},
                     unititle      => $olddata->{unititle},
                     notes         => $olddata->{notes},
-                    serial =>
-                      ( $olddata->{serial} || $olddata->{seriestitle} ? 1 : 0 ),
+                    serial        => $olddata->{serial},
                     seriestitle   => $olddata->{seriestitle},
                     copyrightdate => $olddata->{copyrightdate},
                     datecreated   => \'NOW()',
@@ -2335,6 +2335,7 @@ sub TransformHtmlToMarc {
                     ;
                     # between 001 and 009 (included)
                 } elsif ( $fval ne '' ) {
+                    $fval     = StripNonXmlChars($fval);    #Strip out any non-XML characters like control characters
                     $newfield = MARC::Field->new( $tag, $fval, );
                 }
 
@@ -2356,6 +2357,7 @@ sub TransformHtmlToMarc {
                         $newfield->add_subfields( $fkey => $fval);
                     }
                     elsif($fval ne '') {
+                        $fval     = StripNonXmlChars($fval);   #Strip out any non-XML characters like control characters
                         $newfield = MARC::Field->new( $tag, $ind1, $ind2, $fkey => $fval );
                     }
                     $j += 2;
@@ -3262,9 +3264,9 @@ sub _after_biblio_action_hooks {
     my ( $args ) = @_;
 
     my $biblio_id = $args->{biblio_id};
-    my $action    = $args->{action};
+    my $action    = $args->{action} // q{};
 
-    my $biblio = Koha::Biblios->find( $biblio_id );
+    my $biblio = $action ne 'delete' ? Koha::Biblios->find($biblio_id) : undef;
     Koha::Plugins->call(
         'after_biblio_action',
         {

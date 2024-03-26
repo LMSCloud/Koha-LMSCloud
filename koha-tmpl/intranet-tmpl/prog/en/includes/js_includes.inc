@@ -21,7 +21,7 @@
 [% Asset.js("lib/jquery/jquery-ui-1.13.1.min.js") | $raw %]
 [% Asset.js("lib/shortcut/shortcut.js") | $raw %]
 [% Asset.js("lib/js-cookie/js.cookie-2.2.1.min.js") | $raw %]
-[% Asset.js("lib/jquery/plugins/jquery.highlight-3.js") | $raw %]
+[% Asset.js("lib/jquery/plugins/jquery.highlight-5.js") | $raw %]
 [% Asset.js("lib/bootstrap/bootstrap.min.js") | $raw %]
 [% Asset.js("lib/jquery/plugins/jquery.validate.min.js") | $raw %]
 <!-- koha core js -->
@@ -29,7 +29,6 @@
 [% INCLUDE 'js-date-format.inc' %]
 [% INCLUDE 'js-patron-get-age.inc' %]
 [% INCLUDE 'js-patron-format-address.inc' %]
-[% Asset.js("js/patron-autocomplete.js") | $raw %]
 
 [% INCLUDE 'validator-strings.inc' %]
 [% IF ( IntranetUserJS ) %]
@@ -136,6 +135,8 @@
 
 <script>
     var defaultPatronSearchFields = "[% Koha.Preference('DefaultPatronSearchFields') || 'firstname,middle_name,surname,othernames,cardnumber,userid' | html %]";
+    var defaultPatronSearchMethod = "[% Koha.Preference('DefaultPatronSearchMethod') || 'contains' | html %]";
+    var extendedPatronAttributes = "[% Koha.Preference('ExtendedPatronAttributes') | html %]";
     var loggedInLibrary = '[% Branches.GetLoggedInBranchcode | html %]';
     var singleBranchMode = '[% singleBranchMode | html %]';
 </script>

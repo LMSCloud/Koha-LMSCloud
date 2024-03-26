@@ -51,7 +51,7 @@ var dataTablesDefaults = {
     "lengthMenu": [[10, 20, 50, 100, -1], [10, 20, 50, 100, __('All')]],
     "pageLength": 20,
     "fixedHeader": true,
-    initComplete: function( settings) {
+    initComplete: function( settings ) {
         var tableId = settings.nTable.id
         var state =  settings.oLoadedState;
         state && toggledClearFilter(state.search.search, tableId);
@@ -61,6 +61,16 @@ var dataTablesDefaults = {
         $(this).on( 'search.dt', function ( e, settings ) {
             toggledClearFilter(settings.oPreviousSearch.sSearch, tableId);
         });
+
+        if (settings.ajax) {
+            let table_node = $("#" + tableId);
+            if ( typeof this.api === 'function' ) {
+                _dt_add_delay(this.api(), table_node);
+            } else {
+                let dt = $(table_node).DataTable();
+                _dt_add_delay(dt, table_node);
+            }
+        }
     }
 };
 
@@ -891,18 +901,22 @@ function _dt_add_filters(table_node, table_dt, filters_options = {}) {
                 if ( existing_search ) {
                     $(this).html( '<input type="text" value="%s" style="width: 100%" />'.format(existing_search) );
                 } else {
-                    var search_title = _("%s search").format(title);
+                    var search_title = __("%s search").format(title);
                     $(this).html( '<input type="text" placeholder="%s" style="width: 100%" />'.format(search_title) );
                 }
             }
 
+            var search = $.fn.dataTable.util.throttle( function ( i, val ) {
+                table_dt
+                    .column( i )
+                    .search( val )
+                    .draw();
+            }, 500);
+
             $( input_type, this ).on( 'keyup change', function () {
                 if ( table_dt.column(i).search() !== this.value ) {
                     if ( input_type == "input" ) {
-                        table_dt
-                            .column(i)
-                            .search( this.value )
-                            .draw();
+                        search(i, this.value)
                     } else {
                         table_dt
                             .column(i)
@@ -917,6 +931,38 @@ function _dt_add_filters(table_node, table_dt, filters_options = {}) {
     } );
 }
 
+// List of unbind keys (Ctrl, Alt, Direction keys, etc.)
+// These keys must not launch filtering
+var blacklist_keys = new Array(0, 16, 17, 18, 37, 38, 39, 40);
+
+function _dt_add_delay(table_dt, table_node, delay_ms) {
+
+    delay = (typeof delay == 'undefined') ? 500 : delay;
+
+    var previousSearch = null;
+    var timerId = null;
+    $("#"+table_node.attr('id')+"_wrapper").find(".dataTables_filter input")
+    .unbind()
+    .bind("keyup", function(event) {
+        var input = $(this);
+        if (blacklist_keys.indexOf(event.keyCode) != -1) {
+            return;
+        } else if ( event.keyCode == '13' ) {
+            table_dt.search($(input).val()).draw();
+        } else {
+            let val = $(input).val();
+            if (previousSearch === null || previousSearch != val){
+                window.clearTimeout(timerId);
+                previousSearch = val;
+                timerId = window.setTimeout(function(){
+                    table_dt.search($(input).val()).draw();
+                }, delay);
+            }
+        }
+
+        return;
+    });
+}
 
 (function($) {
 

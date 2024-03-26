@@ -26,6 +26,11 @@ use Koha::SearchEngine::Search;
 use C4::Biblio qw( DelBiblio AddBiblio ModBiblio );
 use C4::Search qw( FindDuplicate );
 
+use C4::Barcodes::ValueBuilder;
+use C4::Context;
+
+use Koha::Items;
+
 use List::MoreUtils qw( any );
 use MARC::Record::MiJ;
 
@@ -682,12 +687,12 @@ Controller function that handles retrieving a single biblio object
 sub list {
     my $c = shift->openapi->valid_input or return;
 
-    my $attributes;
-    $attributes =
-      { prefetch => ['metadata'] }    # don't prefetch metadata if not needed
+    my @prefetch = qw(biblioitem);
+    push @prefetch, 'metadata'    # don't prefetch metadata if not needed
       unless $c->req->headers->accept =~ m/application\/json/;
 
-    my $biblios = $c->objects->search_rs( Koha::Biblios->new );
+    my $rs = Koha::Biblios->search( undef, { prefetch => \@prefetch });
+    my $biblios = $c->objects->search_rs( $rs, [(sub{ $rs->api_query_fixer( $_[0], '', $_[1] ) })] );
 
     return try {
 

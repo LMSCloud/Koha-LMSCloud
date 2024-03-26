@@ -134,9 +134,10 @@ if(!$basketno) {
 }
 
 our $basket = GetBasket($basketno);
-my $basketobj = Koha::Acquisition::Baskets->find( $basketno );
+my $basketobj = Koha::Acquisition::Baskets->find($basketno);
 $booksellerid = $basket->{booksellerid} unless $booksellerid;
-my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
+my $bookseller = Koha::Acquisition::Booksellers->find($booksellerid);
+$data = GetOrder($ordernumber) if $ordernumber;
 
 output_and_exit( $input, $cookie, $template, 'unknown_basket') unless $basketobj;
 output_and_exit( $input, $cookie, $template, 'unknown_vendor') unless $bookseller;
@@ -149,7 +150,7 @@ $template->param(
     name         => $bookseller->name,
 );
 output_and_exit( $input, $cookie, $template, 'order_cannot_be_edited' )
-    if $ordernumber and $basketobj->closedate;
+    if $ordernumber and ( $basketobj->closedate || $data->{orderstatus} eq "complete" );
 
 my $contract = GetContract({
     contractnumber => $basket->{contractnumber}
@@ -263,7 +264,6 @@ if ( not $ordernumber ) {    # create order
     }
 }
 else {    #modify order
-    $data   = GetOrder($ordernumber);
     $budget_id = $data->{'budget_id'};
 
     $template->param(
@@ -365,7 +365,7 @@ if ($basketobj->effective_create_items eq 'ordering' && !$ordernumber) {
     );
 }
 
-my @itemtypes = Koha::ItemTypes->search->as_list;
+my @itemtypes = Koha::ItemTypes->search( {}, { order_by => { -asc => "description" } } )->as_list;
 
 if ( defined $from_subscriptionid ) {
     # Get the last received order for this subscription

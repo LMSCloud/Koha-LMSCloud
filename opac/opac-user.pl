@@ -28,6 +28,7 @@ use C4::Koha qw(
     getitemtypeimagelocation
     GetNormalizedISBN
     GetNormalizedUPC
+    GetNormalizedOCLCNumber
 );
 use C4::Circulation qw( CanBookBeRenewed GetRenewCount GetIssuingCharges );
 use C4::External::BakerTaylor qw( image_url link_url );

@@ -3,7 +3,15 @@
 [% USE KohaDates %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Plugins &rsaquo; Tools &rsaquo; Koha </title>
+<title>
+    Plugins &rsaquo;
+    [% IF ( method == 'tool' ) %]
+        Tools
+    [% ELSE %]
+        Administration
+    [% END %]
+    &rsaquo; Koha
+ </title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -15,7 +23,11 @@
 [% WRAPPER 'sub-header.inc' %]
     [% WRAPPER breadcrumbs %]
         [% WRAPPER breadcrumb_item %]
-            <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
+            [% IF ( method == 'tool' ) %]
+                <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
+            [% ELSE %]
+                <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
+            [% END %]
         [% END %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
             <span>Plugins</span>
@@ -106,6 +118,8 @@
                                 <div class="dialog message">No plugins that can process online payments via the public catalog are installed</div>
                             [% ELSIF method == 'intranet_catalog_biblio_enhancements' %]
                                 <div class="dialog message">No plugins that can enhance the bibliographic records in the staff interface are installed</div>
+                            [% ELSIF method == 'ill_availability_services' %]
+                                <div class="dialog message">No plugins that can show ILL availability results are installed</div>
                             [% ELSE %]
                                 <div class="dialog message">Unknown plugin type <em>[% method | html %]</em></div>
                             [% END %]
@@ -223,7 +237,11 @@
 
         <div class="col-sm-2 col-sm-pull-10">
             <aside>
-                [% INCLUDE 'tools-menu.inc' %]
+                [% IF ( method == 'tool' ) %]
+                    [% INCLUDE 'tools-menu.inc' %]
+                [% ELSE %]
+                    [% INCLUDE 'admin-menu.inc' %]
+                [% END %]
             </aside>
         </div> <!-- /.col-sm-2.col-sm-pull-10 -->
      </div> <!-- /.row -->

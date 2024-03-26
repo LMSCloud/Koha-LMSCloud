@@ -91,7 +91,7 @@
                     <li class="nav-item dropdown">
                         [% IF ( Koha.Preference( 'opacuserlogin' ) == 1 ) %]
                             [% IF ( loggedinusername ) %]
-                                <a href="/cgi-bin/koha/opac-user.pl" class="dropdown-toggle" id="user-menu" data-toggle="dropdown" role="button">
+                                <a href="/cgi-bin/koha/opac-user.pl" class="dropdown-toggle" id="user-menu" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
                                     <i class="fa fa-user fa-icon-black fa-fw" aria-hidden="true"></i>
                                     <span class="userlabel">Welcome, [% INCLUDE 'patron-title.inc' patron = logged_in_user no_html = 1 %]</span>
                                 </a>
@@ -388,10 +388,10 @@
                                     <p>Sorry, your Shibboleth identity does not match a valid library identity. If you have a local login, you may use that below.</p>
                                 </div>
                             [% ELSE %]
-                                <h3>Shibboleth login</h3>
-                                <p><a href="[% shibbolethLoginUrl | $raw %]">Log in using a Shibboleth account</a>.</p>
+                                <h3 class="shib_title">Shibboleth login</h3>
+                                <p><a class="shib_url" href="[% shibbolethLoginUrl | $raw %]">Log in using a Shibboleth account</a>.</p>
                                 [% UNLESS Koha.Preference('opacShibOnly') %]
-                                    <h3>Local login</h3>
+                                    <h3 class="shib_local_title">Local login</h3>
                                 [% END %]
                             [% END %]
                         [% END %]

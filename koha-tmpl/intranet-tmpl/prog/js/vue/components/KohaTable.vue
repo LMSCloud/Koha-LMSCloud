@@ -44,7 +44,7 @@ export default {
                 ajax: {
                     url: typeof this.url === "function" ? this.url() : this.url,
                     ..._dt_default_ajax({
-                        options: this.options,
+                        options: { ...this.options, columns: this.columns },
                         default_filters: this.default_filters,
                     }),
                 },
@@ -81,8 +81,10 @@ export default {
                 ...this.tableColumns,
                 {
                     name: "actions",
+                    className: "noExport",
                     title: this.$__("Actions"),
                     searchable: false,
+                    sortable: false,
                     render: (data, type, row) => {
                         let content = []
                         this.actions["-1"].forEach(action => {
@@ -150,6 +152,13 @@ export default {
         })
             .columns(this.hidden_ids)
             .visible(false)
+
+        dt.on("search.dt", function (e, settings) {
+            toggledClearFilter(
+                settings.oPreviousSearch.sSearch,
+                settings.nTable.id
+            )
+        })
 
         if (Object.keys(this.actions).length) {
             const self = this

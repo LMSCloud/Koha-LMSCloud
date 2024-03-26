@@ -232,7 +232,7 @@ sub delete {
 
     my $result = $self->SUPER::delete;
 
-    # Delete the item gorup if it has no items left
+    # Delete the item group if it has no items left
     $item_group->delete if ( $item_group && $item_group->items->count == 0 );
 
     my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
@@ -599,35 +599,25 @@ sub get_transfers {
 
 =head3 last_returned_by
 
-Gets and sets the last borrower to return an item.
+Gets and sets the last patron to return an item.
 
-Accepts and returns Koha::Patron objects
+Accepts a patron's id (borrowernumber) and returns Koha::Patron objects
 
 $item->last_returned_by( $borrowernumber );
 
-$last_returned_by = $item->last_returned_by();
+my $patron = $item->last_returned_by();
 
 =cut
 
 sub last_returned_by {
-    my ( $self, $borrower ) = @_;
-
-    my $items_last_returned_by_rs = Koha::Database->new()->schema()->resultset('ItemsLastBorrower');
-
-    if ($borrower) {
-        return $items_last_returned_by_rs->update_or_create(
-            { borrowernumber => $borrower->borrowernumber, itemnumber => $self->id } );
+    my ( $self, $borrowernumber ) = @_;
+    if ( $borrowernumber ) {
+        $self->_result->update_or_create_related('last_returned_by',
+            { borrowernumber => $borrowernumber, itemnumber => $self->itemnumber } );
     }
-    else {
-        unless ( $self->{_last_returned_by} ) {
-            my $result = $items_last_returned_by_rs->single( { itemnumber => $self->id } );
-            if ($result) {
-                $self->{_last_returned_by} = Koha::Patrons->find( $result->get_column('borrowernumber') );
-            }
-        }
-
-        return $self->{_last_returned_by};
-    }
+    my $rs = $self->_result->last_returned_by;
+    return unless $rs;
+    return Koha::Patron->_new_from_dbic($rs->borrowernumber);
 }
 
 =head3 can_article_request
@@ -1458,7 +1448,10 @@ sub to_api {
     my $overrides = {};
 
     $overrides->{effective_item_type_id} = $self->effective_itemtype;
-    $overrides->{effective_not_for_loan_status} = $self->notforloan ? $self->notforloan : $self->itemtype->notforloan;
+
+    my $itype_notforloan = $self->itemtype->notforloan;
+    $overrides->{effective_not_for_loan_status} =
+        ( defined $itype_notforloan && !$self->notforloan ) ? $itype_notforloan : $self->notforloan;
 
     return { %$response, %$overrides };
 }
@@ -1644,15 +1637,8 @@ Returns the items associated with this bundle
 sub bundle_items {
     my ($self) = @_;
 
-    if ( !$self->{_bundle_items_cached} ) {
-        my $bundle_items = Koha::Items->search(
-            { 'item_bundles_item.host' => $self->itemnumber },
-            { join                     => 'item_bundles_item' } );
-        $self->{_bundle_items}        = $bundle_items;
-        $self->{_bundle_items_cached} = 1;
-    }
-
-    return $self->{_bundle_items};
+    my $rs = $self->_result->bundle_items;
+    return Koha::Items->_new_from_dbic($rs);
 }
 
 =head3 is_bundle
@@ -1722,6 +1708,9 @@ sub add_to_bundle {
     try {
         $schema->txn_do(
             sub {
+
+                Koha::Exceptions::Item::Bundle::BundleIsCheckedOut->throw if $self->checkout;
+
                 my $checkout = $bundle_item->checkout;
                 if ($checkout) {
                     unless ($options->{force_checkin}) {
@@ -1800,6 +1789,12 @@ Remove this item from any bundle it may have been attached to.
 sub remove_from_bundle {
     my ($self) = @_;
 
+    my $bundle_host = $self->bundle_host;
+
+    return 0 unless $bundle_host;    # Should not we raise an exception here?
+
+    Koha::Exceptions::Item::Bundle::BundleIsCheckedOut->throw if $bundle_host->checkout;
+
     my $bundle_item_rs = $self->_result->item_bundles_item;
     if ( $bundle_item_rs ) {
         $bundle_item_rs->delete;
@@ -1841,7 +1836,7 @@ Return the relevant recall for this item
 =cut
 
 sub recall {
-    my ( $self ) = @_;
+    my ($self) = @_;
     my @recalls = Koha::Recalls->search(
         {
             biblio_id => $self->biblionumber,
@@ -1849,11 +1844,23 @@ sub recall {
         },
         { order_by => { -asc => 'created_date' } }
     )->as_list;
+
+    my $item_level_recall;
     foreach my $recall (@recalls) {
-        if ( $recall->item_level and $recall->item_id == $self->itemnumber ){
-            return $recall;
+        if ( $recall->item_level ) {
+            $item_level_recall = 1;
+            if ( $recall->item_id == $self->itemnumber ) {
+                return $recall;
+            }
         }
     }
+    if ($item_level_recall) {
+
+        # recall needs to be filled be a specific item only
+        # no other item is relevant to return
+        return;
+    }
+
     # no item-level recall to return, so return earliest biblio-level
     # FIXME: eventually this will be based on priority
     return $recalls[0];
@@ -2059,10 +2066,11 @@ rules set in the ItemsDeniedRenewal system preference.
 
 sub is_denied_renewal {
     my ( $self ) = @_;
-
-    my $denyingrules = Koha::Config::SysPrefs->find('ItemsDeniedRenewal')->get_yaml_pref_hash();
+    my $denyingrules = C4::Context->yaml_preference('ItemsDeniedRenewal');
     return 0 unless $denyingrules;
     foreach my $field (keys %$denyingrules) {
+        # Silently ignore bad column names; TODO we should validate elsewhere
+        next if !$self->_result->result_source->has_column($field);
         my $val = $self->$field;
         if( !defined $val) {
             if ( any { !defined $_ }  @{$denyingrules->{$field}} ){

@@ -95,6 +95,16 @@ $( document ).ready(function() {
          "order": [[ 0, "desc" ]],
          [% END %]
          "dom": '<"#filter_p">',
+         "autoWidth": false,
+         "responsive": {
+            "details": { "type": 'column',"target": -1 }
+         },
+         "columnDefs": [
+            { "className": 'dtr-control', "orderable": false, "targets": -1 }
+         ],
+         'fnDrawCallback': function() {
+            show_hiddentfoot('#finestable');
+         }
     } ));
     
     [% FOREACH r IN relatives %]
@@ -108,6 +118,26 @@ $( document ).ready(function() {
     } ));
     [% END %]
 
+    $('table[id^="finestable-"]').dataTable($.extend(true, {}, dataTablesDefaults, {
+         "autoWidth": false,
+         "responsive": {
+            "details": { "type": 'column',"target": -1 }
+         },
+         "columnDefs": [
+            { "className": 'dtr-control', "orderable": false, "targets": -1 }
+         ],
+         'fnDrawCallback': function() {
+            show_hiddentfoot('table[id^="finestable-"]');
+         }
+    } ));
+
+    function show_hiddentfoot(selector) {
+        $('.finestable tfoot .sum').show();
+        if ($(".finestable tfoot td.dtr-hidden").length > 0) {
+            $(selector+" tfoot th").removeAttr( "colspan" );
+            $(".finestable tfoot .dtr-control").hide();
+        }
+    }
     $("#filter_p").html('<p><a href="#" id="filter_paid"><i class="fa fa-filter" aria-hidden="true"></i> '+txtActivefilter+'</a>');
     $('#filter_paid').click(function(e) {
         e.preventDefault();
@@ -118,9 +148,9 @@ $( document ).ready(function() {
             var filteredValue = '^((?!0.00).*)$'; //Filter not matching 0.00 http://stackoverflow.com/a/406408
             $(this).html('<i class="fa fa-filter" aria-hidden="true"></i> '+txtInactivefilter);
         }
-        fines_table.fnFilter(filteredValue, -1, true, false);
+        fines_table.fnFilter(filteredValue, -2, true, false);
         [% FOREACH r IN relatives %]
-        fines_table_[% r.id | html %].fnFilter(filteredValue, -1, true, false);
+        fines_table_[% r.id | html %].fnFilter(filteredValue, -2, true, false);
         [% END %]
         $(this).toggleClass('filtered');
     });

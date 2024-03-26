@@ -2,7 +2,7 @@
     <div>
         <div v-if="!initialized">{{ $__("Loading") }}</div>
         <div v-else id="titles_list">
-            <Toolbar />
+            <Toolbar :options="this.toolbar_options" />
             <div
                 v-if="title_count > 0"
                 id="title_list_result"
@@ -24,7 +24,7 @@
 </template>
 
 <script>
-import Toolbar from "./EHoldingsLocalTitlesToolbar.vue"
+import Toolbar from "../Toolbar.vue"
 import { inject, ref, reactive } from "vue"
 import { storeToRefs } from "pinia"
 import { APIClient } from "../../fetch/api-client.js"
@@ -90,6 +90,18 @@ export default {
                 },
             },
             cannot_search: false,
+            toolbar_options: [
+                {
+                    to: "EHoldingsLocalTitlesFormAdd",
+                    icon: "plus",
+                    button_title: this.$__("New title"),
+                },
+                {
+                    to: "EHoldingsLocalTitlesFormImport",
+                    icon: "plus",
+                    button_title: this.$__("Import from list"),
+                },
+            ],
         }
     },
     beforeRouteEnter(to, from, next) {
@@ -154,7 +166,7 @@ export default {
             return [
                 {
                     title: __("Title"),
-                    data: "me.publication_title",
+                    data: "me.publication_title:me.title_id",
                     searchable: true,
                     orderable: true,
                     render: function (data, type, row, meta) {
@@ -209,14 +221,14 @@ export default {
                         return (
                             (print_identifier
                                 ? escape_str(
-                                      _("ISBN (Print): %s").format(
+                                      __("ISBN (Print): %s").format(
                                           print_identifier
                                       )
                                   )
                                 : "") +
                             (online_identifier
                                 ? escape_str(
-                                      _("ISBN (Online): %s").format(
+                                      __("ISBN (Online): %s").format(
                                           online_identifier
                                       )
                                   )

@@ -159,7 +159,7 @@
                                         [% ELSIF error == 'too_soon' %]
                                             <li>It is too soon after the checkout date for this item to be renewed.</li>
                                         [% ELSIF error == 'on_reserve' %]
-                                            <li>This item is on hold for another borrower.</li>
+                                            <li>This item is on hold for another patron.</li>
                                         [% ELSIF error == 'item_denied_renewal' %]
                                             <li>Item renewal is not allowed.</li>
                                         [% ELSIF error == 'auto_too_soon' %]
@@ -334,7 +334,7 @@
                                             <thead>
                                                 <tr>
                                                     [% IF ( JacketImages ) %]<th class="nosort">&nbsp;</th>[% END %]
-                                                    <th class="anti-the">Title</th>
+                                                    <th class="all anti-the">Title</th>
                                                     <th>Author</th>
                                                     <th>Item type</th>
                                                     <th class="psort">Due</th>
@@ -360,6 +360,7 @@
                                                         <th class="hidden">Checkout note</th>
                                                         <th id="checkout-notes" class="nosort noExport" title="Use this to report any problems with your currently checked out items">Report a problem</th>
                                                     [% END %]
+                                                    <th></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -570,6 +571,7 @@
                                                             <input type="hidden" id="note_[% ISSUE.issue_id | html %]" name="note" value="[% ISSUE.note | html %]" data-origvalue="[% ISSUE.note | html %]" />
                                                         </td>
                                                     [% END %]
+                                                    <td></td>
                                                     </tr>
                                                 [% END # /FOREACH ISSUES %]
                                             </tbody>
@@ -826,11 +828,11 @@
                             [% IF relatives %]
                                 <div id="opac-user-relative-issues" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-relative-issues-tab">
                                     <table id="opac-user-relative-issues-table" class="table table-bordered table-striped">
-                                        <caption class="sr-only">Relative issues</caption>
+                                        <caption class="sr-only">Relatives' checkouts</caption>
                                         <thead>
                                             <tr>
                                                 <th>Item type</th>
-                                                <th class="anti-the">Title</th>
+                                                <th class="all anti-the">Title</th>
                                                 <th>Author</th>
                                                 <th>Due</th>
                                                 [% IF ( Koha.Preference('OPACMySummaryLibrary') ) %]
@@ -841,6 +843,7 @@
                                                     <th>Call number</th>
                                                 [% END %]
                                                 <th class="psort">Relative</th>
+                                                <th></th>
                                             </tr>
                                         </thead>
 
@@ -898,6 +901,7 @@
                                                         <td>
                                                             [% r.firstname | html %] [% r.surname | html %]
                                                         </td>
+                                                        <td></td>
                                                     </tr>
                                                 [% END %]
                                             [% END %]
@@ -914,7 +918,7 @@
                                         <thead>
                                             <tr>
                                                 [% IF ( JacketImages ) %]<th class="nosort">&nbsp;</th>[% END %]
-                                                <th class="anti-the">Title</th>
+                                                <th class="all anti-the">Title</th>
                                                 <th>Item type</th>
                                                 [% IF ( Koha.Preference('OPACMySummaryLibrary') ) %]
                                                     <th>Library</th>
@@ -933,6 +937,7 @@
                                                 [% IF ( OPACFinesTab ) %]
                                                     <th>Fines</th>
                                                 [% END %]
+                                                <th></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1062,6 +1067,7 @@
                                                             [% END %]
                                                         </td>
                                                     [% END %]
+                                                    <td></td>
                                                 </tr>
                                             [% END %]
                                         </tbody>
@@ -1077,12 +1083,13 @@
                                         <caption>Recalls <span class="count">([% RECALLS.count | html %])</span></caption>
                                         <thead>
                                             <tr>
-                                                <th class="anti-the">Title</th>
+                                                <th class="all anti-the">Title</th>
                                                 <th class="psort">Placed on</th>
                                                 <th>Expires on</th>
                                                 <th>Pickup location</th>
                                                 <th>Status</th>
                                                 <th class="nosort">&nbsp;</th>
+                                                <th></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1138,6 +1145,7 @@
                                                     [% END %]
                                                 </td>
                                             [% END %]
+                                            <td></td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -1151,7 +1159,7 @@
                                             <caption>Article requests <span class="count"></span></caption>
                                             <thead>
                                                 <tr>
-                                                    <th class="anti-the article-request-record-title">Record title</th>
+                                                    <th class="all anti-the article-request-record-title">Record title</th>
                                                     <th class="psort article-request-created-on">Placed on</th>
                                                     <th class="anti-the article-request-title">Title</th>
                                                     <th class="article-request-author">Author</th>
@@ -1166,6 +1174,7 @@
                                                     <th class="article-request-status">Status</th>
                                                     <th class="article-request-branchcode">Pickup library</th>
                                                     <th class="nosort article-request-cancel">&nbsp;</th>
+                                                    <th></th>
                                                 </tr>
                                             </thead>
 
@@ -1242,6 +1251,7 @@
                                                             <td class="article-request-cancel">
                                                                 <button data-title="[% ar.biblio.title | html %] [% ar.item.enumchron | html %]" data-article-request_id="[% ar.id | html %]" class="btn btn-sm btn-danger btn-delete-article-request"><i class="fa fa-remove" aria-hidden="true"></i> Cancel</button>
                                                             </td>
+                                                            <td></td>
                                                         </tr>
                                                     [% END %]
                                             </tbody>
@@ -1389,7 +1399,7 @@
                 minDate: "today"
             });
 
-            $(".suspend_hold").on("click", function(e){
+            $(document).on("click", ".suspend_hold", function(e){
                 e.preventDefault();
                 var title = $(this).data("title");
                 var reserve_id = $(this).data("reserve_id");
@@ -1442,13 +1452,20 @@
                     "columnDefs": [
                         { "targets": [ "nosort" ],"sortable": false,"searchable": false },
                         { "type": "anti-the", "targets" : [ "anti-the" ] },
-                        { "visible": false, "targets" : [ "hidden" ] }
+                        { "visible": false, "targets" : [ "hidden" ] },
+                        { "className": 'dtr-control', "orderable": false, "targets": -1 }
                     ],
                     "language": {
                         "search": "_INPUT_",
                         "searchPlaceholder": _("Search")
                     },
                     "autoWidth": false,
+                    "responsive": {
+                        details: {
+                            type: 'column',
+                            target: -1
+                        }
+                    },
                     buttons: [
                         /* Override default button set so that we can extend the options of print and csv */
                         'clearFilter', 'copy',
@@ -1469,6 +1486,26 @@
                     ]
                 }));
             });
+
+            var dataTables = $("#recalls-table,#article-requests-table");
+            dataTables.each(function(){
+                $(this).dataTable($.extend(true, {}, dataTablesDefaults, {
+                    "searching": false,
+                    "paging": false,
+                    "info": false,
+                    "autoWidth": false,
+                    "responsive": {
+                        "details": { "type": 'column',"target": -1 }
+                    },
+                    "columnDefs": [
+                        { "className": 'dtr-control', "orderable": false, "targets": -1 }
+                    ],
+                }));
+            });
+            $('a[data-toggle="tab"]').on('shown.bs.tab', function (event) {
+                dTables.DataTable().responsive.recalc();
+                dataTables.DataTable().responsive.recalc();
+            } );
 
             $("body").on("click", "#buttons-ics", function(){
                 location.href="/cgi-bin/koha/opac-ics.pl";

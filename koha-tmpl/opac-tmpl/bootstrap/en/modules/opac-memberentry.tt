@@ -979,13 +979,15 @@
                                                             [% ELSE %]
                                                                 <textarea rows="2" cols="30" id="[% form_id | html %]" name="patron_attribute_value">[% pa_value | html %]</textarea>
                                                             [% END %]
-                                                            [% IF pa.type.mandatory %]
-                                                                <div class="required">Required</div>
-                                                            [% END %]
-                                                            <a href="#" class="clear-attribute">Clear</a>
-                                                            [% IF ( pa.type.repeatable ) %]
-                                                            <a href="#" class="clone-attribute">New</a>
-                                                            [% END %]
+                                                            <div class="attr-control">
+                                                                <a href="#" class="btn btn-sm btn-link clear-attribute"><i class="fa fa-remove" aria-hidden="true"></i> Clear</a>
+                                                                [% IF ( pa.type.repeatable ) %]
+                                                                    <a href="#" class="btn btn-sm btn-link clone-attribute"><i class="fa fa-plus" aria-hidden="true"></i> New</a>
+                                                                [% END %]
+                                                                [% IF pa.type.mandatory %]
+                                                                    <span class="required_label required">Required</span>
+                                                                [% END %]
+                                                            </div>
                                                         [% ELSE %]
                                                             [% IF ( pa.type.authorised_value_category ) %]
                                                                 [% AuthorisedValues.GetByCode( pa.type.authorised_value_category, pa_value, 1 ) | html_line_break %]
@@ -1013,7 +1015,7 @@
                                         <div class="label"></div>
                                         <label class="checkbox-label" for="borrower_gdpr_proc_consent">
                                             <input type="checkbox" name="borrower_gdpr_proc_consent" id="borrower_gdpr_proc_consent" class="required" value="agreed">
-                                            I agree with your processing of my personal data as outlined in the <a target="_blank" href="[% Koha.Preference('PrivacyPolicyURL') | url %]">privacy policy</a>.
+                                            <span>I agree with your processing of my personal data as outlined in the <a target="_blank" href="[% Koha.Preference('PrivacyPolicyURL') | url %]">privacy policy</a>.</span>
                                         </label>
                                         <label class="error" for="borrower_gdpr_proc_consent" style="display: none;"></label>
                                         <div class="required_label required">Required</div>
@@ -1202,16 +1204,16 @@
                 [% END %]
             [% END %]
 
-            $(".patron-attributes").on( 'click', '.clear-attribute', function() {
-                $(this).parent()
-                    .find('textarea').attr('value', '').end()
-                    .find('select').attr('value', '').end();
-
-                return false;
+            $(".patron-attributes").on( 'click', '.clear-attribute', function(e) {
+                e.preventDefault();
+                $(this).closest("li")
+                    .find('textarea').val("").end()
+                    .find('select').val("").end();
             } );
 
             $(".patron-attributes").on( 'click', '.clone-attribute', function() {
-                var clone = $(this).parent().clone().insertAfter( $(this).parent() );
+                let li = $(this).closest("li");
+                var clone = li.clone().insertAfter( li );
 
                 var newId = 50 + parseInt(Math.random() * 100000);
                 $('input[type!="hidden"],select,textarea', clone).attr('id', 'patron-attr-' + newId).attr('value', '');

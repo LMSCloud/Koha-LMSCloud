@@ -1139,7 +1139,7 @@ tables:
           code: OPAC_REG_VERIFY
           branchcode: ""
           name: "OPAC self-registration verification email"
-          is_html: 1
+          is_html: 0
           title: "Verify your account"
           message_transport_type: email
           lang: default
@@ -1176,7 +1176,6 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "<html>"
             - "<p>This email has been sent in response to your password recovery request for the account <strong><<user>></strong>."
             - "</p>"
             - "<p>"
@@ -1185,8 +1184,6 @@ tables:
             - "</p>"
             - "<p>This link will be valid for 2 days from this email's reception, then you must reapply if you do not change your password.</p>"
             - "<p>Thank you.</p>"
-            - "</html>"
-            - ""
 
         - module: members
           code: STAFF_PASSWORD_RESET
@@ -1197,7 +1194,6 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "<html>"
             - "<p>A librarian has reset the password for the account <strong><<user>></strong>."
             - "</p>"
             - "<p>"
@@ -1206,8 +1202,6 @@ tables:
             - "</p>"
             - "<p>This link will be valid for 5 days from this email's reception, then you must reapply if you do not change your password.</p>"
             - "<p>Thank you.</p>"
-            - "</html>"
-            - ""
 
         - module: members
           code: SHARE_ACCEPT
@@ -1259,21 +1253,21 @@ tables:
           lang: default
           content:
             - "[% USE Koha %]"
-            - "Hello [% borrower.title %] [% borrower.firstname %] [% borrower.surname %]."
-            - ""
-            - "Thank you for joining [% IF Koha.Preference('LibraryName') %][% Koha.Preference('LibraryName') %][% ELSE %]the library[% END %]"
-            - ""
-            - "You can search for all our materials in our <a href='[% Koha.Preference('OPACBaseURL') %]'>catalog</a>."
-            - ""
-            - "Your library card number is [% borrower.cardnumber %]"
-            - ""
+            - "Hello [% borrower.title %] [% borrower.firstname %] [% borrower.surname %].<br>"
+            - "<br>"
+            - "Thank you for joining [% IF Koha.Preference('LibraryName') %][% Koha.Preference('LibraryName') %][% ELSE %]the library[% END %]<br>"
+            - "<br>"
+            - "You can search for all our materials in our <a href='[% Koha.Preference('OPACBaseURL') %]'>catalog</a>.<br>"
+            - "<br>"
+            - "Your library card number is [% borrower.cardnumber %]<br>"
+            - "<br>"
             - "If you have any problems or questions regarding your account, please contact the library."
 
         - module: members
           code: 2FA_OTP_TOKEN
           branchcode: ""
           name: "two-authentication step token"
-          is_html: 1
+          is_html: 0
           title: "Two-authentication token"
           message_transport_type: email
           lang: default
@@ -1514,7 +1508,7 @@ tables:
             - "    [% IF credit.library %]"
             - "    <tr>"
             - "      <th colspan=\"2\" class=\"centerednames\">"
-            - "        <h2>[% payment.library.branchname ) | html %]</h2>"
+            - "        <h2>[% payment.library.branchname | html %]</h2>"
             - "      </th>"
             - "    </tr>"
             - "    [% END %]"
@@ -1557,7 +1551,7 @@ tables:
             - "    </tr>"
             - "    <tr>"
             - "      <td>Tendered: </td>"
-            - "      <td>[% tendered | $Price %]</td>"
+            - "      <td>[% collected | $Price %]</td>"
             - "    </tr>"
             - "    <tr>"
             - "      <td>Change given:</td>"

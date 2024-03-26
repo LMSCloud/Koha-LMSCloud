@@ -5,14 +5,15 @@
 <title>[% IF ( authid ) %]Modify authority #[% authid | html %] ([% authtypetext | html %])[% ELSE %]Adding authority ([% authtypetext | html %])[% END %] &rsaquo; Authorities &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.js("lib/hc-sticky.js") | $raw %]
+[% INCLUDE 'select2.inc' %]
 <script>
     [% IF Koha.Preference('CreateAVFromCataloguing') && CAN_user_parameters_manage_auth_values %]
         var auth_values_creation = 1;
     [% ELSE %]
         var auth_values_creation = 0;
     [% END %]
+    $.fn.select2.defaults.set("width", "100%" );
 </script>
-[% INCLUDE 'select2.inc' %]
 [% Asset.js("js/cataloging.js") | $raw %]
 
 <script>
@@ -84,6 +85,10 @@
     });
 
     function selectTab( tablink ){
+        /* return if no tabs displayed (BIG_LOOP.size <= 1) */
+        if ($(".toolbar-tabs-container .nav-tabs li").length === 0){
+            return;
+        }
         let a = $("a[href='" + tablink + "']");
         $(".toolbar-tabs-container .nav-tabs li").removeClass("selected");
         a.tab("show").parent().addClass("selected");
@@ -243,6 +248,14 @@
         $("#confirm_not_duplicate").attr("value","1");
         Check();
     }
+    /* Wrap a value in HTML without putting HTML in translatable string */
+    function formatFieldName( string ){
+        return "<strong><em>" + string + "</em></strong>";
+    }
+
+    $(document).ready(function(){
+        $('body').on('click','.expandfield',ExpandField);
+    });
 </script>
 [% Asset.css("css/addbiblio.css") | $raw %]
 
@@ -263,12 +276,12 @@
 
         [% IF ( authid ) %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                Modify authority #[% authid | html %] ([% authtypetext | html %])
+                <span>Modify authority #[% authid | html %] ([% authtypetext | html %])</span>
             [% END %]
 
         [% ELSE %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                Adding authority [% authtypetext | html %]
+                <span>Adding authority [% authtypetext | html %]</span>
             [% END %]
 
         [% END %]
@@ -398,7 +411,7 @@
                                                 <div class="tag_title" id="div_indicator_tag_[% innerloo.tag | html %]_[% innerloo.index | html %][% innerloo.random | html %]">
                                                     [% UNLESS hide_marc %]
                                                         [% IF advancedMARCEditor %]
-                                                            <a href="#" tabindex="1" class="tagnum" title="[% innerloo.tag_lib | html %] - Click to expand this tag" onclick="ExpandField('tag_[% innerloo.tag | html %]_[% innerloo.index | html %][% innerloo.random | html %]'); return false;">[% innerloo.tag | html %]</a>
+                                                            <a href="#" tabindex="1" class="tagnum" title="[% innerloo.tag_lib | html %] - Click to expand this tag" data-field_id="tag_[% innerloo.tag | html %]_[% innerloo.index | html %][% innerloo.random | html %]'">[% innerloo.tag | html %]</a>
                                                         [% ELSE %]
                                                             <span class="tagnum" title="[% innerloo.tag_lib | html %]">[% innerloo.tag | html %]</span>
                                                         [% END %]
@@ -458,7 +471,7 @@
                                                     [% END # /UNLESS hide_marc %]
 
                                                     [% UNLESS advancedMARCEditor %]
-                                                        <a href="#" tabindex="1" class="expandfield" onclick="ExpandField('tag_[% innerloo.tag | html %]_[% innerloo.index | html %][% innerloo.random | html %]'); return false;" title="Click to expand this tag">[% innerloo.tag_lib | html %]</a>
+                                                        <a href="#" tabindex="1" class="expandfield" data-field_id="tag_[% innerloo.tag | html %]_[% innerloo.index | html %][% innerloo.random | html %]" title="Click to expand this tag">[% innerloo.tag_lib | html %]</a>
                                                     [% END %]
                                                     <span class="field_controls">
                                                         [% IF ( innerloo.repeatable ) %]

@@ -26,18 +26,20 @@ use Module::Load::Conditional qw( can_load );
 
 use Try::Tiny;
 
-use C4::Members;
 use C4::Log qw( logaction );
+use C4::Members;
 use C4::SMS;
 use C4::Templates;
-use Koha::SMS::Providers;
-
+use Koha::Auth::TwoFactorAuth;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Email;
+use Koha::Exceptions;
 use Koha::Notice::Messages;
 use Koha::Notice::Templates;
 use Koha::Libraries;
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Patrons;
+use Koha::SMS::Providers;
 use Koha::SMTP::Servers;
 use Koha::Subscriptions;
 use Koha::Illrequests;
@@ -1046,31 +1048,26 @@ sub EnqueueLetter {
         );
     }
 
-    my $dbh       = C4::Context->dbh();
-    my $statement = << 'ENDSQL';
-INSERT INTO message_queue
-( letter_id, borrowernumber, subject, content, metadata, letter_code, message_transport_type, status, time_queued, to_address, from_address, reply_address, content_type, failure_code, branchcode )
-VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, CAST(NOW() AS DATETIME), ?, ?, ?, ?, ?, ? )
-ENDSQL
-
-    my $sth    = $dbh->prepare($statement);
-    my $result = $sth->execute(
-        $params->{letter}->{id} || undef,         # letter.id
-        $params->{'borrowernumber'},              # borrowernumber
-        $params->{'letter'}->{'title'},           # subject
-        $params->{'letter'}->{'content'},         # content
-        $params->{'letter'}->{'metadata'} || '',  # metadata
-        $params->{'letter'}->{'code'}     || '',  # letter_code
-        $params->{'message_transport_type'},      # message_transport_type
-        'pending',                                # status
-        $params->{'to_address'},                  # to_address
-        $params->{'from_address'},                # from_address
-        $params->{'reply_address'},               # reply_address
-        $params->{'letter'}->{'content-type'},    # content_type
-        $params->{'failure_code'}        || '',   # failure_code
-        $params->{'branchcode'},                  # branchcode
-    );
-    return $dbh->last_insert_id(undef,undef,'message_queue', undef);
+    my $message = Koha::Notice::Message->new(
+        {
+            letter_id              => $params->{letter}->{id} || undef,
+            borrowernumber         => $params->{borrowernumber},
+            subject                => $params->{letter}->{title},
+            content                => $params->{letter}->{content},
+            metadata               => $params->{letter}->{metadata} || q{},
+            letter_code            => $params->{letter}->{code} || q{},
+            message_transport_type => $params->{message_transport_type},
+            status                 => 'pending',
+            time_queued            => dt_from_string(),
+            to_address             => $params->{to_address},
+            from_address           => $params->{from_address},
+            reply_address          => $params->{reply_address},
+            content_type           => $params->{letter}->{'content-type'},
+            failure_code           => $params->{failure_code} || q{},
+            branchcode             => $params->{'branchcode'},
+        }
+    )->store();
+    return $message->id;
 }
 
 =head2 SendQueuedMessages ([$hashref]) 
@@ -1099,6 +1096,9 @@ Returns number of messages sent.
 
 sub SendQueuedMessages {
     my $params = shift;
+
+    Koha::Exceptions::BadParameter->throw("Parameter message_id cannot be empty if passed.")
+        if ( exists( $params->{message_id} ) && !$params->{message_id} );
 
     my $which_unsent_messages  = {
         'message_id'     => $params->{'message_id'},

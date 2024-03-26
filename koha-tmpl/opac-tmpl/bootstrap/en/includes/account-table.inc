@@ -6,7 +6,7 @@
             <p>Select any or all open fees for online payment. <a href="#" id="CheckOpenFees"> Select all</a> | <a href="#" id="UncheckOpenFees">Clear all</a></p>
         [% END %]
 
-        <table class="table table-bordered table-striped" id="finestable">
+        <table class="table table-bordered table-striped finestable" id="finestable">
             <caption class="sr-only">Your charges</caption>
             <thead>
                 <tr>
@@ -17,6 +17,7 @@
                     <th>Description</th>
                     <th>Amount</th>
                     <th>Amount outstanding</th>
+                    <th></th>
                 </tr>
             </thead>
 
@@ -44,6 +45,7 @@
                         </td>
                         [% IF ( ACCOUNT_LINE.is_credit ) %]<td class="credit">[% ACCOUNT_LINE.amount * -1 | $Price %][% ELSE %]<td class="debit">[% ACCOUNT_LINE.amount | $Price %][% END %]</td>
                         [% IF ( ACCOUNT_LINE.is_credit ) %]<td class="credit">[% ACCOUNT_LINE.amountoutstanding * -1 | $Price %][% ELSE %]<td class="debit">[% ACCOUNT_LINE.amountoutstanding | $Price %][% END %]</td>
+                        <td></td>
                     </tr>
                 [% END %]
             </tbody>
@@ -57,6 +59,7 @@
                     [%- END -%]
                     <th class="sum" colspan="[% COLSPAN | html %]">Total due</th>
                     <td class="sum">[% total | $Price %]</td>
+                    <th></th>
                 </tr>
                 [% IF outstanding_credits.total_outstanding < 0 %]
                 [% FOREACH outstanding_credit IN outstanding_credits %]
@@ -93,16 +96,16 @@
     [% FOREACH r IN relatives %]
         <h3 id="g[% r.patron.id | html %]">[% r.patron.firstname | html %] [% r.patron.surname | html %]'s fines and charges</h3>
 
-        <table class="table table-bordered table-striped" id="finestable-[% r.id | html %]">
+        <table class="table table-bordered table-striped finestable" id="finestable-[% r.patron.id | html %]">
             <thead>
                 <tr>
-                    [% IF ENABLE_OPAC_PAYMENTS %]<th>&nbsp;</th>[% END %]
                     <th>Created</th>
                     <th>Updated</th>
                     <th>Type</th>
                     <th>Description</th>
                     <th>Amount</th>
                     <th>Amount outstanding</th>
+                    <th></th>
                 </tr>
             </thead>
 
@@ -111,15 +114,6 @@
                 [% FOREACH a IN r.accountlines %]
                     [% SET account_sum = account_sum + a.amountoutstanding %]
                     <tr>
-                        [% IF ENABLE_OPAC_PAYMENTS %]
-                            <td>
-                                [% IF a.amountoutstanding > 0 %]
-                                    [% SET DISPLAY_PAYMENT_BLOCK = 1 %]
-                                    <input class="checkbox-pay pay-online hidden" name="accountline" type="checkbox" id="checkbox-pay-[% a.accountlines_id | html %]" value="[% a.accountlines_id | html %]">
-                                    <input type="hidden" id="amount-[% a.accountlines_id | html %]" value="[% a.amountoutstanding | html %]" />
-                                [% END %]
-                            </td>
-                        [% END %]
                         <td data-order="[% a.date | html %]">[% a.date | $KohaDates %]</td>
                         <td data-order="[% a.timestamp | html %]">[% a.timestamp | $KohaDates with_hours = 1 %]</td>
                         <td>
@@ -132,6 +126,7 @@
                         </td>
                         [% IF ( a.amount < 0 ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% a.amount | $Price %]</td>
                         [% IF ( a.amountoutstanding < 0 ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% a.amountoutstanding | $Price %]</td>
+                    <td></td>
                     </tr>
                 [% END %]
             </tbody>
@@ -145,6 +140,7 @@
                     [%- END -%]
                     <th class="sum" colspan="[% COLSPAN | html %]">Total due</th>
                     <td class="sum">[% account_sum | $Price %]</td>
+                    <th></th>
                 </tr>
             </tfoot>
         </table>

@@ -1,7 +1,7 @@
 <template>
     <div v-if="!initialized">{{ $__("Loading") }}</div>
     <div v-else id="licenses_list">
-        <Toolbar />
+        <Toolbar :options="this.toolbar_options" />
         <div v-if="license_count > 0" class="page-section">
             <KohaTable
                 ref="table"
@@ -18,7 +18,7 @@
 </template>
 
 <script>
-import Toolbar from "./LicensesToolbar.vue"
+import Toolbar from "../Toolbar.vue"
 import { inject, ref } from "vue"
 import { storeToRefs } from "pinia"
 import { APIClient } from "../../fetch/api-client.js"
@@ -50,6 +50,13 @@ export default {
         return {
             license_count: 0,
             initialized: false,
+            toolbar_options: [
+                {
+                    to: "LicensesFormAdd",
+                    icon: "plus",
+                    button_title: this.$__("New license"),
+                },
+            ],
             tableOptions: {
                 columns: this.getTableColumns(),
                 url: "/api/v1/erm/licenses",
@@ -131,7 +138,7 @@ export default {
             return [
                 {
                     title: __("Name"),
-                    data: "me.license_id:me.name",
+                    data: "me.name:me.license_id",
                     searchable: true,
                     orderable: true,
                     render: function (data, type, row, meta) {

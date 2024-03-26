@@ -134,7 +134,7 @@ Confirms you really want to import these patrons, otherwise prints this help
 
 Path to the CSV file of patrons to import
 
-=item B<-c|--matchpoint>
+=item B<-m|--matchpoint>
 
 Field on which to match incoming patrons to existing patrons
 
@@ -164,7 +164,7 @@ If a matching patron is found, extend the expiration date of their account using
 
 =item B<-et|--expiration-from-today>
 
-If a matching patron is found, extend the expiration date of their account using the patron's enrollment date as the base
+If a matching patron is found, extend the expiration date of their account using today's date as the base
 
 =item B<-v|--verbose>
 

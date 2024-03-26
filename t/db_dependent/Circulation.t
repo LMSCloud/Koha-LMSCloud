@@ -18,7 +18,7 @@
 use Modern::Perl;
 use utf8;
 
-use Test::More tests => 66;
+use Test::More tests => 67;
 use Test::Exception;
 use Test::MockModule;
 use Test::Deep qw( cmp_deeply );
@@ -5694,7 +5694,7 @@ subtest "SendCirculationAlert" => sub {
 };
 
 subtest "GetSoonestRenewDate tests" => sub {
-    plan tests => 5;
+    plan tests => 6;
     Koha::CirculationRules->set_rule(
         {
             categorycode => undef,
@@ -5764,6 +5764,23 @@ subtest "GetSoonestRenewDate tests" => sub {
         $datedue,
         'Checkouts with auto-renewal can be renewed earliest on due date if no renewalbefore'
     );
+
+    t::lib::Mocks::mock_preference( 'NoRenewalBeforePrecision', 'date' );
+    Koha::CirculationRules->set_rule(
+        {
+            categorycode => undef,
+            branchcode   => undef,
+            itemtype     => undef,
+            rule_name    => 'norenewalbefore',
+            rule_value   => 1,
+        }
+    );
+    $issue->date_due( dt_from_string )->store;
+    is(
+        GetSoonestRenewDate( $issue ),
+        dt_from_string->subtract( days => 1 )->truncate( to => 'day' ),
+        'Checkouts with auto-renewal can be renewed 1 day before due date if no renewalbefore = 1 and precision = "date"'
+    );
 };
 
 subtest "CanBookBeIssued + needsconfirmation message" => sub {
@@ -5810,6 +5827,7 @@ subtest 'Tests for BlockReturnOfWithdrawnItems' => sub {
     plan tests => 1;
 
     t::lib::Mocks::mock_preference('BlockReturnOfWithdrawnItems', 1);
+    t::lib::Mocks::mock_preference('RecordLocalUseOnReturn', 0);
     my $item = $builder->build_sample_item();
     $item->withdrawn(1)->itemlost(1)->store;
     my @return = AddReturn( $item->barcode, $item->homebranch, 0, undef );
@@ -5841,6 +5859,25 @@ subtest 'Tests for transfer not in transit' => sub {
     $transfer->discard_changes;
     ok( $transfer->datesent, 'The datesent field is populated, i.e. transfer is initiated');
 
+};
+
+subtest 'Tests for RecordLocalUseOnReturn' => sub {
+
+    plan tests => 2;
+
+    t::lib::Mocks::mock_preference('RecordLocalUseOnReturn', 0);
+    my $item = $builder->build_sample_item();
+    $item->withdrawn(1)->itemlost(1)->store;
+    my @return = AddReturn( $item->barcode, $item->homebranch, 0, undef );
+    is_deeply(
+        \@return,
+        [ 0, { NotIssued => $item->barcode, withdrawn => 1  }, undef, {} ], "RecordLocalUSeOnReturn is off, no local use recorded");
+
+    t::lib::Mocks::mock_preference('RecordLocalUseOnReturn', 1);
+    my @return2 = AddReturn( $item->barcode, $item->homebranch, 0, undef );
+    is_deeply(
+        \@return2,
+        [ 0, { NotIssued => $item->barcode, withdrawn => 1, LocalUse => 1  }, undef, {} ], "Local use is recorded");
 };
 
 $schema->storage->txn_rollback;

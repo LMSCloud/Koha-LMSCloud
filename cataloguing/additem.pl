@@ -46,7 +46,7 @@ use Koha::Result::Boolean;
 
 use Encode qw( encode_utf8 );
 use List::MoreUtils qw( any uniq );
-use List::Util qw( first );
+use List::Util qw( first min );
 use MARC::File::XML;
 use MIME::Base64 qw( decode_base64url encode_base64url );
 use Storable qw( freeze thaw );
@@ -231,7 +231,7 @@ if ($op eq "additem") {
     my $add_duplicate_submit       = $input->param('add_duplicate_submit');
     my $add_multiple_copies_submit = $input->param('add_multiple_copies_submit');
     my $save_as_template_submit    = $input->param('save_as_template_submit');
-    my $number_of_copies           = $input->param('number_of_copies');
+    my $number_of_copies           = min( scalar $input->param('number_of_copies'), 1000 ); # TODO refine hardcoded maximum?
 
     my @columns = Koha::Items->columns;
     my $item = Koha::Item->new;
@@ -255,6 +255,7 @@ if ($op eq "additem") {
             }
             $item->more_subfields_xml(undef);
         } else {
+            next if $c eq 'itemnumber';
             my @v = grep { $_ ne "" }
                 uniq $input->multi_param( "items." . $c );
 
@@ -541,7 +542,10 @@ if ($op eq "additem") {
 
     my $itemnumber = $input->param('itemnumber');
     my $item = Koha::Items->find($itemnumber);
-    # FIXME Handle non existent item
+    unless ($item) {
+        C4::Output::output_error( $input, '404' );
+        exit;
+    }
     my $olditemlost = $item->itemlost;
     my @columns = Koha::Items->columns;
     my $new_values = $item->unblessed;
@@ -755,11 +759,13 @@ if( my $default_location = C4::Context->preference('NewItemsDefaultLocation') ) 
 }
 
 my @ig = Koha::Biblio::ItemGroups->search({ biblio_id => $biblionumber })->as_list();
+#sort by display order
+my @sorted_ig = sort { $a->display_order <=> $b->display_order } @ig;
 # what's the next op ? it's what we are not in : an add if we're editing, otherwise, and edit.
 $template->param(
     biblio       => $biblio,
     items        => \@items,
-    item_groups      => \@ig,
+    item_groups      => \@sorted_ig,
     item_header_loop => \@header_value_loop,
     subfields        => $subfields,
     itemnumber       => $itemnumber,

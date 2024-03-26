@@ -26,6 +26,7 @@ use CGI::Session;
 use CGI::Session::ErrorHandler;
 use URI;
 use URI::QueryParam;
+use List::MoreUtils qw( uniq );
 
 use C4::Context;
 use C4::Templates;    # to get the template
@@ -51,6 +52,7 @@ use Net::CIDR;
 use C4::Log qw( logaction );
 use Koha::CookieManager;
 use Koha::Auth::Permissions;
+use Koha::Token;
 
 # use utf8;
 
@@ -72,9 +74,9 @@ BEGIN {
     @ISA = qw(Exporter);
 
     @EXPORT_OK = qw(
-      checkauth check_api_auth get_session check_cookie_auth checkpw checkpw_internal checkpw_hash
-      get_all_subpermissions get_user_subpermissions track_login_daily in_iprange
-      get_template_and_user haspermission create_basic_session
+        checkauth check_api_auth get_session check_cookie_auth checkpw checkpw_internal checkpw_hash
+        get_all_subpermissions get_cataloguing_page_permissions get_user_subpermissions track_login_daily in_iprange
+        get_template_and_user haspermission create_basic_session
     );
 
     $ldap      = C4::Context->config('useldapserver') || 0;
@@ -254,6 +256,15 @@ sub get_template_and_user {
                 $in->{query} );
             $cookie = $cookie_mgr->replace_in_list( $cookie, $in->{query}->cookie(
                 -name     => 'CGISESSID',
+                -value    => '',
+                -HttpOnly => 1,
+                -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
+                -sameSite => 'Lax',
+            ));
+
+            #NOTE: This JWT should only be used by the self-check controllers
+            $cookie = $cookie_mgr->replace_in_list( $cookie, $in->{query}->cookie(
+                -name     => 'JWT',
                 -value    => '',
                 -HttpOnly => 1,
                 -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
@@ -475,34 +486,36 @@ sub get_template_and_user {
         minPasswordLength  => $minPasswordLength,
     );
     if ( $in->{'type'} eq "intranet" ) {
+
         $template->param(
-            AmazonCoverImages                                                          => C4::Context->preference("AmazonCoverImages"),
-            AutoLocation                                                               => C4::Context->preference("AutoLocation"),
-            PatronAutoComplete                                                         => C4::Context->preference("PatronAutoComplete"),
-            FRBRizeEditions                                                            => C4::Context->preference("FRBRizeEditions"),
-            IndependentBranches                                                        => C4::Context->preference("IndependentBranches"),
-            IntranetNav                                                                => C4::Context->preference("IntranetNav"),
-            IntranetmainUserblock                                                      => C4::Context->preference("IntranetmainUserblock"),
-            LibraryName                                                                => C4::Context->preference("LibraryName"),
-            advancedMARCEditor                                                         => C4::Context->preference("advancedMARCEditor"),
-            canreservefromotherbranches                                                => C4::Context->preference('canreservefromotherbranches'),
-            intranetcolorstylesheet                                                    => C4::Context->preference("intranetcolorstylesheet"),
-            IntranetFavicon                                                            => C4::Context->preference("IntranetFavicon"),
-            intranetreadinghistory                                                     => C4::Context->preference("intranetreadinghistory"),
-            intranetstylesheet                                                         => C4::Context->preference("intranetstylesheet"),
-            IntranetUserCSS                                                            => C4::Context->preference("IntranetUserCSS"),
-            IntranetUserJS                                                             => C4::Context->preference("IntranetUserJS"),
-            virtualshelves                                                             => C4::Context->preference("virtualshelves"),
-            StaffSerialIssueDisplayCount                                               => C4::Context->preference("StaffSerialIssueDisplayCount"),
-            EasyAnalyticalRecords                                                      => C4::Context->preference('EasyAnalyticalRecords'),
-            LocalCoverImages                                                           => C4::Context->preference('LocalCoverImages'),
-            OPACLocalCoverImages                                                       => C4::Context->preference('OPACLocalCoverImages'),
-            AllowMultipleCovers                                                        => C4::Context->preference('AllowMultipleCovers'),
-            EnableBorrowerFiles                                                        => C4::Context->preference('EnableBorrowerFiles'),
-            UseCourseReserves                                                          => C4::Context->preference("UseCourseReserves"),
-            useDischarge                                                               => C4::Context->preference('useDischarge'),
-            pending_checkout_notes                                                     => Koha::Checkouts->search({ noteseen => 0 }),
-            plugins_enabled                                                            => C4::Context->config("enable_plugins"),
+            advancedMARCEditor           => C4::Context->preference("advancedMARCEditor"),
+            AllowMultipleCovers          => C4::Context->preference('AllowMultipleCovers'),
+            AmazonCoverImages            => C4::Context->preference("AmazonCoverImages"),
+            AutoLocation                 => C4::Context->preference("AutoLocation"),
+            can_see_cataloguing_module   => haspermission( $user, get_cataloguing_page_permissions() ) ? 1 : 0,
+            canreservefromotherbranches  => C4::Context->preference('canreservefromotherbranches'),
+            EasyAnalyticalRecords        => C4::Context->preference('EasyAnalyticalRecords'),
+            EnableBorrowerFiles          => C4::Context->preference('EnableBorrowerFiles'),
+            FRBRizeEditions              => C4::Context->preference("FRBRizeEditions"),
+            IndependentBranches          => C4::Context->preference("IndependentBranches"),
+            intranetcolorstylesheet      => C4::Context->preference("intranetcolorstylesheet"),
+            IntranetFavicon              => C4::Context->preference("IntranetFavicon"),
+            IntranetmainUserblock        => C4::Context->preference("IntranetmainUserblock"),
+            IntranetNav                  => C4::Context->preference("IntranetNav"),
+            intranetreadinghistory       => C4::Context->preference("intranetreadinghistory"),
+            intranetstylesheet           => C4::Context->preference("intranetstylesheet"),
+            IntranetUserCSS              => C4::Context->preference("IntranetUserCSS"),
+            IntranetUserJS               => C4::Context->preference("IntranetUserJS"),
+            LibraryName                  => C4::Context->preference("LibraryName"),
+            LocalCoverImages             => C4::Context->preference('LocalCoverImages'),
+            OPACLocalCoverImages         => C4::Context->preference('OPACLocalCoverImages'),
+            PatronAutoComplete           => C4::Context->preference("PatronAutoComplete"),
+            pending_checkout_notes       => Koha::Checkouts->search( { noteseen => 0 } ),
+            plugins_enabled              => C4::Context->config("enable_plugins"),
+            StaffSerialIssueDisplayCount => C4::Context->preference("StaffSerialIssueDisplayCount"),
+            UseCourseReserves            => C4::Context->preference("UseCourseReserves"),
+            useDischarge                 => C4::Context->preference('useDischarge'),
+            virtualshelves               => C4::Context->preference("virtualshelves"),
         );
     }
     else {
@@ -822,7 +835,6 @@ sub checkauth {
     _version_check( $type, $query );
 
     # state variables
-    my $loggedin = 0;
     my $auth_state = 'failed';
     my %info;
     my ( $userid, $cookie, $sessionID, $flags );
@@ -862,7 +874,6 @@ sub checkauth {
             -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
             -sameSite => 'Lax',
         ));
-        $loggedin = 1;
     }
     elsif ( $emailaddress) {
         # the Google OpenID Connect passes an email address
@@ -891,7 +902,7 @@ sub checkauth {
         {
             my $patron    = Koha::Patrons->find( { userid => $userid } );
             my $auth      = Koha::Auth::TwoFactorAuth->new( { patron => $patron } );
-            my $verified = $auth->verify($otp_token, 1);
+            my $verified = $auth->verify($otp_token);
             $auth->clear;
             if ( $verified ) {
                 # The token is correct, the user is fully logged in!
@@ -926,6 +937,7 @@ sub checkauth {
                 C4::Context::_unset_userenv($sessionID);
                 $sessionID = undef;
                 undef $userid; # IMPORTANT: this assures us a new session in code below
+                $auth_state = 'failed';
             } elsif (!$logout) {
 
                 $cookie = $cookie_mgr->replace_in_list( $cookie, $query->cookie(
@@ -1037,7 +1049,8 @@ sub checkauth {
             unless ($shibSuccess) {
                 if ( $cas && $query->param('ticket') ) {
                     my $retuserid;
-                    ( $return, $cardnumber, $retuserid, $cas_ticket ) =
+                    my $patron;
+                    ( $return, $cardnumber, $retuserid, $patron, $cas_ticket ) =
                       checkpw( $userid, $password, $query, $type );
                     $userid = $retuserid;
                     $info{'invalidCasLogin'} = 1 unless ($return);
@@ -1105,8 +1118,9 @@ sub checkauth {
                             && $q_userid eq C4::Context->preference('AutoSelfCheckID') )
                       )
                     {
+                        my $patron;
 
-                        ( $return, $cardnumber, $retuserid, $cas_ticket ) =
+                        ( $return, $cardnumber, $retuserid, $patron, $cas_ticket ) =
                           checkpw( $q_userid, $password, $query, $type );
                         $userid = $retuserid if ($retuserid);
                         $info{'invalid_username_or_password'} = 1 unless ($return);
@@ -1227,7 +1241,6 @@ sub checkauth {
                         my $domain = $branches->{$branchcode}->{'branchip'};
                         $domain =~ s|\.\*||g;
                         if ( $ip !~ /^$domain/ ) {
-                            $loggedin = 0;
                             $cookie = $cookie_mgr->replace_in_list( $cookie, $query->cookie(
                                 -name     => 'CGISESSID',
                                 -value    => '',
@@ -1236,18 +1249,22 @@ sub checkauth {
                                 -sameSite => 'Lax',
                             ));
                             $info{'wrongip'} = 1;
+                            $auth_state = "failed";
                         }
                     }
 
-                    foreach my $br ( keys %$branches ) {
+                    if ( C4::Context->preference('AutoLocation') && $auth_state ne 'failed' ) {
+                        foreach my $br ( uniq( $branchcode, keys %$branches ) ) {
 
-                        #     now we work with the treatment of ip
-                        my $domain = $branches->{$br}->{'branchip'};
-                        if ( $domain && $ip =~ /^$domain/ ) {
-                            $branchcode = $branches->{$br}->{'branchcode'};
+                            #     now we work with the treatment of ip
+                            my $domain = $branches->{$br}->{'branchip'};
+                            if ( $domain && $ip =~ /^$domain/ ) {
+                                $branchcode = $branches->{$br}->{'branchcode'};
 
-                            # new op dev : add the branchname to the cookie
-                            $branchname    = $branches->{$br}->{'branchname'};
+                                # new op dev : add the branchname to the cookie
+                                $branchname = $branches->{$br}->{'branchname'};
+                                last;
+                            }
                         }
                     }
 
@@ -1620,7 +1637,8 @@ sub check_api_auth {
                 return ( "failed", undef, undef );
             }
             my $newuserid;
-            ( $return, $cardnumber, $newuserid, $cas_ticket ) = checkpw( $userid, $password, $query );
+            my $patron;
+            ( $return, $cardnumber, $newuserid, $patron, $cas_ticket ) = checkpw( $userid, $password, $query );
         }
 
         if ( $return and haspermission( $userid, $flagsrequired ) ) {
@@ -1831,7 +1849,10 @@ sub check_cookie_auth {
             my $flags = defined($flagsrequired) ? haspermission( $userid, $flagsrequired ) : 1;
             if ($flags) {
                 C4::Context->_new_userenv($sessionID);
-                C4::Context->interface($session->param('interface'));
+                if ( !C4::Context->interface ) {
+                    # No need to override the interface, most often set by get_template_and_user
+                    C4::Context->interface( $session->param('interface') );
+                }
                 C4::Context->set_userenv(
                     $session->param('number'),       $session->param('id') // '',
                     $session->param('cardnumber'),   $session->param('firstname'),
@@ -1971,28 +1992,31 @@ sub checkpw {
     $type = 'opac' unless $type;
 
     # Get shibboleth login attribute
-    my $shib = C4::Context->config('useshibboleth') && shib_ok();
+    my $shib       = C4::Context->config('useshibboleth') && shib_ok();
     my $shib_login = $shib ? get_login_shib() : undef;
 
     my @return;
     my $patron;
-    if ( defined $userid ){
-        $patron = Koha::Patrons->find({ userid => $userid });
-        $patron = Koha::Patrons->find({ cardnumber => $userid }) unless $patron;
+    if ( defined $userid ) {
+        $patron = Koha::Patrons->find( { userid     => $userid } );
+        $patron = Koha::Patrons->find( { cardnumber => $userid } ) unless $patron;
     }
     my $check_internal_as_fallback = 0;
-    my $passwd_ok = 0;
+    my $passwd_ok                  = 0;
+
     # Note: checkpw_* routines returns:
     # 1 if auth is ok
     # 0 if auth is nok
     # -1 if user bind failed (LDAP only)
 
-    if ( $patron and ( $patron->account_locked )  ) {
+    if ( $patron and ( $patron->account_locked ) ) {
+
         # Nothing to check, account is locked
-    } elsif ($ldap && defined($password)) {
-        my ( $retval, $retcard, $retuserid ) = checkpw_ldap(@_);    # EXTERNAL AUTH
+    } elsif ( $ldap && defined($password) ) {
+        my ( $retval, $retcard, $retuserid );
+        ( $retval, $retcard, $retuserid, $patron ) = checkpw_ldap(@_);    # EXTERNAL AUTH
         if ( $retval == 1 ) {
-            @return = ( $retval, $retcard, $retuserid );
+            @return    = ( $retval, $retcard, $retuserid, $patron );
             $passwd_ok = 1;
         }
         $check_internal_as_fallback = 1 if $retval == 0;
@@ -2001,10 +2025,11 @@ sub checkpw {
 
         # In case of a CAS authentication, we use the ticket instead of the password
         my $ticket = $query->param('ticket');
-        $query->delete('ticket');                                   # remove ticket to come back to original URL
-        my ( $retval, $retcard, $retuserid, $cas_ticket ) = checkpw_cas( $ticket, $query, $type );    # EXTERNAL AUTH
-        if ( $retval ) {
-            @return = ( $retval, $retcard, $retuserid, $cas_ticket );
+        $query->delete('ticket');                                         # remove ticket to come back to original URL
+        my ( $retval, $retcard, $retuserid, $cas_ticket, $patron ) =
+            checkpw_cas( $ticket, $query, $type );                        # EXTERNAL AUTH
+        if ($retval) {
+            @return = ( $retval, $retcard, $retuserid, $patron, $cas_ticket );
         } else {
             @return = (0);
         }
@@ -2022,11 +2047,11 @@ sub checkpw {
 
         # Then, we check if it matches a valid koha user
         if ($shib_login) {
-            my ( $retval, $retcard, $retuserid ) = C4::Auth_with_shibboleth::checkpw_shib($shib_login);    # EXTERNAL AUTH
+            my ( $retval, $retcard, $retuserid, $patronshib ) =
+                C4::Auth_with_shibboleth::checkpw_shib($shib_login);    # EXTERNAL AUTH
             if ( $retval ) {
-                @return = ( $retval, $retcard, $retuserid );
-                $patron = Koha::Patrons->find({ userid => $retuserid });
-                $patron = Koha::Patrons->find({ cardnumber => $retcard }) unless $patron;
+                @return = ( $retval, $retcard, $retuserid, $patronshib );
+                $patron = $patronshib;
                 $userid = $retuserid;
             }
             $passwd_ok = $retval;
@@ -2036,26 +2061,27 @@ sub checkpw {
     }
 
     # INTERNAL AUTH
-    if ( $check_internal_as_fallback ) {
-        @return = checkpw_internal( $userid, $password, $no_set_userenv);
-        $passwd_ok = 1 if $return[0] > 0; # 1 or 2
+    if ($check_internal_as_fallback) {
+        @return = checkpw_internal( $userid, $password, $no_set_userenv );
+        push( @return, $patron );
+        $passwd_ok = 1 if $return[0] > 0;    # 1 or 2
     }
 
-    if( $patron ) {
-        if ( $passwd_ok ) {
-            $patron->update({ login_attempts => 0 });
-            if( $patron->password_expired ){
-                @return = (-2);
+    if ($patron) {
+        if ($passwd_ok) {
+            $patron->update( { login_attempts => 0 } );
+            if ( $patron->password_expired ) {
+                @return = ( -2, $patron );
             }
-        } elsif( !$patron->account_locked ) {
-            $patron->update({ login_attempts => $patron->login_attempts + 1 });
+        } elsif ( !$patron->account_locked ) {
+            $patron->update( { login_attempts => $patron->login_attempts + 1 } );
         }
     }
 
     # Optionally log success or failure
-    if( $patron && $passwd_ok && C4::Context->preference('AuthSuccessLog') ) {
+    if ( $patron && $passwd_ok && C4::Context->preference('AuthSuccessLog') ) {
         logaction( 'AUTH', 'SUCCESS', $patron->id, "Valid password for $userid", $type );
-    } elsif( !$passwd_ok && C4::Context->preference('AuthFailureLog') ) {
+    } elsif ( !$passwd_ok && C4::Context->preference('AuthFailureLog') ) {
         logaction( 'AUTH', 'FAILURE', $patron ? $patron->id : 0, "Wrong password for $userid", $type );
     }
 
@@ -2235,6 +2261,38 @@ sub get_all_subpermissions {
         $all_perms->{ $perm->{'flag'} }->{ $perm->{'code'} } = 1;
     }
     return $all_perms;
+}
+
+=head2 get_cataloguing_page_permissions
+
+    my $required_permissions = get_cataloguing_page_permissions();
+
+Returns the required permissions to access the main cataloguing page. Useful for building
+the global I<can_see_cataloguing_module> template variable, and also for reusing in
+I<cataloging-home.pl>.
+
+=cut
+
+sub get_cataloguing_page_permissions {
+
+    my @cataloguing_tools_subperms = qw(
+        inventory
+        items_batchdel
+        items_batchmod
+        items_batchmod
+        label_creator
+        manage_staged_marc
+        marc_modification_templates
+        records_batchdel
+        records_batchmod
+        stage_marc_import
+        upload_cover_images
+    );
+
+    return [
+        { editcatalogue => '*' }, { tools => \@cataloguing_tools_subperms },
+        C4::Context->preference('StockRotation') ? { stockrotation => 'manage_rotas' } : ()
+    ];
 }
 
 =head2 haspermission

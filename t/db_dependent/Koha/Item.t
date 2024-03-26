@@ -213,7 +213,7 @@ subtest 'bundle_host tests' => sub {
 };
 
 subtest 'add_to_bundle tests' => sub {
-    plan tests => 10;
+    plan tests => 11;
 
     $schema->storage->txn_begin;
 
@@ -248,6 +248,13 @@ subtest 'add_to_bundle tests' => sub {
       'Exception thrown if you try to add a bundle host to a bundle item';
 
     my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+    C4::Circulation::AddIssue( $patron->unblessed, $host_item->barcode );
+    throws_ok { $host_item->add_to_bundle($bundle_item2) }
+    'Koha::Exceptions::Item::Bundle::BundleIsCheckedOut',
+      'Exception thrown if you try to add an item to a checked out bundle';
+    C4::Circulation::AddReturn( $host_item->barcode, $host_item->homebranch );
+    $host_item->discard_changes;
+
     C4::Circulation::AddIssue( $patron->unblessed, $bundle_item2->barcode );
     throws_ok { $host_item->add_to_bundle($bundle_item2) }
     'Koha::Exceptions::Item::Bundle::ItemIsCheckedOut',
@@ -271,19 +278,27 @@ subtest 'add_to_bundle tests' => sub {
 };
 
 subtest 'remove_from_bundle tests' => sub {
-    plan tests => 3;
+    plan tests => 4;
 
     $schema->storage->txn_begin;
 
     my $host_item = $builder->build_sample_item();
     my $bundle_item1 = $builder->build_sample_item({ notforloan => 1 });
-    $schema->resultset('ItemBundle')
-      ->create(
-        { host => $host_item->itemnumber, item => $bundle_item1->itemnumber } );
+    $host_item->add_to_bundle($bundle_item1);
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+    t::lib::Mocks::mock_userenv( { branchcode => $patron->branchcode } );
+
+    C4::Circulation::AddIssue( $patron->unblessed, $host_item->barcode );
+    throws_ok { $bundle_item1->remove_from_bundle }
+    'Koha::Exceptions::Item::Bundle::BundleIsCheckedOut',
+      'Exception thrown if you try to add an item to a checked out bundle';
+    my ( $doreturn, $messages, $issue ) = C4::Circulation::AddReturn( $host_item->barcode, $host_item->homebranch );
+    $bundle_item1->discard_changes;
 
     is($bundle_item1->remove_from_bundle(), 1, 'remove_from_bundle returns 1 when item is removed from a bundle');
     is($bundle_item1->notforloan, 0, 'remove_from_bundle resets notforloan to 0');
-    $bundle_item1 = $bundle_item1->get_from_storage;
+    $bundle_item1->discard_changes;
     is($bundle_item1->remove_from_bundle(), 0, 'remove_from_bundle returns 0 when item is not in a bundle');
 
     $schema->storage->txn_rollback;
@@ -331,7 +346,11 @@ subtest 'has_pending_hold() tests' => sub {
     my $item  = $builder->build_sample_item({ itemlost => 0 });
     my $itemnumber = $item->itemnumber;
 
-    $dbh->do("INSERT INTO tmp_holdsqueue (surname,borrowernumber,itemnumber) VALUES ('Clamp',42,$itemnumber)");
+    my $patron         = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $borrowernumber = $patron->id;
+
+    $dbh->do(
+        "INSERT INTO tmp_holdsqueue (surname,borrowernumber,itemnumber) VALUES ('Clamp',$borrowernumber,$itemnumber)");
     ok( $item->has_pending_hold, "Yes, we have a pending hold");
     $dbh->do("DELETE FROM tmp_holdsqueue WHERE itemnumber=$itemnumber");
     ok( !$item->has_pending_hold, "We don't have a pending hold if nothing in the tmp_holdsqueue");
@@ -834,9 +853,10 @@ subtest 'deletion' => sub {
 
     my $library   = $builder->build_object({ class => 'Koha::Libraries' });
     my $library_2 = $builder->build_object({ class => 'Koha::Libraries' });
-    t::lib::Mocks::mock_userenv({ branchcode => $library->branchcode });
 
-    my $patron = $builder->build_object({class => 'Koha::Patrons'});
+    my $patron = $builder->build_object({class => 'Koha::Patrons', value => { flags => 2^9 } });    # allow edit items
+    t::lib::Mocks::mock_userenv({ branchcode => $library->branchcode, borrowernumber => $patron->id });
+
     $item = $builder->build_sample_item({ library => $library->branchcode });
 
     # book_on_loan
@@ -1806,7 +1826,7 @@ subtest 'store() tests' => sub {
 
 subtest 'Recalls tests' => sub {
 
-    plan tests => 22;
+    plan tests => 23;
 
     $schema->storage->txn_begin;
 
@@ -1847,6 +1867,7 @@ subtest 'Recalls tests' => sub {
     )->store;
 
     is( $item1->recall->patron_id, $patron1->borrowernumber, 'Correctly returns most relevant recall' );
+    is( $item2->recall,            undef,                    'Other items are not returned for item-level recalls' );
 
     $recall2->set_cancelled;
 
@@ -2101,7 +2122,8 @@ subtest 'is_denied_renewal' => sub {
     C4::Context->set_preference('ItemsDeniedRenewal', $idr_rules);
     is( $deny_book->is_denied_renewal, 0, 'Renewal allowed when no rules' );
 
-    $idr_rules="withdrawn: [1]";
+    # The wrong column delete should be silently ignored and not trigger item delete
+    $idr_rules="delete: [yes]\nwithdrawn: [1]";
     C4::Context->set_preference('ItemsDeniedRenewal', $idr_rules);
     is( $deny_book->is_denied_renewal, 1, 'Renewal blocked when 1 rules (withdrawn)' );
     is( $allow_book->is_denied_renewal, 0, 'Renewal allowed when 1 rules not matched (withdrawn)' );
@@ -2115,17 +2137,17 @@ subtest 'is_denied_renewal' => sub {
     is( $deny_book->is_denied_renewal, 1, 'Renewal blocked when 3 rules matched (withdrawn, itype, location)' );
     is( $allow_book->is_denied_renewal, 0, 'Renewal allowed when 3 rules not matched (withdrawn, itype, location)' );
 
-    $idr_rules="itemcallnumber: [NULL]";
+    $idr_rules="itemcallnumber: [null]";
     C4::Context->set_preference('ItemsDeniedRenewal', $idr_rules);
-    is( $deny_book->is_denied_renewal, 1, 'Renewal blocked for undef when NULL in pref' );
+    is( $deny_book->is_denied_renewal, 1, 'Renewal blocked for undef when null in pref' );
 
     $idr_rules="itemcallnumber: ['']";
     C4::Context->set_preference('ItemsDeniedRenewal', $idr_rules);
     is( $deny_book->is_denied_renewal, 0, 'Renewal not blocked for undef when "" in pref' );
 
-    $idr_rules="itemnotes: [NULL]";
+    $idr_rules="itemnotes: [null]";
     C4::Context->set_preference('ItemsDeniedRenewal', $idr_rules);
-    is( $deny_book->is_denied_renewal, 0, 'Renewal not blocked for "" when NULL in pref' );
+    is( $deny_book->is_denied_renewal, 0, 'Renewal not blocked for "" when null in pref' );
 
     $idr_rules="itemnotes: ['']";
     C4::Context->set_preference('ItemsDeniedRenewal', $idr_rules);

@@ -92,17 +92,15 @@ sub add {
 
         if ( $item_id and $biblio_id ) {
 
+            $biblio = Koha::Biblios->find($biblio_id);
+            $item   = $biblio->items->find($item_id);
+
             # check they are consistent
-            unless ( Koha::Items->search( { itemnumber => $item_id, biblionumber => $biblio_id } )
-                ->count > 0 )
-            {
+            unless ($item) {
                 return $c->render(
                     status  => 400,
                     openapi => { error => "Item $item_id doesn't belong to biblio $biblio_id" }
                 );
-            }
-            else {
-                $biblio = Koha::Biblios->find($biblio_id);
             }
         }
         elsif ($item_id) {
@@ -320,6 +318,19 @@ sub delete {
     }
 
     return try {
+
+        my $overrides = $c->stash('koha.overrides');
+
+        if ( $overrides->{'cancellation-request-flow'} && $hold->is_waiting ) {
+
+            $hold->add_cancellation_request;
+
+            return $c->render(
+                status  => 202,
+                openapi => q{},
+            );
+        }
+
         $hold->cancel;
 
         return $c->render(
@@ -526,6 +537,16 @@ sub update_pickup_location {
 
         my $overrides    = $c->stash('koha.overrides');
         my $can_override = $overrides->{any} && C4::Context->preference('AllowHoldPolicyOverride');
+
+        my $error_code =
+              $hold->is_waiting       ? 'hold_waiting'
+            : $hold->is_in_processing ? 'hold_in_processing'
+            :                           undef;
+
+        return $c->render(
+            status  => 409,
+            openapi => { error => 'Cannot change pickup location', error_code => $error_code }
+        ) if $error_code;
 
         $hold->set_pickup_location(
             {

@@ -1,7 +1,7 @@
 <template>
     <div v-if="!initialized">{{ $__("Loading") }}</div>
     <div v-else id="agreements_list">
-        <Toolbar v-if="!embedded" />
+        <Toolbar v-if="!embedded" :options="this.toolbar_options" />
         <fieldset v-if="agreement_count > 0" class="filters">
             <label for="expired_filter">{{ $__("Filter by expired") }}:</label>
             <input
@@ -51,7 +51,7 @@
 
 <script>
 import flatPickr from "vue-flatpickr-component"
-import Toolbar from "./AgreementsToolbar.vue"
+import Toolbar from "../Toolbar.vue"
 import { inject, ref, reactive } from "vue"
 import { APIClient } from "../../fetch/api-client.js"
 import { storeToRefs } from "pinia"
@@ -119,8 +119,8 @@ export default {
                     4: () =>
                         this.map_av_dt_filter("av_agreement_closure_reasons"),
                     5: [
-                        { _id: 0, _str: _("No") },
-                        { _id: 1, _str: _("Yes") },
+                        { _id: 0, _str: this.$__("No") },
+                        { _id: 1, _str: this.$__("Yes") },
                     ],
                     6: () =>
                         this.map_av_dt_filter(
@@ -148,6 +148,15 @@ export default {
                     },
                 },
             },
+            before_route_entered: false,
+            building_table: false,
+            toolbar_options: [
+                {
+                    to: "AgreementsFormAdd",
+                    icon: "plus",
+                    button_title: this.$__("New agreement"),
+                },
+            ],
         }
     },
     beforeRouteEnter(to, from, next) {
@@ -243,7 +252,7 @@ export default {
             return [
                 {
                     title: __("Name"),
-                    data: "me.agreement_id:me.name",
+                    data: "me.name:me.agreement_id",
                     searchable: true,
                     orderable: true,
                     render: function (data, type, row, meta) {
@@ -308,7 +317,9 @@ export default {
                     searchable: true,
                     orderable: true,
                     render: function (data, type, row, meta) {
-                        return escape_str(row.is_perpetual ? _("Yes") : _("No"))
+                        return escape_str(
+                            row.is_perpetual ? __("Yes") : __("No")
+                        )
                     },
                 },
                 {

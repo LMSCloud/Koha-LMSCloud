@@ -300,9 +300,9 @@ $(document).ready(function() {
 
                                     }
 
-                                } else if ( oObj.transferred ) {
+                                } else if ( oObj.found == "T" && oObj.transferred ) {
                                     data += __("Item is <strong>in transit</strong> from %s since %s").format(oObj.from_branch, oObj.date_sent);
-                                } else if ( oObj.not_transferred ) {
+                                } else if ( oObj.found == "T" && oObj.not_transferred ) {
                                     data += __("Item hasn't been transferred yet from %s").format(oObj.not_transferred_by);
                                 }
                                 data += "</em>";
@@ -442,7 +442,7 @@ $(document).ready(function() {
         let reserve_id     = $(this).data('reserve-id');
         let biblionumber   = $(this).data('biblionumber');
         let suspend_until  = $('#suspend_until_' + reserve_id).val();
-        window.location.href='request.pl?action=toggleSuspend&amp;reserve_id=' + reserve_id + '&amp;biblionumber=' + biblionumber + '&amp;suspend_until=' + suspend_until;
+        window.location.href='request.pl?action=toggleSuspend&reserve_id=' + reserve_id + '&biblionumber=' + biblionumber + '&suspend_until=' + suspend_until;
         return false;
     });
 });

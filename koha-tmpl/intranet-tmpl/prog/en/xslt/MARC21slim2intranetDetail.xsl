@@ -1108,7 +1108,7 @@
                         </xsl:when>
                         <xsl:otherwise>
                             <xsl:call-template name="subfieldSelect">
-                                <xsl:with-param name="codes">abcdefgijklnou</xsl:with-param>
+                                <xsl:with-param name="codes">abcdefghijklnoux</xsl:with-param>
                             </xsl:call-template>
                         </xsl:otherwise>
                     </xsl:choose>
@@ -1131,6 +1131,91 @@
                 </xsl:for-each>
                 <xsl:choose><xsl:when test="position()=last()"><xsl:text></xsl:text></xsl:when><xsl:otherwise><xsl:text> </xsl:text></xsl:otherwise></xsl:choose>
             </span>
+        </xsl:if>
+
+        <!-- 530 -->
+        <xsl:if test="marc:datafield[@tag=530]">
+            <span class="results_summary additionalforms">
+                <span class="label">Available additional physical forms:</span>
+                <xsl:for-each select="marc:datafield[@tag=530]">
+                    <xsl:call-template name="subfieldSelect">
+                        <xsl:with-param name="codes">abcd</xsl:with-param>
+                    </xsl:call-template>
+                    <xsl:if test="marc:subfield[@code='u']">
+                        <xsl:for-each select="marc:subfield[@code='u']">
+                            <xsl:text> </xsl:text>
+                            <a>
+                                <xsl:attribute name="href"><xsl:value-of select="text()"/></xsl:attribute>
+                                <xsl:value-of select="text()"/>
+                            </a>
+                        </xsl:for-each>
+                    </xsl:if>
+                    <xsl:if test="position()!=last()"><span class="separator"><xsl:text> | </xsl:text></span></xsl:if>
+                </xsl:for-each>
+            </span>
+        </xsl:if>
+
+        <!-- 520 - Summary, etc. -->
+        <xsl:for-each select="marc:datafield[@tag=520]">
+            <span class="results_summary summary">
+                <span class="label">
+                    <xsl:choose>
+                        <xsl:when test="@ind1=0"><xsl:text>Subject: </xsl:text></xsl:when>
+                        <xsl:when test="@ind1=1"><xsl:text>Review: </xsl:text></xsl:when>
+                        <xsl:when test="@ind1=2"><xsl:text>Scope and content: </xsl:text></xsl:when>
+                        <xsl:when test="@ind1=3"><xsl:text>Abstract: </xsl:text></xsl:when>
+                        <xsl:when test="@ind1=4"><xsl:text>Content advice: </xsl:text></xsl:when>
+                        <xsl:otherwise><xsl:text>Summary: </xsl:text></xsl:otherwise>
+                    </xsl:choose>
+                </span>
+                <xsl:call-template name="subfieldSelect">
+                    <xsl:with-param name="codes">abc</xsl:with-param>
+                </xsl:call-template>
+                <xsl:if test="marc:subfield[@code='u']">
+                    <xsl:for-each select="marc:subfield[@code='u']">
+                        <xsl:text> </xsl:text>
+                        <a>
+                            <xsl:attribute name="href"><xsl:value-of select="text()"/></xsl:attribute>
+                            <xsl:value-of select="text()"/>
+                        </a>
+                    </xsl:for-each>
+                </xsl:if>
+            </span>
+        </xsl:for-each>
+
+        <!-- Content Warning -->
+        <xsl:variable name="ContentWarningField" select="marc:sysprefs/marc:syspref[@name='ContentWarningField']"/>
+        <xsl:if test="marc:datafield[@tag=$ContentWarningField]">
+           <span class="results_summary content_warning">
+               <span class="label">Content warning: </span>
+               <xsl:for-each select="marc:datafield[@tag=$ContentWarningField]">
+                   <xsl:choose>
+                       <xsl:when test="marc:subfield[@code='u']">
+                           <a>
+                               <xsl:attribute name="href">
+                                   <xsl:value-of select="marc:subfield[@code='u']"/>
+                               </xsl:attribute>
+                               <xsl:choose>
+                                   <xsl:when test="marc:subfield[@code='a']">
+                                       <xsl:value-of select="marc:subfield[@code='a']"/>
+                                   </xsl:when>
+                                   <xsl:otherwise>
+                                       <xsl:value-of select="marc:subfield[@code='u']"/>
+                                   </xsl:otherwise>
+                               </xsl:choose>
+                           </a>
+                           <xsl:text> </xsl:text>
+                       </xsl:when>
+                       <xsl:when test="not(marc:subfield[@code='u']) and marc:subfield[@code='a']">
+                           <xsl:value-of select="marc:subfield[@code='a']"/><xsl:text> </xsl:text>
+                       </xsl:when>
+                   </xsl:choose>
+                   <xsl:call-template name="subfieldSelect">
+                        <xsl:with-param name="codes">bcdefghijklmnopqrstvwxyz</xsl:with-param>
+                   </xsl:call-template>
+                   <xsl:if test="position()!=last()"><span class="separator"><xsl:text> | </xsl:text></span></xsl:if>
+               </xsl:for-each>
+           </span>
         </xsl:if>
 
         <!-- 866 textual holdings -->

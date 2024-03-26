@@ -86,6 +86,19 @@ sub pay {
 
     my $userenv = C4::Context->userenv;
     $library_id = $userenv->{branch} if (!$library_id && $userenv && $userenv->{branch});
+
+    unless ( $type eq 'WRITEOFF' ) {
+        Koha::Exceptions::Account::PaymentTypeRequired->throw()
+            if ( C4::Context->preference("RequirePaymentType")
+            && !defined($payment_type) );
+
+        my $av = Koha::AuthorisedValues->search_with_library_limits(
+            { category => 'PAYMENT_TYPE', authorised_value => $payment_type } );
+
+        if ( !$av->count && C4::Context->preference("RequirePaymentType") ) {
+            Koha::Exceptions::Account::InvalidPaymentType->throw( error => 'Invalid payment type' );
+        }
+    }
     my $manager_id = $userenv ? $userenv->{number} : undef;
     if ( $onlinePaymentCashRegisterManagerId > 0 ) {
         $manager_id = $onlinePaymentCashRegisterManagerId;
@@ -305,10 +318,8 @@ sub add_credit {
                 Koha::Exceptions::Account::UnrecognisedType->throw(
                     error => 'Type of credit not recognised' );
             }
-            else {
-                $_->rethrow;
-            }
         }
+        $_->rethrow;
     };
 
     return $line;

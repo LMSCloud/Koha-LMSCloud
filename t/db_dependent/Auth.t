@@ -1,7 +1,4 @@
 #!/usr/bin/perl
-#
-# This Koha test module is a stub!  
-# Add more tests here!!!
 
 use Modern::Perl;
 
@@ -10,7 +7,7 @@ use CGI qw ( -utf8 );
 use Test::MockObject;
 use Test::MockModule;
 use List::MoreUtils qw/all any none/;
-use Test::More tests => 17;
+use Test::More tests => 21;
 use Test::Warn;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
@@ -23,7 +20,10 @@ use Koha::Patrons;
 use Koha::Auth::TwoFactorAuth;
 
 BEGIN {
-    use_ok('C4::Auth', qw( checkauth haspermission track_login_daily checkpw get_template_and_user checkpw_hash ));
+    use_ok(
+        'C4::Auth',
+        qw( checkauth haspermission track_login_daily checkpw get_template_and_user checkpw_hash get_cataloguing_page_permissions )
+    );
 }
 
 my $schema  = Koha::Database->schema;
@@ -41,7 +41,7 @@ $schema->storage->txn_begin;
 
 subtest 'checkauth() tests' => sub {
 
-    plan tests => 7;
+    plan tests => 9;
 
     my $patron = $builder->build_object({ class => 'Koha::Patrons', value => { flags => undef } });
 
@@ -111,6 +111,36 @@ subtest 'checkauth() tests' => sub {
         is( $userid, undef, 'If librarian user is used and password with GET, they should not be logged in' );
     };
 
+    subtest 'cas_ticket must be empty in session' => sub {
+
+        plan tests => 2;
+
+        my $patron = $builder->build_object(
+            { class => 'Koha::Patrons', value => { flags => 1 } } );
+        my $password = 'password';
+        t::lib::Mocks::mock_preference( 'RequireStrongPassword', 0 );
+        $patron->set_password( { password => $password } );
+        $cgi = Test::MockObject->new();
+        $cgi->mock( 'cookie', sub { return; } );
+        $cgi->mock(
+            'param',
+            sub {
+                my ( $self, $param ) = @_;
+                if    ( $param eq 'userid' )   { return $patron->userid; }
+                elsif ( $param eq 'password' ) { return $password; }
+                else                           { return; }
+            }
+        );
+
+        $cgi->mock( 'request_method', sub { return 'POST' } );
+        ( $userid, $cookie, $sessionID, $flags ) = C4::Auth::checkauth( $cgi, 'authrequired' );
+        is( $userid, $patron->userid, 'If librarian user is used and password with POST, they should be logged in' );
+        my $session = C4::Auth::get_session($sessionID);
+        is( $session->param('cas_ticket'), undef );
+
+    };
+
+
     subtest 'Template params tests (password_expired)' => sub {
 
         plan tests => 1;
@@ -151,6 +181,50 @@ subtest 'checkauth() tests' => sub {
             close STDOUT;
         };
     };
+
+    subtest 'Reset auth state when changing users' => sub {
+
+        #NOTE: It's easiest to detect this when changing to a non-existent user, since
+        #that should trigger a redirect to login (instead of returning a session cookie)
+        plan tests => 2;
+        my $patron = $builder->build_object( { class => 'Koha::Patrons', value => { flags => undef } } );
+
+        my $session = C4::Auth::get_session();
+        $session->param( 'number',    $patron->id );
+        $session->param( 'id',        $patron->userid );
+        $session->param( 'ip',        '1.2.3.4' );
+        $session->param( 'lasttime',  time() );
+        $session->param( 'interface', 'intranet' );
+        $session->flush;
+        my $sessionID = $session->id;
+        C4::Context->_new_userenv($sessionID);
+
+        my ($return) =
+            C4::Auth::check_cookie_auth( $sessionID, undef, { skip_version_check => 1, remote_addr => '1.2.3.4' } );
+        is( $return, 'ok', 'Patron authenticated' );
+
+        my $mock1 = Test::MockModule->new('C4::Auth');
+        $mock1->mock( 'safe_exit', sub { return 'safe_exit_redirect' } );
+        my $mock2 = Test::MockModule->new('CGI');
+        $mock2->mock( 'request_method', 'POST' );
+        $mock2->mock( 'cookie',         sub { return $sessionID; } );    # oversimplified..
+        my $cgi = CGI->new;
+
+        $cgi->param( -name => 'userid',             -value => 'Bond' );
+        $cgi->param( -name => 'password',           -value => 'James Bond' );
+        $cgi->param( -name => 'koha_login_context', -value => 1 );
+        my ( @return, $stdout );
+        {
+            local *STDOUT;
+            local %ENV;
+            $ENV{REMOTE_ADDR} = '1.2.3.4';
+            open STDOUT, '>', \$stdout;
+            @return = C4::Auth::checkauth( $cgi, 0, {} );
+            close STDOUT;
+        }
+        is( $return[0], 'safe_exit_redirect', 'Changing to non-existent user causes a redirect to login' );
+    };
+
 
     subtest 'While still logged in, relogin with another user' => sub {
         plan tests => 6;
@@ -942,4 +1016,391 @@ subtest 'create_basic_session tests' => sub {
     is( $session->param('interface'), 'intranet', 'Staff interface gets converted to intranet' );
 };
 
+subtest 'check_cookie_auth overwriting interface already set' => sub {
+    plan tests => 2;
+
+    t::lib::Mocks::mock_preference( 'SessionRestrictionByIP', 0 );
+
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+    my $session = C4::Auth::get_session();
+    $session->param( 'number',       $patron->id );
+    $session->param( 'id',           $patron->userid );
+    $session->param( 'ip',           '1.2.3.4' );
+    $session->param( 'lasttime',     time() );
+    $session->param( 'interface',    'opac' );
+    $session->flush;
+
+    C4::Context->interface('intranet');
+    C4::Auth::check_cookie_auth( $session->id );
+    is( C4::Context->interface, 'intranet', 'check_cookie_auth did not overwrite' );
+    delete $C4::Context::context->{interface}; # clear context interface
+    C4::Auth::check_cookie_auth( $session->id );
+    is( C4::Context->interface, 'opac', 'check_cookie_auth used interface from session when context interface was empty' );
+
+    t::lib::Mocks::mock_preference( 'SessionRestrictionByIP', 1 );
+};
+
 $schema->storage->txn_rollback;
+
+subtest 'get_cataloguing_page_permissions() tests' => sub {
+
+    plan tests => 6;
+
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons', value => { flags => 2**2 } } );    # catalogue
+
+    ok(
+        !C4::Auth::haspermission( $patron->userid, get_cataloguing_page_permissions() ),
+        '"catalogue" is not enough to see the cataloguing page'
+    );
+
+    $builder->build(
+        {
+            source => 'UserPermission',
+            value  => {
+                borrowernumber => $patron->id,
+                module_bit     => 24,               # stockrotation
+                code           => 'manage_rotas',
+            },
+        }
+    );
+
+    t::lib::Mocks::mock_preference( 'StockRotation', 1 );
+    ok(
+        C4::Auth::haspermission( $patron->userid, get_cataloguing_page_permissions() ),
+        '"stockrotation => manage_rotas" is enough'
+    );
+
+    t::lib::Mocks::mock_preference( 'StockRotation', 0 );
+    ok(
+        !C4::Auth::haspermission( $patron->userid, get_cataloguing_page_permissions() ),
+        '"stockrotation => manage_rotas" is not enough when `StockRotation` is disabled'
+    );
+
+    $builder->build(
+        {
+            source => 'UserPermission',
+            value  => {
+                borrowernumber => $patron->id,
+                module_bit     => 13,                     # tools
+                code           => 'manage_staged_marc',
+            },
+        }
+    );
+
+    ok(
+        C4::Auth::haspermission( $patron->userid, get_cataloguing_page_permissions() ),
+        'Having one of the listed `tools` subperm is enough'
+    );
+
+    $schema->resultset('UserPermission')->search( { borrowernumber => $patron->id } )->delete;
+
+    ok(
+        !C4::Auth::haspermission( $patron->userid, get_cataloguing_page_permissions() ),
+        'Permission removed, no access'
+    );
+
+    $builder->build(
+        {
+            source => 'UserPermission',
+            value  => {
+                borrowernumber => $patron->id,
+                module_bit     => 9,                    # editcatalogue
+                code           => 'delete_all_items',
+            },
+        }
+    );
+
+    ok(
+        C4::Auth::haspermission( $patron->userid, get_cataloguing_page_permissions() ),
+        'Having any `editcatalogue` subperm is enough'
+    );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'checkpw() return values tests' => sub {
+
+    plan tests => 3;
+
+    subtest 'Internal check tests' => sub {
+
+        plan tests => 25;
+
+        $schema->storage->txn_begin;
+
+        my $account_locked;
+        my $password_expired;
+
+        my $mock_patron = Test::MockModule->new('Koha::Patron');
+        $mock_patron->mock( 'account_locked',   sub { return $account_locked; } );
+        $mock_patron->mock( 'password_expired', sub { return $password_expired; } );
+
+        # Only interested here in regular login
+        t::lib::Mocks::mock_config( 'useshibboleth', undef );
+        $C4::Auth::cas  = 0;
+        $C4::Auth::ldap = 0;
+
+        my $patron   = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $password = 'thePassword123';
+        $patron->set_password( { password => $password, skip_validation => 1 } );
+
+        my $patron_to_delete  = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $unused_userid     = $patron_to_delete->userid;
+        my $unused_cardnumber = $patron_to_delete->cardnumber;
+        $patron_to_delete->delete;
+
+        $account_locked = 1;
+        my @return = checkpw( $patron->userid, $password, undef, );
+        is_deeply( \@return, [], 'If the account is locked, empty list is returned' );
+
+        $account_locked = 0;
+
+        my @matchpoints = qw(userid cardnumber);
+        foreach my $matchpoint (@matchpoints) {
+
+            @return = checkpw( $patron->$matchpoint, $password, undef, );
+
+            is( $return[0],        1,                   "Password validation successful returns 1 ($matchpoint)" );
+            is( $return[1],        $patron->cardnumber, '`cardnumber` returned' );
+            is( $return[2],        $patron->userid,     '`userid` returned' );
+            is( ref( $return[3] ), 'Koha::Patron',      'Koha::Patron object reference returned' );
+            is( $return[3]->id,    $patron->id,         'Correct patron returned' );
+        }
+
+        @return = checkpw( $patron->userid, $password . 'hey', undef, );
+
+        is( scalar @return,    2, "Two results on invalid password scenario" );
+        is( $return[0],        0, '0 returned on invalid password' );
+        is( ref( $return[1] ), 'Koha::Patron' );
+        is( $return[1]->id,    $patron->id, 'Patron matched correctly' );
+
+        $password_expired = 1;
+        @return           = checkpw( $patron->userid, $password, undef, );
+
+        is( scalar @return,    2,  "Two results on expired password scenario" );
+        is( $return[0],        -2, '-2 returned' );
+        is( ref( $return[1] ), 'Koha::Patron' );
+        is( $return[1]->id,    $patron->id, 'Patron matched correctly' );
+
+        @return = checkpw( $unused_userid, $password, undef, );
+
+        is( scalar @return, 2,     "Two results on non-existing userid scenario" );
+        is( $return[0],     0,     '0 returned' );
+        is( $return[1],     undef, 'Undef returned, representing no match' );
+
+        @return = checkpw( $unused_cardnumber, $password, undef, );
+
+        is( scalar @return, 2,     "Only one result on non-existing cardnumber scenario" );
+        is( $return[0],     0,     '0 returned' );
+        is( $return[1],     undef, 'Undef returned, representing no match' );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest 'CAS check (mocked) tests' => sub {
+
+        plan tests => 25;
+
+        $schema->storage->txn_begin;
+
+        my $account_locked;
+        my $password_expired;
+
+        my $mock_patron = Test::MockModule->new('Koha::Patron');
+        $mock_patron->mock( 'account_locked',   sub { return $account_locked; } );
+        $mock_patron->mock( 'password_expired', sub { return $password_expired; } );
+
+        # Only interested here in regular login
+        t::lib::Mocks::mock_config( 'useshibboleth', undef );
+        $C4::Auth::cas  = 1;
+        $C4::Auth::ldap = 0;
+
+        my $patron   = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $password = 'thePassword123';
+        $patron->set_password( { password => $password, skip_validation => 1 } );
+
+        my $patron_to_delete  = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $unused_userid     = $patron_to_delete->userid;
+        my $unused_cardnumber = $patron_to_delete->cardnumber;
+        $patron_to_delete->delete;
+
+        my $ticket = '123456';
+        my $query  = CGI->new;
+        $query->param( -name => 'ticket', -value => $ticket );
+
+        my @cas_return = ( 1, $patron->cardnumber, $patron->userid, $ticket, Koha::Patrons->find( $patron->id ) );
+
+        my $cas_mock = Test::MockModule->new('C4::Auth');
+        $cas_mock->mock( 'checkpw_cas', sub { return @cas_return; } );
+
+        $account_locked = 1;
+        my @return = checkpw( $patron->userid, $password, $query, );
+        is_deeply( \@return, [], 'If the account is locked, empty list is returned' );
+
+        $account_locked = 0;
+
+        my @matchpoints = qw(userid cardnumber);
+        foreach my $matchpoint (@matchpoints) {
+
+            @return = checkpw( $patron->$matchpoint, $password, $query, );
+
+            is( $return[0],        1,                   "Password validation successful returns 1 ($matchpoint)" );
+            is( $return[1],        $patron->cardnumber, '`cardnumber` returned' );
+            is( $return[2],        $patron->userid,     '`userid` returned' );
+            is( ref( $return[3] ), 'Koha::Patron',      'Koha::Patron object reference returned' );
+            is( $return[3]->id,    $patron->id,         'Correct patron returned' );
+        }
+
+        @return = checkpw( $patron->userid, $password . 'hey', $query, );
+
+        is( scalar @return,    2, "Two results on invalid password scenario" );
+        is( $return[0],        0, '0 returned on invalid password' );
+        is( ref( $return[1] ), 'Koha::Patron' );
+        is( $return[1]->id,    $patron->id, 'Patron matched correctly' );
+
+        $password_expired = 1;
+        @return           = checkpw( $patron->userid, $password, $query, );
+
+        is( scalar @return,    2,  "Two results on expired password scenario" );
+        is( $return[0],        -2, '-2 returned' );
+        is( ref( $return[1] ), 'Koha::Patron' );
+        is( $return[1]->id,    $patron->id, 'Patron matched correctly' );
+
+        @return = checkpw( $unused_userid, $password, $query, );
+
+        is( scalar @return, 2,     "Two results on non-existing userid scenario" );
+        is( $return[0],     0,     '0 returned' );
+        is( $return[1],     undef, 'Undef returned, representing no match' );
+
+        @return = checkpw( $unused_cardnumber, $password, $query, );
+
+        is( scalar @return, 2,     "Only one result on non-existing cardnumber scenario" );
+        is( $return[0],     0,     '0 returned' );
+        is( $return[1],     undef, 'Undef returned, representing no match' );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest 'Shibboleth check (mocked) tests' => sub {
+
+        plan tests => 6;
+
+        $schema->storage->txn_begin;
+
+        my $account_locked;
+        my $password_expired;
+
+        my $mock_patron = Test::MockModule->new('Koha::Patron');
+        $mock_patron->mock( 'account_locked',   sub { return $account_locked; } );
+        $mock_patron->mock( 'password_expired', sub { return $password_expired; } );
+
+        # Only interested here in regular login
+        t::lib::Mocks::mock_config( 'useshibboleth', 1 );
+        $C4::Auth::cas  = 0;
+        $C4::Auth::ldap = 0;
+
+        my $patron   = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $password = 'thePassword123';
+        $patron->set_password( { password => $password, skip_validation => 1 } );
+
+        my $patron_to_delete  = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $unused_userid     = $patron_to_delete->userid;
+        my $unused_cardnumber = $patron_to_delete->cardnumber;
+        $patron_to_delete->delete;
+
+        my @shib_return = ( 1, $patron->cardnumber, $patron->userid, Koha::Patrons->find( $patron->id ) );
+
+        my $auth_mock = Test::MockModule->new('C4::Auth');
+        $auth_mock->mock( 'shib_ok',        1 );
+        $auth_mock->mock( 'get_login_shib', 1 );
+
+        my $shib_mock = Test::MockModule->new('C4::Auth_with_shibboleth');
+        $shib_mock->mock( 'checkpw_shib', sub { return @shib_return; } );
+
+        $account_locked = 1;
+        my @return = checkpw( $patron->userid );
+        is_deeply( \@return, [], 'If the account is locked, empty list is returned' );
+
+        $account_locked = 0;
+
+        @return = checkpw();
+
+        is( $return[0],        1,                   "Password validation successful returns 1" );
+        is( $return[1],        $patron->cardnumber, '`cardnumber` returned' );
+        is( $return[2],        $patron->userid,     '`userid` returned' );
+        is( ref( $return[3] ), 'Koha::Patron',      'Koha::Patron object reference returned' );
+        is( $return[3]->id,    $patron->id,         'Correct patron returned' );
+
+        $schema->storage->txn_rollback;
+    };
+};
+
+subtest 'AutoLocation' => sub {
+
+    plan tests => 6;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'AutoLocation', 0 );
+
+    my $patron   = $builder->build_object( { class => 'Koha::Patrons', value => { flags => 1 } } );
+    my $password = 'password';
+    t::lib::Mocks::mock_preference( 'RequireStrongPassword', 0 );
+    $patron->set_password( { password => $password } );
+
+    my $cgi_mock = Test::MockModule->new('CGI');
+    $cgi_mock->mock( 'request_method', sub { return 'POST' } );
+    my $cgi  = CGI->new;
+    my $auth = Test::MockModule->new('C4::Auth');
+    # Tests will fail if we hit safe_exit
+    $auth->mock( 'safe_exit', sub { return } );
+
+    # Simulating the login form submission
+    $cgi->param( 'userid',   $patron->userid );
+    $cgi->param( 'password', $password );
+
+    $ENV{REMOTE_ADDR} = '127.0.0.1';
+    my ( $userid, $cookie, $sessionID, $flags ) = C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet' );
+    is( $userid, $patron->userid );
+
+    my $template;
+    t::lib::Mocks::mock_preference( 'AutoLocation', 1 );
+
+    # AutoLocation: "Require staff to log in from a computer in the IP address range specified by their library (if any)"
+    $patron->library->branchip('')->store;    # There is none, allow access from anywhere
+    ( $userid, $cookie, $sessionID, $flags, $template ) =
+        C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet' );
+    is( $userid,   $patron->userid );
+    is( $template, undef );
+
+    $patron->library->branchip('1.2.3.4')->store;
+    ( $userid, $cookie, $sessionID, $flags, $template ) =
+        C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet', undef, undef, { do_not_print => 1 } );
+    #is( $template->{VARS}->{wrongip}, 1 );
+
+    $patron->library->branchip('127.0.0.1')->store;
+    ( $userid, $cookie, $sessionID, $flags, $template ) =
+        C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet' );
+    is( $userid,   $patron->userid );
+    is( $template, undef );
+
+    my $other_library = $builder->build_object( { class => 'Koha::Libraries', value => { branchip => '127.0.0.1' } } );
+    $patron->library->branchip('127.0.0.1')->store;
+    ( $userid, $cookie, $sessionID, $flags, $template ) =
+        C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet' );
+    my $session = C4::Auth::get_session($sessionID);
+    is( $session->param('branch'), $patron->branchcode );
+
+    $schema->storage->txn_rollback;
+
+};
+
+sub set_weak_password {
+    my ($patron) = @_;
+    my $password = 'password';
+    t::lib::Mocks::mock_preference( 'RequireStrongPassword', 0 );
+    $patron->set_password( { password => $password } );
+    return $password;
+}

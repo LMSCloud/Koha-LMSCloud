@@ -82,7 +82,7 @@ export default {
         const { get_lib_from_av, map_av_dt_filter } = AVStore
 
         const ERMStore = inject("ERMStore")
-        const { sysprefs } = ERMStore
+        const { config } = ERMStore
 
         const table = ref()
         const filters = reactive({
@@ -98,7 +98,7 @@ export default {
             get_lib_from_av,
             escape_str,
             map_av_dt_filter,
-            sysprefs,
+            config,
             table,
         }
     },
@@ -161,14 +161,14 @@ export default {
         },
         filter_table: async function () {
             let { href } = this.$router.resolve({
-                name: "EHoldingsEBSCOPackagesShow",
+                name: "EHoldingsEBSCOPackagesList",
             })
             let new_route = build_url(href, this.filters)
             this.$router.push(new_route)
             this.show_table = true
             this.local_count_packages = null
 
-            if (this.sysprefs.ERMProviders.includes("local")) {
+            if (this.config.settings.ERMProviders.includes("local")) {
                 const client = APIClient.erm
                 const query = this.filters
                     ? {

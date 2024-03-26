@@ -89,6 +89,16 @@
       - $ref: "../swagger.yaml#/parameters/q_body"
       - $ref: "../swagger.yaml#/parameters/q_header"
       - $ref: "../swagger.yaml#/parameters/request_id_header"
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - cancellation_requested
+          collectionFormat: csv
     produces:
       - application/json
     responses:
@@ -380,9 +390,21 @@
     summary: Cancel hold
     parameters:
       - $ref: "../swagger.yaml#/parameters/hold_id_pp"
+      - name: x-koha-override
+        in: header
+        required: false
+        description: Overrides list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - cancellation-request-flow
+        collectionFormat: csv
     produces:
       - application/json
     responses:
+      "202":
+        description: Hold request recorded
       "204":
         description: Hold deleted
       "401":
@@ -682,13 +704,19 @@
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "409":
-        description: Unable to perform action on hold
+        description: |
+          Unable to perform action on hold. Possible `error_code` attribute values:
+
+          * `hold_waiting`
+          * `hold_in_transit`
+          * `hold_in_processing`
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "500":
-        description: Internal error
-        schema:
-          $ref: "../swagger.yaml#/definitions/error"
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
       "503":
         description: Under maintenance
         schema:

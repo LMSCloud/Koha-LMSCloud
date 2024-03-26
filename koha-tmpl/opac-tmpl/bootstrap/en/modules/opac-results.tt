@@ -44,9 +44,9 @@
                     [% END %]
                     <li class="breadcrumb-item active">
                         [% IF ( ms_value ) %]
-                            <a href="#" aria-current="page" title="You searched [% IF ( query_desc ) %] for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %] with limit(s): '[% limit_desc | html %]'[% END %]">Results of search for '[% ms_value | html %]'</a>
+                            <a href="#" aria-current="page" title="You searched [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %] with limit(s): '[% limit_desc | html %]'[% END %]">Results of search for '[% ms_value | html %]'[% IF ( pages > 1) %], page [% current_page_number | html %] of [% pages | html %][% END %]</a>
                         [% ELSE %]
-                            <a href="#" aria-current="page" title="You searched [% IF ( query_desc ) %] for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %] with limit(s): '[% limit_desc | html %]'[% END %]">Search results</a>
+                            <a href="#" aria-current="page" title="You searched [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %] with limit(s): '[% limit_desc | html %]'[% END %]">Search results</a>
                         [% END %]
                     </li>
                 [% ELSE %]
@@ -65,7 +65,7 @@
                         <p>
                             [% IF ( searchdesc ) %]
                                 No results found for that in [% LibraryName | html %] catalog.
-                                <a href="[% OPACBaseURL | url %]/cgi-bin/koha/opac-search.pl?[% query_cgi | $raw %][% limit_cgi | $raw %]&amp;format=rss" aria-label="Subscribe to this search" class="btn btn-link rsssearchlink noprint">
+                                <a href="[% OPACBaseURL | url %]/cgi-bin/koha/opac-search.pl?[% query_cgi | $raw %][% limit_cgi | $raw %]&amp;count=[% countrss |uri %]&amp;sort_by=acqdate_dsc&amp;format=rss" aria-label="Subscribe to this search" class="btn btn-link rsssearchlink noprint">
                                     <i class="fa fa-rss rsssearchicon" aria-hidden="true" title="Subscribe to this search"></i>
                                 </a>
                             [% ELSE %]
@@ -126,7 +126,7 @@
                     [% IF ( total ) %]
                         <h1 id="numresults">
                             Your search returned [% total | html %] results.
-                            <a href="[% OPACBaseURL | url %]/cgi-bin/koha/opac-search.pl?[% query_cgi | $raw %][% limit_cgi | $raw %]&amp;format=rss" class="btn btn-link rsssearchlink noprint" aria-label="Subscribe to this search">
+                            <a href="[% OPACBaseURL | url %]/cgi-bin/koha/opac-search.pl?[% query_cgi | $raw %][% limit_cgi | $raw %]&amp;count=[% countrss |uri %]&amp;sort_by=acqdate_dsc&amp;format=rss" class="btn btn-link rsssearchlink noprint" aria-label="Subscribe to this search">
                                 <i class="fa fa-rss rsssearchicon" aria-hidden="true" title="Subscribe to this search"></i>
                             </a>
                         </h1>
@@ -637,7 +637,7 @@
     [% Asset.js("js/authtoresults.js") | $raw %]
     [% Asset.js("lib/hc-sticky.js") | $raw %]
     [% IF ( OpacHighlightedWords ) %]
-        [% Asset.js("lib/jquery/plugins/jquery.highlight-3.js") | $raw %]
+        [% Asset.js("lib/jquery/plugins/jquery.highlight-5.js") | $raw %]
     [% END %]
     [% IF OpenLibraryCovers || OpenLibrarySearch %]
         [% Asset.js("js/openlibrary.js") | $raw %]
@@ -673,7 +673,7 @@
                 if (checkedCount > 0) {
                     holdBiblioNums(checkedBiblioNums);
                 } else {
-                    alert( __("No item was selected") );
+                    alert( _("No item was selected") );
                 }
             }
 
@@ -688,7 +688,7 @@
             function tagSelected() {
                 var checkedBoxes = $(".searchresults :checkbox:checked");
                 if ($(checkedBoxes).size() == 0) {
-                    alert( __("No item was selected") );
+                    alert( _("No item was selected") );
                 } else {
                     $("#tagsel_tag").hide();
                     $(".resort").hide();
@@ -707,7 +707,7 @@
             function tagAdded() {
                 var checkedBoxes = $(".searchresults :checkbox:checked");
                 if ($(checkedBoxes).size() == 0) {
-                    alert( __("No item was selected") );
+                    alert( _("No item was selected") );
                     return false;
                 }
 

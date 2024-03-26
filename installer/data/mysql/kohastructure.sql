@@ -802,7 +802,7 @@ CREATE TABLE `aqorders` (
   CONSTRAINT `aqorders_ibfk_1` FOREIGN KEY (`basketno`) REFERENCES `aqbasket` (`basketno`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `aqorders_ibfk_2` FOREIGN KEY (`biblionumber`) REFERENCES `biblio` (`biblionumber`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `aqorders_ibfk_3` FOREIGN KEY (`invoiceid`) REFERENCES `aqinvoices` (`invoiceid`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `aqorders_subscriptionid` FOREIGN KEY (`subscriptionid`) REFERENCES `subscription` (`subscriptionid`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `aqorders_subscriptionid` FOREIGN KEY (`subscriptionid`) REFERENCES `subscription` (`subscriptionid`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1171,7 +1171,7 @@ CREATE TABLE `biblioitems` (
   `issn` longtext DEFAULT NULL COMMENT 'ISSN (MARC21 022$a)',
   `ean` longtext DEFAULT NULL,
   `publicationyear` mediumtext DEFAULT NULL,
-  `publishercode` varchar(255) DEFAULT NULL COMMENT 'publisher (MARC21 260$b)',
+  `publishercode` text DEFAULT NULL COMMENT 'publisher (MARC21 260$b and 264$b)',
   `volumedate` date DEFAULT NULL,
   `volumedesc` mediumtext DEFAULT NULL COMMENT 'volume information (MARC21 362$a)',
   `collectiontitle` longtext DEFAULT NULL,
@@ -1180,11 +1180,11 @@ CREATE TABLE `biblioitems` (
   `editionstatement` mediumtext DEFAULT NULL,
   `editionresponsibility` mediumtext DEFAULT NULL,
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `illus` varchar(255) DEFAULT NULL COMMENT 'illustrations (MARC21 300$b)',
-  `pages` varchar(255) DEFAULT NULL COMMENT 'number of pages (MARC21 300$c)',
+  `illus` text DEFAULT NULL COMMENT 'illustrations (MARC21 300$b)',
+  `pages` text DEFAULT NULL COMMENT 'number of pages (MARC21 300$a)',
   `notes` longtext DEFAULT NULL,
-  `size` varchar(255) DEFAULT NULL COMMENT 'material size (MARC21 300$c)',
-  `place` varchar(255) DEFAULT NULL COMMENT 'publication place (MARC21 260$a)',
+  `size` text DEFAULT NULL COMMENT 'material size (MARC21 300$c)',
+  `place` text DEFAULT NULL COMMENT 'publication place (MARC21 260$a and 264$a)',
   `lccn` longtext DEFAULT NULL COMMENT 'library of congress control number (MARC21 010$a)',
   `url` mediumtext DEFAULT NULL COMMENT 'url (MARC21 856$u)',
   `cn_source` varchar(10) DEFAULT NULL COMMENT 'classification source (MARC21 942$2)',
@@ -2707,7 +2707,7 @@ CREATE TABLE `deletedbiblioitems` (
   `issn` longtext DEFAULT NULL COMMENT 'ISSN (MARC21 022$a)',
   `ean` longtext DEFAULT NULL,
   `publicationyear` mediumtext DEFAULT NULL,
-  `publishercode` varchar(255) DEFAULT NULL COMMENT 'publisher (MARC21 260$b)',
+  `publishercode` text DEFAULT NULL COMMENT 'publisher (MARC21 260$b and 264$b)',
   `volumedate` date DEFAULT NULL,
   `volumedesc` mediumtext DEFAULT NULL COMMENT 'volume information (MARC21 362$a)',
   `collectiontitle` longtext DEFAULT NULL,
@@ -2716,11 +2716,11 @@ CREATE TABLE `deletedbiblioitems` (
   `editionstatement` mediumtext DEFAULT NULL,
   `editionresponsibility` mediumtext DEFAULT NULL,
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `illus` varchar(255) DEFAULT NULL COMMENT 'illustrations (MARC21 300$b)',
-  `pages` varchar(255) DEFAULT NULL COMMENT 'number of pages (MARC21 300$c)',
+  `illus` text DEFAULT NULL COMMENT 'illustrations (MARC21 300$b)',
+  `pages` text DEFAULT NULL COMMENT 'number of pages (MARC21 300$a)',
   `notes` longtext DEFAULT NULL,
-  `size` varchar(255) DEFAULT NULL COMMENT 'material size (MARC21 300$c)',
-  `place` varchar(255) DEFAULT NULL COMMENT 'publication place (MARC21 260$a)',
+  `size` text DEFAULT NULL COMMENT 'material size (MARC21 300$c)',
+  `place` text DEFAULT NULL COMMENT 'publication place (MARC21 260$a and 264$a)',
   `lccn` longtext DEFAULT NULL COMMENT 'library of congress control number (MARC21 010$a)',
   `url` mediumtext DEFAULT NULL COMMENT 'url (MARC21 856$u)',
   `cn_source` varchar(10) DEFAULT NULL COMMENT 'classification source (MARC21 942$2)',
@@ -3173,7 +3173,7 @@ DROP TABLE IF EXISTS `erm_eholdings_titles`;
 CREATE TABLE `erm_eholdings_titles` (
   `title_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'primary key',
   `biblio_id` int(11) DEFAULT NULL,
-  `publication_title` varchar(255) DEFAULT NULL,
+  `publication_title` mediumtext DEFAULT NULL,
   `external_id` varchar(255) DEFAULT NULL,
   `print_identifier` varchar(255) DEFAULT NULL,
   `online_identifier` varchar(255) DEFAULT NULL,
@@ -3187,7 +3187,7 @@ CREATE TABLE `erm_eholdings_titles` (
   `first_author` varchar(255) DEFAULT NULL,
   `embargo_info` varchar(255) DEFAULT NULL,
   `coverage_depth` varchar(255) DEFAULT NULL,
-  `notes` varchar(255) DEFAULT NULL,
+  `notes` mediumtext DEFAULT NULL,
   `publisher_name` varchar(255) DEFAULT NULL,
   `publication_type` varchar(80) DEFAULT NULL,
   `date_monograph_published_print` varchar(255) DEFAULT NULL,
@@ -3196,7 +3196,7 @@ CREATE TABLE `erm_eholdings_titles` (
   `monograph_edition` varchar(255) DEFAULT NULL,
   `first_editor` varchar(255) DEFAULT NULL,
   `parent_publication_title_id` varchar(255) DEFAULT NULL,
-  `preceeding_publication_title_id` varchar(255) DEFAULT NULL,
+  `preceding_publication_title_id` varchar(255) DEFAULT NULL,
   `access_type` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`title_id`),
   KEY `erm_eholdings_titles_ibfk_2` (`biblio_id`),
@@ -5338,7 +5338,7 @@ CREATE TABLE `reserves` (
   CONSTRAINT `reserves_ibfk_4` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `reserves_ibfk_5` FOREIGN KEY (`itemtype`) REFERENCES `itemtypes` (`itemtype`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `reserves_ibfk_6` FOREIGN KEY (`desk_id`) REFERENCES `desks` (`desk_id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `reserves_ibfk_ig` FOREIGN KEY (`item_group_id`) REFERENCES `item_groups` (`item_group_id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `reserves_ibfk_ig` FOREIGN KEY (`item_group_id`) REFERENCES `item_groups` (`item_group_id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

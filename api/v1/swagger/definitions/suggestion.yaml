@@ -64,12 +64,16 @@ properties:
     description: date the suggestion was last modified
   status:
     type: string
-    description: Suggestion status
-    enum:
-      - ASKED
-      - CHECKED
-      - ACCEPTED
-      - REJECTED
+    description: |
+      Suggestion status. Possible values are:
+
+      * `ASKED`
+      * `CHECKED`
+      * `ACCEPTED`
+      * `REJECTED`
+      * `ORDERED`
+      * `AVAILABLE`
+      * Values from the `SUGGEST_STATUS` av category
   note:
     type:
       - string

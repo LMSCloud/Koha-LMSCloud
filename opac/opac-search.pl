@@ -370,7 +370,7 @@ for (keys %$params) {
     my @pasarParam = $cgi->multi_param($_);
     for my $paramValue(@pasarParam) {
         $pasarParams .= '&amp;' if ($j > 0);
-        $pasarParams .= $_ . '=' . uri_escape_utf8($paramValue);
+        $pasarParams .= uri_escape_utf8($_) . '=' . uri_escape_utf8($paramValue);
         $j++;
     }
 }
@@ -752,24 +752,29 @@ for (my $i=0;$i<@servers;$i++) {
                 $query_cgi_history =~ s/;/&/g;
                 my $query_desc_history = join ", ", grep { defined $_ } $query_desc, $limit_desc;
 
-                unless ( $borrowernumber ) {
-                    my $new_searches = C4::Search::History::add_to_session({
-                            cgi => $cgi,
-                            query_desc => $query_desc_history,
-                            query_cgi => $query_cgi_history,
-                            total => $total,
-                            type => "biblio",
-                    });
-                } else {
+                if ( $borrowernumber and $cgi->cookie("CGISESSID") ) {
+
                     # To the session (the user is logged in)
-                    C4::Search::History::add({
-                        userid => $borrowernumber,
-                        sessionid => $cgi->cookie("CGISESSID"),
-                        query_desc => $query_desc_history,
-                        query_cgi => $query_cgi_history,
-                        total => $total,
-                        type => "biblio",
-                    });
+                    C4::Search::History::add(
+                        {
+                            userid     => $borrowernumber,
+                            sessionid  => $cgi->cookie("CGISESSID"),
+                            query_desc => $query_desc_history,
+                            query_cgi  => $query_cgi_history,
+                            total      => $total,
+                            type       => "biblio",
+                        }
+                    );
+                } else {
+                    my $new_searches = C4::Search::History::add_to_session(
+                        {
+                            cgi        => $cgi,
+                            query_desc => $query_desc_history,
+                            query_cgi  => $query_cgi_history,
+                            total      => $total,
+                            type       => "biblio",
+                        }
+                    );
                 }
             }
             $template->param( EnableOpacSearchHistory => 1 );
@@ -840,7 +845,11 @@ for (my $i=0;$i<@servers;$i++) {
                         sort_by           => \@sort_by
                     }
                 );
-            $template->param( hits_to_paginate => $hits_to_paginate );
+            $template->param(
+                hits_to_paginate    => $hits_to_paginate,
+                current_page_number => $current_page_number,
+                pages               => $pages
+            );
             $template->param(   PAGE_NUMBERS => $page_numbers,
                                 last_page_offset => $last_page_offset,
                                 previous_page_offset => $previous_page_offset) unless $pages < 2;

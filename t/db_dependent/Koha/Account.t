@@ -665,17 +665,53 @@ subtest 'reconcile_balance' => sub {
 
 subtest 'pay() tests' => sub {
 
-    plan tests => 6;
+    plan tests => 9;
 
     $schema->storage->txn_begin;
 
     # Disable renewing upon fine payment
     t::lib::Mocks::mock_preference( 'RenewAccruingItemWhenPaid', 0 );
 
+
     my $patron  = $builder->build_object({ class => 'Koha::Patrons' });
     my $library = $builder->build_object({ class => 'Koha::Libraries' });
     my $account = $patron->account;
 
+    t::lib::Mocks::mock_preference( 'RequirePaymentType', 1 );
+    throws_ok {
+        $account->pay(
+            {
+                amount       => 5,
+                interface    => 'intranet',
+            }
+        );
+    }
+    'Koha::Exceptions::Account::PaymentTypeRequired',
+      'Exception thrown for RequirePaymentType:1 + payment_type:undef';
+
+    throws_ok {
+        $account->pay(
+            {
+                amount       => 5,
+                interface    => 'intranet',
+                payment_type => 'FOOBAR'
+            }
+        );
+    }
+    'Koha::Exceptions::Account::InvalidPaymentType',
+      'Exception thrown for InvalidPaymentType:1 + payment_type:FOOBAR';
+
+    my $writeoff_id = $account->pay(
+        {
+            amount    => 10,
+            interface => 'intranet',
+            type      => 'WRITEOFF',
+        }
+    )->{payment_id};
+    my $writeoff = Koha::Account::Lines->find($writeoff_id);
+    is( $writeoff->payment_type, undef, "Writeoff should not have a payment_type " );
+
+    t::lib::Mocks::mock_preference( 'RequirePaymentType', 0 );
     my $context = Test::MockModule->new('C4::Context');
     $context->mock( 'userenv', { branch => $library->id } );
 
@@ -688,7 +724,6 @@ subtest 'pay() tests' => sub {
     my $credit_2    = Koha::Account::Lines->find( $credit_2_id );
 
     is( $credit_2->branchcode, $library->id, 'branchcode set because library_id was passed' );
-
     # Enable cash registers
     t::lib::Mocks::mock_preference( 'UseCashRegisters', 1 );
     throws_ok {
@@ -711,7 +746,7 @@ subtest 'pay() tests' => sub {
     my $result = $account->pay(
         {
             amount => 20,
-            payment_Type => 'CASH',
+            payment_type => 'CASH',
             interface => 'intranet'
         }
     );
@@ -1092,7 +1127,7 @@ subtest 'Koha::Account::Line::apply() handles lost items' => sub {
     my $credit = Koha::Account::Line->new(
         {
             borrowernumber    => $patron->id,
-            date              => '1970-01-01 00:00:01',
+            date              => '1970-01-01 14:00:01',
             amount            => -.5,
             amountoutstanding => -.5,
             interface         => 'commandline',
@@ -1111,7 +1146,7 @@ subtest 'Koha::Account::Line::apply() handles lost items' => sub {
     $credit = Koha::Account::Line->new(
         {
             borrowernumber    => $patron->id,
-            date              => '1970-01-01 00:00:01',
+            date              => '1970-01-01 14:00:01',
             amount            => -.5,
             amountoutstanding => -.5,
             interface         => 'commandline',

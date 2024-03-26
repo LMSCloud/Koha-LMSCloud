@@ -36,6 +36,8 @@ use Koha::Database;
 use Koha::Checkouts;
 use Koha::Old::Checkouts;
 
+use Mojo::JSON qw(encode_json);
+
 my $schema  = Koha::Database->new->schema;
 my $builder = t::lib::TestBuilder->new;
 
@@ -160,7 +162,7 @@ subtest 'get() tests' => sub {
 
 subtest 'get_items() tests' => sub {
 
-    plan tests => 8;
+    plan tests => 11;
 
     $schema->storage->txn_begin;
 
@@ -191,6 +193,11 @@ subtest 'get_items() tests' => sub {
     $t->get_ok( "//$userid:$password@/api/v1/biblios/" . $biblio->biblionumber . "/items")
       ->status_is(200)
       ->json_is( '' => [ $item_1->to_api, $item_2->to_api ], 'The items are returned' );
+
+    $t->get_ok(
+        "//$userid:$password@/api/v1/biblios/" . $biblio->biblionumber . "/items" => { "x-koha-embed" => "+strings" } )
+        ->status_is(200)
+        ->json_has( '/0/_strings/home_library_id/str' => $item_1->holding_branch->branchname, '_strings are embedded' );
 
     $schema->storage->txn_rollback;
 };
@@ -1617,7 +1624,7 @@ subtest 'put() tests' => sub {
 
 subtest 'list() tests' => sub {
 
-    plan tests => 15;
+    plan tests => 17;
 
     $schema->storage->txn_begin;
 
@@ -1651,8 +1658,8 @@ subtest 'list() tests' => sub {
     t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
     my $biblionumber2 = $builder->build_sample_biblio->biblionumber;
 
-    my $search =
-"[{\"biblionumber\": \"$biblionumber1\"}, {\"biblionumber\": \"$biblionumber2\"}]";
+    my $search = 
+      encode_json( [ { 'me.biblio_id' => $biblionumber1 }, { 'me.biblio_id' => $biblionumber2 } ] );
     $t->get_ok(
         "//$userid:$password@/api/v1/biblios/" => { 'x-koha-query' => $search }
     )->status_is(403);
@@ -1685,6 +1692,17 @@ subtest 'list() tests' => sub {
     $t->get_ok( "//$userid:$password@/api/v1/biblios/" =>
           { Accept => 'text/plain', 'x-koha-query' => $search } )
       ->status_is(200, 'Status is 200 for text/plain');
+
+    # DELETE any biblio with ISBN = TOMAS
+    Koha::Biblios->search({ 'biblioitem.isbn' => 'TOMAS' }, { join => [ 'biblioitem' ] })
+                 ->delete;
+
+
+    my $isbn_query = encode_json({ isbn => 'TOMAS' });
+    $biblio->biblioitem->set({ isbn => 'TOMAS' })->store;
+    $t->get_ok( "//$userid:$password@/api/v1/biblios?q=$isbn_query" =>
+          { Accept => 'text/plain' } )
+      ->status_is(200);
 
     $schema->storage->txn_rollback;
 };

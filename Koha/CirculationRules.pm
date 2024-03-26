@@ -21,10 +21,12 @@ use Modern::Perl;
 use Carp qw( croak );
 
 use Koha::Exceptions;
+use Koha::Exceptions::CirculationRule;
 use Koha::CirculationRule;
 use Koha::Libraries;
 use Koha::Caches;
 use Koha::Cache::Memory::Lite;
+use Koha::Number::Price;
 
 use base qw(Koha::Objects);
 
@@ -83,6 +85,7 @@ our $RULE_KINDS = {
     },
     article_request_fee => {
         scope => [ 'branchcode', 'categorycode' ],
+        is_monetary => 1,
     },
     open_article_requests_limit => {
         scope => [ 'branchcode', 'categorycode' ],
@@ -101,7 +104,8 @@ our $RULE_KINDS = {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
     },
     fine => {
-        scope => [ 'branchcode', 'categorycode', 'itemtype' ],
+        scope       => [ 'branchcode', 'categorycode', 'itemtype' ],
+        is_monetary => 1,
     },
     finedays => {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
@@ -159,7 +163,9 @@ our $RULE_KINDS = {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
     },
     overduefinescap => {
-        scope => [ 'branchcode', 'categorycode', 'itemtype' ],
+        scope        => [ 'branchcode', 'categorycode', 'itemtype' ],
+        is_monetary  => 1,
+        can_be_blank => 1,
     },
     renewalperiod => {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
@@ -200,6 +206,7 @@ our $RULE_KINDS = {
     },
     recall_overdue_fine => {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
+        is_monetary => 1,
     },
     recall_shelf_time => {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
@@ -398,6 +405,9 @@ sub set_rule {
     my $rule_value   = $params->{rule_value};
     my $can_be_blank = defined $kind_info->{can_be_blank} ? $kind_info->{can_be_blank} : 1;
     $rule_value = undef if defined $rule_value && $rule_value eq "" && !$can_be_blank;
+    my $is_monetary = defined $kind_info->{is_monetary} ? $kind_info->{is_monetary} : 0;
+    Koha::Exceptions::CirculationRule::NotDecimal->throw( name => $rule_name, value => $rule_value )
+        if ( $is_monetary && defined($rule_value) && $rule_value ne '' && $rule_value !~ /^\d+(\.\d+)?$/ );
 
     for my $v ( $branchcode, $categorycode, $itemtype ) {
         $v = undef if $v and $v eq '*';

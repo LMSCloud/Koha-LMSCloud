@@ -64,6 +64,8 @@ use Koha::Logger;
 use Koha::BackgroundJobs;
 use C4::Context;
 
+$SIG{'PIPE'} = 'IGNORE';    # See BZ 35111; added to ignore PIPE error when connection lost on Ubuntu.
+
 my ( $help, @queues );
 
 my $max_processes = $ENV{MAX_PROCESSES};
@@ -127,14 +129,16 @@ while (1) {
 
         # FIXME This means we need to have create the DB entry before
         # It could work in a first step, but then we will want to handle job that will be created from the message received
-        my $job = Koha::BackgroundJobs->find($args->{job_id});
+        my $job = Koha::BackgroundJobs->search( { id => $args->{job_id}, status => 'new' } )->next;
 
-        unless ( $job ) {
-            Koha::Logger->get({ interface => 'worker' })->warn(sprintf "No job found for id=%s", $args->{job_id});
+        unless( $job ) {
+            Koha::Logger->get( { interface => 'worker' } )
+                ->warn( sprintf "Job %s not found, or has wrong status", $args->{job_id} );
             next;
         }
 
         $pm->start and next;
+        srand();    # ensure each child process begins with a new seed
         process_job( $job, $args );
         $pm->finish;
 
@@ -152,6 +156,7 @@ while (1) {
             next unless $args;
 
             $pm->start and next;
+            srand();    # ensure each child process begins with a new seed
             process_job( $job, { job_id => $job->id, %$args } );
             $pm->finish;
 

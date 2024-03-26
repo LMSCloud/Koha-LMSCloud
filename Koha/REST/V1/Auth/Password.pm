@@ -40,28 +40,55 @@ Controller method that checks a patron's password
 
 sub validate {
     my $c = shift->openapi->valid_input or return;
-    my $body   = $c->validation->param('body');
-    my $userid = $body->{userid} // '';
-    my $patron = Koha::Patrons->find({ userid => $userid });
 
-    unless ($patron) {
-        return $c->render( status => 400, openapi => { error => "Validation failed" } );
+    my $body       = $c->req->json;
+    my $identifier = $body->{identifier};
+    my $userid     = $body->{userid};
+
+    unless ( defined $identifier or defined $userid ) {
+        return $c->render(
+            status  => 400,
+            openapi => { error => "Validation failed" },
+        );
     }
 
-    my $password   = $body->{password}   // "";
+    if ( defined $identifier and defined $userid ) {
+        return $c->render(
+            status  => 400,
+            openapi => { error => "Bad request. Only one identifier attribute can be passed." },
+        );
+    }
+
+    if ($userid) {
+        return $c->render(
+            status  => 400,
+            openapi => { error => "Validation failed" },
+        ) unless Koha::Patrons->find( { userid => $userid } );
+    }
+
+    $identifier //= $userid;
+
+    my $password = $body->{password} // "";
 
     return try {
-        my ($status, $cardnumber, $userid) = C4::Auth::checkpw($patron->userid, $password );
-        unless ( $status ) {
+        my ( $status, $THE_cardnumber, $THE_userid, $patron ) = C4::Auth::checkpw( $identifier, $password );
+        unless ( $status && $status > 0 ) {
+            my $error_response = $status == -2 ? 'Password expired' : 'Validation failed';
             return $c->render(
                 status  => 400,
-                openapi => { error => "Validation failed" }
+                openapi => { error => $error_response }
             );
         }
 
-        return $c->render( status => 204, openapi => '' );
-    }
-    catch {
+        return $c->render(
+            status  => 201,
+            openapi => {
+                cardnumber => $patron->cardnumber,
+                patron_id  => $patron->id,
+                userid     => $patron->userid,
+            }
+        );
+    } catch {
         if ( blessed $_ and $_->isa('Koha::Exceptions::Password') ) {
             return $c->render(
                 status  => 400,

@@ -19,15 +19,16 @@
 
 use Modern::Perl;
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 
 use Test::Exception;
 use Test::MockModule;
 
 use MARC::Field;
+use Mojo::JSON qw(encode_json);
 
 use C4::Items;
-use C4::Biblio qw( AddBiblio ModBiblio );
+use C4::Biblio qw( AddBiblio ModBiblio GetMarcFromKohaField );
 use C4::Reserves qw( AddReserve );
 
 use Koha::DateUtils qw( dt_from_string output_pref );
@@ -200,20 +201,24 @@ subtest 'custom_cover_image_url' => sub {
     my $isbn       = '0553573403 | 9780553573404 (pbk.).png';
     my $issn       = 'my_issn';
     my $cf_value   = 'from_control_field';
-    my $marc_record = MARC::Record->new;
-    my ( $biblionumber, undef ) = C4::Biblio::AddBiblio($marc_record, '');
+    my $biblio     = $builder->build_sample_biblio;
+    my $marc_record = $biblio->metadata->record;
+    my ( $isbn_tag, $isbn_subfield ) =  GetMarcFromKohaField( 'biblioitems.isbn' );
+    my ( $issn_tag, $issn_subfield ) =  GetMarcFromKohaField( 'biblioitems.issn' );
+    $marc_record->append_fields(
+        MARC::Field->new( $isbn_tag, '', '', $isbn_subfield => $isbn ),
+        MARC::Field->new( $issn_tag, '', '', $issn_subfield => $issn ),
+    );
+    C4::Biblio::ModBiblio( $marc_record, $biblio->biblionumber );
 
-    my $biblio = Koha::Biblios->find( $biblionumber );
-    my $biblioitem = $biblio->biblioitem->set(
-        { isbn => $isbn, issn => $issn });
-    is( $biblio->custom_cover_image_url, "https://my_url/${isbn}_${issn}.png" );
+    is( $biblio->get_from_storage->custom_cover_image_url, "https://my_url/${isbn}_${issn}.png" );
 
     my $marc_024a = '710347104926';
     $marc_record->append_fields( MARC::Field->new( '024', '', '', a => $marc_024a ) );
     C4::Biblio::ModBiblio( $marc_record, $biblio->biblionumber );
 
     t::lib::Mocks::mock_preference( 'CustomCoverImagesURL', 'https://my_url/{024$a}.png' );
-    is( $biblio->custom_cover_image_url, "https://my_url/$marc_024a.png" );
+    is( $biblio->get_from_storage->custom_cover_image_url, "https://my_url/$marc_024a.png" );
 
     t::lib::Mocks::mock_preference( 'CustomCoverImagesURL', 'https://my_url/{normalized_isbn}.png' );
     my $normalized_isbn = C4::Koha::GetNormalizedISBN($isbn);
@@ -226,7 +231,7 @@ subtest 'custom_cover_image_url' => sub {
     is( $biblio->custom_cover_image_url, undef, 'Record does not have 001' );
     $marc_record->append_fields(MARC::Field->new('001', $cf_value));
     C4::Biblio::ModBiblio( $marc_record, $biblio->biblionumber );
-    $biblio = Koha::Biblios->find( $biblionumber );
+    $biblio = Koha::Biblios->find( $biblio->biblionumber );
     is( $biblio->get_from_storage->custom_cover_image_url, "https://my_url/$cf_value.png", 'URL generated using 001' );
 };
 
@@ -317,4 +322,70 @@ subtest 'pickup_locations() tests' => sub {
     );
 
     $schema->storage->txn_rollback;
+};
+
+subtest 'api_query_fixer() tests' => sub {
+
+    plan tests => 2;
+
+    my $rs = Koha::Biblios->new;
+
+    subtest 'JSON query tests' => sub {
+
+        plan tests => 6;
+
+        my $query = encode_json( { collection_issn => { "-like" => "\%asd" } } );
+        is(
+            $rs->api_query_fixer($query), '{"biblioitem.collection_issn":{"-like":"%asd"}}',
+            'Query adapted for biblioitem attributes'
+        );
+        $query = encode_json( { author => { "-like" => "\%asd" } } );
+        is( $rs->api_query_fixer($query), $query, 'Query unchanged for non-biblioitem attributes' );
+        $query = encode_json( { author => { "-like" => "an age_restriction" } } );
+        is( $rs->api_query_fixer($query), $query, 'Query unchanged because quotes are expected for the match' );
+
+        $query = encode_json( { "biblio.collection_issn" => { "-like" => "\%asd" } } );
+        is(
+            $rs->api_query_fixer( $query, 'biblio' ), '{"biblio.biblioitem.collection_issn":{"-like":"%asd"}}',
+            'Query adapted for biblioitem attributes, context is kept, match using context'
+        );
+        $query = encode_json( { collection_issn => { "-like" => "\%asd" } } );
+        is( $rs->api_query_fixer( $query, 'biblio' ), $query, 'Query unchanged because no match for context' );
+        $query = encode_json( { author => { "-like" => "a biblio.age_restriction" } } );
+        is(
+            $rs->api_query_fixer( $query, 'biblio' ), $query,
+            'Query unchanged because quotes are expected for the match'
+        );
+    };
+
+    subtest 'order_by tests' => sub {
+
+        plan tests => 6;
+
+        my $query = encode_json( { collection_issn => { "-like" => "\%asd" } } );
+        is(
+            $rs->api_query_fixer( $query, undef, 1 ), '{"biblioitem.collection_issn":{"-like":"%asd"}}',
+            'Query adapted for biblioitem attributes'
+        );
+        $query = encode_json( { author => { "-like" => "\%asd" } } );
+        is( $rs->api_query_fixer( $query, undef, 1 ), $query, 'Query unchanged for non-biblioitem attributes' );
+        $query = encode_json( { author => { "-like" => "an age_restriction" } } );
+        is(
+            $rs->api_query_fixer( $query, undef, 1 ), '{"author":{"-like":"an biblioitem.age_restriction"}}',
+            'Query changed because quotes are not expected for the match'
+        );
+
+        $query = encode_json( { "banana.collection_issn" => { "-like" => "\%asd" } } );
+        is(
+            $rs->api_query_fixer( $query, 'banana', 1 ), '{"banana.biblioitem.collection_issn":{"-like":"%asd"}}',
+            'Query adapted for biblioitem attributes'
+        );
+        $query = encode_json( { author => { "-like" => "\%asd" } } );
+        is( $rs->api_query_fixer( $query, 'banana', 1 ), $query, 'Query unchanged for non-biblioitem attributes' );
+        $query = encode_json( { author => { "-like" => "a banana.age_restriction" } } );
+        is(
+            $rs->api_query_fixer( $query, 'banana', 1 ), '{"author":{"-like":"a banana.biblioitem.age_restriction"}}',
+            'Query changed because quotes are not expected for the match'
+        );
+    }
 };

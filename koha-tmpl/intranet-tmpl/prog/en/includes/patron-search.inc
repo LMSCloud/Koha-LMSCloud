@@ -20,8 +20,11 @@
 [%# You can then pass a list of filters %]
 [%# - branch: select library list %]
 [%# - category: select patron category list %]
+[%# - sort1: select patron sort1 field %]
+[%# - sort2: select patron sort2 field %]
 [%# - search_field: select patron field list %]
-[%# - search_type: select 'contain' or 'start with' %]
+[%# - search_type: select 'contains' or 'starts with' %]
+[%- searchtype = searchtype || Koha.Preference('DefaultPatronSearchMethod') -%]
 [% BLOCK patron_search_filters %]
     <form id="patron_search_form">
         <fieldset class="brief">
@@ -68,6 +71,16 @@
                                 [% END %]
                             </select>
                         </li>
+                    [% CASE 'sort1' %]
+                        <li>
+                            <label for="sort1_filter">Sort 1:</label>
+                            [% PROCESS 'av-build-dropbox.inc' name="sort1_filter", category="Bsort1", empty=1, size = 20 %]
+                        </li>
+                    [% CASE 'sort2' %]
+                        <li>
+                            <label for="sort2_filter">Sort 2:</label>
+                            [% PROCESS 'av-build-dropbox.inc' name="sort2_filter", category="Bsort2", empty=1, size = 20 %]
+                        </li>
                     [% CASE 'search_field' %]
                         <li>
                             [% INCLUDE patron_fields_dropdown %]
@@ -76,12 +89,12 @@
                         <li>
                             <label for="searchtype_filter">Search type:</label>
                             <select name="searchtype" id="searchtype_filter">
-                              [% IF searchtype == "start_with" %]
-                                <option value='start_with' selected="selected">Starts with</option>
-                                <option value="contain">Contains</option>
+                              [% IF searchtype == "starts_with" %]
+                                <option value='starts_with' selected="selected">Starts with</option>
+                                <option value="contains">Contains</option>
                               [% ELSE %]
-                                <option value='start_with'>Starts with</option>
-                                <option value="contain" selected="selected">Contains</option>
+                                <option value='starts_with'>Starts with</option>
+                                <option value="contains" selected="selected">Contains</option>
                               [% END %]
                             </select>
                         </li>
@@ -273,7 +286,7 @@
                             [% CASE 'account_balance' %]<th>Fines</th>
                             [% CASE 'extended_attribute_SIGEL' %]<th>ISIL</th>
                             [% CASE 'city' %]<th>City</th>
-                            [% CASE 'action' %]<th>&nbsp;</th>
+                            [% CASE 'action' %]<th class="noExport">&nbsp;</th>
                         [% END %]
                     [% END %]
                 </tr>
@@ -320,8 +333,9 @@
 [% BLOCK patron_search_js %]
 
     [% IF redirect_if_one_result && !redirect_url %]
-        <script>console.log("Wrong call of patron_searh_js - missing redirect_url");</script>
+        <script>console.log("Wrong call of patron_search_js - missing redirect_url");</script>
     [% END %]
+
     <script>
         let categories = [% To.json(categories) | $raw %].map(e => {
             e['_id'] = e.categorycode.toLowerCase();
@@ -346,6 +360,10 @@
             let extended_attribute_types = [% To.json(extended_attribute_types || []) | $raw %];
         [% END %]
 
+        $(document).ready(function() {
+            $('select#sort1_filter').select2({allowClear:true});
+            $('select#sort2_filter').select2({allowClear:true});
+        });
     </script>
 
     [% INCLUDE 'datatables.inc' %]
@@ -423,47 +441,34 @@
                     return { "like": start_with + "%" }
                 },
                 "-and": function(){
-                    let pattern = $("#search_patron_filter").val();
-                    if (!pattern) return "";
-                    let patterns = pattern.split(/[\s,]+/).filter(function(s){ return s.length });
-
                     let filters = [];
-                    let search_type = $("#searchtype_filter").val() || "contain";
+
+                    let search_type = $("#searchtype_filter").val();
                     let search_fields = $("#searchfieldstype_filter").val();
-                    if ( !search_fields ) {
-                        search_fields = "[% Koha.Preference('DefaultPatronSearchFields') || 'firstname,middle_name,surname,othernames,cardnumber,userid' | html %]";
+                    let pattern = $("#search_patron_filter").val();
+
+                    filters = buildPatronSearchQuery(
+                        pattern,
+                        {
+                            search_type: search_type,
+                            search_fields: search_fields,
+                            ...(typeof extended_attribute_types != 'undefined' && {extended_attribute_types: extended_attribute_types})
+                        }
+                    );
+
+                    let f_sort1 = $("#sort1_filter").val();
+                    if ( f_sort1 ) {
+                        filters.push({
+                            "me.sort1": f_sort1
+                        });
+                    }
+                    let f_sort2 = $("#sort2_filter").val();
+                    if ( f_sort2 ) {
+                        filters.push({
+                            "me.sort2": f_sort2
+                        });
                     }
 
-                    let subquery_and = [];
-                    patterns.forEach(function(pattern,i){
-                        let sub_or = [];
-                        search_fields.split(',').forEach(function(attr,ii){
-                            sub_or.push({["me."+attr]:{"like":(search_type == "contain" ? "%" : "" ) + pattern + "%"}});
-                            if ( attr == 'dateofbirth' ) {
-                                try {
-                                    let d = $date_to_rfc3339(pattern);
-                                    sub_or.push({["me."+attr]:d});
-                                } catch {
-                                    // Hide the warning if the date is not correct
-                                }
-                            }
-                        });
-                        subquery_and.push(sub_or);
-                    });
-                    filters.push({"-and": subquery_and});
-
-                    [% IF Koha.Preference('ExtendedPatronAttributes') && extended_attribute_types %]
-                        subquery_and = [];
-                        patterns.forEach(function(pattern,i){
-                            let sub_or = [];
-                            sub_or.push({
-                                "extended_attributes.value": { "like": "%" + pattern + (search_type == "contain" ? "%" : "" )},
-                                "extended_attributes.code": extended_attribute_types
-                            });
-                            subquery_and.push(sub_or);
-                        });
-                        filters.push({"-and": subquery_and});
-                    [% END %]
                     return filters;
                 },
                 age_from: function(){
@@ -805,7 +810,7 @@
                                 "orderable": false,
                                 "render": function( data, type, row, meta ) {
                                     if ( row.overdues_count ) {
-                                        return "<span class='overdue'><strong>"+row.overdues_count + "</strong></span> / " + row.checkouts_count;
+                                        return "<span class='overdue'><strong>"+row.overdues_count + "</strong></span>" + " / " + row.checkouts_count;
                                     } else {
                                         return "0 / " + row.checkouts_count;
                                     }
@@ -903,6 +908,7 @@
             }, typeof table_settings !== 'undefined' ? table_settings : null, 1, additional_filters);
 
             $("#patron_search_form").on('submit', filter);
+            $("#patron_search_form").on('submit', update_search_type);
             $(".filterByLetter").on("click",function(e){
                 e.preventDefault();
                 filterByFirstLetterSurname($(this).text(), true);
@@ -976,10 +982,14 @@
             }
         }
 
+        function update_search_type(){
+            $("#searchtype").val($("#searchtype_filter").val());
+        }
+
         function update_search_description(){
             var searched = $("#searchfieldstype_filter").find("option:selected").text();
             if ( $("#search_patron_filter").val() ) {
-                if ( $("#searchtype_filter").val() == 'start_with' ) {
+                if ( $("#searchtype_filter").val() == 'starts_with' ) {
                     searched += _(" starting with ");
                 } else {
                     searched += _(" containing ");
@@ -1058,6 +1068,24 @@
             if ( $("#patronlistid_filter").val() ) {
                 searched += _(", Patron list ") + "'" + $("#patronlistid_filter").find("option:selected").text() + "'";
             }
+            if ( $("#sort1_filter").val() ) {
+                searched += _(" with sort1 ")
+                if ( $("select#sort1_filter") ) {
+                    searched += $("select#sort1_filter").find("option:selected").text();
+                }
+                else {
+                    searched += $("#sort1_filter").val();
+                }
+            }
+            if ( $("#sort2_filter").val() ) {
+                searched += _(" with sort2 ");
+                if ( $("select#sort2_filter") ) {
+                    searched += $("select#sort2_filter").find("option:selected").text();
+                }
+                else {
+                    searched += $("#sort2_filter").val();
+                }
+            }
             $("#searchpattern").text(searched);
             $("#searchpattern").parent().show();
         }
@@ -1112,9 +1140,11 @@
 
         function clearFilters() {
             $("#searchfieldstype_filter option:first").prop("selected", true);
-            $("#searchtype_filter option[value='contain']").prop("selected", true);
+            $("#searchtype_filter option[value='[% searchtype | html %]']").prop("selected", true);
             $("#categorycode_filter option:first").prop("selected", true);
             $("#branchcode_filter option:first").prop("selected", true);
+            $("#sort1_filter").val('').trigger("change");
+            $("#sort2_filter").val('').trigger("change");
             $("#firstletter_filter").val('');
             $("#search_patron_filter").val('');
             $("#agerangestart_filter").val('');

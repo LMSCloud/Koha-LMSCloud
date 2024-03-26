@@ -110,15 +110,6 @@ $ods_filenames = print_notices({
 }) if $ods;
 
 if ( $html ) {
-    ## carriage return replaced by <br/> as output is html
-    foreach my $message (@all_messages) {
-        local $_ = $message->{'content'};
-        # disabled for LMSCloud / Roger 2016/12/02
-        # s/\n/<br \/>/g;
-        s/\r//g;
-        $message->{'content'} = $_;
-    }
-
     $html_filenames = print_notices({
         messages => \@all_messages,
         split => $split,
@@ -233,6 +224,10 @@ sub generate_html {
       C4::Templates::gettemplate( 'batch/print-notices.tt', 'intranet',
         CGI->new );
 
+    foreach my $message (@$messages) {
+        $message->{is_html} = $message->{content_type} && $message->{content_type} =~ /html/i;
+    }
+
     $template->param(
         stylesheet => C4::Context->preference("NoticeCSS"),
         today      => $today_syspref,
@@ -339,6 +334,7 @@ sub send_files {
             $email->attach_file(
                 $filepath,
                 content_type => $mimetype,
+                charset      => 'UTF-8',
                 name         => $filename,
                 disposition  => 'attachment',
             );

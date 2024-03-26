@@ -191,6 +191,10 @@
     });
 
     function selectTab( tablink ){
+        /* return if no tabs displayed (BIG_LOOP.size <= 1) */
+        if ($(".toolbar-tabs-container .nav-tabs li").length === 0){
+            return;
+        }
         let a = $("a[href='" + tablink + "']");
         $(".toolbar-tabs-container .nav-tabs li").removeClass("selected");
         a.tab("show").parent().addClass("selected");
@@ -431,7 +435,8 @@ function AutomaticLinker() {
 }
 
 
-function PopupMARCFieldDoc(field) {
+function PopupMARCFieldDoc() {
+    let field = this.dataset.tag;
     [% IF Koha.Preference('marcfielddocurl') %]
         var docurl = "[% Koha.Preference('marcfielddocurl').replace('"','&quot;') | html %]";
         docurl = docurl.replace("{MARC}", "[% marcflavour | html %]");
@@ -443,7 +448,13 @@ function PopupMARCFieldDoc(field) {
     [% ELSIF ( marcflavour == 'UNIMARC' ) %]
         _UNIMARCFieldDoc(field);
     [% END %]
+    return false;
 }
+[%# Attach to body, so that cloned nodes will still have the event listener %]
+$(document).ready(function(){
+    $('body').on('click','.marcdocs',PopupMARCFieldDoc);
+});
+
     function confirmnotdup(redirect){
         $("#confirm_not_duplicate").attr("value","1");
         $("#redirect").attr("value",redirect);
@@ -461,7 +472,7 @@ function PopupMARCFieldDoc(field) {
     function PopupZ3950() {
         var strQuery = GetZ3950Terms();
         if(strQuery){
-            window.open("/cgi-bin/koha/cataloguing/z3950_search.pl?biblionumber=[% biblionumber | html %]"+strQuery,"z3950search",'width=740,height=450,location=yes,toolbar=no,scrollbars=yes,resize=yes');
+            window.open("/cgi-bin/koha/cataloguing/z3950_search.pl?biblionumber=[% biblionumber | html %]"+strQuery,"z3950search",'width=800,height=550,location=yes,toolbar=no,scrollbars=yes,resize=yes');
         }
     }
 
@@ -776,6 +787,11 @@ function PopupMARCFieldDoc(field) {
     function formatFieldName( string ){
         return "<strong><em>" + string + "</em></strong>";
     }
+
+    $(document).ready(function(){
+        $('body').on('click','.expandfield',ExpandField);
+    });
+
 </script>
 [% Asset.css("css/addbiblio.css") | $raw %]
 </head>
@@ -1032,10 +1048,10 @@ function PopupMARCFieldDoc(field) {
                                         [% END %]
                                             <div class="tag_title" id="div_indicator_tag_[% innerloo.tag | html %]_[% innerloo.index | html %][% innerloo.random | html %]">
                                                 [% IF advancedMARCEditor %]
-                                                    <a href="#" tabindex="1" class="tagnum" title="[% innerloo.tag_lib | html %] - Click to expand this tag" onclick="ExpandField('tag_[% innerloo.tag | html %]_[% innerloo.index | html %][% innerloo.random | html %]'); return false;">[% innerloo.tag | html %]</a>
+                                                    <a href="#" tabindex="1" class="tagnum" title="[% innerloo.tag_lib | html %] - Click to expand this tag" data-field_id="tag_[% innerloo.tag | html %]_[% innerloo.index | html %][% innerloo.random | html %]">[% innerloo.tag | html %]</a>
                                                 [% ELSE %]
                                                     <span class="tagnum" title="[% innerloo.tag_lib | html %]">[% innerloo.tag | html %]</span>
-                                                    <a href="#" class="marcdocs" onclick="PopupMARCFieldDoc('[% innerloo.tag | html %]'); return false;">&nbsp;?</a>
+                                                    <a href="#" class="marcdocs" data-tag="[% innerloo.tag | html %]">&nbsp;?</a>
                                                 [% END %]
 
                                                 [% IF ( innerloo.fixedfield ) %]
@@ -1073,7 +1089,7 @@ function PopupMARCFieldDoc(field) {
                                                 [% END # /IF innerloo.fixedfield %] -
 
                                                 [% UNLESS advancedMARCEditor %]
-                                                    <a href="#" tabindex="1" class="expandfield" onclick="ExpandField('tag_[% innerloo.tag | html %]_[% innerloo.index | html %][% innerloo.random | html %]'); return false;" title="Click to expand this tag">[% innerloo.tag_lib | html %]</a>
+                                                    <a href="#" tabindex="1" class="expandfield" data-field_id="tag_[% innerloo.tag | html %]_[% innerloo.index | html %][% innerloo.random | html %]" title="Click to expand this tag">[% innerloo.tag_lib | html %]</a>
                                                 [% END %]
 
                                                 <span class="field_controls">

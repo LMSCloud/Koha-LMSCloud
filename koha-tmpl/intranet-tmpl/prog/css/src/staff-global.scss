@@ -1166,10 +1166,6 @@ div {
     display: none;
 }
 
-.tip {
-    color: #808080;
-}
-
 .single-line {
     white-space: nowrap;
 }
@@ -1682,6 +1678,11 @@ i {
         color: inherit;
         text-align: center;
         text-shadow: none;
+
+        fieldset:not(.bg-danger):not(.bg-warning):not(.bg-info):not(.bg-success):not(.bg-primary):not(.action) {
+            background-color: rgba( 255, 255, 255, .5 );
+            margin: 1rem;
+        }
 
         strong {
             color: #900;
@@ -3036,8 +3037,6 @@ button,
 }
 
 #changelanguage {
-    background: #FFF none;
-    border-top: 1px solid rgb(173, 173, 173);
     min-height: $language-footer-min-height;
 
     .dropdown-menu {
@@ -3070,6 +3069,16 @@ button,
 }
 
 .navbar-fixed-bottom {
+    background: #FFF none;
+    border-radius: 0;
+    border-top: 1px solid #ADADAD;
+    box-shadow: none;
+
+    fieldset {
+        margin: 0;
+        text-align: right;
+    }
+
     .navbar-inner {
         min-height: 0;
         padding: .4em 0;
@@ -3141,11 +3150,6 @@ label {
     .checkbox & {
         margin-left: 20px;
         padding-left: 0;
-    }
-
-    &.tip {
-        display: block;
-        margin: .5em 0;
     }
 
     &.disabled {
@@ -4220,6 +4224,7 @@ div .suggestion_note {
 }
 
 .currentlibrary {
+    background-color: #E6FCB7 !important;
     display: inline-block;
     padding: 2px 4px;
 }
@@ -4482,39 +4487,6 @@ div .suggestion_note {
     #browse-next {
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 5px;
-    }
-}
-
-@media print {
-    body.modalprinter * {
-        visibility: hidden;
-    }
-
-    body.modalprinter .modal-dialog.focused {
-        position: absolute;
-        padding: 0;
-        margin: 0;
-        left: 0;
-        top: 0;
-    }
-
-    body.modalprinter .modal-dialog.focused .modal-content {
-        border-width: 0;
-    }
-
-    body.modalprinter .modal-dialog.focused .modal-content .modal-header .modal-title,
-    body.modalprinter .modal-dialog.focused .modal-content .modal-body,
-    body.modalprinter .modal-dialog.focused .modal-content .modal-body * {
-        visibility: visible;
-    }
-
-    body.modalprinter .modal-dialog.focused .modal-content .modal-header,
-    body.modalprinter .modal-dialog.focused .modal-content .modal-body {
-        padding: 0;
-    }
-
-    body.modalprinter .modal-dialog.focused .modal-content .modal-header .modal-title {
-        margin-bottom: 20px;
     }
 }
 

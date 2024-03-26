@@ -655,7 +655,6 @@ if ( $messages->{TransferredRecall} ) {
 my @errmsgloop;
 foreach my $code ( keys %$messages ) {
     my %err;
-    my $exit_required_p = 0;
     if ( $code eq 'BadBarcode' ) {
         $err{badbarcode} = 1;
         $err{msg}        = $messages->{'BadBarcode'};
@@ -669,7 +668,6 @@ foreach my $code ( keys %$messages ) {
     }
     elsif ( $code eq 'WasLost' ) {
         $err{waslost} = 1;
-        $exit_required_p = 1 if C4::Context->preference("BlockReturnOfLostItems");
     }
     elsif ( $code eq 'LostItemFeeRefunded' ) {
         $template->param( LostItemFeeRefunded => 1 );
@@ -694,7 +692,6 @@ foreach my $code ( keys %$messages ) {
     }
     elsif ( $code eq 'withdrawn' ) {
         $err{withdrawn} = 1;
-        $exit_required_p = 1 if C4::Context->preference("BlockReturnOfWithdrawnItems");
     }
     elsif ( $code eq 'WrongTransfer' ) {
         ;    # FIXME... anything to do here?
@@ -752,7 +749,6 @@ foreach my $code ( keys %$messages ) {
     if (%err) {
         push( @errmsgloop, \%err );
     }
-    last if $exit_required_p;
 }
 $template->param( errmsgloop => \@errmsgloop );
 

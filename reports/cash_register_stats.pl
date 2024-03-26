@@ -66,7 +66,7 @@ if ($do_it) {
     my $whereTType = q{};
     my @extra_params; # if we add conditions to the select we need extra params
 
-    if ($transaction_type eq 'ALL') { #All Transactons
+    if ($transaction_type eq 'ALL') { #All Transactions
         $whereTType = q{};
     } elsif ($transaction_type eq 'ACT') { #Active
         $whereTType = q{ AND credit_type_code IN ('PAYMENT','CREDIT') };
@@ -80,6 +80,10 @@ if ($do_it) {
             $whereTType = q{ AND credit_type_code = ? };
             push @extra_params, $transaction_type;
         }
+    }
+
+    if ( $transaction_type eq 'PAYMENT' || $transaction_type eq 'ACT' ) {
+        $whereTType .= q{ AND (status != 'VOID' OR status IS NULL)  };
     }
 
     my $whereBranchCode = q{};

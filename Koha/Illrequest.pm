@@ -228,18 +228,18 @@ sub logs {
 
     my $patron = $request->patron;
 
-Returns the linked I<Koha::Patron> object.
+For a given request, return the linked I<Koha::Patron> object
+associated with it, or undef if none exists
 
 =cut
 
 sub patron {
     my ( $self ) = @_;
-    my $patron = undef;
-    if ( defined $self->_result->borrowernumber ) {
-        $patron = Koha::Patron->_new_from_dbic( scalar $self->_result->borrowernumber );
-    }
-    return $patron;
+    my $patron_rs = $self->_result->patron;
+    return unless $patron_rs;
+    return Koha::Patron->_new_from_dbic($patron_rs);
 }
+
 
 =head3 backend_is_available
 

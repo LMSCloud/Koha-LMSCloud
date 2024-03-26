@@ -34,6 +34,7 @@ use C4::Items qw( AddItemFromMarc ModItemFromMarc );
 use C4::Charset qw( MarcToUTF8Record SetUTF8Flag StripNonXmlChars );
 use C4::AuthoritiesMarc qw( AddAuthority GuessAuthTypeCode GetAuthorityXML ModAuthority DelAuthority GetAuthorizedHeading );
 use C4::MarcModificationTemplates qw( ModifyRecordWithTemplate );
+use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
 use Koha::Items;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Indexer;
@@ -549,7 +550,6 @@ sub BatchCommitRecords {
     my $num_items_errored = 0;
     my $num_ignored = 0;
     # commit (i.e., save, all records in the batch)
-    SetImportBatchStatus($batch_id, 'importing');
     my $overlay_action = GetImportBatchOverlayAction($batch_id);
     my $nomatch_action = GetImportBatchNoMatchAction($batch_id);
     my $item_action = GetImportBatchItemAction($batch_id);
@@ -569,6 +569,7 @@ sub BatchCommitRecords {
 
     my $rec_num = 0;
     my @biblio_ids;
+    my @updated_ids;
     while (my $rowref = $sth->fetchrow_hashref) {
         $record_type = $rowref->{'record_type'};
 
@@ -618,7 +619,7 @@ sub BatchCommitRecords {
             if ($record_type eq 'biblio') {
                 my $biblioitemnumber;
                 ($recordid, $biblioitemnumber) = AddBiblio($marc_record, $framework, { skip_record_index => 1 });
-                push @biblio_ids, $recordid;
+                push @biblio_ids, $recordid if $recordid;
                 $query = "UPDATE import_biblios SET matched_biblionumber = ? WHERE import_record_id = ?"; # FIXME call SetMatchedBiblionumber instead
                 if ($item_result eq 'create_new' || $item_result eq 'replace') {
                     my ($bib_items_added, $bib_items_replaced, $bib_items_errored) = _batchCommitItems($rowref->{'import_record_id'}, $recordid, $item_result, $biblioitemnumber);
@@ -663,10 +664,12 @@ sub BatchCommitRecords {
                     $overlay_framework // $oldbiblio->frameworkcode,
                     {
                         overlay_context   => $context,
-                        skip_record_index => 1
+                        skip_record_index => 1,
+                        skip_holds_queue  => 1,
                     }
                 );
                 push @biblio_ids, $recordid;
+                push @updated_ids, $recordid;
                 $query = "UPDATE import_biblios SET matched_biblionumber = ? WHERE import_record_id = ?"; # FIXME call SetMatchedBiblionumber instead
 
                 if ($item_result eq 'create_new' || $item_result eq 'replace') {
@@ -681,14 +684,13 @@ sub BatchCommitRecords {
                 ModAuthority($recordid, $marc_record, GuessAuthTypeCode($marc_record));
                 $query = "UPDATE import_auths SET matched_authid = ? WHERE import_record_id = ?";
             }
-            my $sth = $dbh->prepare_cached("UPDATE import_records SET marcxml_old = ? WHERE import_record_id = ?");
-            $sth->execute($oldxml, $rowref->{'import_record_id'});
+            # Combine xml update, SetImportRecordOverlayStatus, and SetImportRecordStatus updates into a single update for efficiency, especially in a transaction
+            my $sth = $dbh->prepare_cached("UPDATE import_records SET marcxml_old = ?, status = ?, overlay_status = ? WHERE import_record_id = ?");
+            $sth->execute( $oldxml, 'imported', 'match_applied', $rowref->{'import_record_id'} );
             $sth->finish();
             my $sth2 = $dbh->prepare_cached($query);
             $sth2->execute($recordid, $rowref->{'import_record_id'});
             $sth2->finish();
-            SetImportRecordOverlayStatus($rowref->{'import_record_id'}, 'match_applied');
-            SetImportRecordStatus($rowref->{'import_record_id'}, 'imported');
         } elsif ($record_result eq 'ignore') {
             $recordid = $record_match;
             $num_ignored++;
@@ -719,10 +721,12 @@ sub BatchCommitRecords {
     # final commit should be before Elastic background indexing in order to find job data
     $schema->txn_commit;
 
-    if ( @biblio_ids ) {
-        my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
+    if (@biblio_ids) {
+        my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
         $indexer->index_records( \@biblio_ids, "specialUpdate", "biblioserver" );
     }
+    Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue( { biblio_ids => \@updated_ids } )
+        if ( @updated_ids && C4::Context->preference('RealTimeHoldsQueue') );
 
     return ($num_added, $num_updated, $num_items_added, $num_items_replaced, $num_items_errored, $num_ignored);
 }
@@ -1590,7 +1594,7 @@ sub RecordsFromISO2709File {
 
 Creates MARC::Record-objects out of the given MARCXML-file.
 
-@PARAM1, String, absolute path to the ISO2709 file.
+@PARAM1, String, absolute path to the MARCXML file.
 @PARAM2, String, should be utf8
 
 Returns two array refs.

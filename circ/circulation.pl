@@ -30,7 +30,8 @@ use CGI qw ( -utf8 );
 use URI::Escape qw( uri_escape_utf8 );
 use DateTime;
 use DateTime::Duration;
-use Scalar::Util qw( looks_like_number );
+use Scalar::Util qw( blessed looks_like_number );
+use Try::Tiny;
 use C4::Output qw( output_and_exit_if_error output_and_exit output_html_with_http_headers );
 use C4::Auth qw( get_session get_template_and_user );
 use C4::Koha;
@@ -38,7 +39,7 @@ use C4::Circulation qw( barcodedecode CanBookBeIssued AddIssue AddReturn );
 use C4::Members;
 use C4::Biblio qw( TransformMarcToKoha );
 use C4::Search qw( new_record_from_zebra );
-use C4::Reserves;
+use C4::Reserves qw( ModReserveAffect );
 use Koha::Holds;
 use C4::Context;
 use CGI::Session;
@@ -65,32 +66,10 @@ use List::MoreUtils qw( uniq );
 #
 my $query = CGI->new;
 
-my $override_high_holds     = $query->param('override_high_holds');
-my $override_high_holds_tmp = $query->param('override_high_holds_tmp');
-
-my $sessionID = $query->cookie("CGISESSID") ;
-my $session = get_session($sessionID);
-
-my @itemsFound = ();
-my @issuesDone = ();
-my $barcodes = [];
-my $barcode =  $query->param('barcode');
-my $findborrower;
-my $autoswitched;
 my $borrowernumber = $query->param('borrowernumber');
+my $barcodes       = [];
+my $barcode        = $query->param('barcode');
 
-if (C4::Context->preference("AutoSwitchPatron") && $barcode) {
-    my $new_barcode = $barcode;
-    Koha::Plugins->call( 'patron_barcode_transform', \$new_barcode );
-    if (Koha::Patrons->search( { cardnumber => $new_barcode} )->count() > 0) {
-        $findborrower = $barcode;
-        undef $barcode;
-        undef $borrowernumber;
-        $autoswitched = 1;
-    }
-}
-$findborrower ||= $query->param('findborrower') || q{};
-$findborrower =~ s|,| |g;
 
 # Barcode given by user could be '0'
 if ( $barcode || ( defined($barcode) && $barcode eq '0' ) ) {
@@ -109,7 +88,6 @@ if ( $barcode || ( defined($barcode) && $barcode eq '0' ) ) {
         @$barcodes = $query->multi_param('barcodes');
     }
 }
-
 $barcodes = [ uniq @$barcodes ];
 
 my $template_name = q|circ/circulation.tt|;
@@ -135,10 +113,53 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user (
         flagsrequired   => { circulate => 'circulate_remaining_permissions' },
     }
 );
+
+my $override_high_holds     = $query->param('override_high_holds');
+my $override_high_holds_tmp = $query->param('override_high_holds_tmp');
+
+my $sessionID = $query->cookie("CGISESSID");
+my $session   = get_session($sessionID);
+
+my $userenv = C4::Context->userenv;
+my $branch  = $userenv->{'branch'} // '';
+my $desk_id = $userenv->{"desk_id"} || '';
+
+my $findborrower;
+my $autoswitched;
+
+my @itemsFound = ();
+my @issuesDone = ();
+
+if ( C4::Context->preference("AutoSwitchPatron") && $barcode ) {
+    my $new_barcode = $barcode;
+    Koha::Plugins->call( 'patron_barcode_transform', \$new_barcode );
+    if ( Koha::Patrons->search( { cardnumber => $new_barcode } )->count() > 0 ) {
+        $findborrower = $barcode;
+        undef $barcode;
+        undef $borrowernumber;
+        $autoswitched = 1;
+    }
+}
+$findborrower ||= $query->param('findborrower') || q{};
+$findborrower =~ s|,| |g;
+
+if ( $query->param('confirm_hold') ) {
+    my $reserve_id          = $query->param('confirm_hold');
+    my $hold_branch         = $query->param('hold_branch');
+    my $hold_itemnumber     = $query->param('hold_itemnumber');
+    my $hold_borrowernumber = $query->param('hold_borrowernumber');
+    my $diffBranchSend      = ( $branch ne $hold_branch );
+
+    # diffBranchSend tells ModReserveAffect whether document is expected in this library or not,
+    # i.e., whether to apply waiting status
+    ModReserveAffect( $hold_itemnumber, $hold_borrowernumber, $diffBranchSend, $reserve_id, $desk_id );
+}
+
+
 my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 
 my $force_allow_issue = $query->param('forceallow') || 0;
-if (!C4::Auth::haspermission( C4::Context->userenv->{id} , { circulate => 'force_checkout' } )) {
+if (!C4::Auth::haspermission( $userenv->{id} , { circulate => 'force_checkout' } )) {
     $force_allow_issue = 0;
 }
 my $onsite_checkout = $query->param('onsite_checkout');
@@ -154,10 +175,6 @@ for (@failedrenews) { $renew_failed{$_} = 1; }
 my @failedreturns = $query->multi_param('failedreturn');
 our %return_failed = ();
 for (@failedreturns) { $return_failed{$_} = 1; }
-
-my $searchtype = $query->param('searchtype') || q{contain};
-
-my $branch = C4::Context->userenv->{'branch'};
 
 for my $barcode ( @$barcodes ) {
     $barcode = barcodedecode( $barcode ) if $barcode;
@@ -295,25 +312,36 @@ if ($patron) {
 #
 #
 if (@$barcodes) {
-  my $checkout_infos;
-  for my $barcode ( @$barcodes ) {
+    my $checkout_infos;
+    for my $barcode ( @$barcodes ) {
 
-    my $template_params = {
-        barcode         => $barcode,
-        onsite_checkout => $onsite_checkout,
-    };
+        my $template_params = {
+            barcode         => $barcode,
+            onsite_checkout => $onsite_checkout,
+        };
 
-    # always check for blockers on issuing
-    my ( $error, $question, $alerts, $messages ) = CanBookBeIssued(
-        $patron,
-        $barcode, $datedue,
-        $inprocess,
-        undef,
-        {
-            onsite_checkout     => $onsite_checkout,
-            override_high_holds => $override_high_holds || $override_high_holds_tmp || 0,
-        }
-    );
+        # always check for blockers on issuing
+        my ( $error, $question, $alerts, $messages );
+        try {
+            ( $error, $question, $alerts, $messages ) = CanBookBeIssued(
+                $patron,
+                $barcode, $datedue,
+                $inprocess,
+                undef,
+                {
+                    onsite_checkout     => $onsite_checkout,
+                    override_high_holds => $override_high_holds || $override_high_holds_tmp || 0,
+                }
+            );
+        } catch {
+            die $_ unless blessed $_ && $_->can('rethrow');
+
+            if ( $_->isa('Koha::Exceptions::Calendar::NoOpenDays') ) {
+                $error = { NO_OPEN_DAYS => 1 };
+            } else {
+                $_->rethrow;
+            }
+        };
 
     my $blocker = $invalidduedate ? 1 : 0;
 
@@ -360,8 +388,10 @@ if (@$barcodes) {
 
     # Only some errors will block when performing forced onsite checkout,
     # for other cases all errors will block
-    my @blocking_error_codes = ($onsite_checkout and C4::Context->preference("OnSiteCheckoutsForce")) ?
-        qw( UNKNOWN_BARCODE ) : (keys %$error);
+    my @blocking_error_codes =
+        ( $onsite_checkout and C4::Context->preference("OnSiteCheckoutsForce") )
+        ? qw( UNKNOWN_BARCODE NO_OPEN_DAYS )
+        : ( keys %$error );
 
     foreach my $code ( @blocking_error_codes ) {
         if ($error->{$code}) {
@@ -491,6 +521,10 @@ if ( $patron ) {
     }
     if ( $patron->is_debarred ) {
         $template->param( is_debarred=> 1 );
+        $noissues = 1;
+    }
+    if ( $patron->borrowernumber eq C4::Context->preference("AnonymousPatron") ) {
+        $template->param( is_anonymous => 1 );
         $noissues = 1;
     }
     my $account = $patron->account;

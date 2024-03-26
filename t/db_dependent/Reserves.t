@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 78;
+use Test::More tests => 79;
 use Test::MockModule;
 use Test::Warn;
 
@@ -30,6 +30,7 @@ use DateTime::Duration;
 use C4::Circulation qw( AddReturn AddIssue );
 use C4::Items;
 use C4::Biblio qw( GetMarcFromKohaField ModBiblio );
+use C4::HoldsQueue;
 use C4::Members;
 use C4::Reserves qw( AddReserve AlterPriority CheckReserves GetReservesControlBranch ModReserve ModReserveAffect ReserveSlip CalculatePriority CanReserveBeCanceledFromOpac CanBookBeReserved IsAvailableForItemLevelRequest MoveReserve ChargeReserveFee RevertWaitingStatus CanItemBeReserved MergeHolds );
 use Koha::ActionLogs;
@@ -1455,7 +1456,7 @@ $schema->storage->txn_rollback();
 
 subtest 'IsAvailableForItemLevelRequest() tests' => sub {
 
-    plan tests => 2;
+    plan tests => 3;
 
     $schema->storage->txn_begin;
 
@@ -1487,6 +1488,21 @@ subtest 'IsAvailableForItemLevelRequest() tests' => sub {
         "Item not available for item-level hold because no effective item type"
     );
 
+    Koha::CirculationRules->set_rules(
+        {
+            categorycode => '*',
+            itemtype     => '*',
+            branchcode   => '*',
+            rules        => {
+                onshelfholds => 0,
+            }
+        }
+    );
+    my $item_1 = $builder->build_sample_item( { notforloan => -1 } );
+    ok(
+        C4::Reserves::IsAvailableForItemLevelRequest( $item_1, $patron ),
+        "We can placing hold on item with negative not for loan values when 'On shelf holds allowed' is set to 'If any unavailable'"
+    );
     $schema->storage->txn_rollback;
 };
 
@@ -1758,6 +1774,78 @@ subtest 'DefaultHoldExpiration tests' => sub {
 
     is( $hold->reservedate, $today->ymd, "Hold created today" );
     is( $hold->expirationdate, $today->add( days => 365)->ymd, "Reserve date set 1 year from today" );
+
+    $schema->txn_rollback;
+};
+
+subtest '_Findgroupreserves' => sub {
+    plan tests => 6;
+    $schema->storage->txn_begin;
+
+    my $patron_1 = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $patron_2 = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $item     = $builder->build_sample_item();
+    my $item_2   = $builder->build_sample_item( { biblionumber => $item->biblionumber } );
+
+    t::lib::Mocks::mock_preference( 'RealTimeHoldsQueue', 0 );
+    my $reserve_id_1 = AddReserve(
+        {
+            branchcode     => $item->homebranch,
+            borrowernumber => $patron_1->id,
+            biblionumber   => $item->biblionumber,
+        }
+    );
+    my $reserve_id_2 = AddReserve(
+        {
+            branchcode     => $item->homebranch,
+            borrowernumber => $patron_2->id,
+            biblionumber   => $item->biblionumber,
+        }
+    );
+
+    C4::HoldsQueue::AddToHoldTargetMap(
+        {
+            $item->id => {
+                borrowernumber => $patron_1->id,        biblionumber => $item->biblionumber,
+                holdingbranch  => $item->holdingbranch, item_level   => 0, reserve_id => $reserve_id_1
+            }
+        }
+    );
+
+    # When the hold is title level and in the hold fill targets we expect this to be the only hold returned
+    my @reserves = C4::Reserves::_Findgroupreserve( undef, $item->biblionumber, $item->id, 0, [] );
+    is( scalar @reserves,           1,             "We should only get the hold that is in the map" );
+    is( $reserves[0]->{reserve_id}, $reserve_id_1, "We got the expected reserve" );
+
+    C4::HoldsQueue::AddToHoldTargetMap(
+        {
+            $item_2->id => {
+                borrowernumber => $patron_2->id, biblionumber => $item->biblionumber,
+                holdingbranch  => $item->holdingbranch, item_level => 1, reserve_id => $reserve_id_2
+            }
+        }
+    );
+
+    # When the hold is title level and in the hold fill targets we expect this to be the only hold returned
+    @reserves = C4::Reserves::_Findgroupreserve( undef, $item->biblionumber, $item_2->id, 0, [] );
+    is( scalar @reserves,           1,             "We should only get the item level hold that is in the map" );
+    is( $reserves[0]->{reserve_id}, $reserve_id_2, "We got the expected reserve" );
+
+    C4::HoldsQueue::AddToHoldTargetMap(
+        {
+            $item_2->id => {
+                borrowernumber => $patron_2->id, biblionumber => $item->biblionumber,
+                holdingbranch  => $item->holdingbranch, item_level => 1, reserve_id => $reserve_id_1
+            }
+        }
+    );
+
+    # When the hold is title level and in the hold fill targets we expect this to be the only hold returned
+    @reserves = C4::Reserves::_Findgroupreserve( undef, $item->biblionumber, $item_2->id, 0, [] );
+    is( scalar @reserves,           1,             "We should still only get the item level hold that is in the map" );
+    is( $reserves[0]->{reserve_id}, $reserve_id_1, "We got the expected reserve which has been updated" );
+
+
 
     $schema->txn_rollback;
 };

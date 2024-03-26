@@ -72,7 +72,7 @@ subtest 'list() tests' => sub {
         }
     );
 
-    # One city created, should get returned
+    # One suggestion created, should get returned
     $t->get_ok("//$userid:$password@/api/v1/suggestions?q={\"suggested_by\":\"$patron_id\"}")
       ->status_is(200)->json_is( [ $suggestion_1->to_api ] );
 
@@ -97,7 +97,7 @@ subtest 'list() tests' => sub {
 
 subtest 'get() tests' => sub {
 
-    plan tests => 8;
+    plan tests => 11;
 
     $schema->storage->txn_begin;
 
@@ -132,6 +132,17 @@ subtest 'get() tests' => sub {
     $t->get_ok(
         "//$userid:$password@/api/v1/suggestions/" . $suggestion->id )
       ->status_is(200)->json_is( $suggestion->to_api );
+
+    my $authorised_value = Koha::AuthorisedValue->new(
+        {
+            category         => 'SUGGEST_STATUS',
+            authorised_value => 'FREDERIC'
+        }
+    )->store;
+    $suggestion->STATUS('FREDERIC')->store->discard_changes;
+
+    $t->get_ok( "//$userid:$password@/api/v1/suggestions/" . $suggestion->id )->status_is(200)
+        ->json_is( $suggestion->to_api );
 
     $t->get_ok( "//$unauth_userid:$password@/api/v1/suggestions/"
           . $suggestion->id )->status_is(403);

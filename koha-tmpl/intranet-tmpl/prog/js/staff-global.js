@@ -144,7 +144,11 @@ $(document).ready(function() {
         if ( url.match(/\?(.+)$/) ) {
             params = "?" + RegExp.$1;
         }
-        $("a[href$=\"/" + path + params + "\"]", navmenulist).addClass("current");
+        if ($("a[href$=\"/" + path + params + "\"]", navmenulist).length == 0){
+            $("a[href$=\"/" + path + "\"]", navmenulist).addClass("current");
+        } else {
+            $("a[href$=\"/" + path + params + "\"]", navmenulist).addClass("current");
+        }
     }
 
     $("#catalog-search-link a").on("mouseenter mouseleave", function(){
@@ -397,4 +401,209 @@ function saveOrClearSimpleSearchParams() {
     }
     localStorage.setItem('cat_search_pulldown_selection', pulldown_selection );
     localStorage.setItem('searchbox_value', searchbox_value );
+}
+
+function patron_autocomplete(node, options) {
+    let link_to;
+    let url_params;
+    let on_select_callback;
+
+    if (options) {
+        if (options['link-to']) {
+            link_to = options['link-to'];
+        }
+        if (options['url-params']) {
+            url_params = options['url-params'];
+        }
+        if (options['on-select-callback']) {
+            on_select_callback = options['on-select-callback'];
+        }
+    }
+    return node.autocomplete({
+        source: function (request, response) {
+            let q = buildPatronSearchQuery(request.term);
+
+            let params = {
+                '_page': 1,
+                '_per_page': 10,
+                'q': JSON.stringify(q),
+                '_order_by': '+me.surname,+me.firstname',
+            };
+            $.ajax({
+                data: params,
+                type: 'GET',
+                url: '/api/v1/patrons',
+                headers: {
+                    "x-koha-embed": "library"
+                },
+                success: function (data) {
+                    return response(data);
+                },
+                error: function (e) {
+                    if (e.state() != 'rejected') {
+                        alert(__("An error occurred. Check the logs"));
+                    }
+                    return response();
+                }
+            });
+        },
+        minLength: 3,
+        select: function (event, ui) {
+            if (ui.item.link) {
+                window.location.href = ui.item.link;
+            } else if (on_select_callback) {
+                return on_select_callback(event, ui);
+            }
+        },
+        focus: function (event, ui) {
+            event.preventDefault(); // Don't replace the text field
+        },
+    })
+        .data("ui-autocomplete")
+        ._renderItem = function (ul, item) {
+            if (link_to) {
+                item.link = link_to == 'circ'
+                    ? "/cgi-bin/koha/circ/circulation.pl"
+                    : link_to == 'reserve'
+                        ? "/cgi-bin/koha/reserve/request.pl"
+                        : "/cgi-bin/koha/members/moremember.pl";
+                item.link += (url_params ? '?' + url_params + '&' : "?") + 'borrowernumber=' + item.patron_id;
+            } else {
+                item.link = null;
+            }
+
+            var cardnumber = "";
+            if (item.cardnumber != "") {
+                // Display card number in parentheses if it exists
+                cardnumber = " (" + item.cardnumber + ") ";
+            }
+            if (item.library_id == loggedInLibrary) {
+                loggedInClass = "ac-currentlibrary";
+            } else {
+                loggedInClass = "";
+            }
+            return $("<li></li>")
+                .addClass(loggedInClass)
+                .data("ui-autocomplete-item", item)
+                .append(
+                    ""
+                    + (item.link ? "<a href=\"" + item.link + "\">" : "<a>")
+                    + (item.surname ? item.surname.escapeHtml() : "") + ", "
+                    + (item.firstname ? item.firstname.escapeHtml() : "")
+                    + " " + (item.middle_name ? item.middle_name.escapeHtml() : "")
+                    + cardnumber.escapeHtml()
+                    + " <small>"
+                    + (item.date_of_birth
+                        ? $date(item.date_of_birth)
+                        + "<span class=\"age_years\"> ("
+                        + $get_age(item.date_of_birth)
+                        + " "
+                        + __("years")
+                        + ")</span>,"
+                        : ""
+                    ) + " "
+                    + $format_address(item, { no_line_break: true, include_li: false }) + " "
+                    + (!singleBranchMode
+                        ?
+                        "<span class=\"ac-library\">"
+                        + item.library.name.escapeHtml()
+                        + "</span>"
+                        : "")
+                    + "</small>"
+                    + "</a>")
+                .appendTo(ul);
+        };
+}
+
+/**
+ * Build patron search query
+ * - term: The full search term input by the user
+ * You can then pass a list of options:
+ * - search_type: String 'contains' or 'starts_with', defaults to DefaultPatronSearchMethod system preference
+ * - search_fields: String comma-separated list of specific fields, defaults to DefaultPatronSearchFields system preference
+ * - extended_attribute_types: JSON object containing the patron attribute types to be searched on
+ */
+function buildPatronSearchQuery(term, options) {
+
+    let q = [];
+    let leading_wildcard;
+    let search_fields;
+    let patterns = term.split(/[\s,]+/).filter(function (s) { return s.length });
+
+    // Bail if no patterns
+    if (patterns.length == 0) {
+        return q;
+    }
+
+    // Leading wildcard: If search_type option exists, we use that
+    if (typeof options !== 'undefined' && options.search_type) {
+        leading_wildcard = options.search_type === "contains" ? '%' : '';
+    // If not, we use DefaultPatronSearchMethod system preference instead
+    } else {
+        leading_wildcard = defaultPatronSearchMethod === 'contains' ? '%' : '';
+    }
+
+    // Search fields: If search_fields option exists, we use that
+    if (typeof options !== 'undefined' && options.search_fields) {
+        search_fields = options.search_fields;
+    // If not, we use DefaultPatronSearchFields system preference instead
+    } else {
+        search_fields = defaultPatronSearchFields;
+    }
+
+    // Add each pattern for each search field
+    let pattern_subquery_and = [];
+    patterns.forEach(function (pattern, i) {
+            let pattern_subquery_or = [];
+            search_fields.split(',').forEach(function (field, i) {
+                pattern_subquery_or.push(
+                    { ["me." + field]: { 'like': leading_wildcard + pattern + '%' } }
+                );
+                if (field == 'dateofbirth') {
+                    try {
+                        let d = $date_to_rfc3339(pattern);
+                        pattern_subquery_or.push({ ["me." + field]: d });
+                    } catch {
+                        // Hide the warning if the date is not correct
+                    }
+                }
+            });
+            pattern_subquery_and.push(pattern_subquery_or);
+        });
+    q.push({ "-and": pattern_subquery_and });
+
+    // Add full search term for each search field
+    let term_subquery_or = [];
+    search_fields.split(',').forEach(function (field, i) {
+        term_subquery_or.push(
+            { ["me." + field]: { 'like': leading_wildcard + term + '%' } }
+        );
+    });
+    q.push({ "-or": term_subquery_or });
+
+    // Add each pattern for each extended patron attributes
+    if (typeof options !== 'undefined' && options.extended_attribute_types && extendedPatronAttributes) {
+        extended_attribute_subquery_and = [];
+        patterns.forEach(function (pattern, i) {
+            let extended_attribute_sub_or = [];
+            extended_attribute_sub_or.push({
+                "extended_attributes.value": { "like": leading_wildcard + pattern + '%' },
+                "extended_attributes.code": options.extended_attribute_types
+            });
+            extended_attribute_subquery_and.push(extended_attribute_sub_or);
+        });
+        q.push({ "-and": extended_attribute_subquery_and });
+    }
+    return q;
+}
+
+function selectBsTabByHash( tabs_container_id ){
+    /* Check for location.hash in the page URL */
+    /* If present the location hash will be used to activate the correct tab */
+    var hash = document.location.hash;
+    if( hash !== "" ){
+        $('#' + tabs_container_id + ' a[href="' + hash + '"]').tab('show');
+    } else {
+        $('#' + tabs_container_id + ' a:first').tab('show');
+    }
 }

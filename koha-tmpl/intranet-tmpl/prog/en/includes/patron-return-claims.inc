@@ -8,18 +8,20 @@
             <a id="show_unresolved_claims" class="ctrl_link disabled" href="#"></a>
         [% END %]
     </p>
-  <table id="return-claims-table" class="table table-bordered table-striped">
-      <thead>
-          <tr>
-              <th class="return-claim-id">Claim ID</th>
-              <th class="return-claim-id">Resolved?</th>
-              <th class="return-claim-record-title anti-the">Title</th>
-              <th class="return-claim-notes">Notes</th>
-              <th class="return-claim-created-on">Created on</th>
-              <th class="return-claim-updated-on">Updated on</th>
-              <th class="return-claim-resolution">Resolution</th>
-              <th class="return-claim-actions NoSort">&nbsp;</th>
-          </tr>
-      </thead>
-  </table>
+    <table id="return-claims-table" class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th class="return-claim-id">Claim ID</th>
+                <th class="return-claim-id">Resolved?</th>
+                <th class="return-claim-record-title anti-the">Title</th>
+                <th class="return-claim-notes">Notes</th>
+                <th class="return-claim-created-on">Created on</th>
+                <th class="return-claim-created-on">Created on</th>
+                <th class="return-claim-updated-on">Updated on</th>
+                <th class="return-claim-updated-on">Updated on</th>
+                <th class="return-claim-resolution">Resolution</th>
+                <th class="return-claim-actions NoSort">&nbsp;</th>
+            </tr>
+        </thead>
+    </table>
 </div>

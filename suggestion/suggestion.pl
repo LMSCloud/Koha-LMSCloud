@@ -21,7 +21,7 @@ use Modern::Perl;
 require Exporter;
 use CGI qw ( -utf8 );
 use C4::Auth qw( get_template_and_user );
-use C4::Output qw( output_html_with_http_headers );
+use C4::Output qw( output_html_with_http_headers output_and_exit_if_error );
 use C4::Suggestions;
 use C4::Koha qw( GetAuthorisedValues );
 use C4::Budgets qw( GetBudget GetBudgets GetBudgetHierarchy CanUserUseBudget );
@@ -32,6 +32,7 @@ use Koha::AuthorisedValues;
 use Koha::Acquisition::Currencies;
 use Koha::Libraries;
 use Koha::Patrons;
+use Koha::Token;
 
 use URI::Escape qw( uri_escape );
 
@@ -98,6 +99,7 @@ my $reasonsloop     = GetAuthorisedValues("SUGGEST");
 
 # filter informations which are not suggestion related.
 my $suggestion_ref  = { %{$input->Vars} }; # Copying, otherwise $input will be modified
+delete $suggestion_ref->{csrf_token};
 
 # get only the columns of Suggestion
 my $schema = Koha::Database->new()->schema;
@@ -105,7 +107,9 @@ my $columns = ' '.join(' ', $schema->source('Suggestion')->columns).' ';
 my $suggestion_only = { map { $columns =~ / $_ / ? ($_ => $suggestion_ref->{$_}) : () } keys %$suggestion_ref };
 $suggestion_only->{STATUS} = $suggestion_ref->{STATUS};
 
-delete $$suggestion_ref{$_} foreach qw( suggestedbyme op displayby tabcode notify filter_archived );
+delete $$suggestion_ref{$_}
+    foreach
+    qw( suggestedbyme op displayby tabcode notify filter_archived koha_login_context auth_forwarded_hash password userid );
 foreach (keys %$suggestion_ref){
     delete $$suggestion_ref{$_} if (!$$suggestion_ref{$_} && ($op eq 'else' ));
 }
@@ -133,6 +137,7 @@ my $branchfilter = $input->param('branchcode') || C4::Context->userenv->{'branch
 ##
 
 if ( $op =~ /save/i ) {
+    output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
     my @messages;
     my $biblio = MarcRecordFromNewSuggestion({
             title => $suggestion_only->{title},
@@ -251,7 +256,8 @@ elsif ($op=~/add/) {
     $op ='save';
 }
 elsif ($op=~/edit/) {
-    #Edit suggestion  
+    #Edit suggestion
+    output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
     $suggestion_ref=&GetSuggestion($$suggestion_ref{'suggestionid'});
     $suggestion_ref->{reasonsloop} = $reasonsloop;
     my $other_reason = 1;
@@ -266,7 +272,7 @@ elsif ($op=~/edit/) {
     $op ='save';
 }  
 elsif ($op eq "update_status" ) {
-
+    output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
     my $suggestion;
     # set accepted/rejected/managed informations if applicable
     # ie= if the librarian has chosen some action on the suggestions
@@ -303,6 +309,7 @@ elsif ($op eq "update_status" ) {
     }
     redirect_with_params($input);
 }elsif ($op eq "delete" ) {
+    output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
     foreach my $delete_field (@editsuggestions) {
         &DelSuggestion( $borrowernumber, $delete_field,'intranet' );
     }
@@ -530,13 +537,19 @@ foreach my $field ( qw(managedby acceptedby suggestedby budgetid) ) {
     } grep {
         $$_{'value'}
     } @$values_list;
+    @codes_list = sort { $a->{desc} cmp $b->{desc} } @codes_list;
     $hashlists{ lc($field) . "_loop" } = \@codes_list;
 }
+
+my $csrf_token = Koha::Token->new->generate_csrf({
+    session_id => scalar $input->cookie('CGISESSID'),
+});
 
 $template->param(
     %hashlists,
     borrowernumber           => ($input->param('borrowernumber') // undef),
     SuggestionStatuses       => GetAuthorisedValues('SUGGEST_STATUS'),
+    csrf_token               => $csrf_token,
 );
 output_html_with_http_headers $input, $cookie, $template->output;
 

@@ -217,7 +217,7 @@
                     <span class="required">Required</span>
                 </li>
                 <li>
-                    <label for="can_be_guarantee">Can be guarantee</label>
+                    <label for="can_be_guarantee">Can be guarantee:</label>
                     <select name="can_be_guarantee" id="can_be_guarantee">
                         [% IF category.can_be_guarantee %]
                             <option value="1" selected>Yes</option>
@@ -484,7 +484,7 @@
                 <tr><th scope="row">Upperage limit: </th><td>[% category.upperagelimit | html %] years</td></tr>
                 <tr><th scope="row">Enrollment fee: </th><td>[% category.enrolmentfee | $Price %]</td></tr>
                 <tr><th scope="row">Receives overdue notices: </th><td>[% IF category. overduenoticerequired %]Yes[% ELSE %]No[% END %]</td></tr>
-                <tr><th scope="row">Lost items in staff interface</th><td>[% IF category.hidelostitems %]Hidden by default[% ELSE %]Shown[% END %]</td></tr>
+                <tr><th scope="row">Lost items in staff interface:</th><td>[% IF category.hidelostitems %]Hidden by default[% ELSE %]Shown[% END %]</td></tr>
                 <tr><th scope="row">Hold fee: </th><td>[% category.reservefee | $Price %]</td></tr>
 
                 [% IF ( Koha.Preference('CheckPrevCheckout') == 'softyes' || Koha.Preference('CheckPrevCheckout') == 'softno' ) %]
@@ -502,7 +502,7 @@
                       </td>
                   </tr>
                 [% END %]
-                <tr><th scope="row">Can be guarantee</th><td>[% IF category.can_be_guarantee %]Yes[% ELSE %]No[% END %]</td></tr>
+                <tr><th scope="row">Can be guarantee:</th><td>[% IF category.can_be_guarantee %]Yes[% ELSE %]No[% END %]</td></tr>
                 <tr>
                     <th scope="row">Default privacy: </th>
                     <td>

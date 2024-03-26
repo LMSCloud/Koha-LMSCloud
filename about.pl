@@ -47,6 +47,7 @@ use Koha::BackgroundJob;
 use Koha::BiblioFrameworks;
 use Koha::Biblios;
 use Koha::Email;
+use Koha::I18N;
 use Koha::Patron::Categories;
 use Koha::Patrons;
 use Koha::Caches;
@@ -290,6 +291,10 @@ if ( !defined C4::Context->config('use_zebra_facets') ) {
     push @xml_config_warnings, { error => 'use_zebra_facets_entry_missing' };
 }
 
+unless ( Koha::I18N->_base_directory ) {
+    $template->param( warnI18nMissing => 1 );
+}
+
 # ILL module checks
 if ( C4::Context->preference('ILLModule') ) {
     my $warnILLConfiguration = 0;
@@ -498,6 +503,10 @@ $template->param( 'bad_yaml_prefs' => \@bad_yaml_prefs ) if @bad_yaml_prefs;
         q|select b.biblionumber from biblio b join deletedbiblio db on b.biblionumber=db.biblionumber|,
         { Slice => {} }
     );
+    my $biblioitems = $dbh->selectall_arrayref(
+        q|select bi.biblioitemnumber from biblioitems bi join deletedbiblioitems dbi on bi.biblionumber=dbi.biblionumber|,
+        { Slice => {} }
+    );
     my $items = $dbh->selectall_arrayref(
         q|select i.itemnumber from items i join deleteditems di on i.itemnumber=di.itemnumber|,
         { Slice => {} }
@@ -510,14 +519,15 @@ $template->param( 'bad_yaml_prefs' => \@bad_yaml_prefs ) if @bad_yaml_prefs;
         q|select r.reserve_id from reserves r join old_reserves o on r.reserve_id=o.reserve_id|,
         { Slice => {} }
     );
-    if ( @$patrons or @$biblios or @$items or @$checkouts or @$holds ) {
+    if ( @$patrons or @$biblios or @$biblioitems or @$items or @$checkouts or @$holds ) {
         $template->param(
-            has_ai_issues => 1,
-            ai_patrons    => $patrons,
-            ai_biblios    => $biblios,
-            ai_items      => $items,
-            ai_checkouts  => $checkouts,
-            ai_holds      => $holds,
+            has_ai_issues  => 1,
+            ai_patrons     => $patrons,
+            ai_biblios     => $biblios,
+            ai_biblioitems => $biblioitems,
+            ai_items       => $items,
+            ai_checkouts   => $checkouts,
+            ai_holds       => $holds,
         );
     }
 }

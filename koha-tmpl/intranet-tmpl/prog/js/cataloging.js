@@ -59,7 +59,8 @@ function openAuth(tagsubfieldid,authtype,source) {
     window.open("../authorities/auth_finder.pl?source="+source+"&authtypecode="+authtype+"&index="+tagsubfieldid+"&value_mainstr="+encodeURIComponent(mainmainstring)+"&value_main="+encodeURIComponent(mainstring), "_blank",'width=700,height=550,toolbar=false,scrollbars=yes');
 }
 
-function ExpandField(index) {
+function ExpandField() {
+    let index = this.dataset.field_id;
     var original = document.getElementById(index); //original <li>
     var lis = original.getElementsByTagName('li');
     for(var i=0,lislen = lis.length ; i<lislen ; i++){   // foreach li
@@ -77,6 +78,7 @@ function ExpandField(index) {
             }
         }
     }
+    return false;
 }
 
 var current_select2;
@@ -307,7 +309,7 @@ function CloneField(index, hideMarc, advancedMARCEditor) {
                         } else if (anchors[j].getAttribute('class') == 'buttonMinus') {
                             anchors[j].setAttribute('onclick',"UnCloneField('" + new_id + "'); return false;");
                         } else if (anchors[j].getAttribute('class') == 'expandfield') {
-                            anchors[j].setAttribute('onclick',"ExpandField('" + new_id + "'); return false;");
+                            anchors[j].setAttribute('data-field_id',new_id);
                         }
                     }
                 }
@@ -434,7 +436,7 @@ function AddEventHandlers (oldcontrol, newcontrol, newinputid ) {
 // newinputid is the id attribute of the cloned controlling input field
 // Note: This code depends on the jQuery data for events; this structure
 // is moved to _data as of jQuery 1.8.
-    var ev= $(oldcontrol).data('events');
+    var ev = $._data(oldcontrol, "events");
     if(typeof ev != 'undefined') {
         $.each(ev, function(prop,val) {
             $.each(val, function(prop2,val2) {

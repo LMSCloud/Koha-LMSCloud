@@ -1097,7 +1097,7 @@ subtest 'edit() tests' => sub {
 
 subtest 'add() tests' => sub {
 
-    plan tests => 21;
+    plan tests => 24;
 
     $schema->storage->txn_begin;
 
@@ -1139,17 +1139,22 @@ subtest 'add() tests' => sub {
         return Koha::Libraries->search( { branchcode => [ $library_2->branchcode, $library_3->branchcode ] } );
     });
 
-    my $can_be_reserved = 'OK';
+    my $can_biblio_be_reserved = 'OK';
+    my $can_item_be_reserved   = 'OK';
+
     my $mock_reserves = Test::MockModule->new('C4::Reserves');
-    $mock_reserves->mock( 'CanItemBeReserved', sub
-        {
-            return { status => $can_be_reserved }
+
+    $mock_reserves->mock(
+        'CanItemBeReserved',
+        sub {
+            return { status => $can_item_be_reserved };
         }
 
     );
-    $mock_reserves->mock( 'CanBookBeReserved', sub
-        {
-            return { status => $can_be_reserved }
+    $mock_reserves->mock(
+        'CanBookBeReserved',
+        sub {
+            return { status => $can_biblio_be_reserved };
         }
 
     );
@@ -1243,7 +1248,18 @@ subtest 'add() tests' => sub {
       ->status_is(400)
       ->json_is({ error => 'The supplied pickup location is not valid' });
 
+    $can_item_be_reserved   = 'notReservable';
+    $can_biblio_be_reserved = 'OK';
+
     $item_hold_data->{pickup_library_id} = $library_2->branchcode;
+
+    $t->post_ok( "//$userid:$password@/api/v1/holds" => json => $item_hold_data )
+      ->status_is(403, 'Item checks performed when both biblio_id and item_id passed (Bug 35053)')
+      ->json_is({ error => 'Hold cannot be placed. Reason: notReservable' });
+
+    $can_item_be_reserved   = 'OK';
+    $can_biblio_be_reserved = 'OK';
+
     $t->post_ok( "//$userid:$password@/api/v1/holds" => json => $item_hold_data )
       ->status_is(201);
 
@@ -1270,7 +1286,7 @@ subtest 'add() tests' => sub {
 
 subtest 'PUT /holds/{hold_id}/pickup_location tests' => sub {
 
-    plan tests => 28;
+    plan tests => 37;
 
     $schema->storage->txn_begin;
 
@@ -1403,18 +1419,37 @@ subtest 'PUT /holds/{hold_id}/pickup_location tests' => sub {
 
     is( $hold->discard_changes->branchcode->branchcode, $library_2->branchcode, 'invalid pickup library not used, even if x-koha-override is passed' );
 
+    my $waiting_hold       = $builder->build_object( { class => 'Koha::Holds', value => { found => 'W' } } );
+    my $in_processing_hold = $builder->build_object( { class => 'Koha::Holds', value => { found => 'P' } } );
+    my $in_transit_hold    = $builder->build_object( { class => 'Koha::Holds', value => { found => 'T' } } );
+
+    $t->put_ok( "//$userid:$password@/api/v1/holds/"
+            . $waiting_hold->id
+            . "/pickup_location" => json => { pickup_library_id => $library_2->branchcode } )->status_is(409)
+        ->json_is( { error => q{Cannot change pickup location}, error_code => 'hold_waiting' } );
+
+    $t->put_ok( "//$userid:$password@/api/v1/holds/"
+            . $in_processing_hold->id
+            . "/pickup_location" => json => { pickup_library_id => $library_2->branchcode } )->status_is(409)
+        ->json_is( { error => q{Cannot change pickup location}, error_code => 'hold_in_processing' } );
+
+    $t->put_ok( "//$userid:$password@/api/v1/holds/"
+            . $in_transit_hold->id
+            . "/pickup_location" => json => { pickup_library_id => $library_2->branchcode } )->status_is(200)
+        ->json_is( { pickup_library_id => $library_2->branchcode } );
+
     $schema->storage->txn_rollback;
 };
 
 subtest 'delete() tests' => sub {
 
-    plan tests => 3;
+    plan tests => 13;
 
     $schema->storage->txn_begin;
 
     my $password = 'AbcdEFG123';
-    my $patron   = $builder->build_object({ class => 'Koha::Patrons', value => { flags => 0 } });
-    $patron->set_password({ password => $password, skip_validation => 1 });
+    my $patron   = $builder->build_object( { class => 'Koha::Patrons', value => { flags => 0 } } );
+    $patron->set_password( { password => $password, skip_validation => 1 } );
     my $userid = $patron->userid;
 
     # Only have 'place_holds' subpermission
@@ -1454,9 +1489,61 @@ subtest 'delete() tests' => sub {
         )
     );
 
-    $t->delete_ok( "//$userid:$password@/api/v1/holds/" . $hold->id )
-      ->status_is(204, 'SWAGGER3.2.4')
-      ->content_is('', 'SWAGGER3.3.4');
+    $t->delete_ok( "//$userid:$password@/api/v1/holds/" . $hold->id )->status_is( 204, 'SWAGGER3.2.4' )
+        ->content_is( '', 'SWAGGER3.3.4' );
+
+    $hold = Koha::Holds->find(
+        AddReserve(
+            {
+                branchcode     => $patron->branchcode,
+                borrowernumber => $patron->borrowernumber,
+                biblionumber   => $biblio->biblionumber,
+                priority       => 1,
+                itemnumber     => undef,
+            }
+        )
+    );
+
+    $t->delete_ok( "//$userid:$password@/api/v1/holds/" . $hold->id => { 'x-koha-override' => q{} } )
+        ->status_is( 204, 'Same behavior if header not set' )->content_is('');
+
+    $hold = Koha::Holds->find(
+        AddReserve(
+            {
+                branchcode     => $patron->branchcode,
+                borrowernumber => $patron->borrowernumber,
+                biblionumber   => $biblio->biblionumber,
+                priority       => 1,
+                itemnumber     => undef,
+            }
+        )
+    );
+
+    $t->delete_ok(
+        "//$userid:$password@/api/v1/holds/" . $hold->id => { 'x-koha-override' => q{cancellation-request-flow} } )
+        ->status_is( 204, 'Same behavior if header set but hold not waiting' )->content_is('');
+
+    $hold = Koha::Holds->find(
+        AddReserve(
+            {
+                branchcode     => $patron->branchcode,
+                borrowernumber => $patron->borrowernumber,
+                biblionumber   => $biblio->biblionumber,
+                priority       => 1,
+                itemnumber     => undef,
+            }
+        )
+    );
+
+    $hold->set_waiting;
+
+    is( $hold->cancellation_requests->count, 0 );
+
+    $t->delete_ok(
+        "//$userid:$password@/api/v1/holds/" . $hold->id => { 'x-koha-override' => q{cancellation-request-flow} } )
+        ->status_is( 202, 'Cancellation request accepted' );
+
+    is( $hold->cancellation_requests->count, 1 );
 
     $schema->storage->txn_rollback;
 };

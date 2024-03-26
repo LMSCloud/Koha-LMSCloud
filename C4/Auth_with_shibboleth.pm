@@ -109,14 +109,14 @@ sub checkpw_shib {
         if ($config->{'sync'}) {
             _sync($borrower->borrowernumber, $config, $match);
         }
-        return ( 1, $borrower->get_column('cardnumber'), $borrower->get_column('userid') );
+        return ( 1, $borrower->get_column('cardnumber'), $borrower->get_column('userid'), $borrower );
     }
 
     if ( $config->{'autocreate'} ) {
         return _autocreate( $config, $match );
     } else {
         # If we reach this point, the user is not a valid koha user
-        Koha::Logger->get->info("There are several users with $config->{matchpoint} of $match, matchpoints must be unique");
+        Koha::Logger->get->info("No users with $config->{matchpoint} of $match found and autocreate is disabled");
         return 0;
     }
 }

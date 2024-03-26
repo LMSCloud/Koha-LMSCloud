@@ -10,6 +10,7 @@
 [% SET libraries = Branches.all %]
 [% SET categories = Categories.all.unblessed %]
 [% SET columns = ['cardnumber', 'name-address', 'dateofbirth', 'branch', 'category', 'restriction', 'dateexpiry', 'checkouts', 'account_balance', 'borrowernotes', 'action'] %]
+[% SET searchtype = searchtype || Koha.Preference('DefaultPatronSearchMethod') %]
 [% PROCESS 'patron-search.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Patrons[% IF ( searching ) %] &rsaquo; Search results[% END %] &rsaquo; Koha</title>
@@ -24,7 +25,7 @@
 [% WRAPPER 'sub-header.inc' %]
     [% WRAPPER breadcrumbs %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
-            Patrons
+            <span>Patrons</span>
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
@@ -194,6 +195,7 @@
     [% INCLUDE 'columns_settings.inc' %]
     [% INCLUDE 'str/members-menu.inc' %]
     [% Asset.js("js/members-menu.js") | $raw %]
+    [% INCLUDE 'select2.inc' %]
     <script>
         function showPatronSelections( number ){
             $("#patron_search_selected").show().find("span").text( _("Patrons selected: ") + number );
@@ -323,7 +325,7 @@
                 $("searchfieldstype_filter").val("[% searchfieldstype | html %]");
             [% END %]
             [% IF searchtype %]
-                $("#searchtype_filter").val("[% searchtype | html %]");
+                $("#searchtype_filter option[value='[% searchtype | html %]']").prop("selected", true);
             [% END %]
             [% IF categorycode_filter %]
                 $("#categorycode_filter").val("[% categorycode_filter | html %]");

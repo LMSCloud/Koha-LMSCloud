@@ -25,6 +25,7 @@ use C4::Koha qw(
     getitemtypeimagelocation
     GetNormalizedISBN
     GetNormalizedUPC
+    GetNormalizedOCLCNumber
 );
 use C4::Biblio;
 use C4::Members qw( GetAllIssues );
@@ -89,31 +90,40 @@ foreach my $issue ( @{$issues} ) {
           getitemtypeimagelocation( 'opac',
             $itemtypes->{ $issue->{$itype_attribute} }->{imageurl} );
     }
-    my $marcxml = C4::Biblio::GetXmlBiblio( $issue->{biblionumber} );
-    if ( $marcxml ) {
-        $marcxml = StripNonXmlChars( $marcxml );
-        my $marc_rec =
-          MARC::Record::new_from_xml( $marcxml, 'UTF-8',
-            C4::Context->preference('marcflavour') );
-        $issue->{normalized_upc} = GetNormalizedUPC( $marc_rec, C4::Context->preference('marcflavour') );
-        
-        if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled") ) {
-            my $titlecoverurls = [];
-            my $coverfound = 0;
-            foreach my $tag( $marc_rec->field('856') ) {
-                if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
-                    my $link = $tag->subfield('u');
-                    $link =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
-                    $link =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
-                    if (  ( C4::Context->preference("DivibibEnabled") && $link =~ /\.onleihe\.de/i ) 
-                         or C4::Context->preference("EKZCover") )
-                    {
-                        push @$titlecoverurls,$link;
-                        $coverfound = 1;
+    
+    if (   C4::Context->preference('BakerTaylorEnabled')
+        || C4::Context->preference('SyndeticsEnabled')
+        || C4::Context->preference('SyndeticsCoverImages')
+        || C4::Context->preference("EKZCover")
+        || C4::Context->preference("DivibibEnabled") )
+    {
+        my $marcxml = C4::Biblio::GetXmlBiblio( $issue->{biblionumber} );
+        if ( $marcxml ) {
+            $marcxml = StripNonXmlChars( $marcxml );
+            my $marc_rec =
+              MARC::Record::new_from_xml( $marcxml, 'UTF-8',
+                C4::Context->preference('marcflavour') );
+            $issue->{normalized_upc} = GetNormalizedUPC( $marc_rec, C4::Context->preference('marcflavour') );
+            $issue->{normalized_oclc} = GetNormalizedOCLCNumber($marc_rec, C4::Context->preference('marcflavour'));
+            
+            if ( $marc_rec && (C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled")) ) {
+                my $titlecoverurls = [];
+                my $coverfound = 0;
+                foreach my $tag( $marc_rec->field('856') ) {
+                    if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
+                        my $link = $tag->subfield('u');
+                        $link =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
+                        $link =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
+                        if (  ( C4::Context->preference("DivibibEnabled") && $link =~ /\.onleihe\.de/i ) 
+                             or C4::Context->preference("EKZCover") )
+                        {
+                            push @$titlecoverurls,$link;
+                            $coverfound = 1;
+                        }
                     }
                 }
+                $issue->{'titlecoverurls'} = $titlecoverurls if ($coverfound);
             }
-            $issue->{'titlecoverurls'} = $titlecoverurls if ($coverfound);
         }
     }
     # My Summary HTML

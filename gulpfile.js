@@ -8,6 +8,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const util = require('util');
+const stream = require('stream/promises');
 
 const sass = require('gulp-sass')(require('sass'));
 const rtlcss = require('gulp-rtlcss');
@@ -18,7 +19,7 @@ const exec = require('gulp-exec');
 const merge = require('merge-stream');
 const through2 = require('through2');
 const Vinyl = require('vinyl');
-const args = require('minimist')(process.argv.slice(2));
+const args = require('minimist')(process.argv.slice(2), { default: { 'generate-pot': 'always' } });
 const rename = require('gulp-rename');
 
 const STAFF_CSS_BASE = "koha-tmpl/intranet-tmpl/prog/css";
@@ -140,11 +141,33 @@ const poTasks = {
     },
 };
 
-const poTypes = Object.keys(poTasks);
+function getPoTasks () {
+    let tasks = [];
+
+    let all_tasks = Object.keys(poTasks);
+
+    if (args.task) {
+        tasks = [args.task].flat(Infinity);
+    } else {
+        return all_tasks;
+    }
+
+    let invalid_tasks = tasks.filter( function( el ) {
+        return all_tasks.indexOf( el ) < 0;
+    });
+
+    if ( invalid_tasks.length ) {
+        console.error("Invalid task");
+        return [];
+    }
+
+    return tasks;
+}
+const poTypes = getPoTasks();
 
 function po_extract_marc (type) {
     return src(`koha-tmpl/*-tmpl/*/en/**/*${type}*`, { read: false, nocase: true })
-        .pipe(xgettext('misc/translator/xgettext.pl --charset=UTF-8 -s', `Koha-marc-${type}.pot`))
+        .pipe(xgettext('misc/translator/xgettext.pl --charset=UTF-8 -F', `Koha-marc-${type}.pot`))
         .pipe(dest('misc/translator'))
 }
 
@@ -163,7 +186,7 @@ function po_extract_staff () {
     ];
 
     return src(globs, { read: false, nocase: true })
-        .pipe(xgettext('misc/translator/xgettext.pl --charset=UTF-8 -s', 'Koha-staff-prog.pot'))
+        .pipe(xgettext('misc/translator/xgettext.pl --charset=UTF-8 -F', 'Koha-staff-prog.pot'))
         .pipe(dest('misc/translator'))
 }
 
@@ -179,7 +202,7 @@ function po_extract_opac () {
     ];
 
     return src(globs, { read: false, nocase: true })
-        .pipe(xgettext('misc/translator/xgettext.pl --charset=UTF-8 -s', 'Koha-opac-bootstrap.pot'))
+        .pipe(xgettext('misc/translator/xgettext.pl --charset=UTF-8 -F', 'Koha-opac-bootstrap.pot'))
         .pipe(dest('misc/translator'))
 }
 
@@ -257,19 +280,30 @@ function po_create_type (type) {
     const access = util.promisify(fs.access);
     const exec = util.promisify(child_process.exec);
 
-    const languages = getLanguages();
-    const promises = [];
-    for (const language of languages) {
-        const locale = language.split('-').filter(s => s.length !== 4).join('_');
-        const po = `misc/translator/po/${language}-${type}.po`;
-        const pot = `misc/translator/Koha-${type}.pot`;
+    const pot = `misc/translator/Koha-${type}.pot`;
 
-        const promise = access(po)
-            .catch(() => exec(`msginit -o ${po} -i ${pot} -l ${locale} --no-translator`))
-        promises.push(promise);
-    }
+    // Generate .pot only if it doesn't exist or --force-extract is given
+    const extract = () => stream.finished(poTasks[type].extract());
+    const p =
+        args['generate-pot'] === 'always' ? extract() :
+        args['generate-pot'] === 'auto' ? access(pot).catch(extract) :
+        args['generate-pot'] === 'never' ? Promise.resolve(0) :
+        Promise.reject(new Error('Invalid value for option --generate-pot: ' + args['generate-pot']))
 
-    return Promise.all(promises);
+    return p.then(function () {
+        const languages = getLanguages();
+        const promises = [];
+        for (const language of languages) {
+            const locale = language.split('-').filter(s => s.length !== 4).join('_');
+            const po = `misc/translator/po/${language}-${type}.po`;
+
+            const promise = access(po)
+                .catch(() => exec(`msginit -o ${po} -i ${pot} -l ${locale} --no-translator`))
+            promises.push(promise);
+        }
+
+        return Promise.all(promises);
+    });
 }
 
 function po_create_marc_marc21 ()       { return po_create_type('marc-MARC21') }
@@ -284,14 +318,29 @@ function po_create_installer_marc21 ()  { return po_create_type('installer-MARC2
 function po_create_installer_unimarc () { return po_create_type('installer-UNIMARC') }
 
 function po_update_type (type) {
-    const msgmerge_opts = '--backup=off --quiet --sort-output --update';
-    const cmd = `msgmerge ${msgmerge_opts} <%= file.path %> misc/translator/Koha-${type}.pot`;
-    const languages = getLanguages();
-    const globs = languages.map(language => `misc/translator/po/${language}-${type}.po`);
+    const access = util.promisify(fs.access);
+    const exec = util.promisify(child_process.exec);
 
-    return src(globs)
-        .pipe(exec(cmd, { continueOnError: true }))
-        .pipe(exec.reporter({ err: false, stdout: false }))
+    const pot = `misc/translator/Koha-${type}.pot`;
+
+    // Generate .pot only if it doesn't exist or --force-extract is given
+    const extract = () => stream.finished(poTasks[type].extract());
+    const p =
+        args['generate-pot'] === 'always' ? extract() :
+        args['generate-pot'] === 'auto' ? access(pot).catch(extract) :
+        args['generate-pot'] === 'never' ? Promise.resolve(0) :
+        Promise.reject(new Error('Invalid value for option --generate-pot: ' + args['generate-pot']))
+
+    return p.then(function () {
+        const languages = getLanguages();
+        const promises = [];
+        for (const language of languages) {
+            const po = `misc/translator/po/${language}-${type}.po`;
+            promises.push(exec(`msgmerge --backup=off --no-wrap --quiet -F --update ${po} ${pot}`));
+        }
+
+        return Promise.all(promises);
+    });
 }
 
 function po_update_marc_marc21 ()       { return po_update_type('marc-MARC21') }
@@ -360,11 +409,11 @@ function getLanguages () {
         return [args.lang];
     }
 
-    const filenames = fs.readdirSync('misc/translator/po')
-        .filter(filename => filename.endsWith('.po'))
+    const filenames = fs.readdirSync('misc/translator/po/')
+        .filter(filename => filename.endsWith('-installer.po'))
         .filter(filename => !filename.startsWith('.'))
 
-    const re = new RegExp('-(' + poTypes.join('|') + ')\.po$');
+    const re = new RegExp('-installer.po');
     languages = filenames.map(filename => filename.replace(re, ''))
 
     return Array.from(new Set(languages));
@@ -379,6 +428,11 @@ exports.watch = function () {
     watch(STAFF_CSS_BASE + "/src/**/*.scss", series('staff_css'));
 };
 
-exports['po:create'] = parallel(...poTypes.map(type => series(poTasks[type].extract, poTasks[type].create)));
-exports['po:update'] = parallel(...poTypes.map(type => series(poTasks[type].extract, poTasks[type].update)));
+if (args['_'][0].match("po:") && !fs.existsSync('misc/translator/po')) {
+    console.log("misc/translator/po does not exist. You should clone koha-l10n there. See https://wiki.koha-community.org/wiki/Translation_files for more details.");
+    process.exit(1);
+}
+
+exports['po:create'] = parallel(...poTypes.map(type => poTasks[type].create));
+exports['po:update'] = parallel(...poTypes.map(type => poTasks[type].update));
 exports['po:extract'] = parallel(...poTypes.map(type => poTasks[type].extract));

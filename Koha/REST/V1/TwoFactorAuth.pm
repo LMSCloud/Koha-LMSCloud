@@ -99,8 +99,8 @@ sub registration {
             { patron => $patron, secret => $secret } );
 
         my $response = {
-            issuer   => $auth->issuer,
-            key_id   => $auth->key_id,
+            issuer   => Encode::decode_utf8($auth->issuer),
+            key_id   => Encode::decode_utf8($auth->key_id),
             qr_code  => $auth->qr_code,
             secret32 => $auth->secret32,
 
@@ -140,7 +140,7 @@ sub verification {
 
         my $verified = $auth->verify(
             $pin_code,
-            1,        # range
+            undef,    # range (default to 1 or mfa_range in koha-conf.xml)
             $secret32,
             undef,    # timestamp (defaults to now)
             30,       # interval (default 30)

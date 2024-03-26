@@ -556,7 +556,7 @@ sub current_holds {
 
 =head3 biblioitem
 
-my $field = $self->biblioitem()->itemtype
+my $field = $self->biblioitem
 
 Returns the related Koha::Biblioitem object for this Biblio object
 
@@ -564,10 +564,7 @@ Returns the related Koha::Biblioitem object for this Biblio object
 
 sub biblioitem {
     my ($self) = @_;
-
-    $self->{_biblioitem} ||= Koha::Biblioitems->find( { biblionumber => $self->biblionumber() } );
-
-    return $self->{_biblioitem};
+    return Koha::Biblioitems->find( { biblionumber => $self->biblionumber } );
 }
 
 =head3 suggestions
@@ -692,10 +689,8 @@ Returns the related Koha::Subscriptions object for this Biblio object
 
 sub subscriptions {
     my ($self) = @_;
-
-    $self->{_subscriptions} ||= Koha::Subscriptions->search( { biblionumber => $self->biblionumber } );
-
-    return $self->{_subscriptions};
+    my $rs = $self->_result->subscriptions;
+    return Koha::Subscriptions->_new_from_dbic($rs);
 }
 
 =head3 has_items_waiting_or_intransit

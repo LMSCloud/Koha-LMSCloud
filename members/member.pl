@@ -66,6 +66,7 @@ if ( $quicksearch and $searchmember && !$circsearch ) {
 }
 
 my $searchfieldstype = $input->param('searchfieldstype') || 'standard';
+my $searchtype       = $input->param('searchtype');
 
 $template->param( 'alphabet' => C4::Context->preference('alphabet') || join ' ', 'A' .. 'Z' );
 
@@ -76,7 +77,7 @@ $template->param(
     searchmember        => $searchmember,
     branchcode_filter   => scalar $input->param('branchcode_filter'),
     categorycode_filter => scalar $input->param('categorycode_filter'),
-    searchtype          => scalar $input->param('searchtype') || 'contain',
+    searchtype          => $searchtype,
     searchfieldstype    => $searchfieldstype,
     chargesfrom         => scalar $input->param('chargesfrom'),
     chargesto           => scalar $input->param('chargesto'),

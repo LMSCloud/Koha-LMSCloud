@@ -25,8 +25,11 @@ describe("Dialog operations", () => {
     beforeEach(() => {
         cy.login();
         cy.title().should("eq", "Koha staff interface");
-        cy.intercept("GET", "/cgi-bin/koha/svc/config/systempreferences/?pref=ERMModule", '{"value":"1"}');
-        cy.intercept("GET", "/cgi-bin/koha/svc/config/systempreferences/?pref=ERMProviders", '{"value":"local"}');
+        cy.intercept(
+            "GET",
+            "/api/v1/erm/config",
+            '{"settings":{"ERMModule":"1","ERMProviders":["local"]}}'
+        );
     });
 
     it("There are no ... defined", () => {
@@ -47,18 +50,31 @@ describe("Dialog operations", () => {
         // GET package returns 500
         cy.intercept("GET", "/api/v1/erm/eholdings/local/packages*", {
             statusCode: 500,
-            error: "Something went wrong",
+            body: {
+                error: "This is a specific error message",
+            },
         });
         cy.visit("/cgi-bin/koha/erm/erm.pl");
         cy.get("#navmenulist").contains("Packages").click();
         cy.get("main div[class='dialog alert']").contains(
-            /Something went wrong/
+            "Something went wrong: Error: This is a specific error message"
+        );
+
+        cy.intercept("GET", "/api/v1/erm/eholdings/local/packages*", {
+            statusCode: 500, // No body, in case of Internal Server Error, we get statusText
+        });
+        cy.visit("/cgi-bin/koha/erm/erm.pl");
+        cy.get("#navmenulist").contains("Packages").click();
+        cy.get("main div[class='dialog alert']").contains(
+            "Something went wrong: Error: Internal Server Error"
         );
 
         cy.intercept("GET", "/api/v1/erm/agreements*", []);
         cy.get("#navmenulist").contains("Agreements").click();
         // Info messages should be cleared when view is changed
-        cy.get("main div[class='dialog message']").contains("There are no agreements defined");
+        cy.get("main div[class='dialog message']").contains(
+            "There are no agreements defined"
+        );
         cy.get("main div[class='dialog message']").should("have.length", 1);
     });
 

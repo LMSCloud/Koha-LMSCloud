@@ -17,12 +17,9 @@ return {
         }
 
         $dbh->do(q{
-            SET @countOfFamilyCard = (SELECT count(*) FROM categories cat WHERE cat.family_card=1)
-        });
-        $dbh->do(q{
             UPDATE categories
             SET can_be_guarantee = 1
-            WHERE category_type = 'P' OR category_type = 'C' OR ( category_type = 'A' AND @countOfFamilyCard > 0 AND family_card = 0 )
+            WHERE category_type = 'P' OR category_type = 'C' OR ( category_type = 'A' AND (SELECT count(*) FROM categories cat WHERE cat.family_card=1) > 0 AND family_card = 0 )
         });
     },
 };

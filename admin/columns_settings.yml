@@ -118,7 +118,7 @@ modules:
         default_sort_order: 0
         columns:
             -
-              columnname: basket_number
+              columnname: order_line
             -
               columnname: order_information
             -
@@ -1620,6 +1620,8 @@ modules:
                 columnname: waiting_since
             -
                 columnname: date_hold_placed
+            -
+                columnname: date_cancellation_request
             -
                 columnname: expiration_date
             -

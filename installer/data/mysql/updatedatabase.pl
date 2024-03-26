@@ -41,6 +41,7 @@ use C4::Installer;
 use Koha::Database;
 use Koha;
 use Koha::DateUtils qw( dt_from_string output_pref );
+use Koha::Caches;
 
 use MARC::Record;
 use MARC::File::XML ( BinaryEncoding => 'utf8' );
@@ -69,8 +70,11 @@ $|=1; # flushes output
 
 local $dbh->{RaiseError} = 0;
 
-# Record the version we are coming from
+# Flush memcached before we begin
+Koha::Caches->get_instance('config')->flush_all;
+Koha::Caches->get_instance('sysprefs')->flush_all;
 
+# Record the version we are coming from
 my $original_version = C4::Context->preference("Version");
 
 # Deal with virtualshelves
@@ -26753,12 +26757,14 @@ unless ( $ENV{HTTP_HOST} ) { # Is that correct?
     my $files = get_db_entries;
     my $report = update( $files, { force => $force } );
 
+    my $error_code = 0;
     for my $s ( @{ $report->{success} } ) {
         say Encode::encode_utf8(join "\n", @{$s->{output}});
     }
     for my $e ( @{ $report->{error} } ) {
         say Encode::encode_utf8(join "\n", @{$e->{output}});
         say Encode::encode_utf8("ERROR - " . $e->{error});
+        $error_code = 1;
     }
 
     my $atomic_update_files = get_atomic_updates;
@@ -26769,9 +26775,9 @@ unless ( $ENV{HTTP_HOST} ) { # Is that correct?
     for my $e ( @{ $report->{error} } ) {
         say Encode::encode_utf8(join "\n", @{$e->{output}});
         say Encode::encode_utf8("ERROR - " . $e->{error});
+        $error_code = 1;
     }
-
-
+    exit $error_code;
 }
 
 exit;

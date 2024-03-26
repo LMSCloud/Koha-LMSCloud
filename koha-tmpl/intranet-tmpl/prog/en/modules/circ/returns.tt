@@ -371,7 +371,7 @@
                                             <p class="problem ret_foreverdebarred"><strong>Reminder: </strong>Patron has an indefinite restriction.</p>
                                         [% END %]
                                         [% IF errmsgloo.data_corrupted %]
-                                            <p class="problem ret_datacorrupt">The item has not been checked in due to a configuration issue in your system. You must ask an administrator to take a look at the <a href="/cgi-bin/koha/about.pl#sysinfo">about page</a> and correct all errors shown on the "System information" tab</p>
+                                            <p class="problem ret_datacorrupt">The item has not been checked in due to a configuration issue in your system. You must ask an administrator to take a look at the <a href="/cgi-bin/koha/about.pl#sysinfo_panel">about page</a> and correct all errors shown on the "System information" tab</p>
                                         [% END %]
                                     [% END # /FOREACH errmsgloo %]
                                 </div> <!-- /.dialog.dialog-alert -->
@@ -413,6 +413,8 @@
                                         <div class="modal-footer">
                                             <form method="post" action="/cgi-bin/koha/circ/returns.pl" autocomplete="off">
                                                 <input type="hidden" name="barcode" value="[% item.barcode | html %]" />
+                                                <input type="hidden" name="return_date_override" value="[% return_date_override | html %]" />
+                                                <input type="hidden" name="return_date_override_remember" value="[% return_date_override_remember | html %]" />
                                                 <input type="hidden" name="multiple_confirm" value="1" />
                                                 <input type="hidden" name="dropboxmode" value="[% dropboxmode | html %]" />
                                                 [% FOREACH inputloo IN inputloop %]
@@ -1079,12 +1081,10 @@
                                 <div class="row">
                                     <div class="col-sm-6">
                                             <div class="form-control-group">
-                                                [% IF ( exemptfine ) %]
-                                                    <input name="barcode" id="barcode" size="14" placeholder="Enter item barcode" class="focus input-warning" type="text" />
-                                                [% ELSIF ( dropboxmode ) %]
-                                                    <input name="barcode" id="barcode" size="14" placeholder="Enter item barcode" class="barcode focus input-warning" />
+                                                [% IF ( exemptfine || dropboxmode ) %]
+                                                    <input name="barcode" id="barcode" size="14" placeholder="Enter item barcode" class="barcode focus input-warning" type="text" />
                                                 [% ELSE %]
-                                                    <input name="barcode" id="barcode" size="14" placeholder="Enter item barcode" class="barcode focus" />
+                                                    <input name="barcode" id="barcode" size="14" placeholder="Enter item barcode" class="barcode focus" type="text" />
                                                 [% END %]
 
                                                 <div id="show-circ-settings">
@@ -1364,6 +1364,7 @@
     [% INCLUDE 'columns_settings.inc' %]
     [% INCLUDE 'calendar.inc' %]
     [% Asset.js("js/pages/circulation.js") | $raw %]
+    [% Asset.js("js/modal_printer.js") | $raw %]
     [% IF ( ReturnClaims ) %]
         <script>
             /* Set a variable needed by resolve_claim_modal.js */
@@ -1601,22 +1602,6 @@
                 "order": [[ 1, 'asc' ], [ 0, 'asc' ]]
             }));
 
-            // print modals
-            $('.modal.printable').on('shown.bs.modal', function() {
-                $('.modal-dialog', this).addClass('focused');
-                $('body').addClass('modalprinter');
-
-                if ($(this).hasClass('autoprint')) {
-                    window.print();
-                }
-            }).on('hidden.bs.modal', function() {
-                $('.modal-dialog', this).removeClass('focused');
-                $('body').removeClass('modalprinter');
-            });
-
-            $('.printModal').click(function() {
-                window.print();
-            });
             [% IF ( !(Koha.Preference('TransfersBlockCirc')) && Koha.Preference('AutomaticConfirmTransfer') ) %]
                 $("#wrong-transfer-modal").on('hidden.bs.modal',function(){
                     $("#wrongtransferform").submit();

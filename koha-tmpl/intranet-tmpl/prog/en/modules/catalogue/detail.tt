@@ -384,7 +384,8 @@
         </thead>
         <tbody>
             [% FOREACH item IN items %]
-                <tr id="item_[% item.itemnumber | html %]" data-itemnumber="[% item.itemnumber | html %]" data-duedate="[% item.datedue | html %]">
+                [% SET date_due = item.object.checkout.date_due %]
+                <tr id="item_[% item.itemnumber | html %]" data-itemnumber="[% item.itemnumber | html %]" data-duedate="[% date_due | html %]">
                 [% IF (StaffDetailItemSelection) %]
                     <td style="text-align:center;vertical-align:middle">
                         <input type="checkbox" value="[% item.itemnumber | html %]" name="itemnumber" />
@@ -419,15 +420,15 @@
                     <td class="homebranch">
                         <span class="homebranchdesc">[% Branches.GetName(item.homebranch) | html %]</span>
                         <span class="shelvingloc">
-<!--
-If permanent location is defined, show description or code and display current location in parentheses. If not, display current location.
-Note that permanent location is a code, and location may be an authval.
--->
+                        [%# If permanent location is defined, show description or code and             %]
+                        [%# display current location in parentheses. If not, display current location. %]
+                        [%# Note that permanent location is a code, and location may be an authval.    %]
+                            [% SET item_location = AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => item.location ) %]
                             [% IF item.permanent_location %]
                                 [% SET permloc_authval = AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => item.permanent_location ) %]
                                 [% permloc_authval | html %]
-                                [% IF item.location AND item.location != permloc_authval AND item.location != item.permanent_location %]
-                                    ([% item.location | html %])
+                                [% IF item_location AND item_location != permloc_authval AND item.location != item.permanent_location %]
+                                    ([% item_location | html %])
                                 [% END %]
                             [% ELSE %]
                                 [% item.location | html %]
@@ -479,7 +480,7 @@ Note that permanent location is a code, and location may be an authval.
                                   [% END %]
                                   [% INCLUDE 'patron-title.inc' patron=item.checkout.patron hide_patron_infos_if_needed=1 %]
                                 [% END %]
-                                : due [% item.checkout.date_due | $KohaDates as_due_date => 1 %]
+                                : due [% date_due | $KohaDates as_due_date => 1 %]
                             </span>
                         [% ELSIF ( item.transfer ) %]
                             [% IF (item.transfer.datesent) %]
@@ -678,9 +679,9 @@ Note that permanent location is a code, and location may be an authval.
         <table class="items-group-table" id="items-group-table">
             <thead>
                 <tr>
-                    <td>Display order</td>
-                    <td>Description</td>
-                    <td>&nbsp;</td>
+                    <th>Display order</th>
+                    <th>Description</th>
+                    <th class="NoSort">&nbsp;</th>
                 </tr>
             </thead>
         </table>
@@ -830,7 +831,11 @@ Note that permanent location is a code, and location may be an authval.
             [% END %]
             </table>
             [% END %]
-            <a href="/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=[% subscription.subscriptionid | uri %]">Subscription details</a>
+            [% IF ( CAN_user_serials ) %]
+                <p>
+                    <a class="btn btn-link" href="/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=[% subscription.subscriptionid | uri %]"><i class="fa fa-list" aria-hidden="true"></i> Subscription details</a>
+                </p>
+            [% END %]
     [% END %]
 </div>
 </div>
@@ -904,7 +909,7 @@ Note that permanent location is a code, and location may be an authval.
               [% END %]
             </td>
             <td>[% order.quantity | html %]</td>
-            <td>[% IF ( order.unitprice_tax_included > 0 ) %][% order.unitprice_tax_included | $Price %][% ELSE %][% order.ecost_tax_included | $Price %][% END %]
+            <td>[% IF ( order.orderstatus == "complete" ) %][% order.unitprice_tax_included | $Price %][% ELSE %][% order.ecost_tax_included | $Price %][% END %]
             <td>[% order.order_internalnote | html %]</td>
             <td>
                 [% IF order.subscriptionid %]
@@ -1673,6 +1678,7 @@ Note that permanent location is a code, and location may be an authval.
                 // Disable management if there's a duedate
                 if(duedate) {
                     bundle_toolbar.children('.btn').addClass("disabled");
+                    bundle_toolbar.attr("title", _("This bundle is checked out, it cannot be modified"));
                 }
 
                 // This is the table we'll convert into a DataTable
@@ -1752,7 +1758,7 @@ Note that permanent location is a code, and location may be an authval.
                             "data": function( row, type, val, meta ) {
                                 var result;
                                 if (duedate) {
-                                    result = '<button class="btn btn-default btn-xs remove disabled" role="button" data-itemnumber="'+row.item_id+'"><i class="fa fa-minus" aria-hidden="true"></i> '+_("Remove")+'</button>\n';
+                                    result = '<button class="btn btn-default btn-xs remove disabled" role="button" data-itemnumber="'+row.item_id+'" title="%s"><i class="fa fa-minus" aria-hidden="true"></i> %s</button>\n'.format(_("This bundle is checked out, it cannot be modified"), _("Remove"));
                                 } else {
                                     result = '<button class="btn btn-default btn-xs remove" role="button" data-itemnumber="'+row.item_id+'"><i class="fa fa-minus" aria-hidden="true"></i> '+_("Remove")+'</button>\n';
                                 }
@@ -1816,10 +1822,12 @@ Note that permanent location is a code, and location may be an authval.
                           var response = data.responseJSON;
                           if ( response.error_code === 'already_bundled' ) {
                               $('#addResult').replaceWith('<div id="addResult" class="alert alert-warning">'+_("Warning: Item '%s' already attached").format(barcode)+'</div>');
+                          } else if (response.error_code === 'bundle_checkout_out') {
+                              $('#addResult').replaceWith('<div id="addResult" class="alert alert-danger">'+_("Failure: Bundle is currently checked out")+'</div>');
                           } else if (response.error_code === 'checked_out') {
                               const button = $('<button type="button">')
                                 .addClass('btn btn-xs')
-                                .text(__("Check in and add to bundle"))
+                                .text(_("Check in and add to bundle"))
                                 .on('click', function () {
                                     addToBundle(url, { external_id: barcode, force_checkin: true });
                                 });
@@ -1917,7 +1925,9 @@ Note that permanent location is a code, and location may be an authval.
                             var barcode = $('#rm_external_id').val();
                             if ( data.status === 409 ) {
                                 var response = data.responseJSON;
-                                if ( response.key === "PRIMARY" ) {
+                                if (response.error_code === 'bundle_checkout_out') {
+                                    $('#removeResult').replaceWith('<div id="removeResult" class="alert alert-danger">'+_("Failure: Bundle is currently checked out")+'</div>');
+                                } else if ( response.key === "PRIMARY" ) {
                                     $('#removeResult').replaceWith('<div id="removeResult" class="alert alert-warning">'+_("Warning: Item '%s' already attached").format(barcode)+'</div>');
                                 } else {
                                     $('#removeResult').replaceWith('<div id="removeResult" class="alert alert-danger">'+_("Failure: Item '%s' belongs to another bundle").format(barcode)+'</div>');

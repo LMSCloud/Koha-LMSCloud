@@ -461,7 +461,7 @@
                                             [% IF ( Koha.Preference('EKZCover') || AmazonCoverImages  || LocalCoverImages || IntranetCoce || ( SyndeticsCovers ) || (Koha.Preference('CustomCoverImages') && Koha.Preference('CustomCoverImagesURL')) ) %]
     <td class="bookcoverimg">
         <div id="cover-slides-[% SEARCH_RESULT.biblionumber | html %]" class="cover-slides" data-biblionumber="[% SEARCH_RESULT.biblionumber | html %]">
-            [% IF ( LocalCoverImages ) %][% SEARCH_RESULT.localimage | html %]
+            [% IF ( LocalCoverImages ) %]
                 <div id="local-coverimg-[% SEARCH_RESULT.biblionumber | html %]" class="cover-image local-coverimg">
                     <a href="[% PROCESS biblio_a_href biblionumber => SEARCH_RESULT.biblionumber %]">
                         <img src="/cgi-bin/koha/catalogue/image.pl?thumbnail=1&amp;biblionumber=[% SEARCH_RESULT.biblionumber | uri %]" alt="Local cover image" />
@@ -784,6 +784,8 @@
         </div> <!-- /.col-sm-2.col-sm-pull-10 -->
      </div> <!-- /.row -->
 
+<input type="hidden" id="query_json" value="[% query_json | html %]">
+<input type="hidden" id="limit_json" value="[% limit_json | html %]">
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/browser.js") | $raw %]
     [% Asset.js("lib/hc-sticky.js") | $raw %]
@@ -827,8 +829,8 @@
             query_desc: "[% To.json( query_desc ) | html %]",
             query_cgi: "[% query_cgi | html %]",
             limit_cgi: "[% limit_cgi | html %]",
-            query_json: [% query_json | $raw %],
-            limit_json: [% limit_json | $raw %],
+            query_json: JSON.parse($('#query_json').val()),
+            limit_json: JSON.parse($('#limit_json').val()),
             sort_by: "[% sort_by | html %]",
             gotoPage: "[% gotoPage | html %]",
             gotoNumber: "[% gotoNumber | html %]",

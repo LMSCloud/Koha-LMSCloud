@@ -91,19 +91,21 @@
                                         [% ELSE %]
                                             <td>
                                         [% END %]
-                                                Version:
+                                                <span>Version:</span>
                                                 <span>[% elasticsearch_status.version | html %]</span>
                                                 |
-                                                Nodes:
+                                                <span>Nodes:</span>
                                                 <span>[% elasticsearch_status.nodes.join(' / ') | html %]</span>
                                                 |
-                                                Status:
+                                                <span>Status:</span>
                                             [% IF elasticsearch_status.running %]
                                                 <span>running</span>
                                                 |
-                                                Indices:
+                                                <span>Indices:</span>
                                                 [% FOREACH index IN elasticsearch_status.indexes %]
-                                                    [% index.index_name | html %] (count: <emph>[% index.index_count | html %]</emph>)[% UNLESS loop.last %], [% END %]
+                                                    [% index.index_name | html %]
+                                                    (<span>count:</span> <em>[% index.index_count | html %]</em>)
+                                                    [% UNLESS loop.last %], [% END %]
                                                 [% END %]
                                             [% ELSE %]
                                                 <span class="bg-warning">not running</span>
@@ -119,19 +121,19 @@
                                 [% ELSE %]
                                     <td>
                                 [% END %]
-                                        Servers:
+                                        <span>Servers:</span>
                                         [% IF memcached_servers %]
                                             <span>[% memcached_servers | html %]</span>
                                         [% ELSE %]
                                             <span>undefined</span>
                                         [% END %] |
-                                        Namespace:
+                                        <span>Namespace:</span>
                                         [% IF memcached_namespace %]
                                             <span>[% memcached_namespace | html %]</span>
                                         [% ELSE %]
                                             <span>undefined</span>
                                         [% END %] |
-                                        Status:
+                                        <span>Status:</span>
                                         [% IF memcached_servers %]
                                             [% IF memcached_running and is_memcached_still_active %]
                                                 <span class="bg-success">running</span>.
@@ -144,19 +146,19 @@
                                         [% ELSE %]
                                             <span>unknown</span>
                                         [% END %] |
-                                        Config read from:
+                                        <span>Config read from:</span>
                                         [% SWITCH where_is_memcached_config %]
                                             [% CASE 'config_only' %]
                                                 <span class="bg-success">koha-conf.xml</span>
                                             [% CASE 'ENV_only' %]
-                                                <span class="bg-warning">ENV</span> Note that the right place to define the memcached config is in your $KOHA_CONF file
+                                                <span class="bg-warning">ENV</span> <span>Note that the right place to define the memcached config is in your $KOHA_CONF file</span>
                                             [% CASE 'both' %]
-                                                <span class="bg-warning">ENV and koha-conf.xml</span> Note that the right place to define the memcached config is in your $KOHA_CONF file. To avoid any misunderstanding you should not export the memcached config from ENV.
+                                                <span class="bg-warning">ENV and koha-conf.xml</span> <span>Note that the right place to define the memcached config is in your $KOHA_CONF file. To avoid any misunderstanding you should not export the memcached config from ENV.</span>
                                             [% CASE # nowhere %]
-                                                <span class="bg-warning">Nowhere</span> Note that the right place to define the memcached config is in your $KOHA_CONF file. Currently you do not have a valid memcached configuration defined.
+                                                <span class="bg-warning">Nowhere</span> <span>Note that the right place to define the memcached config is in your $KOHA_CONF file. Currently you do not have a valid memcached configuration defined.</span>
                                         [% END %]
                                     [% IF effective_caching_method != 'Cache::Memcached::Fast::Safe' %]
-                                        | Effective caching method: [% effective_caching_method | html %]
+                                        | <span>Effective caching method:</span> [% effective_caching_method | html %]
                                     [% END %]
                                 </td>
                             </tr>
@@ -190,18 +192,19 @@
                                 [% timezone_config_class = (time_zone.config_invalid) ? 'bg-warning' : '' %]
                                 [% timezone_env_class    = (time_zone.env_invalid)    ? 'bg-warning' : '' %]
                                 <th scope="row">Time zone: </th>
-                                <td>Used: <span>[% time_zone.actual | html %]</span>
+                                <td>
+                                    <span>Used:</span> <span>[% time_zone.actual | html %]</span>
                                     [% IF time_zone.actual_bad_tz_fallback %]
                                         <span>(This is a fallback value due to a bad configuration)</span>
                                     [% END %]
                                     |
-                                    Config:
+                                    <span>Config:</span>
                                     [% IF time_zone.config != '' %]
                                         <span class="[% timezone_config_class | html %]">[% time_zone.config | html %]</span>
                                     [% ELSE %]
                                         <span>Undefined</span>
                                     [% END %] |
-                                    Environment (TZ):
+                                    <span>Environment (TZ):</span>
                                     [% IF time_zone.environment != '' %]
                                         <span class="[% timezone_env_class | html %]">[% time_zone.environment | html %]</span>
                                     [% ELSE %]
@@ -262,12 +265,11 @@
                         </table>
                     [% END # /WRAPPER tab_item perl %]
 
-                    [% IF Asset.css("css/staff-global.css") == ""
-                       || Asset.js("js/vue/dist/erm.js") == "" %]
+                    [% IF Asset.css("css/staff-global.css") == "" || Asset.js("js/vue/dist/erm.js") == "" %]
                         [% SET warnMissingCompiledFiles = 1 %]
                     [% END %]
                     [% WRAPPER tab_panel tabname= "sysinfo" %]
-                        [% IF warnPrefRequireChoosingExistingAuthority || warnPrefEasyAnalyticalRecords || warnPrefAnonymousPatronOPACPrivacy || warnPrefAnonymousPatronAnonSuggestions || warnPrefAnonymousPatronOPACPrivacy_PatronDoesNotExist || warnPrefAnonymousPatronAnonSuggestions_PatronDoesNotExist || warnPrefKohaAdminEmailAddress || warnPrefOpacHiddenItems || invalid_yesno.count || warnNoActiveCurrency || warnIsRootUser || xml_config_warnings.size || AutoSelfCheckPatronDoesNotHaveSelfCheckPerm || AutoSelfCheckPatronHasTooManyPerm || warnStatisticsFieldsError || warnNoTemplateCaching || warnILLConfiguration || has_ai_issues || oauth2_missing_deps || bad_yaml_prefs || warnRelationships || log4perl_errors || config_bcrypt_settings_no_set || warnHiddenBiblionumbers.size || warnConnectBroker || elasticsearch_has_missing || warnMissingCompiledFiles || warnDbRowFormat %]
+                        [% IF warnPrefRequireChoosingExistingAuthority || warnPrefEasyAnalyticalRecords || warnPrefAnonymousPatronOPACPrivacy || warnPrefAnonymousPatronAnonSuggestions || warnPrefAnonymousPatronOPACPrivacy_PatronDoesNotExist || warnPrefAnonymousPatronAnonSuggestions_PatronDoesNotExist || warnPrefKohaAdminEmailAddress || warnPrefOpacHiddenItems || invalid_yesno.count || warnNoActiveCurrency || warnIsRootUser || xml_config_warnings.size || warnI18nMissing || AutoSelfCheckPatronDoesNotHaveSelfCheckPerm || AutoSelfCheckPatronHasTooManyPerm || warnStatisticsFieldsError || warnNoTemplateCaching || warnILLConfiguration || has_ai_issues || oauth2_missing_deps || bad_yaml_prefs || warnRelationships || log4perl_errors || config_bcrypt_settings_no_set || warnHiddenBiblionumbers.size || warnConnectBroker || elasticsearch_has_missing || warnMissingCompiledFiles || warnDbRowFormat %]
                             [% IF ( warnDbRowFormat ) %]
                                 <h2>Database row format incorrect</h2>
                                 <p>Database tables with a row format other than 'DYNAMIC': [% warnDbRowFormat | html %]</p>
@@ -315,6 +317,16 @@
                                     <p>
                                         [% FOR b IN ai_biblios %]
                                             [% b.biblionumber | html %]
+                                            [% UNLESS loop.last %], [% END %]
+                                        [% END %]
+                                    </p>
+                                [% END %]
+                                [% IF ai_biblioitems %]
+                                    <h4>Bibliographic records</h4>
+                                    <p>The following IDs exist in both tables [% "biblio" | $HtmlTags tag="strong" %] and [% "deletedbiblioitems" | $HtmlTags tag="strong" %]:</p>
+                                    <p>
+                                        [% FOR b IN ai_biblioitems %]
+                                            [% b.biblioitemnumber | html %]
                                             [% UNLESS loop.last %], [% END %]
                                         [% END %]
                                     </p>
@@ -500,6 +512,14 @@
                                             </td>
                                         </tr>
                                     [% END %]
+                                    [% IF warnI18nMissing %]
+                                        <tr>
+                                            <th scope="row"><strong>Warning</strong> </th>
+                                            <td>
+                                                The PO directory has not been found. See <a href="https://wiki.koha-community.org/wiki/Translation_files">the dedicated wiki page</a> for more information.
+                                            </td>
+                                        </tr>
+                                    [% END %]
                                     [% IF warnILLConfiguration %]
                                         [% IF no_ill_backends %]
                                             <tr>
@@ -564,7 +584,7 @@
                                             <th scope="row"><strong>Warning</strong> </th>
                                             <td>
                                                 [% FOR w IN warnHiddenBiblionumbers %]
-                                                    Biblio framework "[% w.frameworkcode | html %]" has the biblionumber field hidden at the interface [% w.interface | html %]<br/>
+                                                    <span>Bibliographic framework "[% w.frameworkcode | html %]" has the biblionumber field hidden at the interface [% w.interface | html %]</span><br/>
                                                 [% END %]
                                             </td>
                                         </tr>
@@ -726,7 +746,7 @@
                                 <a href="http://www.emn.fr">EMN (Ecole des Mines de Nantes)</a>, France (Suggestions, Stats wizards and improved LDAP sponsorship)
                             </li>
                             <li>
-                                <a href="http://www.mines-paristech.fr">Mines Paristech (previously Ecole Nationale Supérieure des Mines de Paris)</a>, France (biblio frameworks, MARC authorities, OPAC basket, Serials sponsorship)
+                                <a href="http://www.mines-paristech.fr">Mines Paristech (previously Ecole Nationale Supérieure des Mines de Paris)</a>, France (bibliographic frameworks, MARC authorities, OPAC basket, Serials sponsorship)
                             </li>
                             <li>
                                 <a href="http://www.mediathequeouestprovence.fr/">SAN-Ouest Provence</a>, France (Koha 3.0 enhancements to patrons and holds modules)
@@ -1042,6 +1062,11 @@
                             The <a href="http://leafletjs.com">Leaflet</a> JavaScript library by Vladimir Agafonkinis licensed under the <a href="https://github.com/Leaflet/Leaflet/blob/master/LICENSE">BSD License</a>.
                         </p>
 
+                        <h2>jQuery Validation Plugin</h2>
+                        <p>
+                            <a href="https://jqueryvalidation.org/">jQuery Validation Plugin v1.20.0</a>: <a href="https://github.com/jquery-validation/jquery-validation/blob/1.20.0/LICENSE.md">MIT License</a>
+                        </p>
+
                         <h2>jquery.emojiarea.js</h2>
                         <p>
                             The <a href="https://github.com/diy/jquery-emojiarea">Emojiarea plug-in for jQuery</a> by DIY Co is licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0">the Apache License, Version 2.0</a>.
@@ -1210,9 +1235,7 @@
 [% MACRO jsinclude BLOCK %]
     <script>
         $(document).ready(function(){
-            /* Bootstrap doesn't support automatic targeting of tabs by location hash */
-            var activeTab = $("[href='" + location.hash + "']");
-            activeTab && activeTab.tab('show');
+            selectBsTabByHash( "abouttabs" );
         });
     </script>
 [% END %]

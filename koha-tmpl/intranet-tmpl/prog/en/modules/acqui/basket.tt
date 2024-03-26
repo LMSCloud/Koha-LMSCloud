@@ -265,9 +265,9 @@
                                                         [% IF ( ediaccount ) %]
                                                             [%- BLOCK edi_status -%]
                                                                 [%- SWITCH edi_order.status -%]
-                                                                    [%- CASE 'Pending'   -%]<span>Pending</span>
-                                                                    [%- CASE 'Sent'      -%]<span>Sent</span>
-                                                                    [%- CASE 'Processed' -%]<span>Processed</span>
+                                                                    [%- CASE 'pending'   -%]<span>Pending</span>
+                                                                    [%- CASE 'sent'      -%]<span>Sent</span>
+                                                                    [%- CASE 'processed' -%]<span>Processed</span>
                                                                 [%- END -%]
                                                             [%- END -%]
                                                             [% IF ( edi_order ) %]
@@ -654,8 +654,8 @@
                                                         [% IF ( active ) %]
                                                             [% UNLESS ( closedate ) %]
                                                                 <td>
-                                                                    <a href="neworderempty.pl?ordernumber=[% books_loo.ordernumber | uri %]&amp;booksellerid=[% booksellerid | uri %]&amp;basketno=[% basketno | uri %]">Modify</a>
                                                                     [% UNLESS (books_loo.order_received) %]
+                                                                        <a href="neworderempty.pl?ordernumber=[% books_loo.ordernumber | uri %]&amp;booksellerid=[% booksellerid | uri %]&amp;basketno=[% basketno | uri %]">Modify</a>
                                                                         <br />
                                                                         <a href="#" class="transfer_order" data-ordernumber="[% books_loo.ordernumber | html %]">Transfer</a>
                                                                     [% END %]
@@ -978,7 +978,8 @@
                 e.preventDefault();
                 var ordernumber = $(this).data("ordernumber");
                 var note_type = $(this).data("note_type");
-                var modalTitle = $(this).attr("title") + " (order number " + ordernumber + ")";
+                var order_number_text = _("(order number %s)").format(ordernumber);
+                var modalTitle = $(this).attr("title") + " " + order_number_text;
                 var note_text = $( "#" + note_type + "-note-" + ordernumber ).html();
                 $("#noteEditor .modal-title").text(modalTitle);
                 $("#ordernumber").val( ordernumber );
@@ -1107,7 +1108,8 @@
             $(".edit_delivery_date").on("click", function(e) {
                 e.preventDefault();
                 var ordernumber = $(this).data("ordernumber");
-                var modalTitle = $(this).attr("title") + " (order number " + ordernumber + ")";
+                var order_number_text = _("(order number %s)").format(ordernumber);
+                var modalTitle = $(this).attr("title") + " " + order_number_text;
                 var delivery_date = $( "#delivery_date_" + ordernumber ).data("delivery_date");
                 const estimated_delivery_date = document.querySelector("#estimated_delivery_date")._flatpickr;
                 estimated_delivery_date.setDate( delivery_date );

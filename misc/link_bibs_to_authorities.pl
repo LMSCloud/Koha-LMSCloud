@@ -1,7 +1,21 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
+use Modern::Perl;
 
 use Koha::Script;
 use C4::Context;
@@ -37,7 +51,7 @@ my $auth_limit;
 my $bib_limit;
 my $commit = 100;
 my $tagtolink;
-my $allowrelink = C4::Context->preference("CatalogModuleRelink") || '';
+my $allowrelink = C4::Context->preference("LinkerRelink") // '';
 
 my $result = GetOptions(
     'v|verbose'      => \$verbose,
@@ -201,18 +215,28 @@ sub process_bib {
     my $tagtolink    = $args->{tagtolink};
     my $allowrelink = $args->{allowrelink};
     my $biblio = Koha::Biblios->find($biblionumber);
-    my $record = $biblio->metadata->record;
+    my $record;
+    eval { $record = $biblio->metadata->record; };
     unless ( defined $record ) {
-        print
-"\nCould not retrieve bib $biblionumber from the database - record is corrupt.\n";
+        warn "Could not retrieve bib $biblionumber from the database - record is corrupt.";
         $num_bad_bibs++;
         return;
     }
 
     my $frameworkcode = GetFrameworkCode($biblionumber);
 
-    my ( $headings_changed, $results ) =
-      LinkBibHeadingsToAuthorities( $linker, $record, $frameworkcode, $allowrelink, $tagtolink );
+    my ( $headings_changed, $results );
+
+    eval {
+        ( $headings_changed, $results ) =
+            LinkBibHeadingsToAuthorities( $linker, $record, $frameworkcode, $allowrelink, $tagtolink );
+    };
+    if ($@) {
+        warn "Error while searching for authorities for biblionumber $biblionumber at " . localtime(time);
+        $num_bad_bibs++;
+        return;
+    }
+
     foreach my $key ( keys %{ $results->{'unlinked'} } ) {
         $unlinked_headings{$key} += $results->{'unlinked'}->{$key};
     }

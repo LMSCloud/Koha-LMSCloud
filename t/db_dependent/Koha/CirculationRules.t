@@ -153,7 +153,7 @@ subtest 'get_effective_issuing_rule' => sub {
 };
 
 subtest 'set_rule' => sub {
-    plan tests => 3;
+    plan tests => 4;
 
     $schema->storage->txn_begin;
 
@@ -205,7 +205,7 @@ subtest 'set_rule' => sub {
                 branchcode => $branchcode,
                 categorycode => $categorycode,
                 itemtype => $itemtype,
-                rule_name => 'fine',
+                rule_name => 'article_requests',
                 rule_value => '',
             } );
         }, 'setting fine with branch/category/itemtype succeeds' );
@@ -298,6 +298,30 @@ subtest 'set_rule' => sub {
                 rule_value => '',
             } );
         }, qr/categorycode/, 'setting holdallowed with categorycode fails' );
+    };
+
+    subtest 'Call with badly formatted params' => sub {
+        plan tests => 4;
+
+        Koha::CirculationRules->delete;
+
+        foreach my $monetary_rule ( ( 'article_request_fee', 'fine', 'overduefinescap', 'recall_overdue_fine' ) ) {
+            throws_ok(
+                sub {
+                    Koha::CirculationRules->set_rule(
+                        {
+                            categorycode => '*',
+                            branchcode   => '*',
+                            ( $monetary_rule ne 'article_request_fee' ? ( itemtype => '*' ) : () ),
+                            rule_name  => $monetary_rule,
+                            rule_value => '10,00',
+                        }
+                    );
+                },
+                qr/decimal/,
+                "setting $monetary_rule fails when passed value is not decimal"
+            );
+        }
     };
 
     $schema->storage->txn_rollback;
@@ -417,7 +441,7 @@ subtest 'clone' => sub {
 };
 
 subtest 'set_rule + get_effective_rule' => sub {
-    plan tests => 9;
+    plan tests => 10;
 
     $schema->storage->txn_begin;
 
@@ -510,6 +534,30 @@ subtest 'set_rule + get_effective_rule' => sub {
         }
     };
 
+    subtest 'test rules that can be blank' => sub {
+        plan tests => 1;
+        foreach my $blank_rule ( ('overduefinescap') ) {
+            Koha::CirculationRules->set_rule(
+                {
+                    branchcode   => $branchcode,
+                    categorycode => '*',
+                    itemtype     => '*',
+                    rule_name    => $blank_rule,
+                    rule_value   => '',
+                }
+            );
+
+            $rule = Koha::CirculationRules->get_effective_rule(
+                {
+                    branchcode   => $branchcode,
+                    categorycode => undef,
+                    itemtype     => undef,
+                    rule_name    => $blank_rule,
+                }
+            );
+            is( $rule->rule_value, '', "$blank_rule allowed to be set to blank" );
+        }
+    };
 
     subtest 'test rule matching with different combinations of rule scopes' => sub {
         my ( $tests, $order ) = _prepare_tests_for_rule_scope_combinations(
@@ -551,9 +599,9 @@ subtest 'set_rule + get_effective_rule' => sub {
     };
 
     my $our_branch_rules = Koha::CirculationRules->search({branchcode => $branchcode});
-    is( $our_branch_rules->count, 4, "We added 8 rules");
+    is( $our_branch_rules->count, 5, "We added 9 rules");
     $our_branch_rules->delete;
-    is( $our_branch_rules->count, 0, "We deleted 8 rules");
+    is( $our_branch_rules->count, 0, "We deleted 9 rules");
 
     $schema->storage->txn_rollback;
 };

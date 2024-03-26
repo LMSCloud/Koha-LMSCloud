@@ -38,6 +38,7 @@ resized, maintaining aspect ratio.
 =cut
 
 use Modern::Perl;
+use Cwd;
 
 use File::Temp;
 use CGI qw ( -utf8 );
@@ -158,11 +159,12 @@ if ($fileID) {
             }
             foreach my $dir (@directories) {
                 my $file;
-                if ( -e "$dir/idlink.txt" ) {
-                    $file = "$dir/idlink.txt";
-                }
-                elsif ( -e "$dir/datalink.txt" ) {
-                    $file = "$dir/datalink.txt";
+                my $idlink   = "$dir/idlink.txt";
+                my $datalink = "$dir/datalink.txt";
+                if ( -e $idlink && !-l $idlink ) {
+                    $file = $idlink;
+                } elsif ( -e $datalink && !-l $datalink ) {
+                    $file = $datalink;
                 }
                 else {
                     next;
@@ -175,9 +177,9 @@ if ($fileID) {
                           :                     "";
 
                         unless ( $delim eq "," || $delim eq "\t" ) {
-                            warn
-"Unrecognized or missing field delimeter. Please verify that you are using either a ',' or a 'tab'";
+                            warn "Unrecognized or missing field delimeter. Please verify that you are using either a ',' or a 'tab'";
                             $error = 'DELERR';
+                            next;
                         }
                         else {
                             ( $biblionumber, $filename ) = split $delim, $line, 2;
@@ -186,10 +188,11 @@ if ($fileID) {
                             $filename =~ s/[\"\r\n]//g;
                             $filename =~ s/^\s+//;
                             $filename =~ s/\s+$//;
-                            if (C4::Context->preference("CataloguingLog")) {
-                                logaction('CATALOGUING', 'MODIFY', $biblionumber, "biblio cover image: $filename");
+                            my $full_filename = Cwd::abs_path("$dir/$filename"); #Resolve any relative filepath references
+                            my $srcimage;
+                            if ( $full_filename =~ /^\Q$dir\E/ ){
+                                $srcimage = GD::Image->new($full_filename);
                             }
-                            my $srcimage = GD::Image->new("$dir/$filename");
                             my $biblio;
                             my $item;
                             if ( defined $srcimage ) {
@@ -238,6 +241,11 @@ if ($fileID) {
                                 $error = 'OPNIMG';
                             }
                             undef $srcimage;
+
+                            if ( !$error && C4::Context->preference("CataloguingLog") ) {
+                                logaction( 'CATALOGUING', 'MODIFY', $biblionumber, "biblio cover image: $filename" );
+                            }
+
                         }
                     }
                     close($fh);

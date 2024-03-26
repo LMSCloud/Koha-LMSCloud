@@ -39,7 +39,7 @@
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
        [% END %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
-            Circulation and fine rules
+            <span>Circulation and fine rules</span>
        [% END %]
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
@@ -209,7 +209,7 @@
                                                     [% ELSE %]
                                                         0
                                                     [% END %]</td>
-                                                <td>
+                                                <td data-code="[% c | html %]">
                                                     [% IF c == undef %]
                                                         <em>All</em>
                                                     [% ELSE %]
@@ -221,7 +221,7 @@
                                                     [% ELSE %]
                                                         0
                                                     [% END %]</td>
-                                                <td>
+                                                <td data-code="[% i | html %]">
                                                     [% IF i == undef %]
                                                         <em>All</em>
                                                     [% ELSE %]
@@ -252,7 +252,7 @@
                                                     [% END %]
                                                 </td>
                                                 <td>[% issuelength | html %]</td>
-                                                <td>
+                                                <td data-code="[% daysmode | html %]">
                                                     [% SWITCH daysmode %]
                                                     [% CASE 'Calendar' %]<span title="Use the calendar to skip days the library is closed">Skip closed days</span>
                                                     [% CASE 'Datedue' %]<span title="Use the calendar to push the due date to the next open day">Next open day</span>
@@ -261,7 +261,7 @@
                                                     [% CASE %]<span title="Use the system preference 'useDaysMode' as a default value">Default</span>
                                                     [% END %]
                                                 </td>
-                                                <td>
+                                                <td data-code="[% lengthunit | html %]">
                                                     [% IF ( lengthunit == 'days' ) %]
                                                         <span>Days</span>
                                                     [% ELSIF ( lengthunit == 'hours') %]
@@ -270,7 +270,7 @@
                                                         <span>Undefined</span>
                                                     [% END %]
                                                 </td>
-                                                <td>
+                                                <td data-code="[% hardduedatecompare | html %]">
                                                   [% IF ( hardduedate ) %]
                                                     [% IF ( hardduedatecompare == '-1' ) %]
                                                       before [% hardduedate | $KohaDates %]
@@ -287,11 +287,11 @@
                                                   [% END %]
                                                 </td>
                                                 <td>[% decreaseloanholds | html %]</td>
-                                                <td>[% fine | html %]</td>
+                                                <td>[% fine | $Price %]</td>
                                                 <td>[% chargeperiod | html %]</td>
                                                 <td>[% IF chargeperiod_charge_at %]Start of interval[% ELSE %]End of interval[% END %]</td>
                                                 <td>[% firstremind | html %]</td>
-                                                <td>[% overduefinescap | $Price %]</td>
+                                                <td>[% IF overduefinescap %][% overduefinescap | $Price %][% ELSE %][% END %]</td>
                                                 <td>
                                                     [% IF cap_fine_to_replacement_price %]
                                                         <input type="checkbox" checked="checked" disabled="disabled" />
@@ -314,7 +314,7 @@
                                                 [% END %]
                                                 <td>[% renewalperiod | html %]</td>
                                                 <td>[% norenewalbefore | html %]</td>
-                                                <td>
+                                                <td data-code="[%- IF auto_renew -%]yes[%- ELSE -%]no[%- END -%]">
                                                     [% IF auto_renew %]
                                                         <span>Yes</span>
                                                     [% ELSE %]
@@ -344,7 +344,7 @@
                                                         <span>Unlimited</span>
                                                     [% END %]
                                                 </td>
-                                                <td>
+                                                <td data-code="[% onshelfholds | html %]">
                                                     [% IF onshelfholds == 1 %]
                                                         <span>Yes</span>
                                                     [% ELSIF onshelfholds == 2 %]
@@ -353,7 +353,7 @@
                                                         <span>If any unavailable</span>
                                                     [% END %]
                                                 </td>
-                                                <td>
+                                                <td data-code="[% opacitemholds | html %]">
                                                     [% IF opacitemholds == 'F'%]
                                                         <span>Force</span>
                                                     [% ELSIF opacitemholds == 'Y'%]
@@ -363,7 +363,7 @@
                                                     [% END %]
                                                 </td>
                                                 [% IF Koha.Preference('ArticleRequests') %]
-                                                <td>
+                                                <td data-code="[% article_requests | html %]">
                                                     [% IF article_requests == 'no' %]
                                                         <span>No</span>
                                                     [% ELSIF article_requests == 'yes' %]
@@ -379,7 +379,7 @@
                                                 [% IF Koha.Preference('UseRecalls') %]
                                                     <td>[% recalls_allowed | html %]</td>
                                                     <td>[% recalls_per_record | html %]</td>
-                                                    <td>
+                                                    <td data-code="[% on_shelf_recalls | html %]">
                                                         [% IF on_shelf_recalls == 'all' %]
                                                             <span>If all unavailable</span>
                                                         [% ELSE %]
@@ -462,7 +462,7 @@
                                     <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
                                 </td>
                                 <td><input type="text" name="decreaseloanholds" id="decreaseloanholds" size="2" /></td>
-                                <td><input type="text" name="fine" id="fine" size="4" /></td>
+                                <td><input type="text" name="fine" id="fine" size="4" inputmode="decimal" pattern="^\d+(\.\d{2})?$" /></td>
                                 <td><input type="text" name="chargeperiod" id="chargeperiod" size="2" /></td>
                                 <td>
                                     <select name="chargeperiod_charge_at" id="chargeperiod_charge_at">
@@ -471,7 +471,7 @@
                                     </select>
                                 </td>
                                 <td><input type="text" name="firstremind" id="firstremind" size="2" /> </td>
-                                <td><input type="text" name="overduefinescap" id="overduefinescap" size="6" /> </td>
+                                <td><input type="text" name="overduefinescap" id="overduefinescap" size="6" inputmode="decimal" pattern="^\d+(\.\d{2})?$" /> </td>
                                 <td><input type="checkbox" name="cap_fine_to_replacement_price" id="cap_fine_to_replacement_price" /></td>
                                 <td><input type="text" name="finedays" id="fined" size="3" /> </td>
                                 <td><input type="text" name="maxsuspensiondays" id="maxsuspensiondays" size="3" /> </td>
@@ -531,7 +531,7 @@
                                         </select>
                                     </td>
                                     <td><input type="text" name="recall_due_date_interval" id="recall_due_date_interval" size="3"></td>
-                                    <td><input type="text" name="recall_overdue_fine" id="recall_overdue_fine" size="6"></td>
+                                    <td><input type="text" name="recall_overdue_fine" id="recall_overdue_fine" size="6" inputmode="decimal" pattern="^\d+(\.\d{2})?$"></td>
                                     <td><input type="text" name="recall_shelf_time" id="recall_shelf_time" size="3"></td>
                                 [% END %]
                                 <td class="actions">
@@ -1030,7 +1030,7 @@
                                     </td>
                                     <td>
                                         [% IF article_request_fee.defined && article_request_fee != '' %]
-                                            [% article_request_fee | html %]
+                                            [% article_request_fee | $Price %]
                                         [% ELSE %]
                                             <span>0</span>
                                         [% END %]
@@ -1050,7 +1050,7 @@
                                     [% END %]
                                     </select>
                                 </td>
-                                <td><input name="article_request_fee" size="3" type="text" /></td>
+                                <td><input name="article_request_fee" size="5" type="text" inputmode="decimal" pattern="^\d+(\.\d{2})?$" /></td>
                                 <td class="actions"><button type="submit" class="btn btn-default btn-xs"><i class="fa fa-plus"></i> Add</button></td>
                             </tr>
                         </table>
@@ -1392,6 +1392,7 @@
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'columns_settings.inc' %]
+    [% INCLUDE 'format_price.inc' %]
     <script>
          $(document).ready(function() {
             KohaTable("default-circulation-rules", {
@@ -1461,8 +1462,9 @@
                 $('#default-circulation-rules td').removeClass('highlighted-row');
                 $(this).parent().parent().find("td").each(function (i) {
                     $(this).addClass('highlighted-row');
-                    itm = $(this).text();
-                    itm = itm.replace(/^\s*|\s*$/g,'');
+                    itm_code = $(this).data('code');
+                    itm_text = $(this).text();
+                    itm_text = itm_text.replace(/^\s*|\s*$/g,'');
                     var current_column = $("#edit_row td:eq("+i+")");
                     if ( i == 3 ) {
                         // specific processing for the Note column
@@ -1475,7 +1477,7 @@
                         if (typeof select_value === 'undefined'){
                             select_value = '-1';
                         }else {
-                            input_value = itm.split(' ')[1];
+                            input_value = itm_text.split(' ')[1];
                         }
                         $(current_column).find("input[type='text']").val(input_value);
                         $(current_column).find("select").val(select_value);
@@ -1485,14 +1487,15 @@
                         $('#cap_fine_to_replacement_price').prop('checked', cap_fine_to_replacement_price.is(':checked') );
                         $('#overduefinescap').prop('disabled', cap_fine_to_replacement_price.is(':checked') );
                     } else {
-                        $(current_column).find("input[type='text']").val(itm);
+                        $(current_column).find("input[type='text']").val(itm_text);
+                        // unformat prices
+                        $(current_column).find("input[inputmode='decimal']").each(function() {
+                          $(this).val(itm_text.unformat_price());
+                        });
                         // select the corresponding option
                         $(current_column).find("select option").each(function(){
-                            opt = $(this).text().toLowerCase();
-                            opt = opt.replace(/ \(\w*?\)$/,""); //If option is a parent, compare without (All) or the equivalent in other languages
-                            itm = itm.replace(/.*->(.*)/,"$1"); //If item type is part of a group we need to clear the parent description
-                            opt = opt.replace(/^\s*|\s*$/g,'');
-                            if ( opt == itm.toLowerCase() ) {
+                            opt = $(this).attr('value');
+                            if ( opt == itm_code ) {
                                 $(this).attr('selected', 'selected');
                             }
                         });
@@ -1520,7 +1523,7 @@
                             //     - "Holds per record (count)"
                             // The value is "Unlimited" (or an equivalent translated string)
                             // an it should be set to an empty string
-                            if( !((parseFloat(itm) == parseInt(itm)) && !isNaN(itm)) ) {
+                            if( !((parseFloat(itm_text) == parseInt(itm_text)) && !isNaN(itm_text)) ) {
                                 $(current_column).find("input[type='text']").val("");
                             }
                         }

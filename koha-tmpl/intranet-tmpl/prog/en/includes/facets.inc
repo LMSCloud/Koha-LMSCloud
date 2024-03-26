@@ -13,11 +13,12 @@
 <ul>
     [% SET base_url = "/cgi-bin/koha/catalogue/search.pl?" _ query_cgi _ limit_cgi %]
     [% FOREACH search_filter IN search_filters %]
+        [% SET search_filter_id = search_filter.id | uri %]
     <li>
         [% IF active_filters.${search_filter.id} %]
-            <span class="filter_label">[% search_filter.name | html %]<a href="[% base_url _ '&nolimit=search_filter:' _ search_filter.id | url %]">[x]</a></span>
+            <span class="filter_label">[% search_filter.name | html %]<a href="[% base_url _ '&nolimit=search_filter:' _ search_filter_id | $raw %]">[x]</a></span>
         [% ELSE %]
-            <span class="filter_label"><a href="[% base_url _ '&limit=search_filter:' _ search_filter.id | url %]">[% search_filter.name | html %]</a></span>
+            <span class="filter_label"><a href="[% base_url _ '&limit=search_filter:' _ search_filter_id | $raw %]">[% search_filter.name | html %]</a></span>
         [% END %]
     </li>
     [% END %]
@@ -64,7 +65,7 @@
       [% IF facet.active %]
         [% local_url = BLOCK %][% url | $raw %][% "&nolimit=" _  facet.type_link_value _ ":" _ facet.facet_link_value | url %][% END %]
         <span class="facet-label">[% facet.facet_label_value | html %]</span>
-        [<a href="[% local_url | $raw %]" title="Remove facet [% facet.facet_link_value | html %]">x</a>]
+        [<a href="[% local_url | $raw %]" title="Remove facet [% facet.facet_label_value | html %]">x</a>]
       [% ELSE %]
         [% local_url = BLOCK %][% url | $raw %][% "&limit=" _  facet.type_link_value _ ":" _ facet.facet_link_value | url %][% END %]
         <span class="facet-label"><a href="[% local_url | $raw %]" title="[% facet.facet_title_value | html %]">[% facet.facet_label_value | html %]</a></span>

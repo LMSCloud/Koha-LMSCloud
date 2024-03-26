@@ -352,6 +352,7 @@ my $target_map = {
   './README.txt'                => 'NONE',
   './patroncards'               => 'INTRANET_CGI_DIR',
   './patron_lists'              => 'INTRANET_CGI_DIR',
+  './perltidyrc'                => 'NONE',
   './plugins'                   => 'INTRANET_CGI_DIR',
   './pos'                       => 'INTRANET_CGI_DIR',
   './recalls'                   => 'INTRANET_CGI_DIR',

@@ -8,7 +8,6 @@
     <form id="patron-enrollment-form">
         <legend class="sr-only">Enrollment</legend>
         <input type="hidden" name="id" value="[% club.id | html %]" />
-        <input type="hidden" name="borrowernumber" value="[% borrowernumber | html %]" />
         <fieldset class="rows">
             <ol>
                 [% FOREACH f IN club.club_template.club_template_enrollment_fields %]
@@ -29,8 +28,8 @@
             </ol>
         </fieldset>
         <fieldset class="action">
-            <button class="btn btn-primary" onclick="addEnrollment(); return false;">Finish enrollment</button>
-            <a href="#" class="cancel" onclick="showClubs(); return false;">Cancel</a>
+            <button class="btn btn-primary add_enrollment">Finish enrollment</button>
+            <a href="#" class="cancel show_clubs">Cancel</a>
         </fieldset>
     </form>
 </div>
@@ -44,7 +43,7 @@ function addEnrollment() {
         data: $( "#patron-enrollment-form" ).serialize(),
         success: function( data ) {
             if ( data.success ) {
-                $('#opac-user-clubs').load('/cgi-bin/koha/clubs/clubs-tab.pl?borrowernumber=[% borrowernumber | html %]&id=[% club.id | html %]', function() {
+                $('#opac-user-clubs').load('/cgi-bin/koha/clubs/clubs-tab.pl?id=[% club.id | html %]', function() {
                     $("body").css("cursor", "default");
                 });
             } else {
@@ -62,4 +61,16 @@ function showClubs() {
         $("body").css("cursor", "default");
     });
 }
+
+    $(document).ready(function(){
+        $(".add_enrollment").on("click", function(e){
+            e.preventDefault();
+            addEnrollment();
+        });
+
+        $(".show_clubs").on("click", function(e){
+            e.preventDefault();
+            showClubs();
+        });
+    });
 </script>
