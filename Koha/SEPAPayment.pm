@@ -1,6 +1,6 @@
 package Koha::SEPAPayment;
 
-# Copyright 2020-2022 (C) LMSCLoud GmbH
+# Copyright 2020-2024 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -122,6 +122,7 @@ sub checkSepaDirectDebitConfiguration {
         { variable => 'SepaDirectDebitMessageIdHeader', mandatory => 0 },           # e.g. 'Lastschrift Stadtbuecherei-' (current date will be appended in form yyyymmdd)
         { variable => 'SepaDirectDebitRemittanceInfo', mandatory => 1 },            # e.g. 'Jahresentgelt' (max. length 140 chars)
         { variable => 'SepaDirectDebitBorrowerNoticeLettercode', mandatory => 0 },  # e.g. 'SEPA_NOTE_CHARGE'. Value '' or undef indicates that the library has deactivated the notification.
+        { variable => 'SepaDirectDebitBorrowerNoticeMtt', mandatory => 0 },         # e.g. 'print'. Usually not existing. Set on request only for customers that ask for 'print' output of the borrower direct debit notice in any case.
         { variable => 'SepaDirectDebitAccountTypes', mandatory => 1 },              # e.g. 'ACCOUNT|ACCOUNT_RENEW|MANUAL|OVERDUE'
         { variable => 'SepaDirectDebitMinFeeSum', mandatory => 0 },                 # e.g. '5.00'. Value '' or undef results in default value 0.01.
         { variable => 'SepaDirectDebitLocalInstrumentCode', mandatory => 1 },       # e.g. 'CORE'. 'COR1'.'B2B' (CORE = SEPA Basis-Lastschrift (Verbraucher); COR1 entspricht CORE, jedoch mit auf 1 Bankarbeitstag reduzierter Bearbeitungszeit)
@@ -773,6 +774,8 @@ sub printSepaNotice {
 
     my $send_notification = sub {
         my ( $mtt, $borrowernumber, $letter_code ) = @_;
+
+        print STDERR "Koha::SEPAPayment::printSepaNotice() send_notification() borrowernumber:$borrowernumber: letter_code:$letter_code: mtt:$mtt:\n" if $self->{verbose} > 1;
         if ( ! defined($letter_code) ) {
             warn "Koha::SEPAPayment::printSepaNotice(): Error: letter code is not set";
             return 0;
@@ -831,7 +834,12 @@ sub printSepaNotice {
         return 1;
     };
 
-    if ( $to_address ) {
+    # For customers that ask for 'print' output in any case:
+    my $forceMessageTransportTypePrint = 0;
+    if ( $self->{sepaSysPrefs}->{SepaDirectDebitBorrowerNoticeMtt} && $self->{sepaSysPrefs}->{SepaDirectDebitBorrowerNoticeMtt} eq 'print' ) {    # This system preference is set on customers request only.
+        $forceMessageTransportTypePrint = 1;
+    }
+    if ( $to_address && $forceMessageTransportTypePrint == 0) {
         $ret = &$send_notification('email', $borrowernumber, $self->{lettercode});
     } else {
         $ret = &$send_notification('print', $borrowernumber, $self->{lettercode});
