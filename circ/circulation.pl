@@ -53,6 +53,7 @@ use Koha::Plugins;
 use Koha::Database;
 use Koha::BiblioFrameworks;
 use Koha::Items;
+use Koha::CirculationRules;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
 use Koha::Patron::Modifications;
@@ -432,8 +433,17 @@ if (@$barcodes) {
                 $template_params->{NEEDSCONFIRMATION} = 1;
                 $confirm_required = 1;
                 if ( $needsconfirmation eq 'BOOKED_TO_ANOTHER' ) {
+                    my $rule = Koha::CirculationRules->get_effective_rule(
+                        {
+                            rule_name  => 'bookings_lead_period',
+                            itemtype   => $item->effective_itemtype,
+                            branchcode => "*"
+                        }
+                    );
+                    my $preparation_period = $rule ? $rule->rule_value : 1;
                     my $reduceddue =
-                        dt_from_string( $$question{$needsconfirmation}->start_date )->subtract( days => 1 );
+                        dt_from_string( $$question{$needsconfirmation}->start_date )
+                        ->subtract( days => $preparation_period );
                     $template_params->{reduceddue} = $reduceddue;
                 }
             }
