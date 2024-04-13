@@ -1,0 +1,100 @@
+[% USE Koha %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Browse our catalog &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha [% END %] - Catalog</title>
+[% INCLUDE 'doc-head-close.inc' %]
+[% BLOCK cssinclude %][% END %]
+</head>
+[% INCLUDE 'bodytag.inc' bodyid='opac-browser' %]
+[% INCLUDE 'masthead.inc' %]
+
+<div class="main">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+                <a href="#">Browse our catalog</a>
+            </li>
+        </ul>
+    </nav>
+
+    <h1>Browse our catalog</h1>
+ 
+    <h3 style="margin-top: 0px; margin-bottom:0px"><a href="opac-browser-asb-generic.pl">Complete collection</a></h3>
+    [% FOREACH HIERACHY_ENTRY IN HIERARCHY_LOOP %]
+        <div class="taxonomy-hierachy-entry">
+            [% IF ( HIERACHY_ENTRY.level != MYENTRY.level ) %]
+            <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-asb-generic.pl?level=[% HIERACHY_ENTRY.level %]&amp;filter=[% HIERACHY_ENTRY.classification |uri %]">&#10149; [% HIERACHY_ENTRY.description | html %]</a></h3>
+            [% ELSE %]
+            <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-asb-generic.pl?level=[% HIERACHY_ENTRY.level %]&amp;filter=[% HIERACHY_ENTRY.classification |uri %]">&#10149; [% HIERACHY_ENTRY.description | html %]</a></h3>
+            [% END %]
+    [% END %]
+ 
+            [% IF ( LEVEL == 1 ) %]
+            <div class="container-fluid" style="padding-left:0px">
+            [% ELSE %]
+            <div class="container-fluid" style="padding-left:25px">
+            [% END %]
+            [% IF ( LEVEL > 1  and MYENTRY.usesearch.length < 1500 ) %]
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col">&nbsp;</div>
+                </div>
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col"><a href='opac-search.pl?q=[% MYENTRY.usesearch |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;All titles</a>
+                    <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% MYENTRY.usesearch |uri %]'>([% MYENTRY.number %] titles)</a></i></span></div>
+                </div>
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col">&nbsp;</div>
+                </div>
+            [% ELSE %]
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col">&nbsp;</div>
+                </div>
+            [% END %]
+            [% IF ( LEVEL > 1 ) %]
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col"><strong>Sub-groups</strong></div>
+                </div>
+                [% FOREACH ENTRY IN LEVEL_LOOP %]
+                    <div class="row entry-page-row">
+                        <div class="col-lg-12 entry-page-col">
+                            [% IF ( ENTRY.endnode ) %]
+                                <a href='opac-search.pl?q=[% ENTRY.usesearch |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                            [% ELSE %]
+                                <a href="opac-browser-asb-generic.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.classification |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                            [% END %]
+                            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.usesearch |uri %]'>([% ENTRY.number %] titles)</a></i></span>
+                        </div>
+                    </div>
+                [% END %]
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col">&nbsp;</div>
+                </div>
+            [% END %]
+
+            [% IF ( LEVEL == 1 && LEVEL_LOOP ) %]
+                [% FOREACH ENTRY IN LEVEL_LOOP %]
+                    <div class="row entry-page-row">
+                        <div class="col-lg-12 entry-page-col">
+                            [% IF ( ENTRY.endnode ) %]
+                                <a href='opac-search.pl?q=[% ENTRY.usesearch |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                            [% ELSE %]
+                                <a href="opac-browser-asb-generic.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.classification |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                            [% END %]
+                            <span style="font-size:0.75em"><i> ([% ENTRY.number %] titles)</i></span>
+                        </div>
+                    </div>
+                [% END %]
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col">&nbsp;</div>
+                </div>
+            [% END %]
+        </div>
+    [% FOREACH HIERACHY_ENTRY IN HIERARCHY_LOOP %]
+    </div>
+    [% END %]
+</div> <!-- / .main -->
+
+[% INCLUDE 'opac-bottom.inc' %]
+[% BLOCK jsinclude %][% END %]
