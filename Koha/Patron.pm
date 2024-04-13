@@ -1034,7 +1034,7 @@ sub renew_account {
 
     logaction( "MEMBERS", "RENEW", $self->borrowernumber, "Membership renewed" ) if C4::Context->preference("BorrowersLog");
     if ( $self->is_family_card ) {
-        my @guarantees =  $self->guarantee_relationships->guarantees;
+        my @guarantees =  $self->guarantee_relationships->guarantees->as_list;
         foreach my $family_member(@guarantees) {
             my $expire_guarantee = $family_member->dateexpiry;
             next if ( $expiry_date && $expire_guarantee && $expiry_date lt $expire_guarantee );
