@@ -1707,7 +1707,8 @@ CREATE TABLE `browser` ( -- store classification values
   `classval` varchar(40),  -- the classication group part of the value
   `startrange` varchar(20),  -- a numeric value part subordinated to a group
   `endrange` varchar(20),  -- if the classification represents a higher level including a range of numbers it represents the end of the range
-  `exclude` varchar(1024), -- a search string that can be used to extend the query for titles of a classication value (e.g. exclude values that should not be found with a search)
+  `exclude` mediumtext, -- a search string that can be used to extend the query for titles of a classication value (e.g. exclude values that should not be found with a search)
+  `usesearch` mediumtext, -- a search string to be used when searching for biblio records of the classification entry
   KEY `browser_by_description` (`description`),
   KEY `browser_by_level` (`level`),
   KEY `browser_by_classification` (`classification`),
