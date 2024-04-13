@@ -627,10 +627,12 @@ sub sanitizeResultStructure {
                         COVER: foreach my $artwork(@{$hit->{artworkUris}}) {
                             if ( exists($artwork->{kind}) && $artwork->{kind} eq 'CoverPortrait' ) {
                                 if ( exists($artwork->{thumbnail}) && $artwork->{thumbnail} ) {
+                                    $hit->{thumbnail} = $artwork->{thumbnail} if ( !exists($hit->{thumbnail}) );
                                     $hit->{cover} = $artwork->{thumbnail};
                                     last COVER;
                                 }
                                 if ( exists($artwork->{resolution1x}) && $artwork->{resolution1x} ) {
+                                    $hit->{thumbnail} = $artwork->{thumbnail} if ( !exists($hit->{thumbnail}) );
                                     $hit->{cover} = $artwork->{resolution1x};
                                     last COVER;
                                 }
