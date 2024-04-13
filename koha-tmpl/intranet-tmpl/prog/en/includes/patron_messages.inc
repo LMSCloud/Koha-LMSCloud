@@ -306,7 +306,7 @@
                         [% IF patron_message.manager_id %]
                             ( <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron_message.manager_id | uri %]">[% patron_message.get_column('manager_firstname') | html %] [% patron_message.get_column('manager_surname') | html %]</a> )
                         [% END %]
-                        <em>"[% patron_message.message | html %]"</em>
+                        <em>"[% patron_message.message | html | html_line_break %]"</em>
                     </span>
                     [% IF patron_message.branchcode == Branches.GetLoggedInBranchcode OR Koha.Preference('AllowAllMessageDeletion') %]
                         [% IF moremember %]
