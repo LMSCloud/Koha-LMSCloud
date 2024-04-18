@@ -229,8 +229,10 @@ paths:
     $ref: "./paths/checkouts.yaml#/~1checkouts~1{checkout_id}~1renewals"
   "/checkouts/{checkout_id}/renewal":
     $ref: "./paths/checkouts.yaml#/~1checkouts~1{checkout_id}~1renewal"
-  /circulation-rules/kinds:
-    $ref: ./paths/circulation-rules.yaml#/~1circulation-rules~1kinds
+  /circulation_rules:
+    $ref: ./paths/circulation_rules.yaml#/~1circulation_rules
+  /circulation_rules/kinds:
+    $ref: ./paths/circulation_rules.yaml#/~1circulation_rules~1kinds
   /cities:
     $ref: ./paths/cities.yaml#/~1cities
   "/cities/{city_id}":
