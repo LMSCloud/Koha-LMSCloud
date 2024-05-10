@@ -931,6 +931,7 @@
 
         table_settings_issues_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'issues-table', 'json' ) | $raw %]
         table_settings_relatives_issues_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'relatives-issues-table', 'json' ) | $raw %]
+        table_settings_bookings_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'bookings-table', 'json' ) | $raw %]
 
         var bookings_table;
         $(document).ready(function() {
@@ -977,7 +978,6 @@
                         "columns": [{
                             "data": "booking_id",
                             "title": _("Booking ID"),
-                            "visible": false
                         },
                         {
                             "data": "biblio.title",
@@ -1036,7 +1036,7 @@
                                 return result;
                             }
                         }]
-                    }, [], 0, { patron_id: "[% patron.borrowernumber | html %]", end_date: { ">=": today.toISOString() } });
+                    }, table_settings_bookings_table, 0, { patron_id: "[% patron.borrowernumber | html %]", end_date: { ">=": today.toISOString() } });
                 };
             });
          });
