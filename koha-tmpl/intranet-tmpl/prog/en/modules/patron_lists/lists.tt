@@ -63,8 +63,21 @@
                                     [% ELSE %]
                                         by you
                                     [% END %]
+                                [% END %]
+                            </td>
+                            <td>
+                                <div class="btn-group dropup">
+                                    <a class="btn btn-default btn-xs dropdown-toggle" id="listactions[% l.patron_list_id | html %]" role="button" data-toggle="dropdown" href="#">
+                                    Actions <b class="caret"></b>
+                                    </a>
+                                    <ul class="dropdown-menu pull-right" role="menu" aria-labelledby="listactions[% l.patron_list_id | html %]">
+                                        <li><a href="/cgi-bin/koha/patron_lists/list.pl?patron_list_id=[% l.patron_list_id | uri %]"><i class="fa fa-user"></i> Add patrons</a></li>
+                                        [% UNLESS shared_by_other %]
+                                            <li><a href="/cgi-bin/koha/patron_lists/add-modify.pl?patron_list_id=[% l.patron_list_id | uri %]"><i class="fa fa-pencil"></i> Edit list</a></li>
+                                            <li><a class="delete_patron" href="/cgi-bin/koha/patron_lists/delete.pl?patron_list_id=[% l.patron_list_id | html %]" data-list-name="[% l.name | html %]"><i class="fa fa-trash"></i> Delete list</a></li>
                                         [% END %]
                                         [% IF ( l.patron_list_patrons_rs.count ) %]
+                                            <li class="divider"></li>
                                             [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
                                                 <li>
                                                     <a href="#startPatronlistIdSearch" onclick="startpatronlistidsearch([% l.patron_list_id %])" >
@@ -182,7 +195,7 @@
             });
 
         });
-        
+
         [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
             function startpatronlistidsearch(patron_list_id) {
                 document.getElementById('patronlistid').value = patron_list_id;
