@@ -678,7 +678,7 @@
                                         <a href="#reserves" id="holds-tab" aria-controls="reserves" role="tab" data-toggle="tab">Holds ([% holds_count || 0 | html %])</a>
                                 </li>
                                 [% WRAPPER tab_item tabname="bookings" %]
-                                    [% SET bookings_count = patron.bookings.filter_by_future.count %]
+                                    [% SET bookings_count = patron.bookings.filter_by_active.count %]
                                     <span>Bookings ([% bookings_count || 0 | html %])</span>
                                 [% END %]
                             [% END %]
