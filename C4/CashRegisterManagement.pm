@@ -2643,7 +2643,7 @@ sub getFinesOverview {
                 UNION ALL
                 SELECT 
                        $selectfield as description,
-                       SUM(co.amount) * -1 ,
+                       SUM(ao.amount) ,
                        COUNT(*) AS count,
                        'Reverse Payment' AS paytype
                 FROM   accountlines a
@@ -2666,7 +2666,7 @@ sub getFinesOverview {
                 UNION ALL
                 SELECT 
                        $selectfield as description,
-                       SUM(co.amount) * -1 ,
+                       SUM(ao.amount) ,
                        COUNT(*) AS count,
                        'Reverse Payment' AS paytype
                 FROM   accountlines a
