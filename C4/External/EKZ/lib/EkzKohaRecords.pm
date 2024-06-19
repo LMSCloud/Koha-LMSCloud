@@ -1281,7 +1281,7 @@ sub checkbranchcode {
     my $branchcode = shift;
 
     if ( keys %{$self->{'branchnames'}} == 0 ) {
-        my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search };
+        my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search->as_list };
         foreach my $brcode ( sort keys %{$branches} ) {
             my $brcodeN = $brcode;
             $brcodeN =~ s/^\s+|\s+$//g; # trim spaces
