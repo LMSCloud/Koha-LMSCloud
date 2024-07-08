@@ -82,7 +82,11 @@ return {
             ('so', 'language', 'Somali', now()),
             ('syr', 'language', 'Syriac', now()),
             ('nds', 'language', 'Low German', now()),
-            ('frr', 'language', 'North Frisian', now())
+            ('frr', 'language', 'North Frisian', now()),
+            ('rm', 'language', 'Raeto-Romance', now()),
+            ('grc', 'language', 'Greek, Ancient (to 1453)', now()),
+            ('gmh', 'language', 'German, Middle High (ca. 1050-1500)', now()),
+            ('gsw', 'language', 'Swiss German', now())
         });
 
         $dbh->do(q{
@@ -156,7 +160,19 @@ return {
             ('nds', 'language', 'de', 'Niederdeutsch/Plattdeutsch'),
             ('frr', 'language', 'en', 'North Frisian'),
             ('frr', 'language', 'frr', 'Nordfriesisch'),
-            ('frr', 'language', 'de', 'Nordfriesisch')
+            ('frr', 'language', 'de', 'Nordfriesisch'),
+            ('rm', 'language', 'en', 'Raeto-Romance'),
+            ('rm', 'language', 'rm', 'Rätoromanisch'),
+            ('rm', 'language', 'de', 'Rätoromanisch'),
+            ('grc', 'language', 'en', 'Greek, Ancient (to 1453)'),
+            ('grc', 'language', 'grc', 'ἡ ἑλληνική'),
+            ('grc', 'language', 'de', 'Altgriechisch'),
+            ('gmh', 'language', 'en', 'German, Middle High (ca. 1050-1500)'),
+            ('gmh', 'language', 'gmh', 'Mittelhochdeutsch'),
+            ('gmh', 'language', 'de', 'Mittelhochdeutsch'),
+            ('gsw', 'language', 'en', 'Swiss German'),
+            ('gsw', 'language', 'gsw', 'Schwizerdütsch'),
+            ('gsw', 'language', 'de', 'Schweizerdeutsch')
         });
 
         $dbh->do(q{
@@ -184,7 +200,11 @@ return {
             ('so','som'),
             ('syr','syr'),
             ('nds','nds'),
-            ('frr','frr')
+            ('frr','frr'),
+            ('rm','roh'),
+            ('grc','grc'),
+            ('gmh','gmh'),
+            ('gsw','gsw')
         });
     },
 }
