@@ -2592,6 +2592,16 @@ biblios:
         marc_type: marc21
         sort: ~
         suggestible: ''
+      - facet: ''
+        marc_field: 900
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: ''
+        marc_field: 910
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
     type: ''
   name-and-title:
     label: name-and-title
