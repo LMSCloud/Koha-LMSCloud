@@ -125,8 +125,14 @@ var RFIDWebService = {
             if ( window.sessionStorage.hasOwnProperty('RFIDWebServiceCheckoutItems') ) {
                 window.sessionStorage.removeItem('RFIDWebServiceCheckoutItems');
             }
+            if ( window.sessionStorage.hasOwnProperty('RFIDWebServiceCheckedOutItems') ) {
+                window.sessionStorage.removeItem('RFIDWebServiceCheckedOutItems');
+            }
             if ( window.sessionStorage.hasOwnProperty('RFIDWebServiceCheckinItems') ) {
                 window.sessionStorage.removeItem('RFIDWebServiceCheckinItems');
+            }
+            if ( window.sessionStorage.hasOwnProperty('RFIDWebServiceCheckedInItems') ) {
+                window.sessionStorage.removeItem('RFIDWebServiceCheckedInItems');
             }
             if ( window.sessionStorage.hasOwnProperty('RFIDWebServiceJustCalling') ) {
                 window.sessionStorage.removeItem('RFIDWebServiceJustCalling');
@@ -226,8 +232,10 @@ var RFIDWebService = {
         
         var menuNames = {
                             topLevelMenuEntry:      "RFID",
-                            menuEntryServiceInfo:   "RFID-Service Information",
+                            menuEntryServiceInfo:   "RFID-Service Information"
+                            /*,
                             menuEntryServiceTools:  "RFID-Tools"
+                            */
                         };
         if ( this.messageServiceProvider ) {
             menuNames = this.messageServiceProvider.GetRFIDMenuNames();
@@ -249,7 +257,8 @@ var RFIDWebService = {
                                 RFIDWebService.DisplayRFIDServiceStatus();
                             })
                             .append(menuNames.menuEntryServiceInfo)
-                    ),
+                    )
+                    /*,
                     $('<li>').append(
                         $('<a>')
                             .bind( "click", function() {
@@ -257,6 +266,7 @@ var RFIDWebService = {
                             })
                             .append(menuNames.menuEntryServiceTools)
                     )
+                    */
                 )
             )
         );
@@ -302,7 +312,7 @@ var RFIDWebService = {
                         var barvalue = $('#patronsearch #findborrower').val();
                         if ( barvalue == "" || barvalue == " " ) {
                             event.preventDefault();
-                            RFIDWebService.ReadTagsAndStartCheckout("borrower");
+                            RFIDWebService.ReadTagsAndStartAction("borrower");
                         }
                     }
                 });
@@ -316,7 +326,7 @@ var RFIDWebService = {
                         var barvalue = $('#checkin_search #ret_barcode').val();
                         if ( barvalue == "" || barvalue == " " ) {
                             event.preventDefault();
-                            RFIDWebService.ReadTagsAndStartCheckout("checkinstart");
+                            RFIDWebService.ReadTagsAndStartAction("checkinstart");
                         }
                     }
                 });
@@ -344,10 +354,20 @@ var RFIDWebService = {
             else {
                 if ( $('#circ_circulation #circ_circulation_issue #barcode:enabled').length 
                     && $(RFIDWebService.checkoutBlockingSelector).length < 1 ) 
-                {
-                    // it seems that we need to skip the current item and process the following
+                {                     
                     window.sessionStorage.setItem('RFIDWebServiceCheckoutItem','');
+                    
+                    // it seems that we need to skip the current item and process the following
+                    RFIDWebService.UpdateActionStatusOfItem(barcode,'RFIDWebServiceCheckedOutItems','failed','checkout');
+                    
                     RFIDWebService.CheckoutNextItem();
+                }
+                else {
+                    if ( $('#circ_impossible').length >= 1 ) {
+                        RFIDWebService.UpdateActionStatusOfItem(barcode,'RFIDWebServiceCheckedOutItems','failed','checkout');
+                    } else {
+                        RFIDWebService.DisplayRemainingItemBarcodes("checkout");
+                    }
                 }
             }
         }
@@ -368,6 +388,23 @@ var RFIDWebService = {
                     if ( barcode.trim().toLowerCase() == barcodes[i].trim().toLowerCase() ) {
                         RFIDWebService.LockItemBarcode(barcode);
                     }
+                }
+            }
+            else {
+                // it seems that we need to skip the current item and process the following
+                RFIDWebService.UpdateActionStatusOfItem(barcode,'RFIDWebServiceCheckedInItems','failed','checkin');
+            }
+        } else {
+            let itemCount = window.sessionStorage.getItem('RFIDWebServiceCheckinItemCount');
+            let lastCheckinItems = [];
+            let lastCheckinTxt = window.sessionStorage.getItem('RFIDWebServiceCheckedInItems');
+            if ( lastCheckinTxt ) {
+                lastCheckinItems = JSON.parse(lastCheckinTxt);
+            }
+            if ( (itemCount && itemCount > 0) || lastCheckinItems.length > 0 ) {
+                RFIDWebService.DisplayRemainingItemBarcodes("checkin");
+                if ( $(RFIDWebService.checkinBlockingSelector).length < 1 && itemCount > 0 ) {
+                    RFIDWebService.CheckinNextItem("checkin");
                 }
             }
         }
@@ -395,20 +432,21 @@ var RFIDWebService = {
                 window.sessionStorage.setItem('RFIDWebServiceCheckoutItem','');
                 if ( data.itemResult && data.itemResult.length == 1) {
                     if ( data.itemResult[0].requestSuccess && data.itemResult[0].requestSuccess == true ) {
-                        var title = 'RFID checked in';
-                        if ( this.messageServiceProvider ) {
-                            title = this.messageServiceProvider.GetRFIDCheckinConfirmationTitle();
-                        }
-                        $('#circ_circulation .lastchecked p').append('<span class="rfidchecked" style="color:green; font-size: x-large;" title="' + title + '">&nbsp;&nbsp;<i class="fa fa-check-square-o fa-3"></i></span>');
-                        if ( $(RFIDWebService.checkoutBlockingSelector).length < 1 ) {
-                            var itemCount = window.sessionStorage.getItem('RFIDWebServiceCheckoutItemCount');
                         
+                        RFIDWebService.UpdateActionStatusOfItem(barcode,'RFIDWebServiceCheckedOutItems','success','checkout');
+
+                        var itemCount = window.sessionStorage.getItem('RFIDWebServiceCheckoutItemCount');
+                        
+                        if ( $(RFIDWebService.checkoutBlockingSelector).length < 1 ) {
                             if ( itemCount && itemCount >= 1 ) {
                                 RFIDWebService.CheckoutNextItem();
                             }
                         }
                     }
                     if ( data.itemResult[0].requestSuccess && data.itemResult[0].requestSuccess == false ) {
+                        
+                        RFIDWebService.UpdateActionStatusOfItem(barcode,'RFIDWebServiceCheckedOutItems','failed','checkout');
+                        
                         if ( data.itemResult[0].errorCode && data.itemResult[0].errorMessage ) {
                             RFIDWebService.DisplayRFIDServiceErrorMessage(data.itemResult[0].errorCode,data.itemResult[0].errorMessage, barcode);
                             console.log("RFIDWebService CheckoutItems returns error " + data.itemResult[0].errorCode + ": " + data.itemResult[0].errorMessage);
@@ -449,20 +487,30 @@ var RFIDWebService = {
                 window.sessionStorage.setItem('RFIDWebServiceCheckinItem','');
                 if ( data.itemResult && data.itemResult.length == 1) {
                     if ( data.itemResult[0].requestSuccess && data.itemResult[0].requestSuccess == true ) {
-                        var title = 'RFID checked in';
-                        if ( this.messageServiceProvider ) {
-                            title = this.messageServiceProvider.GetRFIDCheckinConfirmationTitle();
-                        }
-                        $('.lastcheckinbarcode').after('<span class="rfidchecked" style="color:green; font-size: x-large;" title="' + title + '">&nbsp;<i class="fa fa-check-square-o fa-3"></i></span>');
-                        if ( $(RFIDWebService.checkinBlockingSelector).length < 1 ) {
-                            var itemCount = window.sessionStorage.getItem('RFIDWebServiceCheckinItemCount');
                         
+                        RFIDWebService.UpdateActionStatusOfItem(barcode,'RFIDWebServiceCheckedInItems','success','checkin');
+
+                        var itemCount = window.sessionStorage.getItem('RFIDWebServiceCheckinItemCount');
+                        
+                        if ( $(RFIDWebService.checkinBlockingSelector).length < 1 ) {
                             if ( itemCount && itemCount >= 1 ) {
                                 RFIDWebService.CheckinNextItem("checkin");
                             }
+                        } 
+                        else {
+                            $('#hold-found2,#hold-found1').on('hidden.bs.modal', function (e) {
+                                let itemCount = window.sessionStorage.getItem('RFIDWebServiceCheckinItemCount');
+                                if ( itemCount && itemCount > 0 ) {
+                                    RFIDWebService.CheckinNextItem("checkin");
+                                }
+                            });
                         }
+
                     }
                     if ( data.itemResult[0].requestSuccess && data.itemResult[0].requestSuccess == false ) {
+                        
+                        RFIDWebService.UpdateActionStatusOfItem(barcode,'RFIDWebServiceCheckedInItems','failed','checkin');
+                        
                         if ( data.itemResult[0].errorCode && data.itemResult[0].errorMessage ) {
                             RFIDWebService.DisplayRFIDServiceErrorMessage(data.itemResult[0].errorCode,data.itemResult[0].errorMessage, barcode);
                             console.log("RFIDWebService CheckinItems returns error " + data.itemResult[0].errorCode + ": " + data.itemResult[0].errorMessage);
@@ -480,9 +528,24 @@ var RFIDWebService = {
         });
     },
 
+    UpdateActionStatusOfItem: function (barcode,itemList,resultStatus,context) {
+        var items = JSON.parse(window.sessionStorage.getItem(itemList));
+        let found = false;
+        for (let i = 0; i < items.length; i++) {
+            if ( items[i].media == barcode ) {
+                items[i].status = resultStatus;
+                found = true;
+            }
+        }
+        if ( found == false ) {
+            items.push({ media: barcode, status: resultStatus });
+        }
+        window.sessionStorage.setItem(itemList,JSON.stringify(items));
+        RFIDWebService.DisplayRemainingItemBarcodes(context);
+    },
     
-    // The function ReadTagsAndStartCheckout reads tags
-    ReadTagsAndStartCheckout: function (context) {
+    // The function ReadTagsAndStartAction reads tags and starts actions dependet of the context
+    ReadTagsAndStartAction: function (context) {
         
         // read URL and status from the sessionStorage
         var rfidWebServiceURL = window.sessionStorage.getItem('RFIDWebServiceURL');
@@ -493,7 +556,7 @@ var RFIDWebService = {
             rfidWebServiceURL.replace(/\/$/, "");
             rfidWebServiceURL += "/GetItems";
             
-            // console.log("ReadTagsAndStartCheckout called to read items");
+            // console.log("ReadTagsAndStartAction called to read items");
             $.ajax({
                 type: 'GET',
                 url: rfidWebServiceURL,
@@ -542,7 +605,7 @@ var RFIDWebService = {
                                     window.sessionStorage.setItem('RFIDWebServiceJustCalling',0);
                                     return;
                                 }
-                                if ( barcode ) {
+                                if ( barcode && items.includes(barcode,0) == false ) {
                                     if ( context == "checkout" && checkoutAllowed && checkoutAllowed == false ) {
                                         checkoutNotAllowedItems.push(barcode);
                                     }
@@ -571,6 +634,9 @@ var RFIDWebService = {
                                         // reset checkout queue
                                         window.sessionStorage.setItem('RFIDWebServiceCheckoutItems',JSON.stringify([]));
                                         window.sessionStorage.setItem('RFIDWebServiceCheckoutItemCount',0);
+                                        
+                                        window.sessionStorage.setItem('RFIDWebServiceCheckedInItems',JSON.stringify([]));
+                                        window.sessionStorage.setItem('RFIDWebServiceCheckedOutItems',JSON.stringify([]));
                                     }
                                     else {
                                         window.sessionStorage.setItem('RFIDWebServiceCheckoutItems',JSON.stringify(items));
@@ -579,6 +645,9 @@ var RFIDWebService = {
                                         // reset checkin queue
                                         window.sessionStorage.setItem('RFIDWebServiceCheckinItems',JSON.stringify([]));
                                         window.sessionStorage.setItem('RFIDWebServiceCheckinItemCount',0  );
+                                        
+                                        window.sessionStorage.setItem('RFIDWebServiceCheckedInItems',JSON.stringify([]));
+                                        window.sessionStorage.setItem('RFIDWebServiceCheckedOutItems',JSON.stringify([]));
                                     }
                                     
                                     window.sessionStorage.setItem('RFIDWebServiceCheckoutItem','');
@@ -653,7 +722,7 @@ var RFIDWebService = {
             // If there is a barcode field it has to have the input focus
             if (  barcode.length && barcode.is(':focus') ) {
                 window.sessionStorage.setItem('RFIDWebServiceJustCalling',1);
-                RFIDWebService.ReadTagsAndStartCheckout("checkin");
+                RFIDWebService.ReadTagsAndStartAction("checkin");
             }
         }
     },
@@ -706,7 +775,7 @@ var RFIDWebService = {
             // If there is a barcode field it has to have the input focus
             if (  barcode.length && barcode.is(':focus') ) {
                 window.sessionStorage.setItem('RFIDWebServiceJustCalling',1);
-                RFIDWebService.ReadTagsAndStartCheckout("checkout");
+                RFIDWebService.ReadTagsAndStartAction("checkout");
             }
         }
         // setTimeout(RFIDWebService.StartRFIDServerCheckout, 1000, barcodefield);
@@ -758,6 +827,108 @@ var RFIDWebService = {
                     $('#ret_barcode').get(0).form.submit();
                 }
             }
+        }
+    },
+    
+    // The function displays remaining barcodes of the batch to process 
+    DisplayRemainingItemBarcodes: function (context) {
+        if ( context == "checkin" ) {
+            let statusText = '<div class="rfid-batch-media" style="display: block; border-bottom: 0.8em solid #eee; background: #fff; padding: 1em 1em 1em;">' +
+                             '<span class="rfid-batch-media-label">' +
+                             this.messageServiceProvider.GetText('mediabatch') + 
+                             '</span>';
+            
+            var barcode = window.sessionStorage.getItem('RFIDWebServiceCheckinItem');
+            let processedItems = JSON.parse(window.sessionStorage.getItem('RFIDWebServiceCheckedInItems'));
+            for (let i = 0; i < processedItems.length; i++) {
+                if ( i > 0 ) {
+                    statusText += ' | ';
+                }
+                statusText += '<span class="rfid-batch-media-next">' + processedItems[i].media;
+                if ( processedItems[i].status == 'success' ) {
+                    statusText += ' <i class="fa fa-check" aria-hidden="true" style="color: forestgreen"></i><span>';
+                }
+                else {
+                    statusText += ' <i class="fa fa-ban" aria-hidden="true" style="color: mediumvioletred"></i><span>';
+                }
+                if ( processedItems[i].media == barcode ) {
+                    barcode = null;
+                }
+            }
+            
+            if ( barcode ) {
+                if ( processedItems.length > 0 ) {
+                    statusText += ' | ';
+                }
+                statusText += '<span class="rfid-batch-media-next">' + barcode;
+                statusText += ' <i class="fa fa-question" aria-hidden="true"></i><span>';
+            }
+            
+            let itemCount = window.sessionStorage.getItem('RFIDWebServiceCheckinItemCount');
+            if ( itemCount > 0 ) {
+                if ( processedItems.length > 0 ) {
+                    statusText += ' | ';
+                }
+                let items = JSON.parse(window.sessionStorage.getItem('RFIDWebServiceCheckinItems'));
+                statusText += '<span class="rfid-batch-media-next">' +
+                              items.join(' <i class="fa fa-hourglass-half" aria-hidden="true"></i></span> | <span class="rfid-batch-media-next">') + 
+                              ' <i class="fa fa-hourglass-half" aria-hidden="true"></i><span>';
+                                 
+            }
+            statusText += '</div>';
+            
+            $('#circ_returns #checkin-form').after(function() {
+                return "<div>" + statusText + "</div>";
+            });
+        }
+        else if ( context == "checkout" ) {
+            let statusText = '<div class="rfid-batch-media" style="display: block; border-top: 2px solid #eee; background: #fff; margin-top: 1em; padding: 1em 1em 1em;">' +
+                             '<span class="rfid-batch-media-label">' +
+                             this.messageServiceProvider.GetText('mediabatch') +
+                             '</span>';
+            
+            let processedItems = JSON.parse(window.sessionStorage.getItem('RFIDWebServiceCheckedOutItems'));
+            var barcode = window.sessionStorage.getItem('RFIDWebServiceCheckoutItem');
+            for (let i = 0; i < processedItems.length; i++) {
+                if ( i > 0 ) {
+                    statusText += ' | ';
+                }
+                statusText += '<span class="rfid-batch-media-next">' + processedItems[i].media;
+                if ( processedItems[i].status == 'success' ) {
+                    statusText += ' <i class="fa fa-check" aria-hidden="true" style="color: forestgreen"></i><span>';
+                }
+                else {
+                    statusText += ' <i class="fa fa-ban" aria-hidden="true" style="color: mediumvioletred"></i><span>';
+                }
+                if ( processedItems[i].media == barcode ) {
+                    barcode = null;
+                }
+            }
+            
+            if ( barcode ) {
+                if ( processedItems.length > 0 ) {
+                    statusText += ' | ';
+                }
+                statusText += '<span class="rfid-batch-media-next">' + barcode;
+                statusText += ' <i class="fa fa-question" aria-hidden="true"></i><span>';
+            }
+            
+            let itemCount = window.sessionStorage.getItem('RFIDWebServiceCheckoutItemCount');
+            if ( itemCount > 0 ) {
+                if ( processedItems.length > 0 || barcode) {
+                    statusText += ' | ';
+                }
+                let items = JSON.parse(window.sessionStorage.getItem('RFIDWebServiceCheckoutItems'));
+                statusText += '<span class="rfid-batch-media-next">' +
+                              items.join(' <i class="fa fa-hourglass-half" aria-hidden="true"></i></span> | <span class="rfid-batch-media-next">') + 
+                              ' <i class="fa fa-hourglass-half" aria-hidden="true"></i><span>';
+                                 
+            }
+            statusText += '</div>';
+            
+            $('#circ_circulation #mainform').after(function() {
+                return "<div>" + statusText + "</div>";
+            });
         }
     },
     
