@@ -8,7 +8,7 @@ return {
         my ($dbh, $out) = @$args{qw(dbh out)};
         $dbh->do(q{
             INSERT IGNORE INTO systempreferences (`variable`, `value`, `options`, `explanation`,`type`)
-            VALUES ('OPACSuggestionAutoFill', '0', NULL, 'Automatically fill OPAC suggestion form with data from Google Books API', 'YesNo')
+            VALUES ('OPACSuggestionAutoFill', '1', NULL, 'Automatically fill OPAC suggestion form with data from Google Books API', 'YesNo')
         });
     },
 };
