@@ -1449,7 +1449,8 @@ sub to_api {
 
     $overrides->{effective_item_type_id} = $self->effective_itemtype;
 
-    my $itype_notforloan = $self->itemtype->notforloan;
+    my $itype_notforloan;
+    $itype_notforloan = $self->itemtype->notforloan if ($self->itemtype);
     $overrides->{effective_not_for_loan_status} =
         ( defined $itype_notforloan && !$self->notforloan ) ? $itype_notforloan : $self->notforloan;
 
