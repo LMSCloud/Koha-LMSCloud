@@ -8,6 +8,7 @@ Before=multi-user.target
 Before=graphical.target
 After=remote-fs.target
 After=memcached.service
+After=mariadb.service
 
 [Service]
 Type=forking
