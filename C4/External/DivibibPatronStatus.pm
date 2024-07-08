@@ -128,6 +128,7 @@ sub getPatron {
 sub getPatronStatus {
     my $self   = shift;
     my $patron = shift;
+    my $userIdFields = shift;
     
     my $response = clone($self->{defaultResponse});
     
@@ -261,8 +262,17 @@ sub getPatronStatus {
         }
         
         $response->{'cardid'} = $patron->cardnumber;
-        $response->{'userid'} = $patron->borrowernumber;
         
+        $response->{'userid'} = $patron->borrowernumber;
+        if ( $userIdFields && ref $userIdFields eq 'ARRAY' ) {
+            foreach my $userIdField(@$userIdFields) {
+                my $value = $patron->$userIdField;
+                if ( $value ) {
+                    $response->{'userid'} = $value;
+                    last;
+                }
+            }
+        }
     }
     
     return $response;
