@@ -29,9 +29,9 @@ use List::MoreUtils qw/uniq/;
 use Modern::Perl;
 use utf8;
 
-use C4::Acquisition;
+use C4::Acquisition qw( get_rounded_price );
 use Koha::Number::Price;
-use Koha::DateUtils;
+use Koha::DateUtils qw( output_pref dt_from_string );
 use Koha::Libraries;
 
 use PDF::API2;
