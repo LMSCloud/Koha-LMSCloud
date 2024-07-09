@@ -14,7 +14,7 @@ return {
         });
         
         $dbh->do(qq{
-            UPDATE borrowers SET lang = 'de-DE'
+            UPDATE borrowers SET lang = 'de-DE' WHERE lang IS NULL or lang = ''
         });
         
         say $out "LMSCloud update: set borrowers language to de-DE. Add system preference DefaultPatronLanguage with value de-DE.";
