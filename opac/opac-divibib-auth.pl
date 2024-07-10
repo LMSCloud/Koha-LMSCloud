@@ -115,7 +115,19 @@ my $patron = $patronStatus->getPatron();
 # if the borrower was found
 if ( $patron ) { 
 	
-	$response =  $patronStatus->getPatronStatus();
+    if ( C4::Context->preference("DivibibAuthUserIdReturnFields") ) {
+        my $userIdFields = [];
+        my @fieldSpec = split(/\|/,C4::Context->preference("DivibibAuthUserIdReturnFields"));
+        foreach my $field(@fieldSpec) {
+            if ( $field ) {
+                $field =~ s/(^\s+|\s+$)//g;
+                push @$userIdFields, $field if ($field);
+            }
+        }
+        $response =  $patronStatus->getPatronStatus(undef,$userIdFields);
+    } else {
+        $response =  $patronStatus->getPatronStatus();
+    }
 	
 	if ( C4::Context->preference("DivibibLog") ) {
         my $dumper = Data::Dumper->new( [{ request_userid => $borrowernumber, requester_ip => $ENV{'REMOTE_ADDR'}, response => $response }]);

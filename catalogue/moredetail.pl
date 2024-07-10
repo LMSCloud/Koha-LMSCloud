@@ -190,7 +190,7 @@ foreach my $item (@items){
     $item_info->{'datereceived'}            = $order->{'datereceived'};
 
     if (   $item->notforloan
-        || $item->itemtype->notforloan
+        || ($item->itemtype && $item->itemtype->notforloan)
         || $item->itemlost
         || $item->damaged
         || $item->withdrawn )

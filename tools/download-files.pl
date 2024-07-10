@@ -95,6 +95,7 @@ if ( $op eq 'download' ) {
     $content_type = 'json' if ( $filename =~ /\.json$/i );
     $content_type = 'xml' if ( $filename =~ /\.xml$/i );
     $content_type = 'zip' if ( $filename =~ /\.zip$/i );
+    $content_type = 'txt' if ( $filename =~ /\.txt$/i );
 
     if ( $content_type ne 'html' ) {                    # otherwise Firefox would open its download dialog even with content_type 'html' instead of showing the html content
         $extraoptions = { filename => $filename };

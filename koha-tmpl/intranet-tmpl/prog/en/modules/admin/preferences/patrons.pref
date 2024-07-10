@@ -56,6 +56,11 @@ Patrons:
            class: integer
          - results per page in the staff interface.
      -
+         - Set 
+         - pref: DefaultPatronLanguage
+         - 'as default language for new created patrons. The setting enables the language initialization independent of the setting of parameter <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=TranslateNotices">TranslateNotices</a>.'
+         - If a library wants to maintain default notices only the setting helps to get embedded contents in the predefined patron language. 
+     -
          - "Comma separated list defining the default fields to be used during a patron search using the \"standard\" option in the patrons or circulation module:"
          - pref: DefaultPatronSearchFields
            class: multi

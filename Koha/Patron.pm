@@ -224,7 +224,11 @@ sub store {
                      and $self->relationship eq "";
 
             unless ( $self->in_storage ) {    #AddMember
-
+                
+                # Set default language
+                $self->lang( C4::Context->preference("DefaultPatronLanguage") )
+                    if not $self->lang and C4::Context->preference("DefaultPatronLanguage");
+                
                 # Generate a valid userid/login if needed
                 $self->generate_userid
                   if not $self->userid or not $self->has_valid_userid;

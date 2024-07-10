@@ -774,7 +774,7 @@ else {
               $shelflocations->{ $item->location };
         }
 
-        my $itemtype = $item->itemtype;
+        my $itemtype = $item->itype;
         if ( $itemtype ) {
             $item_info->{'imageurl'} = getitemtypeimagelocation( 'opac',
                 $itemtypes->{ $itemtype }->{'imageurl'} );

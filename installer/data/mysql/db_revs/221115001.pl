@@ -1,27 +1,27 @@
 use Modern::Perl;
 
 return {
-    bug_number => "KOHA2211-67",
-    description => "Set categorycode values of statistics table by borrowers and deletedborrowers categorycode",
-    up => sub {
+    bug_number  => "36244",
+    description => "Template Toolkit syntax not escaped in letter templates",
+    up          => sub {
         my ($args) = @_;
-        my ($dbh, $out) = @$args{qw(dbh out)};
+        my ( $dbh, $out ) = @$args{qw(dbh out)};
 
-        if( column_exists( 'statistics', 'categorycode' ) ) {
-            my $res = $dbh->do(q{
-                UPDATE statistics 
-                JOIN   borrowers ON (statistics.borrowernumber = borrowers.borrowernumber)
-                SET    statistics.categorycode = borrowers.categorycode
-                WHERE  statistics.type IN ('recall','localuse','onsite_checkout','issue','return','renew')
-            });
-            $res += $dbh->do(q{
-                UPDATE statistics 
-                JOIN   deletedborrowers ON (statistics.borrowernumber = deletedborrowers.borrowernumber)
-                SET    statistics.categorycode = deletedborrowers.categorycode
-                WHERE  statistics.type IN ('recall','localuse','onsite_checkout','issue','return','renew')
-            });
-            $res += 0;
-            say $out "Added statistics.categorycode values to $res rows of the statistics table.";
+        my $query = q{SELECT * FROM letter WHERE content LIKE "[|%%SET%<<%|%]" ESCAPE '|'};
+        my $sth   = $dbh->prepare($query);
+        $sth->execute();
+        if ( $sth->rows ) {
+            say $out "You have one or more templates that have been affected by bug 36244.";
+            say $out "These templates assign template toolkit variables values";
+            say $out "using the double arrows syntax. E.g. [% SET name = '<<branches.branchname>>' %]";
+            say $out
+                "This will no longer function correctly as Template Toolkit is now rendered before the double arrow syntax.";
+            say $out "The following notices will need to be updated:";
+
+            while ( my $row = $sth->fetchrow_hashref() ) {
+                say $out
+                    "ID: $row->{id} / MODULE: $row->{module} / CODE: $row->{code} / BRANCHCODE: $row->{branchcode} / NAME: $row->{name}";
+            }
         }
     },
 };

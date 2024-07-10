@@ -54,6 +54,17 @@
                     };
         },
         
+        GetText: function (code) {
+            var texthash = new Object();
+            
+            texthash['mediabatch'] = _("Media batch: ");
+             
+            if (texthash.hasOwnProperty(code)) {
+                return texthash[code];
+            }
+            return code;
+        },
+        
         GetEasyCheckErrorMessage: function (errorCode,errorMessage,errorData) {
             if ( errorCode == "-1001" ) {
                 return "Fehler beim Öffnen des RFID-Readers. Der Reader ist möglicherweise nicht angeschlossen, oder am falschen COM Port angeschlossen. Es ist auch möglich, dass ein anderes Programm gerade auf den USB o. COM-Port zugreift.";

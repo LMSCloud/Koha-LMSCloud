@@ -259,6 +259,7 @@ sub output_with_http_headers {
         'rss'  => 'text/xml',
         'atom' => 'text/xml',
         'csv' => 'text/x-csv',
+        'txt'  => 'text/plain',
         'opensearchdescription' => 'application/opensearchdescription+xml',
     );
 

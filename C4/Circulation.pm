@@ -1826,6 +1826,35 @@ sub AddIssue {
                     categorycode   => $borrower->{'categorycode'}
                 }
             );
+            
+            if ( $item_object->is_bundle ) {
+                my $bundleLostValue = C4::Context->preference('BundleLostValue');
+                my $currdate = dt_from_string()->ymd();
+                my @bundle_items = $item_object->bundle_items->as_list;
+                foreach my $bundle_item(@bundle_items) {
+                    if ( !$bundle_item->itemlost || $bundle_item->itemlost != $bundleLostValue ) {
+                        
+                        $bundle_item->issues( ( $bundle_item->issues || 0 ) + 1);
+                        $bundle_item->datelastborrowed( $currdate );
+                        $bundle_item->datelastseen( $currdate );
+                        $bundle_item->store( { log_action => 0, skip_holds_queue => 1 } );
+                        
+                        C4::Stats::UpdateStats(
+                            {
+                                branch => C4::Context->userenv->{'branch'},
+                                type => ( $onsite_checkout ? 'onsite_checkout' : 'issue' ),
+                                other          => ( $sipmode ? "SIP-$sipmode" : '' ),
+                                itemnumber     => $bundle_item->itemnumber,
+                                itemtype       => $bundle_item->effective_itemtype,
+                                location       => $bundle_item->location,
+                                borrowernumber => $borrower->{'borrowernumber'},
+                                ccode          => $bundle_item->ccode,
+                                categorycode   => $borrower->{'categorycode'}
+                            }
+                        );
+                    }
+                }
+            }
 
             # Send a checkout slip.
             my $circulation_alert = 'C4::ItemCirculationAlertPreference';
@@ -3485,6 +3514,31 @@ sub AddRenewal {
                 categorycode   => $patron->categorycode,
             }
         );
+        
+        if ( $item_object->is_bundle ) {
+            my $bundleLostValue = C4::Context->preference('BundleLostValue');
+            my $currdate = dt_from_string()->ymd();
+            my @bundle_items = $item_object->bundle_items->as_list;
+            foreach my $bundle_item(@bundle_items) {
+                if ( !$bundle_item->itemlost || $bundle_item->itemlost != $bundleLostValue ) {
+                    $bundle_item->renewals( ( $bundle_item->renewals || 0 ) + 1);
+                    $bundle_item->store( { log_action => 0, skip_record_index => 1 } );
+                    
+                    C4::Stats::UpdateStats(
+                        {
+                            branch         => $item_object->renewal_branchcode({branch => $branch}),
+                            type           => 'renew',
+                            itemnumber     => $bundle_item->itemnumber,
+                            itemtype       => $bundle_item->effective_itemtype,
+                            location       => $bundle_item->location,
+                            borrowernumber => $borrowernumber,
+                            ccode          => $bundle_item->ccode,
+                            categorycode   => $patron->categorycode
+                        }
+                    );
+                }
+            }
+        }
 
         #Log the renewal
         logaction("CIRCULATION", "RENEWAL", $borrowernumber, $itemnumber) if C4::Context->preference("RenewalLog");

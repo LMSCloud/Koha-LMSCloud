@@ -87,7 +87,7 @@ sub pay {
     my $userenv = C4::Context->userenv;
     $library_id = $userenv->{branch} if (!$library_id && $userenv && $userenv->{branch});
 
-    unless ( $type eq 'WRITEOFF' ) {
+    unless ( $type eq 'WRITEOFF' || $type eq 'CANCELLATION' ) {
         Koha::Exceptions::Account::PaymentTypeRequired->throw()
             if ( C4::Context->preference("RequirePaymentType")
             && !defined($payment_type) );

@@ -43,6 +43,7 @@ use C4::Members;
 use C4::Output qw( output_html_with_http_headers );
 use C4::Reserves qw( ModReserve ModReserveAffect GetOtherReserves );
 use C4::RotatingCollections;
+use C4::Stats qw( UpdateStats );
 use Koha::AuthorisedValues;
 use Koha::BiblioFrameworks;
 use Koha::Calendar;
@@ -456,6 +457,19 @@ if ($barcode) {
 
             # Store results
             $verify_item->store();
+            
+            C4::Stats::UpdateStats(
+                {
+                    branch         => $userenv_branch,
+                    type           => ((!$issue && C4::Context->preference("RecordLocalUseOnReturn")) ? 'localuse' : 'return'),
+                    itemnumber     => $verify_item->itemnumber,
+                    itemtype       => $verify_item->effective_itemtype,
+                    location       => $verify_item->location,
+                    borrowernumber => $borrower->{borrowernumber},
+                    ccode          => $verify_item->ccode,
+                    categorycode   => $borrower->{categorycode},
+                }
+            );
         }
         for my $missing_item ( keys %{$expected_items} ) {
             my $bundle_item = $expected_items->{$missing_item};

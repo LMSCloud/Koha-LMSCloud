@@ -58,7 +58,7 @@ sub guarantors {
 sub hasFamilyCardRelationship {
     my ($self) = @_;
     
-    my @guarantors = $self->guarantors();
+    my @guarantors = $self->guarantors()->as_list;
     
     foreach my $guarantor(@guarantors) {
         return 1 if ($guarantor->is_family_card);
