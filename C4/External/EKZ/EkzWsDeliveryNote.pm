@@ -1,6 +1,6 @@
 package C4::External::EKZ::EkzWsDeliveryNote;
 
-# Copyright 2017-2022 (C) LMSCLoud GmbH
+# Copyright 2017-2024 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -1370,6 +1370,46 @@ sub processItemHit
     my $itemnumber = $titleItemObjectRS->get_column('koha_object_id');
     $logger->trace("processItemHit() titleItemObjectRS->{_column_data}:" . Dumper($titleItemObjectRS->{_column_data}) . ":");
     $logger->trace("processItemHit() candidate item for update has itemnumber:" . $itemnumber . ":");
+
+    # void the itemnumber if meanwhile the order has been transferred by the library to another bookseller than ekz
+    if ( defined $itemnumber ) {
+        my $schema = Koha::Database->new()->schema();
+        # try to find the aqorders record for this item
+        $selParam = {
+            itemnumber => $itemnumber
+        };
+        my $aqorders_itemsRS = $schema->resultset('AqordersItem')->search($selParam)->first();    # ordernumber is an unique key in table aqorders_items
+        my $ordernumber = $aqorders_itemsRS->get_column('ordernumber');
+        $logger->trace("processItemHit() aqorders_itemsRS->{_column_data}:" . Dumper($aqorders_itemsRS->{_column_data}) . ": ordernumber:" . $ordernumber . ":");
+
+        if ( $ordernumber ) {
+            # try to get the basketno of the aqorders record for this item
+            $selParam = {
+                ordernumber => $ordernumber
+            };
+            my $aqordersRS = $schema->resultset('Aqorder')->search($selParam)->first();    # ordernumber is an unique key in table aqorders
+            my $basketno = $aqordersRS->get_column('basketno');
+            $logger->trace("processItemHit() aqordersRS->{_column_data}:" . Dumper($aqordersRS->{_column_data}) . ": basketno:" . $basketno . ":");
+
+            if ( $basketno ) {
+                # compare the booksellerid of this aqbasket with the systempreferences variable for bookseller ekz
+                $selParam = {
+                    basketno => $basketno
+                };
+                my $aqbasketRS = $schema->resultset('Aqbasket')->search($selParam)->first();    # basketno is an unique key in table aqbasket
+                my $booksellerid = $aqbasketRS->get_column('booksellerid');
+                $logger->trace("processItemHit() aqbasketRS->{_column_data}:" . Dumper($aqbasketRS->{_column_data}) . ": booksellerid:" . $booksellerid . ": ekzAqbooksellersId:" . $ekzAqbooksellersId . ":");
+
+                if ( defined($ekzAqbooksellersId) && length($ekzAqbooksellersId) ) {
+                    if ( ! defined $booksellerid || $booksellerid != $ekzAqbooksellersId ) {
+                         $logger->warn("processItemHit() will not use itemnumber:$itemnumber: as ordernumber:$ordernumber: leads to basketno:$basketno: but booksellerid:$booksellerid: differs from ekzAqbooksellersId:$ekzAqbooksellersId:");
+                        $itemnumber = undef;    # void this itemnumber - this item now belongs to another aqbookseller and so may not be used for ekz data import any more
+                    }
+                }
+            }
+        }
+        $logger->trace("processItemHit() candidate item for update has itemnumber:" . $itemnumber . ": (after order transfer check)");
+    }
     
     # 2. step: update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenReceived> where itemnumber = acquisition_import_objects.koha_object_id (from above result)
     my $itemHitCount = 0;

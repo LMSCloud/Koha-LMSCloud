@@ -1,6 +1,6 @@
 package C4::External::EKZ::EkzWsInvoice;
 
-# Copyright 2020-2022 (C) LMSCLoud GmbH
+# Copyright 2020-2024 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -31,7 +31,6 @@ use C4::Acquisition qw( NewBasket GetBasket GetBaskets ModBasket ReopenBasket
                         GetBasketgroupsGeneric NewBasketgroup CloseBasketgroup ReOpenBasketgroup 
                         GetOrder GetOrderFromItemnumber ModOrderDeliveryNote ModReceiveOrder 
                         GetInvoice GetInvoices AddInvoice CloseInvoice ReopenInvoice );
-# use C4::Acquisition qw( populate_order_with_prices );    # additionally populate_order_with_prices is required here, but it is not exported by C4::Acquisition, so we have to use it inofficially
 use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField );
 use C4::Context;
 use C4::Items qw( ModItemFromMarc );    # additionally GetMarcItem is required here, but it is not exported by C4::Items, so we have to use it inofficially
@@ -1485,6 +1484,46 @@ sub processItemHit
     my $itemnumber = $titleItemObjectRS->get_column('koha_object_id');
     $logger->trace("processItemHit() titleItemObjectRS->{_column_data}:" . Dumper($titleItemObjectRS->{_column_data}) . ":");
     $logger->trace("processItemHit() candidate item for update has itemnumber:" . $itemnumber . ":");
+
+    # void the itemnumber if meanwhile the order has been transferred by the library to another bookseller than ekz
+    if ( defined $itemnumber ) {
+        my $schema = Koha::Database->new()->schema();
+        # try to find the aqorders record for this item
+        $selParam = {
+            itemnumber => $itemnumber
+        };
+        my $aqorders_itemsRS = $schema->resultset('AqordersItem')->search($selParam)->first();    # ordernumber is an unique key in table aqorders_items
+        my $ordernumber = $aqorders_itemsRS->get_column('ordernumber');
+        $logger->trace("processItemHit() aqorders_itemsRS->{_column_data}:" . Dumper($aqorders_itemsRS->{_column_data}) . ": ordernumber:" . $ordernumber . ":");
+
+        if ( $ordernumber ) {
+            # try to get the basketno of the aqorders record for this item
+            $selParam = {
+                ordernumber => $ordernumber
+            };
+            my $aqordersRS = $schema->resultset('Aqorder')->search($selParam)->first();    # ordernumber is an unique key in table aqorders
+            my $basketno = $aqordersRS->get_column('basketno');
+            $logger->trace("processItemHit() aqordersRS->{_column_data}:" . Dumper($aqordersRS->{_column_data}) . ": basketno:" . $basketno . ":");
+
+            if ( $basketno ) {
+                # compare the booksellerid of this aqbasket with the systempreferences variable for bookseller ekz
+                $selParam = {
+                    basketno => $basketno
+                };
+                my $aqbasketRS = $schema->resultset('Aqbasket')->search($selParam)->first();    # basketno is an unique key in table aqbasket
+                my $booksellerid = $aqbasketRS->get_column('booksellerid');
+                $logger->trace("processItemHit() aqbasketRS->{_column_data}:" . Dumper($aqbasketRS->{_column_data}) . ": booksellerid:" . $booksellerid . ": ekzAqbooksellersId:" . $ekzAqbooksellersId . ":");
+
+                if ( defined($ekzAqbooksellersId) && length($ekzAqbooksellersId) ) {
+                    if ( ! defined $booksellerid || $booksellerid != $ekzAqbooksellersId ) {
+                         $logger->warn("processItemHit() will not use itemnumber:$itemnumber: as ordernumber:$ordernumber: leads to basketno:$basketno: but booksellerid:$booksellerid: differs from ekzAqbooksellersId:$ekzAqbooksellersId:");
+                        $itemnumber = undef;    # void this itemnumber - this item now belongs to another aqbookseller and so may not be used for ekz data import any more
+                    }
+                }
+            }
+        }
+        $logger->trace("processItemHit() candidate item for update has itemnumber:" . $itemnumber . ": (after order transfer check)");
+    }
     
     # 2. step: update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenInvoiced> where itemnumber = acquisition_import_objects.koha_object_id (from above result)
     #          and, if configured so, update Koha acquisition data via processItemInvoice()
@@ -1879,61 +1918,56 @@ sub processItemInvoice
     # Get price info from auftragPosition of sent message, for updating/creating aqorders.
     my $priceInfo = priceInfoFromMessage($rechnungRecord, $auftragsPosition, $logger);
 
-    my $order = C4::Acquisition::GetOrder($ordernumber_ret);    # contains more fields then $orderRecord; needed for populate_order_with_prices and ModReceiveOrder()
+    my $order = Koha::Acquisition::Orders->find( $ordernumber_ret );    # contains more fields then $orderRecord; needed for populate_with_prices_for_receiving and ModReceiveOrder()
 
     ### XXXWH $order->{quantityreceived} += 1; nein, das läuft über ModReceiveOrder
-    $order->{listprice} = $priceInfo->{verkaufsPreis};    # in supplier's currency, not discounted, per item (input field 'Vendor price' in UI)
-    $order->{tax_rate} = $priceInfo->{ustSatz};
-    $order->{tax_rate_on_receiving} = $order->{tax_rate};    # tax_value_on_receiving is calculated in populate_order_with_prices() based on this
+    $order->listprice($priceInfo->{verkaufsPreis});    # in supplier's currency, not discounted, per item (input field 'Vendor price' in UI)
+    $order->tax_rate_on_receiving($priceInfo->{ustSatz});    # tax_value_on_receiving is calculated in populate_with_prices_for_receiving() based on this
     my $bookseller = Koha::Acquisition::Booksellers->find( $aqbasket_of_order->{booksellerid} );    # id is primary key
     if ( $bookseller->listincgst ) {    # as far as we know this is always true for bookseller 'ekz'
-        $order->{unitprice} = $priceInfo->{gesamtpreis_tax_included};    # discounted price per item (input field 'Actual cost' in UI / entered cost, handling etc. incl. (set to 0.0 in the phase  before receipt))
+        $order->unitprice($priceInfo->{gesamtpreis_tax_included});    # discounted price per item (input field 'Actual cost' in UI / entered cost, handling etc. incl. (set to 0.0 in the phase  before receipt))
     } else {
-        $order->{unitprice} = $priceInfo->{gesamtpreis_tax_excluded};    # discounted price per item (input field 'Actual cost' in UI / entered cost, handling etc. incl. (set to 0.0 in the phase  before receipt))
+        $order->unitprice($priceInfo->{gesamtpreis_tax_excluded});    # discounted price per item (input field 'Actual cost' in UI / entered cost, handling etc. incl. (set to 0.0 in the phase  before receipt))
     }
 
     # additional remarks in order_vendornote
-    if ( ! $order->{order_vendornote} ) {
-        $order->{order_vendornote} = '';
+    my $new_order_vendornote = $order->{order_vendornote};
+    if ( ! $new_order_vendornote ) {
+        $new_order_vendornote = '';
     }
-    if ( length($order->{order_vendornote}) && substr($order->{order_vendornote},-1) ne "\n" ) {
-        $order->{order_vendornote} .= "\n";
+    if ( length($new_order_vendornote) && substr($new_order_vendornote,-1) ne "\n" ) {
+        $new_order_vendornote .= "\n";
     }
-    $order->{order_vendornote} .= sprintf("Rechnung:\nVerkaufspreis: %.2f %s (Exemplare: %d)\n", $priceInfo->{verkaufsPreis}, $priceInfo->{waehrung}, $priceInfo->{exemplareBestellt});
+    $new_order_vendornote .= sprintf("Rechnung:\nVerkaufspreis: %.2f %s (Exemplare: %d)\n", $priceInfo->{verkaufsPreis}, $priceInfo->{waehrung}, $priceInfo->{exemplareBestellt});
     if ( $priceInfo->{nachlass} != 0.0 ) {
-        $order->{order_vendornote} .= sprintf("Nachlass: %.2f %s\n", $priceInfo->{nachlass}, $priceInfo->{waehrung});
+        $new_order_vendornote .= sprintf("Nachlass: %.2f %s\n", $priceInfo->{nachlass}, $priceInfo->{waehrung});
     }
     if ( $priceInfo->{wertPositionsTeil} != 0.0 ) {
-        $order->{order_vendornote} .= sprintf("Positionsteilwert: %.2f %s\n", $priceInfo->{wertPositionsTeil}, $priceInfo->{waehrung});
+        $new_order_vendornote .= sprintf("Positionsteilwert: %.2f %s\n", $priceInfo->{wertPositionsTeil}, $priceInfo->{waehrung});
     }
     if ( $priceInfo->{wertMehrpreise} != 0.0 ) {
-        $order->{order_vendornote} .= sprintf("Mehrpreis: %.2f %s\n", $priceInfo->{wertMehrpreise}, $priceInfo->{waehrung});
+        $new_order_vendornote .= sprintf("Mehrpreis: %.2f %s\n", $priceInfo->{wertMehrpreise}, $priceInfo->{waehrung});
     }
     if ( $priceInfo->{wertBearbeitung} != 0.0 ) {
-        $order->{order_vendornote} .= sprintf("Bearbeitungspreis: %.2f %s\n", $priceInfo->{wertBearbeitung}, $priceInfo->{waehrung});
+        $new_order_vendornote .= sprintf("Bearbeitungspreis: %.2f %s\n", $priceInfo->{wertBearbeitung}, $priceInfo->{waehrung});
     }
-    $order->{discount} = $priceInfo->{rabatt};    # rabatt value of ekz quotes percents, so 15.0 means 15 %. So the value of $priceInfo->{rabatt} can be used without transformation for aqorders.discount.
+    $order->order_vendornote($new_order_vendornote);
+    $order->discount($priceInfo->{rabatt});    # rabatt value of ekz quotes percents, so 15.0 means 15 %. So the value of $priceInfo->{rabatt} can be used without transformation for aqorders.discount.
 
     # We explicitly do not manipulate $order->{ecost}, $order->{ecost_tax_excluded} and $order->{ecost_tax_included} here.
     # The simple reason is that also the Koha staff interface does not do this when items are receipt-booked in the Koha acquisition.
     # Probably it is wanted that aqorders.ecost* always shows the estimated costs of the ordering time - even later, when the real cost is known and differing.
 
-    C4::Acquisition::populate_order_with_prices(
-        {
-            order => $order,
-            booksellerid => $aqbasket_of_order->{booksellerid},
-            receiving => 1
-        }
-    );
-    $logger->trace("processItemInvoice() populate_order_with_prices done, order:" . Dumper($order) . ":");
+    $order->populate_with_prices_for_receiving();
+    $logger->trace("processItemInvoice() order->populate_with_prices_for_receiving done, order->{_result}->{_column_data}:" . Dumper($order->{_result}->{_column_data}) . ":");
 
     # save the quantity received.
     my @received_items = ( $itemnumber );
     my ( $datereceived, $new_ordernumber ) = C4::Acquisition::ModReceiveOrder(
         {
             biblionumber     => $orderRecord->{biblionumber},
-            order            => $order,
-            quantityreceived => 1,
+            order            => $order->unblessed,
+            quantityreceived => 1,    # we are working item by item, i.e. processItemInvoice() is called per item, even if $priceInfo->{exemplareBestellt} > 1
             user             => undef,    # XXXWH welchen $user denn sonst?
             invoice          => $invoice,
             budget_id        => $orderRecord->{budget_id},
