@@ -2238,7 +2238,7 @@ sub defaultUstSatz {
     $mon += 1;
 
     # period 1: from 2020-07-01 to 2020-12-31, when value added tax rate (VAT) was reduced from 7% to 5% and from 19% to 16% in Germany
-    if ( $year = 2020 && $mon >= 7 && $mon <= 12 )   {
+    if ( $year == 2020 && $mon >= 7 && $mon <= 12 )   {
         $period = 1;
     }
 
