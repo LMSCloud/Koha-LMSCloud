@@ -381,8 +381,8 @@ sub genKohaRecords {
 
                                 if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                                     $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
-                                    my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
-                                    my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+                                    my $tmp_cn = (defined($titleHits->{'records'}->[0]->field("001")) && $titleHits->{'records'}->[0]->field("001")->data()) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+                                    my $tmp_cna = (defined($titleHits->{'records'}->[0]->field("003")) && $titleHits->{'records'}->[0]->field("003")->data()) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
                                     if ( $tmp_cna eq "DE-Rt5" ) {
                                         $invEkzArtikelNr = $tmp_cn;
                                     } else {
@@ -508,8 +508,8 @@ sub genKohaRecords {
 
                                 if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                                     $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
-                                    my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
-                                    my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+                                    my $tmp_cn = (defined($titleHits->{'records'}->[0]->field("001")) && $titleHits->{'records'}->[0]->field("001")->data()) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+                                    my $tmp_cna = (defined($titleHits->{'records'}->[0]->field("003")) && $titleHits->{'records'}->[0]->field("003")->data()) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
                                     if ( $tmp_cna eq "DE-Rt5" ) {
                                         $invEkzArtikelNr = $tmp_cn;
                                     } else {
@@ -584,8 +584,8 @@ sub genKohaRecords {
 #                        $logger->trace("genKohaRecords() method3: from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
 #                        if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
 #                            $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
-#                            my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
-#                            my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+#                            my $tmp_cn = (defined($titleHits->{'records'}->[0]->field("001")) && $titleHits->{'records'}->[0]->field("001")->data()) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+#                            my $tmp_cna = (defined($titleHits->{'records'}->[0]->field("003")) && $titleHits->{'records'}->[0]->field("003")->data()) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
 #                            if ( $tmp_cna eq "DE-Rt5" ) {
 #                                $invEkzArtikelNr = $tmp_cn;
 #                            } else {
@@ -707,8 +707,8 @@ sub genKohaRecords {
                     for ( my $searchmode = 1; $searchmode <= 2; $searchmode *= 2 ) {
                         $logger->info("genKohaRecords() method4: in loop searchmode:$searchmode: ekzArtikelNr:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ": titleHits->{'count'}:" . $titleHits->{'count'} . ":");
                         if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
-                            my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
-                            my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+                            my $tmp_cn = (defined($titleHits->{'records'}->[0]->field("001")) && $titleHits->{'records'}->[0]->field("001")->data()) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+                            my $tmp_cna = (defined($titleHits->{'records'}->[0]->field("003")) && $titleHits->{'records'}->[0]->field("003")->data()) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
                             if ( $tmp_cna eq "DE-Rt5" ) {
                                 $invEkzArtikelNr = $tmp_cn;
                             } else {
@@ -804,10 +804,10 @@ sub genKohaRecords {
                             $emaillog->{'importresult'} = 2;
                             $emaillog->{'importedTitlesCount'} += 0;
                         }
-                        my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+                        my $tmp_biblionumber = defined($biblionumber) ? $biblionumber : "undef";
+                        my $tmp_cna = (defined($titleHits->{'records'}->[0]->field("003")) && $titleHits->{'records'}->[0]->field("003")->data()) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
                         if ( $tmp_cna eq "DE-Rt5" ) {
-                            my $tmp_biblionumber = defined($biblionumber) ? $biblionumber : "undef";
-                            my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $tmp_biblionumber;
+                            my $tmp_cn = (defined($titleHits->{'records'}->[0]->field("001")) && $titleHits->{'records'}->[0]->field("001")->data()) ? $titleHits->{'records'}->[0]->field("001")->data() : $tmp_biblionumber;
                             $invEkzArtikelNr = $tmp_cn;
                         }
                         # add result of adding biblio to log email
@@ -816,17 +816,19 @@ sub genKohaRecords {
                         $logger->trace("genKohaRecords() method4: emaillog->{'records'}->[0]:" . Dumper($emaillog->{'records'}->[0]) . ":");
                     }
                 }
-                $logger->info("genKohaRecords() method4: biblioExisting:$biblioExisting: biblioInserted:$biblioInserted: biblionumber:$biblionumber:");
+                $logger->info("genKohaRecords() method4: biblioExisting:$biblioExisting: biblioInserted:$biblioInserted: biblionumber:$biblionumber: invEkzArtikelNr:$invEkzArtikelNr:");
 
                 # now add the acquisition_import and acquisition_import_objects record for the title
                 if ( $biblioExisting || $biblioInserted ) {
 
-                    if ( !defined($invEkzArtikelNr) || $invEkzArtikelNr eq '0' ) {
+                    if ( !defined($invEkzArtikelNr) || $invEkzArtikelNr eq '0' || $invEkzArtikelNr eq '' ) {
                         my $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
-                        my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
-                        my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+                        my $tmp_cn = (defined($titleHits->{'records'}->[0]->field("001")) && $titleHits->{'records'}->[0]->field("001")->data()) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+                        my $tmp_cna = (defined($titleHits->{'records'}->[0]->field("003")) && $titleHits->{'records'}->[0]->field("003")->data()) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
                         $invEkzArtikelNr = $tmp_cna . '-' . $tmp_cn;
+                        $logger->info("genKohaRecords() method4: created fallback invEkzArtikelNr:$invEkzArtikelNr:");
                     }
+                    $logger->debug("genKohaRecords() method4: using invEkzArtikelNr:$invEkzArtikelNr:");
 
                     # Insert a record into table acquisition_import representing the title data of the 'invented' order.
                     my $insParam = {
@@ -1164,8 +1166,8 @@ $logger->debug("genKohaRecords() method4: after processItemInvoice() itemnumber:
                             $emaillog->{'importresult'} = -1;
                             $emaillog->{'importerror'} = 1;
                         }
-                        my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
-                        my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+                        my $tmp_cn = (defined($titleHits->{'records'}->[0]->field("001")) && $titleHits->{'records'}->[0]->field("001")->data()) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+                        my $tmp_cna = (defined($titleHits->{'records'}->[0]->field("003")) && $titleHits->{'records'}->[0]->field("003")->data()) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
                         my $importId = '(ControlNumber)' . $tmp_cn . '(ControlNrId)' . $tmp_cna;    # if cna = 'DE-Rt5' then this cn is the ekz article number
                         $emaillog->{'importIds'}->{$importId} = $itemnumber;
                         $logger->trace("genKohaRecords() method4: importedItemsCount:$emaillog->{'importedItemsCount'}: set next importId:" . $importId . ":");
@@ -1634,8 +1636,8 @@ sub processItemHit
         $emaillog->{'importerror'} = 1;
         $emaillog->{'processedItemsCount'} += 0;    # The item could not be processed here in processItemHit(). But probably it soon will be processed by method4.
     }
-    my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
-    my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+    my $tmp_cn = (defined($titleHits->{'records'}->[0]->field("001")) && $titleHits->{'records'}->[0]->field("001")->data()) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+    my $tmp_cna = (defined($titleHits->{'records'}->[0]->field("003")) && $titleHits->{'records'}->[0]->field("003")->data()) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
     my $importId = '(ControlNumber)' . $tmp_cn . '(ControlNrId)' . $tmp_cna;    # if cna = 'DE-Rt5' then this cn is the ekz article number
     $emaillog->{'importIds'}->{$importId} = $itemnumber;
     $logger->trace("processItemHit() updatedItemsCount:$emaillog->{'updatedItemsCount'}: set next importIds:" . $importId . ":");
