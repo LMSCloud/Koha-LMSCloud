@@ -251,6 +251,21 @@
                             </div>
                         [% END %]
 
+                        [% IF ptVariant == 'SaferpayPaypage' %]
+                            <div class="control-group">
+                                <label class="radio">
+                                    <input type="radio" name="payment_method" id="payment_method-[% p.class | html %]" value="[% p.class | html %]" checked="checked" onclick="paymentTypeVariantKoha.value = '[% ptVariant %]';" />
+                                    <div style="display: inline-block;">
+                                        <strong style="margin:5px;" > online payment via Saferpay </strong><br>
+                                        [% FOREACH ptVariantIcon IN p.opac_online_payment_get_icons(logged_in_user.branchcode, ptVariant) %]
+                                            <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://static.lmscloud.net/images/epayment/[% ptVariantIcon %]">
+                                        [% END %]
+                                    </div>
+                                    <br><a href="https://www.payone.com/AT-de" target="_blank" title="Online Payment with Saferpay by payone">More information about Saferpay by payone</a>
+                                </label>
+                            </div>
+                        [% END %]
+
                         <script type= "text/javascript">
                         paymentTypeVariantKoha.value = '[% ptVariant %]';
                         </script>
