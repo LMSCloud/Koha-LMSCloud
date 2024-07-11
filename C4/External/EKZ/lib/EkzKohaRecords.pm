@@ -396,6 +396,7 @@ sub readTitleInLocalDB {
     $selParam->{'ean'} = $reqParamTitelInfo->{'ean'};
     $selParam->{'erscheinungsJahr'} = $reqParamTitelInfo->{'erscheinungsJahr'};
 
+    my @marcRecordResultsUndefPublYear = ();
     my @marcRecordResultsEkz = ();
     my @marcRecordResultsNonEkz = ();
     my $standardBehaviour = 1;
@@ -416,40 +417,94 @@ sub readTitleInLocalDB {
     $hits = scalar @{$marcRecordResults} if $marcRecordResults;
     $self->{'logger'}->info("readTitleInLocalDB() after readTitleDubletten hits:$hits:");
 
-    if ( $searchmode == 2 && !( defined $selParam->{'erscheinungsJahr'} && length($selParam->{'erscheinungsJahr'}) > 0 ) ) {    # no search for publication year was done
-        for ( my $i = 0; $i < $hits && $maxhits > 0 and defined $marcRecordResults->[$i]; $i++ ) {
-            if ( $marcRecordResults->[$i]->field('003') && $marcRecordResults->[$i]->field('003')->data() && $marcRecordResults->[$i]->field('003')->data() eq 'DE-Rt5' ) {
-                push @marcRecordResultsEkz, $marcRecordResults->[$i];
-            } else {
-                push @marcRecordResultsNonEkz, $marcRecordResults->[$i];
-            }
-        }
-        $self->{'logger'}->debug("readTitleInLocalDB() searchmode==2; hits:$hits: scalar marcRecordResultsEkz:" . scalar @marcRecordResultsEkz . ": scalar marcRecordResultsNonEkz:" . scalar @marcRecordResultsNonEkz . ":");
+    if ( $searchmode == 2 ) {
+        # There are cases that required modification of the search result:
+        if ( defined $selParam->{'erscheinungsJahr'} && length($selParam->{'erscheinungsJahr'}) > 0 ) {    # search for publication year was done 
+            if ( $hits == 0 &&                                                                             # but no hit was found in combination with ISBN/ISSN/ISMN/EAN
+                 ( ( defined $selParam->{'isbn'} && length($selParam->{'isbn'}) > 0 ) ||
+                   ( defined $selParam->{'isbn13'} && length($selParam->{'isbn13'}) > 0 ) ||
+                   ( defined $selParam->{'issn'} && length($selParam->{'issn'}) > 0 ) ||
+                   ( defined $selParam->{'ismn'} && length($selParam->{'ismn'}) > 0 ) ||
+                   ( defined $selParam->{'ean'} && length($selParam->{'ean'}) > 0 )
+                 ) ) {
+                # We check now for titles with matching ISBN/ISSN/ISMN/EAN but undefined/empty publication year
+                my $tmpSelParam = {};
+                $tmpSelParam->{'isbn'} = $selParam->{'isbn'};
+                $tmpSelParam->{'isbn13'} = $selParam->{'isbn13'};
+                $tmpSelParam->{'issn'} = $selParam->{'issn'};
+                $tmpSelParam->{'ismn'} = $selParam->{'ismn'};
+                $tmpSelParam->{'ean'} = $selParam->{'ean'};
 
-        # If all of the DE-Rt5 hits have different ekzArtikelNr and there are no non-DE-Rt5 hits,
-        # we ignore the hits in order to trigger a LMS Pool search or a ekz Webservice 'MedienDaten' request.
-        if ( scalar @marcRecordResultsNonEkz == 0 ) {
-            if ( scalar @marcRecordResultsEkz && defined($selParam->{'ekzArtikelNr'}) && $selParam->{'ekzArtikelNr'} > 0 ) {
-                for ( my $i = 0; $i < $hits && $maxhits > 0 and defined $marcRecordResultsEkz[$i]; $i++ ) {
-                    $self->{'logger'}->debug("readTitleInLocalDB() in loop marcRecordResultsEkz; i:$i: selParam->{ekzArtikelNr}:" . $selParam->{'ekzArtikelNr'} . ": marcRecordResultsEkz[$i]->field('001')->data():" . ($marcRecordResultsEkz[$i]->field('001')?$marcRecordResultsEkz[$i]->field('001')->data():'undef') . ":");
+                my $tmpHits = 0;
+                my $tmpMarcRecordResults = $self->readTitleDubletten($tmpSelParam, $searchmode, 1);    # array of objects of type MARC::Record
+                $tmpHits = scalar @{$tmpMarcRecordResults} if $tmpMarcRecordResults;
+                $self->{'logger'}->info("readTitleInLocalDB() after readTitleDubletten with selection for publyear suppressed; tmpHits:$tmpHits:");
 
-                    if ( $marcRecordResultsEkz[$i]->field('001') && $marcRecordResultsEkz[$i]->field('001')->data() ) {
-                        if ( $selParam->{'ekzArtikelNr'} == $marcRecordResultsEkz[$i]->field('001')->data() ) {    # just in case - should never happen (should have been found using searchmode 1)
-                            my $marcrecord =  $marcRecordResultsEkz[$i];
-                            push @{$result->{'records'}}, $marcrecord;
-                            $result->{'count'} += 1;
-                            if ( defined($maxhits) && $maxhits >= 0 && $result->{'count'} >= $maxhits ) {
-                                last;
+                # Pick the hits having no publyear entries.
+                for ( my $i = 0; $i < $tmpHits && $maxhits > 0 and defined $tmpMarcRecordResults->[$i]; $i++ ) {
+                    my $yearCandidate = '';
+       PUBLIDISTRI: foreach my $publiDistriField ('260', '264') {
+                        $self->{'logger'}->debug("readTitleInLocalDB() publiDistriField:$publiDistriField:");
+                        foreach my $field ($tmpMarcRecordResults->[$i]->field($publiDistriField)) {
+                            my $subfieldC = $field->subfield('c');
+                            $self->{'logger'}->debug("readTitleInLocalDB() publiDistriField:$publiDistriField: subfieldC:$subfieldC:");
+                            if ( $subfieldC =~ /(\d\d\d\d)/ ) {
+                                $yearCandidate = $1;
+                            }
+                            $self->{'logger'}->debug("readTitleInLocalDB() publiDistriField:$publiDistriField: subfieldC:$subfieldC: yearCandidate:$yearCandidate:");
+                            if ( $yearCandidate ) {
+                                last PUBLIDISTRI;
                             }
                         }
                     }
+                    $self->{'logger'}->debug("readTitleInLocalDB() after foreach my publiDistriField ('260', '264') yearCandidate:$yearCandidate:");
+                    if ( $yearCandidate ) {
+                        next;    # This hit contains a not empty publication year, that must be different from the selection year of first search, because first search found no hits.
+                    }
 
+                    # A title hit without publyear is regarded as matching here. (Just another hack to ignore faults in ekz title data in order to avoid generating of doublettes.)
+                    $self->{'logger'}->debug("readTitleInLocalDB() pushing hit i:$i: into marcRecordResultsUndefPublYear");
+                    push @marcRecordResultsUndefPublYear, $tmpMarcRecordResults->[$i];
                 }
-                $standardBehaviour = 0;    # Ignore the hits in order to trigger a LMS Pool search or a ekz Webservice 'MedienDaten' request.
+                # We are using only the picked hits with matching ISBN/ISSN/ISMN/EAN but undefined/empty publication year.
+                $marcRecordResults = \@marcRecordResultsUndefPublYear;
             }
-        } else {
-            # The DE-Rt5 hits have different ekzArtikelNr, so we ignore them and hope that the non-DE-Rt5 hits are better.
-            $marcRecordResults = \@marcRecordResultsNonEkz;
+
+        } else {    # no search for publication year was done
+            for ( my $i = 0; $i < $hits && $maxhits > 0 and defined $marcRecordResults->[$i]; $i++ ) {
+                if ( $marcRecordResults->[$i]->field('003') && $marcRecordResults->[$i]->field('003')->data() && $marcRecordResults->[$i]->field('003')->data() eq 'DE-Rt5' ) {
+                    push @marcRecordResultsEkz, $marcRecordResults->[$i];
+                } else {
+                    push @marcRecordResultsNonEkz, $marcRecordResults->[$i];
+                }
+            }
+            $self->{'logger'}->debug("readTitleInLocalDB() searchmode==2; hits:$hits: scalar marcRecordResultsEkz:" . scalar @marcRecordResultsEkz . ": scalar marcRecordResultsNonEkz:" . scalar @marcRecordResultsNonEkz . ":");
+
+            # If all of the DE-Rt5 hits have different ekzArtikelNr and there are no non-DE-Rt5 hits,
+            # we ignore the hits in order to trigger a LMS Pool search or a ekz Webservice 'MedienDaten' request.
+            if ( scalar @marcRecordResultsNonEkz == 0 ) {
+                if ( scalar @marcRecordResultsEkz && defined($selParam->{'ekzArtikelNr'}) && $selParam->{'ekzArtikelNr'} > 0 ) {
+                    for ( my $i = 0; $i < $hits && $maxhits > 0 and defined $marcRecordResultsEkz[$i]; $i++ ) {
+                        $self->{'logger'}->debug("readTitleInLocalDB() in loop marcRecordResultsEkz; i:$i: selParam->{ekzArtikelNr}:" . $selParam->{'ekzArtikelNr'} . ": marcRecordResultsEkz[$i]->field('001')->data():" . ($marcRecordResultsEkz[$i]->field('001')?$marcRecordResultsEkz[$i]->field('001')->data():'undef') . ":");
+
+                        if ( $marcRecordResultsEkz[$i]->field('001') && $marcRecordResultsEkz[$i]->field('001')->data() ) {
+                            if ( $selParam->{'ekzArtikelNr'} == $marcRecordResultsEkz[$i]->field('001')->data() ) {    # just in case - should never happen (should have been found using searchmode 1)
+                                my $marcrecord =  $marcRecordResultsEkz[$i];
+                                push @{$result->{'records'}}, $marcrecord;
+                                $result->{'count'} += 1;
+                                if ( defined($maxhits) && $maxhits >= 0 && $result->{'count'} >= $maxhits ) {
+                                    last;
+                                }
+                            }
+                        }
+
+                    }
+                    $standardBehaviour = 0;    # Ignore the hits in order to trigger a LMS Pool search or a ekz Webservice 'MedienDaten' request.
+                }
+            } else {
+                # The DE-Rt5 hits have different ekzArtikelNr, so we ignore them and hope that the non-DE-Rt5 hits are better.
+                $marcRecordResults = \@marcRecordResultsNonEkz;
+            }
         }
     }
     if ( $standardBehaviour ) {
@@ -626,7 +681,7 @@ sub readTitleDubletten {
         }
         if ( scalar ( keys %{$selectParam} ) ) {
             $self->{'logger'}->debug("readTitleDubletten() now calling searchClass->searchLocalRecords() with selectParam:" . Dumper($selectParam) . ":");
-            $allmarcresults = $searchClass->searchLocalRecords($selectParam);    # will not use $selectParam->{'ekzArtikelNr'} if $selectParam->{'ekzArtikelNr'} == 0
+            $allmarcresults = $searchClass->searchLocalRecords($selectParam);    # will not use $selectParam->{'ekzArtikelNr'} if $selectParam->{'ekzArtikelNr'} == 0 or empty
         }
     } else {
         my $query = "cn:(-1)";                    # control number search, initial definition for no hit
@@ -682,6 +737,8 @@ sub readTitleDubletten {
             if ( $strictMatch && defined $selParam->{'erscheinungsJahr'} && length($selParam->{'erscheinungsJahr'}) > 0) {
                 $publYearCondition = " and publyear:($selParam->{'erscheinungsJahr'})";
             }
+
+            # check for isbn/isbn13 search
             if ( (!defined $selParam->{'isbn'} || length($selParam->{'isbn'}) == 0) &&
                  (!defined $selParam->{'isbn13'} || length($selParam->{'isbn13'}) == 0) ) {
                 my $mess = sprintf("readTitleDubletten(): isbn and isbn13 are empty -> not searching for isbn or isbn13.");
@@ -762,7 +819,7 @@ sub readTitleDubletten {
                     if ( length($query1) > 0 ) {
                         $query2 .= ' or ';
                     }
-                    $query2 .= "ident:($selParam->{'ean'})";
+                    $query2 .= "identifier-other:($selParam->{'ean'})";
                 }
                 $query = '(' . $query1 . $query2 . ')' . $publYearCondition;
                 $self->{'logger'}->debug("readTitleDubletten() query:$query:");
@@ -786,7 +843,7 @@ sub readTitleDubletten {
                     if ( length($query1) > 0 ) {
                         $query3 .= ' or ';
                     }
-                    $query3 .= sprintf("ident:(%013d)",$selParam->{'ean'});
+                    $query3 .= sprintf("identifier-other:(%013d)",$selParam->{'ean'});
                     $query = '(' . $query1 . $query3 . ')' . $publYearCondition;
                     $self->{'logger'}->debug("readTitleDubletten() query:$query:");
 
@@ -1081,14 +1138,19 @@ sub createTitleFromFields {
 
     my $result = { 'count' => 0, 'records' => [] };
     my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
-    my $lasttransaction = sprintf("%04d%02d%02d%02d%02d%02d.0",1900+$year,1+$mon,$mday,$hour,$min,$sec);
+    my $now = DateTime->from_epoch( epoch => Time::HiRes::time, time_zone => C4::Context->tz() );
+    my $lasttransaction = sprintf("%04d%02d%02d%02d%02d%02d", $now->year, $now->month, $now->day, $now->hour, $now->minute, $now->second);
     my $preisStored = 0;
     my $marcrecord =  MARC::Record->new();
+    my $ekzArtikelNr = $reqParamTitelInfo->{'ekzArtikelNr'};
+    if ( ! $ekzArtikelNr ) {    # undef, empty or 0
+        $ekzArtikelNr = $lasttransaction . sprintf("%09d", $now->nanosecond);    # create a fallback value that probably will not clash
+    }
 
     $marcrecord->MARC::Record::encoding( 'UTF-8' );
-    $marcrecord->insert_fields_ordered(MARC::Field->new('001', $reqParamTitelInfo->{'ekzArtikelNr'}));
+    $marcrecord->insert_fields_ordered(MARC::Field->new('001', $ekzArtikelNr));
     $marcrecord->insert_fields_ordered(MARC::Field->new('003', "DE-Rt5"));
-    $marcrecord->insert_fields_ordered(MARC::Field->new('005', $lasttransaction));
+    $marcrecord->insert_fields_ordered(MARC::Field->new('005', $lasttransaction . ".0"));
 
     # get values for fields 000, 006, 007, 008 depending on ekzArtikelArt:
     my $f06lead           = 'a';
@@ -2464,12 +2526,12 @@ sub tryOverwriteCatalogDataOnDelivery {
             $self->{'logger'}->debug("tryOverwriteCatalogDataOnDelivery() in loop titleHits; i:$i: volumeEkzArtikelNr:" . (defined($volumeEkzArtikelNr)?$volumeEkzArtikelNr:'undef') . ": cnMarcBiblioHit:$cnMarcBiblioHit: cnaMarcBiblioHit:$cnaMarcBiblioHit: cnMarcBiblioOld:$cnMarcBiblioOld: cnaMarcBiblioOld:$cnaMarcBiblioOld:");
 
             if ( $volumeEkzArtikelNr ) {    # multiple hits by webservice MedienDaten, so we have to pick the matching hit (series volume data)
-                if ( $cnMarcBiblioHit && $cnaMarcBiblioHit ne 'undefHit' && $cnMarcBiblioHit == $reqParamTitelInfo->{'ekzArtikelNr'} && $cnaMarcBiblioHit eq "DE-Rt5" ) {
+                if ( $cnMarcBiblioHit && $cnaMarcBiblioHit ne 'undefHit' && $cnMarcBiblioHit eq $reqParamTitelInfo->{'ekzArtikelNr'} && $cnaMarcBiblioHit eq "DE-Rt5" ) {
                     $hitIndex = $i;
                     last;
                 }
             } else {
-                if ( $cnMarcBiblioHit && $cnaMarcBiblioHit ne 'undefHit' && $cnMarcBiblioHit == $cnMarcBiblioOld && $cnaMarcBiblioHit eq $cnaMarcBiblioOld ) {
+                if ( $cnMarcBiblioHit && $cnaMarcBiblioHit ne 'undefHit' && $cnMarcBiblioHit eq $cnMarcBiblioOld && $cnaMarcBiblioHit eq $cnaMarcBiblioOld ) {
                     $hitIndex = $i;
                     last;
                 }
