@@ -769,16 +769,7 @@ sub handle_checkin {
         }
         if ($item) {
             $resp .= maybe_add( FID_MEDIA_TYPE,           $item->sip_media_type,      $server );
-            # The next is not standard SIP. With that change we enable delivery of the 
-            # patron hold id for EasyCheck devices.
-            if ( C4::Context->preference('SIPVendorDialect') 
-                && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' 
-                && $item->hold_patron_bcode ) 
-            {
-                $resp .= maybe_add( FID_ITEM_PROPS,       $item->hold_patron_bcode,   $server );
-            } else {
-                $resp .= maybe_add( FID_ITEM_PROPS,       $item->sip_item_properties, $server );
-            }
+            $resp .= maybe_add( FID_ITEM_PROPS,           $item->sip_item_properties, $server );
             $resp .= maybe_add( FID_CALL_NUMBER,          $item->call_number,         $server );
             $resp .= maybe_add( FID_HOLD_PATRON_ID,       $item->hold_patron_bcode,   $server );
             $resp .= add_field( FID_DESTINATION_LOCATION, $item->destination_loc,     $server ) if ( $item->destination_loc || $server->{account}->{ct_always_send} );
