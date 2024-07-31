@@ -458,7 +458,7 @@ if (@$barcodes) {
                 $datedue = $booked->end_date;
             }
             my $issue = AddIssue(
-                $patron, $barcode, $datedue,
+                $patron->unblessed, $barcode, $datedue,
                 $cancelreserve,
                 undef, undef,
                 {
