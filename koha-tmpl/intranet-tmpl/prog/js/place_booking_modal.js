@@ -1,8 +1,6 @@
 let dataFetched = false;
 let bookable_items, bookings, checkouts, booking_id, booking_item_id, booking_patron;
 
-$('#placeBookingModal').on('show.bs.modal', function(e) {
-
 function containsAny(integers1, integers2) {
     // Create a hash set to store integers from the second array
     let integerSet = {};
