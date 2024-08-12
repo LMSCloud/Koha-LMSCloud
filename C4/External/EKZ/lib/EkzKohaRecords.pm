@@ -137,7 +137,7 @@ sub ccodeBySupplyOption {
     if ( defined($self->{localCatalogSourceDelegateClass}) ) {
         my $auth_values = C4::Koha::GetAuthorisedValues('CCODE');
         foreach my $auth_value ( @{$auth_values} ) {
-            if ( $auth_value->{lib} eq $supplyOption ) {
+            if ( lc($auth_value->{lib}) eq lc($supplyOption) ) {
                 $retCcode = $auth_value->{authorised_value};
                 last;
             }
