@@ -18,21 +18,13 @@ const additionalFields = AdditionalFields.init({
     },
 });
 
+/**
+ * @param {number[]} integers1 - The first array of integers to check.
+ * @param {number[]} integers2 - The second array of integers to be checked against.
+ * @returns {boolean} - Returns true if any element from integers1 is found in integers2, otherwise false.
+ */
 function containsAny(integers1, integers2) {
-    // Create a hash set to store integers from the second array
-    let integerSet = {};
-    for (let i = 0; i < integers2.length; i++) {
-        integerSet[integers2[i]] = true;
-    }
-
-    // Check if any integer from the first array exists in the hash set
-    for (let i = 0; i < integers1.length; i++) {
-        if (integerSet[integers1[i]]) {
-            return true; // Found a match, return true
-        }
-    }
-
-    return false; // No match found
+    return integers1.some(integer => new Set(integers2).has(integer));
 }
 
 $("#placeBookingModal").on("show.bs.modal", function (e) {
@@ -218,41 +210,43 @@ $("#placeBookingModal").on("show.bs.modal", function (e) {
         allowClear: false,
         placeholder: __("Pickup location"),
     });
-    function setLocationsPicker(response) {
+    function setLocationsPicker(response, booking_patron) {
         let $pickupSelect = $("#pickup_library_id");
         let bookableItemnumbers = bookable_items.map(function (object) {
             return object.item_id;
         });
         $pickupSelect.empty();
 
-        $.each(response, function (index, pickup_location) {
-            if (
-                containsAny(pickup_location.pickup_items, bookableItemnumbers)
-            ) {
-                let option = $(
-                    '<option value="' +
-                        pickup_location.library_id +
-                        '">' +
-                        pickup_location.name +
-                        "</option>"
-                );
+        const filtered_pickup_locations = response.filter(({ pickup_items }) =>
+            containsAny(pickup_items, bookableItemnumbers)
+        );
+        $.each(filtered_pickup_locations, function (index, pickup_location) {
+            let option = $(
+                '<option value="' +
+                    pickup_location.library_id +
+                    '">' +
+                    pickup_location.name +
+                    "</option>"
+            );
 
-                option.attr(
-                    "data-needs_override",
-                    pickup_location.needs_override
-                );
-                option.attr(
-                    "data-pickup_items",
-                    pickup_location.pickup_items.join(",")
-                );
+            option.attr("data-needs_override", pickup_location.needs_override);
+            option.attr(
+                "data-pickup_items",
+                pickup_location.pickup_items.join(",")
+            );
 
-                $pickupSelect.append(option);
-            }
+            $pickupSelect.append(option);
         });
 
         $pickupSelect.prop("disabled", false);
 
-        // If pickup_library already exists, pre-select
+        // If filtered_pickup_locations contain the booking_patron's home library, use it as the default for pickup_library_id
+        pickup_library_id ??= filtered_pickup_locations.find(
+            pickup_location =>
+                pickup_location.library_id ===
+                booking_patron?.library.library_id
+        )?.library_id;
+
         if (pickup_library_id) {
             $pickupSelect.val(pickup_library_id).trigger("change");
         } else {
@@ -295,12 +289,12 @@ $("#placeBookingModal").on("show.bs.modal", function (e) {
             },
             success: function (response) {
                 if (dataFetched === true) {
-                    setLocationsPicker(response);
+                    setLocationsPicker(response, booking_patron);
                 } else {
                     var interval = setInterval(function () {
                         if (dataFetched === true) {
                             // Data is fetched, execute the callback and stop the interval
-                            setLocationsPicker(response);
+                            setLocationsPicker(response, booking_patron);
                             clearInterval(interval);
                         }
                     }, 100);
@@ -619,6 +613,50 @@ $("#placeBookingModal").on("show.bs.modal", function (e) {
                         }
                     });
                     $("#pickup_library_id").trigger("change.select2");
+
+                    // Set item's home library as default if patron's home library hasn't already populated pickup_library_id
+                    let pickup_library_id = $("#pickup_library_id").val();
+                    const booking_patron_id = $("#booking_patron_id").val();
+                    if (!pickup_library_id && booking_patron_id) {
+                        $.ajax({
+                            url:
+                                "/api/v1/patrons?patron_id=" +
+                                booking_patron_id,
+                            dataType: "json",
+                            type: "GET",
+                        }).then(response => {
+                            const [booking_patron] = response;
+                            let is_home;
+                            pickup_library_id = bookable_items.find(
+                                ({ home_library_id, holding_library_id }) => {
+                                    is_home =
+                                        holding_library_id === home_library_id;
+                                    if (is_home) {
+                                        return (
+                                            home_library_id ===
+                                            booking_patron.library_id
+                                        );
+                                    }
+
+                                    return (
+                                        holding_library_id ===
+                                        booking_patron.library_id
+                                    );
+                                }
+                            )?.[
+                                is_home
+                                    ? "home_library_id"
+                                    : "holding_library_id"
+                            ];
+                            if (!pickup_library_id) {
+                                return;
+                            }
+
+                            $("#pickup_library_id")
+                                .val(pickup_library_id)
+                                .trigger("change.select2");
+                        });
+                    }
 
                     // Disable patron selection change
                     $("#booking_patron_id").prop("disabled", true);
