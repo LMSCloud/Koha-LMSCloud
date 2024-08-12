@@ -87,7 +87,8 @@ if ( $action eq 'reverse' ) {
     my $charge           = Koha::Account::Lines->find($charge_id);
     my $amount           = $voided->amount;
     my $refund_type      = scalar $input->param('refund_type');
-    
+    $refund_type = 'CASH' if (! $refund_type);
+
     $schema->txn_do(
         sub {
 

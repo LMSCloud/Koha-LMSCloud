@@ -126,7 +126,7 @@ sub printbasketgrouppdf{
     my ($basketgroupid) = @_;
 
     my $pdfformat = C4::Context->preference("OrderPdfFormat");
-    my @valid_pdfformats = qw(pdfformat::layout3pages pdfformat::layout2pages pdfformat::layout3pagesfr pdfformat::layout2pagesde pdfformat::layout1page pdfformat::layout2pagesdinde);
+    my @valid_pdfformats = qw(pdfformat::layout3pages pdfformat::layout2pages pdfformat::layout3pagesfr pdfformat::layout2pagesde pdfformat::layout1page pdfformat::layout2pagesdinde pdfformat::layout2pagesdinde2);
     if (grep {$_ eq $pdfformat} @valid_pdfformats) {
         $pdfformat = "Koha::$pdfformat";
         my $pdfformat_filepath = File::Spec->catfile(split /::/, $pdfformat) . '.pm';

@@ -62,7 +62,7 @@ sub charge {
     my $description;
     
     my $feeTypes = {};
-    foreach my $debit_type ( Koha::Account::DebitTypes->search() ) {
+    foreach my $debit_type ( Koha::Account::DebitTypes->search()->as_list ) {
         $feeTypes->{$debit_type->code} = $debit_type->description;
     }
     my $authorisedValueSearch = Koha::AuthorisedValues->search({ category => "DEBIT_TYPE_SIP2_MAPPED" },{ order_by => ['authorised_value'] } );

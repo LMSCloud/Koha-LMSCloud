@@ -125,6 +125,7 @@ Acquisitions:
                   "pdfformat::layout3pagesfr": French 3-page
                   "pdfformat::layout2pagesde": German 2-page
                   "pdfformat::layout2pagesdinde": German DIN-2-page
+                  "pdfformat::layout2pagesdinde2": German DIN-2-page (reduced item information)
             - layout when printing basket groups.
     EDIFACT:
         -
