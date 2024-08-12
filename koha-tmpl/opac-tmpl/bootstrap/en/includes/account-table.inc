@@ -26,7 +26,7 @@
                     [% IF ACCOUNT_LINE.amountoutstanding > 0 || ACCOUNT_LINE.amountoutstanding < 0 %]<tr class="outstanding">[% ELSE %]<tr>[% END%]
                         [% IF ENABLE_OPAC_PAYMENTS %]
                             <td>
-                                [% IF ACCOUNT_LINE.amountoutstanding > 0 && paymentsMinimumPatronAgeReached %]
+                                [% IF ACCOUNT_LINE.amountoutstanding > 0 %]
                                     [% SET DISPLAY_PAYMENT_BLOCK = 1 %]
                                     <input class="checkbox-pay pay-online hidden" name="accountline" type="checkbox" id="checkbox-pay-[% ACCOUNT_LINE.accountlines_id | html %]" value="[% ACCOUNT_LINE.accountlines_id | html %]">
                                     <input type="hidden" id="amount-[% ACCOUNT_LINE.accountlines_id | html %]" value="[% ACCOUNT_LINE.amountoutstanding | html %]" />

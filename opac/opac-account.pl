@@ -89,11 +89,10 @@ $template->param(
     message             => scalar $query->param('message') || q{},
     message_value       => scalar $query->param('message_value') || q{},
     payment             => scalar $query->param('payment') || q{},
-    payment_error       => scalar $query->param('payment-error') || q{},
-    paymentsMinimumPatronAgeReached => $paymentsMinimumPatronAgeReached
+    payment_error       => scalar $query->param('payment-error') || q{}
 );
 
-if ( C4::Context->config("enable_plugins") ) {
+if ( $paymentsMinimumPatronAgeReached && C4::Context->config("enable_plugins") ) {
     my @plugins = Koha::Plugins->new()->GetPlugins({
         method => 'opac_online_payment',
     });
