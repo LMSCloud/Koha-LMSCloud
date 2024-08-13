@@ -586,6 +586,12 @@
                     $('#new_balance').val(parseFloat(maxval - amount).toFixed(2));
                 }
             });
+            
+            const fp = document.querySelector("#journalfrom")._flatpickr;
+            if ( fp ) {
+                fp.config.defaultMinute=0;
+                fp.config.defaultHour=0;
+            }
         });
     </script>
 [% END %]

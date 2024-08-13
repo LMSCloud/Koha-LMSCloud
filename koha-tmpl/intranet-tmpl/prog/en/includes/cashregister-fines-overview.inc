@@ -824,6 +824,12 @@
                 $('#showfinesoverview input[name="printview"]').val('');
                 $("#showfinesoverview").attr('target', '_self').submit();
             });
+            
+            const fp = document.querySelector("#journalfrom")._flatpickr;
+            if ( fp ) {
+                fp.config.defaultMinute=0;
+                fp.config.defaultHour=0;
+            }
         });
     </script>
 [% END %]
