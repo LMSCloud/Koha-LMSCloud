@@ -75,7 +75,7 @@
             let = accepts_time = $(thisInput).data('flatpickr-enable-time');
             if ( accepts_time ) {
                 let parsedDate = flatpickr.parseDate(dateText, instance.config.dateFormat);
-                if ( !parsedDate.getHours() ) {
+                if ( isNaN(parsedDate.getHours()) ) {
                     instance.setDate(selectedDates[0].setHours(23, 59, 0, 0));
                 }
             }
@@ -109,7 +109,7 @@
             label: _("or"),
             onClick: (index, fp) => {
               let date;
-              let hh = 23, mm = 59;
+              let hh = fp.config.defaultHour, mm = fp.config.defaultMinute;
               switch (index) {
                 case 0:
                   date = new Date().fp_incr(-1);
