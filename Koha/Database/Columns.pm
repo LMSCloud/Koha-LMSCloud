@@ -123,6 +123,7 @@ sub columns {
             "altcontactphone"             => __("Alternate contact: Phone"),
             "altcontactstate"             => __("Alternate contact: State"),
             "altcontactsurname"           => __("Alternate contact: Surname"),
+            "altcontacttitle"             => __("Alternate contact: Title"),
             "altcontactzipcode"           => __("Alternate contact: ZIP/Postal code"),
             "anonymized"                  => __("Data anonymization flag"),
             "auth_method"                 => __("Authentication method"),
