@@ -64,7 +64,7 @@ tables:
             - "<br>"
             - "Kind regards<br>"
             - "<br>"
-            - "[% branch.branchname %]"
+            - "[% booking.pickup_library.branchname %]"
 
         - module: circulation
           code: ACCOUNT_CREDIT
