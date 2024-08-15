@@ -541,7 +541,7 @@
                     }
                 },
                 debarred_period_to: function(){
-                    let debarred_period_to = $("#accountexpiresto_filter").val();
+                    let debarred_period_to = $("#debarreduntilto_filter").val();
                     if (debarred_period_to) {
                         return debarred_period_to;
                     }
