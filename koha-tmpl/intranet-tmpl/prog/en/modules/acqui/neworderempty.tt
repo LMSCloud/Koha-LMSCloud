@@ -125,7 +125,7 @@
                 cloneItemBlock(0, '[% UniqueItemFields | html %]');
             [% END %]
 
-            [% IF ( suggestionid ) %]updateCosts();[% END %]
+            [% IF ( suggestionid || !ordernumber ) %]updateCosts();[% END %]
             $("#quantity").change(function() {
                 updateCosts();
             });
