@@ -1047,7 +1047,11 @@ sub get_marc_notes {
                 push @marcnotes, { marcnote => $sub };
             }
         } else {
-            push @marcnotes, { marcnote => $field->as_string() };
+            if ( $field->tag() eq '520' && $field->indicator(1) eq '1' && $field->subfield('b') && $field->subfield('a') ) {
+                push @marcnotes, { marcnote => $field->subfield('b') };
+            } else {
+                push @marcnotes, { marcnote => $field->as_string() };
+            }
         }
     }
     return \@marcnotes;

@@ -1168,9 +1168,18 @@
                         <xsl:otherwise><xsl:text>Summary: </xsl:text></xsl:otherwise>
                     </xsl:choose>
                 </span>
-                <xsl:call-template name="subfieldSelect">
-                    <xsl:with-param name="codes">abc</xsl:with-param>
-                </xsl:call-template>
+                <xsl:choose>
+                    <xsl:when test="@ind1=1 and marc:subfield[@code='b'] and marc:subfield[@code='a']">
+                        <xsl:call-template name="subfieldSelect">
+                            <xsl:with-param name="codes">b</xsl:with-param>
+                        </xsl:call-template>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:call-template name="subfieldSelect">
+                            <xsl:with-param name="codes">abc</xsl:with-param>
+                        </xsl:call-template>
+                    </xsl:otherwise>
+                </xsl:choose>
                 <xsl:if test="marc:subfield[@code='u']">
                     <xsl:for-each select="marc:subfield[@code='u']">
                         <xsl:text> </xsl:text>
