@@ -222,7 +222,13 @@ if (C4::Context->preference('DivibibEnabled')) {
             my $biblio_object = Koha::Biblios->find($issue->{biblionumber});
             my $record = $biblio_object->metadata->record;
             
-            my $itemtype = $issue->{'itemtype'};                
+            my $items = $biblio_object->items->search_ordered;
+            my $item = {};
+            if ( $items->count  >= 1) {
+                $item = $items->next->unblessed;
+            }
+            my $itemtype = $item->{itype} || $issue->{'itemtype'};
+                          
             if ( !exists($itemtypes->{$itemtype}) ) {
                 $itemtype = lc($issue->{'itemtype'});    # e.g. treat eBook as ebook
             }
