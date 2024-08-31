@@ -1090,6 +1090,12 @@ sub opac_account_renewal_permitted {
     elsif ( !$enrolment_period ) {
         $error[0] = 'enrolment_period_invalid';
     }
+    # 4. this is a family card member
+    elsif ( my $familyCardId = $self->get_family_card_id ) {
+        my $chief = Koha::Patrons->find( $familyCardId );
+        $error[0] = 'family_card_member_renewal_forbidden';
+        $error[1] = $chief->cardnumber;
+    }
 
     return \@error;
 }

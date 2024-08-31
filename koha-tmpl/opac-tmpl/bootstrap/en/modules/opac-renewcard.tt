@@ -53,6 +53,10 @@
                                 [% IF ( errors.0 == 'CardRenewalFailed' ) %]
                                     The renewal of your library card failed.
                                 [% END %]
+                                [% IF ( errors.0 == 'family_card_member_renewal_forbidden' ) %]
+                                    Your library card belongs to family card [% errors.1 %] and cannot be renewed separately.
+                                    Please contact the family card owner. Your library card will be renewed with the renewal of the family card.
+                                [% END %]
                             </p>
                         </div>
                     [% END # /IF errors.0 %]
