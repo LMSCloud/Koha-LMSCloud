@@ -25,8 +25,15 @@ use Modern::Perl;
 use List::MoreUtils qw( uniq );
 use Try::Tiny;
 
+use Koha::Database;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Items;
+use Koha::Biblios;
+use Koha::SearchEngine;
+use Koha::SearchEngine::Indexer;
+use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
+
+use C4::Biblio;
 
 use base 'Koha::BackgroundJob';
 
@@ -94,13 +101,13 @@ sub process {
     my @messages;
     my $schema = Koha::Database->new->schema;
     my ( @deleted_itemnumbers, @not_deleted_itemnumbers,
-        @deleted_biblionumbers );
+        @deleted_biblionumbers, @updated_biblionumbers,
+        @biblionumbers );
 
     try {
         my $schema = Koha::Database->new->schema;
         $schema->txn_do(
             sub {
-                my (@biblionumbers);
                 for my $record_id ( sort { $a <=> $b } @record_ids ) {
 
                     last if $self->get_from_storage->status eq 'cancelled';
@@ -132,9 +139,30 @@ sub process {
                     $report->{total_success}++;
                     $self->progress( ++$job_progress )->store;
                 }
+            }
+        );
+    }
+    catch {
 
+        warn $_;
+
+        push @messages,
+          {
+            type  => 'error',
+            code  => 'unknown',
+            error => $_,
+          };
+
+        die "Something terrible has happened!"
+          if ( $_ =~ /Rollback failed/ );    # Rollback failed
+          
+        @deleted_itemnumbers = ();
+        @not_deleted_itemnumbers = @record_ids;
+    };
+    try {
+        $schema->txn_do(
+            sub {
                 # If there are no items left, delete the biblio
-                my @updated_biblionumbers;
                 for my $biblionumber ( uniq @biblionumbers ) {
                     my $items_count =
                       Koha::Biblios->find($biblionumber)->items->count;
@@ -147,34 +175,6 @@ sub process {
                     } else {
                         push @updated_biblionumbers, $biblionumber;
                     }
-                }
-
-                if (@deleted_biblionumbers) {
-                    my $indexer = Koha::SearchEngine::Indexer->new(
-                        { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
-
-                    $indexer->index_records( \@deleted_biblionumbers,
-                        'recordDelete', "biblioserver", undef );
-
-                    Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
-                        {
-                            biblio_ids => \@deleted_biblionumbers
-                        }
-                    ) if C4::Context->preference('RealTimeHoldsQueue');
-                }
-
-                if (@updated_biblionumbers) {
-                    my $indexer = Koha::SearchEngine::Indexer->new(
-                        { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
-
-                    $indexer->index_records( \@updated_biblionumbers,
-                        'specialUpdate', "biblioserver", undef );
-
-                    Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
-                        {
-                            biblio_ids => \@updated_biblionumbers
-                        }
-                    ) if C4::Context->preference('RealTimeHoldsQueue');
                 }
             }
         );
@@ -192,7 +192,37 @@ sub process {
 
         die "Something terrible has happened!"
           if ( $_ =~ /Rollback failed/ );    # Rollback failed
+
+        @deleted_biblionumbers = ();
+        @updated_biblionumbers = ();
     };
+    if (@deleted_biblionumbers) {
+        my $indexer = Koha::SearchEngine::Indexer->new(
+            { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+
+        $indexer->index_records( \@deleted_biblionumbers,
+            'recordDelete', "biblioserver", undef );
+
+        Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
+            {
+                biblio_ids => \@deleted_biblionumbers
+            }
+        ) if C4::Context->preference('RealTimeHoldsQueue');
+    }
+
+    if (@updated_biblionumbers) {
+        my $indexer = Koha::SearchEngine::Indexer->new(
+            { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+
+        $indexer->index_records( \@updated_biblionumbers,
+            'specialUpdate', "biblioserver", undef );
+
+        Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
+            {
+                biblio_ids => \@updated_biblionumbers
+            }
+        ) if C4::Context->preference('RealTimeHoldsQueue');
+    }
 
     $report->{deleted_itemnumbers}     = \@deleted_itemnumbers;
     $report->{not_deleted_itemnumbers} = \@not_deleted_itemnumbers;
