@@ -20,7 +20,7 @@ package C4::ShelfBrowser;
 use strict;
 use warnings;
 
-use C4::Biblio qw( GetAuthorisedValueDesc );
+use C4::Biblio qw( GetAuthorisedValueDesc GetMarcUrls );
 use C4::Context;
 use C4::Koha qw( GetNormalizedUPC GetNormalizedOCLCNumber GetNormalizedISBN GetNormalizedEAN );
 use Koha::Biblios;
