@@ -3368,6 +3368,11 @@ biblios:
         sort: ~
         suggestible: 1
       - facet: 1
+        marc_field: 690a
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
         marc_field: 600
         marc_type: unimarc
         sort: ~
