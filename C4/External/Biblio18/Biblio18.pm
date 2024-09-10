@@ -24,6 +24,7 @@ use URI::Escape;
 use JSON;
 use DateTime;
 use Data::Dumper;
+use Business::ISBN;
 
 use C4::Context;
 use C4::Search;
@@ -38,6 +39,7 @@ use Koha::ItemTypes;
 use Koha::Biblios;
 use Koha::Patrons;
 use Koha::DateUtils qw( dt_from_string );
+use Koha::AuthorisedValues;
 
 sub new {
     my $class = shift;
@@ -68,7 +70,7 @@ sub new {
     $self->{queryIndexes} = $params->{"query_indexes"};
     $self->{available_since} = $params->{"available_since"};
     $self->{itemIncludeRules} = $params->{"item_include_rules"};
-    $self->{itemExludeRules} = $params->{"item_exclude_rules"};
+    $self->{itemExcludeRules} = $params->{"item_exclude_rules"};
     $self->{querySortField} = $params->{"query_sort_field"};
     
     $self->{max_search_results} = 100;
@@ -233,6 +235,17 @@ sub search {
         # Get itemtype with Koha 18.05
         my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
         
+        my $authorisedValueSearch = Koha::AuthorisedValues->search({ category => "BIBLIO18-MediaGroupUnion-Mapping" },{ order_by => ['authorised_value'] } );
+        $self->{MediaGroupUnionMapping} = {};
+        if ( $authorisedValueSearch->count ) {
+            while ( my $authval = $authorisedValueSearch->next ) {
+                $self->{MediaGroupUnionMappingDefined} = 1;
+                my $grouptype = $authval->authorised_value || '';
+                my $itemtype  = $authval->lib;
+                $self->{MediaGroupUnionMapping}->{$grouptype} = $itemtype;
+           }
+        }
+        
         # Build a query
         my ($error,$query,$simple_query,$query_cgi,$query_desc,$limit,$limit_cgi,$limit_desc,$query_type) = 
                 $builder->build_query_compat(
@@ -318,11 +331,16 @@ sub formatBiblioData {
         my $isbn= $field->subfield('a');
         $isbn =~ s/(^\s+|\s+$)// if ( $isbn );
         if ( $isbn && !exists($checkisbn->{$isbn}) ) {
-            $isbns .= '; ' if ($cnt++);
-            $isbns .= $isbn;
             push(@$searchisbn,"isbn=($isbn)");
             $checkisbn->{$isbn} = 1;
         }
+    }
+    foreach my $isbn(reverse sort keys %$checkisbn) {
+        eval {
+            my $isbn13 = Business::ISBN->new($isbn);
+            $isbns = $isbn13->as_isbn13->as_string([]);
+        };
+        last if ($isbns);
     }
     
     my $eans="";
@@ -367,6 +385,7 @@ sub formatBiblioData {
     
     my $mediaItemsList = [];
     my $itemtype = "";
+    my $itemtypeCode = "";
     
     # read biblio items
     my $items = Koha::Items->search({ biblionumber => $biblionumber });
@@ -384,6 +403,7 @@ sub formatBiblioData {
         
         if (! $itemtype && $item->itype && exists($self->{itemtypes}->{$item->itype}) ) {
             $itemtype = $self->{itemtypes}->{$item->itype};
+            $itemtypeCode = $item->itype;
         }
         
         my $accessiondate = $item->dateaccessioned();
@@ -522,7 +542,7 @@ sub formatBiblioData {
         }
     }
     
-    return    {
+    my $result = {
                     "Autor"            => $authors,
                     "Title"            => $title,
                     "TitleAddition"    => $subtitle,
@@ -536,6 +556,16 @@ sub formatBiblioData {
                     "Annotation"       => $annotation,
                     "MediaItems"       => $mediaItemsList
               };
+
+    if ( $self->{MediaGroupUnionMappingDefined} && $itemtypeCode ) {
+        if ( exists($self->{MediaGroupUnionMapping}->{$itemtypeCode}) ) {
+            $result->{MediaGroupUnion} = $self->{MediaGroupUnionMapping}->{$itemtypeCode};
+        }
+        elsif ( exists($self->{MediaGroupUnionMapping}->{"*"}) ) {
+            $result->{MediaGroupUnion} = $self->{MediaGroupUnionMapping}->{"*"};
+        }
+    }
+    return $result;
 }
 
 sub getExcludedItypes {
