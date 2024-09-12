@@ -609,46 +609,32 @@ $("#placeBookingModal").on("show.bs.modal", function (e) {
 
                     // Set item's home library as default if patron's home library hasn't already populated pickup_library_id
                     let pickup_library_id = $("#pickup_library_id").val();
-                    const booking_patron_id = $("#booking_patron_id").val();
-                    if (!pickup_library_id && booking_patron_id) {
-                        $.ajax({
-                            url:
-                                "/api/v1/patrons?patron_id=" +
-                                booking_patron_id,
-                            dataType: "json",
-                            type: "GET",
-                        }).then(response => {
-                            const [booking_patron] = response;
-                            let is_home;
-                            pickup_library_id = bookable_items.find(
-                                ({ home_library_id, holding_library_id }) => {
-                                    is_home =
-                                        holding_library_id === home_library_id;
-                                    if (is_home) {
-                                        return (
-                                            home_library_id ===
-                                            booking_patron.library_id
-                                        );
-                                    }
-
+                    if (!pickup_library_id && booking_patron) {
+                        let is_home;
+                        pickup_library_id = bookable_items.find(
+                            ({ home_library_id, holding_library_id }) => {
+                                is_home =
+                                    holding_library_id === home_library_id;
+                                if (is_home) {
                                     return (
-                                        holding_library_id ===
+                                        home_library_id ===
                                         booking_patron.library_id
                                     );
                                 }
-                            )?.[
-                                is_home
-                                    ? "home_library_id"
-                                    : "holding_library_id"
-                            ];
-                            if (!pickup_library_id) {
-                                return;
-                            }
 
-                            $("#pickup_library_id")
-                                .val(pickup_library_id)
-                                .trigger("change.select2");
-                        });
+                                return (
+                                    holding_library_id ===
+                                    booking_patron.library_id
+                                );
+                            }
+                        )?.[is_home ? "home_library_id" : "holding_library_id"];
+                        if (!pickup_library_id) {
+                            return;
+                        }
+
+                        $("#pickup_library_id")
+                            .val(pickup_library_id)
+                            .trigger("change.select2");
                     }
 
                     // Disable patron selection change
