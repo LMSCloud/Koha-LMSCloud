@@ -18,15 +18,6 @@ const additionalFields = AdditionalFields.init({
     },
 });
 
-/**
- * @param {number[]} integers1 - The first array of integers to check.
- * @param {number[]} integers2 - The second array of integers to be checked against.
- * @returns {boolean} - Returns true if any element from integers1 is found in integers2, otherwise false.
- */
-function containsAny(integers1, integers2) {
-    return integers1.some(integer => new Set(integers2).has(integer));
-}
-
 $("#placeBookingModal").on("show.bs.modal", function (e) {
     // Get context
     let button = $(e.relatedTarget);
@@ -218,7 +209,9 @@ $("#placeBookingModal").on("show.bs.modal", function (e) {
         $pickupSelect.empty();
 
         const filtered_pickup_locations = response.filter(({ pickup_items }) =>
-            containsAny(pickup_items, bookableItemnumbers)
+            pickup_items.some(pickup_item =>
+                new Set(bookableItemnumbers).has(pickup_item)
+            )
         );
         $.each(filtered_pickup_locations, function (index, pickup_location) {
             let option = $(
