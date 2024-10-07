@@ -502,19 +502,28 @@
                     }
                 },
                 charges_from: function(){
+                    let ret_charges_from = "";
                     let charges_from = $("#chargesfrom_filter").val();
-                    if (charges_from) {
+                    if (charges_from && charges_from.length) {
                         charges_from = parseFloat(charges_from);
-                        if ( !isNaN(charges_from) ) return charges_from;
+                        if ( !isNaN(charges_from) ) {
+                            ret_charges_from = charges_from;
+                            if ( ret_charges_from == 0 ) ret_charges_from = "0.0";
+                        }
                     }
-                    return "";
+                    return ret_charges_from;
                 },
                 charges_to: function(){
+                    let ret_charges_to = "";
                     let charges_to = $("#chargesto_filter").val();
-                    if (charges_to) {
+                    if (charges_to && charges_to.length) {
                         charges_to = parseFloat(charges_to);
-                        if ( !isNaN(charges_to) ) return charges_to;
+                        if ( !isNaN(charges_to) ) {
+                            ret_charges_to = charges_to;
+                            if ( ret_charges_to == 0 ) ret_charges_to = "0.0";
+                        }
                     }
+                    return ret_charges_to;
                 },
                 charges_period_from: function(){
                     let charges_period_from = $("#chargessince_filter").val();
@@ -1023,13 +1032,13 @@
             else if ( $("#issuecountend_filter").val() ) {
                 searched += _(", Number of loans to ") + $("#issuecountend_filter").val();
             }
-            if ( $("#chargesfrom_filter").val() && $("#chargesto_filter").val() ) {
+            if ( $("#chargesfrom_filter").val() && $("#chargesfrom_filter").val().length && $("#chargesto_filter").val() && $("#chargesto_filter").val().length ) {
                 searched += _(", Open charges amount from ") + $("#chargesfrom_filter").val() + _(" to ") + $("#chargesto_filter").val();
             }
-            else if ( $("#chargesfrom_filter").val() ) {
+            else if ( $("#chargesfrom_filter").val() && $("#chargesfrom_filter").val().length ) {
                 searched += _(", Open charges amount from ") + $("#chargesfrom_filter").val();
             }
-            else if ( $("#chargesto_filter").val() ) {
+            else if ( $("#chargesto_filter").val() && $("#chargesto_filter").val().length ) {
                 searched += _(", Open charges amount to ") + $("#chargesto_filter").val();
             }
             if ( $("#chargessince_filter").val() ) {
