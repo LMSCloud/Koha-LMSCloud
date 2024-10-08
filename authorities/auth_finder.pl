@@ -56,10 +56,10 @@ if ( $op eq "do_search" ) {
     my @excluding = $query->multi_param('excluding');
     my @operator  = $query->multi_param('operator');
     my @value     = (
-        $query->param('value_mainstr') || undef,
-        $query->param('value_main')    || undef,
-        $query->param('value_match')   || undef,
-        $query->param('value_any')     || undef,
+        trim_both($query->param('value_mainstr')) || undef,
+        trim_both($query->param('value_main'))    || undef,
+        trim_both($query->param('value_match'))   || undef,
+        trim_both($query->param('value_any'))     || undef,
     );
     my $orderby        = $query->param('orderby')        || '';
     my $startfrom      = $query->param('startfrom')      || 0;
@@ -172,6 +172,12 @@ $template->param(
     source        => $source,
     relationship  => $relationship,
 );
+
+sub trim_both {
+    my $trimvalue = shift;
+    $trimvalue =~ s/^\s+|\s+$//g if ( $trimvalue );
+    return $trimvalue;
+}
 
 # Print the page
 output_html_with_http_headers $query, $cookie, $template->output;
