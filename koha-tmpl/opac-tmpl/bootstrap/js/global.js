@@ -164,24 +164,26 @@ const checkError = function(response) {
     });
 })(jQuery);
 
-enquire.register("screen and (max-width:608px)", {
-    match : function() {
-        if($("body.scrollto").length > 0){
-            window.scrollTo( 0, $(".maincontent").offset().top );
-        }
-    }
-});
+if (typeof enquire == "object") {
+    enquire.register("screen and (max-width:608px)", {
+        match: function () {
+            if ($("body.scrollto").length > 0 && $(".maincontent").length > 0) {
+                window.scrollTo(0, $(".maincontent").offset().top);
+            }
+        },
+    });
 
-enquire.register("screen and (min-width:992px)", {
-    match : function() {
-        facetMenu( "show" );
-        furtherOfferingsMenu( "show" );
-    },
-    unmatch : function() {
-        facetMenu( "hide" );
-        furtherOfferingsMenu( "hide" );
-    }
-});
+    enquire.register("screen and (min-width:992px)", {
+        match: function () {
+            facetMenu("show");
+            furtherOfferingsMenu( "show" );
+        },
+        unmatch: function () {
+            facetMenu("hide");
+            furtherOfferingsMenu( "hide" );
+        },
+    });
+}
 
 function furtherOfferingsMenu( action ){
     if( action == "show" ){
