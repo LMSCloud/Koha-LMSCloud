@@ -1,6 +1,6 @@
 package C4::External::EKZ::lib::EkzKohaRecords;
 
-# Copyright 2017-2022 (C) LMSCLoud GmbH
+# Copyright 2017-2024 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -312,10 +312,10 @@ sub addNewRecords {
 
         if ( $self->{localCatalogSourceDelegateClass} ) {
             my $localCat = $self->{localCatalogSourceDelegateClass};
-            ($biblionumber, $insertedRecord) = $localCat->addSingleRecord($record);
+            ($biblionumber, $insertedRecord) = $localCat->addSingleRecord($record);   # XXXWHYYY TODO something like { skip_record_index => 1 }
             $biblioitemnumber = $biblionumber;
         } else {
-            ($biblionumber,$biblioitemnumber) = C4::Biblio::AddBiblio($record,'');
+            ($biblionumber,$biblioitemnumber) = C4::Biblio::AddBiblio($record, '', { skip_record_index => 1 });
             if ( $biblionumber ) {
 				my $biblio = Koha::Biblios->find( $biblionumber );
 				$insertedRecord = $biblio ? $biblio->metadata->record : undef;
@@ -2313,57 +2313,26 @@ sub defaultUstSatz {
     return $defaultUstSatzRet;
 }
 
-# Deleting from biblioserver index may be required in case of database transaction rollback
-sub deleteFromIndex {
-    my $self = shift;
-    my ($biblionumber) = @_;
-
-    $self->{'logger'}->debug("deleteFromIndex() START; biblionumber:$biblionumber:");
-
-    if( $biblionumber ) {
-        my $biblio = Koha::Biblios->find( $biblionumber );    # For safety's sake only. Do not delete from index if still existing in biblio table. Should never happen.
-        $self->{'logger'}->debug("deleteFromIndex() biblionumber:$biblionumber: biblio:" . Dumper($biblio) . ":");
-        if ( !( $biblio ) ) {
-            my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
-            $indexer->index_records( $biblionumber, "recordDelete", "biblioserver" );
-        }
-    }
-}
-
-# Re-indexing of titles may be required in case of database transaction rollback
-sub updateInIndex {
-    my $self = shift;
-    my @biblionumbers = @_;
-
-    $self->{'logger'}->debug("updateInIndex() START; biblionumbers:" . Dumper(@biblionumbers) . ":");
-
-    if ( scalar @biblionumbers > 0 ) {
-        my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
-        $indexer->index_records( @biblionumbers, "specialUpdate", "biblioserver", undef );
-    }
-    $self->{'logger'}->debug("updateInIndex() returns (scalar \@biblionumbers:" . scalar @biblionumbers . ":");
-}
-
 # Check if to reread title data via webservice MedienDaten etc. and, if required, (partially) overwrite the title record.
 sub overwriteCatalogDataIfRequired {
     my $self = shift;
     my ($ekzCustomerNumber, $biblionumber, $reqParamTitelInfoOfCaller, $titleHitRecordOfBiblionumber, $updatedTitleRecords) = @_;
     my $ret = 0;
 
-    $self->{'logger'}->debug("overwriteCatalogDataIfRequired() START; ekzCustomerNumber:$ekzCustomerNumber: biblionumber:$biblionumber: reqParamTitelInfoOfCaller:" . Dumper($reqParamTitelInfoOfCaller) . ": self->{overwriteCatalogDataOnDelivery}:$self->{overwriteCatalogDataOnDelivery}: updatedTitleRecords->{$biblionumber}:$updatedTitleRecords->{$biblionumber}:");
+    $self->{'logger'}->debug("overwriteCatalogDataIfRequired() START; ekzCustomerNumber:$ekzCustomerNumber: biblionumber:$biblionumber: reqParamTitelInfoOfCaller:" . Dumper($reqParamTitelInfoOfCaller) . ": self->{overwriteCatalogDataOnDelivery}:$self->{overwriteCatalogDataOnDelivery}: updatedTitleRecords->{$biblionumber}->{biblionumber}:" . (defined($updatedTitleRecords->{$biblionumber})?defined($updatedTitleRecords->{$biblionumber}->{biblionumber})?$updatedTitleRecords->{$biblionumber}->{biblionumber}:'undefined_2':'undefined_1') . ":");
 
-    if ( ! $updatedTitleRecords->{$biblionumber} ) {    # update data of a title only one time per synchronisation run
+    if ( ! ($updatedTitleRecords->{$biblionumber} && $updatedTitleRecords->{$biblionumber}->{biblionumber}) ) {    # update data of a title only one time per synchronisation run
         my $rereadUpdateCatalogData = $self->checkOverwriteCatalogDataOnDelivery($ekzCustomerNumber,$biblionumber);
         $self->{'logger'}->debug("overwriteCatalogDataIfRequired() rereadUpdateCatalogData:$rereadUpdateCatalogData:");
         if ( $rereadUpdateCatalogData ) {
-            $ret = $self->tryOverwriteCatalogDataOnDelivery($biblionumber, $reqParamTitelInfoOfCaller, $titleHitRecordOfBiblionumber);
+            $ret = $self->tryOverwriteCatalogDataOnDelivery($biblionumber, $reqParamTitelInfoOfCaller, $titleHitRecordOfBiblionumber, $updatedTitleRecords);
             if ( $ret ) {
-                $updatedTitleRecords->{$biblionumber} = $biblionumber;
+                $updatedTitleRecords->{$biblionumber}->{biblionumber} = $biblionumber;
             }
         }
     }
 
-    $self->{'logger'}->debug("overwriteCatalogDataIfRequired() END; ekzCustomerNumber:$ekzCustomerNumber: biblionumber:$biblionumber: reqParamTitelInfoOfCaller->{'ekzArtikelNr'}:$reqParamTitelInfoOfCaller->{'ekzArtikelNr'}: self->{overwriteCatalogDataOnDelivery}:$self->{overwriteCatalogDataOnDelivery}: updatedTitleRecords->{$biblionumber}:$updatedTitleRecords->{$biblionumber}: ret:$ret:");
+    $self->{'logger'}->debug("overwriteCatalogDataIfRequired() END; ekzCustomerNumber:$ekzCustomerNumber: biblionumber:$biblionumber: reqParamTitelInfoOfCaller->{'ekzArtikelNr'}:$reqParamTitelInfoOfCaller->{'ekzArtikelNr'}: self->{overwriteCatalogDataOnDelivery}:$self->{overwriteCatalogDataOnDelivery}: updatedTitleRecords->{$biblionumber}->{biblionumber}:" . (defined($updatedTitleRecords->{$biblionumber})?defined($updatedTitleRecords->{$biblionumber}->{biblionumber})?$updatedTitleRecords->{$biblionumber}->{biblionumber}:'undefined_2':'undefined_1') . ": ret:$ret:");
     return $ret;
 }
 
@@ -2451,7 +2420,7 @@ sub checkOverwriteCatalogDataOnDelivery {
 # try to find a more up to date MARC record and overwrite/merge the title data
 sub tryOverwriteCatalogDataOnDelivery {
     my $self = shift;
-    my ( $biblionumber, $reqParamTitelInfoOfCaller, $marcBiblioOld) = @_;
+    my ( $biblionumber, $reqParamTitelInfoOfCaller, $marcBiblioOld, $updatedTitleRecords) = @_;
     my $ret = 0;
 
     my $titleHits = { 'count' => 0, 'records' => [] };
@@ -2540,7 +2509,7 @@ sub tryOverwriteCatalogDataOnDelivery {
         $self->{'logger'}->debug("tryOverwriteCatalogDataOnDelivery() after loop titleHits; hitIndex:$hitIndex:");
 
         if ( $hitIndex >= 0 ) {
-            my $retRecord = $self->overwriteCatalogRecord($marcBiblioOld, $titleHits->{'records'}->[$hitIndex], $biblionumber, 1);
+            my $retRecord = $self->overwriteCatalogRecord($marcBiblioOld, $titleHits->{'records'}->[$hitIndex], $biblionumber, 1, $updatedTitleRecords);
             if ( defined($retRecord) ) {
                 $ret = 1;
             }
@@ -2552,7 +2521,7 @@ sub tryOverwriteCatalogDataOnDelivery {
 
 # merge new into old MARC record
 sub overwriteCatalogRecord {
-    my ($self, $oldRecord, $newRecord, $biblionumber, $save) = @_;
+    my ($self, $oldRecord, $newRecord, $biblionumber, $save, $updatedTitleRecords) = @_;
     my $retRecord;
 
     $self->{'logger'}->info("overwriteCatalogRecord() START biblionumber:$biblionumber: save:$save:");
@@ -2583,8 +2552,10 @@ sub overwriteCatalogRecord {
         }
 
         if ( $biblionumber && $save ) {
-            my $retModBiblio = &C4::Biblio::ModBiblio($record, $biblionumber, &C4::Biblio::GetFrameworkCode($biblionumber));
+            my $retModBiblio = &C4::Biblio::ModBiblio($record, $biblionumber, &C4::Biblio::GetFrameworkCode($biblionumber), { skip_record_index => 1 });
             $self->{'logger'}->debug("overwriteCatalogRecord() after C4::Biblio::ModBiblio(biblionumber:$biblionumber) retModBiblio:$retModBiblio:");
+            my $titleRecordBiblionumber = $biblionumber;
+            $updatedTitleRecords->{$titleRecordBiblionumber}->{biblionumber} = $titleRecordBiblionumber;
         }
         $retRecord = $record;
     }

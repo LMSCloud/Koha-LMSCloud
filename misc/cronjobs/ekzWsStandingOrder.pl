@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# Copyright 2017-2020 (C) LMSCLoud GmbH
+# Copyright 2017-2024 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -48,8 +48,11 @@ my $stoListElement = '';    # for storing the StoListElement of the SOAP respons
 # by &C4::External::EKZ::EkzWsStandingOrder::genKohaRecords().
 # This is required because the repeated local title search for the identical title after its previous insert action may happen faster
 # than the Zebra or Elasticsearch index works, and therefore the local title search would (incorrectly) return no hit.
-# (As we do not catch thrown exceptions, there is no need to update $createdTitleRecords in case of database transaction rollbacks.)
 my $createdTitleRecords = {};
+
+# The hash %{$updatedTitleRecords} has a similar purpose, but stores the biblionumbers of all biblios locally updated during this run of ekzWsStandingOrder.pl.
+# Also an update or creation of a title's item is regarded as an update of the title's data in this indexer context.
+my $updatedTitleRecords = {};
 
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 my $startTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d",1900+$year,1+$mon,$mday,$hour,$min,$sec);
@@ -120,7 +123,7 @@ if ( $testMode == 2 ) {
 
                 if ( $genKohaRecords ) {
                     if ( $result->{'standingOrderCount'} > 0 ) {
-                        if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $selStatusDatum, $todayDate, $createdTitleRecords, $selYear) ) {
+                        if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $selStatusDatum, $todayDate, $createdTitleRecords, $updatedTitleRecords, $selYear) ) {
                             $res = 1;
                         }
                     }
@@ -160,7 +163,7 @@ if ( $testMode == 0 ) {
 
                         if ( $genKohaRecords ) {
                             if ( $result->{'standingOrderCount'} > 0 ) {
-                                if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $lastRunDate, $todayDate, $createdTitleRecords, $publicationYear) ) {
+                                if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $lastRunDate, $todayDate, $createdTitleRecords, $updatedTitleRecords, $publicationYear) ) {
                                     $res = 1;
                                 }
                             }

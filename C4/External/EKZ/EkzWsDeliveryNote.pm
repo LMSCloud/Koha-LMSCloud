@@ -45,7 +45,7 @@ use Koha::Patrons;
 use Koha::Biblios;
 
 our @ISA = qw(Exporter);
-our @EXPORT = qw( readLSFromEkzWsLieferscheinList readLSFromEkzWsLieferscheinDetail genKohaRecords updBiblioIndex );
+our @EXPORT = qw( readLSFromEkzWsLieferscheinList readLSFromEkzWsLieferscheinDetail genKohaRecords );
 
 
 ###################################################################################################
@@ -375,7 +375,7 @@ sub genKohaRecords {
                                     next;    # next in acquisitionImportEkzExemplarIdHits->all()
                                 }
                             }
-                            &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, '', $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportEkzExemplarIdHit, $emaillog, \$updOrInsItemsCount, $ekzAqbooksellersId, $logger);
+                            &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, '', $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportEkzExemplarIdHit, $emaillog, \$updOrInsItemsCount, $ekzAqbooksellersId, $updatedTitleRecords, $logger);
                         }    #end defined($selBiblionumber)
                     }    # end defined($acquisitionImportTitleHit)
                 }    # end foreach acquisitionImportEkzExemplarIdHits->all()
@@ -499,7 +499,7 @@ sub genKohaRecords {
                                 }
                             }
 
-                            &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, $lsReferenznummer, $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportEkzExemplarIdHit, $emaillog, \$updOrInsItemsCount, $ekzAqbooksellersId, $logger);
+                            &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, $lsReferenznummer, $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportEkzExemplarIdHit, $emaillog, \$updOrInsItemsCount, $ekzAqbooksellersId, $updatedTitleRecords, $logger);
                         }    #end defined($selBiblionumber)
                     }    # end defined($acquisitionImportTitleHit)
                 }    # end foreach acquisitionImportEkzExemplarIdHits->all()
@@ -585,7 +585,7 @@ sub genKohaRecords {
 #                            last;    # now all $deliveredItemsCount delivered items have been handled 
 #                        }
 #
-#                        &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, '', $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportTitleItemHit, $emaillog, \$updOrInsItemsCount, $ekzAqbooksellersId, $logger);
+#                        &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, '', $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportTitleItemHit, $emaillog, \$updOrInsItemsCount, $ekzAqbooksellersId, $updatedTitleRecords, $logger);
 #                    }
 #                }
 #            }    # end method3
@@ -742,7 +742,7 @@ sub genKohaRecords {
                             $logger->trace("genKohaRecords() method4: titleSelHashkey:" . $titleSelHashkey . ": createdTitleRecords->{titleSelHashkey}->{biblionumber}:" . $createdTitleRecords->{$titleSelHashkey}->{biblionumber} . ": ->{titleHits}:" . Dumper($createdTitleRecords->{$titleSelHashkey}->{titleHits}) . ":");
 
                             if ( defined $biblionumber && $biblionumber > 0 ) {
-                                $updatedTitleRecords->{$biblionumber} = $biblionumber;    # it makes no sense to overwrite title data that have been inserted in this run
+                                $updatedTitleRecords->{$biblionumber}->{biblionumber} = $biblionumber;    # it makes no sense to overwrite title data that have been inserted in this run
                                 $biblioInserted = 1;
                                 # positive message for log
                                 $emaillog->{'importresult'} = 1;
@@ -974,7 +974,9 @@ sub genKohaRecords {
 
                         $item_hash->{biblionumber} = $biblionumber;
                         $item_hash->{biblioitemnumber} = $biblionumber;
-                        my $kohaItem = Koha::Item->new( $item_hash )->store;
+                        my $kohaItem = Koha::Item->new( $item_hash )->store( { skip_record_index => 1 } );
+                        my $titleRecordBiblionumber = $item_hash->{biblionumber};
+                        $updatedTitleRecords->{$titleRecordBiblionumber}->{biblionumber} = $titleRecordBiblionumber;
                         my $itemnumber = $kohaItem->itemnumber;
 
                         if ( defined $itemnumber && $itemnumber > 0 ) {
@@ -1002,7 +1004,7 @@ sub genKohaRecords {
                                                         $_->update( $sf => $v );
                                                 }
                                             }
-                                            C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber );
+                                            C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber, { skip_record_index => 1 } );   # $updatedTitleRecords->{$titleRecordBiblionumber} has already been set a few lines ago
                                         }
                                     }
                                 }
@@ -1029,7 +1031,7 @@ sub genKohaRecords {
                                                     $_->update( $sf => $v );
                                                 }
                                             }
-                                            C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber );
+                                            C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber, { skip_record_index => 1 } );   # $updatedTitleRecords->{$titleRecordBiblionumber} has already been set a few lines ago
                                         }
                                     }
                                 }
@@ -1198,16 +1200,23 @@ sub genKohaRecords {
 
         $logger->error("genKohaRecords() roll back based on thrown exception");
         $schema->storage->txn_rollback;    # roll back the complete delivery note import, based on thrown exception
+
         if ( $createdTitleRecords ) {
             foreach my $titleSelHashkey ( sort keys %{$createdTitleRecords} ) {
                 if ( $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} ) {
-                    next;    # keep elements of createdTitleRecords of preceeding calls
+                    next;    # keep elements of createdTitleRecords of preceeding calls that have not been rolled back
                 }
-                my $biblionumber = $createdTitleRecords->{$titleSelHashkey}->{biblionumber};
-                $logger->debug("genKohaRecords() is calling ekzKohaRecord->deleteFromIndex() with bibliomumber:" . (defined($biblionumber)?$biblionumber:'undef') . ":");
-                $ekzKohaRecord->deleteFromIndex($biblionumber);
-                $logger->debug("genKohaRecords() is deleting createdTitleRecords->{$titleSelHashkey}");
-                delete $createdTitleRecords->{$titleSelHashkey};    # remove elements of createdTitleRecords of current call because this transaction is rolled back
+                $logger->debug("genKohaRecords() is deleting createdTitleRecords->{$titleSelHashkey} because of database rollback and no other use of this title data");
+                delete $createdTitleRecords->{$titleSelHashkey};    # remove elements of createdTitleRecords inserted by current call because this transaction is rolled back
+            }
+        }
+        if ( $updatedTitleRecords ) {
+            foreach my $titleRecordBiblionumber ( sort keys %{$updatedTitleRecords} ) {
+                if ( $updatedTitleRecords->{$titleRecordBiblionumber}->{isAlreadyCommitted} ) {
+                    next;    # keep elements of updatedTitleRecords of preceeding calls that have not been rolled back
+                }
+                $logger->debug("genKohaRecords() is deleting updatedTitleRecords->{$titleRecordBiblionumber} because of database rollback and no other use of this title/items data");
+                delete $updatedTitleRecords->{$titleRecordBiblionumber};    # remove elements of updatedTitleRecords inserted by current call because this transaction is rolled back
             }
         }
 
@@ -1216,14 +1225,48 @@ sub genKohaRecords {
 
     # commit the complete delivery note import (only as a single transaction)
     $schema->storage->txn_commit;    # in case of a thrown exception this statement is not executed
+
+    my @biblionumbers = ();
     if ( $createdTitleRecords ) {
         foreach my $titleSelHashkey ( sort keys %{$createdTitleRecords} ) {
             if ( $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} ) {
                 next;    # keep elements of createdTitleRecords of preceeding calls
             }
+            my $biblionumber = $createdTitleRecords->{$titleSelHashkey}->{biblionumber};
+            if ( defined $biblionumber ) {
+                push @biblionumbers, $biblionumber;
+                $logger->debug("genKohaRecords() pushed biblionumber:$biblionumber: to array biblionumbers (new length:" . scalar @biblionumbers . ":).");
+            }
             $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} = 1;    # mark elements of createdTitleRecords newly added by current call as committed
             $logger->debug("genKohaRecords() has set createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted}:" . $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} . ":");
         }
+    }
+    if ( $updatedTitleRecords ) {
+        foreach my $titleRecordBiblionumber ( sort keys %{$updatedTitleRecords} ) {
+            if ( defined $titleRecordBiblionumber ) {
+                $logger->debug("genKohaRecords() updated title has biblionumber:" . $titleRecordBiblionumber . ":");
+                if ( grep( /^$titleRecordBiblionumber$/, @biblionumbers ) == 0 ) {
+                    push @biblionumbers, $titleRecordBiblionumber;
+                    $logger->debug("genKohaRecords() pushed biblionumber:$titleRecordBiblionumber: of updatedTitleRecords to array biblionumbers (new length:" . scalar @biblionumbers . ":).");
+                }
+                $updatedTitleRecords->{$titleRecordBiblionumber}->{isAlreadyCommitted} = 1;    # mark elements of updatedTitleRecords newly added by current call as committed
+                $logger->debug("genKohaRecords() has set updatedTitleRecords->{$titleRecordBiblionumber}->{isAlreadyCommitted}:" . $updatedTitleRecords->{$titleRecordBiblionumber}->{isAlreadyCommitted} . ":");
+            }
+        }
+    }
+    if ( @biblionumbers ) {
+        my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+        $logger->debug("genKohaRecords() is calling indexer->index_records() with biblionumbers:" . Dumper(@biblionumbers) . ":");
+        # 1. version works, but works asynchronously:
+        #$indexer->index_records( \@biblionumbers, 'specialUpdate', "biblioserver", undef );
+        # 2. version works, and hopefully works synchronously:
+        try {
+            $indexer->update_index( \@biblionumbers, undef );
+        } catch {
+            my $mess = sprintf("genKohaRecords(): Exception thrown by update_index:%s:, so the index has to be rebuilt manually!!!", $_[0]);
+            $logger->error($mess);
+            carp "EkzWsSerialOrder::" . $mess . "\n";
+        };
     }
 
     if ( $emaillog && defined($emaillog->{'logresult'}) && scalar(@{$emaillog->{'logresult'}}) > 0 ) {
@@ -1233,25 +1276,6 @@ sub genKohaRecords {
     }
 
     return 1;
-}
-
-
-###################################################################################################
-# Re-indexing of all titles registered in $updatedTitleRecords
-###################################################################################################
-sub updBiblioIndex {
-    my ($updatedTitleRecords) = @_;
-    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsDeliveryNote' });
-
-    $logger->debug("updBiblioIndex() Start updatedTitleRecords:" . Dumper($updatedTitleRecords) . ":");
-
-    my @biblionumbers = ( sort keys %{$updatedTitleRecords} );
-    if ( scalar @biblionumbers > 0 ) {
-        my $ekzKohaRecord = C4::External::EKZ::lib::EkzKohaRecords->new();
-        $logger->debug("updBiblioIndex() is calling ekzKohaRecord->updateInIndex() with biblionumbers:" . Dumper(@biblionumbers) . ":");
-        $ekzKohaRecord->updateInIndex(@biblionumbers);
-    }
-    $logger->debug("updBiblioIndex() returns (scalar \@biblionumbers:" . scalar @biblionumbers . ":");
 }
 
 
@@ -1352,7 +1376,7 @@ sub priceInfoFromMessage {
 
 sub processItemHit
 {
-    my ( $lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsArtikelNr, $lsReferenznummer, $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportTitleItemHit, $emaillog, $updOrInsItemsCountRef, $ekzAqbooksellersId, $logger ) = @_;
+    my ( $lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsArtikelNr, $lsReferenznummer, $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportTitleItemHit, $emaillog, $updOrInsItemsCountRef, $ekzAqbooksellersId, $updatedTitleRecords, $logger ) = @_;
     my $selParam = '';
     my $updParam = '';
     my $insParam = '';
@@ -1441,8 +1465,10 @@ sub processItemHit
                                 $_->update( $sf => $v );
                             }
                         }
-                        C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber );
+                        C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber, { skip_record_index => 1 } );
                         $logger->trace("processItemHit() after calling C4::Items::ModItemFromMarc biblionumber:$biblionumber: itemnumber:$itemnumber:");
+                        my $titleRecordBiblionumber = $biblionumber;
+                        $updatedTitleRecords->{$titleRecordBiblionumber}->{biblionumber} = $titleRecordBiblionumber;
                     }
                 }
             }

@@ -1,6 +1,6 @@
 package C4::External::EKZ::EkzWsStandingOrder;
 
-# Copyright 2017-2022 (C) LMSCLoud GmbH
+# Copyright 2017-2024 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -256,7 +256,7 @@ sub addReferenznummerToObjectItemNumber {
 # generate title data and item data as required
 ###################################################################################################
 sub genKohaRecords {
-    my ($ekzCustomerNumber, $messageID, $stoListElement, $stoWithNewState, $lastRunDate, $todayDate, $createdTitleRecords, $publicationYear) = @_;
+    my ($ekzCustomerNumber, $messageID, $stoListElement, $stoWithNewState, $lastRunDate, $todayDate, $createdTitleRecords, $updatedTitleRecords, $publicationYear) = @_;
     my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsStandingOrder' });
     my $ekzKohaRecord = C4::External::EKZ::lib::EkzKohaRecords->new();
 
@@ -919,7 +919,9 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
 
                     $item_hash->{biblionumber} = $biblionumber;
                     $item_hash->{biblioitemnumber} = $biblionumber;
-                    my $kohaItem = Koha::Item->new( $item_hash )->store;
+                    my $kohaItem = Koha::Item->new( $item_hash )->store( { skip_record_index => 1 } );
+                    my $titleRecordBiblionumber = $item_hash->{biblionumber};
+                    $updatedTitleRecords->{$titleRecordBiblionumber}->{biblionumber} = $titleRecordBiblionumber;
                     my $itemnumber = $kohaItem->itemnumber;
 
                     my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
@@ -948,7 +950,7 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
                                         $_->update( $sf => $v );
                                     }
                                 }
-                                C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber );
+                                C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber, { skip_record_index => 1 } );   # $updatedTitleRecords->{$titleRecordBiblionumber} has already been set a few lines ago
                             }
                         }
 
@@ -1081,16 +1083,23 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
 
         $logger->error("genKohaRecords() roll back based on thrown exception");
         $schema->storage->txn_rollback;    # roll back the complete standing order import, based on thrown exception
+
         if ( $createdTitleRecords ) {
             foreach my $titleSelHashkey ( sort keys %{$createdTitleRecords} ) {
                 if ( $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} ) {
-                    next;    # keep elements of createdTitleRecords of preceeding calls
+                    next;    # keep elements of createdTitleRecords of preceeding calls that have not been rolled back
                 }
-                my $biblionumber = $createdTitleRecords->{$titleSelHashkey}->{biblionumber};
-                $logger->debug("genKohaRecords() is calling ekzKohaRecord->deleteFromIndex() with bibliomumber:" . (defined($biblionumber)?$biblionumber:'undef') . ":");
-                $ekzKohaRecord->deleteFromIndex($biblionumber);
-                $logger->debug("genKohaRecords() is deleting createdTitleRecords->{$titleSelHashkey}");
-                delete $createdTitleRecords->{$titleSelHashkey};    # remove elements of createdTitleRecords of current call because this transaction is rolled back
+                $logger->debug("genKohaRecords() is deleting createdTitleRecords->{$titleSelHashkey} because of database rollback and no other use of this title data");
+                delete $createdTitleRecords->{$titleSelHashkey};    # remove elements of createdTitleRecords inserted by current call because this transaction is rolled back
+            }
+        }
+        if ( $updatedTitleRecords ) {
+            foreach my $titleRecordBiblionumber ( sort keys %{$updatedTitleRecords} ) {
+                if ( $updatedTitleRecords->{$titleRecordBiblionumber}->{isAlreadyCommitted} ) {
+                    next;    # keep elements of updatedTitleRecords of preceeding calls that have not been rolled back
+                }
+                $logger->debug("genKohaRecords() is deleting updatedTitleRecords->{$titleRecordBiblionumber} because of database rollback and no other use of this title/items data");
+                delete $updatedTitleRecords->{$titleRecordBiblionumber};    # remove elements of updatedTitleRecords inserted by current call because this transaction is rolled back
             }
         }
 
@@ -1099,14 +1108,48 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
 
     # commit the complete standing order import (only as a single transaction)
     $schema->storage->txn_commit;    # in case of a thrown exception this statement is not executed
+
+    my @biblionumbers = ();
     if ( $createdTitleRecords ) {
         foreach my $titleSelHashkey ( sort keys %{$createdTitleRecords} ) {
             if ( $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} ) {
                 next;    # keep elements of createdTitleRecords of preceeding calls
             }
+            my $biblionumber = $createdTitleRecords->{$titleSelHashkey}->{biblionumber};
+            if ( defined $biblionumber ) {
+                push @biblionumbers, $biblionumber;
+                $logger->debug("genKohaRecords() pushed biblionumber:$biblionumber: to array biblionumbers (new length:" . scalar @biblionumbers . ":).");
+            }
             $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} = 1;    # mark elements of createdTitleRecords newly added by current call as committed
             $logger->debug("genKohaRecords() has set createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted}:" . $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} . ":");
         }
+    }
+    if ( $updatedTitleRecords ) {
+        foreach my $titleRecordBiblionumber ( sort keys %{$updatedTitleRecords} ) {
+            if ( defined $titleRecordBiblionumber ) {
+                $logger->debug("genKohaRecords() updated title has biblionumber:" . $titleRecordBiblionumber . ":");
+                if ( grep( /^$titleRecordBiblionumber$/, @biblionumbers ) == 0 ) {
+                    push @biblionumbers, $titleRecordBiblionumber;
+                    $logger->debug("genKohaRecords() pushed biblionumber:$titleRecordBiblionumber: of updatedTitleRecords to array biblionumbers (new length:" . scalar @biblionumbers . ":).");
+                }
+                $updatedTitleRecords->{$titleRecordBiblionumber}->{isAlreadyCommitted} = 1;    # mark elements of updatedTitleRecords newly added by current call as committed
+                $logger->debug("genKohaRecords() has set updatedTitleRecords->{$titleRecordBiblionumber}->{isAlreadyCommitted}:" . $updatedTitleRecords->{$titleRecordBiblionumber}->{isAlreadyCommitted} . ":");
+            }
+        }
+    }
+    if ( @biblionumbers ) {
+        my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+        $logger->debug("genKohaRecords() is calling indexer->index_records() with biblionumbers:" . Dumper(@biblionumbers) . ":");
+        # 1. version works, but works asynchronously:
+        #$indexer->index_records( \@biblionumbers, 'specialUpdate', "biblioserver", undef );
+        # 2. version works, and hopefully works synchronously:
+        try {
+            $indexer->update_index( \@biblionumbers, undef );
+        } catch {
+            my $mess = sprintf("genKohaRecords(): Exception thrown by update_index:%s:, so the index has to be rebuilt manually!!!", $_[0]);
+            $logger->error($mess);
+            carp "EkzWsStandingOrder::" . $mess . "\n";
+        };
     }
 
     $logger->info("genKohaRecords() cntTitlesHandled:$cntTitlesHandled: cntItemsHandled:$cntItemsHandled:");

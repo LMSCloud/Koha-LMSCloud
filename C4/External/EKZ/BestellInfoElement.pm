@@ -1,6 +1,6 @@
 package C4::External::EKZ::BestellInfoElement;
 
-# Copyright 2017-2022 (C) LMSCLoud GmbH
+# Copyright 2017-2024 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -80,7 +80,8 @@ sub new {
         'ekzWebServicesSetItemSubfieldsWhenOrdered' => undef,
         'ekzAqbooksellersId' => '',    # will be set later, in function process() based on ekzKundenNr in XML element 'hauptstelle'
         'ekzKohaRecordClass' => undef,
-        'createdTitleRecords' => {},    # for storing biblionumber and title data of newly created title records to avoid multiple creation (Zebra index is too slow)
+        'createdTitleRecords' => {},    # for storing biblionumber and title data of newly created title records to avoid multiple creation (Zebra/ES indexer is too slow, and from 22.11 on the ES indexer is locked out by database transaction)
+        'updatedTitleRecords' => {},    # for storing biblionumber of updated title records (even if only its items are updated) for explicit index update
         'emaillog' => $emaillog    # hash with variables for email log
     };
     $self->{logger} = Koha::Logger->get({ interface => 'C4::External::EKZ::BestellInfoElement' });
@@ -498,7 +499,7 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
                     }
                     $self->{logger}->debug("process() HTTP request exemplarArray:" . Dumper($exemplarArrayRef) . ": AnzElem:" . scalar @{$exemplarArrayRef} . ":");
                     my @idPaarListeTmp = $self->handleTitelBestellInfo($acquisitionImportIdBestellInfo, $reqEkzBestellNr, $reqEkzBestellDatum, $reqLmsBestellCode, $reqParamTitelInfo, $exemplarArrayRef, $reqWaehrung, $basketno, $authorisedby); ## add or update title data and item data
-                    
+                   
                     $self->{logger}->debug("process() Anzahl idPaarListeTmp:" . scalar @idPaarListeTmp . ": idPaarListeTmp:" . Dumper(@idPaarListeTmp) . ":");
                     push @idPaarListe, @idPaarListeTmp;
                 }
@@ -654,19 +655,48 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
     if ( $respStatusCode eq 'ERROR' ) {
         $self->{logger}->error("process() roll back based on thrown exception or other error");
         $schema->storage->txn_rollback;    # roll back the complete BestellInfo, based on thrown exception or other error
-        if ( $self->{createdTitleRecords} ) {
-            foreach my $titleSelHashkey ( sort keys %{$self->{createdTitleRecords}} ) {
-                my $biblionumber = $self->{createdTitleRecords}->{$titleSelHashkey}->{biblionumber};
-                $self->{logger}->debug("process() is calling self->{ekzKohaRecordClass}->deleteFromIndex() with bibliomumber:" . (defined($biblionumber)?$biblionumber:'undef') . ":");
-                $self->{ekzKohaRecordClass}->deleteFromIndex($biblionumber);
-                $self->{logger}->debug("process() is deleting self->{createdTitleRecords}->{$titleSelHashkey}");
-                delete $self->{createdTitleRecords}->{$titleSelHashkey};
-            }
-        }
     } else {
         $self->{logger}->info("process() commit");
         # commit the complete BestellInfo (only as a single transaction)
         $schema->storage->txn_commit;
+
+        my @biblionumbers = ();
+        if ( $self->{createdTitleRecords} ) {
+            foreach my $titleSelHashkey ( sort keys %{$self->{createdTitleRecords}} ) {
+                my $biblionumber = $self->{createdTitleRecords}->{$titleSelHashkey}->{biblionumber};
+                if ( defined $biblionumber ) {
+                    push @biblionumbers, $biblionumber;
+                    $self->{logger}->debug("process() pushed biblionumber:$biblionumber: of createdTitleRecords to array biblionumbers (new length:" . scalar @biblionumbers . ":).");
+                }
+                $self->{logger}->debug("process() is deleting self->{createdTitleRecords}->{$titleSelHashkey}");
+                delete $self->{createdTitleRecords}->{$titleSelHashkey};
+            }
+        }
+        if ( $self->{updatedTitleRecords} ) {
+            foreach my $titleRecordBiblionumber ( sort keys %{$self->{updatedTitleRecords}} ) {
+                if ( defined $titleRecordBiblionumber ) {
+                    $self->{logger}->debug("process() an updated title has biblionumber:" . $titleRecordBiblionumber . ":");
+                    if ( grep( /^$titleRecordBiblionumber$/, @biblionumbers ) == 0 ) {
+                        push @biblionumbers, $titleRecordBiblionumber;
+                        $self->{logger}->debug("process() pushed biblionumber:$titleRecordBiblionumber: of updatedTitleRecords to array biblionumbers (new length:" . scalar @biblionumbers . ":).");
+                    }
+                }
+            }
+        }
+        if ( @biblionumbers ) {
+            my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+            $self->{logger}->debug("process() is calling indexer->index_records() with biblionumbers:" . Dumper(@biblionumbers) . ":");
+            # 1. version works, but works asynchronously:
+            #$indexer->index_records( \@biblionumbers, 'specialUpdate', "biblioserver", undef );
+            # 2. version hopefully works synchronously:
+            try {
+                $indexer->update_index( \@biblionumbers, undef );
+            } catch {
+                my $mess = sprintf("handleTitelBestellInfo(): Exception thrown by update_index:%s:, so the index has to be rebuilt manually!!!", $_[0]);
+                $self->{logger}->error($mess);
+                carp "BestellInfoElement::" . $mess . "\n";
+            };
+        }
     
         if ( scalar @{$self->{emaillog}->{logresult}} > 0 ) {    # RG 31.03.2020: send e-mail also if reqLmsBestellCode
             my @importIds = keys %{$self->{emaillog}->{importIds}};
@@ -1310,7 +1340,9 @@ sub handleTitelBestellInfo {
                             $item->price( $gesamtpreis );
                             $item->replacementprice( $replacementcost_tax_included );
                             $self->{logger}->debug("handleTitelBestellInfo() item->store() itemnumber:" . $itemnumber . ": gesamtpreis:" . $gesamtpreis . ": replacementcost_tax_included:" . $replacementcost_tax_included . ":");
-                            $item->store();
+                            $item->store( { skip_record_index => 1 } );
+                            my $titleRecordBiblionumber = $item->biblionumber();
+                            $self->{updatedTitleRecords}->{$titleRecordBiblionumber}->{biblionumber} = $titleRecordBiblionumber;
                         } else {
                             $self->{logger}->error("handleTitelBestellInfo() item not found for update of price and replacementprice! itemnumber:" . $itemnumber . ": gesamtpreis:" . $gesamtpreis . ": replacementcost_tax_included:" . $replacementcost_tax_included . ":");
                         }
@@ -1359,7 +1391,9 @@ sub handleTitelBestellInfo {
                     # step 3.2: finally add the next items record
                     $item_hash->{biblionumber} = $biblionumber;
                     $item_hash->{biblioitemnumber} = $biblionumber;
-                    my $kohaItem = Koha::Item->new( $item_hash )->store;
+                    my $kohaItem = Koha::Item->new( $item_hash )->store( { skip_record_index => 1 } );
+                    my $titleRecordBiblionumber = $item_hash->{biblionumber};
+                    $self->{updatedTitleRecords}->{$titleRecordBiblionumber}->{biblionumber} = $titleRecordBiblionumber;
                     my $itemnumber = $kohaItem->itemnumber;
 
                     # collect title controlnumbers for HTML URL to Koha records of handled titles
@@ -1386,7 +1420,7 @@ sub handleTitelBestellInfo {
                                                 $_->update( $sf => $v );
                                         }
                                     }
-                                    C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber );
+                                    C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber, { skip_record_index => 1 } );   # $self->{updatedTitleRecords}->{$titleRecordBiblionumber} has already been set a few lines ago
                                 }
                             }
                         }

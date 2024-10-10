@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# Copyright 2021 (C) LMSCLoud GmbH
+# Copyright 2021-2024 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -24,6 +24,7 @@ use utf8;
 use Try::Tiny;
 use Data::Dumper;
 
+use C4::External::EKZ::lib::EkzWsConfig;
 use C4::External::EKZ::EkzWsSerialOrder qw( readSerialOrdersFromEkzWsFortsetzungList readSerialOrderFromEkzWsFortsetzungDetail genKohaRecords );
 use Koha::Logger;
 
@@ -46,8 +47,11 @@ my $fortsetzungDetailElement = '';    # for storing the FortsetzungDetailElement
 # by &C4::External::EKZ::EkzWsSerialOrder::genKohaRecords().
 # This is required because the repeated local title search for the identical title after its previous insert action may happen faster
 # than the Zebra or Elasticsearch index works, and therefore the local title search would (incorrectly) return no hit.
-# (As we do not catch thrown exceptions, there is no need to update $createdTitleRecords in case of database transaction rollbacks.)
 my $createdTitleRecords = {};
+
+# The hash %{$updatedTitleRecords} has a similar purpose, but stores the biblionumbers of all biblios locally updated during this run of ekzWsSerialOrder.pl.
+# Also an update or creation of a title's item is regarded as an update of the title's data in this indexer context.
+my $updatedTitleRecords = {};
 
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 my $startTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d",1900+$year,1+$mon,$mday,$hour,$min,$sec);
@@ -135,8 +139,8 @@ if ( $testMode == 2 ) {
                                  $result->{fortsetzungRecords}->[0]->{fortsetzungDetailStatusRecords}->{alreadyPlanned}->{fortsetzungDetailStatus} ) {
 
                                 # XXXWH ekz ERROR: at the moment there is no statusdatum sent, so we can not compare with $lastRunDate => use undef instead
-                                #if ( &genKohaRecords($ekzCustomerNumber, $result->{fortsetzungRecords}->[0]->{messageID}, $fortsetzungDetailElement, $result->{fortsetzungRecords}->[0], $lastRunDate, $todayDate, $createdTitleRecords) ) {
-                                if ( &genKohaRecords($ekzCustomerNumber, $result->{fortsetzungRecords}->[0]->{messageID}, $fortsetzungDetailElement, $result->{fortsetzungRecords}->[0], undef, $todayDate, $createdTitleRecords) ) {
+                                #if ( &genKohaRecords($ekzCustomerNumber, $result->{fortsetzungRecords}->[0]->{messageID}, $fortsetzungDetailElement, $result->{fortsetzungRecords}->[0], $lastRunDate, $todayDate, $createdTitleRecords, $updatedTitleRecords) ) {
+                                if ( &genKohaRecords($ekzCustomerNumber, $result->{fortsetzungRecords}->[0]->{messageID}, $fortsetzungDetailElement, $result->{fortsetzungRecords}->[0], undef, $todayDate, $createdTitleRecords, $updatedTitleRecords) ) {
                                     $res = 1;
                                 }
                             }
@@ -186,8 +190,8 @@ if ( $testMode == 0 ) {
                                          $result->{fortsetzungRecords}->[0]->{fortsetzungDetailStatusRecords}->{alreadyPlanned}->{fortsetzungDetailStatus} ) {
 
                                         # XXXWH ekz ERROR: at the moment there is no statusdatum sent, so we can not compare with $lastRunDate => use undef instead
-                                        #if ( &genKohaRecords($ekzCustomerNumber, $result->{fortsetzungRecords}->[0]->{messageID}, $fortsetzungDetailElement, $result->{fortsetzungRecords}->[0], $lastRunDate, $todayDate, $createdTitleRecords) ) {
-                                        if ( &genKohaRecords($ekzCustomerNumber, $result->{fortsetzungRecords}->[0]->{messageID}, $fortsetzungDetailElement, $result->{fortsetzungRecords}->[0], undef, $todayDate, $createdTitleRecords) ) {
+                                        #if ( &genKohaRecords($ekzCustomerNumber, $result->{fortsetzungRecords}->[0]->{messageID}, $fortsetzungDetailElement, $result->{fortsetzungRecords}->[0], $lastRunDate, $todayDate, $createdTitleRecords, $updatedTitleRecords) ) {
+                                        if ( &genKohaRecords($ekzCustomerNumber, $result->{fortsetzungRecords}->[0]->{messageID}, $fortsetzungDetailElement, $result->{fortsetzungRecords}->[0], undef, $todayDate, $createdTitleRecords, $updatedTitleRecords) ) {
                                             $res = 1;
                                         }
                                     }

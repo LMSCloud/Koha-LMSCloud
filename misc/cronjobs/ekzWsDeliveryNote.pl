@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# Copyright 2017-2021 (C) LMSCLoud GmbH
+# Copyright 2017-2024 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -26,7 +26,7 @@ use Data::Dumper;
 
 use C4::External::EKZ::lib::EkzWsConfig;
 use C4::External::EKZ::lib::EkzWebServices;
-use C4::External::EKZ::EkzWsDeliveryNote qw( readLSFromEkzWsLieferscheinList readLSFromEkzWsLieferscheinDetail genKohaRecords updBiblioIndex );
+use C4::External::EKZ::EkzWsDeliveryNote qw( readLSFromEkzWsLieferscheinList readLSFromEkzWsLieferscheinDetail genKohaRecords );
 use Koha::Logger;
 
 
@@ -47,10 +47,11 @@ my $lieferscheinDetailElement = '';    # for storing the LieferscheinDetailEleme
 # by &C4::External::EKZ::ekzWsDeliveryNote::genKohaRecords().
 # This is required because the repeated local title search for the identical title after its previous insert action may happen faster
 # than the Zebra or Elasticsearch index works, and therefore the local title search would (incorrectly) return no hit.
-# (As we do not catch thrown exceptions, there is no need to update $createdTitleRecords in case of database transaction rollbacks.)
 my $createdTitleRecords = {};
+
 # The hash %{$updatedTitleRecords} stores the biblionumbers of titles that have been overwritten in this run of ekzWsDeliveryNote.pl 
-# based on system preferences 'ekzWebServicesOverwriteCatalogDataOnDelivery' and 'ekzWebServicesOverwriteCatalogDataKeepFields'.
+# based on system preferences 'ekzWebServicesOverwriteCatalogDataOnDelivery' and 'ekzWebServicesOverwriteCatalogDataKeepFields' or 
+# whose items have been updated.
 my $updatedTitleRecords = {};
 
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
@@ -183,9 +184,6 @@ if ( $testMode == 0 ) {
     }
 
 }
-
-# Re-indexing of all titles registered in $updatedTitleRecords (just in case there happened a database transaction rollback in this run).
-&updBiblioIndex($updatedTitleRecords);
 
 ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 my $endTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d",1900+$year,1+$mon,$mday,$hour,$min,$sec);
