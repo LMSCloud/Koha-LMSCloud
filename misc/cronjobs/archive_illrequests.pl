@@ -107,7 +107,7 @@ use C4::Koha;
 use C4::Circulation;
 use Koha::Libraries;
 use Koha::Checkouts;
-use Koha::DateUtils;
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Illrequests;
 use Koha::Illrequestattributes;
 use Koha::Illcomments;
