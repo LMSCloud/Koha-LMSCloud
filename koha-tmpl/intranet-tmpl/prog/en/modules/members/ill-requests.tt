@@ -61,7 +61,9 @@
         [% INCLUDE 'calendar.inc' %]
         <script>
             // introducing JS variables to make the filter parameters accessible for js/ill-list-table.js
-            var prefilters = '[% prefilters | html %]';
+            var prefilters = '[% prefilters | $raw %]';    // e.g. "backend=ILLALV"
+            var infilter = '[% infilter | $raw %]';    // e.g. "status,-not_in,COMP,QUEUED"
+            var query_type_js = 'illlist';    // e.g. "illview", or "illlist"
 
             // Set column settings
             var table_settings = [% TablesSettings.GetTableSettings( 'illrequests', 'ill-requests', 'ill-requests', 'json' ) | $raw %];
