@@ -20,7 +20,7 @@
 use Modern::Perl;
 use utf8;
 
-use Test::More tests => 31;
+use Test::More tests => 32;
 use Test::Exception;
 use Test::MockModule;
 
@@ -2702,6 +2702,62 @@ subtest 'check_booking tests' => sub {
         $can_book,
         1,
         "Koha::Item->check_booking returns true when we don't conflict with a future booking"
+    );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'effective_bookable() tests' => sub {
+
+    plan tests => 5;
+
+    $schema->storage->txn_begin;
+
+    my $biblio       = $builder->build_sample_biblio;
+    my $biblio_itype = Koha::ItemTypes->find( $biblio->itemtype );
+    $biblio_itype->bookable(0)->store();
+    $biblio_itype->discard_changes;
+
+    my $item_itype = $builder->build_object( { class => 'Koha::ItemTypes' } );
+    $item_itype->bookable(1)->store();
+    $item_itype->discard_changes;
+
+    my $item = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, itype => $item_itype->itemtype } );
+    $item->bookable(undef)->store();
+    $item->discard_changes;
+
+    isnt( $biblio->itemtype, $item_itype->itemtype, "Biblio level itemtype and item level itemtype does not match" );
+
+    t::lib::Mocks::mock_preference( 'item-level_itypes', 0 );
+    note("item-level_itypes: 0");
+
+    is(
+        $item->effective_bookable, $biblio_itype->bookable,
+        '->effective_bookable returns biblio level itemtype bookable value when item bookable is undefined'
+    );
+
+    $item->bookable(1)->store();
+    $item->discard_changes;
+    isnt(
+        $item->effective_bookable, $biblio_itype->bookable,
+        '->effective_bookable returns item specific bookable value when item bookable is defined'
+    );
+
+    t::lib::Mocks::mock_preference( 'item-level_itypes', 1 );
+    note("item-level_itypes: 1");
+
+    $item->bookable(undef)->store();
+    $item->discard_changes;
+    is(
+        $item->effective_bookable, $item_itype->bookable,
+        '->effective_bookable returns item level itemtype bookable value when item bookable is undefined'
+    );
+
+    $item->bookable(0)->store();
+    $item->discard_changes;
+    isnt(
+        $item->effective_bookable, $item_itype->bookable,
+        '->effective_bookable returns item specific bookable value when item bookable is defined'
     );
 
     $schema->storage->txn_rollback;
