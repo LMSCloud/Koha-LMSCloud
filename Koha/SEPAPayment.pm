@@ -563,7 +563,7 @@ sub paySelectedFeesOfPatron {
         my $selParam = { accountlines_id => { '-IN' => \@selectedAccountlinesIdsArray } };
         print STDERR "Koha::SEPAPayment::paySelectedFeesOfPatron() Dumper(selParam):" . Dumper($selParam) . ":\n" if $self->{verbose} > 1;
 
-        my @lines = Koha::Account::Lines->search( $selParam );
+        my @lines = Koha::Account::Lines->search( $selParam )->as_list;
         #print STDERR "Koha::SEPAPayment::paySelectedFeesOfPatron() Dumper(lines):" . Dumper(\@lines) . ":\n" if $self->{verbose} > 1;
 
         if ( $lines[0] ) {    # found at least one accountlines record

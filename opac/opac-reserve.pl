@@ -453,7 +453,7 @@ foreach my $biblioNum (@biblionumbers) {
     foreach my $item (@{$biblioData->{items}}) {
 
         my $item_info = $item->unblessed;
-        $item_info->{holding_branch} = $item->holding_branch;
+        $item_info->{holding_branch} = ($item->holdingbranch ? $item->holding_branch : undef);
         $item_info->{home_branch}    = $item->home_branch;
         if ($itemLevelTypes) {
             my $itemtype = $item->itemtype;
