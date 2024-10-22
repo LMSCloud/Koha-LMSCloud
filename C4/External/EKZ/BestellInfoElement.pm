@@ -26,6 +26,7 @@ use CGI::Carp;
 use Time::HiRes qw(gettimeofday);
 use Try::Tiny;
 
+use Koha::Plugins;    # this is a hack to avoid the creation of additional database connections by plugins during our database transaction XXXWH
 use Koha::Exceptions::Object;
 use C4::Context;
 use C4::Koha;
@@ -138,7 +139,9 @@ sub init {
 
 sub process {
     my ($self, $soapBodyContent, $request) = @_;    # $request->{'soap:Envelope'}->{'soap:Body'} contains our deserialized BestellinfoElement of the HTTP request
-    my $schema = Koha::Database->new->schema;
+
+    my @enabled_plugins = Koha::Plugins::get_enabled_plugins();    # this is a hack to avoid the creation of additional database connections by plugins during our database transaction XXXWH
+    my $schema = Koha::Database->schema;
     $schema->storage->txn_begin;
 
     my $exceptionThrown;

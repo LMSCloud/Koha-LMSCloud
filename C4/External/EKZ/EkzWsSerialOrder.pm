@@ -26,6 +26,7 @@ use CGI::Carp;
 use Exporter;
 use Try::Tiny;
 
+use Koha::Plugins;    # this is a hack to avoid the creation of additional database connections by plugins during our database transaction XXXWH
 use C4::Context;
 use C4::Acquisition qw( NewBasket GetBasket GetBaskets ModBasket GetBasketgroupsGeneric NewBasketgroup );
 use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField );
@@ -116,7 +117,9 @@ sub genKohaRecords {
     my $basketgroupid = undef;
     my $authorisedby = undef;
     my $exceptionThrown;
-    my $schema = Koha::Database->new->schema;
+
+    my @enabled_plugins = Koha::Plugins::get_enabled_plugins();    # this is a hack to avoid the creation of additional database connections by plugins during our database transaction XXXWH
+    my $schema = Koha::Database->schema;
     $schema->storage->txn_begin;
 
     # variables for email log

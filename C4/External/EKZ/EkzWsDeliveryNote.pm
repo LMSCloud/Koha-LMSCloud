@@ -27,6 +27,7 @@ use DateTime::Format::MySQL;
 use Exporter;
 use Try::Tiny;
 
+use Koha::Plugins;    # this is a hack to avoid the creation of additional database connections by plugins during our database transaction XXXWH
 use C4::Acquisition qw( NewBasket GetBasket GetBaskets ModBasket ReopenBasket GetBasketgroupsGeneric NewBasketgroup CloseBasketgroup ReOpenBasketgroup GetOrderFromItemnumber ModOrderDeliveryNote );
 use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField );
 use C4::Context;
@@ -116,7 +117,9 @@ sub genKohaRecords {
     my $lieferscheinDatum = '';
     my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsDeliveryNote' });
     my $exceptionThrown;
-    my $schema = Koha::Database->new->schema;
+
+    my @enabled_plugins = Koha::Plugins::get_enabled_plugins();    # this is a hack to avoid the creation of additional database connections by plugins during our database transaction XXXWH
+    my $schema = Koha::Database->schema;
     $schema->storage->txn_begin;
 
     # variables for email log
@@ -1399,7 +1402,7 @@ sub processItemHit
 
     # void the itemnumber if meanwhile the order has been transferred by the library to another bookseller than ekz
     if ( defined $itemnumber ) {
-        my $schema = Koha::Database->new()->schema();
+        my $schema = Koha::Database->schema();
         # try to find the aqorders record for this item
         $selParam = {
             itemnumber => $itemnumber
