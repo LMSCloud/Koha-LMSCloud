@@ -80,6 +80,7 @@
     [% INCLUDE 'js-date-format.inc' %]
     [% Asset.js("js/place_booking_modal.js") | $raw %]
     [% Asset.js("js/cancel_booking_modal.js") | $raw %]
+    [% Asset.js("js/combobox.js") | $raw %]
 <script>
     var cancel_success = 0;
     var update_success = 0;
@@ -376,6 +377,15 @@
                 ),
             );
 
+        $("#cancellation-reason").comboBox({
+            displayProperty: 'name',
+            placeholder: _("Select or type a reason"),
+        });
+
+        document.getElementById("cancelBookingModal")?.addEventListener('hide.bs.modal', () => {
+            $("#cancellation-reason").comboBox('reset');
+        });
+
         function handleFilter(e, text, filterStates) {
             const target = e.target;
             const { filter } = target.dataset;
@@ -396,7 +406,6 @@
 
             target.classList.toggle("filtered");
         }
-
     });
 </script>
     [% END %]
