@@ -7,12 +7,13 @@
     async function handleSubmit(e) {
         e.preventDefault();
 
-        const bookingIdInput = document.getElementById("cancel_booking_id");
-        if (!bookingIdInput) {
+        const target = e.target;
+        if (!(target instanceof HTMLFormElement)) {
             return;
         }
 
-        const bookingId = bookingIdInput.value;
+        const formData = new FormData(target);
+        const bookingId = formData.get("booking_id");
         if (!bookingId) {
             return;
         }
@@ -20,7 +21,10 @@
         let [error, response] = await catchError(
             fetch(`/api/v1/bookings/${bookingId}`, {
                 method: "PATCH",
-                body: JSON.stringify({ status: "cancelled" }),
+                body: JSON.stringify({
+                    status: "cancelled",
+                    cancellation_reason: formData.get("cancellation_reason"),
+                }),
                 headers: {
                     "Content-Type": "application/json",
                 },
@@ -41,7 +45,11 @@
 
         cancel_success = true;
         bookings_table?.api().ajax.reload();
-        timeline?.itemsData.remove(Number(booking_id));
+        try {
+            timeline?.itemsData.remove(Number(bookingId));
+        } catch {
+            console.info("Timeline component not found. Skipping...");
+        }
 
         $("#cancelBookingModal").modal("hide");
 
