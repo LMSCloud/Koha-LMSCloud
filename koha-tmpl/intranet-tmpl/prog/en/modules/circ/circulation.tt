@@ -1163,6 +1163,7 @@
     [% Asset.js("js/holds.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
     [% Asset.js("js/cancel_booking_modal.js") | $raw %]
+    [% Asset.js("js/combobox.js") | $raw %]
     [% INCLUDE 'js-biblio-format.inc' %]
     <script>
         table_settings_issues_table = [% TablesSettings.GetTableSettings( 'circ', 'circulation', 'issues-table', 'json' ) | $raw %]
@@ -1246,6 +1247,15 @@
                     }
                 });
             [% END %]
+
+            $("#cancellation-reason").comboBox({
+                displayProperty: 'name',
+                placeholder: _("Select or type a reason"),
+            });
+
+            document.getElementById("cancelBookingModal")?.addEventListener('hide.bs.modal', () => {
+                $("#cancellation-reason").comboBox('reset');
+            });
         });
     </script>
     [% INCLUDE 'str/members-menu.inc' %]
