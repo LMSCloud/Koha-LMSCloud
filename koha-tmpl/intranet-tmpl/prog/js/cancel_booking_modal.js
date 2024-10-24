@@ -58,7 +58,10 @@
             return;
         }
 
-        bookingsCount.innerHTML = parseInt(bookingsCount.innerHTML, 10) - 1;
+        bookingsCount.innerHTML = bookingsCount.innerHTML.replace(
+            /\d+/,
+            match => parseInt(match, 10) - 1
+        );
     }
 
     function handleShowBsModal(e) {
