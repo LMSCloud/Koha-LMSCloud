@@ -500,6 +500,7 @@ my $noticeFees = C4::NoticeFees->new();
 # matching overduerule.
 foreach my $branchcode (@branches) {
     my $library             = Koha::Libraries->find($branchcode);
+    next if (! $library);
     my $usebranch           = $branchcode;
     $usebranch = $library->mobilebranch if ( $library->mobilebranch );
     
