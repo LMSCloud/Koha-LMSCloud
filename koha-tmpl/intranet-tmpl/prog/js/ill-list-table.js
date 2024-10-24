@@ -271,7 +271,6 @@ $(document).ready(function() {
             'id_prefix',
             'patron'
         ],
-        "order": [[0, 'desc']],
         "stateSave": true, // remember state on page reload
         "columns": [
             {
@@ -490,10 +489,10 @@ $(document).ready(function() {
                 }
             },
             {
-                "data": "", // checkedBy (derived from illrequestattributes)
+                "data": "", // checkedBy/ochk_Bearbeiter (derived from illrequestattributes)
                 "orderable": false,
                 "render": function(data, type, row, meta) {
-                    return display_extended_attribute(row, 'checkedBy');
+                    return display_extended_attribute(row, 'ochk_Bearbeiter') + display_extended_attribute(row, 'checkedBy')
                 }
             },
             {

@@ -31,7 +31,7 @@
             <th scope="col">OPAC notes</th>
             <th scope="col">Staff notes</th>
             <th scope="col">Backend</th>
-            <th scope="col">ILL order last checked by</th>
+            <th scope="col" data-datatype="related-object" data-related="extended_attributes" data-related-key="type" data-related-value="ochk_Bearbeiter"         data-related-search-on="value">ILL order last checked by</th>
             <th scope="col" class="actions"></th>
         </tr>
     </thead>
