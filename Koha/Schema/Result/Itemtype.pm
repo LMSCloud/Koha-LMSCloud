@@ -175,6 +175,14 @@ Group this item type with others with the same value on OPAC search options
 
 If automatic checkin is enabled for items of this type
 
+=head2 bookable
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+Activate bookable feature for items related to this item type
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -220,6 +228,8 @@ __PACKAGE__->add_columns(
   "searchcategory",
   { data_type => "varchar", is_nullable => 1, size => 80 },
   "automatic_checkin",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
+  "bookable",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
 );
 
@@ -333,8 +343,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-09-22 11:31:25
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:SoRKIMEqXE2+RkGq6zBejA
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-10-25 13:25:14
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:jd0dYE700dpg1IiRnfbcEg
 
 __PACKAGE__->add_columns(
     '+automatic_checkin'            => { is_boolean => 1 },
