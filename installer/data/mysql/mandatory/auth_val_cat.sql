@@ -88,3 +88,8 @@ VALUES
     ('ERM_PACKAGE_TYPE', 1),
     ('ERM_PACKAGE_CONTENT_TYPE', 1),
     ('ERM_TITLE_PUBLICATION_TYPE', 1);
+
+-- For bookings
+INSERT IGNORE INTO authorised_value_categories (category_name, is_system)
+VALUES
+    ('BOOKING_CANCELLATION', 1);
