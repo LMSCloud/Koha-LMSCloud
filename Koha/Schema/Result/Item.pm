@@ -60,10 +60,9 @@ item barcode (MARC21 952$p)
 =head2 bookable
 
   data_type: 'tinyint'
-  default_value: 0
-  is_nullable: 0
+  is_nullable: 1
 
-boolean value defining whether this this item is available for bookings or not
+nullable boolean value defining whether this this item is available for bookings or not
 
 =head2 dateaccessioned
 
@@ -412,7 +411,7 @@ __PACKAGE__->add_columns(
   "barcode",
   { data_type => "varchar", is_nullable => 1, size => 20 },
   "bookable",
-  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
+  { data_type => "tinyint", is_nullable => 1 },
   "dateaccessioned",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "booksellerid",
@@ -964,8 +963,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-11-03 14:18:06
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:0jargxEw3HZOK57+ijsMHA
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-10-25 13:25:14
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:gsZwsPbmOacCDxRbnl5w/A
 
 __PACKAGE__->belongs_to( biblioitem => "Koha::Schema::Result::Biblioitem", "biblioitemnumber" );
 
