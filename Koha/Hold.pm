@@ -37,6 +37,7 @@ use Koha::Libraries;
 use Koha::Old::Holds;
 use Koha::Calendar;
 use Koha::Plugins;
+use Koha::Illrequest qw( checkIfIllItem );
 
 use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
 
@@ -824,19 +825,35 @@ sub fill {
             C4::Reserves::_FixPriority({ biblionumber => $self->biblionumber });
 
             if ( C4::Context->preference('HoldFeeMode') eq 'any_time_is_collected' ) {
-                my $fee = $patron->category->reservefee // 0;
-                if ( $fee > 0 ) {
-                    $patron->account->add_debit(
-                        {
-                            amount       => $fee,
-                            description  => $self->biblio->title,
-                            user_id      => C4::Context->userenv ? C4::Context->userenv->{'number'} : undef,
-                            library_id   => C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef,
-                            interface    => C4::Context->interface,
-                            type         => 'RESERVE',
-                            item_id      => $self->itemnumber
+                # LMSCLoud: check if it is an ILL item and if an (additional) hold fee is acceptable for the involved ILL backend
+                my $reservefee_acceptable = 1;
+                my ( $itisanillitem, $illrequest ) = ( 0, undef );
+                if ( $self->itemnumber && C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+                    eval {
+                        my $kohaItem = Koha::Items->find($self->itemnumber);
+                        if ( $kohaItem ) {
+                            ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($kohaItem->unblessed);
+                            if ( $itisanillitem && $illrequest ) {
+                                $reservefee_acceptable = $illrequest->_backend_capability( "isReserveFeeAcceptable", $illrequest );
+                            }
                         }
-                    );
+                    };
+                }
+                if ( $reservefee_acceptable ) {
+                    my $fee = $patron->category->reservefee // 0;
+                    if ( $fee > 0 ) {
+                        $patron->account->add_debit(
+                            {
+                                amount       => $fee,
+                                description  => $self->biblio->title,
+                                user_id      => C4::Context->userenv ? C4::Context->userenv->{'number'} : undef,
+                                library_id   => C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef,
+                                interface    => C4::Context->interface,
+                                type         => 'RESERVE',
+                                item_id      => $self->itemnumber
+                            }
+                        );
+                    }
                 }
             }
 
