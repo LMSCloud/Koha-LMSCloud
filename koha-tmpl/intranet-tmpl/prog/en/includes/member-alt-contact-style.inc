@@ -64,7 +64,7 @@
             <select id="altcontacttitle" name="altcontacttitle">
                 <option value=""></option>
                 [% FOREACH t IN Koha.Preference('BorrowersTitles').split('\|') %]
-                    [% IF altcontacttitle == t %]
+                    [% IF patron.altcontacttitle == t %]
                         <option value="[% t %]" selected="selected">[% t %]</option>
                     [% ELSE %]
                         <option value="[% t %]">[% t %]</option>
