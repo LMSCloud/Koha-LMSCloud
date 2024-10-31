@@ -35,7 +35,6 @@ use Koha::Libraries;
 use Koha::DateUtils qw( output_pref dt_from_string );
 use Koha::Patrons;
 use Locale::Currency::Format 1.28;
-use Koha::DateUtils;
 use Koha::Notice::Templates;
 use File::Spec;
 
