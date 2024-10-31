@@ -3026,7 +3026,7 @@ sub getFinesOverview {
                         2 as entrytype,
                         DATE(ao.created_on) as date,
                         a.credit_type_code as credit_type_code,
-                        IF(ao.type IN ('Payment','Credit Applied'), SUM(ao.amount)* -1, SUM(ao.amount)) as amount,
+                        IF(a.credit_type_code IN ('PAYMENT') AND ao.type <> 'REVERSED', SUM(ao.amount)* -1, SUM(ao.amount)) as amount,
                         a.borrowernumber as borrowernumber,
                         a.description as description,
                         a.manager_id as manager_id,
