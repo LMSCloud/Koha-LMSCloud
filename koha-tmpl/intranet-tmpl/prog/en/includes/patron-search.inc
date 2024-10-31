@@ -495,7 +495,7 @@
                     return "";
                 },
                 issue_count_to: function(){
-                    let issue_count_to = $("#issuecountstart_filter").val();
+                    let issue_count_to = $("#issuecountend_filter").val();
                     if (issue_count_to) {
                         issue_count_to = issue_count_to.replace(/\D/g,'');
                         if ( issue_count_to.length ) return issue_count_to;
