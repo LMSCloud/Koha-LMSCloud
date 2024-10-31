@@ -280,6 +280,9 @@
  </background_jobs_worker>
 
  <do_not_remove_cookie>catalogue_editor_\d+</do_not_remove_cookie>
+ <do_not_remove_cookie>KohaOpacLanguage</do_not_remove_cookie>
+ <do_not_remove_cookie>issues-table-load-immediately-.+</do_not_remove_cookie>
+ <do_not_remove_cookie>infonline</do_not_remove_cookie>
  <!-- Uncomment lines like hereunder to not clear cookies at logout:
       The cookie name is case sensitive.
       NOTE: You may use regex constructions like the example above.
