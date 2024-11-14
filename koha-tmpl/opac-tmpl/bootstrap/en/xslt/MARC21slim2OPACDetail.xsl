@@ -366,7 +366,7 @@
         </xsl:if>
 
         <!-- Set -->
-        <xsl:if test="$leader19='c'">
+        <xsl:if test="$leader19='c' and marc:datafield[@tag=773]">
         <span class="results_summary set"><span class="label">Set: </span>
         <xsl:for-each select="marc:datafield[@tag=773]">
             <a>

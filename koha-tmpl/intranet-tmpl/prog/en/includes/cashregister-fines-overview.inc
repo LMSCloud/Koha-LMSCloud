@@ -2,7 +2,7 @@
 [% USE KohaDates %]
 
 [% IF (finesstats.type == 'inoutpaymentoverview') %]
-    <h2>Cash register overview: [% Branches.GetName(sessionbranch) %] ([% journalfrom %][% IF (journalfrom != journalto) %] - [% journalto %][% END %])</h2>
+    <h2>Cash register overview: [% Branches.GetName(sessionbranch) %] ([% journalfrom | $KohaDates with_hours => 1 %][% IF (journalfrom != journalto) %] - [% journalto | $KohaDates with_hours => 1 %][% END %])</h2>
     <p>Manager: [% loggedinusername %], Date: [% datetimenow %]</p>
     [% IF (! printview) %]
     <form id="showfinesoverview" action="/cgi-bin/koha/[% used_perl_script %]" method="post">
@@ -79,7 +79,7 @@
         </tfoot>
     </table>
 [% ELSE %]
-     <h2>Fines overview: [% resolveReportBranchName(reportbranch) %] ([% journalfrom %][% IF (journalfrom != journalto) %] - [% journalto %][% END %])</h2>
+     <h2>Fines overview: [% resolveReportBranchName(reportbranch) %] ([% journalfrom | $KohaDates with_hours => 1 %][% IF (journalfrom != journalto) %] - [% journalto | $KohaDates with_hours => 1 %][% END %])</h2>
     [% IF (!printview) %]
         <form id="showfinesoverview" action="/cgi-bin/koha/[% used_perl_script %]" method="post">
             <input type="hidden" name="op" value="finesreport" />

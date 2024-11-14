@@ -2,7 +2,7 @@
 [% USE KohaDates %]
 
 
-<h2>Revenues and expenditures overview: [% Branches.GetName(sessionbranch) %] ([% journalfrom %][% IF (journalfrom != journalto) %] - [% journalto %][% END %])</h2>
+<h2>Revenues and expenditures overview: [% Branches.GetName(sessionbranch) %] ([% journalfrom | $KohaDates with_hours => 1 %][% IF (journalfrom != journalto) %] - [% journalto | $KohaDates with_hours => 1 %][% END %])</h2>
 <p>Manager: [% loggedinusername %], Date: [% datetimenow %]</p>
 [% IF (! printview) %]
 <form id="showfinesoverview" action="/cgi-bin/koha/[% used_perl_script %]" method="post">

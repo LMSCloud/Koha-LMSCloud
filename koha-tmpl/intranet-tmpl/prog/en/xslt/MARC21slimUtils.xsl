@@ -427,7 +427,7 @@
             </xsl:if>
             <xsl:choose>
                 <xsl:when test="position()=last()">
-                    <xsl:if test="../marc:datafield[@tag=490][@ind1!=1] or ../marc:datafield[(@tag=800 or @tag=810 or @tag=811) and @ind1!='z'] or ../marc:datafield[@tag=830 and @ind1!='z']">
+                    <xsl:if test="../marc:datafield[@tag=490][@ind1!=1] or (../marc:datafield[@tag=490][@ind1=1] and ../marc:datafield[(@tag=800 or @tag=810 or @tag=811 or @tag=830) and @ind1!='z'])">
                         <span class="separator"> | </span>
                     </xsl:if>
                 </xsl:when>
@@ -436,7 +436,7 @@
         </xsl:for-each>
 
         <!-- 490 Series not traced, Ind1 = 0 -->
-        <xsl:for-each select="marc:datafield[@tag=490][@ind1!=1]">
+        <xsl:for-each select="marc:datafield[@tag=490][not(@ind1=1 and count(../marc:datafield[(@tag=800 or @tag=810 or @tag=811 or @tag=830) and @ind1!='z']) &gt; 0)]">
             <a><xsl:attribute name="href"><xsl:value-of select="$searchurl"/>?q=se:(<xsl:value-of select="str:encode-uri(str:replace(marc:subfield[@code='a'],'?','\?'), true())"/>)</xsl:attribute>
                         <xsl:call-template name="chopPunctuation">
                             <xsl:with-param name="chopString">
@@ -452,7 +452,7 @@
             </xsl:if>
             <xsl:choose>
                 <xsl:when test="position()=last()">
-                    <xsl:if test="../marc:datafield[(@tag=800 or @tag=810 or @tag=811) and @ind1!='z'] or ../marc:datafield[@tag=830 and @ind1!='z']">
+                    <xsl:if test="../marc:datafield[@tag=490][@ind1=1] and (../marc:datafield[(@tag=800 or @tag=810 or @tag=811) and @ind1!='z'] or ../marc:datafield[@tag=830 and @ind1!='z'])">
                         <span class="separator"> | </span>
                     </xsl:if>
                 </xsl:when>
@@ -460,6 +460,7 @@
             </xsl:choose>
         </xsl:for-each>
 
+        <xsl:if test="marc:datafield[@tag=490][@ind1=1]">
         <!-- 800,810,811,830 always display. -->
         <xsl:for-each select="marc:datafield[(@tag=800 or @tag=810 or @tag=811) and @ind1!='z']">
             <xsl:choose>
@@ -554,6 +555,7 @@
             </xsl:if>
         <xsl:choose><xsl:when test="position()=last()"><xsl:text></xsl:text></xsl:when><xsl:otherwise><span class="separator"> | </span></xsl:otherwise></xsl:choose>
         </xsl:for-each>
+        </xsl:if>
 
         </span>
         </xsl:if>

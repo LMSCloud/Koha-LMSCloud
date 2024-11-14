@@ -3099,7 +3099,7 @@ sub CanBookBeRenewed {
             }
         );
 
-        return ( 0, "too_many" )
+        $hasToMany = 1
           if not $issuing_rule->{renewalsallowed} or $issuing_rule->{renewalsallowed} <= $issue->renewals_count;
 
         return ( 0, "too_unseen" )
