@@ -130,11 +130,25 @@ sub cancel {
 
     my $delete_biblio = $params->{delete_biblio};
     my $reason        = $params->{reason};
+    my $delete_biblio_really = 0;    # LMSCloud hotfix
+
+    my $biblio = $self->biblio;
+    if ( $biblio and $delete_biblio ) {
+        if (
+            $biblio->active_orders->search(
+                { ordernumber => { '!=' => $self->ordernumber } }
+            )->count == 0
+            and $biblio->subscriptions->count == 0
+            )
+        {
+            $delete_biblio_really = 1;
+        }
+    }
 
     # Delete the related items
     my $items = $self->items;
     while ( my $item = $items->next ) {
-        my $deleted = $item->safe_delete;
+        my $deleted = $item->safe_delete( { skip_record_index => $delete_biblio_really } );    # LMSCloud: skip_record_index for avoiding a time-lagged insert of the biblio in the ES index by a background job after the biblio's deletion
         unless ( $deleted ) {
             $self->add_message(
                 {
@@ -145,14 +159,9 @@ sub cancel {
         }
     }
 
-    my $biblio = $self->biblio;
     if ( $biblio and $delete_biblio ) {
-
         if (
-            $biblio->active_orders->search(
-                { ordernumber => { '!=' => $self->ordernumber } }
-            )->count == 0
-            and $biblio->subscriptions->count == 0
+            $delete_biblio_really
             and $biblio->items->count == 0
             )
         {
@@ -180,6 +189,10 @@ sub cancel {
             }
             else { # $biblio->items->count > 0
                 $message = 'error_delbiblio_items';
+                # LMSCloud: Something went wrong while deleting the items, we can not delete the biblio although we should.
+                # So we have to update the ES index now because we have avoided it before, beeing too optimistic.
+                my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+                $indexer->index_records( $biblio->id, "specialUpdate", "biblioserver" );
             }
 
             $self->add_message(
