@@ -3,7 +3,7 @@
 var bookings_table;
 $(document).ready(function () {
     // Load bookings table on tab selection
-    $("#bookings-tab").on("click", function () {
+    $('a[data-tabname="bookings"]').on("click", function () {
         if (!bookings_table) {
             var today = new Date();
             var bookings_table_url = "/api/v1/bookings";
