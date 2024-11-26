@@ -877,6 +877,13 @@
                             <a href="#reserves" id="holds-tab" aria-controls="reserves" role="tab" data-toggle="tab">Holds ([% holds_count || 0 | html %])</a>
                         </li>
 
+                        [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
+                            [% WRAPPER tab_item tabname="bookings" %]
+                                [% SET bookings_count = patron.bookings.filter_by_active.count %]
+                                <span class="bookings_count">Bookings ([% bookings_count || 0 | html %])</span>
+                            [% END %]
+                        [% END %]
+
                         [% IF Koha.Preference('UseRecalls') %]
                             <li role="presentation">
                                 <a href="#recalls" id="recalls-tab" aria-controls="recalls" role="tab" data-toggle="tab">Recalls ([% recalls.count || 0 | html %])</a>
@@ -1038,6 +1045,14 @@
                                 <p>Patron has nothing on hold.</p>
                             [% END # /IF holds_count %]
                         </div> <!-- /#reserves -->
+
+                        [% WRAPPER tab_panel tabname="bookings" %]
+                            [% IF ( bookings_count ) %]
+                                <table id="bookings_table" style="width: 100% !Important;"></table>
+                            [% ELSE %]
+                                <p>Patron has nothing booked.</p>
+                            [% END %]
+                        [% END %]
 
                         [% IF Koha.Preference('UseRecalls') %]
                             <div id="recalls" role="tabpanel" class="tab-pane">
