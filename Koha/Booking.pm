@@ -180,6 +180,7 @@ sub store {
                             letter                 => $letter,
                             borrowernumber         => $patron->borrowernumber,
                             message_transport_type => 'email',
+                            branchcode             => $branch,
                         }
                     );
                 }
@@ -306,7 +307,7 @@ sub delete {
                 letter                 => $letter,
                 borrowernumber         => $patron->borrowernumber,
                 message_transport_type => 'email',
-                branchcode             => $pickup_library->branchcode,
+                branchcode             => $branch,
             }
         );
     }
