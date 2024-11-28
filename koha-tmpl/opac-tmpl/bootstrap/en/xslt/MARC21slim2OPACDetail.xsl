@@ -868,7 +868,7 @@
                         <xsl:choose>
                             <xsl:when test="@tag=72">
                                 <a>
-                                    <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=sbg<xsl:value-of select="$SubjectModifier"/>:<xsl:value-of select="$TracingQuotesLeft"/><xsl:value-of select="marc:subfield[@code='a']"/><xsl:value-of select="$TracingQuotesRight"/></xsl:attribute>
+                                    <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=sbg<xsl:value-of select="$SubjectModifier"/>:<xsl:value-of select="$TracingQuotesLeft"/><xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/><xsl:value-of select="$TracingQuotesRight"/></xsl:attribute>
                                     <xsl:call-template name="chopPunctuation">
                                         <xsl:with-param name="chopString">
                                             <xsl:value-of select="marc:subfield[@code='a']"/>
@@ -894,7 +894,7 @@
                                 </xsl:for-each>
                                 <xsl:if test="(marc:subfield[@code='a'] and marc:subfield[@code='j'])">
                                     <a>
-                                        <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=katno,st-numeric:<xsl:value-of select="$TracingQuotesLeft"/><xsl:value-of select="translate(marc:subfield[@code='a'],'()','')"/><xsl:value-of select="$TracingQuotesRight"/></xsl:attribute>
+                                        <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=katno,st-numeric:<xsl:value-of select="$TracingQuotesLeft"/><xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='a'],'()',''), true())"/><xsl:value-of select="$TracingQuotesRight"/></xsl:attribute>
                                         <xsl:call-template name="chopPunctuation">
                                             <xsl:with-param name="chopString">
                                                 <xsl:value-of select="marc:subfield[@code='j']"/>
