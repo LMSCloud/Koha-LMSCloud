@@ -181,10 +181,10 @@
     [%# http://www.loc.gov/marc/bibliographic/bd008a.html %]
     [%# This search is also for date ranges due to the %]
     [%# special Zebra r=r CCL mapping for 'yr' %]
-    [% IF ms_publyear %]
-        <option selected="selected" value="publyear">Publication date (yyyy-yyyy)</option>
+    [% IF ms_copydatecommastdashyear %]
+        <option selected="selected" value="copydate,st-year">Publication date (yyyy-yyyy)</option>
     [% ELSE %]
-        <option value="publyear">Publication date (yyyy-yyyy)</option>
+        <option value="copydate,st-year">Publication date (yyyy-yyyy)</option>
     [% END %]
     [% IF ms_acqdatecommastdashdatedashnormalized %]
         <option selected="selected" value="acqdate,st-date-normalized">Acquisition date (yyyy-mm-dd)</option>
