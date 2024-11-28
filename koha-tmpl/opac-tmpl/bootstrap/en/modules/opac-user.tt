@@ -333,11 +333,11 @@
                                             <caption>[% issues_count | html %] Item(s) checked out</caption>
                                             <thead>
                                                 <tr>
-                                                    [% IF ( JacketImages ) %]<th class="nosort">&nbsp;</th>[% END %]
-                                                    <th class="all anti-the">Title</th>
+                                                    [% IF ( JacketImages ) %]<th class="nosort jacketcol">&nbsp;</th>[% END %]
+                                                    <th class="all anti-the titlecol">Title</th>
                                                     <th>Author</th>
                                                     <th>Item type</th>
-                                                    <th class="psort">Due</th>
+                                                    <th class="psort duedatecol">Due</th>
                                                     [% IF ( Koha.Preference('OPACMySummaryLibrary') ) %]
                                                         <th>Library</th>
                                                     [% END %]
@@ -348,7 +348,7 @@
                                                         <th>Call number</th>
                                                     [% END %]
                                                     [% IF ( OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions ) ) %]
-                                                        <th>Renew</th>
+                                                        <th class="renewcol">Renew</th>
                                                     [% END %]
                                                     [% IF ( OPACFinesTab ) %]
                                                         <th>Fines</th>
@@ -638,9 +638,9 @@
                                             <tr>
                                                 <th>Item type</th>
 
-                                                <th class="nosort">&nbsp;</th>
+                                                <th class="nosort jacketcol">&nbsp;</th>
 
-                                                <th class="anti-the">Title</th>
+                                                <th class="anti-the titlecol">Title</th>
                                                 
                                                 <th>Author</th>
                                                 
@@ -1453,7 +1453,11 @@
                         { "targets": [ "nosort" ],"sortable": false,"searchable": false },
                         { "type": "anti-the", "targets" : [ "anti-the" ] },
                         { "visible": false, "targets" : [ "hidden" ] },
-                        { "className": 'dtr-control', "orderable": false, "targets": -1 }
+                        { "responsivePriority":  1, "className": 'all', "targets": ["titlecol"] },
+                        { "responsivePriority":  2, "targets": ["renewcol"] },
+                        { "responsivePriority":  3, "targets": ["duedatecol"] },
+                        { "responsivePriority":  4, "targets": ["jacketcol"] },
+                        { "className": 'dtr-control', "orderable": false, "targets": -1 },
                     ],
                     "language": {
                         "search": "_INPUT_",
@@ -1463,7 +1467,8 @@
                     "responsive": {
                         details: {
                             type: 'column',
-                            target: -1
+                            target: -1,
+                            display: $.fn.dataTable.Responsive.display.childRowImmediate
                         }
                     },
                     buttons: [
