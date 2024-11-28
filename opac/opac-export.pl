@@ -26,6 +26,7 @@ use C4::Biblio qw(
     GetFrameworkCode
     GetISBDView
     GetMarcControlnumber
+    CleanCopyRightOrProtectedDataFromRecord
 );
 use CGI qw ( -utf8 );
 use C4::Auth;
@@ -67,6 +68,8 @@ if(!$marc) {
     print $query->redirect("/cgi-bin/koha/errors/404.pl");
     exit;
 }
+
+$marc = CleanCopyRightOrProtectedDataFromRecord($marc);
 
 my $file_id = $biblionumber;
 my $file_pre = "bib-";

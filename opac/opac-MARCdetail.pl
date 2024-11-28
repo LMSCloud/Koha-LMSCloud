@@ -57,6 +57,7 @@ use C4::Biblio qw(
     GetMarcISSN
     GetMarcStructure
     TransformMarcToKoha
+    CleanCopyRightOrProtectedDataFromRecord
 );
 use C4::Reserves qw( IsAvailableForItemLevelRequest );
 use C4::Members;
@@ -93,6 +94,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 my $patron = Koha::Patrons->find($loggedinuser);
 my $biblio = Koha::Biblios->find($biblionumber);
 my $record = $biblio->metadata->record;
+$record = CleanCopyRightOrProtectedDataFromRecord($record);
 
 if ( ! $record ) {
     print $query->redirect("/cgi-bin/koha/errors/404.pl");

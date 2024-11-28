@@ -64,6 +64,7 @@ BEGIN {
         TransformHtmlToMarc
         TransformHtmlToXml
         prepare_host_field
+        CleanCopyRightOrProtectedDataFromRecord
     );
 
     # Internal functions
@@ -3278,6 +3279,90 @@ sub _after_biblio_action_hooks {
             biblio_id => $biblio_id,
         }
     );
+}
+
+sub CleanCopyRightOrProtectedDataFromRecord {
+    my $record = shift;
+    
+    return undef if (!$record);
+    
+    my $excludedFields = [
+                ['f','072',undef,undef,'2','ekz'],
+                ['f','084',undef,undef,undef,undef],
+                ['f','945',undef,undef,undef,undef],
+                ['f','856',undef,undef,'n','Wikipedia'],
+                ['f','856',undef,undef,'n','Antolin'],
+                ['f','856',undef,undef,'q','cover/jpg'],
+                ['f','856',undef,undef,'z','content sample'],
+                ['f','653',' ','2','a','Antolin'],
+                ['f','520','1',undef,undef,undef],
+                ['f','520','8',undef,undef,undef],
+                ['v','952',undef,undef,'q',undef],
+                ['v','952',undef,undef,'r',undef],
+                ['v','952',undef,undef,'s',undef],
+                ['v','952',undef,undef,'x',undef]
+        ];
+        
+    $record = $record->clone();
+    if ( @$excludedFields ) {
+        # print STDERR "---------------------------------------\n";
+        foreach my $f( @$excludedFields ) {
+            
+            # print STDERR "Checkrule: ", (defined($f->[1]) ? $f->[1] : ''), ",", (defined($f->[2]) ? $f->[2] : ''), ",", (defined($f->[3]) ? $f->[3] : ''), ",", (defined($f->[4]) ? $f->[4] : ''), ",", (defined($f->[5]) ? $f->[5] : ''),"\n";
+            
+            if ( $f->[1] =~ m/^(\d{3})$/ ) {
+                # skip if this record doesn't have this field
+                foreach my $field($record->field($f->[1])) {
+                    #print STDERR "  Found field $f->[1]\n";
+                    next if ( $f->[2] && $field->indicator(1) ne $f->[2] );
+                    next if ( $f->[3] && $field->indicator(2) ne $f->[3] );
+                    next if ( $f->[4] && (! $field->subfield($f->[4])) );
+
+                    if ( defined($f->[4]) || defined($f->[5]) ) {
+                        #print STDERR "    Match field value: ", (defined($f->[4]) ? $f->[4] : ''), ",", (defined($f->[5]) ? $f->[5] : ''), "\n";
+                        my $found = 0;
+                        my @subfields = ();
+                        foreach my $subfield( $field->subfields() ) {
+                            if ( defined($f->[4]) ) {
+                                if ( $subfield->[0] ne $f->[4] ) {
+                                    push(@subfields, $subfield->[0] => $subfield->[1]);
+                                    next;
+                                }
+                                else {
+                                    $found = 1;
+                                }
+                            }
+                            if ( $f->[5] ) {
+                                if ( $subfield->[1] ne $f->[5] ) {
+                                    push(@subfields, $subfield->[0] => $subfield->[1]);
+                                    next;
+                                }
+                                else {
+                                    $found = 1;
+                                }
+                            }
+                        }
+                        next if ( $found == 0 );
+                        if ( $f->[0] eq 'v' ) {
+                            if ( scalar(@subfields) ) {
+                                # print STDERR "  Result: replace\n";
+                                $field->replace_with( new MARC::Field($field->tag(),$field->indicator(1),$field->indicator(2), @subfields ) );
+                            } else {
+                                # print STDERR "  Result: delete\n";
+                                $record->delete_field($field);
+                            }
+                            next;
+                        }
+                        # print STDERR "$fieldnum valmatch $found\n";
+                    }
+                    
+                    # print STDERR "  Result: delete\n";
+                    $record->delete_field($field) if ( $f->[0] eq 'f' );
+                }
+            }
+        }
+    }
+    return $record;
 }
 
 1;

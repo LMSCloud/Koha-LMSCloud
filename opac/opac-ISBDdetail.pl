@@ -51,6 +51,7 @@ use C4::Biblio qw(
     GetMarcControlnumber
     GetMarcISSN
     TransformMarcToKoha
+    CleanCopyRightOrProtectedDataFromRecord
 );
 use C4::Reserves qw( IsAvailableForItemLevelRequest );
 use C4::Serials qw( CountSubscriptionFromBiblionumber SearchSubscriptions GetLatestSerials );
@@ -100,6 +101,7 @@ unless ( $patron and $patron->category->override_hidden_items ) {
 }
 
 my $record = $biblio->metadata->record;
+$record = CleanCopyRightOrProtectedDataFromRecord($record);
 my @items  = $biblio->items->filter_by_visible_in_opac({ patron => $patron })->as_list;
 
 my $record_processor = Koha::RecordProcessor->new(
