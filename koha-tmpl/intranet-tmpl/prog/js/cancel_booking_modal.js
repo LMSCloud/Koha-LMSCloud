@@ -1,7 +1,5 @@
 (() => {
-    document
-        .getElementById("cancelBookingModal")
-        ?.addEventListener("show.bs.modal", handleShowBsModal);
+    $("#cancelBookingModal")?.on("show.bs.modal", handleShowBsModal);
     document
         .getElementById("cancelBookingForm")
         ?.addEventListener("submit", handleSubmit);
