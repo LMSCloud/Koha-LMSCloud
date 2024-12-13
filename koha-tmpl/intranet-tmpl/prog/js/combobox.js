@@ -60,9 +60,10 @@
             return;
         }
 
-        const bootstrapDropdown = new bootstrap.Dropdown(input, {
-            autoClose: false,
-        });
+        const uniqueId = `combobox-${createHash(inputId)}`;
+        const $container = $(input).closest(".combobox-container");
+        $container.addClass(uniqueId);
+        initializeStyles(uniqueId);
 
         // Existing options from HTML
         const existingOptions = Array.from(dropdownMenu.querySelectorAll("li"))
@@ -124,10 +125,59 @@
         dropdownMenu.addEventListener("click", handleOptionSelect);
 
         /**
+         * Creates a hash from a string
+         * @param {string} str - String to hash
+         * @returns {string} Hashed string in base36
+         */
+        function createHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = (hash << 5) - hash + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+
+        /**
+         * Initializes styles for the combobox instance
+         * @param {string} uniqueId - Unique identifier for this instance
+         */
+        function initializeStyles(uniqueId) {
+            const styleElement = document.createElement("style");
+            styleElement.textContent = `
+                .${uniqueId} {
+                    position: relative;
+                }
+                .${uniqueId} .dropdown-menu {
+                    position: absolute;
+                    top: 100%;
+                    left: 0;
+                    right: 0;
+                    z-index: 1000;
+                }
+                .${uniqueId} .dropdown-menu button {
+                    width: 100%;
+                    text-align: left;
+                    border: 0;
+                    background: none;
+                    padding: 3px 20px;
+                    cursor: pointer;
+                }
+                .${uniqueId} .dropdown-menu button:hover,
+                .${uniqueId} .dropdown-menu button:focus,
+                .${uniqueId} .dropdown-menu button.active {
+                    background-color: #e8e8e8;
+                }
+            `;
+            document.head.appendChild(styleElement);
+        }
+
+        /**
          * Shows the dropdown and updates the options.
          */
         function showDropdown() {
-            bootstrapDropdown.show();
+            $container.addClass("open");
             input.setAttribute("aria-expanded", "true");
             updateDropdown();
         }
@@ -136,7 +186,7 @@
          * Hides the dropdown and resets focus.
          */
         function hideDropdown() {
-            bootstrapDropdown.hide();
+            $container.removeClass("open");
             input.setAttribute("aria-expanded", "false");
             focusedIndex = -1;
             input.removeAttribute("aria-activedescendant");

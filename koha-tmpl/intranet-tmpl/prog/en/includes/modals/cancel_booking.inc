@@ -8,7 +8,7 @@
                     <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     <h4 class="modal-title" id="cancelBookingLabel">Cancel booking</h4>
                 </div>
-                <div class="modal-body overflow-visible">
+                <div class="modal-body overflow-visible" style="overflow: visible;">
                     <div id="cancel_booking_result"></div>
                     <input type="hidden" name="booking_id" id="cancel_booking_id">
                     <p>Are you sure you want to cancel this booking?</p>
