@@ -416,7 +416,7 @@
 
                             <tr>
                                 <td>38</td>
-                                <td>Lizenzierte virtuelle Plattformen, Dienste und Datenbanken</td>
+                                <td>Virtuelle Angebote</td>
                                 <td>
                                     <input type="number" id="st_med_database_cnt" name="st_med_database_cnt" min="0" size="12" maxlength="12" value="[% st.med_database_cnt %]" />
                                 </td>
@@ -435,6 +435,14 @@
                                 <td>Die Authentifizierung wird über Single-Sign-On vorgenommen</td>
                                 <td>
                                     <input disabled type="checkbox" id="st_med_database_authsso_yn" name="st_med_database_authsso_yn" value="1" checked="checked" /> (obsolet)
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>38.3</td>
+                                <td>Nutzung virtueller Angebote</td>
+                                <td>
+                                    <input type="number" id="st_med_database_use_cnt" name="st_med_database_use_cnt" min="0" size="12" maxlength="12" value="[% st.med_database_use_cnt %]" />
                                 </td>
                             </tr>
 
@@ -1160,7 +1168,7 @@
                                 <td>300</td>
                                 <td>Zahl der Fahrzeuge</td>
                                 <td>
-                                    <input type="number" id="st_mol_vehicles" name="st_mol_vehicles" min="0" size="12" maxlength="12" value="[% st.mol_vehicles %]" /> <b style="font-size: 125%">*</b>
+                                    <input type="number" id="st_mol_vehicles" name="st_mol_vehicles" min="0" size="12" maxlength="12" value="[% st.mol_vehicles %]" />
                                 </td>
                             </tr>
 
@@ -1180,7 +1188,7 @@
                                 <td>302</td>
                                 <td>Zahl der Haltepunkte</td>
                                 <td>
-                                    <input type="number" id="st_mol_stop_stations" name="st_mol_stop_stations" min="0" size="12" maxlength="12" value="[% st.mol_stop_stations %]" /> <b style="font-size: 125%">*</b>
+                                    <input type="number" id="st_mol_stop_stations" name="st_mol_stop_stations" min="0" size="12" maxlength="12" value="[% st.mol_stop_stations %]" />
                                 </td>
                             </tr>
 
@@ -1955,18 +1963,21 @@
                 //     old fields, dropped from display and for export: query 34.2, 529 (index at this time: 34, 172)
                 //     (So the earlier index of var 'values' 35-171 now becomes 34-170, and 173-180 becomes 171-178.), 
 
-                var valuesNew = (values.slice(0,13).get()) . concat(values.slice(18,38).get()) . concat(values.slice(40,179).get());
+                // since DBS 2024:
+                //     added fields (base questionaire): query 38.3 (index at this time: 33 )
+
+                var valuesNew = (values.slice(0,13).get()) . concat(values.slice(18,38).get()) . concat(values.slice(40,180).get());
                 if ( format == "dbs_base_questionaire" ) {
-                    valuesNew = valuesNew.slice(0,95);    // index 0..94 corresponds to index 0..101 of var 'values', but excluding index 13-17,38-39,  of var 'values')
+                    valuesNew = valuesNew.slice(0,96);    // index 0..95 corresponds to index 0..102 of var 'values', but excluding index 13-17,38-39,  of var 'values')
                 } else if ( format == "dbs_incl_patients_lib" ) {
-                    valuesNew = valuesNew.slice(0,106);    // index 0..105 corresponds to index 0..112 of var 'values', but excluding index 13-17,38-39 of var 'values')
+                    valuesNew = valuesNew.slice(0,107);    // index 0..106 corresponds to index 0..113 of var 'values', but excluding index 13-17,38-39 of var 'values')
                 } else if ( format == "dbs_incl_mobile_lib" ) {
-                    valuesNew = valuesNew.slice(0,113);    // index 0-112 corresponds to index 0 - 119 of var 'values', but excluding index 13-17,38-39 of var 'values')
+                    valuesNew = valuesNew.slice(0,114);    // index 0-113 corresponds to index 0 - 120 of var 'values', but excluding index 13-17,38-39 of var 'values')
                 } else if ( format == "dbs_incl_music_lib" ) {
-                    valuesNew = valuesNew.slice(0,135);    // index 0-134 corresponds to index 0 - 141 of var 'values', but excluding index 13-17,38-39 of var 'values')
+                    valuesNew = valuesNew.slice(0,136);    // index 0-135 corresponds to index 0 - 142 of var 'values', but excluding index 13-17,38-39 of var 'values')
                 } else if ( format == "dbs_incl_school_lib" ) {
-                    // valuesNew needs not be sliced, because in this case valuesNew == valuesNew.slice(0,172) already
-                    //valuesNew = valuesNew.slice(0,172);    // index 0-171 corresponds to index 0 - 178 of var 'values', but excluding index 13-17,38-39 of var 'values')
+                    // valuesNew needs not be sliced, because in this case valuesNew == valuesNew.slice(0,173) already
+                    //valuesNew = valuesNew.slice(0,173);    // index 0-172 corresponds to index 0 - 179 of var 'values', but excluding index 13-17,38-39 of var 'values')
                 }
 
                 csv += '"' + valuesNew.join(tmpColDelim)

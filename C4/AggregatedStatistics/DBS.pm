@@ -95,6 +95,7 @@ $as_values->{'med_access_units_donated'} = { 'id' => '', 'name' => 'med_access_u
 $as_values->{'med_database_cnt'} = { 'id' => '', 'name' => 'med_database_cnt', 'value' => '', 'type' => 'int' };                                                                                                # DBS2017:38
 $as_values->{'med_database_login_cnt'} = { 'id' => '', 'name' => 'med_database_login_cnt', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_database_login_cnt'] };                  # DBS2019:38.1 (new since DBS 2019) (no export since DBS 2022)
 $as_values->{'med_database_authsso_yn'} = { 'id' => '', 'name' => 'med_database_authsso_yn', 'value' => '', 'type' => 'bool' };                                                                                 # DBS2019:38.2 (new since DBS 2019, always true with Divibib) (no export since DBS 2022)
+$as_values->{'med_database_use_cnt'} = { 'id' => '', 'name' => 'med_database_use_cnt', 'value' => '', 'type' => 'int' };                                                                                        # DBS2024:38.3 (new since DBS 2024)
 $as_values->{'med_subscription_print'} = { 'id' => '', 'name' => 'med_subscription_print', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_subscription_print'] };                  # DBS2017:39
 $as_values->{'med_subscription_elect'} = { 'id' => '', 'name' => 'med_subscription_elect', 'value' => '', 'type' => 'int' };                                                                                    # DBS2017:40
 #$as_values->{'med_blockcollection_rcvd'} = { 'id' => '', 'name' => 'med_blockcollection_rcvd', 'value' => '', 'type' => 'int' };                                                                                # DBS2017:41  (dropped since DBS 2019)
@@ -183,9 +184,11 @@ $as_values->{'ptl_medical_lib_yn'} = { 'id' => '', 'name' => 'ptl_medical_lib_yn
 $as_values->{'ptl_combined_lib_yn'} = { 'id' => '', 'name' => 'ptl_combined_lib_yn', 'value' => '', 'type' => 'bool' };                                                                                         # DBS2017:210
 
 # mobile libraries / 8. FAHRBIBLIOTHEKEN
-$as_values->{'mol_vehicles'} = { 'id' => '', 'name' => 'mol_vehicles', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mol_vehicles'] };                                                # DBS2017:300
+#$as_values->{'mol_vehicles'} = { 'id' => '', 'name' => 'mol_vehicles', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mol_vehicles'] };                                                # DBS2017:300
+$as_values->{'mol_vehicles'} = { 'id' => '', 'name' => 'mol_vehicles', 'value' => '', 'type' => 'int' };                                                                                                        # DBS2017:300 DBS2024:dropped SQL query since not possible for valuation date
 $as_values->{'mol_multiple_communes_yn'} = { 'id' => '', 'name' => 'mol_multiple_communes_yn', 'value' => '', 'type' => 'bool' };                                                                               # DBS2017:301
-$as_values->{'mol_stop_stations'} = { 'id' => '', 'name' => 'mol_stop_stations', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mol_stop_stations'] };                                 # DBS2017:302
+#$as_values->{'mol_stop_stations'} = { 'id' => '', 'name' => 'mol_stop_stations', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mol_stop_stations'] };                                 # DBS2017:302
+$as_values->{'mol_stop_stations'} = { 'id' => '', 'name' => 'mol_stop_stations', 'value' => '', 'type' => 'int' };                                                                                              # DBS2017:302 DBS2024:dropped SQL query since not possible for valuation date
 $as_values->{'mol_cycle_days'} = { 'id' => '', 'name' => 'mol_cycle_days', 'value' => '', 'type' => 'int' };                                                                                                    # DBS2017:303
 $as_values->{'mol_openinghours_week'} = { 'id' => '', 'name' => 'mol_openinghours_week', 'value' => '', 'type' => 'float' };                                                                                    # DBS2017:304
 $as_values->{'mol_stock_media_units'} = { 'id' => '', 'name' => 'mol_stock_media_units', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mol_stock_media_units'] };                     # DBS2017:305
@@ -261,8 +264,9 @@ my $dbs_sql_statements = {};    # hash for storing the sql statements for calcul
 # DBS2017:9    # filtered out from csv export since DBS2021
 $dbs_sql_statements->{'pat_active'} = q{
     select count(*) as res from borrowers
-    where dateexpiry >=  (@startdatum := ?)
-      and dateenrolled <=  (@enddatum := ?)
+    where (@startdatum := ?) <= (@enddatum := ?) 
+      and dateexpiry > @enddatum
+      and dateenrolled <= @enddatum
       and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
             or
             ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
@@ -273,21 +277,23 @@ $dbs_sql_statements->{'pat_active'} = q{
 # DBS2017:10.1    # filtered out from csv export since DBS2021
 $dbs_sql_statements->{'pat_active_to_12'} = q{
     select count(*) as res from borrowers
-    where dateexpiry >=  (@startdatum := ?)
-      and dateenrolled <=  (@enddatum := ?)
+    where (@startdatum := ?) <= (@enddatum := ?) 
+      and dateexpiry > @enddatum
+      and dateenrolled <= @enddatum
       and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
             or
             ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
             or
             (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
           )
-      and DATE_ADD(dateofbirth, INTERVAL 12 YEAR) > @startdatum
+      and DATE_ADD(dateofbirth, INTERVAL 12 YEAR) > @enddatum
 };
 # DBS2017:10.2    # filtered out from csv export since DBS2021
 $dbs_sql_statements->{'pat_active_from_60'} = q{
     select count(*) as res from borrowers
-    where dateexpiry >=  (@startdatum := ?)
-      and dateenrolled <=  (@enddatum := ?)
+    where (@startdatum := ?) <= (@enddatum := ?) 
+      and dateexpiry > @enddatum
+      and dateenrolled <= @enddatum
       and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
             or
             ((@branchcodeSelect0or1 :=?) COLLATE utf8mb4_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
@@ -299,15 +305,16 @@ $dbs_sql_statements->{'pat_active_from_60'} = q{
 # DBS2021:10.3 special column for SB Ingolstadt    # filtered out from csv export since DBS2021
 $dbs_sql_statements->{'pat_active_below_18'} = q{
     select count(*) as res from borrowers
-    where dateexpiry >=  (@startdatum := ?)
-      and dateenrolled <=  (@enddatum := ?)
+    where (@startdatum := ?) <= (@enddatum := ?) 
+      and dateexpiry > @enddatum
+      and dateenrolled <= @enddatum
       and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
             or
             ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
             or
             (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
           )
-      and DATE_ADD(dateofbirth, INTERVAL 18 YEAR) > @startdatum
+      and DATE_ADD(dateofbirth, INTERVAL 18 YEAR) > @enddatum
 };    # counting each patron who was younger than 18 years at least one day in the selected period
 # DBS2017:11    # filtered out from csv export since DBS2021
 $dbs_sql_statements->{'pat_new_registrations'} = q{
@@ -324,10 +331,11 @@ $dbs_sql_statements->{'pat_new_registrations'} = q{
 $dbs_sql_statements->{'med_tot_phys_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -337,12 +345,13 @@ $dbs_sql_statements->{'med_tot_phys_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -417,10 +426,11 @@ $dbs_sql_statements->{'med_phys_issues'} = q{
 $dbs_sql_statements->{'med_openaccess_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -430,12 +440,13 @@ $dbs_sql_statements->{'med_openaccess_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -479,10 +490,11 @@ $dbs_sql_statements->{'med_openaccess_issues'} = q{
 $dbs_sql_statements->{'med_stack_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum
           and coded_location_qualifier in ( 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -492,12 +504,13 @@ $dbs_sql_statements->{'med_stack_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -510,10 +523,11 @@ $dbs_sql_statements->{'med_stack_stock'} = q{
 $dbs_sql_statements->{'med_print_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_B_M', 'F_M_P' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -523,12 +537,13 @@ $dbs_sql_statements->{'med_print_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_B_M', 'F_M_P' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -572,10 +587,11 @@ $dbs_sql_statements->{'med_print_issues'} = q{
 $dbs_sql_statements->{'med_nonfiction_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_B_N', 'F_B_M' )
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -585,12 +601,13 @@ $dbs_sql_statements->{'med_nonfiction_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_B_N', 'F_B_M' )
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -634,10 +651,11 @@ $dbs_sql_statements->{'med_nonfiction_issues'} = q{
 $dbs_sql_statements->{'med_fiction_stock'} = q{
 select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier = 'F_B_F' 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -647,12 +665,13 @@ select sum(cnt) as res from
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier = 'F_B_F' 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -696,10 +715,11 @@ $dbs_sql_statements->{'med_fiction_issues'} = q{
 $dbs_sql_statements->{'med_juvenile_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier = 'F_B_J' 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -709,12 +729,13 @@ $dbs_sql_statements->{'med_juvenile_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier = 'F_B_J' 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -758,8 +779,9 @@ $dbs_sql_statements->{'med_juvenile_issues'} = q{
 $dbs_sql_statements->{'med_printissue_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= (@enddatum := ?) 
           and coded_location_qualifier IN ( 'F_B_P', 'F_M_P' )
@@ -771,12 +793,13 @@ $dbs_sql_statements->{'med_printissue_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_B_P', 'F_M_P' )
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -820,10 +843,11 @@ $dbs_sql_statements->{'med_printissue_issues'} = q{
 $dbs_sql_statements->{'med_nonbook_tot_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_B' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -833,12 +857,13 @@ $dbs_sql_statements->{'med_nonbook_tot_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_B' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -882,10 +907,11 @@ $dbs_sql_statements->{'med_nonbook_tot_issues'} = q{
 $dbs_sql_statements->{'med_nonbook_anadig_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_N_A', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O' )
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -895,12 +921,13 @@ $dbs_sql_statements->{'med_nonbook_anadig_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_N_A', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O' )
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -944,10 +971,11 @@ $dbs_sql_statements->{'med_nonbook_anadig_issues'} = q{
 $dbs_sql_statements->{'med_nonbook_other_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_N_O', 'F_B_W', 'F_M_B' )
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -957,12 +985,13 @@ $dbs_sql_statements->{'med_nonbook_other_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_N_O', 'F_B_W', 'F_M_B' )
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1074,9 +1103,10 @@ $dbs_sql_statements->{'med_database_login_cnt'} = q{
 $dbs_sql_statements->{'med_subscription_print'} = q{
     select sum(cnt) as res from
     (   select count(*) as cnt from subscription s, subscriptionhistory h
-        where ( s.subscriptionid = h.subscriptionid ) 
-          and ( s.enddate >= (@startdatum := ?) ) 
-          and ( h.histstartdate <= (@enddatum := ?) )
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( s.subscriptionid = h.subscriptionid ) 
+          and ( s.enddate > @enddatum ) 
+          and ( h.histstartdate <= @enddatum ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
                 ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
@@ -1121,10 +1151,11 @@ $dbs_sql_statements->{'mol_stop_stations'} = q{
 $dbs_sql_statements->{'mol_stock_media_units'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -1135,12 +1166,13 @@ $dbs_sql_statements->{'mol_stock_media_units'} = q{
           and ( exists ( select branchcode from branches where branches.branchcode = items.homebranch and ( branches.mobilebranch > '' or branches.branchcode in (select distinct mobilebranch from branches b where b.mobilebranch > '' ) ) ) ) 
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_N_A', 'F_N_O', 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_N', 'M_B_F', 'M_B_J', 'M_B_P', 'M_N_A', 'M_N_O', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1186,10 +1218,11 @@ $dbs_sql_statements->{'mol_media_unit_issues'} = q{
 $dbs_sql_statements->{'mus_sheetmusic_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_B_W', 'M_B_W' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -1199,12 +1232,13 @@ $dbs_sql_statements->{'mus_sheetmusic_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_B_W', 'M_B_W' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1248,10 +1282,11 @@ $dbs_sql_statements->{'mus_sheetmusic_issues'} = q{
 $dbs_sql_statements->{'mus_secondarylit_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_B_M', 'M_B_M' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -1261,12 +1296,13 @@ $dbs_sql_statements->{'mus_secondarylit_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_B_M', 'M_B_M' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1310,10 +1346,11 @@ $dbs_sql_statements->{'mus_secondarylit_issues'} = q{
 $dbs_sql_statements->{'mus_cd_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_M_C', 'M_M_C' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -1323,12 +1360,13 @@ $dbs_sql_statements->{'mus_cd_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_M_C', 'M_M_C' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1372,10 +1410,11 @@ $dbs_sql_statements->{'mus_cd_issues'} = q{
 $dbs_sql_statements->{'mus_cassette_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_M_K', 'M_M_K' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -1385,12 +1424,13 @@ $dbs_sql_statements->{'mus_cassette_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_M_K', 'M_M_K' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1434,10 +1474,11 @@ $dbs_sql_statements->{'mus_cassette_issues'} = q{
 $dbs_sql_statements->{'mus_record_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_M_R', 'M_M_R' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -1447,12 +1488,13 @@ $dbs_sql_statements->{'mus_record_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_M_R', 'M_M_R' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1496,10 +1538,11 @@ $dbs_sql_statements->{'mus_record_issues'} = q{
 $dbs_sql_statements->{'mus_VHS_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_M_V', 'M_M_V' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -1509,12 +1552,13 @@ $dbs_sql_statements->{'mus_VHS_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_M_V', 'M_M_V' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1558,10 +1602,11 @@ $dbs_sql_statements->{'mus_VHS_issues'} = q{
 $dbs_sql_statements->{'mus_DVD_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_M_D', 'M_M_D' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -1571,12 +1616,13 @@ $dbs_sql_statements->{'mus_DVD_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_M_D', 'M_M_D' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1620,10 +1666,11 @@ $dbs_sql_statements->{'mus_DVD_issues'} = q{
 $dbs_sql_statements->{'mus_periodicals_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_M_P', 'M_M_P' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -1633,12 +1680,13 @@ $dbs_sql_statements->{'mus_periodicals_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_M_P', 'M_M_P' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1682,10 +1730,11 @@ $dbs_sql_statements->{'mus_periodicals_issues'} = q{
 $dbs_sql_statements->{'mus_other_stock'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_M_O', 'F_M_B', 'M_M_O', 'M_M_B' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -1695,12 +1744,13 @@ $dbs_sql_statements->{'mus_other_stock'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_M_O', 'F_M_B', 'M_M_O', 'M_M_B' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1744,10 +1794,11 @@ $dbs_sql_statements->{'mus_other_issues'} = q{
 $dbs_sql_statements->{'mus_stock_tot'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -1757,12 +1808,13 @@ $dbs_sql_statements->{'mus_stock_tot'} = q{
               )
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier in ( 'F_B_W', 'F_B_M', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_P', 'F_M_O', 'F_M_B', 'M_B_W', 'M_B_M', 'M_M_C', 'M_M_K', 'M_M_R', 'M_M_V', 'M_M_D', 'M_M_P', 'M_M_O', 'M_M_B' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1806,10 +1858,11 @@ $dbs_sql_statements->{'mus_issues_tot'} = q{
 $dbs_sql_statements->{'slb_print_stock_tot'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_B_M', 'F_M_P' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -1821,12 +1874,13 @@ $dbs_sql_statements->{'slb_print_stock_tot'} = q{
               ) 
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_B_M', 'F_M_P' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -1876,10 +1930,11 @@ $dbs_sql_statements->{'slb_print_issues_tot'} = q{
 $dbs_sql_statements->{'slb_nonbook_stock_tot'} = q{
     select sum(cnt) as res from 
     (   select count(*) as cnt from items 
-        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where (@startdatum := ?) <= (@enddatum := ?) 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
-          and dateaccessioned <= (@enddatum := ?) 
+          and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_B' ) 
           and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
                 or
@@ -1891,12 +1946,13 @@ $dbs_sql_statements->{'slb_nonbook_stock_tot'} = q{
               ) 
         union all
         select count(*) as cnt from deleteditems 
-        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
-          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+        where @startdatum <= @enddatum 
+          and ( itemlost = 0 or date(itemlost_on) > @enddatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) > @enddatum ) 
           ITEMS.NOTFORLOAN_CONDITION 
           and dateaccessioned <= @enddatum 
           and coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_B' ) 
-          and date(timestamp) >= @startdatum
+          and date(timestamp) > @enddatum
           and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
                 or
                 (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
@@ -2148,7 +2204,7 @@ print STDERR "C4::AggregatedStatistics::DBS::recalculate_ag_values startdateDB:$
     my ($branchgroupSel, $branchgroup, $branchcodeSel, $branchcode) = $self->get_branchgroup_branchcode_selection();
 
     # calculate DBS statistics values where possible
-    foreach my $name (keys %{$as_values}) {
+    foreach my $name (sort keys %{$as_values}) {
         if ( defined($as_values->{$name}->{'calc'}) ) {
             $res = &{$as_values->{$name}->{'calc'}}($name, $as_values->{$name}->{'param'}, $startdateDB, $enddateDB, $branchgroupSel, $branchgroup, $branchcodeSel, $branchcode);
 
@@ -2264,17 +2320,17 @@ print STDERR "C4::AggregatedStatistics::DBS::eval_form branchcode:$branchcode: s
 
     # basic fields
     $template->param(
-    	script_name => $script_name,
-    	action => $script_name,
+        script_name => $script_name,
+        action => $script_name,
         id => $self->{'id'},
         statisticstype => $self->{'statisticstype'},
         statisticstypedesignation => $self->{'statisticstypedesignation'},
-    	name => $self->{'name'},
-    	description => $self->{'description'},
-    	startdate => $self->{'startdate'},
-    	enddate => $self->{'enddate'},
-    	selectedgroup => $self->{'selectedgroup'},
-    	selectedbranch => $self->{'selectedbranch'},
+        name => $self->{'name'},
+        description => $self->{'description'},
+        startdate => $self->{'startdate'},
+        enddate => $self->{'enddate'},
+        selectedgroup => $self->{'selectedgroup'},
+        selectedbranch => $self->{'selectedbranch'},
         selectedgroupname => $selectedgroupname,
         selectedbranchname => $selectedbranchname
     );
@@ -2283,7 +2339,7 @@ print STDERR "C4::AggregatedStatistics::DBS::eval_form branchcode:$branchcode: s
     my $st = {};
     if ( $self->{'op'} eq 'dcv_calc' ) {
         # set values from input
-        foreach my $name (keys %{$as_values}) {
+        foreach my $name (sort keys %{$as_values}) {
             $as_values->{$name}->{'value'} = $input->param('st_' . $name);
             if ( $as_values->{$name}->{'type'} eq 'float' ) {
                 # The float values in $input->param('st_' . $name) have been formatted by javascript for display in the HTML page, but we need them in database form again (i.e without thousands separator, with decimal separator '.').
@@ -2333,7 +2389,8 @@ print STDERR "C4::AggregatedStatistics::DBS::dcv_calc Start ref(\$input):", ref(
     my ($branchgroupSel, $branchgroup, $branchcodeSel, $branchcode) = $self->get_branchgroup_branchcode_selection();
 
     # calculate DBS statistics values where possible
-    foreach my $name (keys %{$as_values}) {
+    foreach my $name (sort keys %{$as_values}) {
+print STDERR "C4::AggregatedStatistics::DBS::dcv_calc in loop name:",$name,":\n" if $debug;
         if ( defined($as_values->{$name}->{'calc'}) ) {
             $input->{'param'}->{'st_' . $name}->[0] = &{$as_values->{$name}->{'calc'}}($name, $as_values->{$name}->{'param'}, $self->{'startdate'}, $self->{'enddate'}, $branchgroupSel, $branchgroup, $branchcodeSel, $branchcode);
         }
@@ -2349,7 +2406,7 @@ print STDERR "C4::AggregatedStatistics::DBS::dcv_save Start self->id:", $self->{
 print STDERR "C4::AggregatedStatistics::DBS::dcv_save Start ref(\$input):", ref($input), ": input:", $input, ":\n" if $debug;
 
     # store or delete it in database
-    foreach my $name (keys %{$as_values}) {
+    foreach my $name (sort keys %{$as_values}) {
         my $value = $input->param('st_' . $name);
 print STDERR "C4::AggregatedStatistics::DBS::dcv_save loop self->id:", $self->{'id'}, ": name:$name: value:$value:\n" if $debug;
         $self->saveAggregatedStatisticsValue($name, $as_values->{$name}->{'type'}, $value);
@@ -2364,7 +2421,7 @@ sub dcv_read {
     my $self = shift;
     my $hit = {};
 print STDERR "C4::AggregatedStatistics::DBS::dcv_read Start self->id:",$self->{'id'},":\n" if $debug;
-    foreach my $name (keys %{$as_values}) {
+    foreach my $name (sort keys %{$as_values}) {
         $self->readAggregatedStatisticsValue($name,$as_values->{$name}->{'type'},\$hit);
         $as_values->{$name}->{'id'} = $hit->{'statistics_id'};
         #already set: $as_values->{$name}->{'name'} = $hit->{'name'};
