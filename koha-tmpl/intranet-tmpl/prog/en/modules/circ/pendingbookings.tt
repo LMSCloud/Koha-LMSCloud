@@ -60,7 +60,7 @@
                                 <h4>Refine results</h4>
                                 <ol>
                                     <li>
-                                        <label for="library">Library:</label>
+                                        <label for="library">Holding Library:</label>
                                         <select name="library" id="library">
                                             [% SET libraries = Branches.all( only_from_group => 1 ) %]
                                             [% IF libraries.size != 1 %]
@@ -76,11 +76,11 @@
                                         </select>
                                     </li>
                                     <li>
-                                        <label for="from">Start date: </label>
+                                        <label for="from">Starts after: </label>
                                         <input type="text" size="10" id="from" name="from" value="[% from | html %]" class="flatpickr" data-date_to="to"/>
                                     </li>
                                     <li>
-                                        <label for="to">End date: </label>
+                                        <label for="to">Starts before: </label>
                                         <input type="text" size="10" id="to" name="to" value="[% to | html %]" class="flatpickr"/>
                                     </li>
                                 </ol>
