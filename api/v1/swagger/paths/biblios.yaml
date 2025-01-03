@@ -449,6 +449,7 @@
           type: string
           enum:
             - +strings
+            - item_type
             - effective_bookable
         collectionFormat: csv
       - $ref: "../swagger.yaml#/parameters/match"
