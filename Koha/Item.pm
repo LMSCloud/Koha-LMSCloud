@@ -1697,6 +1697,27 @@ sub itemtype {
     return Koha::ItemTypes->find( $self->effective_itemtype );
 }
 
+=head3 item_type
+
+    my $item_type = $item->item_type;
+
+Returns the effective I<Koha::ItemType> for the item.
+
+FIXME: it should either return the 'real item type' or undef if no item type
+defined. And effective_itemtype should return... the effective itemtype. Right
+now it returns an id... This is all inconsistent. And the API should make it clear
+if the attribute is part of the resource, or a calculated value i.e. if the item
+is not linked to an item type on its own, then the API response should contain
+item_type: null! And the effective item type... be another attribute. I understand
+that this complicates filtering, but some query trickery could do it in the controller.
+
+=cut
+
+sub item_type {
+    return shift->itemtype;
+}
+
+
 =head3 effective_bookable
 
   my $bookable = $item->effective_bookable;

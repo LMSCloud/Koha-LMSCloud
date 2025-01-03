@@ -238,6 +238,10 @@ properties:
     type:
       - object
       - "null"
+  item_type:
+    type:
+      - object
+      - "null"
   _strings:
     type:
       - object
