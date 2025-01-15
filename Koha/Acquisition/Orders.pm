@@ -128,7 +128,7 @@ sub filter_by_lates {
             (
                 C4::Context->preference('IndependentBranches')
                   && !C4::Context->IsSuperLibrarian
-                ? ( 'borrower.branchcode' => C4::Context->userenv->{branch} )
+                ? ( 'basketno.branch' => C4::Context->userenv->{branch} )
                 : ()
             )
         },
