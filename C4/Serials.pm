@@ -1335,7 +1335,10 @@ sub ModSubscription {
     # FIXME Must be $subscription->serials
     # FIXME We shouldn't need serial.subscription (instead use serial->subscription->biblionumber)
     Koha::Serials->search({ subscriptionid => $subscriptionid })->update({ biblionumber => $biblionumber });
-
+    
+    my $subscription_history = Koha::Subscription::Histories->find($subscriptionid);
+    $subscription_history->update({ biblionumber => $biblionumber }) if ($subscription_history);
+    
     logaction( "SERIAL", "MODIFY", $subscriptionid, "" ) if C4::Context->preference("SubscriptionLog");
 
     $subscription->discard_changes;
