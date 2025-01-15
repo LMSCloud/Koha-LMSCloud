@@ -110,6 +110,12 @@ $(document).ready(function() {
             return borrower_prefilter ? { "=": borrower_prefilter } : "";
         },
         "-or": function(){
+
+            // LMSCloud did not see any reason for 'or-ing' some filter conditions (especially if the implementation does not work correctly).
+            // So this filter elements (illfilter_patron and illfilter_status at the moment) have been moved to the "-and" section.
+            return "";
+
+            // standard Koha:
             let patron = $("#illfilter_patron").val();
             let status = $("#illfilter_status").val();
             let filters = [];
@@ -117,8 +123,7 @@ $(document).ready(function() {
             let status_sub_or = [];
             let subquery_and = [];
 
-            // only in standard Koha, but not in LMSCloud Koha:
-            //if (!patron && !status) return "";
+            if (!patron && !status) return "";
 
             if(patron){
                 const patron_search_fields = "me.borrowernumber,patron.cardnumber,patron.firstname,patron.surname";
@@ -144,45 +149,6 @@ $(document).ready(function() {
                     });
                 });
                 subquery_and.push(status_sub_or);
-            }
-
-            // added by LMSCloud: add additional_prefilters
-            let additional_prefilter_sub_and = [];
-            for (let additional_prefilter_key in additional_prefilters) {
-                additional_prefilter_sub_and.push({
-                        ["me." + additional_prefilter_key]:{"=":additional_prefilters[additional_prefilter_key]}
-                });
-            }
-            if (additional_prefilter_sub_and.length > 0 ) {
-                subquery_and.push({"-and": additional_prefilter_sub_and});
-            }
-
-            // added by LMSCloud: add infilter, supporting SQL patterns: "AND ... IN ( ... )"  and  "AND ... NOT IN ( ... )"
-            // As the standard Koha developers made no provisions for the SQL 'IN (...)'or 'NOT IN (...)' construct in datatables.js function build_query(col, value){...},
-            // LMSCloud reduces infilter 'field,-in,A,B,C,...' to [field]:{"=":"A"} and 'field,-not_in,A,B,C,...' to [field]:{"!=":"A"}. (i.e. ",B,C" are ignored! )
-            // Reasons:
-            //   This is sufficient for our specific application until now, because currently only 1 value is required for the IN-clause.
-            //   (Otherwise we could build 'or' subqueries, but at the moment we avoid the resulting performance penalties.)
-            //   We do not want to spend effort in extending build_query() based on the fear that
-            //   in the next Koha version the datatables.js implementation is again reworked from scratch.
-            let additional_infilter_sub = [];
-            for (let additional_infilt_key in additional_infilter) {
-                let vals = additional_infilter[additional_infilt_key][1].split(",");
-                if ( vals[0] ) {
-                    if ( additional_infilter[additional_infilt_key][0] === "-not_in" ) {
-                        additional_infilter_sub.push({
-                            ["me." + additional_infilt_key]:{"!=":vals[0]}
-                        });
-                    }
-                    if ( additional_infilter[additional_infilt_key][0] === "-in" ) {
-                        additional_infilter_sub.push({
-                            ["me." + additional_infilt_key]:{"=":vals[0]}
-                        });
-                    }
-                }
-            }
-            if (additional_infilter_sub.length > 0 ) {
-                subquery_and.push({"-and": additional_infilter_sub});
             }
 
             filters.push({"-and": subquery_and});
@@ -219,35 +185,118 @@ $(document).ready(function() {
         },
         "-and": function(){
             let keyword = $("#illfilter_keyword").val();
-            if (!keyword) return "";
-
-            let filters = [];
-            let subquery_and = [];
-
-            const search_fields = "me.illrequest_id,me.borrowernumber,me.biblio_id,me.due_date,me.branchcode,library.name,me.status,me.status_alias,me.placed,me.replied,me.updated,me.completed,me.medium,me.accessurl,me.cost,me.price_paid,me.notesopac,me.notesstaff,me.orderid,me.backend,patron.firstname,patron.surname";
-            let sub_or = [];
-            search_fields.split(',').forEach(function(attr){
-                sub_or.push({
-                        [attr]:{"like":"%" + keyword + "%"}
-                });
-            });
-            subquery_and.push(sub_or);
-            filters.push({"-and": subquery_and});
-
             // standard Koha:
-            //const extended_attributes = "title,type,author,article_title,pages,issue,volume,year";
-            // LMSCloud Koha:
-            const extended_attributes = "title,type,author,article_title,pages,issue,volume,year,Titel,Verfasser,ochk_Bearbeiter,ochk_BearbeitetAm,illPartnerLibraryIsil,sendingIllLibraryIsil,BestelltVonSigel,BestelltBeiSigel";
-            let extended_sub_or = [];
-            subquery_and = [];
-            extended_sub_or.push({
-                "extended_attributes.type": extended_attributes.split(','),
-                "extended_attributes.value":{"like":"%" + keyword + "%"}
-            });
-            subquery_and.push(extended_sub_or);
-            filters.push({"-and": subquery_and});
+            // if (!keyword) return "";
 
-            return filters;
+            // LMSCloud Koha: a lot of modifications of and additions to standard Koha
+            let filters = [];
+            let subquery_or = [];
+            let subquery_and = [];
+            let subquery_combined = [];    // LMSCloud's aim: generate a select condition kind of logic '((subquery_or) AND (subquery_and))' as subquery for the outermost AND-select-condition
+
+            if (keyword) {
+                const search_fields = "me.illrequest_id,me.borrowernumber,me.biblio_id,me.due_date,me.branchcode,library.name,me.status,me.status_alias,me.placed,me.replied,me.updated,me.completed,me.medium,me.accessurl,me.cost,me.price_paid,me.notesopac,me.notesstaff,me.orderid,me.backend,patron.firstname,patron.surname";
+                let sub_or = [];
+                search_fields.split(',').forEach(function(attr){
+                    sub_or.push({
+                            [attr]:{"like":"%" + keyword + "%"}
+                    });
+                });
+                subquery_or.push(sub_or);
+
+                // standard Koha:
+                //const extended_attributes = "title,type,author,article_title,pages,issue,volume,year";
+                // LMSCloud Koha:
+                const extended_attributes = "title,type,author,article_title,pages,issue,volume,year,Titel,Verfasser,publyear,VerlagJahrSonst,ochk_Bearbeiter,ochk_BearbeitetAm,illPartnerLibraryIsil,sendingIllLibraryIsil,BestelltVonSigel,BestelltBeiSigel";
+
+                let extended_sub_or = [];
+                extended_sub_or.push({
+                    "extended_attributes.type": extended_attributes.split(','),
+                    "extended_attributes.value":{"like":"%" + keyword + "%"}
+                });
+                subquery_or.push(extended_sub_or);
+                subquery_combined.push(subquery_or);    // if arrived here, we know that subquery_or has elements, so no need for checking if subquery_or.length > 0
+            }
+
+            // LMSCloud: Moved patron and status filter from the "-or" to this "-and" section and adapted as required
+            let patron = $("#illfilter_patron").val();
+            let status = $("#illfilter_status").val();
+
+            if(patron){
+                let patron_sub_or = [];
+                const patron_search_fields = "me.borrowernumber,patron.cardnumber,patron.firstname,patron.surname";
+                patron_search_fields.split(',').forEach(function(attr){
+                    let operator = "=";
+                    let patron_data = patron;
+                    if ( attr != "me.borrowernumber" && attr != "patron.cardnumber") {
+                        operator = "like";
+                        patron_data = "%" + patron + "%";
+                    }
+                    patron_sub_or.push({
+                        [attr]:{[operator]: patron_data }
+                    });
+                });
+                subquery_and.push(patron_sub_or);
+            }
+
+            if(status){
+                let status_sub_or = [];
+                const status_search_fields = "me.status,me.status_av";
+                status_search_fields.split(',').forEach(function(attr){
+                    status_sub_or.push({
+                        [attr]:{"=": status }
+                    });
+                });
+                subquery_and.push(status_sub_or);
+            }
+
+            // added by LMSCloud: add additional_prefilters
+            let additional_prefilter_sub_and = [];
+            for (let additional_prefilter_key in additional_prefilters) {
+                additional_prefilter_sub_and.push({
+                        ["me." + additional_prefilter_key]:{"=":additional_prefilters[additional_prefilter_key]}
+                });
+            }
+            if (additional_prefilter_sub_and.length > 0 ) {
+                subquery_and.push({"-and": additional_prefilter_sub_and});
+            }
+
+            // added by LMSCloud: add infilter, supporting SQL patterns: "AND ... IN ( ... )"  and  "AND ... NOT IN ( ... )"
+            // As the standard Koha developers made no provisions for the SQL 'IN (...)'or 'NOT IN (...)' construct in datatables.js function build_query(col, value){...},
+            // LMSCloud reduces infilter 'field,-in,A,B,C,...' to [field]:{"=":"A"} and 'field,-not_in,A,B,C,...' to [field]:{"!=":"A"}. (i.e. ",B,C" are ignored! )
+            // Reasons:
+            //   This is sufficient for our specific application until now, because currently only 1 value is required for the IN-clause.
+            //   (Otherwise we could build 'or' subqueries, but at the moment we avoid the resulting performance penalties.)
+            //   We do not want to spend effort in extending build_query() based on the fear that
+            //   in the next Koha version the ill-list-table.js or datatables.js implementation is again reworked from scratch.
+            let additional_infilter_sub = [];
+            for (let additional_infilt_key in additional_infilter) {
+                let vals = additional_infilter[additional_infilt_key][1].split(",");
+                if ( vals[0] ) {
+                    if ( additional_infilter[additional_infilt_key][0] === "-not_in" ) {
+                        additional_infilter_sub.push({
+                            ["me." + additional_infilt_key]:{"!=":vals[0]}
+                        });
+                    }
+                    if ( additional_infilter[additional_infilt_key][0] === "-in" ) {
+                        additional_infilter_sub.push({
+                            ["me." + additional_infilt_key]:{"=":vals[0]}
+                        });
+                    }
+                }
+            }
+            if (additional_infilter_sub.length > 0 ) {
+                subquery_and.push({"-and": additional_infilter_sub});
+            }
+
+            if ( subquery_and.length > 0 ) {
+                subquery_combined.push({"-and": subquery_and});
+            }
+            if ( subquery_combined.length > 0 ) {
+                filters.push({"-and": subquery_combined});
+                return filters;
+            }
+            return '';    // no subquery was generated in this "-and" section
         }
 
     };
@@ -334,14 +383,18 @@ $(document).ready(function() {
                 }
             },
             {
-                "data": "", // type (derived from illrequestattributes)
-                "orderable": false,
+                // standard Koha:
+                // "data": "", // type (derived from illrequestattributes)
+                // "orderable": false,
+                // "render": function(data, type, row, meta) {
+                //     return display_extended_attribute(row, 'type');
+                // }
+
+                // LMSCloud Koha:
+                "data": "medium",
+                "orderable": true,
                 "render": function(data, type, row, meta) {
-                    // standard Koha:
-                    //return display_extended_attribute(row, 'type');
-                    // LMSCloud Koha:
-                    let metadataType = get_extended_attribute(row, 'type');
-                    return escape_str(mediumTypeToDesignation(row.medium,metadataType));
+                    return escape_str(mediumTypeToDesignation(row.medium,''));
                 }
             },
 
@@ -371,7 +424,9 @@ $(document).ready(function() {
                 // LMSCloud Koha:
                 "data": "patron.surname:patron.firstname:patron.cardnumber",
                 "render": function(data, type, row, meta) {
-                    return (row.patron) ? $patron_to_html( row.patron, { display_cardnumber: true, url: true } ) : ''; }                    },
+                    return (row.patron) ? $patron_to_html( row.patron, { display_cardnumber: true, url: true } ) : '';
+                }
+            },
             {
                 "data": "biblio_id",
                 "orderable": true,

@@ -26,7 +26,7 @@
         <a id="ill-list_closed" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&infilter=status,-in,COMP&hitname=Details for all completed requests">
             <i class="fa fa-list"></i> List completed requests
         </a>
-        <a id="ill-list_all" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&infilter=status,-not_in, &hitname=Details for all requests">
+        <a id="ill-list_all" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&hitname=Details for all requests">
             <i class="fa fa-list"></i> List all requests
         </a>
         <a id="ill-list_open" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests">
