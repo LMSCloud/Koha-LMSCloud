@@ -1894,7 +1894,7 @@ sub _koha_notify_reserve {
         branchcode => $hold->branchcode,
         lang => $patron->lang,
         tables => {
-            'branches'       => $library->unblessed,
+            'branches'       => $library->branchcode,
             'borrowers'      => $patron->unblessed,
             'biblio'         => $hold->biblionumber,
             'biblioitems'    => $hold->biblionumber,
