@@ -586,8 +586,16 @@ function _dt_default_ajax (params){
                                 query_term = { like: (['contains', 'ends_with'].indexOf(criteria) !== -1 ? '%' : '') + value + (['contains', 'starts_with'].indexOf(criteria) !== -1 ? '%' : '') };
                             }
 
+                            // LMSCloud: additionally enabled comma separated list of related values
+                            let query_term_related = col.relatedValue;    // this is correct for a single related value only
+                            let relatedValues = col.relatedValue.split(',');    // handling of a optionally comma separated list of related values
+                            if ( relatedValues.length > 1 ) {
+                                query_term_related = relatedValues;
+
+                            }
+
                             part = {
-                                [col.related + '.' + col.relatedKey]: col.relatedValue,
+                                [col.related + '.' + col.relatedKey]: query_term_related,
                                 [col.related + '.' + col.relatedSearchOn]: query_term
                             };
                         } else {
