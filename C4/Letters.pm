@@ -987,7 +987,7 @@ sub _parseletter {
                 my $code = $attribute->code;
                 my $val  = $attribute->description; # FIXME - we always display intranet description here!
                 $val =~ s/\p{P}(?=$)//g if $val;
-                next unless $val gt '';
+                next unless ($val && $val gt '');
                 $attr{$code} ||= [];
                 push @{ $attr{$code} }, $val;
             }
