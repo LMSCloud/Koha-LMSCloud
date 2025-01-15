@@ -1435,7 +1435,7 @@ sub IsAvailableForItemLevelRequest {
             $reserveNotForLoan = scalar(grep { /^$notforloan$/ } split(/\|/,C4::Context->preference('EnableHoldsNotForLoanStatus')));
         }
         
-        return $item->notforloan < 0 || $item->onloan || $reserveNotForLoan || IsItemOnHoldAndFound( $item->itemnumber );
+        return $item->onloan || $reserveNotForLoan || IsItemOnHoldAndFound( $item->itemnumber );
     }
 }
 
