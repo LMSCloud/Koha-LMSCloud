@@ -51,13 +51,25 @@
                             <li id="debarred">
                                 Your account has been frozen.
                                 [% IF debarred_comment %]
-                                    Comment:
+                                    Comment:<br />
                                     <span id="userdebarred_comment">
                                         <strong>
                                             [% IF debarred_comment.search('OVERDUES_PROCESS') %]
                                                 Restriction added by overdues process [% debarred_comment.remove('OVERDUES_PROCESS ') | html_line_break %]
                                             [% ELSE %]
-                                                [% debarred_comment | html_line_break %]
+                                                [% FOR restriction IN logged_in_user.restrictions %]
+                                                    <div class="patron_restriction">
+                                                        [%- restriction.type.display_text | html -%][%- IF restriction.comment -%]: <span class="restriction_comment">[% restriction.comment | html_line_break %]</span>, frozen until:
+                                                        <span class="restriction_expiration">
+                                                        [%- IF restriction.expiration -%]
+                                                            [%- restriction.expiration | $KohaDates -%]
+                                                        [%- ELSE -%]
+                                                            <strong>Indefinite</strong>
+                                                        [%- END -%]
+                                                        </span>
+                                                    [% END %]
+                                                    </div>
+                                                [% END %]
                                             [% END %]
                                         </strong>
                                     </span>
