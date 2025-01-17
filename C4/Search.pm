@@ -99,6 +99,12 @@ sub FindDuplicate {
         $result->{isbn} =~ s/\|/OR/;
         $query = "isbn:$result->{isbn}";
     }
+    elsif ( $result->{ean} ) {
+        $result->{ean} =~ s/\(.*$//;
+        $result->{ean} =~ s/\s+$//;
+        $result->{ean} =~ s/\|/OR/;
+        $query = "identifier-other:$result->{ean}";
+    }
     else {
 
         my $titleindex = 'ti,ext';
