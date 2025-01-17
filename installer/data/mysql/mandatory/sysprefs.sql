@@ -218,6 +218,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('DivibibEnabled','0',NULL,'Enable Divibib Onleihe integration ','YesNo'),
 ('DivibibNCIPServiceMode','',NULL,'Mode of the Divibib NCIP Service. If set to \"test\" it uses the Test URL.','Free'),
 ('DivibibTitleAccessURL','',NULL,'Access URL of Divibib titles. The value will be used to provide a link to Divibib titles in OPAC result and detail views for not logged in users. A placeholder {TITLEID} within the URL will be replaced with the Divibib title ID.','Free'),
+('DivibibVersion', '2', NULL, 'Divibib Onleihe version the library is integrating with.', 'Free'),
 ('DumpSearchQueryTemplate',0,'','Add the search query being passed to the search engine into the template for debugging','YesNo'),
 ('DumpTemplateVarsIntranet',  '0', NULL ,  'If enabled, dump all Template Toolkit variable to a comment in the html source for the staff intranet.',  'YesNo'),
 ('DumpTemplateVarsOpac',  '0', NULL ,  'If enabled, dump all Template Toolkit variable to a comment in the html source for the opac.',  'YesNo'),
