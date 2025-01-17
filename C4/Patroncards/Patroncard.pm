@@ -307,12 +307,12 @@ sub draw_text {
                     #$font_units_width = $m->string_width($line);
                     #$string_width = ($font_units_width * $text_attribs->{'font_size'}) / $units_per_em;
                     if ( $string_width + ( $text_attribs->{'llx'} * $self->{'unitvalue'} ) < $self->{'width'} ) {
+                        $line =~ s/^\s+//g;     # strip naughty leading spaces
                         ( $Tx, $Tw ) = text_alignment(
                             $origin_llx, $self->{'width'},
                             $text_attribs->{'llx'} * $self->{'unitvalue'}, $string_width, $line,
                             $text_attribs->{'text_alignment'}
                         );
-                        $line =~ s/^\s+//g;     # strip naughty leading spaces
                         push @lines, {line=> $line, Tx => $Tx, Ty => $Ty, Tw => $Tw};
                         last WRAP_LINES;
                     }
@@ -330,8 +330,8 @@ sub draw_text {
             }
         }
         else {
-            ($Tx, $Tw) = text_alignment($origin_llx, $self->{'width'}, $lly_text_attr * $self->{'unitvalue'}, $string_width, $line, $text_attribs->{'text_alignment'});
             $line =~ s/^\s+//g;     # strip naughty leading spaces
+            ($Tx, $Tw) = text_alignment($origin_llx, $self->{'width'}, $llx_text_attr * $self->{'unitvalue'}, $string_width, $line, $text_attribs->{'text_alignment'});
             push @lines, {line=> $line, Tx => $Tx, Ty => $Ty, Tw => $Tw};
         }
 # Draw boxes around text box areas
