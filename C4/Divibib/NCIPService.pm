@@ -47,7 +47,7 @@ use constant DIVIBIBISSUEBRANCHCODE => 'eBib';
 
 BEGIN {
     require Exporter;
-    $VERSION = 3.07.00.049;
+    $VERSION = 2.0;
     @ISA = qw(Exporter);
     @EXPORT = qw(DIVIBIBAGENCYID);
     @EXPORT_OK = qw(DIVIBIBAGENCYID);
@@ -80,10 +80,10 @@ sub new {
     bless $self, $class;
     
     my $url = "https://ncip.onleihe.de/ncip/service/";
-    if ( C4::Context->preference("DivibibNCIPServiceMode") && 
-            C4::Context->preference("DivibibNCIPServiceMode") eq 'test' ) 
+    if ( C4::Context->preference("DivibibVersion") && 
+            C4::Context->preference("DivibibVersion") =~ /^([1-9])/ ) 
     {
-        $url = "https://ncip.onleihe.de/nciptst/service/";
+        $url = "https://api.onleihe.de/ncip/" if ( $1 >= 3 );
     }
     if ( C4::Context->preference("DivibibNCIPServiceURL") ) {
         $url = C4::Context->preference("DivibibNCIPServiceURL");
@@ -325,7 +325,7 @@ sub _fetch_divibib_data {
     
     my ($cmd) = @_;
 
-    my $response = $self->{'ua'}->post($self->{'url'}, Content_Type => 'application/xml', Content => $cmd->getXML());
+    my $response = $self->{'ua'}->post($self->{'url'}, Content_Type => 'application/xml', Accept => 'application/xml', Content => $cmd->getXML());
     
     if ( $response->is_success ) {
         $cmd->parseResponse($response->content);
