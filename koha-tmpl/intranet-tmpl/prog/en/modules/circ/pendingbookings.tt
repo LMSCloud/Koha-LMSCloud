@@ -189,7 +189,7 @@
                         "visible": false
                     },
                     {
-                        "data": "pickup_library.name:me.pickup_library_id",
+                        "data": "pickup_library.name",
                         "title": _("Pickup library"),
                         "searchable": true,
                         "orderable": true,
