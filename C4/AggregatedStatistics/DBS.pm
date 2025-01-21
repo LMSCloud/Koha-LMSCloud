@@ -2299,7 +2299,7 @@ print STDERR "C4::AggregatedStatistics::DBS::eval_form Start self->statisticstyp
             query           => $input,
             type            => 'intranet',
             authnotrequired => 0,
-            flagsrequired   => { },
+            flagsrequired   => { reports => '*' },
             debug           => 1,
         }
     );

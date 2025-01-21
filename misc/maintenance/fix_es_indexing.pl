@@ -39,6 +39,7 @@ use Koha::Biblios;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Indexer;
 use Koha::SearchEngine::Elasticsearch::DocumentIdList;
+use Try::Tiny;
 use Array::Utils qw( array_minus );
 
 if (  C4::Context->preference('SearchEngine') ne 'Elasticsearch' ) {
@@ -102,7 +103,7 @@ sub restartUndoneBackgroundJobs {
         print "Undone background indexing jobs with status new found\n";
         foreach my $job(@jobs) {
             print "  Running job ", $job->id, ".\n";
-            runBackgroundJob($job);
+            runBackgroundJob($biblio_indexer,$auth_indexer,$logger,$job);
         }
     }
 }

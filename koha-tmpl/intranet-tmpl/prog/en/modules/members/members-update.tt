@@ -69,6 +69,7 @@
 [% CASE 'altcontactphone'     %]<span>Alternate contact: Phone</span>
 [% CASE 'smsalertnumber'      %]<span>SMS alert number</span>
 [% CASE 'extended_attributes' %]<span>Additional attributes and identifiers</span>
+[% CASE 'primary_contact_method' %]<span>Main contact method</span>
 [% CASE %][% field | html %]
 [% END %]
 [% END %]

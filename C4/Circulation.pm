@@ -1134,6 +1134,15 @@ sub CanBookBeIssued {
     #
     my $rentalConfirmation = C4::Context->preference("RentalFeesCheckoutConfirmation");
     if ($rentalConfirmation) {
+        # Check whether the patrons category is selected for descarding rental fees
+        my $addIssuingRentalFee = 1;
+        if ( C4::Context->preference('IssuingDiscardRentalFeesOfPatronCategory') ) {
+            my $checkval = $patron->categorycode;
+            my @categoryList = split /[\|,]/, C4::Context->preference('IssuingDiscardRentalFeesOfPatronCategory');
+            @categoryList = map { s/^\s+|\s+$//gr } @categoryList;
+            $addIssuingRentalFee = 0 if ( grep( /^$checkval$/, @categoryList ) );
+        }
+
         my ($rentalCharge) = GetIssuingCharges( $item_object->itemnumber, $patron->borrowernumber );
 
         my $itemtype_object = Koha::ItemTypes->find( $item_object->effective_itemtype );
@@ -1144,7 +1153,7 @@ sub CanBookBeIssued {
             }
         }
 
-        if ( $rentalCharge > 0 ) {
+        if ( $rentalCharge > 0 && $addIssuingRentalFee ) {
             $needsconfirmation{RENTALCHARGE} = $rentalCharge;
         }
     }
@@ -1783,17 +1792,26 @@ sub AddIssue {
                         $item_object->itemnumber, undef, 'RENEWED' );
                 }
             }
+            
+            # Check whether the patrons category is selected for descarding rental fees
+            my $addIssuingRentalFee = 1;
+            if ( C4::Context->preference('IssuingDiscardRentalFeesOfPatronCategory') ) {
+                my $checkval = $patron->categorycode;
+                my @categoryList = split /[\|,]/, C4::Context->preference('IssuingDiscardRentalFeesOfPatronCategory');
+                @categoryList = map { s/^\s+|\s+$//gr } @categoryList;
+                $addIssuingRentalFee = 0 if ( grep( /^$checkval$/, @categoryList ) );
+            }
 
             # If it costs to borrow this book, charge it to the patron's account.
             my ( $charge, $itemtype ) = GetIssuingCharges( $item_object->itemnumber, $borrower->{'borrowernumber'} );
-            if ( $charge && $charge > 0 ) {
+            if ( $charge && $charge > 0 && $addIssuingRentalFee) {
                 AddIssuingCharge( $issue, $charge, 'RENT' );
             }
 
             my $itemtype_object = Koha::ItemTypes->find( $item_object->effective_itemtype );
             if ( $itemtype_object ) {
                 my $accumulate_charge = $fees->accumulate_rentalcharge();
-                if ( $accumulate_charge > 0 ) {
+                if ( $accumulate_charge > 0 && $addIssuingRentalFee ) {
                     AddIssuingCharge( $issue, $accumulate_charge, 'RENT_DAILY' );
                     $charge += $accumulate_charge;
                     $item_unblessed->{charge} = $charge;
@@ -3443,7 +3461,7 @@ sub AddRenewal {
         }
         # Charge a new rental fee, if applicable
         my ( $charge, $type ) = GetIssuingCharges( $itemnumber, $borrowernumber );
-        if ( $charge > 0 && $addRenewRentalFee ) {
+        if ( $charge && $charge > 0 && $addRenewRentalFee ) {
             AddIssuingCharge($issue, $charge, 'RENT_RENEW');
         }
 

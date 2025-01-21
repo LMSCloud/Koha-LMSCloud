@@ -556,6 +556,13 @@ Enhanced content:
             - "patron specific recommendations based on the reading history of a patron using a Bibtip service."
     Divibib:
         -
+            - Version number of the Onleihe
+            - pref: DivibibVersion
+              choices:
+                  2: 2.0
+                  3: 3.0 or higher
+            - "<br>Setting the version correctly is necessary to support the Onleihe-OPAC integration and to synchronize data correctly."
+        -
             - pref: DivibibEnabled
               choices:
                   1: Enable

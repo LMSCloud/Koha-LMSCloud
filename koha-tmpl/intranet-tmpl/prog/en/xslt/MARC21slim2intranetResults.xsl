@@ -319,9 +319,6 @@
                     <!-- 13381 add additional subfields-->
                     <xsl:for-each select="marc:subfield[contains('bcfghknps', @code)]">
                         <xsl:choose>
-                            <xsl:when test="@code='b'">
-                                <xsl:text>: </xsl:text><xsl:apply-templates/>
-                            </xsl:when>
                             <xsl:when test="@code='h'">
                                 <!--  13381 Span class around subfield h so it can be suppressed via css -->
                                 <!-- <span class="title_medium"> <xsl:apply-templates/> </span> -->
@@ -331,8 +328,7 @@
                                 <span class="title_resp_stmt"><xsl:if test="not(contains(text(),'/'))"><xsl:text> / </xsl:text></xsl:if><xsl:apply-templates/> </span>
                             </xsl:when>
                             <xsl:otherwise>
-                                <xsl:apply-templates/>
-                                <xsl:text> </xsl:text>
+                                <xsl:text>: </xsl:text><xsl:apply-templates/>
                             </xsl:otherwise>
                         </xsl:choose>
                     </xsl:for-each>

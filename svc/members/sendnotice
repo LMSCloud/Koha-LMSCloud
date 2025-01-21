@@ -46,7 +46,7 @@ my ($template, $user, $cookie) = get_template_and_user({
     query           => $input,
     type            => "intranet",
     authnotrequired => 0,
-    flagsrequired   => { borrowers => 'send_adhoc_notices' }
+    flagsrequired   => { circulate => 'send_adhoc_notices' }
 });
 
 my @borrowers = $input->param('borrowernumbers[]');

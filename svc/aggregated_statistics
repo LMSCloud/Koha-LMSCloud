@@ -38,7 +38,7 @@ For the moment, this service is only used to get aggregated_statistics records f
 
 =cut
 
-our ( $query, $response ) = C4::Service->init( reports => 'aggregated_statistics' );
+our ( $query, $response ) = C4::Service->init( reports => '*' );
 
 sub get_aggregated_statistics {
     my @hits;

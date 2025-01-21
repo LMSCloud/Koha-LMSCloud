@@ -809,6 +809,7 @@ sub checkauth {
     my $emailaddress    = shift;
     my $template_name   = shift;
     $type = 'opac' unless $type;
+    C4::Context->interface($type);
     
     # Get shibboleth login attribute
     my $shib = C4::Context->config('useshibboleth') && shib_ok();

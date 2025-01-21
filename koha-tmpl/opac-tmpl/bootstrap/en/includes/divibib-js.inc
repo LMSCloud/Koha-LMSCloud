@@ -66,6 +66,17 @@ function checkDivibibAvalability(idList) {
     if ( idList.length == 0 ) {
         return;
     }
+    var version3orLater = false;
+    var onleiheVersion = "[% Koha.Preference( 'DivibibVersion' ) | html %]";
+    if ( onleiheVersion.length > 0 ) {
+        var firstChar = onleiheVersion.charAt(0);
+        if ( firstChar <='9' && firstChar >='0') {
+            if ( firstChar >= '3' ) {
+                version3orLater = true;
+            }
+        }
+    }
+
     $.ajax({
         url: "/cgi-bin/koha/opac-divibib-availability.pl",
         type: "POST",
@@ -99,7 +110,7 @@ function checkDivibibAvalability(idList) {
                                         + _("Download available for logged in users.") 
                                         + '</span></b>';
                         [% END %]
-                        if ( loggedIn ) {
+                        if ( loggedIn && !version3orLater ) {
                             statusDisplay = '<a class="external-offer-link" href="#" onclick="accessDivibibResource(' 
                                             + "'loan','" + data.titles[i].result.ItemId 
                                             + "'); return false;"
@@ -137,7 +148,7 @@ function checkDivibibAvalability(idList) {
                                         + _("Reservable for logged in users.") 
                                         + '</b>';
                         [% END %]
-                        if ( loggedIn ) {
+                        if ( loggedIn && !version3orLater ) {
                             statusDisplay = '<a class="external-offer-link" href="#" onclick="accessDivibibResource(' 
                                             + "'reservation','" 
                                             + data.titles[i].result.ItemId 
