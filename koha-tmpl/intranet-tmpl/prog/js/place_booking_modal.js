@@ -233,7 +233,15 @@ $("#placeBookingModal").on("show.bs.modal", function (e) {
 
         $pickupSelect.prop("disabled", false);
 
-        // If filtered_pickup_locations contain the booking_patron's home library, use it as the default for pickup_library_id
+        /* If there are no filtered_pickup_locations, clear the picker
+         * and return early without trying to set a default. */
+        if (!filtered_pickup_locations.length && !pickup_library_id) {
+            $pickupSelect.val(null).trigger("change");
+            return;
+        }
+
+        /* If filtered_pickup_locations contain the booking_patron's home library,
+         * use it as the default for pickup_library_id. */
         pickup_library_id ??= filtered_pickup_locations.find(
             pickup_location =>
                 pickup_location.library_id ===
