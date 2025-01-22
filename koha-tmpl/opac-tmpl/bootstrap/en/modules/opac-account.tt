@@ -108,17 +108,13 @@ $( document ).ready(function() {
     } ));
     
     [% FOREACH r IN relatives %]
-    var fines_table_[% r.id | html %] = $("#finestable-[% r.id | html %]").dataTable($.extend(true, {}, dataTablesDefaults, {
+    var fines_table_[% r.patron.id | html %] = $("#finestable-[% r.patron.id | html %]").dataTable($.extend(true, {}, dataTablesDefaults, {
          [% IF ENABLE_OPAC_PAYMENTS %]
          "order": [[ 1, "desc" ]],
          [% ELSE %]
          "order": [[ 0, "desc" ]],
          [% END %]
          "dom": '<"#filter_p">',
-    } ));
-    [% END %]
-
-    $('table[id^="finestable-"]').dataTable($.extend(true, {}, dataTablesDefaults, {
          "autoWidth": false,
          "responsive": {
             "details": { "type": 'column',"target": -1 }
@@ -127,9 +123,10 @@ $( document ).ready(function() {
             { "className": 'dtr-control', "orderable": false, "targets": -1 }
          ],
          'fnDrawCallback': function() {
-            show_hiddentfoot('table[id^="finestable-"]');
+            show_hiddentfoot("#finestable-[% r.patron.id | html %]");
          }
     } ));
+    [% END %]
 
     function show_hiddentfoot(selector) {
         $('.finestable tfoot .sum').show();
@@ -150,7 +147,7 @@ $( document ).ready(function() {
         }
         fines_table.fnFilter(filteredValue, -2, true, false);
         [% FOREACH r IN relatives %]
-        fines_table_[% r.id | html %].fnFilter(filteredValue, -2, true, false);
+        fines_table_[% r.patron.id | html %].fnFilter(filteredValue, -2, true, false);
         [% END %]
         $(this).toggleClass('filtered');
     });
