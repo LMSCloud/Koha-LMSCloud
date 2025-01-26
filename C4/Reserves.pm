@@ -1931,7 +1931,7 @@ sub _koha_notify_reserve {
             if ( $noticeFeeRule ) {
                 my $discardFee = 0;
                 if ( my $branchList = C4::Context->preference('DiscardHoldsNoticeFeeOfHomeLibraries') ) {
-                    my $checkBranch = $library->branchcode;
+                    my $checkBranch = $hold->item->homebranch;
                     $discardFee = scalar(grep { /^$checkBranch$/ } split(/\|/,C4::Context->preference('DiscardHoldsNoticeFeeOfHomeLibraries')));
                 }
                 
