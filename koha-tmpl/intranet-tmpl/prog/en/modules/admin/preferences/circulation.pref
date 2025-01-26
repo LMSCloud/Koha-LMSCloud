@@ -1052,6 +1052,9 @@ Circulation:
                   homebranch: "item's home library"
                   holdingbranch: "item's holding library"
             - "."
+        -
+            - "Discard a notice fee for holds if the home branch of the item is one of the specified codes (seperated by |).<br>"
+            - pref: DiscardHoldsNoticeFeeOfHomeLibraries
     Patron restrictions:
         -
             - pref: PatronRestrictionTypes

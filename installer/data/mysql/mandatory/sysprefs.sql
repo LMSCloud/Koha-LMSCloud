@@ -205,6 +205,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('DefaultToLoggedInLibraryOverdueTriggers',  '0', NULL ,  'If enabled, overdue status triggers editor will default to the logged in library''s rules, rather than the ''default'' rules.',  'YesNo'),
 ('CSVDelimiter',',',';|tabulation|,|/|\\|#||','Define the default separator character for exporting reports','Choice'),
 ('DidYouMeanMaxResultCount','20',NULL,'Maximum number of opac search result records to display a DidYouMean suggestions. Leave empty or set to 0 to look always for suggestions of activated DidYouMean sources.','Integer'),
+('DiscardHoldsNoticeFeeOfHomeLibraries','',NULL,'Discard a notice fee for holds if the home branch of the item is one of the specified codes (seperated by |).','Free'),
 ('Display856uAsImage','OFF','OFF|Details|Results|Both','Display the URI in the 856u field as an image, the corresponding staff interface XSLT option must be on','Choice'),
 ('DisplayClearScreenButton','no','no|issueslip|issueqslip','If set to ON, a clear screen button will appear on the circulation page.','Choice'),
 ('displayFacetCount','0',NULL,NULL,'YesNo'),
