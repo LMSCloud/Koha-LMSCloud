@@ -35,7 +35,9 @@ biblios:
         59: pl
         63: note
         1003: author
-        1007: identifier-standard
+        1007: 
+              - identifier-standard
+              - identifier-other
         1011: date-entered-on-file
         1012: date-time-last-modified
         1016:
