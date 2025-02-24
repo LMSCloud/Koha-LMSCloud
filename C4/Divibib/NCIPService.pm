@@ -152,7 +152,7 @@ sub setItemTypeIconAndDescription {
     }
     elsif ( $itemType eq 'eaudio') {
         $item->{'imageurl'} = 'bridge/digital_audio.gif';
-        $item->{'description'} = 'Hörbuch zum Donwload';
+        $item->{'description'} = 'Hörbuch zum Download';
     }
     elsif ( $itemType eq 'emusik') {
         $item->{'imageurl'} = 'bridge/e_music.gif';
