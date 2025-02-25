@@ -204,14 +204,14 @@ sub search_title_with_best_item_status {
         {
             my $biblionumber = $marcrecord->subfield("999","c");                        # get biblio number of the title hit
 
-            $self->search_item_with_best_item_status($biblionumber, \$best_item_status, \$best_itemnumber, \$best_biblionumber );
+            $self->search_item_with_best_item_status( $marcrecord, $biblionumber, \$best_item_status, \$best_itemnumber, \$best_biblionumber );
         }
     }
     return ($best_item_status, $best_itemnumber, $best_biblionumber, $marcrecord);
 }
 
 sub search_item_with_best_item_status {
-my ( $self, $biblionumber, $ref_best_item_status, $ref_best_itemnumber, $ref_best_biblionumber ) = @_;
+    my ( $self, $marcrecord, $biblionumber, $ref_best_item_status, $ref_best_itemnumber, $ref_best_biblionumber ) = @_;
 
     # item status code in BZSH:
     # 0    # Titel nicht vorhanden / item does not exist
@@ -220,6 +220,17 @@ my ( $self, $biblionumber, $ref_best_item_status, $ref_best_itemnumber, $ref_bes
     # 3    # im Buchhandel bestellt / ordered at a supplier (not used here)
     # 4    # nicht ausleihbar / item not for loan
 
+    my $itemNotLoanRules = C4::Context->preference("BZSHAvailabilitySetItemStatusNotLoanByItemData");
+    my $itemRules;
+    if ( $itemNotLoanRules ) {
+         $itemRules = eval { YAML::XS::Load( Encode::encode_utf8( $itemNotLoanRules ) ) };
+         if ($@) {
+            warn "Unable to parse item not loan rules of parameter BZSHAvailabilitySetItemStatusNotLoanByItemData";
+        }
+    }
+    
+    my $catalogNotLoanMatch = $self->checkCatalogCheckRules(C4::Context->preference("BZSHAvailabilitySetItemStatusNotLoanByCatalogData"),$marcrecord);
+    
     my $items_rs = Koha::Items->search({ biblionumber => $biblionumber });    # read all items having this biblionumber
     if ( $items_rs ) {
         while ( my $item = $items_rs->next() )
@@ -239,7 +250,7 @@ my ( $self, $biblionumber, $ref_best_item_status, $ref_best_itemnumber, $ref_bes
                 ( $itemrecord->{'damaged'} && $itemrecord->{'damaged'} > 0 ) ||
                 $itemrecord->{'itemlost'} ||
                 $itemrecord->{'withdrawn'} ||
-                $itemrecord->{'restricted'})
+                $itemrecord->{'restricted'} )
             {
                 if ($$ref_best_itemnumber == 0)
                 {
@@ -249,6 +260,23 @@ my ( $self, $biblionumber, $ref_best_item_status, $ref_best_itemnumber, $ref_bes
                 }
                 next;
             }
+            
+            if ( ($catalogNotLoanMatch || $itemRules) && $$ref_best_item_status =~ /^[0|4]$/ ) {
+                my $notLoan = 0;
+                if ( $itemRules ) {
+                    $notLoan = eval { $item->hidden_in_opac( { rules => $itemRules } ) };
+                    if ($@) {
+                        warn "ItemAvailabilitySearch_BZSH: Unable to check item rules: $@";
+                    }
+                }
+                if ( $catalogNotLoanMatch || $notLoan ) {
+                    $$ref_best_item_status = 4;  # item exists but is not for loan
+                    $$ref_best_itemnumber = $itemnumber;
+                    $$ref_best_biblionumber = $biblionumber;
+                    next;
+                }
+            }
+            
             my $item_onloan = $itemrecord->{'onloan'};
             if ($item_onloan && length($item_onloan) > 0 && $$ref_best_item_status != 1)
             {
@@ -440,6 +468,90 @@ sub get_date_due_of_item
     }
 
     return $date_due;
+}
+
+sub checkCatalogCheckRules {
+    my $self = shift;
+    my $catalogNotLoanRules = shift;
+    my $record = shift;
+    
+    return 0 if (! $catalogNotLoanRules );
+    
+    foreach my $checkrule( split(/\|/,$catalogNotLoanRules) ) {
+        if ( $checkrule =~ /^\s*([0-9]{3})(\((.)(.)\))?(\$([0-9a-z]))?\s*(!=|=~|!~|=)(.*)$/ ) {
+            my $marcField = $1;
+            my $marcInd1  = $3;
+            my $marcInd2  = $4;
+            my $marcSub   = $6;
+            my $operator  = $7;
+            my $checkval  = $8 || '';
+            
+            my $ignorePattern = $checkval;
+            $ignorePattern = '/' . $ignorePattern . '/' if ( $ignorePattern !~ m{^\s*/} );
+            
+            # print "Field: $marcField, Ind1: ", (defined($marcInd1) ? $marcInd1 : '') , ", Ind2: ", (defined($marcInd2) ? $marcInd2 : '') , ", Subfield: $marcSub, Operator: $operator, Checkval: $checkval\n";
+            
+            my $fieldcnt=0;
+            foreach my $field ( $record->field($marcField) ) {
+                $fieldcnt++;
+                next if ( ($marcInd1 && $marcInd1 ne $field->indicator(1)) || ($marcInd2 && $marcInd2 ne $field->indicator(2)) );
+                my @subfields;
+                if ( $marcField >= 10 ) {
+                    @subfields = $field->subfield($marcSub);
+                }
+                else {
+                    $subfields[0] = $field->data() if ( $field->data() );
+                }
+                if ( $operator eq '=' && $checkval eq '' && scalar(@subfields) == 0 ) {
+                    return 1;
+                }
+                if ( $operator eq '!=' && $checkval eq '' && scalar(@subfields) > 0 ) {
+                    return 1;
+                }
+                foreach my $fieldval( @subfields ) {
+                    $fieldval = '' if (! $fieldval);
+                    if ( $operator eq '=' && $fieldval eq $checkval ) {
+                        return 1;
+                    }
+                    elsif ( $operator eq '=' && $fieldval eq '' && $checkval eq '' ) {
+                        return 1;
+                    }
+                    elsif ( $operator eq '!=' && $fieldval ne $checkval ) {
+                        return 1;
+                    }
+                    if ( $operator eq '=~' && eval('$fieldval =~ ' . $ignorePattern) ) {
+                        return 1;
+                    }
+                    if ( $operator eq '!~' && eval('$fieldval !~ ' . $ignorePattern) ) {
+                        return 1;
+                    }
+                }
+            }
+            if ( $operator eq '=' && $checkval eq '' && scalar($fieldcnt) == 0 ) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+sub xmlEncode {
+    my $self = shift;
+    my $data = shift;
+    if ( $data ) {
+        $data =~ s/&/&amp;/sg;
+        $data =~ s/</&lt;/sg;
+        $data =~ s/>/&gt;/sg;
+        $data =~ s/"/&quot;/sg;
+    }
+    return $data;
+}
+
+sub genISBDXmlEncoded {
+    my $self = shift;
+    my $koharecord = shift;
+    
+    return $self->xmlEncode($self->genISBD($koharecord));
 }
 
 1;
