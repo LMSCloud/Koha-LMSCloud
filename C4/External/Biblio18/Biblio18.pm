@@ -201,10 +201,10 @@ sub search {
     my $querystring = shift;
     my $checkAvailDays = shift;
     
-    $checkAvailDays = 30 if (! $checkAvailDays || $checkAvailDays !~ /^[0-9]+$/ );
+    $checkAvailDays = 0 if (! $checkAvailDays || $checkAvailDays !~ /^[0-9]+$/ );
     
     my $compareAvailableDay = DateTime->now;
-    $compareAvailableDay->add( days => $checkAvailDays );
+    $compareAvailableDay->add( days => $checkAvailDays ) if ($checkAvailDays);
     
     my $lang = C4::Languages::getlanguage();
     my $builder  = Koha::SearchEngine::QueryBuilder->new({index => $Koha::SearchEngine::BIBLIOS_INDEX});
