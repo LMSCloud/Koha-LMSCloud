@@ -26,7 +26,6 @@ use utf8;
 use Carp;
 use Data::Dumper;
 use HTML::Entities;
-use Mail::Sendmail;
 use Capture::Tiny 'capture_stdout';
 use Try::Tiny;
 use MARC::Field;
