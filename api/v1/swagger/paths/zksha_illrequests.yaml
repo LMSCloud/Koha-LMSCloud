@@ -23,8 +23,11 @@
         schema:
           items:
             $ref: ../swagger.yaml#/definitions/zksha_illrequest
-      '400':
-        description: Bad parameter
+      "400":
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `invalid_query`
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       '401':

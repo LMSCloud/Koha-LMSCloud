@@ -21,12 +21,20 @@ use C4::Auth;
 use C4::Serials qw( GetLateOrMissingIssues updateClaim );
 use C4::Output;
 use C4::Context;
+use C4::Auth qw( check_cookie_auth );
 
 use Koha::CsvProfiles;
 
 use Text::CSV_XS;
 
 my $query = CGI->new;
+my ($auth_status) =
+    check_cookie_auth( $query->cookie('CGISESSID'), { catalogue => 1 } );
+if ( $auth_status ne "ok" ) {
+    print $query->header( -type => 'text/plain', -status => '403 Forbidden' );
+    exit 0;
+}
+
 my $supplierid = $query->param('supplierid');
 my @serialids = $query->multi_param('serialid');
 my $op = $query->param('op') || q{};
@@ -38,12 +46,15 @@ die "There is no valid csv profile given" unless $csv_profile;
 my $delimiter = $csv_profile->csv_separator;
 $delimiter = "\t" if $delimiter eq "\\t";
 
-my $csv = Text::CSV_XS->new({
-    'quote_char'  => '"',
-    'escape_char' => '"',
-    'sep_char'    => $delimiter,
-    'binary'      => 1
-});
+my $csv = Text::CSV_XS->new(
+    {
+        quote_char  => '"',
+        escape_char => '"',
+        sep_char    => $delimiter,
+        binary      => 1,
+        formula     => 'empty',
+    }
+);
 
 my $content = $csv_profile->content;
 my ( @headers, @fields );

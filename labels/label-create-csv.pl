@@ -24,8 +24,15 @@ use CGI qw ( -utf8 );
 use Text::CSV_XS;
 
 use C4::Labels;
+use C4::Auth qw( check_cookie_auth );
 
 my $cgi = CGI->new;
+my ($auth_status) =
+    check_cookie_auth( $cgi->cookie('CGISESSID'), { catalogue => 1 } );
+if ( $auth_status ne "ok" ) {
+    print $cgi->header( -type => 'text/plain', -status => '403 Forbidden' );
+    exit 0;
+}
 
 my $batch_id;
 my @label_ids;
@@ -66,7 +73,7 @@ else {
     $items = $batch->get_attr('items');
 }
 
-my $csv = Text::CSV_XS->new();
+my $csv = Text::CSV_XS->new( { formula => "empty" } );
 
 foreach my $item (@$items) {
     my $label = C4::Labels::Label->new(

@@ -34,16 +34,10 @@ use Carp qw( carp );
 use Koha::SharedContent;
 
 my $query = CGI->new;
-my $op = $query->param('op') || q{};
-my $issueconfirmed = $query->param('issueconfirmed');
-my $dbh = C4::Context->dbh;
-my $subscriptionid = $query->param('subscriptionid');
 
-if ( $op and $op eq "close" ) {
-    C4::Serials::CloseSubscription( $subscriptionid );
-} elsif ( $op and $op eq "reopen" ) {
-    C4::Serials::ReopenSubscription( $subscriptionid );
-}
+my $op             = $query->param('op') || q{};
+my $issueconfirmed = $query->param('issueconfirmed');
+my $subscriptionid = $query->param('subscriptionid');
 
 # the subscription must be deletable if there is NO issues for a reason or another (should not happened, but...)
 
@@ -68,7 +62,11 @@ $subs->{enddate} ||= GetExpirationDate($subscriptionid);
 my ($totalissues,@serialslist) = GetSerials($subscriptionid);
 $totalissues-- if $totalissues; # the -1 is to have 0 if this is a new subscription (only 1 issue)
 
-if ($op eq 'del') {
+if ( $op and $op eq "close" ) {
+    C4::Serials::CloseSubscription( $subscriptionid );
+} elsif ( $op and $op eq "reopen" ) {
+    C4::Serials::ReopenSubscription( $subscriptionid );
+} elsif ($op eq 'del') {
     if ($$subs{'cannotedit'}){
         carp "Attempt to delete subscription $subscriptionid by ".C4::Context->userenv->{'id'}." not allowed";
         print $query->redirect("/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=$subscriptionid");
@@ -93,8 +91,7 @@ if ($op eq 'del') {
         print $query->redirect("/cgi-bin/koha/serials/serials-home.pl");
         exit;
     }
-}
-elsif ( $op and $op eq "share" ) {
+} elsif ( $op eq "share" ) {
     my $mana_language = $query->param('mana_language');
     my $result = Koha::SharedContent::send_entity($mana_language, $loggedinuser, $subscriptionid, 'subscription');
     $template->param( mana_code => $result->{msg} );
@@ -124,12 +121,13 @@ my @irregular_issues = split /;/, $subs->{irregularity};
 my $frequency = C4::Serials::Frequency::GetSubscriptionFrequency($subs->{periodicity});
 my $numberpattern = C4::Serials::Numberpattern::GetSubscriptionNumberpattern($subs->{numberpattern});
 
-my $subscription_object = Koha::Subscriptions->find( $subscriptionid );
+my $subscription = Koha::Subscriptions->find( $subscriptionid );
+
 $template->param(
     available_additional_fields => Koha::AdditionalFields->search( { tablename => 'subscription' } ),
     additional_field_values => {
         map { $_->field->name => $_->value }
-          $subscription_object->additional_field_values->as_list
+          $subscription->additional_field_values->as_list
     },
 );
 

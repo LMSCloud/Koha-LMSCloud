@@ -25,6 +25,8 @@ use File::Temp;
 use CGI qw ( -utf8 );
 use GD;
 use MIME::Base64;
+use Cwd;
+
 use C4::Context;
 use C4::Auth qw( get_template_and_user );
 use C4::Output qw( output_and_exit output_html_with_http_headers );
@@ -95,6 +97,7 @@ if ( ( $op eq 'Upload' ) && ($uploadfile || $uploadfiletext) ) {
 
     my $dirname = File::Temp::tempdir( CLEANUP => 1 );
     my $filesuffix;
+    $uploadfilename =~ s/[^A-Za-z0-9\-\.]//g;
     if ( $uploadfilename =~ m/(\..+)$/i ) {
         $filesuffix = $1;
     }
@@ -229,13 +232,15 @@ sub handle_dir {
         my $dir_h;
         opendir $dir_h, $dir;
         while ( my $filename = readdir $dir_h ) {
-            $file = "$dir/$filename"
-              if ( $filename =~ m/datalink\.txt/i
-                || $filename =~ m/idlink\.txt/i );
+            if (   ( $filename =~ m/datalink\.txt/i || $filename =~ m/idlink\.txt/i )
+                && ( -e "$dir/$filename" && !-l "$dir/$filename" ) )
+            {
+                $file = Cwd::abs_path("$dir/$filename");
+            }
         }
         my $fh;
         unless ( open( $fh, '<', $file ) ) {
-            warn "Opening $dir/$file failed!";
+            warn "Opening $file failed!";
             $direrrors{'OPNLINK'} = $file;
             # This error is fatal to the import of this directory contents
             # so bail and return the error to the caller
@@ -261,7 +266,12 @@ sub handle_dir {
             $cardnumber =~ s/[\"\r\n]//g; # remove offensive characters
             $filename   =~ s/[\"\r\n\s]//g;
             $logger->debug("Cardnumber: $cardnumber Filename: $filename");
-            $source = "$dir/$filename";
+            $source = Cwd::abs_path("$dir/$filename");
+            if ( $source !~ /^\Q$dir\E/ ) {
+
+                #NOTE: Unset $source if it points to a file outside of this unpacked ZIP archive
+                $source = '';
+            }
             %counts = handle_file( $cardnumber, $source, $template, %counts );
         }
         closedir $dir_h;
