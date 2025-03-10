@@ -17,13 +17,15 @@
 
 use Modern::Perl;
 
-use Test::More tests => 5;
+use Test::More tests => 6;
 use Test::MockModule;
+use Test::Exception;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
 use Koha::ArticleRequests;
+use Koha::Exceptions::ArticleRequest;
 
 my $schema  = Koha::Database->new->schema;
 my $builder = t::lib::TestBuilder->new;
@@ -42,13 +44,16 @@ subtest 'request() tests' => sub {
     my $patron = $builder->build_object({ class => 'Koha::Patrons' });
     my $item   = $builder->build_sample_item;
 
-    my $ar_mock = Test::MockModule->new('Koha::ArticleRequest');
-    $ar_mock->mock( 'notify', sub { ok( 1, '->notify() called' ); } );
+    my $ar_module = mock_article_request_module();
 
-    my $ar = Koha::ArticleRequest->new(
+    my $ar = $builder->build_object(
         {
-            borrowernumber => $patron->id,
-            biblionumber   => $item->biblionumber,
+            class => 'Koha::ArticleRequests',
+            value => {
+                borrowernumber => $patron->id,
+                biblionumber   => $item->biblionumber,
+                debit_id       => undef,
+            }
         }
     );
 
@@ -63,11 +68,14 @@ subtest 'request() tests' => sub {
     # set a fee amount
     $amount = 10;
 
-    $ar = Koha::ArticleRequest->new(
+    $ar = $builder->build_object(
         {
-            borrowernumber => $patron->id,
-            biblionumber   => $item->biblionumber,
-            itemnumber     => $item->id,
+            class => 'Koha::ArticleRequests',
+            value => {
+                borrowernumber => $patron->id,
+                biblionumber   => $item->biblionumber,
+                itemnumber     => $item->id,
+            }
         }
     );
 
@@ -92,13 +100,15 @@ subtest 'set_pending() tests' => sub {
     my $patron = $builder->build_object({ class => 'Koha::Patrons' });
     my $biblio = $builder->build_sample_biblio;
 
-    my $ar_mock = Test::MockModule->new('Koha::ArticleRequest');
-    $ar_mock->mock( 'notify', sub { ok( 1, '->notify() called' ); } );
+    my $ar_module = mock_article_request_module();
 
-    my $ar = Koha::ArticleRequest->new(
+    my $ar = $builder->build_object(
         {
-            borrowernumber => $patron->id,
-            biblionumber   => $biblio->id,
+            class => 'Koha::ArticleRequests',
+            value => {
+                borrowernumber => $patron->id,
+                biblionumber   => $biblio->id,
+            }
         }
     );
 
@@ -116,8 +126,7 @@ subtest 'process() tests' => sub {
 
     $schema->storage->txn_begin;
 
-    my $ar_mock = Test::MockModule->new('Koha::ArticleRequest');
-    $ar_mock->mock( 'notify', sub { ok( 1, '->notify() called' ); } );
+    my $ar_module = mock_article_request_module();
 
     my $ar = $builder->build_object(
         {   class => 'Koha::ArticleRequests',
@@ -138,8 +147,7 @@ subtest 'complete() tests' => sub {
 
     $schema->storage->txn_begin;
 
-    my $ar_mock = Test::MockModule->new('Koha::ArticleRequest');
-    $ar_mock->mock( 'notify', sub { ok( 1, '->notify() called' ); } );
+    my $ar_module = mock_article_request_module();
 
     my $ar = $builder->build_object(
         {   class => 'Koha::ArticleRequests',
@@ -168,14 +176,16 @@ subtest 'cancel() tests' => sub {
     my $patron = $builder->build_object({ class => 'Koha::Patrons' });
     my $item   = $builder->build_sample_item;
 
-    my $ar_mock = Test::MockModule->new('Koha::ArticleRequest');
-    $ar_mock->mock( 'notify', sub { ok( 1, '->notify() called' ); } );
+    my $ar_module = mock_article_request_module();
 
-    my $ar = Koha::ArticleRequest->new(
+    my $ar = $builder->build_object(
         {
-            borrowernumber => $patron->id,
-            biblionumber   => $item->biblionumber,
-            itemnumber     => $item->id,
+            class => 'Koha::ArticleRequests',
+            value => {
+                borrowernumber => $patron->id,
+                biblionumber   => $item->biblionumber,
+                itemnumber     => $item->id,
+            }
         }
     );
 
@@ -203,3 +213,30 @@ subtest 'cancel() tests' => sub {
 
     $schema->storage->txn_rollback;
 };
+
+subtest 'store' => sub {
+    plan tests => 2;
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'ArticleRequestsSupportedFormats', 'SCAN' );
+    my $ar = $builder->build_object( { class => 'Koha::ArticleRequests', value => { format => 'PHOTOCOPY' } } );
+    throws_ok { $ar->format('test')->store } 'Koha::Exceptions::ArticleRequest::WrongFormat',
+        'Format not supported';
+    t::lib::Mocks::mock_preference( 'ArticleRequestsSupportedFormats', 'SCAN|PHOTOCOPY|ELSE' );
+    lives_ok { $ar->format('PHOTOCOPY')->store } 'Now we do support it';
+
+    $schema->storage->txn_rollback;
+};
+
+sub mock_article_request_module {
+    my $ar_mock = Test::MockModule->new('Koha::ArticleRequest');
+    $ar_mock->mock( 'notify', sub { ok( 1, '->notify() called' ); } );
+    $ar_mock->mock(
+        'format',
+        sub {
+            my $formats = C4::Context->multivalue_preference('ArticleRequestsSupportedFormats');
+            return $formats->[ int( rand( scalar @$formats ) ) ];
+        }
+    );
+    return $ar_mock;
+}

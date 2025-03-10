@@ -63,8 +63,6 @@
         description: Under maintenance
         schema:
           $ref: "../swagger.yaml#/definitions/error"
-    x-koha-authorization:
-      allow-owner: true
 "/public/patrons/{patron_id}/guarantors/can_see_charges":
   put:
     x-mojo-to: Patrons#guarantors_can_see_charges
@@ -117,8 +115,6 @@
         description: Under maintenance
         schema:
           $ref: "../swagger.yaml#/definitions/error"
-    x-koha-authorization:
-      allow-owner: true
 "/public/patrons/{patron_id}/guarantors/can_see_checkouts":
   put:
     x-mojo-to: Patrons#guarantors_can_see_checkouts
@@ -171,8 +167,6 @@
         description: Under maintenance
         schema:
           $ref: "../swagger.yaml#/definitions/error"
-    x-koha-authorization:
-      allow-owner: true
 "/public/patrons/{patron_id}/holds/{hold_id}":
   delete:
     x-mojo-to: Patrons::Holds#delete_public
@@ -217,5 +211,3 @@
         description: Under maintenance
         schema:
           $ref: "../swagger.yaml#/definitions/error"
-    x-koha-authorization:
-      allow-owner: true
