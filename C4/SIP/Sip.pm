@@ -1,6 +1,9 @@
-#
-# Sip.pm: General Sip utility functions
-#
+
+=head1 NAME
+
+C4::SIP::Sip - General Sip utility functions
+
+=cut
 
 package C4::SIP::Sip;
 
@@ -219,8 +222,53 @@ sub siplog {
 
     my $message = @args ? sprintf($mask, @args) : $mask;
 
+    $message = remove_password_from_message($message);
+
     my $logger = C4::SIP::Logger::get_logger();
     $logger->$method($message) if $logger;
+}
+
+=head2 remove_password_from_message
+
+  my $safe_message = remove_password_from_message( $message );
+
+Look for the fields AC, AD and CO, and replace contents with three asterisks.
+
+We do this by looking for:
+
+  delimiter + AC/AD/CO + something + delimiter
+
+and replacing it with:
+
+  delimiter + field name + asterisks + delimiter
+
+Messages and fields that can contain passwords:
+
+  23 Patron Status Request - AC terminal password - AD patron password
+  11 Checkout - AC terminal password - AD patron password
+  09 Checkin - AC terminal password
+  01 Block Patron - AC terminal password
+  93 Login - CO login password
+  63 Patron Information - AC terminal password - AD patron password
+  35 End Patron Session - AC terminal password - AD patron password
+  37 Fee Paid - AC terminal password - AD patron password
+  17 Item Information - AC terminal password
+  19 Item Status Update - AC terminal password
+  25 Patron Enable - AC terminal password- AD patron password
+  15 Hold - AC terminal password - AD patron password
+  29 Renew - AC terminal password - AD patron password
+  65 Renew All - AC terminal password - AD patron password
+
+=cut
+
+sub remove_password_from_message {
+    my ($message) = @_;
+
+    # regex does not work with (AC|AD|CO), probably due to .*? and the g modifier
+    # NOTE: Does not work correctly if the password contains a field delimiter, but you cannot login either.
+    $message =~ s/\Q${field_delimiter}\E$_.*?\Q${field_delimiter}\E/${field_delimiter}$_***${field_delimiter}/g
+        for ( 'AC', 'AD', 'CO' );
+    return $message;
 }
 
 1;

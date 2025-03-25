@@ -173,7 +173,7 @@ sub _autocreate {
             C4::Letters::SendQueuedMessages( { message_id => $message_id } );
         }
     }
-    return ( 1, $patron->cardnumber, $patron->userid );
+    return ( 1, $patron->cardnumber, $patron->userid, $patron );
 }
 
 sub _sync {
@@ -410,7 +410,7 @@ This routine is NOT exported
 
 =head2 _autocreate
 
-  my ( $retval, $retcard, $retuserid ) = _autocreate( $config, $match );
+  my ( $retval, $retcard, $retuserid, $patron ) = _autocreate( $config, $match, $patron );
 
 Given a shibboleth attribute reference and a userid this internal routine will add the given user to Koha and return their user credentials.
 

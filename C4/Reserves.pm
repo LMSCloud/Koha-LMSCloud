@@ -1929,9 +1929,15 @@ sub _koha_notify_reserve {
             my $noticeFeeRule = $noticeFees->getNoticeFeeRule($letter_params{branchcode}, $patron->categorycode, $mtt, 'HOLD');
             
             if ( $noticeFeeRule ) {
+                my $discardFee = 0;
+                if ( my $branchList = C4::Context->preference('DiscardHoldsNoticeFeeOfHomeLibraries') ) {
+                    my $checkBranch = $hold->item->homebranch;
+                    $discardFee = scalar(grep { /^$checkBranch$/ } split(/\|/,C4::Context->preference('DiscardHoldsNoticeFeeOfHomeLibraries')));
+                }
+                
                 my $fee = $noticeFeeRule->notice_fee();
                 
-                if ( $fee && $fee > 0.0 ) {
+                if ( $fee && $fee > 0.0 && $discardFee == 0 ) {
                     # Bad for the patron, staff has assigned a notice fee for sending the notification
                      $noticeFees->AddNoticeFee( 
                         {

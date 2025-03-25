@@ -26743,7 +26743,8 @@ if ( CheckVersion($DBversion) ) {
 
 $DBversion = "21.05.14.011";
 if ( CheckVersion($DBversion) ) {
-    C4::Context->set_preference('CreateAVFromCataloguing','0');
+
+    $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='CreateAVFromCataloguing'");
     
     NewVersion( $DBversion, "", "Set systempreference CreateAVFromCataloguing by default to 0.");
 }

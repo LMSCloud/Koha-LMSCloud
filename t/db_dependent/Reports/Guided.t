@@ -1,3 +1,5 @@
+#!/usr/bin/perl
+
 # Copyright 2012 Catalyst IT Ltd.
 # Copyright 2015 Koha Development team
 #
@@ -18,7 +20,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 11;
+use Test::More tests => 12;
 use Test::Warn;
 
 use t::lib::TestBuilder;
@@ -495,6 +497,40 @@ subtest 'nb_rows() tests' => sub {
         'Bad queries raise a warning';
 
     is( $nb_rows, 0, 'nb_rows returns 0 on bad queries' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Returning passwords tests' => sub {
+
+    plan tests => 4;
+
+    my $dbh = C4::Context->dbh;
+    $schema->storage->txn_begin;
+
+    my $query = q{ SELECT * FROM borrowers };
+
+    my ( $sth, $errors ) = execute_query( { sql => $query } );
+
+    is( defined($errors), 1, 'Query returns password field' );
+
+    $query = q{ SELECT * FROM z3950servers };
+
+    ( $sth, $errors ) = execute_query( { sql => $query } );
+
+    is( defined($errors), 1, 'Query returns password field' );
+
+    $query = q{ SELECT password FROM deletedborrowers };
+
+    ( $sth, $errors ) = execute_query( { sql => $query } );
+
+    is( defined($errors), 1, 'Query returns password field' );
+
+    $query = q{ SELECT password as secret FROM borrowers };
+
+    ( $sth, $errors ) = execute_query( { sql => $query } );
+
+    is( defined($errors), 1, 'Error raised for returning password' );
 
     $schema->storage->txn_rollback;
 };

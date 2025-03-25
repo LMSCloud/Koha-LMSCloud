@@ -46,6 +46,12 @@ use Koha::Script -cron;
 use C4::Reserves;
 use C4::Log qw( cronlogaction );
 
+# The following two lines are a hack to prevent problems with transactions and
+# plugins that use own databases access classes that are loaded using a new 
+# database connection while performing a transaction / here in Koha::Hold->cancel
+use Koha::Plugins;
+my @enabled_plugins = Koha::Plugins::get_enabled_plugins();
+
 =head1 OPTIONS
 
 =over 8

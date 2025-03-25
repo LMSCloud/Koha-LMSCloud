@@ -59,6 +59,33 @@ sub register {
             my $path   = $req->url->to_abs->path;
             my $type = "";
 
+            if ( blessed $exception && ref($exception) eq 'Koha::Exceptions::REST::Query::InvalidOperator' ) {
+                return $c->render(
+                    status => 400,
+                    json   => {
+                        error      => printf( "Invalid operator in query: %s", $exception->operator ),
+                        error_code => 'invalid_query',
+                    }
+                );
+            }
+            elsif ( blessed $exception
+                && ref($exception) eq 'Koha::Exceptions::REST::Public::Authentication::Required' )
+            {
+                return $c->render(
+                    status => 401,
+                    json   => {
+                        error => $exception->error,
+                    }
+                );
+            } elsif ( blessed $exception && ref($exception) eq 'Koha::Exceptions::REST::Public::Unauthorized' ) {
+                return $c->render(
+                    status => 403,
+                    json   => {
+                        error => $exception->error,
+                    }
+                );
+            }
+
             if ( blessed $exception ) {
                 $type = "(" . ref($exception) . ")";
             }

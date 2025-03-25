@@ -28,6 +28,13 @@ use Koha::Holds;
 use Koha::Calendar;
 use Koha::Libraries;
 
+# The following two lines are a hack to prevent problems with transactions and
+# plugins that use own databases access classes that are loaded using a new 
+# database connection while performing a transaction / here in Koha::Hold->cancel
+use Koha::Plugins;
+my @enabled_plugins = Koha::Plugins::get_enabled_plugins();
+
+
 cronlogaction();
 
 =head1 NAME

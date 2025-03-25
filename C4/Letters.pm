@@ -635,24 +635,30 @@ sub SendAlerts {
 
 =head2 GetPreparedLetter( %params )
 
-    %params hash:
-      module => letter module, mandatory
-      letter_code => letter code, mandatory
-      branchcode => for letter selection, if missing default system letter taken
-      tables => a hashref with table names as keys. Values are either:
-        - a scalar - primary key value
-        - an arrayref - primary key values
-        - a hashref - full record
-      substitute => custom substitution key/value pairs
-      repeat => records to be substituted on consecutive lines:
-        - an arrayref - tries to guess what needs substituting by
-          taking remaining << >> tokensr; not recommended
-        - a hashref token => @tables - replaces <token> << >> << >> </token>
-          subtemplate for each @tables row; table is a hashref as above
-      want_librarian => boolean,  if set to true triggers librarian details
-        substitution from the userenv
-    Return value:
-      letter fields hashref (title & content useful)
+    my $letter = GetPreparedLetter(
+        {
+            module      => "letter module",           # mandatory
+            letter_code => "letter code",             # mandatory
+            branchcode  => "for letter selection",    # if missing default system letter taken
+            objects     => {},                        # a hashref with object names as keys and objects as values
+            tables      => {},                        # a hashref with table names as keys. Values are either:
+                                                      #  - a scalar - primary key value
+                                                      #  - an arrayref - primary key values
+                                                      #  - a hashref - full record
+            substitute  => {},                        # custom substitution key/value pairs
+            repeat      => '',                        # records to be substituted on consecutive lines, accepts either:
+                                                      #  - an arrayref
+                                                      #    tries to guess what needs substituting by taking remaining
+                                                      #    << >> tokensr; not recommended
+                                                      #  - a hashref token => @tables
+                                                      #    replaces <token> << >> << >> </token> subtemplate for each
+                                                      #    @tables row; table is a hashref as above
+            want_librarian => ''                      # boolean,  if set to true triggers librarian details substitution
+                                                      # from the userenv
+        }
+    );
+
+Return value: letter fields hashref (title & content useful)
 
 =cut
 
@@ -701,6 +707,28 @@ sub GetPreparedLetter {
       or carp( "ERROR: nothing to substitute - all of 'objects', 'tables', 'loops' and 'substitute' are empty" ),
          return;
     my $want_librarian = $params{want_librarian};
+
+    $letter->{content} = _process_tt(
+        {
+            content    => $letter->{content},
+            lang       => $lang,
+            loops      => $loops,
+            objects    => $objects,
+            substitute => $substitute,
+            tables     => $tables,
+        }
+    );
+
+    $letter->{title} = _process_tt(
+        {
+            content    => $letter->{title},
+            lang       => $lang,
+            loops      => $loops,
+            objects    => $objects,
+            substitute => $substitute,
+            tables     => $tables,
+        }
+    );
 
     if (%$substitute) {
         while ( my ($token, $val) = each %$substitute ) {
@@ -771,28 +799,6 @@ sub GetPreparedLetter {
             $letter->{content} =~ s/\Q$line\E/$replaceby/s;
         }
     }
-
-    $letter->{content} = _process_tt(
-        {
-            content    => $letter->{content},
-            lang       => $lang,
-            loops      => $loops,
-            objects    => $objects,
-            substitute => $substitute,
-            tables     => $tables,
-        }
-    );
-
-    $letter->{title} = _process_tt(
-        {
-            content    => $letter->{title},
-            lang       => $lang,
-            loops      => $loops,
-            objects    => $objects,
-            substitute => $substitute,
-            tables     => $tables,
-        }
-    );
 
     $letter->{content} =~ s/<<\S*>>//go; #remove any stragglers
 
@@ -1940,6 +1946,7 @@ sub _get_tt_params {
         }
     };
 
+    my $dbh = C4::Context->dbh;
     foreach my $table ( keys %$tables ) {
         next unless $config->{$table};
 
@@ -1960,12 +1967,19 @@ sub _get_tt_params {
                 my $objects = $module->search(
                     { $key => $values },
                     {
-                            # We want to retrieve the data in the same order
-                            # FIXME MySQLism
-                            # field is a MySQLism, but they are no other way to do it
-                            # To be generic we could do it in perl, but we will need to fetch
-                            # all the data then order them
-                        @$values ? ( order_by => \[ "field($key, " . join( ', ', @$values ) . ")" ] ) : ()
+                        # We want to retrieve the data in the same order
+                        # FIXME MySQLism
+                        # field is a MySQLism, but they are no other way to do it
+                        # To be generic we could do it in perl, but we will need to fetch
+                        # all the data then order them
+                        @$values
+                        ? (
+                            order_by => \[
+                                sprintf "field(%s, %s)", $key,
+                                join(',', map { $dbh->quote($_) } @$values )
+                            ]
+                            )
+                        : ()
                     }
                 );
                 $params->{ $config->{$table}->{plural} } = $objects;

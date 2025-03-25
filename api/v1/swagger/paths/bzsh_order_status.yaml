@@ -49,8 +49,11 @@
         description: Returns a JSON object that contains an array of order item object information.
         schema:
           $ref: "../swagger.yaml#/definitions/bzsh_order_items_status"
-      '400':
-        description: Bad parameter
+      "400":
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `invalid_query`
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       '401':

@@ -616,6 +616,11 @@ sub execute_query {
     warn $@ if $@;
 
     return ( $sth, { queryerr => $sth->errstr } ) if ($sth->err);
+
+    # Check if table.* contained forbidden column names
+    return ( $sth, { passworderr => "Illegal column in results" } )
+        if Koha::Report->new->check_columns( undef, $sth->{NAME_lc} );
+
     return ( $sth );
 }
 

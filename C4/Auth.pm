@@ -53,6 +53,7 @@ use C4::Log qw( logaction );
 use Koha::CookieManager;
 use Koha::Auth::Permissions;
 use Koha::Token;
+use Koha::Session;
 
 # use utf8;
 
@@ -1913,39 +1914,15 @@ will be created.
 
 =cut
 
+#NOTE: We're keeping this for backwards compatibility
 sub _get_session_params {
-    my $storage_method = C4::Context->preference('SessionStorage');
-    if ( $storage_method eq 'mysql' ) {
-        my $dbh = C4::Context->dbh;
-        return { dsn => "serializer:yamlxs;driver:MySQL;id:md5", dsn_args => { Handle => $dbh } };
-    }
-    elsif ( $storage_method eq 'Pg' ) {
-        my $dbh = C4::Context->dbh;
-        return { dsn => "serializer:yamlxs;driver:PostgreSQL;id:md5", dsn_args => { Handle => $dbh } };
-    }
-    elsif ( $storage_method eq 'memcached' && Koha::Caches->get_instance->memcached_cache ) {
-        my $memcached = Koha::Caches->get_instance()->memcached_cache;
-        return { dsn => "serializer:yamlxs;driver:memcached;id:md5", dsn_args => { Memcached => $memcached } };
-    }
-    else {
-        # catch all defaults to tmp should work on all systems
-        my $dir = C4::Context::temporary_directory;
-        my $instance = C4::Context->config( 'database' ); #actually for packages not exactly the instance name, but generally safer to leave it as it is
-        return { dsn => "serializer:yamlxs;driver:File;id:md5", dsn_args => { Directory => "$dir/cgisess_$instance" } };
-    }
+    return Koha::Session->_get_session_params();
 }
 
+#NOTE: We're keeping this for backwards compatibility
 sub get_session {
-    my $sessionID      = shift;
-    my $params = _get_session_params();
-    my $session;
-    if( $sessionID ) { # find existing
-        CGI::Session::ErrorHandler->set_error( q{} ); # clear error, cpan issue #111463
-        $session = CGI::Session->load( $params->{dsn}, $sessionID, $params->{dsn_args} );
-    } else {
-        $session = CGI::Session->new( $params->{dsn}, $sessionID, $params->{dsn_args} );
-        # no need to flush here
-    }
+    my $sessionID = shift;
+    my $session   = Koha::Session->get_session( { sessionID => $sessionID } );
     return $session;
 }
 
@@ -1997,23 +1974,17 @@ sub checkpw {
     my $shib_login = $shib ? get_login_shib() : undef;
 
     my @return;
-    my $patron;
-    if ( defined $userid ) {
-        $patron = Koha::Patrons->find( { userid     => $userid } );
-        $patron = Koha::Patrons->find( { cardnumber => $userid } ) unless $patron;
-    }
     my $check_internal_as_fallback = 0;
     my $passwd_ok                  = 0;
+    my $patron;
+
 
     # Note: checkpw_* routines returns:
     # 1 if auth is ok
     # 0 if auth is nok
     # -1 if user bind failed (LDAP only)
 
-    if ( $patron and ( $patron->account_locked ) ) {
-
-        # Nothing to check, account is locked
-    } elsif ( $ldap && defined($password) ) {
+    if ( $ldap && defined($password) ) {
         my ( $retval, $retcard, $retuserid );
         ( $retval, $retcard, $retuserid, $patron ) = checkpw_ldap(@_);    # EXTERNAL AUTH
         if ( $retval == 1 ) {
@@ -2027,8 +1998,8 @@ sub checkpw {
         # In case of a CAS authentication, we use the ticket instead of the password
         my $ticket = $query->param('ticket');
         $query->delete('ticket');                                         # remove ticket to come back to original URL
-        my ( $retval, $retcard, $retuserid, $cas_ticket, $patron ) =
-            checkpw_cas( $ticket, $query, $type );                        # EXTERNAL AUTH
+        my ( $retval, $retcard, $retuserid, $cas_ticket );
+        ( $retval, $retcard, $retuserid, $cas_ticket, $patron ) = checkpw_cas( $ticket, $query, $type ); # EXTERNAL AUTH
         if ($retval) {
             @return = ( $retval, $retcard, $retuserid, $patron, $cas_ticket );
         } else {
@@ -2048,11 +2019,11 @@ sub checkpw {
 
         # Then, we check if it matches a valid koha user
         if ($shib_login) {
-            my ( $retval, $retcard, $retuserid, $patronshib ) =
+            my ( $retval, $retcard, $retuserid );
+            ( $retval, $retcard, $retuserid, $patron ) =
                 C4::Auth_with_shibboleth::checkpw_shib($shib_login);    # EXTERNAL AUTH
             if ( $retval ) {
-                @return = ( $retval, $retcard, $retuserid, $patronshib );
-                $patron = $patronshib;
+                @return = ( $retval, $retcard, $retuserid, $patron );
                 $userid = $retuserid;
             }
             $passwd_ok = $retval;
@@ -2061,20 +2032,29 @@ sub checkpw {
         $check_internal_as_fallback = 1;
     }
 
-    # INTERNAL AUTH
     if ($check_internal_as_fallback) {
-        @return = checkpw_internal( $userid, $password, $no_set_userenv );
-        push( @return, $patron );
-        $passwd_ok = 1 if $return[0] > 0;    # 1 or 2
+
+        # INTERNAL AUTH
+        @return    = checkpw_internal( $userid, $password, $no_set_userenv );
+        $passwd_ok = $return[0];
+        $patron    = $passwd_ok ? $return[3] : undef;
+    }
+
+    if ( defined $userid && !$patron ) {
+        $patron = Koha::Patrons->find( { userid     => $userid } );
+        $patron = Koha::Patrons->find( { cardnumber => $userid } ) unless $patron;
+        push @return, $patron if $check_internal_as_fallback;    # We pass back the patron if authentication fails
     }
 
     if ($patron) {
-        if ($passwd_ok) {
+        if ( $patron->account_locked ) {
+            @return = ();
+        } elsif ($passwd_ok) {
             $patron->update( { login_attempts => 0 } );
             if ( $patron->password_expired ) {
                 @return = ( -2, $patron );
             }
-        } elsif ( !$patron->account_locked ) {
+        } else {
             $patron->update( { login_attempts => $patron->login_attempts + 1 } );
         }
     }
@@ -2093,41 +2073,28 @@ sub checkpw_internal {
     my ( $userid, $password, $no_set_userenv ) = @_;
 
     $password = Encode::encode( 'UTF-8', $password )
-      if Encode::is_utf8($password);
+        if Encode::is_utf8($password);
 
-    my $dbh = C4::Context->dbh;
-    my $sth =
-      $dbh->prepare(
-        "select password,cardnumber,borrowernumber,userid,firstname,surname,borrowers.branchcode,branches.branchname,flags from borrowers join branches on borrowers.branchcode=branches.branchcode where userid=?"
-      );
-    $sth->execute($userid);
-    if ( $sth->rows ) {
-        my ( $stored_hash, $cardnumber, $borrowernumber, $userid, $firstname,
-            $surname, $branchcode, $branchname, $flags )
-          = $sth->fetchrow;
-
-        if ( checkpw_hash( $password, $stored_hash ) ) {
-
-            C4::Context->set_userenv( "$borrowernumber", $userid, $cardnumber,
-                $firstname, $surname, $branchcode, $branchname, $flags ) unless $no_set_userenv;
-            return 1, $cardnumber, $userid;
+    my $patron = Koha::Patrons->find( { userid => $userid } );
+    if ($patron) {
+        if ( checkpw_hash( $password, $patron->password ) ) {
+            my $borrowernumber = $patron->borrowernumber;
+            C4::Context->set_userenv(
+                "$borrowernumber", $patron->userid, $patron->cardnumber,
+                $patron->firstname, $patron->surname, $patron->branchcode, $patron->library->branchname, $patron->flags
+            ) unless $no_set_userenv;
+            return 1, $patron->cardnumber, $patron->userid, $patron;
         }
     }
-    $sth =
-      $dbh->prepare(
-        "select password,cardnumber,borrowernumber,userid,firstname,surname,borrowers.branchcode,branches.branchname,flags from borrowers join branches on borrowers.branchcode=branches.branchcode where cardnumber=?"
-      );
-    $sth->execute($userid);
-    if ( $sth->rows ) {
-        my ( $stored_hash, $cardnumber, $borrowernumber, $userid, $firstname,
-            $surname, $branchcode, $branchname, $flags )
-          = $sth->fetchrow;
-
-        if ( checkpw_hash( $password, $stored_hash ) ) {
-
-            C4::Context->set_userenv( $borrowernumber, $userid, $cardnumber,
-                $firstname, $surname, $branchcode, $branchname, $flags ) unless $no_set_userenv;
-            return 1, $cardnumber, $userid;
+    $patron = Koha::Patrons->find( { cardnumber => $userid } );
+    if ($patron) {
+        if ( checkpw_hash( $password, $patron->password ) ) {
+            my $borrowernumber = $patron->borrowernumber;
+            C4::Context->set_userenv(
+                "$borrowernumber", $patron->userid, $patron->cardnumber,
+                $patron->firstname, $patron->surname, $patron->branchcode, $patron->library->branchname, $patron->flags
+            ) unless $no_set_userenv;
+            return 1, $patron->cardnumber, $patron->userid, $patron;
         }
     }
     return 0;

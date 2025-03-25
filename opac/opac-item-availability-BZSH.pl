@@ -180,7 +180,7 @@ my $BZSH_output_ruckdatcode = "";
 if ( $best_biblionumber > 0 ) {
     if ( $marcrecord ) {
         my $marc_titledata = '';
-        $marc_titledata = $itemAvailabilitySearch_BZSH->genISBD($marcrecord);    # generate the ISBN output for this title
+        $marc_titledata = $itemAvailabilitySearch_BZSH->genISBDXmlEncoded($marcrecord);    # generate the ISBN output for this title
         if (length($marc_titledata) > 0) {
             $BZSH_output_bibldata = "$marc_titledata";
         }

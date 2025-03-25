@@ -253,6 +253,9 @@ sub store {
         $self->created_on( dt_from_string() );
     }
 
+    Koha::Exceptions::ArticleRequest::WrongFormat->throw
+        unless grep { $_ eq $self->format } @{ C4::Context->multivalue_preference('ArticleRequestsSupportedFormats') };
+
     return $self->SUPER::store;
 }
 

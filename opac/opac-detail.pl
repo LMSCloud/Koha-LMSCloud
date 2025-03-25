@@ -741,7 +741,7 @@ else {
         $item_info->{holds_count} = $item_reserves{ $item->itemnumber };
         $item_info->{priority}    = $priority{ $item->itemnumber };
         
-        my $notforloan = $item_info->{'itemnotforloan'} || '';
+        my $notforloan = $item_info->{'itemnotforloan'} || $item_info->{'notforloan'} || '';
         $enabledNotForLoanStatus = scalar(grep { /^$notforloan$/ } @EnableHoldsNotForLoanStatus)
             if (!$enabledNotForLoanStatus);
 
