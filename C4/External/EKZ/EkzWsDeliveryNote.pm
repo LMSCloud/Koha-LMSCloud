@@ -1405,37 +1405,56 @@ sub processItemHit
     if ( defined $itemnumber ) {
         my $schema = Koha::Database->schema();
         # try to find the aqorders record for this item
+        my $ordernumber;    # stays undefined unless an aqorders_items record exists with this itemnumber
         $selParam = {
             itemnumber => $itemnumber
         };
-        my $aqorders_itemsRS = $schema->resultset('AqordersItem')->search($selParam)->first();    # ordernumber is an unique key in table aqorders_items
-        if ( $aqorders_itemsRS ) {    # resultset is undef if ekz media service is not linked to Koha acquisition or in case of database inconsistency
-            my $ordernumber = $aqorders_itemsRS->get_column('ordernumber');
-            $logger->trace("processItemHit() aqorders_itemsRS->{_column_data}:" . Dumper($aqorders_itemsRS->{_column_data}) . ": ordernumber:" . $ordernumber . ":");
+        my $aqorders_itemsRS = $schema->resultset('AqordersItem')->search($selParam);
+        if ( $aqorders_itemsRS && $aqorders_itemsRS->first() ) {
+            my $aqorders_itemsHit = $aqorders_itemsRS->first();    # itemnumber is an unique key in table aqorders_items
+            if ( $aqorders_itemsHit ) {    # The aqorders_items record does not exist any more if the items record meanwhile has been deleted or if ekz media service is not linked to Koha acquisition or in case of database inconsistency.
+                $ordernumber = $aqorders_itemsHit->get_column('ordernumber');
+                $logger->trace("processItemHit() aqorders_itemsHit->{_column_data}:" . Dumper($aqorders_itemsHit->{_column_data}) . ": ordernumber:" . $ordernumber . ":");
+            }
+        }
+        $logger->trace("processItemHit() searched via itemnumber:$itemnumber: in table aqorders_items, found ordernumber:" . $ordernumber . ":");
 
-            if ( $ordernumber ) {
-                # try to get the basketno of the aqorders record for this item
+        if ( $ordernumber ) {
+            # try to get the basketno of the aqorders record for this item
+            my $basketno;    # stays undefined unless an aqorders record exists with this ordernumber
+            $selParam = {
+                ordernumber => $ordernumber
+            };
+            my $aqordersRS = $schema->resultset('Aqorder')->search($selParam);
+            if ( $aqordersRS && $aqordersRS->first() ) {
+                my $aqordersHit = $aqordersRS->first();    # ordernumber is an unique key in table aqorders
+                if ( $aqordersHit ) {    # always true if there is no database inconsistency
+                    $basketno = $aqordersHit->get_column('basketno');
+                    $logger->trace("processItemHit() aqordersHit->{_column_data}:" . Dumper($aqordersHit->{_column_data}) . ": basketno:" . $basketno . ":");
+                }
+            }
+            $logger->trace("processItemHit() searched via ordernumber:$ordernumber: in table aqorders, found basketno:" . $basketno . ":");
+
+            if ( $basketno ) {
+                # compare the booksellerid of this aqbasket with the systempreferences variable for bookseller ekz
+                my $booksellerid;    # stays undefined unless an aqbasket record exists with this basketno
                 $selParam = {
-                    ordernumber => $ordernumber
+                    basketno => $basketno
                 };
-                my $aqordersRS = $schema->resultset('Aqorder')->search($selParam)->first();    # ordernumber is an unique key in table aqorders
-                my $basketno = $aqordersRS->get_column('basketno');
-                $logger->trace("processItemHit() aqordersRS->{_column_data}:" . Dumper($aqordersRS->{_column_data}) . ": basketno:" . $basketno . ":");
+                my $aqbasketRS = $schema->resultset('Aqbasket')->search($selParam);
+                if ( $aqbasketRS && $aqbasketRS->first() ) {
+                    my $aqbasketHit = $aqbasketRS->first();    # basketno is an unique key in table aqbasket
+                    if ( $aqbasketHit ) {    # always true if there is no database inconsistency
+                        $booksellerid = $aqbasketHit->get_column('booksellerid');
+                        $logger->trace("processItemHit() aqbasketHit->{_column_data}:" . Dumper($aqbasketHit->{_column_data}) . ": booksellerid:" . $booksellerid . ":");
+                    }
+                }
+                $logger->trace("processItemHit() searched via basketno:$basketno: in table aqbasket, found booksellerid:" . $booksellerid . ": for comparing with ekzAqbooksellersId:" . $ekzAqbooksellersId . ":");
 
-                if ( $basketno ) {
-                    # compare the booksellerid of this aqbasket with the systempreferences variable for bookseller ekz
-                    $selParam = {
-                        basketno => $basketno
-                    };
-                    my $aqbasketRS = $schema->resultset('Aqbasket')->search($selParam)->first();    # basketno is an unique key in table aqbasket
-                    my $booksellerid = $aqbasketRS->get_column('booksellerid');
-                    $logger->trace("processItemHit() aqbasketRS->{_column_data}:" . Dumper($aqbasketRS->{_column_data}) . ": booksellerid:" . $booksellerid . ": ekzAqbooksellersId:" . $ekzAqbooksellersId . ":");
-
-                    if ( defined($ekzAqbooksellersId) && length($ekzAqbooksellersId) ) {
-                        if ( ! defined $booksellerid || $booksellerid != $ekzAqbooksellersId ) {
-                             $logger->warn("processItemHit() will not use itemnumber:$itemnumber: as ordernumber:$ordernumber: leads to basketno:$basketno: but booksellerid:$booksellerid: differs from ekzAqbooksellersId:$ekzAqbooksellersId:");
-                            $itemnumber = undef;    # void this itemnumber - this item now belongs to another aqbookseller and so may not be used for ekz data import any more
-                        }
+                if ( defined($ekzAqbooksellersId) && length($ekzAqbooksellersId) ) {
+                    if ( ! defined $booksellerid || $booksellerid != $ekzAqbooksellersId ) {
+                         $logger->warn("processItemHit() will not use itemnumber:$itemnumber: as ordernumber:$ordernumber: leads to basketno:$basketno: but booksellerid:$booksellerid: differs from ekzAqbooksellersId:$ekzAqbooksellersId:");
+                        $itemnumber = undef;    # void this itemnumber - this item now belongs to another aqbookseller and so may not be used for ekz data import any more
                     }
                 }
             }
