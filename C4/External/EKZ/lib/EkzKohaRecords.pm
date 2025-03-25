@@ -2043,7 +2043,7 @@ sub checkEkzAqbooksellersId {
     $self->{'logger'}->debug("checkEkzAqbooksellersId() START ekzAqbooksellersId:$ekzAqbooksellersId: createIfNotExists:$createIfNotExists:");
 
     if ( defined($ekzAqbooksellersId) && length($ekzAqbooksellersId) ) {
-        my $schema = Koha::Database->new->schema;
+        my $schema = Koha::Database->schema;
         my $rs = $schema->resultset('Aqbookseller');
         my $rec = $rs->find({ 'id' => $ekzAqbooksellersId });
         if ( !defined($rec) ) {
@@ -2174,7 +2174,7 @@ sub checkAqbudget {
             # It is required to create an aqbudgetperiods record.
             my $startdate = $year+1900 . '-01-01';
             my $enddate = $year+1900 . '-12-31';
-            my $schema = Koha::Database->new->schema;
+            my $schema = Koha::Database->schema;
             my $rs = $schema->resultset('Aqbudgetperiod');
             my $aqbudgetperiod = $rs->create( { 
                                                 'budget_period_startdate' => $startdate,
@@ -2226,7 +2226,7 @@ sub checkAqbudget {
             if ( $createIfNotExists ) {
                 # It is required to create an aqbudgets record.
                 # To this end an appropriate aqbudgetperiods record must exist.
-                my $schema = Koha::Database->new->schema;
+                my $schema = Koha::Database->schema;
                 my $rs = $schema->resultset('Aqbudget');
                 my $aqbudget = $rs->create( { 
                                                 'budget_parent_id' => undef,
