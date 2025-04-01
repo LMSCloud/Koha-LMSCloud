@@ -341,6 +341,9 @@
                     case "ILLALV":
                         backend_designation =  _("ALV");
                     break;
+                    case "ILLSLNPA":
+                        backend_designation =  _("SLNP-active");
+                    break;
                     case "ILLSLNPKoha":
                         backend_designation =  _("SLNP-passive");
                     break;

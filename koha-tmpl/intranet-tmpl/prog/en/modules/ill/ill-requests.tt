@@ -619,8 +619,8 @@
                                     [% END %]
                                 </li>
                                 <li class="borrowernumber">
-                                    [% IF request.patron.borrowernumber %]
                                     <span class="label borrowernumber">Patron:</span>
+                                    [% IF request.patron.borrowernumber %]
                                     [% borrowerlink = "/cgi-bin/koha/members/moremember.pl" _ "?borrowernumber=" _ request.patron.borrowernumber %]
                                     <a href="[% borrowerlink | url %]" title="View borrower details">
                                     [% request.patron.firstname _ " " _ request.patron.surname _ " [" _ request.patron.cardnumber _ "]" | html %]

@@ -145,7 +145,7 @@ sub nonAnonymousSub {
                     # as we want to create an ouput file for printing, lets collect the message_ids of prepared data
                     push(@printmessages,$message_id) if ( $transport_type eq 'print' );
                     push(@emailmessages,$message_id) if ( $transport_type eq 'email' );
-                    push @$letters, { borrowernumber => $borrowernumber, lettertype => $transport_type, message_id => $message_id };
+                    push @$letters, { borrowernumber => ($borrowernumber ? $borrowernumber : 0), lettertype => $transport_type, message_id => $message_id };    # an empty borrowernumber results in error of ajax call
                     $letter_created++;
                     $logger->debug("svc/ill/genIllDeliverySlipZKSHA::genIllDeliverySlipZKSHA() in loop; current letter_created:$letter_created:");
                 }

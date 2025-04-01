@@ -30,6 +30,7 @@
 
     var ill_backend = {
         ILLALV: _("ALV"),
+        ILLSLNPA: _("SLNP-active"),
         ILLSLNPKoha: _("SLNP-passive"),
         ILLZKSHA: _("RLV-active"),
         ILLZKSHP: _("RLV-passive"),

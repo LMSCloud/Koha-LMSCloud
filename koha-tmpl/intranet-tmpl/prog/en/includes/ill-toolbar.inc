@@ -62,6 +62,9 @@
                 case "ILLALV":
                     backend_designation =  ill_backend.ILLALV;
                 break;
+                case "ILLSLNPA":
+                    backend_designation =  ill_backend.ILLSLNPA;
+                break;
                 case "ILLSLNPKoha":
                     backend_designation =  ill_backend.ILLSLNPKoha;
                 break;
