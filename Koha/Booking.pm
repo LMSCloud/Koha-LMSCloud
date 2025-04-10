@@ -29,7 +29,7 @@ use C4::Letters;
 
 use List::Util qw(any);
 
-use base qw(Koha::Object);
+use base qw( Koha::Object Koha::Object::Mixin::AdditionalFields );
 
 =head1 NAME
 

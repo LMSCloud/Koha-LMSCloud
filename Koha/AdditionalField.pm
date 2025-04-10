@@ -57,6 +57,7 @@ sub to_api {
     my $table_to_resource = {
         'aqbasket'   => 'basket',
         'aqinvoices' => 'invoice',
+        'bookings'   => 'booking',
         'aqorders'   => 'order',
     };
 
