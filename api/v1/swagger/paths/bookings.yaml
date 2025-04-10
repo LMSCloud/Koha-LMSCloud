@@ -49,6 +49,7 @@
             - item.checkout
             - patron
             - pickup_library
+            - extended_attributes
         collectionFormat: csv
     produces:
       - application/json
