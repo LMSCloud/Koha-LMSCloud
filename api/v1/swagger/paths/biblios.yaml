@@ -316,6 +316,7 @@
             - item
             - patron
             - pickup_library
+            - extended_attributes
         collectionFormat: csv
     consumes:
       - application/json

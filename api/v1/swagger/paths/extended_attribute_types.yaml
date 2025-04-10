@@ -15,6 +15,7 @@
         type: string
         enum:
           - basket
+          - booking
           - invoice
           - order
       - $ref: "../swagger.yaml#/parameters/match"

@@ -22,6 +22,12 @@ properties:
     description: Start date and time of this booking
     format: date-time
     type: string
+  extended_attributes:
+    description: Related additional field values
+    type:
+      - array
+    items:
+      $ref: extended_attribute_value.yaml
   item_id:
     description: Internal item identifier
     type:
