@@ -48,6 +48,7 @@ sub list {
     my $resource_to_table = {
         basket  => 'aqbasket',
         invoice => 'aqinvoices',
+        booking => 'bookings',
         order   => 'aqorders',
     };
 
