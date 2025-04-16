@@ -81,6 +81,7 @@
     [% Asset.js("lib/dayjs/plugin/isSameOrBefore.js") | $raw %]
     <script>dayjs.extend(window.dayjs_plugin_isSameOrAfter)</script>
     <script>dayjs.extend(window.dayjs_plugin_isSameOrBefore)</script>
+    [% Asset.js("js/additional-fields.js") | $raw %]
     [% Asset.js("js/place_booking_modal.js") | $raw %]
     [% Asset.js("js/cancel_booking_modal.js") | $raw %]
     [% Asset.js("js/combobox.js") | $raw %]
@@ -89,57 +90,71 @@
     var update_success = 0;
     var bookings_table;
     var timeline;
+    let biblionumber = "[% biblionumber | uri %]"
     $(document).ready(function(){
 
-        var items = $.ajax({
-            url: '/api/v1/biblios/[% biblionumber | uri %]/items?bookable=1',
-            dataType: 'json',
-            type: 'GET'
-        });
-        var bookings = $.ajax({
-            url: '/api/v1/biblios/[% biblionumber | uri %]/bookings?_per_page=-1',
-            headers: { 'x-koha-embed': 'patron' },
-            dataType: 'json',
-            type: 'GET',
-        });
+            var items = $.ajax({
+                url: '/api/v1/biblios/%s/items?bookable=1'.format(biblionumber),
+                dataType: 'json',
+                type: 'GET'
+            });
+            var bookings = $.ajax({
+                url: '/api/v1/biblios/%s/bookings?_per_page=-1'.format(biblionumber),
+                headers: { 'x-koha-embed': ['patron', 'extended_attributes'] },
+                dataType: 'json',
+                type: 'GET',
+            });
+            var extended_attribute_types;
+            var authorised_values;
+            AdditionalFields.fetchAndProcessExtendedAttributes("booking")
+                .then(types => {
+                    extended_attribute_types = types;
+                    const catArray = Object.values(types)
+                        .map(attr => attr.authorised_value_category_name)
+                        .filter(Boolean);
+                    return AdditionalFields.fetchAndProcessAuthorizedValues(catArray);
+                })
+                .then(values => {
+                    authorised_values = values;
+                });
+            $.when(items, bookings).then(
+                function(items, bookings){
+                    var itemsSet = new vis.DataSet([{
+                        id: 0,
+                        content: _("Record level")
+                    }]);
+                    for (item of items[0]) {
+                        itemsSet.add({
+                            id: item.item_id,
+                            content: _("Item %s").format(item.external_id),
+                        });
+                    }
 
-        $.when(items, bookings).then(
-            function(items, bookings){
-                var itemsSet = new vis.DataSet([{
-                    id: 0,
-                    content: _("Record level")
-                }]);
-                for (item of items[0]) {
-                    itemsSet.add({
-                        id: item.item_id,
-                        content: _("Item %s").format(item.external_id),
-                    });
-                }
-
-                var bookingsSet = new vis.DataSet();
-                for (booking of bookings[0]){
-                    const isActive = ["new", "pending", "active"].includes(booking.status);
-                    const patronContent = $patron_to_html(booking.patron, {
-                        display_cardnumber: true,
-                        url: false
-                    });
-                    bookingsSet.add({
-                        id: booking.booking_id,
-                        booking: booking.booking_id,
-                        patron: booking.patron_id,
-                        pickup_library: booking.pickup_library_id,
-                        start: dayjs(booking.start_date).toDate(),
-                        end: dayjs(booking.end_date).toDate(),
-                        content: !isActive ? `<s>${patronContent}</s>` : patronContent,
-                        [% IF CAN_user_circulate_manage_bookings %]
-                        editable: booking.status !== "cancelled" ? { remove: true, updateTime: true } : false,
-                        [% ELSE %]
-                        editable: false,
-                        [% END %]
-                        type: 'range',
-                        group: booking.item_id ?? 0,
-                    });
-                }
+                    var bookingsSet = new vis.DataSet();
+                    for (booking of bookings[0]){
+                        const isActive = ["new", "pending", "active"].includes(booking.status);
+                        const patronContent = $patron_to_html(booking.patron, {
+                            display_cardnumber: true,
+                            url: false
+                        });
+                        bookingsSet.add({
+                            id: booking.booking_id,
+                            booking: booking.booking_id,
+                            patron: booking.patron_id,
+                            pickup_library: booking.pickup_library_id,
+                            start: dayjs(booking.start_date).toDate(),
+                            end: dayjs(booking.end_date).toDate(),
+                            extended_attributes: booking.extended_attributes,
+                            content: !isActive ? `<s>${patronContent}</s>` : patronContent,
+                            [% IF CAN_user_circulate_manage_bookings %]
+                            editable: booking.status !== "cancelled" ? { remove: true, updateTime: true } : false,
+                            [% ELSE %]
+                            editable: false,
+                            [% END %]
+                            type: 'range',
+                            group: booking.item_id ?? 0,
+                        });
+                    }
 
                 const cancelledItems = document.querySelectorAll('#bookings-timeline .vis-item.vis-range.cancelled');
                 cancelledItems.forEach(item => {
@@ -197,34 +212,50 @@
                         // set end datetime hours and minutes to the end of the day
                         let endDate = dayjs(data.end).endOf('day');
 
-                        $('#placeBookingModal').modal('show', $('<button data-booking="'+data.id+'"  data-biblionumber="[% biblionumber | uri %]"  data-itemnumber="'+data.group+'" data-patron="'+data.patron+'" data-pickup_library="'+data.pickup_library+'" data-start_date="'+startDate.toISOString()+'" data-end_date="'+endDate.toISOString()+'">'));
-                        $('#placeBookingModal').on('hide.bs.modal', function(e) {
-                            if (update_success) {
-                                update_success = 0;
-                                callback(data);
-                            } else {
-                                callback(null);
-                            }
-                        });
-                    },
-                    onRemove: function (item, callback) {
-                        $('#cancelBookingModal').modal('show', $('<button data-booking="'+item.id+'">'));
-                        $('#cancelBookingModal').on('hide.bs.modal', function(e) {
-                            if (cancel_success) {
-                                cancel_success = 0;
-                                callback(item);
-                            } else {
-                                callback(null);
-                            }
-                        });
-                    }
-                };
-                timeline = new vis.Timeline(container, bookingsSet, itemsSet, options);
-            },
-            function(jqXHR, textStatus, errorThrown){
-                console.log("Fetch failed");
-            }
-        );
+                            // Get the current booking to preserve extended attributes
+                            let currentBooking = bookingsSet.get(data.id);
+                            let extendedAttributes = currentBooking.extended_attributes || [];
+
+                            $('#placeBookingModal').modal('show', $(`<button
+                                data-booking="${data.id}"
+                                data-biblionumber="[% biblionumber | uri %]"
+                                data-itemnumber="${data.group}"
+                                data-patron="${data.patron}"
+                                data-pickup_library="${data.pickup_library}"
+                                data-start_date="${startDate.toISOString()}"
+                                data-end_date="${endDate.toISOString()}"
+                                data-extended_attributes='${JSON.stringify(extendedAttributes.map(attribute => ({
+                                    field_id: attribute.field_id,
+                                    value: attribute.value
+                                })))}'
+                            >`));
+                            $('#placeBookingModal').on('hide.bs.modal', function(e) {
+                                if (update_success) {
+                                    update_success = 0;
+                                    callback(data);
+                                } else {
+                                    callback(null);
+                                }
+                            });
+                        },
+                        onRemove: function (item, callback) {
+                            $('#cancelBookingModal').modal('show', $('<button data-booking="'+item.id+'">'));
+                            $('#cancelBookingModal').on('hide.bs.modal', function(e) {
+                                if (cancel_success) {
+                                    cancel_success = 0;
+                                    callback(item);
+                                } else {
+                                    callback(null);
+                                }
+                            });
+                        }
+                    };
+                    timeline = new vis.Timeline(container, bookingsSet, itemsSet, options);
+                },
+                function(jqXHR, textStatus, errorThrown){
+                    console.log("Fetch failed");
+                }
+            );
 
         const filterStates = { expired: true, cancelled: false };
         const additional_filters = {
@@ -245,37 +276,38 @@
             },
         };
 
-        var bookings_table_url = "/api/v1/biblios/[% biblionumber | uri %]/bookings";
-        bookings_table = $('#bookings_table').kohaTable({
-            "ajax": {
-                "url": bookings_table_url
-            },
-            "embed": [
-                "item",
-                "patron",
-                "pickup_library"
-            ],
-            "columns": [{
-                "data": "booking_id",
-                "title": _("Booking ID"),
-                "visible": false
-            },
-            {
-                data: "",
-                title: _("Status"),
-                name: "status",
-                searchable: false,
-                orderable: false,
-                visible: false,
-                render: function (data, type, row, meta) {
-                    const isExpired = date => dayjs(date).isBefore(new Date());
-                    const isActive = (startDate, endDate) => {
-                        const now = dayjs();
-                        return (
-                            now.isAfter(dayjs(startDate)) &&
-                            now.isBefore(dayjs(endDate).add(1, "day"))
-                        );
-                    };
+            var bookings_table_url = "/api/v1/biblios/%s/bookings".format(biblionumber);
+            bookings_table = $('#bookings_table').kohaTable({
+                "ajax": {
+                    "url": bookings_table_url
+                },
+                "embed": [
+                    "item",
+                    "patron",
+                    "pickup_library",
+                    "extended_attributes",
+                ],
+                "columns": [{
+                    "data": "booking_id",
+                    "title": _("Booking ID"),
+                    "visible": false
+                },
+                {
+                    data: "",
+                    title: _("Status"),
+                    name: "status",
+                    searchable: false,
+                    orderable: false,
+                    visible: false,
+                    render: function (data, type, row, meta) {
+                        const isExpired = date => dayjs(date).isBefore(new Date());
+                        const isActive = (startDate, endDate) => {
+                            const now = dayjs();
+                            return (
+                                now.isAfter(dayjs(startDate)) &&
+                                now.isBefore(dayjs(endDate).add(1, "day"))
+                            );
+                        };
 
                     const statusMap = {
                         new: () => {
@@ -317,81 +349,121 @@
                         classMap.find(mapping => statusText.startsWith(mapping.status))
                             ?.class || "bg-secondary";
 
-                    return `<span class="badge rounded-pill ${badgeClass}">${statusText}</span>`;
-                }
-            },
-            {
-                "data": "item.external_id",
-                "title": _("Item"),
-                "searchable": true,
-                "orderable": true,
-                "defaultContent": _("Any item"),
-                "render": function(data,type,row,meta) {
-                    if ( row.item ) {
-                        return row.item.external_id + " (" + row.booking_id + ")";
-                    } else {
-                        return null;
+                        return `<span class="badge rounded-pill ${badgeClass}">${statusText}</span>`;
                     }
-                }
-            },
-            {
-                "data": "patron.firstname:patron.surname",
-                "title": _("Patron"),
-                "searchable": true,
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    return $patron_to_html(row.patron, {
-                        display_cardnumber: true,
-                        url: true
-                    });
-                }
-            },
-            {
-                "data": "pickup_library.name",
-                "title": _("Pickup library"),
-                "searchable": true,
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    return row.pickup_library.name;
-                }
-            },
-            {
-                "data": "start_date",
-                "title": _("Start date"),
-                "searchable": true,
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    return $date(row.start_date);
-                }
-            },
-            {
-                "data": "end_date",
-                "title": _("End date"),
-                "searchable": true,
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    return $date(row.end_date);
-                }
-            },
-            {
-                "data": "",
-                "title": _("Actions"),
-                "class": "actions",
-                "searchable": false,
-                "orderable": false,
-                "render": function(data, type, row, meta) {
-                    let result = "";
-                    let is_cancelled = row.status === "cancelled";
-                    [% IF CAN_user_circulate_manage_bookings %]
-                    if( !is_cancelled ){
-                        result += '<button type="button" class="btn btn-default btn-xs edit-action" data-toggle="modal" data-target="#placeBookingModal" data-booking="'+row.booking_id+'" data-biblionumber="[% biblionumber | uri %]" data-itemnumber="'+row.item_id+'" data-patron="'+row.patron_id+'" data-pickup_library="'+row.pickup_library_id+'" data-start_date="'+row.start_date+'" data-end_date="'+row.end_date+'"><i class="fa fa-pencil" aria-hidden="true"></i> '+_("Edit")+'</button>';
-                        result += '<button type="button" class="btn btn-default btn-xs cancel-action" data-toggle="modal" data-target="#cancelBookingModal" data-booking="'+row.booking_id+'"><i class="fa fa-trash" aria-hidden="true"></i> '+_("Cancel")+'</button>';
+                },
+                {
+                    "data": "item.external_id",
+                    "title": _("Item"),
+                    "searchable": true,
+                    "orderable": true,
+                    "defaultContent": _("Any item"),
+                    "render": function(data,type,row,meta) {
+                        if ( row.item ) {
+                            return row.item.external_id + " (" + row.booking_id + ")";
+                        } else {
+                            return null;
+                        }
                     }
-                    [% END %]
-                    return result;
-                }
-            }]
-        }, [], 0, additional_filters);
+                },
+                {
+                    "data": "patron.firstname:patron.surname",
+                    "title": _("Patron"),
+                    "searchable": true,
+                    "orderable": true,
+                    "render": function(data, type, row, meta) {
+                        return $patron_to_html(row.patron, {
+                            display_cardnumber: true,
+                            url: true
+                        });
+                    }
+                },
+                {
+                    "data": "pickup_library.name",
+                    "title": _("Pickup library"),
+                    "searchable": true,
+                    "orderable": true,
+                    "render": function(data, type, row, meta) {
+                        return row.pickup_library.name;
+                    }
+                },
+                {
+                    "data": "start_date",
+                    "title": _("Start date"),
+                    "searchable": true,
+                    "orderable": true,
+                    "render": function(data, type, row, meta) {
+                        return $date(row.start_date);
+                    }
+                },
+                {
+                    "data": "end_date",
+                    "title": _("End date"),
+                    "searchable": true,
+                    "orderable": true,
+                    "render": function(data, type, row, meta) {
+                        return $date(row.end_date);
+                    }
+                },
+                {
+                    data: "extended_attributes",
+                    title: _("Additional fields"),
+                    searchable: false,
+                    orderable: false,
+                    render: function (data, type, row, meta) {
+                        return AdditionalFields.renderExtendedAttributesValues(
+                            data,
+                            extended_attribute_types,
+                            authorised_values,
+                            row.booking_id
+                        ).join("<br>");
+                    },
+                },
+                {
+                    "data": "",
+                    "title": _("Actions"),
+                    "class": "actions",
+                    "searchable": false,
+                    "orderable": false,
+                    "render": function(data, type, row, meta) {
+                        let result = "";
+                        let is_cancelled = row.status === "cancelled";
+                        [% IF CAN_user_circulate_manage_bookings %]
+                        if (!is_cancelled) {
+                            result += `
+                                <button type="button" class="btn btn-default btn-xs edit-action"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#placeBookingModal"
+                                    data-booking="${row.booking_id}"
+                                    data-biblionumber="${biblionumber}"
+                                    data-itemnumber="${row.item_id}"
+                                    data-patron="${row.patron_id}"
+                                    data-pickup_library="${row.pickup_library_id}"
+                                    data-start_date="${row.start_date}"
+                                    data-end_date="${row.end_date}"
+                                    data-extended_attributes='${JSON.stringify(row.extended_attributes
+                                        .filter(attribute => attribute.record_id == row.booking_id)
+                                        .map(attribute => ({
+                                            field_id: attribute.field_id,
+                                            value: attribute.value
+                                        })
+                                    ))}'
+                                >
+                                    <i class="fa fa-pencil" aria-hidden="true"></i> ${_("Edit")}
+                                </button>`;
+                            result += `
+                                <button type="button" class="btn btn-default btn-xs cancel-action"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#cancelBookingModal"
+                                    data-booking="${row.booking_id}">
+                                    <i class="fa fa-trash" aria-hidden="true"></i> ${_("Cancel")}
+                                </button>`;
+                        }
+                        [% END %]
+                        return result;
+                    }
+                }]
+            }, undefined, 0, additional_filters);
 
         document
             .getElementById("expired_filter")
