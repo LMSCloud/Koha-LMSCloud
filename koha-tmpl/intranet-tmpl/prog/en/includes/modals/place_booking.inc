@@ -51,6 +51,7 @@
                             </li>
                         </ol>
                     </fieldset>
+                    <fieldset class="brief" id="booking_extended_attributes"></fieldset>
                 </div> <!-- /.modal-body -->
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-primary">Submit</button>
