@@ -122,9 +122,23 @@
         [% INCLUDE 'js-biblio-format.inc' %]
         [% INCLUDE 'js-date-format.inc' %]
         [% INCLUDE 'js-patron-format.inc' %]
+        [% Asset.js("js/additional-fields.js") | $raw %]
         <script>
             let table_settings = [% TablesSettings.GetTableSettings( 'circ', 'bookings', 'bookings-to-collect', 'json' ) | $raw %];
             $(document).ready(function() {
+            var extended_attribute_types;
+            var authorised_values;
+            AdditionalFields.fetchAndProcessExtendedAttributes("booking")
+                .then(types => {
+                    extended_attribute_types = types;
+                    const catArray = Object.values(types)
+                        .map(attr => attr.authorised_value_category_name)
+                        .filter(Boolean);
+                    return AdditionalFields.fetchAndProcessAuthorizedValues(catArray);
+                })
+                .then(values => {
+                    authorised_values = values;
+                });
 
                 let additional_filters = {
                     start_date: function() {
@@ -180,7 +194,8 @@
                         "item+strings",
                         "item.checkout",
                         "patron",
-                        "pickup_library"
+                        "pickup_library",
+                    "extended_attributes"
                     ],
                     "order": [[ 7, "asc" ]],
                     "columns": [{
@@ -271,7 +286,22 @@
                         "render": function(data, type, row, meta) {
                             return $date(row.start_date) + ' - ' + $date(row.end_date);
                         }
-                    }]
+                    },
+                {
+                    data: "extended_attributes",
+                    title: _("Additional fields"),
+                    searchable: false,
+                    orderable: false,
+                    render: function (data, type, row, meta) {
+                        return AdditionalFields.renderExtendedAttributesValues(
+                            data,
+                            extended_attribute_types,
+                            authorised_values,
+                            row.booking_id
+                        ).join("<br>");
+                    },
+                },
+                ]
                 }, table_settings, 1, additional_filters, filters_options);
 
                 /** Date filtering */

@@ -27,13 +27,29 @@ $(document).ready(function () {
         };
 
         if (!bookings_table) {
+            var extended_attribute_types;
+            var authorised_values;
+            AdditionalFields.fetchAndProcessExtendedAttributes("booking")
+                .then(types => {
+                    extended_attribute_types = types;
+                    const catArray = Object.values(types)
+                        .map(attr => attr.authorised_value_category_name)
+                        .filter(Boolean);
+                    return AdditionalFields.fetchAndProcessAuthorizedValues(
+                        catArray
+                    );
+                })
+                .then(values => {
+                    authorised_values = values;
+                });
+
             var bookings_table_url = "/api/v1/bookings";
             bookings_table = $("#bookings_table").kohaTable(
                 {
                     ajax: {
                         url: bookings_table_url,
                     },
-                    embed: ["biblio", "item", "patron"],
+                    embed: ["biblio", "item", "patron", "extended_attributes"],
                     columns: [
                         {
                             data: "booking_id",
@@ -93,6 +109,20 @@ $(document).ready(function () {
                             orderable: true,
                             render: function (data, type, row, meta) {
                                 return $date(row.end_date);
+                            },
+                        },
+                        {
+                            data: "extended_attributes",
+                            title: _("Additional fields"),
+                            searchable: false,
+                            orderable: false,
+                            render: function (data, type, row, meta) {
+                                return AdditionalFields.renderExtendedAttributesValues(
+                                    data,
+                                    extended_attribute_types,
+                                    authorised_values,
+                                    row.booking_id
+                                ).join("<br>");
                             },
                         },
                         {

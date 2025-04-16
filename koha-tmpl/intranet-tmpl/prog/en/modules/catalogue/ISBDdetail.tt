@@ -85,6 +85,7 @@
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'select2.inc' %]
     [% Asset.js("js/catalog.js") | $raw %]
+    [% Asset.js("js/additional-fields.js") | $raw %]
     [% Asset.js("js/place_booking_modal.js") | $raw %]
     [% Asset.js("js/browser.js") | $raw %]
     <script>
