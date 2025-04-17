@@ -125,6 +125,7 @@ my $backend;                                                        # -b: name o
 my $mindays = 6;                                                    # -m: Minimum age (in days)
 my $verbose = 0;                                                    # -v: verbose
 my $debug = 0;                                                      # -d: debug
+my $testWithRollback = 0;                                           # -r: test run with database transaction rollback
 
 my $help    = 0;
 my $man     = 0;
@@ -137,6 +138,7 @@ GetOptions(
             'm:i' => \$mindays,
             'v' => \$verbose,
             'd' => \$debug,
+            'r' => \$testWithRollback,
        ) or pod2usage(2);
 
 pod2usage(1) if $help;
@@ -151,10 +153,16 @@ if ( ! $confirm ||
 
 
 sub archive_illrequests {
-    my ($backend, $mindays, $verbose, $debug) = @_;
+    my ($backend, $mindays, $verbose, $debug, $testWithRollback) = @_;
     my $ret = 0;
     my $dbh = C4::Context->dbh;
     my $schema = Koha::Database->new->schema;
+
+    warn dt_from_string . " archive_illrequests() START testWithRollback:" . Dumper($testWithRollback) if $debug;
+    if ($testWithRollback ) {
+        warn dt_from_string . " archive_illrequests() test run with rollback! Transaction will be started now." if $debug;
+        $schema->storage->txn_begin;
+    }
 
     # Are we able to actually work?
     my $backends = Koha::Illrequest::Config->new->available_backends;
@@ -204,11 +212,31 @@ sub archive_illrequests {
             warn dt_from_string . " archive_illrequests() Found $countSelectedIllRequests ILL requests for transferring to storage table." if ($verbose || $debug);
             ILLREQUEST: foreach my $selectedIllRequest (@selectedIllRequests) {
 
+
+                warn dt_from_string . " archive_illrequests() next to-be-archived selectedIllRequest:" . Dumper($selectedIllRequest->{_column_data}) if $debug;
                 # archive the illrequests record
+                # This line was correct until version 21.05 (included), but regrettably also was active in version 22.11 from start (oct. 2024) until end of march 2025:
+                # biblio_id => $selectedIllRequest->biblio_id(),
+                #
+                # transitional hack:
+                my $biblionumber = $selectedIllRequest->biblio_id();    # Not correct for passive backends (ILLZKSHP, PFL, ILLSLNPKoha); in most cases correct for active backends (ILLZKSHA, ILLALV, ILLSLNPA).
+                if ( ! $biblionumber ) {
+                    $biblionumber = $selectedIllRequest->deleted_biblio_id();    # Correct for passive backends (ILLZKSHP, PFL, ILLSLNPKoha) and in case of manual deletion of biblio data.
+                }
+                # biblio_id => $biblionumber,
+                #
+                # Reason:
+                # During merge with community-Koha 22.11 we missed to extend table old_illrequests as required by extended structure of illrequests.
+                # Problem: Since version 22.11 the biblionumber stored in field biblio_id is 'moved' to field deleted_biblio_id by C4::Biblio::DelBiblio(), so field biblio_id becomes NULL.
+                # And at the moment the table old_illrequests is not equipped with field deleted_biblio_id; furthermore the SQL-reports (still) use field biblio_id.
+                # Theoretically this is of concern only for the passive ILL backends (ILLZKSHP, PFL, ILLSLNPKoha), because the temporary title data are deleted locally as soon as
+                # the item is shipped back to the owning library.
+                # But in reality also a manual deletion of biblio data of a medium used for active ILL (ILLZKSHA, ILLALV, ILLSLNPA) may have happened before archiving.
+                # TODO: The real solution of this issue is planned for merge with version 24.11.
                 my $old_illrequestsRecord = {
                     illrequest_id => $selectedIllRequest->illrequest_id(),
                     borrowernumber => $selectedIllRequest->{_column_data}->{borrowernumber},
-                    biblio_id => $selectedIllRequest->biblio_id(),
+                    biblio_id => $biblionumber,
                     branchcode => $selectedIllRequest->{_column_data}->{branchcode},
                     status => $selectedIllRequest->status(),
                     status_alias => $selectedIllRequest->status_alias(),
@@ -405,15 +433,20 @@ sub archive_illrequests {
         warn dt_from_string . " archive_illrequests() $countCopiedIllRequests ILL requests have been copied to storage tables.";
         warn dt_from_string . " archive_illrequests() $countTransferredIllRequests ILL requests have been deleted from original tables.";
     }
+
+    if ($testWithRollback ) {
+        $schema->storage->txn_rollback;
+        warn dt_from_string . " archive_illrequests() test run with rollback! Transaction has been rolled back now." if $debug;
+    }
     return $ret;
 }
 
 
 cronlogaction();
 
-warn dt_from_string . " archive_illrequests.pl: starting with args backend:$backend: mindays:$mindays: verbose:$verbose: debug:$debug:";
+warn dt_from_string . " archive_illrequests.pl: starting with args backend:$backend: mindays:$mindays: verbose:$verbose: debug:$debug: testWithRollback:$testWithRollback:";
 
-my $ret = &archive_illrequests($backend, $mindays, $verbose, $debug);
+my $ret = &archive_illrequests($backend, $mindays, $verbose, $debug, $testWithRollback);
 
 warn dt_from_string . " archive_illrequests.pl: END ret:$ret:" if ($verbose || $debug);
 
