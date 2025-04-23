@@ -432,8 +432,8 @@
                         if (!is_cancelled) {
                             result += `
                                 <button type="button" class="btn btn-default btn-xs edit-action"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#placeBookingModal"
+                                    data-toggle="modal"
+                                    data-target="#placeBookingModal"
                                     data-booking="${row.booking_id}"
                                     data-biblionumber="${biblionumber}"
                                     data-itemnumber="${row.item_id}"
@@ -453,8 +453,8 @@
                                 </button>`;
                             result += `
                                 <button type="button" class="btn btn-default btn-xs cancel-action"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#cancelBookingModal"
+                                    data-toggle="modal"
+                                    data-target="#cancelBookingModal"
                                     data-booking="${row.booking_id}">
                                     <i class="fa fa-trash" aria-hidden="true"></i> ${_("Cancel")}
                                 </button>`;
