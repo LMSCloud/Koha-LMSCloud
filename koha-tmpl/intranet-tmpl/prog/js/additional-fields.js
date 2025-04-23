@@ -782,8 +782,6 @@ const AdditionalFields = (function () {
     function createField(type, values, authorizedValues = {}) {
         const field = Helpers.createElement("li", [
             CLASS_NAMES.FORM.GROUP,
-            CLASS_NAMES.STATE.FADE,
-            CLASS_NAMES.STATE.SHOW,
         ]);
 
         const label = Helpers.createElement("label", [CLASS_NAMES.FORM.LABEL]);
