@@ -947,9 +947,16 @@ const AdditionalFields = (function () {
      */
     async function fetchAuthorizedValues(category) {
         try {
-            const authorisedValuesClient =
-                window["APIClient"].authorised_values;
-            return authorisedValuesClient.values.get(category);
+            const response = await fetch(
+                `/api/v1/authorised_value_categories/${category}/authorised_values`,
+            );
+            if (!response.ok) {
+                return [];
+            }
+
+            const result = await response.json();
+
+            return result;
         } catch (error) {
             console.error(
                 `Error fetching authorized values for category ${category}:`,
@@ -966,11 +973,16 @@ const AdditionalFields = (function () {
      */
     async function fetchExtendedAttributes(resourceType) {
         try {
-            const additionalFieldsClient =
-                window["APIClient"].additional_fields;
-            return additionalFieldsClient.additional_fields.getAll(
-                resourceType
+            const response = await fetch(
+                `/api/v1/extended_attribute_types?resource_type=${resourceType}`,
             );
+            if (!response.ok) {
+                return [];
+            }
+
+            const result = await response.json();
+
+            return result;
         } catch (error) {
             console.error(
                 `Error fetching extended attributes for resource type ${resourceType}:`,
@@ -987,14 +999,16 @@ const AdditionalFields = (function () {
      */
     async function fetchAndProcessExtendedAttributes(resourceType) {
         try {
-            const additionalFieldsClient =
-                window["APIClient"].additional_fields;
-            const response =
-                await additionalFieldsClient.additional_fields.getAll(
-                    resourceType
-                );
+            const response = await fetch(
+                `/api/v1/extended_attribute_types?resource_type=${resourceType}`,
+            );
+            if (!response.ok) {
+                return {};
+            }
 
-            return response.reduce(
+            const result = await response.json();
+
+            return result.reduce(
                 (
                     acc,
                     {
@@ -1027,14 +1041,21 @@ const AdditionalFields = (function () {
      */
     async function fetchAndProcessAuthorizedValues(categories) {
         try {
-            const authorisedValuesClient =
-                window["APIClient"].authorised_values;
-            const response =
-                await authorisedValuesClient.values.getCategoriesWithValues([
-                    JSON.stringify(categories),
-                ]);
+            const response = await fetch(
+                `/api/v1/authorised_value_categories?q={"me.category_name":[${JSON.stringify(categories.join(","))}]}`,
+                {
+                    headers: {
+                        "x-koha-embed": "authorised_values",
+                    },
+                },
+            );
+            if (!response.ok) {
+                return {};
+            }
 
-            return response.reduce((acc, item) => {
+            const result = await response.json();
+
+            return result.reduce((acc, item) => {
                 const { category_name, authorised_values } = item;
                 acc[category_name] = acc[category_name] || {};
                 authorised_values.forEach(({ value, description }) => {
