@@ -275,53 +275,44 @@ $("#placeBookingModal").on("show.bs.modal", function (e) {
     });
 
     // Patron selection triggers
-    $("#booking_patron_id").on("select2:select", function (e) {
+    $("#booking_patron_id").on("select2:select", async function (e) {
         booking_patron = e.params.data;
 
         // Fetch pickup locations and enable picker
-        $.ajax({
-            url: pickup_url,
-            type: "GET",
-            dataType: "json",
-            data: {
-                _order_by: "name",
-                _per_page: "-1",
-                patron_id: booking_patron.patron_id,
-            },
-            success: function (response) {
-                if (dataFetched === true) {
-                    setLocationsPicker(response, booking_patron);
-                } else {
-                    var interval = setInterval(function () {
-                        if (dataFetched === true) {
-                            // Data is fetched, execute the callback and stop the interval
-                            setLocationsPicker(response, booking_patron);
-                            clearInterval(interval);
-                        }
-                    }, 100);
+        try {
+            const response = await fetch(`${pickup_url}?_order_by=name&_per_page=-1&patron_id=${booking_patron.patron_id}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (dataFetched === true) {
+                setLocationsPicker(data, booking_patron);
+            }
+
+            // Enable item selection if item data is also fetched
+            let $bookingItemSelect = $("#booking_item_id");
+            $bookingItemSelect.data("patron", true);
+            if ($bookingItemSelect.data("loaded")) {
+                $bookingItemSelect.prop("disabled", false);
+            }
+
+            // Enable itemtype selection if item data if also fetched
+            let $bookingItemtypeSelect = $("#booking_itemtype");
+            $bookingItemtypeSelect.data("patron", true);
+            if ($bookingItemtypeSelect.data("loaded")) {
+                $bookingItemtypeSelect.prop("disabled", false);
+                let firstOption = $bookingItemtypeSelect.find("option").first();
+                if (firstOption.val()) {
+                    $bookingItemtypeSelect.val(firstOption.val()).trigger("change");
                 }
-            },
-            error: function (xhr, status, error) {
-                console.log("Pickup location fetch failed: ", error);
-            },
-        });
+            }        
 
-        // Enable item selection if item data is also fetched
-        let $bookingItemSelect = $("#booking_item_id");
-        $bookingItemSelect.data("patron", true);
-        if ($bookingItemSelect.data("loaded")) {
-            $bookingItemSelect.prop("disabled", false);
+            // Populate circulation rules
+            getCirculationRules();
+        } catch (error) {
+            console.log("Pickup location fetch failed: ", error);
         }
-
-        // Enable itemtype selection if item data if also fetched
-        let $bookingItemtypeSelect = $("#booking_itemtype");
-        $bookingItemtypeSelect.data("patron", true);
-        if ($bookingItemtypeSelect.data("loaded")) {
-            $bookingItemtypeSelect.prop("disabled", false);
-        }
-
-        // Populate circulation rules
-        getCirculationRules();
     });
 
     // Adopt periodPicker
