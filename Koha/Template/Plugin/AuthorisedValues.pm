@@ -89,6 +89,34 @@ sub GetDescriptionByKohaField {
       : $description;
 }
 
+sub get_all_by_category {
+    my ( $self, $params ) = @_;
+
+    # Get all categories
+    my @categories = Koha::AuthorisedValues->new->categories;
+    my %authorised_values_by_category;
+
+    foreach my $category (@categories) {
+        my $avs = Koha::AuthorisedValues->search(
+            { category => $category },
+            { order_by => [ 'lib', 'lib_opac' ] }
+        );
+
+        my @values = [];
+        while ( my $av = $avs->next ) {
+            push @values, {
+                value            => $av->authorised_value,
+                description      => $av->lib,
+                opac_description => $av->opac_description,
+                imageurl         => $av->imageurl
+            };
+        }
+        $authorised_values_by_category{$category} = \@values;
+    }
+
+    return \%authorised_values_by_category;
+}
+
 1;
 
 =head1 NAME
@@ -102,6 +130,8 @@ Koha::Template::Plugin::AuthorisedValues - TT Plugin for authorised values
 [% AuthorisedValues.GetByCode( 'CATEGORY', 'AUTHORISED_VALUE_CODE', 'IS_OPAC' ) %]
 
 [% AuthorisedValues.GetAuthValueDropbox( $category, $default ) %]
+
+[% AuthorisedValues.get_all_by_category() %]
 
 =head1 ROUTINES
 
@@ -121,6 +151,14 @@ The parameters are identical to those used by the subroutine Koha::AuthorisedVal
 =head2 GetDescriptionByKohaField
 
 The parameters are identical to those used by the subroutine Koha::AuthorisedValues->get_description_by_koha_field
+
+=head2 get_all_by_category
+
+In a template, you can get all authorized values organized by category with
+the following TT code: [% AuthorisedValues.get_all_by_category() %]
+
+The function returns a hash where keys are category names and values are arrays
+of authorized value objects with value, description, opac_description, and imageurl.
 
 =head1 AUTHOR
 

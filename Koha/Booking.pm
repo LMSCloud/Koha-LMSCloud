@@ -269,8 +269,65 @@ on the API.
 
 =cut
 
-sub to_api_mapping {
-    return {};
+sub to_api_mapping {    #FIXME: needs to be updated for prod
+    return {
+        booking_id        => 'booking_id',
+        biblio_id         => 'biblio_id',
+        patron_id         => 'patron_id',
+        item_id           => 'item_id',
+        start_date        => 'start_date',
+        end_date          => 'end_date',
+        status            => 'status',
+        creation_date     => 'creation_date',
+        modification_date => 'modification_date',
+        pickup_library_id => 'pickup_library_id'
+    };
+}
+
+=head3 public_read_list
+
+This method returns the list of publicly readable database fields for both API and UI output purposes
+
+=cut
+
+sub public_read_list {    #FIXME: needs to be updated for prod
+    return [
+        'booking_id',
+        'biblio_id',
+        'patron_id',
+        'item_id',
+        'start_date',
+        'end_date',
+        'status',
+        'creation_date',
+        'modification_date',
+        'pickup_library_id'
+    ];
+}
+
+=head3 to_api
+
+    my $json = $booking->to_api;
+
+Overloaded method that returns a JSON representation of the Koha::Booking object,
+suitable for API output.
+
+=cut
+
+sub to_api {
+    my ( $self, $params ) = @_;
+
+    my $booking = $self->SUPER::to_api($params);
+    return          unless $booking;
+    return $booking unless $params->{'public'};
+
+    my $logged_in_user = C4::Context->userenv->{'borrowernumber'};
+    if ( $logged_in_user && $self->patron_id == $logged_in_user ) {
+        $booking->{'patron'} = $self->patron->to_api( { public => 1 } );
+    }
+    delete $booking->{'patron'};
+
+    return $booking;
 }
 
 =head2 Internal methods

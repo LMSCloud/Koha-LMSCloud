@@ -101,3 +101,71 @@
     x-koha-authorization:
       permissions:
         - circulate: circulate_remaining_permissions
+public/circulation_rules:
+  get:
+    x-mojo-to: CirculationRules#list_rules
+    operationId: listCirculationRulesPublic
+    tags:
+      - circulation_rules
+    summary: Get circulation rules for a given item type/library/patron combination.
+    produces:
+      - application/json
+    parameters:
+      - name: effective
+        in: query
+        description: Boolean indicating whether to return effective rules or all rules. Defaults to true.
+        required: false
+        type: boolean
+      - name: item_type_id
+        in: query
+        description: The item type identifier
+        required: false
+        type: string
+      - name: library_id
+        in: query
+        description: The library identifier
+        required: false
+        type: string
+      - name: patron_category_id
+        in: query
+        description: The patron category identifier
+        required: false
+        type: string
+      - name: rules
+        in: query
+        description: A comma-separated list of rule kinds
+        required: false
+        type: string
+    responses:
+      "200":
+        description: A list of rules for this item type, library and patron category combination
+        schema:
+          type: array
+          items:
+            $ref: "../swagger.yaml#/definitions/circulation_rules"
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        - circulate: circulate_remaining_permissions

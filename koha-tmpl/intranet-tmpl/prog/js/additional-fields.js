@@ -701,7 +701,8 @@ const AdditionalFields = (function () {
         );
 
         const needsAuthorizedValues =
-            hasSelectFields && Object.keys(authorizedValues).length === 0;
+            hasSelectFields && Object.keys(authorizedValues || {}).length === 0;
+
         if (!needsAuthorizedValues) {
             // Track which fields we've processed
             const processedFields = new Set();
@@ -782,6 +783,8 @@ const AdditionalFields = (function () {
     function createField(type, values, authorizedValues = {}) {
         const field = Helpers.createElement("li", [
             CLASS_NAMES.FORM.GROUP,
+            CLASS_NAMES.STATE.FADE,
+            CLASS_NAMES.STATE.SHOW,
         ]);
 
         const label = Helpers.createElement("label", [CLASS_NAMES.FORM.LABEL]);
@@ -945,16 +948,9 @@ const AdditionalFields = (function () {
      */
     async function fetchAuthorizedValues(category) {
         try {
-            const response = await fetch(
-                `/api/v1/authorised_value_categories/${category}/authorised_values`,
-            );
-            if (!response.ok) {
-                return [];
-            }
-
-            const result = await response.json();
-
-            return result;
+            const authorisedValuesClient =
+                window["APIClient"].authorised_values;
+            return authorisedValuesClient.values.get(category);
         } catch (error) {
             console.error(
                 `Error fetching authorized values for category ${category}:`,
@@ -971,16 +967,11 @@ const AdditionalFields = (function () {
      */
     async function fetchExtendedAttributes(resourceType) {
         try {
-            const response = await fetch(
-                `/api/v1/extended_attribute_types?resource_type=${resourceType}`,
+            const additionalFieldsClient =
+                window["APIClient"].additional_fields;
+            return additionalFieldsClient.additional_fields.getAll(
+                resourceType
             );
-            if (!response.ok) {
-                return [];
-            }
-
-            const result = await response.json();
-
-            return result;
         } catch (error) {
             console.error(
                 `Error fetching extended attributes for resource type ${resourceType}:`,
@@ -997,16 +988,14 @@ const AdditionalFields = (function () {
      */
     async function fetchAndProcessExtendedAttributes(resourceType) {
         try {
-            const response = await fetch(
-                `/api/v1/extended_attribute_types?resource_type=${resourceType}`,
-            );
-            if (!response.ok) {
-                return {};
-            }
+            const additionalFieldsClient =
+                window["APIClient"].additional_fields;
+            const response =
+                await additionalFieldsClient.additional_fields.getAll(
+                    resourceType
+                );
 
-            const result = await response.json();
-
-            return result.reduce(
+            return response.reduce(
                 (
                     acc,
                     {
@@ -1039,21 +1028,14 @@ const AdditionalFields = (function () {
      */
     async function fetchAndProcessAuthorizedValues(categories) {
         try {
-            const response = await fetch(
-                `/api/v1/authorised_value_categories?q={"me.category_name":[${JSON.stringify(categories.join(","))}]}`,
-                {
-                    headers: {
-                        "x-koha-embed": "authorised_values",
-                    },
-                },
-            );
-            if (!response.ok) {
-                return {};
-            }
+            const authorisedValuesClient =
+                window["APIClient"].authorised_values;
+            const response =
+                await authorisedValuesClient.values.getCategoriesWithValues([
+                    JSON.stringify(categories),
+                ]);
 
-            const result = await response.json();
-
-            return result.reduce((acc, item) => {
+            return response.reduce((acc, item) => {
                 const { category_name, authorised_values } = item;
                 acc[category_name] = acc[category_name] || {};
                 authorised_values.forEach(({ value, description }) => {

@@ -353,8 +353,18 @@ paths:
     $ref: "./paths/patrons_password.yaml#/~1patrons~1{patron_id}~1password~1expiration_date"
   "/public/biblios/{biblio_id}":
     $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}"
+  /public/extended_attribute_types:
+    $ref: ./paths/extended_attribute_types.yaml#/~1public~1extended_attribute_types
+  "/public/items":
+    $ref: "./paths/items.yaml#/~1public~1items"
+  "/public/biblios/{biblio_id}/bookings":
+    $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}~1bookings"
+  "/public/biblios/{biblio_id}/checkouts":
+    $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}~1checkouts"
   "/public/biblios/{biblio_id}/items":
     $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}~1items"
+  "/public/biblios/{biblio_id}/pickup_locations":
+    $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}~1pickup_locations"
   "/public/biblios/{biblio_id}/ratings":
     $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}~1ratings"
   "/public/coverflow_data_biblionumber/{biblio_ids}":
@@ -365,12 +375,18 @@ paths:
     $ref: "./paths/coverflow_data_query.yaml#/~1public~1coverflow_data_query"
   "/public/generated_cover":
     $ref: "./paths/generated_cover.yaml#/~1public~1generated_cover"
+  /public/bookings:
+    $ref: ./paths/bookings.yaml#/~1public~1bookings
+  "/public/bookings/{booking_id}":
+    $ref: "./paths/bookings.yaml#/~1public~1bookings~1{booking_id}"
   /public/libraries:
     $ref: ./paths/libraries.yaml#/~1public~1libraries
   "/public/libraries/{library_id}":
     $ref: "./paths/libraries.yaml#/~1public~1libraries~1{library_id}"
   "/public/oauth/login/{provider_code}/{interface}":
     $ref: ./paths/public_oauth.yaml#/~1public~1oauth~1login~1{provider_code}~1{interface}
+  /public/patrons/{patron_id}:
+    $ref: "./paths/patrons.yaml#/~1public~1patrons~1{patron_id}"
   "/public/patrons/{patron_id}/article_requests/{article_request_id}":
     $ref: "./paths/article_requests.yaml#/~1public~1patrons~1{patron_id}~1article_requests~1{article_request_id}"
   "/public/patrons/{patron_id}/guarantors/can_see_charges":

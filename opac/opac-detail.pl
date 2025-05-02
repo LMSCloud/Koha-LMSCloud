@@ -716,6 +716,15 @@ if (C4::Context->preference('DivibibEnabled') && $record->field("001") && $recor
 }
 
 my $can_item_be_reserved = 0;
+# Count the number of items that allow holds at the 'All libraries' rule level
+my $holdable_items = $biblio->items->filter_by_for_hold->count;
+
+# If we have a patron we need to check their policies for holds in the loop below
+# If we don't have a patron, then holdable items determines holdability
+my $can_holds_be_placed = $patron ? 0 : $holdable_items;
+
+my $can_bookings_be_placed = $patron ? $biblio->bookable_items->count : 0;
+
 my ( $itemloop_has_images, $otheritemloop_has_images );
 if ( not $viewallitems and $items->count > $max_items_to_display ) {
     $template->param(
@@ -837,6 +846,7 @@ if( $enabledNotForLoanStatus || $can_item_be_reserved || CountItemsIssued($bibli
 }
 
 $template->param(
+    BookableItems            => $can_bookings_be_placed,
     itemloop_has_images      => $itemloop_has_images,
     otheritemloop_has_images => $otheritemloop_has_images,
 );

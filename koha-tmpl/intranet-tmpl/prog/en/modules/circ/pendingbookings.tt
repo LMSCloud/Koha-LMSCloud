@@ -55,59 +55,15 @@
             <!-- Filters & Navigation -->
             <div class="col-sm-2 col-sm-pull-10">
                 <aside>
-                    <div id="filters">
-                        <form id="bookingsf">
-                            <fieldset class="brief">
-                                <h4>Refine results</h4>
-                                <ol>
-                                    <li>
-                                        <label for="holding_library">Holding library:</label>
-                                        <select name="holding_library" id="holding_library">
-                                            [% SET libraries = Branches.all( only_from_group => 1 ) %]
-                                            [% IF libraries.size != 1 %]
-                                                <option value="">Any</option>
-                                            [% END %]
-                                            [% FOREACH l IN libraries %]
-                                                [% IF (l.branchcode == branchcode) %]
-                                                    <option value="[% l.branchcode | html %]" selected="selected">[% l.branchname | html %]</option>
-                                                [% ELSE %]
-                                                    <option value="[% l.branchcode | html %]">[% l.branchname | html %]</option>
-                                                [% END %]
-                                            [% END %]
-                                        </select>
-                                    </li>
-                                    <li>
-                                        <label for="pickup_library">Pickup library:</label>
-                                        <select name="pickup_library" id="pickup_library">
-                                            [% SET libraries = Branches.all( only_from_group => 1 ) %]
-                                            [% IF libraries.size != 1 %]
-                                                <option value="">Any</option>
-                                            [% END %]
-                                            [% FOREACH l IN libraries %]
-                                                [% IF (l.branchcode == branchcode) %]
-                                                    <option value="[% l.branchcode | html %]" selected="selected">[% l.branchname | html %]</option>
-                                                [% ELSE %]
-                                                    <option value="[% l.branchcode | html %]">[% l.branchname | html %]</option>
-                                                [% END %]
-                                            [% END %]
-                                        </select>
-                                    </li>
-                                    <li>
-                                        <label for="from">Starts after: </label>
-                                        <input type="text" size="10" id="from" name="from" value="[% from | html %]" class="flatpickr" data-date_to="to"/>
-                                    </li>
-                                    <li>
-                                        <label for="to">Starts before: </label>
-                                        <input type="text" size="10" id="to" name="to" value="[% to | html %]" class="flatpickr"/>
-                                    </li>
-                                </ol>
+                [% INCLUDE 'bookings-filters.inc' 
+                    show_holding_library = 1
+                    show_pickup_library = 1
+                    show_date_filters = 1
+                    from_date = from
+                    to_date = to
+                    branchcode = branchcode
+                %]
 
-                                <fieldset class="action">
-                                    <input type="submit" name="run_report" value="Submit" class="submit"/>
-                                </fieldset>
-                            </fieldset>
-                        </form>
-                    </div>
                     [% INCLUDE 'circ-nav.inc' %]
                 </aside>
             </div>
@@ -123,194 +79,35 @@
         [% INCLUDE 'js-date-format.inc' %]
         [% INCLUDE 'js-patron-format.inc' %]
         [% Asset.js("js/additional-fields.js") | $raw %]
-        <script>
-            let table_settings = [% TablesSettings.GetTableSettings( 'circ', 'bookings', 'bookings-to-collect', 'json' ) | $raw %];
-            $(document).ready(function() {
-            var extended_attribute_types;
-            var authorised_values;
-            AdditionalFields.fetchAndProcessExtendedAttributes("booking")
-                .then(types => {
-                    extended_attribute_types = types;
-                    const catArray = Object.values(types)
-                        .map(attr => attr.authorised_value_category_name)
-                        .filter(Boolean);
-                    return AdditionalFields.fetchAndProcessAuthorizedValues(catArray);
-                })
-                .then(values => {
-                    authorised_values = values;
+
+        [%# Process library data for JavaScript %]
+        [% SET libraries = Branches.all %]
+    <script>
+    var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
+    </script>
+
+    [% INCLUDE 'bookings-common.inc' %]
+
+    <script>
+        $(document).ready(function() {
+            // Initialize extended attributes
+            initializeBookingExtendedAttributes().then(({ extended_attribute_types, authorised_values }) => {
+                // Get table settings
+                let table_settings = [% TablesSettings.GetTableSettings( 'circ', 'bookings', 'bookings-to-collect', 'json' ) | $raw %];
+                
+                // Create the table using common function
+                var bookings_table = createPendingBookingsTable("#bookingst", table_settings, {
+                    extended_attribute_types: extended_attribute_types,
+                    authorised_values: authorised_values
                 });
 
-                let additional_filters = {
-                    start_date: function() {
-                       let fromdate = $("#from");
-                       let isoFrom;
-                       if ( fromdate.val() !== '' ) {
-                         let selectedDate = fromdate.get(0)._flatpickr.selectedDates[0];
-                         selectedDate.setHours(0, 0, 0, 0);
-                         isoFrom = selectedDate.toISOString();
-                       }
-
-                       let todate = $("#to");
-                       let isoTo;
-                       if ( todate.val() !== '' ) {
-                         let selectedDate = todate.get(0)._flatpickr.selectedDates[0];
-                         selectedDate.setHours(23, 59, 59, 999);
-                         isoTo = selectedDate.toISOString();
-                       }
-
-                       if ( isoFrom || isoTo ) {
-                         return { '>=': isoFrom, '<=': isoTo };
-                       } else {
-                         return
-                       }
-                    },
-                    'item.holding_library_id': function() {
-                       let library = $("#holding_library").find(":selected").val();
-                       return library;
-                    },
-                    'pickup_library_id': function() {
-                        let library = $("#pickup_library").find(":selected").val();
-                        return library;
-                    }
-                };
-
-                [% SET libraries = Branches.all %]
-                let all_libraries  = [% To.json(libraries) | $raw %].map(e => {
-                    e['_id'] = e.branchcode;
-                    e['_str'] = e.branchname;
-                    return e;
-                });
-                let filters_options = {
-                    [1] : () => all_libraries,
-                };
-
-                var bookings_table_url = '/api/v1/bookings?';
-                var bookings_table = $("#bookingst").kohaTable({
-                    "ajax": {
-                        "url": bookings_table_url
-                    },
-                    "embed": [
-                        "biblio",
-                        "item+strings",
-                        "item.checkout",
-                        "patron",
-                        "pickup_library",
-                    "extended_attributes"
-                    ],
-                    "order": [[ 7, "asc" ]],
-                    "columns": [{
-                        "data": "booking_id",
-                        "title": _("Booking ID"),
-                        "visible": false
-                    },
-                    {
-                        "data": "pickup_library.name",
-                        "title": _("Pickup library"),
-                        "searchable": true,
-                        "orderable": true,
-                    },
-                    {
-                        "data": "biblio.title",
-                        "title": _("Title"),
-                        "searchable": true,
-                        "orderable": true,
-                        "render": function(data,type,row,meta) {
-                            return $biblio_to_html(row.biblio, {
-                                link: 'bookings'
-                            });
-                        }
-                    },
-                    {
-                        "data": "item.external_id",
-                        "title": _("Item"),
-                        "searchable": true,
-                        "orderable": true,
-                        "defaultContent": _("Any item"),
-                        "render": function(data,type,row,meta) {
-                            if ( row.item ) {
-                                return row.item.external_id + " (" + row.booking_id + ")";
-                            } else {
-                                return null;
-                            }
-                        }
-                    },
-                    {
-                        "data": "item.callnumber",
-                        "title": _("Callnumber"),
-                        "searchable": true,
-                        "orderable": true,
-                        "render": function(data,type,row,meta) {
-                            if ( row.item ) {
-                                return row.item.callnumber;
-                            } else {
-                                return null;
-                            }
-                        }
-                    },
-                    {
-                        "data": "item.location",
-                        "title": _("Location"),
-                        "searchable": false,
-                        "orderable": false,
-                        "render": function(data,type,row,meta) {
-                            if ( row.item ) {
-                                if ( row.item.checked_out_date ) {
-                                    return _("On loan, due: ") . $date(row.item.checked_out_date);
-                                } else {
-                                    return row.item._strings.location.str;
-                                }
-                            } else {
-                                    return null;
-                            }
-                        }
-                    },
-                    {
-                        "data": "patron.firstname:patron.surname",
-                        "title": _("Patron"),
-                        "searchable": true,
-                        "orderable": true,
-                        "render": function(data, type, row, meta) {
-                            return $patron_to_html(row.patron, {
-                                display_cardnumber: true,
-                                url: true
-                            });
-                        }
-                    },
-                    {
-                        "data": "start_date",
-                        "name": "start_date",
-                        "title": _("Booking dates"),
-                        "type": "date",
-                        "searchable": false,
-                        "orderable": true,
-                        "render": function(data, type, row, meta) {
-                            return $date(row.start_date) + ' - ' + $date(row.end_date);
-                        }
-                    },
-                {
-                    data: "extended_attributes",
-                    title: _("Additional fields"),
-                    searchable: false,
-                    orderable: false,
-                    render: function (data, type, row, meta) {
-                        return AdditionalFields.renderExtendedAttributesValues(
-                            data,
-                            extended_attribute_types,
-                            authorised_values,
-                            row.booking_id
-                        ).join("<br>");
-                    },
-                },
-                ]
-                }, table_settings, 1, additional_filters, filters_options);
-
-                /** Date filtering */
+                // Handle form submission for filtering
                 $("#bookingsf").on("submit", function(e){
-                    /* stop form from submitting normally */
                     e.preventDefault();
                     bookings_table.DataTable().draw();
                 });
             });
+        });
         </script>
         [% END %]
         [% INCLUDE 'intranet-bottom.inc' %]

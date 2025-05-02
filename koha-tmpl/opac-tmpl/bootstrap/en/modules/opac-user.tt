@@ -311,6 +311,16 @@
                                     <a class="nav-link" id="opac-user-holds-tab" data-toggle="tab" role="tab" aria-controls="opac-user-holds" aria-selected="false" href="#opac-user-holds">Holds ([% RESERVES.count | html %])</a>
                                 </li>
                             [% END %]
+                            [% IF Koha.Preference('OPACBookings') && BOOKINGS.count %]
+                                <li class="nav-item" role="presentation">
+                                    <a class="nav-link" id="opac-user-bookings-tab" data-toggle="tab" role="tab" aria-controls="opac-user-bookings" aria-selected="false" href="#opac-user-bookings">Bookings ([% BOOKINGS.count | html %])</a>
+                                </li>
+                            [% END %]
+                            [% IF Koha.Preference('OPACBookings') && BOOKINGS.count %]
+                                [% WRAPPER tab_item tabname= "opac-user-bookings" %]
+                                    <span>Bookings ([% BOOKINGS.count | html %])</span>
+                                [% END %]
+                            [% END %]
                             [% IF Koha.Preference('UseRecalls') && RECALLS.count %]
                                 <li class="nav-item" role="presentation">
                                     <a class="nav-link" id="opac-user-recalls-tab" data-toggle="tab" role="tab" aria-controls="opac-user-recalls" aria-selected="false" href="#opac-user-recalls">Recalls ([% RECALLS.count | html %])</a>
@@ -1082,7 +1092,12 @@
                                 </div> <!-- / #opac-user-overdues -->
                             [% END # /overdues_count %]
 
-                            [% PROCESS 'holds-table.inc' HOLDS = RESERVES, SuspendHoldsOpac = SuspendHoldsOpac, showpriority = showpriority, AutoResumeSuspendedHolds = AutoResumeSuspendedHolds %]
+                            [% IF ( RESERVES.count ) %]
+                                [% WRAPPER tab_panel tabname="opac-user-holds" %]
+                                    [% PROCESS 'holds-table.inc' HOLDS = RESERVES, SuspendHoldsOpac = SuspendHoldsOpac, showpriority = showpriority, AutoResumeSuspendedHolds = AutoResumeSuspendedHolds %]
+                                [% END # /tab_panel#opac-user-holds %]
+                            [% END # / #RESERVES.count %]
+
 
                             [% IF Koha.Preference('UseRecalls') && RECALLS.count %]
                                 <div id="opac-user-recalls" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-recalls-tab">
@@ -1447,7 +1462,7 @@
                 );
             });
 
-            var dTables = $("#checkoutst,#holdst,#overduest,#opac-user-relative-issues-table,#divibibcheckoutst");
+            var dTables = $("#checkoutst,#holdst,#overduest,#opac-user-relative-issues-table,#divibibcheckoutst,#opac-user-bookings-table");
             dTables.each(function(){
                 var thIndex = $(this).find("th.psort").index();
                 $(this).on("init.dt", function() {

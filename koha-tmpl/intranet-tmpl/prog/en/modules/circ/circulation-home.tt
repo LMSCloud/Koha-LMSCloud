@@ -90,6 +90,9 @@
                     <li>
                         <a class="circ-button" href="/cgi-bin/koha/circ/pendingbookings.pl"><i class="fa-solid fa-calendar-days"></i> Bookings to collect</a>
                     </li>
+                    <li>
+                        <a class="circ-button bookings" href="/cgi-bin/koha/circ/bookings.pl"><i class="fa-solid fa-calendar-check"></i> Bookings</a>
+                    </li>
                 </ul>
 
                 [% IF Koha.Preference('UseRecalls') and CAN_user_recalls %]

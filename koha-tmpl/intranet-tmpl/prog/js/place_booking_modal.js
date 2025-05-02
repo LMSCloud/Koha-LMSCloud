@@ -18,6 +18,23 @@ const additionalFields = AdditionalFields.init({
     },
 });
 
+function containsAny(integers1, integers2) {
+    // Create a hash set to store integers from the second array
+    let integerSet = {};
+    for (let i = 0; i < integers2.length; i++) {
+        integerSet[integers2[i]] = true;
+    }
+
+    // Check if any integer from the first array exists in the hash set
+    for (let i = 0; i < integers1.length; i++) {
+        if (integerSet[integers1[i]]) {
+            return true; // Found a match, return true
+        }
+    }
+
+    return false; // No match found
+}
+
 $("#placeBookingModal").on("show.bs.modal", function (e) {
     // Get context
     let button = $(e.relatedTarget);
@@ -29,6 +46,7 @@ $("#placeBookingModal").on("show.bs.modal", function (e) {
     booking_item_id = button.data("itemnumber");
     let start_date = button.data("start_date");
     let end_date = button.data("end_date");
+    let item_type_id = button.data("item_type_id");
     let extended_attributes = button.data("extended_attributes");
 
     // Get booking id if this is an edit

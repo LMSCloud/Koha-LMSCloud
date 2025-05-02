@@ -481,6 +481,14 @@ $template->param(
     showpriority   => $show_priority,
 );
 
+if ( C4::Context->preference('OPACBookings') ) {
+    my $bookings = $patron->bookings->filter_by_active;
+
+    $template->param(
+        BOOKINGS => $bookings,
+    );
+}
+
 if ( C4::Context->preference('UseRecalls') ) {
     my $recalls = Koha::Recalls->search( { patron_id => $borrowernumber, completed => 0 } );
     $template->param( RECALLS => $recalls );

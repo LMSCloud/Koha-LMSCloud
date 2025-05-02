@@ -94,7 +94,7 @@
     [% END %]
 
     [% IF op == 'list_tables' %]
-        [% IF CAN_user_acquisitions_order_manage || CAN_user_serials_edit_subscription || CAN_user_updatecharges_remaining_permissions || CAN_user_circulate_manage_bookings %]
+        [% IF CAN_user_acquisitions_order_manage || CAN_user_serials_edit_subscription || CAN_user_updatecharges_remaining_permissions || CAN_user_circulate_manage_bookings || CAN_user_circulate_manage_bookings %]
         <h1>Additional fields</h1>
 
         <div class="page-section">
@@ -109,6 +109,12 @@
                 [% END %]
                 [% IF CAN_user_acquisition_edit_invoices %]
                     [% WRAPPER table_option value="aqinvoices" %]<span>Invoices</span>[% END %]
+                [% END %]
+                [% IF CAN_user_circulate_manage_bookings %]
+                    <h2>Bookings</h2>
+                    <ul>
+                        [% WRAPPER table_option value="bookings" %]<span>Bookings</span>[% END %]
+                    </ul>
                 [% END %]
                 [% IF CAN_user_serials_edit_subscription %]
                     [% WRAPPER table_option value="subscription" %]<span>Subscriptions</span>[% END %]

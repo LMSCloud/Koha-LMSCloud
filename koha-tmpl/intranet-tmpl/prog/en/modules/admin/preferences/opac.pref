@@ -685,6 +685,12 @@ OPAC:
                   EAN8: "EAN-8"
                   UPC: "UPC"
             - "."
+        -
+            - pref: OPACBookings
+              choices:
+                  1: Allow
+                  0: "Don't allow"
+            - patrons to place and manage their bookings on the OPAC.
     OpenURL:
         -
             - 'Complete URL of OpenURL resolver (starting with <code>http://</code> or <code>https://</code>):'

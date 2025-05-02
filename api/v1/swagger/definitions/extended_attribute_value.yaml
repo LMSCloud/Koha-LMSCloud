@@ -14,5 +14,8 @@ properties:
   value:
     description: value of the additional field
     type: string
+  _strings:
+    description: String representations of coded values (when embedded with +strings)
+    type: object
 
-additionalProperties: false
+additionalProperties: true

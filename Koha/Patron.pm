@@ -2198,6 +2198,39 @@ sub get_extended_attribute {
     return $attribute->next;
 }
 
+=head3 is_accessible
+
+    if ( $patron->is_accessible({ user => $logged_in_user }) ) { ... }
+
+This overloaded method validates whether the current I<Koha::Patron> object can be accessed
+by the logged in user.
+
+Returns 0 if the I<user> parameter is missing.
+
+=cut
+
+sub is_accessible {
+    my ( $self, $params ) = @_;
+
+    unless ( defined( $params->{user} ) ) {
+        Koha::Exceptions::MissingParameter->throw( error => "The `user` parameter is mandatory" );
+    }
+
+    my $consumer = $params->{user};
+    return $consumer->can_see_patron_infos($self);
+}
+
+=head3 unredact_list
+
+This method returns the list of database fields that should be visible, even for restricted users,
+for both API and UI output purposes
+
+=cut
+
+sub unredact_list {
+    return ['branchcode'];
+}
+
 =head3 to_api
 
     my $json = $patron->to_api;

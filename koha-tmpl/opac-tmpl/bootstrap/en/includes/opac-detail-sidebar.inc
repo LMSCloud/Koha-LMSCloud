@@ -9,6 +9,13 @@
                 [% END %]
             [% END %]
         [% END %]
+
+        [% IF Koha.Preference('OPACBookings') && BookableItems %]
+            <li>
+                [% INCLUDE 'modals/booking/button-place.inc' link => 1 %]
+                [% INCLUDE 'modals/booking/island.inc' %]
+            </li>
+        [% END %]
     [% END %]
 
     [% IF Koha.Preference('UseRecalls') %]
