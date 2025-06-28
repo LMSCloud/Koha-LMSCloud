@@ -49,7 +49,6 @@ sub with_authorised_values {
             marc_field                     => $field->marcfield,
             marc_field_mode                => $field->marcfield_mode,
             searchable                     => $field->searchable,
-            repeatable                     => $field->repeatable,
             authorised_values              => []
         };
 
