@@ -129,7 +129,7 @@
         const handleOnMove = makeHandleOnMove(visSetBookings);
         const bookingsTimelineOptions = {
             stack: true,
-            editable: true,
+            editable: false,
             verticalScroll: true,
             orientation: {
                 axis: "both",
