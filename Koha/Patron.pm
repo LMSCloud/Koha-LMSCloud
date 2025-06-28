@@ -2228,7 +2228,7 @@ for both API and UI output purposes
 =cut
 
 sub unredact_list {
-    return ['branchcode'];
+    return ['surname', 'categorycode', 'branchcode'];
 }
 
 =head3 to_api
@@ -2252,6 +2252,20 @@ sub to_api {
     $json_patron->{restriction_comment} = $self->debarredcomment;
 
     return $json_patron;
+}
+
+=head3 public_read_list
+
+This method returns the list of publicly readable database fields for both API and UI output purposes
+
+=cut
+
+sub public_read_list {
+    return [
+        'surname',
+        'branchcode',
+        'categorycode',
+    ];
 }
 
 =head3 to_api_mapping

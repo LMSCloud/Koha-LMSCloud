@@ -286,8 +286,6 @@ sub get_public {
 
         my $patron = $c->objects->find( Koha::Patrons->new, $patron_id );
 
-        use DDP; p $patron;
-
         return $c->render(
             status  => 200,
             openapi => $patron
