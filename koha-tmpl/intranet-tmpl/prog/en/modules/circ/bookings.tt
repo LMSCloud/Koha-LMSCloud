@@ -79,46 +79,41 @@
         let cancel_success = false;
         var bookings_table;
         
-        $(document).ready(async function() {
+        $(document).ready(function() {
             // Initialize extended attributes
-            const { extended_attribute_types, authorised_values } = await initializeBookingExtendedAttributes();
-            
-            // Get table settings
-            let table_settings = [% TablesSettings.GetTableSettings( 'circ', 'bookings', 'bookings', 'json' ) | $raw %];
-            
-            // Define columns using the common function
-            const columns = getBookingTableColumns(extended_attribute_types, authorised_values, {
-                showActions: true,
-                showCreationDate: true,
-                showHoldingLibrary: true,
-                showStartEndDates: true,
-                showItemType: true,
-                showPickupLibrary: true,
-                patronOptions: { display_cardnumber: true, url: true }
-            });
-            
-            // Initialize the table using standard kohaTable
-            const bookings_table_url = '/api/v1/bookings?';
-            bookings_table = $("#bookingst").kohaTable({
-                "ajax": {
-                    "url": bookings_table_url,
-                    "data": function(d) {
-                        return d;
+            initializeBookingExtendedAttributes().then(({ extended_attribute_types, authorised_values }) => {
+                
+                // Get table settings
+                let table_settings = [% TablesSettings.GetTableSettings( 'circ', 'bookings', 'bookings', 'json' ) | $raw %];
+                
+                // Initialize the table using unified function
+                bookings_table = createBookingsTable("#bookingst", table_settings, {
+                    variant: 'default',
+                    extended_attribute_types: extended_attribute_types,
+                    authorised_values: authorised_values,
+                    columnOptions: {
+                        showActions: true,
+                        showCreationDate: true,
+                        showHoldingLibrary: true,
+                        showStartEndDates: true,
+                        showItemType: true,
+                        showPickupLibrary: true,
+                        showBiblioTitle: true,
+                        showItemData: true,
+                        showCallnumber: true,
+                        showLocation: true,
+                        showBookingDates: false,
+                        showStatus: false,
+                        patronOptions: { display_cardnumber: true, url: true }
                     }
-                },
-                "serverSide": true,
-                "processing": true,
-                "embed": [
-                    "biblio",
-                    "item+strings",
-                    "item.checkout",
-                    "patron",
-                    "pickup_library",
-                    "extended_attributes",
-                ],
-                "order": [[ 0, "desc" ]],
-                "columns": columns
-            }, table_settings);
+                });
+
+                // Handle form submission for filtering
+                $("#bookingsf").on("submit", function(e){
+                    e.preventDefault();
+                    bookings_table.DataTable().draw();
+                });
+            });
 
             // Initialize combobox for cancellation reason when modal is shown
             $("#cancelBookingModal").on("shown.bs.modal", function() {
@@ -127,7 +122,7 @@
                     placeholder: _("Select or type a reason"),
                 });
             });
-        });
+        }); 
     </script>
 [% END %]
 [% INCLUDE 'intranet-bottom.inc' %] 

@@ -98,7 +98,20 @@
                 // Create the table using common function
                 var bookings_table = createPendingBookingsTable("#bookingst", table_settings, {
                     extended_attribute_types: extended_attribute_types,
-                    authorised_values: authorised_values
+                    authorised_values: authorised_values,
+                    columnOptions: {
+                        showBiblioTitle: true,
+                        showItemData: true,
+                        showCallnumber: true,
+                        showLocation: true,
+                        showHoldingLibrary: true,
+                        showPickupLibrary: true,
+                        showBookingDates: true,
+                        showActions: false,
+                        showStatus: false,
+                        showCreationDate: false,
+                        patronOptions: { display_cardnumber: true, url: true }
+                    }
                 });
 
                 // Handle form submission for filtering

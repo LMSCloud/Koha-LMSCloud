@@ -123,19 +123,6 @@
             // Get table settings
             let table_settings = [% TablesSettings.GetTableSettings( 'catalog', 'bookings', 'bookings', 'json' ) | $raw %];
 
-            // Use BookingRenderers for key columns
-            const columns = getBookingTableColumns(extended_attribute_types, authorised_values, {
-                showActions: true,
-                showStatus: true,
-                showCreationDate: false,
-                showBookingDates: false,
-                showStartEndDates: true,
-                showPickupLibrary: true,
-                patronOptions: { display_cardnumber: true, url: true },
-                showBiblioTitle: false,
-                showItemData: true
-            });
-
             // Define additional filters for this specific view
             const additional_filters = {
                 end_date: () => {
@@ -157,66 +144,73 @@
                 },
             };
 
-                // Initialize the table
-            var bookings_table_url = "/api/v1/biblios/%s/bookings".format(biblionumber);
-            bookings_table = $('#bookings_table').kohaTable({
-                "ajax": {
-                    "url": bookings_table_url
+            // Initialize the table using unified function
+            bookings_table = createBiblioBookingsTable('#bookings_table', table_settings, biblionumber, {
+                additionalFilters: additional_filters,
+                extended_attribute_types: extended_attribute_types,
+                authorised_values: authorised_values,
+                columnOptions: {
+                    showActions: true,
+                    showStatus: true,
+                    showCreationDate: false,
+                    showBookingDates: false,
+                    showStartEndDates: true,
+                    showPickupLibrary: true,
+                    showBiblioTitle: false,
+                    showItemData: true,
+                    showCallnumber: false,
+                    showLocation: false,
+                    showHoldingLibrary: false,
+                    showItemType: false,
+                    patronOptions: { display_cardnumber: true, url: true }
+                }
+            });
+
+            // Initialize timeline
+            var items = $.ajax({
+                url: '/api/v1/biblios/%s/items?bookable=1'.format(biblionumber),
+                dataType: 'json',
+                type: 'GET'
+            });
+            var bookings = $.ajax({
+                url: '/api/v1/biblios/%s/bookings?_per_page=-1'.format(biblionumber),
+                headers: { 'x-koha-embed': ['patron', 'extended_attributes'] },
+                dataType: 'json',
+                type: 'GET',
+            });
+
+            $.when(items, bookings).then(
+                function(items, bookings){
+                    timeline = window.BookingsTimeline.init({
+                        containerId: 'bookings-timeline',
+                        bookings: bookings[0],
+                        bookableItems: items[0]
+                    });
                 },
-                "embed": [
-                    "item",
-                    "patron",
-                    "pickup_library",
-                    "extended_attributes",
-                ],
-                    "columns": columns
-                }, table_settings, 0, additional_filters);
-
-                // Initialize timeline
-                var items = $.ajax({
-                    url: '/api/v1/biblios/%s/items?bookable=1'.format(biblionumber),
-                    dataType: 'json',
-                    type: 'GET'
-                });
-                var bookings = $.ajax({
-                    url: '/api/v1/biblios/%s/bookings?_per_page=-1'.format(biblionumber),
-                    headers: { 'x-koha-embed': ['patron', 'extended_attributes'] },
-                    dataType: 'json',
-                    type: 'GET',
-                        });
-
-                $.when(items, bookings).then(
-                    function(items, bookings){
-                        timeline = window.BookingsTimeline.init({
-                            containerId: 'bookings-timeline',
-                            bookings: bookings[0],
-                            bookableItems: items[0]
-                        });
-                    },
-                    function(jqXHR, textStatus, errorThrown){
-                        console.log("Fetch failed", textStatus, errorThrown);
-                    }
+                function(jqXHR, textStatus, errorThrown){
+                    console.log("Fetch failed", textStatus, errorThrown);
+                }
             );
 
-                // Redraw table when filters change
-                document.addEventListener('bookingsTableFilters:changed', function() {
-                    bookings_table.DataTable().draw();
-                });
+            // Redraw table when filters change
+            document.addEventListener('bookingsTableFilters:changed', function() {
+                bookings_table.DataTable().draw();
+            });
 
-                // Show/hide status column when cancelled filter changes
-                document.addEventListener('bookingsTableFilters:changed', function() {
-                    const showCancelled = window.BookingsTableFilters.getStates().cancelled;
-                    bookings_table.DataTable().column('status:name').visible(showCancelled);
-                });
+            // Show/hide status column when cancelled filter changes
+            document.addEventListener('bookingsTableFilters:changed', function() {
+                const showCancelled = window.BookingsTableFilters.getStates().cancelled;
+                bookings_table.DataTable().column('status:name').visible(showCancelled);
+            });
 
-                // Initialize combobox for cancellation reason
-                $("#cancellation-reason").comboBox({
-                    displayProperty: 'name',
-                    placeholder: _("Select or type a reason"),
-                });
+            // Initialize combobox for cancellation reason
+            $("#cancellation-reason").comboBox({
+                displayProperty: 'name',
+                placeholder: _("Select or type a reason"),
             });
         });
-    </script>
+    });
+</script>
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]
