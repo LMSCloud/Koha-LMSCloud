@@ -52,7 +52,7 @@ my $patron = Koha::Patrons->find($borrowernumber);
 
 my $op = $query->param('op') // 'list';
 if ( $op eq 'list' ) {
-    my $bookings = Koha::Bookings->search( { patron_id => $patron->borrowernumber } )->filter_by_active;
+    my $bookings = Koha::Bookings->search( { patron_id => $patron->borrowernumber } );
     my $hash     = sha1_base64( join q{}, time, rand );
 
     my $biblio;
