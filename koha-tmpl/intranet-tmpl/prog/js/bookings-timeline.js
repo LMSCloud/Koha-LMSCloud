@@ -71,12 +71,35 @@
         };
     }
 
+    function createTempModalTrigger(bookingId, modalId) {
+        const tempButton = document.createElement("button");
+        tempButton.setAttribute("data-booking", bookingId);
+        tempButton.setAttribute("data-bs-toggle", "modal");
+        tempButton.setAttribute("data-bs-target", `#${modalId}`);
+        tempButton.style.display = "none";
+        document.body.appendChild(tempButton);
+
+        // Trigger the modal using the button
+        tempButton.click();
+
+        // Clean up the temporary button
+        setTimeout(() => {
+            if (document.body.contains(tempButton)) {
+                document.body.removeChild(tempButton);
+            }
+        }, 100);
+    }
+
     function handleOnRemove(item, callback) {
-        $("#cancelBookingModal").modal(
-            "show",
-            $(`<button data-booking-id="${item.id}"></button>`)
-        );
-        
+        const cancelBookingModal =
+            document.getElementById("cancelBookingModal");
+        if (!cancelBookingModal) {
+            return;
+        }
+
+        // Create and trigger the modal using a temporary button
+        createTempModalTrigger(item.booking, "cancelBookingModal");
+
         const modalHideHandler = function () {
             if (window.cancel_success) {
                 window.cancel_success = 0;
@@ -84,10 +107,16 @@
             } else {
                 callback(null);
             }
-            $("#cancelBookingModal").off("hide.bs.modal", modalHideHandler);
+            cancelBookingModal.removeEventListener(
+                "hidden.bs.modal",
+                modalHideHandler
+            );
         };
-        
-        $("#cancelBookingModal").on("hide.bs.modal", modalHideHandler);
+
+        cancelBookingModal.addEventListener(
+            "hidden.bs.modal",
+            modalHideHandler
+        );
     }
 
     function init({

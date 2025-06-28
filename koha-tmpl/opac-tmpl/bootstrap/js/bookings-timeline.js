@@ -94,19 +94,46 @@
         };
     }
 
+    function createTempModalTrigger(bookingId, modalId) {
+        const tempButton = document.createElement("button");
+        tempButton.setAttribute("data-booking", bookingId);
+        tempButton.setAttribute("data-bs-toggle", "modal");
+        tempButton.setAttribute("data-bs-target", `#${modalId}`);
+        tempButton.style.display = "none";
+        document.body.appendChild(tempButton);
+
+        // Trigger the modal using the button
+        tempButton.click();
+
+        // Clean up the temporary button
+        setTimeout(() => {
+            if (document.body.contains(tempButton)) {
+                document.body.removeChild(tempButton);
+            }
+        }, 100);
+    }
+
     function handleOnRemove(item, callback) {
-        $("#cancelBookingModal").modal(
-            "show",
-            $(`<button data-booking="${item.id}"></button>`)
-        );
-        $("#cancelBookingModal").on("hide.bs.modal", function (e) {
+        const cancelBookingModal =
+            document.getElementById("cancelBookingModal");
+        if (!cancelBookingModal) {
+            return;
+        }
+
+        // Create and trigger the modal using a temporary button
+        createTempModalTrigger(item.id, "cancelBookingModal");
+
+        const modalHideHandler = function () {
             if (cancel_success) {
                 cancel_success = 0;
                 callback(item);
             } else {
                 callback(null);
             }
-        });
+            $("#cancelBookingModal").off("hidden.bs.modal", modalHideHandler);
+        };
+
+        $("#cancelBookingModal").on("hidden.bs.modal", modalHideHandler);
     }
 
     function initBookingsTimeline({
