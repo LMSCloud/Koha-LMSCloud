@@ -1076,8 +1076,8 @@
                                                             <div class="btn-group">
                                                                 <button type="button" 
                                                                     class="btn btn-sm btn-default" 
-                                                                    data-bs-toggle="modal" 
-                                                                    data-bs-target="#cancelBookingModal" 
+                                                                    data-toggle="modal"
+                                                                    data-target="#cancelBookingModal"
                                                                     data-booking="[% booking.booking_id | html %]">
                                                                     <i class="fa fa-times" aria-hidden="true"></i> Cancel
                                                                 </button>

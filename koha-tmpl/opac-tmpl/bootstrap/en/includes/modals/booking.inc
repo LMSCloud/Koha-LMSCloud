@@ -19,7 +19,7 @@
                             [% CASE %]
                         [% END %]
                     </h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     [% SWITCH action %]
@@ -83,7 +83,7 @@
                                 Save
                         [% END %]
                     </button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
                         <i class="fa fa-times" aria-hidden="true"></i>&nbsp;Cancel
                     </button>
                 </div>

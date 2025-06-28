@@ -333,8 +333,8 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
                             <i class="fa fa-pencil" aria-hidden="true"></i> ${_("Edit")}
                         </button>
                         <button type="button" class="btn btn-default btn-xs cancel-action"
-                            data-bs-toggle="modal"
-                            data-bs-target="#cancelBookingModal"
+                            data-toggle="modal"
+                            data-target="#cancelBookingModal"
                             data-booking="${row.booking_id}">
                             <i class="fa fa-trash" aria-hidden="true"></i> ${_("Cancel")}
                         </button>`;

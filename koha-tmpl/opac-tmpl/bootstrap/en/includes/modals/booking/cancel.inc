@@ -6,7 +6,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h1 class="modal-title" id="cancelBookingLabel">Cancel booking</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body overflow-visible">
                     <div id="cancel_booking_result"></div>
@@ -35,7 +35,7 @@
                 <!-- /.modal-body -->
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-default approve"><i class="fa fa-check"></i> Yes, cancel booking</button>
-                    <button type="button" class="btn btn-default deny" data-bs-dismiss="modal"><i class="fa fa-remove"></i> No, do not cancel</button>
+                    <button type="button" class="btn btn-default deny" data-dismiss="modal"><i class="fa fa-remove"></i> No, do not cancel</button>
                 </div>
                 <!-- /.modal-footer -->
             </div>

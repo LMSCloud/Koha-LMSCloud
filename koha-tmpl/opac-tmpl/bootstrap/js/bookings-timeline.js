@@ -140,7 +140,7 @@
             autoResize: false,
             onInitialDrawComplete: () => {
                 // hide spinner after initialization is complete
-                loadingIndicator?.classList.add("d-none");
+                loadingIndicator?.classList.replace("d-flex", "d-none");
             },
             snap: handleSnap, // always snap to full days, independent of the scale
             onMoving: handleOnMoving, // prevent overlapping bookings

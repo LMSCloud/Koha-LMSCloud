@@ -782,7 +782,6 @@ const AdditionalFields = (function () {
     function createField(type, values, authorizedValues = {}) {
         const field = Helpers.createElement("li", [
             CLASS_NAMES.FORM.GROUP,
-            CLASS_NAMES.STATE.FADE,
             CLASS_NAMES.STATE.SHOW,
         ]);
 
@@ -862,7 +861,7 @@ const AdditionalFields = (function () {
         if (type.authorised_value_category_name) {
             input = Helpers.createElement("select", [
                 config.selectors.inputClass,
-                CLASS_NAMES.FORM.INPUT.SELECT,
+                CLASS_NAMES.FORM.INPUT.BASE,
                 CLASS_NAMES.CONTAINER.WIDTH.HALF,
             ]);
             input.id = `extended_attribute_${type.extended_attribute_type_id}${type.repeatable ? `_${index}` : ""}`;

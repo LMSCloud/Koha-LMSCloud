@@ -35,7 +35,7 @@
 <div class="main container-fluid">
     <div class="row">
         <!-- Results -->
-        <div class="col-md-10 order-md-2 order-sm1">
+        <div class="col-md-10 col-md-push-2">
             <main>
                 [% INCLUDE 'messages.inc' %]
                 <h1>Bookings</h1>
@@ -48,7 +48,7 @@
         </div>
 
         <!-- Navigation -->
-        <div class="col-md-2 order-sm-2 order-md-1">
+        <div class="col-md-2 col-md-pull-10">
             <aside>
                 [% INCLUDE 'circ-nav.inc' %]
             </aside>

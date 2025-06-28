@@ -1,7 +1,7 @@
 <template>
     <div
         v-if="isOpen"
-        class="modal fade show booking-modal-backdrop"
+        class="modal show booking-modal-backdrop"
         tabindex="-1"
         role="dialog"
         style="display: block; background: rgba(0, 0, 0, 0.5)"
