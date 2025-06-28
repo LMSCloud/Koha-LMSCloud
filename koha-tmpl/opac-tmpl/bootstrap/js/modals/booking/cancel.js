@@ -1,13 +1,9 @@
 (() => {
-    document
-        .getElementById("cancelBookingModal")
-        ?.addEventListener("show.bs.modal", handleShowBsModal);
+    $("#cancelBookingModal").on("show.bs.modal", handleShowBsModal);
 
-    document
-        .getElementById("cancelBookingModal")
-        ?.addEventListener("hide.bs.modal", () => {
-            $("#cancellation-reason").comboBox("reset");
-        });
+    $("#cancelBookingModal").on("hide.bs.modal", () => {
+        $("#cancellation-reason").comboBox("reset");
+    });
 
     function handleShowBsModal(e) {
         const button = e.relatedTarget;
