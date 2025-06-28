@@ -49,6 +49,7 @@
             - item.checkout
             - patron
             - pickup_library
+            - extended_attributes
             - extended_attributes+strings
         collectionFormat: csv
     produces:
