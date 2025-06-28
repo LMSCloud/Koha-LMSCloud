@@ -48,7 +48,6 @@ const rootComponent = app
     .component("font-awesome-icon", FontAwesomeIcon)
     .component("v-select", vSelect);
 
-app.config.unwrapInjectedRef = true;
 app.provide("vendorStore", useVendorStore(pinia));
 app.provide("mainStore", mainStore);
 app.provide("AVStore", AVStore);

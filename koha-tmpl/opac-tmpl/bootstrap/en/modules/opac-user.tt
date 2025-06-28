@@ -316,11 +316,6 @@
                                     <a class="nav-link" id="opac-user-bookings-tab" data-toggle="tab" role="tab" aria-controls="opac-user-bookings" aria-selected="false" href="#opac-user-bookings">Bookings ([% BOOKINGS.count | html %])</a>
                                 </li>
                             [% END %]
-                            [% IF Koha.Preference('OPACBookings') && BOOKINGS.count %]
-                                [% WRAPPER tab_item tabname= "opac-user-bookings" %]
-                                    <span>Bookings ([% BOOKINGS.count | html %])</span>
-                                [% END %]
-                            [% END %]
                             [% IF Koha.Preference('UseRecalls') && RECALLS.count %]
                                 <li class="nav-item" role="presentation">
                                     <a class="nav-link" id="opac-user-recalls-tab" data-toggle="tab" role="tab" aria-controls="opac-user-recalls" aria-selected="false" href="#opac-user-recalls">Recalls ([% RECALLS.count | html %])</a>

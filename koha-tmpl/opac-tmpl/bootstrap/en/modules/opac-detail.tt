@@ -1026,7 +1026,6 @@
                                             <th id="booking_modification_date" data-colname="booking_modification_date">Modified</th>
                                             <th id="booking_additional_fields" data-colname="booking_additional_fields">Additional fields</th>
                                             <th id="booking_actions" data-colname="booking_actions">Actions</th>
-                                            <th></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1085,92 +1084,6 @@
                                                         [% END %]
                                                     [% END %]
                                                 </td>
-                                                <td></td>
-                                            </tr>
-                                        [% END # / FOREACH booking %]
-                                    </tbody>
-                                </table>
-                                [% INCLUDE 'modals/booking/cancel.inc' %]
-                            [% END %]
-                        [% END %]
-
-                        [% IF ( Koha.Preference('OPACBookings') && biblio.bookings.filter_by_active.count ) %]
-                            [% WRAPPER tab_panel tabname="bookings" %]
-                                <table class="table table-bordered table-striped" id="bookingst">
-                                    [% INCLUDE 'bookings-timeline.inc' %]
-                                    <caption class="sr-only">Bookings</caption>
-                                    <thead>
-                                        <tr>
-                                            <th id="booking_patron" data-colname="booking_patron">Patron</th>
-                                            <th id="booking_item" data-colname="booking_item">Item</th>
-                                            <th id="booking_pickup_library" data-colname="booking_pickup_library">Pickup Location</th>
-                                            <th id="booking_start_date" data-colname="booking_start_date">Start Date</th>
-                                            <th id="booking_end_date" data-colname="booking_end_date">End Date</th>
-                                            <th id="booking_status" data-colname="booking_status">Status</th>
-                                            <th id="booking_creation_date" data-colname="booking_creation_date">Created</th>
-                                            <th id="booking_modification_date" data-colname="booking_modification_date">Modified</th>
-                                            <th id="booking_additional_fields" data-colname="booking_additional_fields">Additional fields</th>
-                                            <th id="booking_actions" data-colname="booking_actions">Actions</th>
-                                            <th></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        [% FOREACH booking IN biblio.bookings.filter_by_active %]
-                                            <tr>
-                                            [% SET is_own_booking = booking.patron.borrowernumber == logged_in_user.borrowernumber %]
-                                                [% IF is_own_booking %]
-                                                    <td>[% INCLUDE 'patron-title.inc' patron => booking.patron %]</td>
-                                                [% ELSE %]
-                                                    <td>&mdash;</td>
-                                                [% END %]
-                                                <td>[% booking.item.barcode | html %]</td>
-                                                [% IF is_own_booking %]
-                                                    <td>[% booking.pickup_library.branchname | html %]</td>
-                                                [% ELSE %]
-                                                    <td>&mdash;</td>
-                                                [% END %]
-                                                <td data-order="[% booking.start_date | html %]">[% booking.start_date | $KohaDates %]</td>
-                                                <td data-order="[% booking.end_date | html %]">[% booking.end_date | $KohaDates %]</td>
-                                                [% IF is_own_booking %]
-                                                    <td>[% booking.status | html %]</td>
-                                                [% ELSE %]
-                                                    <td>&mdash;</td>
-                                                [% END %]
-                                                [% IF is_own_booking %]
-                                                    <td data-order="[% booking.creation_date | html %]">[% booking.creation_date | $KohaDates %]</td>
-                                                [% ELSE %]
-                                                    <td>&mdash;</td>
-                                                [% END %]
-                                                [% IF is_own_booking %]
-                                                    <td data-order="[% booking.modification_date | html %]">[% booking.modification_date | $KohaDates %]</td>
-                                                [% ELSE %]
-                                                    <td>&mdash;</td>
-                                                [% END %]
-                                                <td class="booking_additional_fields">
-                                                    [% IF is_own_booking %]
-                                                        [% FOREACH additional_field_value IN booking.additional_field_values %]
-                                                            [% additional_field_value.field.name | html %]: [% additional_field_value.value | html %]<br />
-                                                        [% END %]
-                                                    [% ELSE %]
-                                                        &mdash;
-                                                    [% END %]
-                                                </td>
-                                                <td>
-                                                    [% IF is_own_booking %]
-                                                        [% IF booking.status == 'new' || booking.status == 'active' || booking.status == 'pending' %]
-                                                            <div class="btn-group">
-                                                                <button type="button" 
-                                                                    class="btn btn-sm btn-default" 
-                                                                    data-bs-toggle="modal" 
-                                                                    data-bs-target="#cancelBookingModal" 
-                                                                    data-booking="[% booking.booking_id | html %]">
-                                                                    <i class="fa fa-times" aria-hidden="true"></i> Cancel
-                                                                </button>
-                                                            </div>
-                                                        [% END %]
-                                                    [% END %]
-                                                </td>
-                                                <td></td>
                                             </tr>
                                         [% END # / FOREACH booking %]
                                     </tbody>
@@ -1724,6 +1637,7 @@
 
     [% IF ( Koha.Preference('OPACBookings') && biblio.bookings.filter_by_active.count ) %]
         [% Asset.js("lib/vis-timeline/vis-timeline-graph2d.min.js") | $raw %]
+        [% Asset.js("lib/dayjs/dayjs.min.js") | $raw %]
         [% Asset.js("js/combobox.js") | $raw %]
         [% Asset.js("js/bookings-timeline.js") %]
         [% Asset.js("js/modals/booking/cancel.js") | $raw %]
@@ -2038,20 +1952,20 @@
                 ],
             }, serial_column_settings);
 
-            $("#bookingst").kohaTable(
-                {
-                    dom: '<"clearfix">t',
-                    sorting: [[3, "asc"], [4, "asc"]], // Sorted by start_date
-                    bKohaColumnsUseNames: true,
-                    responsive: {
-                        details: { type: "column", target: -1 },
-                    },
-                    columnDefs: [
-                        { className: "dtr-control", orderable: false, targets: -1 },
-                    ],
+            var booking_column_settings = [% TablesSettings.GetColumns( 'opac', 'biblio-detail', 'bookingst', 'json' ) | $raw %];
+
+            KohaTable("#bookingst", {
+                dom: '<"clearfix">t',
+                sorting: [[3, "asc"], [4, "asc"]], // Sorted by start_date
+                autoWidth: false,
+                bKohaColumnsUseNames: true,
+                responsive: {
+                    details: { type: "column", target: -1 },
                 },
-                null
-            );
+                columnDefs: [
+                    { className: "dtr-control", orderable: false, targets: -1 },
+                ],
+            }, booking_column_settings);
 
             var dTables = $("#holdingst,#subscriptionst,#otherholdingst,#bookingst");
             let bookingsTabInitialized = false;
