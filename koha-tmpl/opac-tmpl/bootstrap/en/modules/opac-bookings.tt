@@ -50,6 +50,7 @@
                         </div> <!-- /.toptabs -->
                         <div class="tab-content">
                             [% PROCESS 'bookings-table.inc' %]
+                            [% INCLUDE 'modals/booking/cancel.inc' %]
                         </div>
                     [% END %]
                 </div> <!-- /#userdetails -->
@@ -62,6 +63,7 @@
 [% BLOCK jsinclude %]
     [% Asset.js("js/form-submit.js") | $raw %]
     [% Asset.js("lib/vis-timeline/vis-timeline-graph2d.min.js") | $raw %]
+    [% Asset.js("js/modals/booking/cancel.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
 

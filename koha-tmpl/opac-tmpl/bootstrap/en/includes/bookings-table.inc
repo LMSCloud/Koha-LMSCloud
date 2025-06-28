@@ -12,10 +12,11 @@
             <th class="psort">Pickup location</th>
             <th class="psort">Start date</th>
             <th class="psort">End date</th>
+            <th class="psort">Status</th>
             <th class="psort">Item type</th>
             <th class="psort">Barcode</th>
             <th class="psort">Provided by</th>
-            <th class="nosort">Modify</th>
+            <th class="nosort">Actions</th>
             <th></th>
         </tr>
     </thead>
@@ -32,16 +33,32 @@
                 </td>
                 <td class="pickup-library">
                     [% BOOKING.pickup_library.branchname | html %]
-                    <button type="button" class="btn btn-sm btn-link" data-toggle="modal" data-target="#change-pickup-location-[% BOOKING.booking_id | html %]">
-                        <i class="fa fa-pencil-alt" aria-hidden="true"></i>&nbsp;Change
-                    </button>
-                    [% PROCESS 'modals/booking.inc' action = 'change-pickup-location' %]
+                    [% IF BOOKING.status == 'new' %]
+                        <button type="button" class="btn btn-sm btn-link" data-toggle="modal" data-target="#change-pickup-location-[% BOOKING.booking_id | html %]">
+                            <i class="fa fa-pencil-alt" aria-hidden="true"></i>&nbsp;Change
+                        </button>
+                        [% PROCESS 'modals/booking.inc' action = 'change-pickup-location' %]
+                    [% END %]
                 </td>
                 <td class="start-date">
                     [% BOOKING.start_date | $KohaDates %]
                 </td>
                 <td class="end-date">
                     [% BOOKING.end_date | $KohaDates %]
+                </td>
+                <td class="status">
+                    [% IF BOOKING.status == 'new' %]
+                        <span class="badge badge-primary">Active</span>
+                    [% ELSIF BOOKING.status == 'cancelled' %]
+                        <span class="badge badge-secondary">Cancelled</span>
+                        [% IF BOOKING.cancellation_reason %]
+                            <br><small class="text-muted">[% BOOKING.cancellation_reason | html %]</small>
+                        [% END %]
+                    [% ELSIF BOOKING.status == 'completed' %]
+                        <span class="badge badge-success">Completed</span>
+                    [% ELSE %]
+                        <span class="badge badge-info">[% BOOKING.status | html %]</span>
+                    [% END %]
                 </td>
                 [% IF BOOKING.item %]
                     <td class="item-type">
@@ -57,19 +74,23 @@
                 <td class="branch">
                     [% Branches.GetName(BOOKING.item.homebranch) | html %]
                 </td>
-                <td class="modify">
-                    <button
-                        type="button"
-                        class="btn btn-sm btn-danger btn-delete-booking"
-                        data-toggle="modal"
-                        data-target="#cancel-[% BOOKING.booking_id | html %]"
-                    >
-                        <i class="fa fa-times" aria-hidden="true"></i>&nbsp;[% tp('Cancel booking button', 'Cancel') | html %]
-                    </button>
-                    [% PROCESS 'modals/booking.inc' action = 'cancel' %]
+                <td class="actions">
+                    [% IF BOOKING.status == 'new' %]
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-danger btn-delete-booking"
+                            data-toggle="modal"
+                            data-target="#cancelBookingModal"
+                            data-booking="[% BOOKING.booking_id | html %]"
+                        >
+                            <i class="fa fa-times" aria-hidden="true"></i>&nbsp;[% tp('Cancel booking button', 'Cancel') | html %]
+                        </button>
+                    [% ELSE %]
+                        <span class="text-muted">No actions available</span>
+                    [% END %]
                 </td>
                 <td></td>
             </tr>
-        [% END # /FOREACH HOLDS %]
+        [% END # /FOREACH BOOKINGS %]
     </tbody>
 </table>
