@@ -410,6 +410,51 @@ sub get_checkouts {
     };
 }
 
+=head3 get_checkouts_public
+
+List minimal checkout information for public access
+
+=cut
+
+sub get_checkouts_public {
+    my $c = shift->openapi->valid_input or return;
+
+    my $checked_in = $c->param('checked_in');
+    $c->req->params->remove('checked_in');
+
+    try {
+        my $biblio = Koha::Biblios->find( $c->param('biblio_id') );
+
+        return $c->render_resource_not_found("Bibliographic record")
+            unless $biblio;
+
+        my $checkouts_rs =
+            ($checked_in)
+            ? $biblio->old_checkouts
+            : $biblio->current_checkouts;
+
+        my $checkouts = $c->objects->search($checkouts_rs);
+
+        # Transform the results to only include minimal information
+        my $public_checkouts = [
+            map {
+                {
+                    item_id       => $_->{item_id},
+                    checkout_date => $_->{checkout_date},
+                    due_date      => $_->{due_date},
+                }
+            } @{$checkouts}
+        ];
+
+        return $c->render(
+            status  => 200,
+            openapi => $public_checkouts
+        );
+    } catch {
+        $c->unhandled_exception($_);
+    };
+}
+
 =head3 pickup_locations
 
 Method that returns the possible pickup_locations for a given biblio

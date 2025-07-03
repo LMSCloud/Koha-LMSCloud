@@ -709,7 +709,7 @@
           $ref: ../swagger.yaml#/definitions/error
 "/public/biblios/{biblio_id}/checkouts":
   get:
-    x-mojo-to: Biblios#get_checkouts
+    x-mojo-to: Biblios#get_checkouts_public
     operationId: listBiblioCheckoutsPublic
     tags:
       - checkouts
@@ -748,7 +748,26 @@
       "200":
         description: A list of checkouts
         schema:
-          $ref: "../swagger.yaml#/definitions/checkouts"
+          type: array
+          items:
+            type: object
+            properties:
+              item_id:
+                description: Item identifier
+                type: integer
+              checkout_date:
+                description: Date when the item was checked out
+                type: string
+                format: date-time
+              due_date:
+                description: Date when the item is due
+                type: string
+                format: date-time
+            required:
+              - item_id
+              - checkout_date
+              - due_date
+            additionalProperties: false
       "400":
         description: |
           Bad request. Possible `error_code` attribute values:
