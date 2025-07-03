@@ -1,0 +1,287 @@
+name: Build Koha Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      koha_version:
+        description: "Koha version tag (e.g., 22.11.15lmscloud)"
+        required: true
+        default: "22.11.15lmscloud"
+      koha_branch:
+        description: "Koha branch to build from"
+        required: true
+        default: "master"
+      l10n_branch:
+        description: "Translation branch to use"
+        required: true
+        default: "22.11"
+      build_email:
+        description: "Email for package builds"
+        required: true
+        default: "build@lmscloud.de"
+  push:
+    tags:
+      - "v*"
+  schedule:
+    # Run weekly on Sundays at 2 AM UTC
+    - cron: "0 2 * * 0"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: lmscloudpauld/koha-builder
+  IMAGE_TAG: v1.0.0
+
+jobs:
+  build-packages:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+
+    steps:
+      - name: Checkout Koha repository
+        uses: actions/checkout@v4
+        with:
+          repository: LMSCloud/Koha-LMSCloud
+          ref: ${{ steps.vars.outputs.koha_branch }}
+          path: koha-common
+
+      - name: Checkout L10N repository
+        uses: actions/checkout@v4
+        with:
+          repository: LMSCloud/koha-l10n
+          ref: ${{ steps.vars.outputs.l10n_branch }}
+          path: koha-l10n
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Set build variables
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "koha_version=${{ github.event.inputs.koha_version }}" >> $GITHUB_OUTPUT
+            echo "koha_branch=${{ github.event.inputs.koha_branch }}" >> $GITHUB_OUTPUT
+            echo "l10n_branch=${{ github.event.inputs.l10n_branch }}" >> $GITHUB_OUTPUT
+            echo "build_email=${{ github.event.inputs.build_email }}" >> $GITHUB_OUTPUT
+          else
+            # Default values for scheduled/tag builds
+            echo "koha_version=22.11.15lmscloud" >> $GITHUB_OUTPUT
+            echo "koha_branch=master" >> $GITHUB_OUTPUT
+            echo "l10n_branch=22.11" >> $GITHUB_OUTPUT
+            echo "build_email=build@lmscloud.de" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create build workspace
+        run: |
+          mkdir -p build-workspace/packages
+          mkdir -p build-workspace/debian
+          mkdir -p build-workspace/scripts
+
+      - name: Create build scripts
+        run: |
+          cat > build-workspace/scripts/build-l10n.sh << 'EOF'
+          #!/bin/bash
+          set -e
+
+          echo "=== Building Koha L10N Package ==="
+
+          # Check if L10N repository exists
+          if [ ! -d "/tmp/koha-l10n" ]; then
+              echo "L10N repository not found, skipping L10N package build"
+              echo "This is optional and the main Koha package will still be built"
+              exit 0
+          fi
+
+          cd /tmp/koha-l10n
+
+          # For shallow clones, we're already on the correct branch
+          echo "Current branch: $(git branch | grep '\*' | cut -d' ' -f2)"
+          echo "Latest commit: $(git log --oneline -1)"
+
+          echo "Building translation package..."
+          dpkg-buildpackage -us -uc
+
+          # Move built packages
+          echo "Moving L10N packages to debian directory..."
+          find .. -name "koha-l10n_*" -exec mv {} /tmp/debian/ \; || echo "No L10N packages found"
+
+          echo "=== L10N Package Build Complete ==="
+          EOF
+
+          cat > build-workspace/scripts/build-koha.sh << 'EOF'
+          #!/bin/bash
+          set -e
+
+          echo "=== Building Koha Main Package ==="
+          cd /tmp/koha-common
+
+          # Fix debian/clean file permissions (remove executable bit)
+          echo "Fixing debian/clean file permissions..."
+          chmod 644 debian/clean
+
+          # Fix git ownership issue
+          git config --global --add safe.directory "$(pwd)"
+
+          # For shallow clones, we're already on the correct branch
+          echo "Current branch: $(git branch | grep '\*' | cut -d' ' -f2)"
+          echo "Latest commit: $(git log --oneline -1)"
+
+          echo "Building main Koha package with version: $KOHA_VERSION"
+
+          # Instead of using the pbuilder-based build-git-snapshot script,
+          # we'll do a direct dpkg-buildpackage build since we're already in a container
+
+          echo "Preparing package build..."
+
+          # Update the changelog with our version
+          echo "Updating changelog..."
+          deb_version="${KOHA_VERSION}-1"
+
+          # Set environment variables for dch to avoid interactive prompts
+          export DEBEMAIL="$BUILD_EMAIL"
+          export DEBFULLNAME="Koha Build System"
+          export EMAIL="$BUILD_EMAIL"
+
+          dch --force-distribution -D "stable" -v "$deb_version" "Building git snapshot for version $KOHA_VERSION"
+          dch -r "Building git snapshot for version $KOHA_VERSION"
+
+          # Create the source tarball
+          echo "Creating source tarball..."
+          git archive --format=tar --prefix="koha-$KOHA_VERSION/" HEAD | gzip -9 > "../koha_$KOHA_VERSION.orig.tar.gz"
+
+          # Build the package using dpkg-buildpackage directly
+          echo "Building package with dpkg-buildpackage..."
+          export DEB_BUILD_OPTIONS=nocheck
+          export EMAIL=$BUILD_EMAIL
+
+          # Show current directory contents before build
+          echo "Directory contents before build:"
+          ls -la
+
+          # Export build environment variables
+          export DEB_BUILD_OPTIONS="nocheck parallel=1"
+          export EMAIL=$BUILD_EMAIL
+          export TMPDIR=/tmp
+          export DH_COMPAT=11
+
+          # Run dpkg-buildpackage with TMPDIR set to writable location
+          echo "Running dpkg-buildpackage with TMPDIR=/tmp..."
+          dpkg-buildpackage -us -uc -d
+          BUILD_STATUS=$?
+
+          echo "Build completed with status: $BUILD_STATUS"
+
+          # Show what was created
+          echo "Contents of parent directory after build:"
+          ls -la ..
+
+          # Create debian directory and move built packages
+          echo "Moving built packages to debian directory..."
+          mkdir -p /tmp/debian
+          MOVED_FILES=0
+          while read -r file; do
+              if [ -f "$file" ]; then
+                  mv "$file" /tmp/debian/
+                  echo "Moved: $(basename "$file")"
+                  MOVED_FILES=$((MOVED_FILES + 1))
+              fi
+          done < <(find .. -maxdepth 1 \( -name "*.deb" -o -name "*.dsc" -o -name "*.tar.*" -o -name "*.changes" \) -not -name "*l10n*")
+
+          echo "Total files moved: $MOVED_FILES"
+          echo "Final debian directory contents:"
+          ls -la /tmp/debian/
+
+          echo "=== Koha Main Package Build Complete ==="
+          EOF
+
+          chmod +x build-workspace/scripts/*.sh
+
+      - name: Run package builds
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/koha-common:/tmp/koha-common \
+            -v ${{ github.workspace }}/koha-l10n:/tmp/koha-l10n \
+            -v ${{ github.workspace }}/build-workspace:/workspace \
+            -e KOHA_VERSION="${{ steps.vars.outputs.koha_version }}" \
+            -e KOHA_BRANCH="${{ steps.vars.outputs.koha_branch }}" \
+            -e L10N_BRANCH="${{ steps.vars.outputs.l10n_branch }}" \
+            -e BUILD_EMAIL="${{ steps.vars.outputs.build_email }}" \
+            --user root \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+            bash -c "
+              echo '=== Using Checked-out Repositories ==='
+              
+              # Configure git globally to trust the mounted directories
+              echo '=== Configuring Git Safe Directories ==='
+              git config --global --add safe.directory /tmp/koha-common
+              git config --global --add safe.directory /tmp/koha-l10n
+
+              # Run builds as root (avoiding permission issues)
+              echo '=== Starting Package Builds ==='
+              
+              # Build main Koha package
+              cd /tmp/koha-common
+              cp /workspace/scripts/build-koha.sh /tmp/build-koha.sh
+              chmod +x /tmp/build-koha.sh
+              /tmp/build-koha.sh
+
+              # Build L10N package if repository exists
+              if [ -d "/tmp/koha-l10n" ]; then
+                echo ''
+                echo '=== Building L10N Package ==='
+                cd /tmp/koha-l10n
+                cp /workspace/scripts/build-l10n.sh /tmp/build-l10n.sh
+                chmod +x /tmp/build-l10n.sh
+                /tmp/build-l10n.sh
+              else
+                echo 'L10N repository not available, skipping L10N package build'
+              fi
+
+              # Copy built packages to mounted volume
+              echo ''
+              echo '=== Copying Built Packages ==='
+              mkdir -p /workspace/debian
+              cp /tmp/debian/* /workspace/debian/ 2>/dev/null || echo 'No packages found in /tmp/debian'
+              
+              echo ''
+              echo '=== Built Packages ==='
+              ls -la /workspace/debian/
+            "
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: koha-packages-${{ steps.vars.outputs.koha_version }}
+          path: build-workspace/debian/
+          retention-days: 30
+
+      - name: Create release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build-workspace/debian/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify:
+    needs: build-packages
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Notify build status
+        run: |
+          if [ "${{ needs.build-packages.result }}" = "success" ]; then
+            echo "✅ Koha package build completed successfully"
+          else
+            echo "❌ Koha package build failed"
+            exit 1
+          fi
+
