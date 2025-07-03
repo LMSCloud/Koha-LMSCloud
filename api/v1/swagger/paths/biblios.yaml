@@ -914,9 +914,6 @@
         description: Under maintenance
         schema:
           $ref: "../swagger.yaml#/definitions/error"
-    x-koha-authorization:
-      permissions:
-        reserveforothers: place_holds
 "/public/biblios/{biblio_id}/ratings":
   post:
     x-mojo-to: Biblios#set_rating
