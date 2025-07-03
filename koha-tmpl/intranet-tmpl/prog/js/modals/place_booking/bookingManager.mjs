@@ -73,12 +73,21 @@ export function calculateDisabledDates(
         }
     }
     for (const checkout of checkouts) {
+        const issuedate = parse(checkout.checkout_date);
         const due = parse(checkout.due_date);
-        const key = due.format("YYYY-MM-DD");
-        if (!unavailableByDate[key]) unavailableByDate[key] = {};
-        if (!unavailableByDate[key][checkout.item_id])
-            unavailableByDate[key][checkout.item_id] = new Set();
-        unavailableByDate[key][checkout.item_id].add("checkout");
+
+        // Mark the entire checkout period as unavailable (from issuedate to due_date inclusive)
+        for (
+            let d = issuedate.clone();
+            d.isSameOrBefore(due, "day");
+            d = d.add(1, "day")
+        ) {
+            const key = d.format("YYYY-MM-DD");
+            if (!unavailableByDate[key]) unavailableByDate[key] = {};
+            if (!unavailableByDate[key][checkout.item_id])
+                unavailableByDate[key][checkout.item_id] = new Set();
+            unavailableByDate[key][checkout.item_id].add("checkout");
+        }
     }
 
     const allItemIds = bookableItems.map(i => i.item_id);
