@@ -64,10 +64,36 @@
 
     function makeHandleOnMove(visSetBookings) {
         return function (data, callback) {
-            // For intranet, we'll use a simpler approach - just show an alert
-            // In the future, this could open a proper editing modal
-            alert(__("To modify a booking, please cancel the existing booking and create a new one."));
-            callback(null); // Revert the move
+            if (!window.CAN_user_circulate_manage_bookings) {
+                callback(null);
+                return;
+            }
+
+            const booking = visSetBookings.get(data.id);
+            if (!booking) {
+                callback(null);
+                return;
+            }
+
+            const island = document.querySelector("booking-modal-island");
+            if (!island) return;
+
+            island.bookingId = booking.booking;
+            island.itemId = booking.group || null;
+            island.patronId = booking.patron;
+            island.pickupLibraryId = booking.pickup_library;
+            island.startDate = data.start.toISOString();
+            island.endDate = data.end.toISOString();
+            island.extendedAttributes = booking.extended_attributes || [];
+
+            island.open = true;
+
+            const handleModalClose = () => {
+                island.removeEventListener('close', handleModalClose);
+                callback(data);
+            };
+
+            island.addEventListener('close', handleModalClose);
         };
     }
 
@@ -139,7 +165,7 @@
             stack: true,
             editable: {
                 remove: window.CAN_user_circulate_manage_bookings,
-                updateTime: false,
+                updateTime: window.CAN_user_circulate_manage_bookings,
                 updateGroup: false
             },
             verticalScroll: true,
