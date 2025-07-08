@@ -151,7 +151,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
     // Holding library
     if (showHoldingLibrary) {
         columns.push({
-            "data": "item.homebranch",
+            "data": "item.home_library_id",
             "title": _("Holding library"),
             "searchable": true,
             "orderable": true,
@@ -166,7 +166,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
         columns.push({
             "data": "biblio.title",
             "title": _("Title"),
-            "searchable": false,
+            "searchable": true,
             "orderable": true,
             "render": function(data,type,row,meta) {
                 return row.biblio ? $biblio_to_html(row.biblio, {
@@ -216,7 +216,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
         columns.push({
             "data": "item.location",
             "title": _("Location"),
-            "searchable": false,
+            "searchable": true,
             "orderable": false,
             "render": function(data,type,row,meta) {
                 if ( row.item ) {
@@ -495,6 +495,7 @@ function getBookingsEmbed(variant = 'default') {
         case 'default':
         default:
             return [
+                "biblio",
                 "item+strings",
                 "item.checkout",
                 "patron",
