@@ -88,10 +88,10 @@
                         <a class="circ-button" href="/cgi-bin/koha/circ/reserveratios.pl"><i class="fa fa-line-chart"></i> Hold ratios</a>
                     </li>
                     <li>
-                        <a class="circ-button" href="/cgi-bin/koha/circ/pendingbookings.pl"><i class="fa-solid fa-calendar-days"></i> Bookings to collect</a>
+                        <a class="circ-button" href="/cgi-bin/koha/circ/pendingbookings.pl"><i class="fa fa-calendar"></i> Bookings to collect</a>
                     </li>
                     <li>
-                        <a class="circ-button bookings" href="/cgi-bin/koha/circ/bookings.pl"><i class="fa-solid fa-calendar-check"></i> Bookings</a>
+                        <a class="circ-button bookings" href="/cgi-bin/koha/circ/bookings.pl"><i class="fa fa-calendar-check-o"></i> Bookings</a>
                     </li>
                 </ul>
 
