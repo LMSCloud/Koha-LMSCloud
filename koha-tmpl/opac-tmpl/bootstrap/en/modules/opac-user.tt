@@ -1169,6 +1169,12 @@
                                 </div>
                             [% END # / # RECALLS.count %]
 
+                            [% IF Koha.Preference('OPACBookings') && BOOKINGS.count %]
+                                <div id="opac-user-bookings" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-bookings-tab">
+                                    [% INCLUDE 'bookings-table.inc' %]
+                                </div> <!-- / #opac-user-bookings -->
+                            [% END %]
+
                             [% IF Koha.Preference('ArticleRequests') %]
                                 <div id="opac-user-article-requests" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-article-requests-tab">
                                     [% IF current_article_requests.size %]
