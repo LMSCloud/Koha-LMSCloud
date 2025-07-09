@@ -16,6 +16,7 @@
             <th class="psort">Item type</th>
             <th class="psort">Barcode</th>
             <th class="psort">Provided by</th>
+            <th class="psort">Additional fields</th>
             <th class="nosort">Actions</th>
             <th></th>
         </tr>
@@ -73,6 +74,9 @@
                 [% END %]
                 <td class="branch">
                     [% Branches.GetName(BOOKING.item.homebranch) | html %]
+                </td>
+                <td class="additional-fields">
+                    [% INCLUDE 'additional-fields-display.inc' additional_field_values=BOOKING.additional_field_values %]
                 </td>
                 <td class="actions">
                     [% IF BOOKING.status == 'new' %]

@@ -52,8 +52,11 @@ my $patron = Koha::Patrons->find($borrowernumber);
 
 my $op = $query->param('op') // 'list';
 if ( $op eq 'list' ) {
-    my $bookings = Koha::Bookings->search( { patron_id => $patron->borrowernumber } );
-    my $hash     = sha1_base64( join q{}, time, rand );
+    my $bookings = Koha::Bookings->search(
+        { patron_id => $patron->borrowernumber },
+        { prefetch  => [ 'biblio', 'item', 'pickup_library', 'additional_field_values' ] }
+    );
+    my $hash = sha1_base64( join q{}, time, rand );
 
     my $biblio;
     my $biblio_id = $query->param('biblio_id');
@@ -62,9 +65,10 @@ if ( $op eq 'list' ) {
     }
 
     $template->param(
-        op      => 'list', BOOKINGS => $bookings,
-        BOOKING => { booking_id => $hash },
-        biblio  => $biblio,
+        op       => 'list',
+        BOOKINGS => $bookings,
+        BOOKING  => { booking_id => $hash },
+        biblio   => $biblio,
     );
 }
 
