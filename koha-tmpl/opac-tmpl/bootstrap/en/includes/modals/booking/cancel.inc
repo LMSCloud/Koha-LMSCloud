@@ -6,7 +6,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h1 class="modal-title" id="cancelBookingLabel">Cancel booking</h1>
-                    <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn btn-ghost" data-dismiss="modal" aria-label="Close"><i class="fa fa-times"></i></button>
                 </div>
                 <div class="modal-body overflow-visible">
                     <div id="cancel_booking_result"></div>
