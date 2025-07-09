@@ -63,6 +63,7 @@
 [% BLOCK jsinclude %]
     [% Asset.js("js/form-submit.js") | $raw %]
     [% Asset.js("lib/vis-timeline/vis-timeline-graph2d.min.js") | $raw %]
+    [% Asset.js("js/combobox.js") | $raw %]
     [% Asset.js("js/modals/booking/cancel.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
@@ -126,6 +127,12 @@
                         }
                     ]
                 }));
+
+            // Initialize combobox for cancellation reason
+            $("#cancellation-reason").comboBox({
+                displayProperty: 'name',
+                placeholder: _("Select or type a reason"),
+            });
         });
     </script>
 

@@ -1172,6 +1172,7 @@
                             [% IF Koha.Preference('OPACBookings') && BOOKINGS.count %]
                                 <div id="opac-user-bookings" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-bookings-tab">
                                     [% INCLUDE 'bookings-table.inc' %]
+                                    [% INCLUDE 'modals/booking/cancel.inc' %]
                                 </div> <!-- / #opac-user-bookings -->
                             [% END %]
 
@@ -1338,6 +1339,10 @@
 [% BLOCK jsinclude %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
+    [% IF Koha.Preference('OPACBookings') && BOOKINGS.count %]
+        [% Asset.js("js/combobox.js") | $raw %]
+        [% Asset.js("js/modals/booking/cancel.js") | $raw %]
+    [% END %]
     <script>
         var AR_CAPTION_COUNT = _("(%s total)");
 
@@ -1533,6 +1538,14 @@
             $('a[data-toggle="tab"]').on('shown.bs.tab', function (event) {
                 dTables.DataTable().responsive.recalc();
                 dataTables.DataTable().responsive.recalc();
+
+                // Initialize combobox for cancellation reason when bookings tab is shown
+                if (event.target.id === 'opac-user-bookings-tab') {
+                    $("#cancellation-reason").comboBox({
+                        displayProperty: 'name',
+                        placeholder: _("Select or type a reason"),
+                    });
+                }
             } );
 
             $("body").on("click", "#buttons-ics", function(){
