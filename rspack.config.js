@@ -38,7 +38,6 @@ const createBaseConfig = (isOpac = false) => ({
               syntax: "typescript",
             },
           },
-          appendTsSuffixTo: [/\.vue$/],
         },
         exclude: [/node_modules/, path.resolve(__dirname, "t/cypress/")],
         type: "javascript/auto",
