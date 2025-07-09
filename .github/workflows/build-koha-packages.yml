@@ -35,9 +35,9 @@ env:
   IMAGE_NAME: lmscloudpauld/koha-builder
   IMAGE_TAG: v1.0.0
   # Default configuration for scheduled/tag builds
-  DEFAULT_KOHA_VERSION: "22.11.15lmscloud"
+  DEFAULT_KOHA_VERSION: "22.11.24lmscloud"
   DEFAULT_KOHA_BRANCH: "preliminary/backport/bookings"
-  DEFAULT_L10N_BRANCH: "22.11"
+  DEFAULT_L10N_BRANCH: "preliminary/backport/bookings"
   DEFAULT_BUILD_EMAIL: "build@lmscloud.de"
 
 jobs:
@@ -74,7 +74,7 @@ jobs:
       - name: Checkout L10N repository
         uses: actions/checkout@v4
         with:
-          repository: LMSCloud/koha-l10n
+          repository: LMSCloudPaulD/koha-l10n
           ref: ${{ steps.vars.outputs.l10n_branch }}
           path: koha-l10n
 
