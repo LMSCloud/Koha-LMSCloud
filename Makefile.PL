@@ -1833,7 +1833,8 @@ sub top_targets {
     #NOTE: Copy the generated vue dist files into the relevant blib
     $compile_step .= "move_compiled_js: compile_css_js pm_to_blib\n";
     $compile_step .= "\t" . 'cp -r koha-tmpl/intranet-tmpl/prog/js/vue/dist blib/INTRANET_TMPL_DIR/prog/js/vue/dist/' . "\n";
-    $compile_step .= "\t" . 'cp -r koha-tmpl/opac-tmpl/bootstrap/js/vue/dist blib/OPAC_TMPL_DIR/bootstrap/js/vue/dist/' . "\n";
+    $compile_step .= "\t" . 'mkdir -p blib/OPAC_TMPL_DIR/bootstrap/js/vue/dist/' . "\n";
+    $compile_step .= "\t" . 'cp -r koha-tmpl/opac-tmpl/bootstrap/js/vue/dist/* blib/OPAC_TMPL_DIR/bootstrap/js/vue/dist/' . "\n";
     $compile_step .= "\n";
 
     my $top_targets = $compile_step . "\n" . $inherited;
