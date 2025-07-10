@@ -673,7 +673,6 @@ $file_map->{'koha-tmpl/intranet-tmpl/prog/css/holds.css'} = 'blib/INTRANET_TMPL_
 $file_map->{'koha-tmpl/intranet-tmpl/prog/css/installer.css'} = 'blib/INTRANET_TMPL_DIR/prog/css/installer.css';
 $file_map->{'koha-tmpl/intranet-tmpl/prog/css/mainpage.css'} = 'blib/INTRANET_TMPL_DIR/prog/css/mainpage.css';
 $file_map->{'koha-tmpl/intranet-tmpl/prog/css/staff-global.css'} = 'blib/INTRANET_TMPL_DIR/prog/css/staff-global.css';
-$file_map->{'koha-tmpl/intranet-tmpl/prog/js/vue/dist/erm.js'} = 'blib/INTRANET_TMPL_DIR/prog/js/vue/dist/erm.js';
 #OPAC_TMPL_DIR
 $file_map->{'koha-tmpl/opac-tmpl/bootstrap/css/opac.css'} = 'blib/OPAC_TMPL_DIR/bootstrap/css/opac.css';
 $file_map->{'koha-tmpl/opac-tmpl/bootstrap/css/opac-rtl.css'} = 'blib/OPAC_TMPL_DIR/bootstrap/css/opac-rtl.css';
@@ -1833,8 +1832,8 @@ sub top_targets {
     #NOTE: Make move_compiled_js depend on pm_to_blib, so we have access to the blib directory
     #NOTE: Copy the generated vue dist files into the relevant blib
     $compile_step .= "move_compiled_js: compile_css_js pm_to_blib\n";
-    $compile_step .= "\t" . 'cp -r koha-tmpl/intranet-tmpl/prog/js/vue/dist blib/INTRANET_TMPL_DIR/prog/js/vue/' . "\n";
-    $compile_step .= "\t" . 'cp -r koha-tmpl/opac-tmpl/bootstrap/js/vue/dist blib/OPAC_TMPL_DIR/bootstrap/js/vue/' . "\n";
+    $compile_step .= "\t" . 'cp -r koha-tmpl/intranet-tmpl/prog/js/vue/dist blib/INTRANET_TMPL_DIR/prog/js/vue/dist/' . "\n";
+    $compile_step .= "\t" . 'cp -r koha-tmpl/opac-tmpl/bootstrap/js/vue/dist blib/OPAC_TMPL_DIR/bootstrap/js/vue/dist/' . "\n";
     $compile_step .= "\n";
 
     my $top_targets = $compile_step . "\n" . $inherited;
