@@ -504,8 +504,8 @@ foreach my $branchcode (@branches) {
     my $usebranch           = $branchcode;
     $usebranch = $library->mobilebranch if ( $library->mobilebranch );
     
+    my $calendar;
     if ( C4::Context->preference('OverdueNoticeCalendar') || C4::Context->preference('OverdueNoticeSkipWhenClosed') ) {
-        my $calendar = Koha::Calendar->new( branchcode => $branchcode );
         $calendar = Koha::Calendar->new( branchcode => $branchcode );
         if ( $calendar->is_holiday($date_to_run) ) {
             next;
@@ -693,7 +693,7 @@ END_SQL
                 my $days_between;
                 if ( C4::Context->preference('OverdueNoticeCalendar') )
                 {
-                    my $calendar =
+                    $calendar =
                       Koha::Calendar->new( branchcode => $data->{branchcode} );
                     $days_between =
                       $calendar->days_between( dt_from_string($data->{date_due}),
@@ -797,7 +797,7 @@ END_SQL
                     my $titleinfo = "";
                     
                     if ( C4::Context->preference('OverdueNoticeCalendar') ) {
-                        my $calendar =
+                        $calendar =
                           Koha::Calendar->new( branchcode => $item_info->{issuebranch} );
                         $days_between =
                           $calendar->days_between(
