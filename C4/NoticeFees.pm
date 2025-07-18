@@ -269,8 +269,13 @@ sub AddNoticeFee {
 
 
     if ( $amount ) { # Don't add new fines with an amount of 0.00
-
-        my $description = $self->GetNoticeFeeDescription($params);
+        
+        my $description='';
+        if ( exists($params->{"notice_fee_description"}) && $params->{"notice_fee_description"} ) {
+            $description  = $params->{"notice_fee_description"};
+        } else {
+            $description = $self->GetNoticeFeeDescription($params);
+        }
 
         my $account = Koha::Account->new({ patron_id => $borrowernumber });
         my $accountline = $account->add_debit(
