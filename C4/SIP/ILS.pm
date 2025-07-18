@@ -228,8 +228,6 @@ sub checkin {
 
     $circ = C4::SIP::ILS::Transaction::Checkin->new();
     
-    syslog("LOG_DEBUG", "C4::SIP::ILS::checkin - using checked_in_ok") if $checked_in_ok;
-
     # BEGIN TRANSACTION
     $circ->item( $item = C4::SIP::ILS::Item->new($item_id) );
 
