@@ -41,22 +41,28 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
 
 my $biblionumber = $query->param('biblionumber');
 
-my @checkouts = Koha::Checkouts->search(
-    { biblionumber => $biblionumber },
-    {
-        join       => 'item',
-        order_by   => 'timestamp',
-    }
-)->as_list;
-my @old_checkouts = Koha::Old::Checkouts->search(
-    { biblionumber => $biblionumber },
-    {
-        join       => 'item',
-        order_by   => 'timestamp',
-    }
-)->as_list;
+my @checkouts;
+my @old_checkouts;
+my $biblio;
 
-my $biblio = Koha::Biblios->find( $biblionumber );
+if ( $biblionumber ) {
+    @checkouts = Koha::Checkouts->search(
+        { biblionumber => $biblionumber },
+        {
+            join       => 'item',
+            order_by   => 'timestamp',
+        }
+    )->as_list;
+    @old_checkouts = Koha::Old::Checkouts->search(
+        { biblionumber => $biblionumber },
+        {
+            join       => 'item',
+            order_by   => 'timestamp',
+        }
+    )->as_list;
+    
+    $biblio = Koha::Biblios->find( $biblionumber );
+}
 
 $template->param(
     checkouts => [ @checkouts, @old_checkouts ],
