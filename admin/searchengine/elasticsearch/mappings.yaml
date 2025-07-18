@@ -2261,6 +2261,15 @@ biblios:
         sort: ~
         suggestible: ''
     type: ''
+  language-note:
+    label: language-note
+    mappings:
+      - facet: ''
+        marc_field: 546(ab)
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+    type: ''
   language-original:
     label: language-original
     mappings:
@@ -2849,6 +2858,15 @@ biblios:
         marc_field: 035
         marc_type: marc21
         sort: ~
+        suggestible: ''
+    type: ''
+  ownership:
+    label: ownership
+    mappings:
+      - facet: ''
+        marc_field: 361
+        marc_type: marc21
+        sort: 0
         suggestible: ''
     type: ''
   personal-name:
