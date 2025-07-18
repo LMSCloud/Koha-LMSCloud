@@ -342,7 +342,7 @@
         </xsl:if>
 
         <!-- Volumes of sets and traced series -->
-        <xsl:if test="$materialTypeCode='ST' or substring($controlField008,22,1)='m'">
+        <xsl:if test="$materialTypeCode='ST' or substring($controlField008,22,1)='m' or ($materialTypeCode='SE' and substring($controlField008,22,1)='p')">
         <span class="results_summary volumes"><span class="label">Volumes: </span>
             <a>
             <xsl:choose>
@@ -354,7 +354,7 @@
             </xsl:otherwise>
             </xsl:choose>
             <xsl:choose>
-                <xsl:when test="$leader7='s'">
+                <xsl:when test="$leader7='s' and (substring($controlField008,22,1)='p' or substring($controlField008,22,1)='n')">
                     <span class="label">Show issues</span>
                 </xsl:when>
                 <xsl:otherwise>

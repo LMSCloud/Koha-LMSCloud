@@ -243,7 +243,7 @@
         </xsl:if>
 
         <!-- Volumes of sets and traced series -->
-        <xsl:if test="$materialTypeCode='ST' or substring($controlField008,22,1)='m'">
+        <xsl:if test="$materialTypeCode='ST' or substring($controlField008,22,1)='m' or ($materialTypeCode='SE' and substring($controlField008,22,1)='p')">
         <span class="results_summary volumes"><span class="label">Volumes: </span>
             <a>
             <xsl:choose>
