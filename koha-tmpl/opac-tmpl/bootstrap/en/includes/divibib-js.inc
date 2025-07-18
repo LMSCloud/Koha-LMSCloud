@@ -110,7 +110,7 @@ function checkDivibibAvalability(idList) {
                                         + _("Download available for logged in users.") 
                                         + '</span></b>';
                         [% END %]
-                        if ( loggedIn && !version3orLater ) {
+                        if ( loggedIn ) {
                             statusDisplay = '<a class="external-offer-link" href="#" onclick="accessDivibibResource(' 
                                             + "'loan','" + data.titles[i].result.ItemId 
                                             + "'); return false;"
@@ -148,7 +148,7 @@ function checkDivibibAvalability(idList) {
                                         + _("Reservable for logged in users.") 
                                         + '</b>';
                         [% END %]
-                        if ( loggedIn && !version3orLater ) {
+                        if ( loggedIn ) {
                             statusDisplay = '<a class="external-offer-link" href="#" onclick="accessDivibibResource(' 
                                             + "'reservation','" 
                                             + data.titles[i].result.ItemId 
