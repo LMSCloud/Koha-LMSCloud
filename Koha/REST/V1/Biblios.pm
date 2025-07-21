@@ -306,6 +306,38 @@ sub get_public {
     };
 }
 
+
+=head3 get_bookings
+
+Controller function that handles retrieving biblio's bookings
+
+=cut
+
+sub get_bookings {
+    my $c = shift->openapi->valid_input or return;
+
+    my $biblio = Koha::Biblios->find( { biblionumber => $c->param('biblio_id') }, { prefetch => ['bookings'] } );
+
+    unless ($biblio) {
+        return $c->render(
+            status  => 404,
+            openapi => { error => "Object not found." }
+        );
+    }
+
+    return try {
+
+        my $bookings_rs = $biblio->bookings;
+        my $bookings    = $c->objects->search($bookings_rs);
+        return $c->render(
+            status  => 200,
+            openapi => $bookings
+        );
+    } catch {
+        $c->unhandled_exception($_);
+    };
+}
+
 =head3 get_items
 
 Controller function that handles retrieving biblio's items
@@ -315,27 +347,29 @@ Controller function that handles retrieving biblio's items
 sub get_items {
     my $c = shift->openapi->valid_input or return;
 
-    my $biblio = Koha::Biblios->find( { biblionumber => $c->validation->param('biblio_id') }, { prefetch => ['items'] } );
+    my $biblio        = Koha::Biblios->find( { biblionumber => $c->param('biblio_id') }, { prefetch => ['items'] } );
+    my $bookable_only = $c->param('bookable');
 
-    unless ( $biblio ) {
+    # Deletion of parameter to avoid filtering on the items table in the case of bookings on 'itemtype'
+    $c->req->params->remove('bookable');
+
+    unless ($biblio) {
         return $c->render(
             status  => 404,
-            openapi => {
-                error => "Object not found."
-            }
+            openapi => { error => "Object not found." }
         );
     }
 
     return try {
 
         my $items_rs = $biblio->items;
-        my $items    = $c->objects->search( $items_rs );
+        $items_rs = $items_rs->filter_by_bookable if $bookable_only;
+        my $items = $c->objects->search($items_rs);
         return $c->render(
             status  => 200,
             openapi => $items
         );
-    }
-    catch {
+    } catch {
         $c->unhandled_exception($_);
     };
 }
@@ -372,6 +406,51 @@ sub get_checkouts {
         );
     }
     catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 get_checkouts_public
+
+List minimal checkout information for public access
+
+=cut
+
+sub get_checkouts_public {
+    my $c = shift->openapi->valid_input or return;
+
+    my $checked_in = $c->param('checked_in');
+    $c->req->params->remove('checked_in');
+
+    try {
+        my $biblio = Koha::Biblios->find( $c->param('biblio_id') );
+
+        return $c->render_resource_not_found("Bibliographic record")
+            unless $biblio;
+
+        my $checkouts_rs =
+            ($checked_in)
+            ? $biblio->old_checkouts
+            : $biblio->current_checkouts;
+
+        my $checkouts = $c->objects->search($checkouts_rs);
+
+        # Transform the results to only include minimal information
+        my $public_checkouts = [
+            map {
+                {
+                    item_id       => $_->{item_id},
+                    checkout_date => $_->{checkout_date},
+                    due_date      => $_->{due_date},
+                }
+            } @{$checkouts}
+        ];
+
+        return $c->render(
+            status  => 200,
+            openapi => $public_checkouts
+        );
+    } catch {
         $c->unhandled_exception($_);
     };
 }
@@ -432,6 +511,16 @@ sub pickup_locations {
             my $pickup_locations = $c->objects->search($pl_set);
             @response = map { $_->{needs_override} = Mojo::JSON->false; $_; } @{$pickup_locations};
         }
+        @response = map {
+            if ( exists $pl_set->{_pickup_location_items}->{ $_->{library_id} }
+                && ref $pl_set->{_pickup_location_items}->{ $_->{library_id} } eq 'ARRAY' )
+            {
+                $_->{pickup_items} = $pl_set->{_pickup_location_items}->{ $_->{library_id} };
+            } else {
+                $_->{pickup_items} = [];
+            }
+            $_;
+        } @response;
 
         return $c->render(
             status  => 200,

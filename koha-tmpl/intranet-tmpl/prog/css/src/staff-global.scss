@@ -1162,6 +1162,64 @@ div {
     }
 }
 
+$dayLeadBackground: #fad2cf !default;
+$dayTrailBackground: #fcdcb3 !default;
+.flatpickr-day {
+
+    &.leadRangeStart {
+        border-radius: 50px 0 0 50px;
+    }
+
+    &.leadRange {
+        box-shadow: -2.5 * $dayMargin 0 0 $dayLeadBackground, 2.5 * $dayMargin 0 0 $dayLeadBackground;
+        background: $dayLeadBackground;
+        &.flatpickr-disabled {
+            $darkLeadBackground: darken($dayLeadBackground, 10);
+            box-shadow: -2.5 * $dayMargin 0 0 $darkLeadBackground, 2.5 * $dayMargin 0 0 $darkLeadBackground;
+            background: $darkLeadBackground;
+        }
+    }
+
+    &.selected {
+       &.leadRangeEnd {
+           border-radius: 0;
+       }
+    }
+
+    &:hover,
+    &.selected {
+        &.trailRangeStart {
+            border-radius: 0;
+        }
+    }
+
+    &.trailRange {
+        box-shadow: -2.5 * $dayMargin 0 0 $dayTrailBackground, 2.5 * $dayMargin 0 0 $dayTrailBackground;
+        background: $dayTrailBackground;
+        &.flatpickr-disabled {
+            $darkTrailBackground: darken($dayTrailBackground, 10);
+            box-shadow: -2.5 * $dayMargin 0 0 $darkTrailBackground, 2.5 * $dayMargin 0 0 $darkTrailBackground;
+            background: $darkTrailBackground;
+        }
+    }
+
+    &.trailRangeEnd {
+        border-radius: 0 50px 50px 0;
+    }
+
+    &.leadDisable {
+        color: #aaa !important;  /* Gray out the text */
+        background: #f5f5f5 !important;  /* Light background */
+        cursor: not-allowed !important;
+    }
+
+    &.trailDisable {
+        color: #aaa !important;  /* Gray out the text */
+        background: #f5f5f5 !important;  /* Light background */
+        cursor: not-allowed !important;
+    }
+}
+
 #sales {
     display: none;
 }

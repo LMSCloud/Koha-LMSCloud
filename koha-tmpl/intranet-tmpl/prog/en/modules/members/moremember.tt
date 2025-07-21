@@ -677,6 +677,11 @@
                                 <li role="presentation">
                                         <a href="#reserves" id="holds-tab" aria-controls="reserves" role="tab" data-toggle="tab">Holds ([% holds_count || 0 | html %])</a>
                                 </li>
+                                [% WRAPPER tab_item tabname="bookings" %]
+                                    [% SET bookings_count = patron.bookings.filter_by_active.count %]
+                                    [% SET expired_bookings_count = patron.bookings.count - bookings_count %]
+                                    <span class="bookings_count">Bookings ([% bookings_count || 0 | html %])</span>
+                                [% END %]
                             [% END %]
 
                             [% IF Koha.Preference('UseRecalls') %]
@@ -736,23 +741,23 @@
 
                         <div class="tab-content">
                             [% INCLUDE "checkouts-table.inc" %]
-                            
-							[% IF ( Koha.Preference('DivibibEnabled') ) %]
-								<div id="divibib-issues" role="tabpanel" class="tab-pane">
-									<table id="divibib-issues-table" style="width: 100% !Important;">
-										<thead>
-											<tr>
-												<th scope="col">Due date hidden not formatted</th>
-												<th scope="col">Due date</th>
-												<th scope="col">Title</th>
-												<th scope="col">Item type</th>
-												<th scope="col">Checked out on</th>
-												<th scope="col">Checked out from</th>
-											</tr>
-										</thead>
-									</table>
-								</div>
-							[% END %]
+
+                            [% IF ( Koha.Preference('DivibibEnabled') ) %]
+                                <div id="divibib-issues" role="tabpanel" class="tab-pane">
+                                    <table id="divibib-issues-table" style="width: 100% !Important;">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Due date hidden not formatted</th>
+                                                <th scope="col">Due date</th>
+                                                <th scope="col">Title</th>
+                                                <th scope="col">Item type</th>
+                                                <th scope="col">Checked out on</th>
+                                                <th scope="col">Checked out from</th>
+                                            </tr>
+                                        </thead>
+                                    </table>
+                                </div>
+                            [% END %]
 
                             [% INCLUDE "relatives-issues-table.inc" %]
 
@@ -842,6 +847,22 @@
                                         <p>Patron has nothing on hold.</p>
                                     [% END %]
                                 </div> [% # /div#reserves %]
+
+                                [% WRAPPER tab_panel tabname="bookings" %]
+                                    [% IF ( bookings_count ) %]
+                                        <fieldset class="action filters" style="cursor:pointer;">
+                                            <a id="expired_filter" class="filtered"><i class="fa fa-bars"></i> Show expired</a>
+                                        </fieldset>
+                                        <table id="bookings_table" style="width: 100% !Important;"></table>
+                                    [% ELSIF ( expired_bookings_count ) %]
+                                        <fieldset class="action filters" style="cursor:pointer;">
+                                            <a id="expired_filter"><i class="fa fa-filter"></i> Hide expired</a>
+                                        </fieldset>
+                                        <table id="bookings_table" style="width: 100% !Important;"></table>
+                                    [% ELSE %]
+                                        <p>Patron has nothing booked.</p>
+                                    [% END %]
+                                [% END %]
                             [% END %]
 
                             [% IF Koha.Preference('UseRecalls') %]
@@ -872,6 +893,8 @@
         [% IF Koha.Preference('ClaimReturnedLostValue') %]
             [% INCLUDE 'modals/resolve_return_claim.inc' %]
         [% END %]
+
+        [% INCLUDE modals/cancel_booking.inc %]
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
@@ -908,6 +931,10 @@
     [% END %]
     [% Asset.js("js/holds.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
+    [% Asset.js("js/additional-fields.js") | $raw %]
+    [% Asset.js("js/cancel_booking_modal.js") | $raw %]
+    [% Asset.js("js/combobox.js") | $raw %]
+    [% INCLUDE 'js-biblio-format.inc' %]
     [% INCLUDE 'str/members-menu.inc' %]
     [% Asset.js("js/members-menu.js") | $raw %]
     [% Asset.js("js/recalls.js") | $raw %]
@@ -915,9 +942,9 @@
 
         table_settings_issues_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'issues-table', 'json' ) | $raw %]
         table_settings_relatives_issues_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'relatives-issues-table', 'json' ) | $raw %]
+        table_settings_bookings_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'bookings-table', 'json' ) | $raw %]
 
         $(document).ready(function() {
-
             $("#info_digests").tooltip();
 
             if ( $('#clubs-tab').length ) {
@@ -937,7 +964,21 @@
             $("#view_restrictions").on("click",function(){
                 $('#debarments-tab-link').click();
             });
-         });
+
+            $("#view_guarantees_finesandcharges").on("click",function(){
+                $('#guarantees_finesandcharges-tab').click();
+            });
+
+            $("#cancellation-reason").comboBox({
+                displayProperty: 'name',
+                placeholder: _("Select or type a reason"),
+            });
+
+        });
+
+        CAN_user_circulate_manage_bookings = [% CAN_user_circulate_manage_bookings | $raw %]
+        patron_borrowernumber = [% patron.borrowernumber | $raw %]
+
         function uncheck_sibling(me){
             nodename=me.getAttribute("name");
             if (nodename =="barcodes[]"){
@@ -961,6 +1002,7 @@
             }
         }
     </script>
+    [% Asset.js("js/tables/bookings.js") | $raw %]
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

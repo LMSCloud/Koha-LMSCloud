@@ -290,6 +290,76 @@
     x-koha-authorization:
       permissions:
         editcatalogue: edit_catalogue
+"/biblios/{biblio_id}/bookings":
+  get:
+    x-mojo-to: Biblios#get_bookings
+    operationId: getBiblioBookings
+    tags:
+      - bookings
+    summary: Get bookings for a biblio
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/biblio_id_pp"
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - item
+            - patron
+            - pickup_library
+            - extended_attributes
+            - extended_attributes+strings
+        collectionFormat: csv
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: A list of the bookings attached to the record
+        schema:
+          type: array
+          items:
+            $ref: ../swagger.yaml#/definitions/booking
+      "401":
+        description: Authentication required
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "404":
+        description: Biblio not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "406":
+        description: Not acceptable
+        schema:
+          type: array
+          description: Accepted content-types
+          items:
+            type: string
+      "500":
+        description: Internal server error
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+    x-koha-authorization:
+      permissions:
+        circulate: "manage_bookings"
 "/biblios/{biblio_id}/checkouts":
   get:
     x-mojo-to: Biblios#get_checkouts
@@ -322,7 +392,8 @@
         collectionFormat: csv
       - name: checked_in
         in: query
-        description: By default, current checkouts are returned, when this is true then
+        description:
+          By default, current checkouts are returned, when this is true then
           checked in checkouts are returned as result.
         type: boolean
     produces:
@@ -360,7 +431,8 @@
           $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
-        circulate: circulate_remaining_permissions
+        - circulate: circulate_remaining_permissions
+        - circulate: manage_bookings
 "/biblios/{biblio_id}/items":
   get:
     x-mojo-to: Biblios#get_items
@@ -379,6 +451,8 @@
           type: string
           enum:
             - +strings
+            - item_type
+            - effective_bookable
         collectionFormat: csv
       - $ref: "../swagger.yaml#/parameters/match"
       - $ref: "../swagger.yaml#/parameters/order_by"
@@ -388,6 +462,11 @@
       - $ref: "../swagger.yaml#/parameters/q_body"
       - $ref: "../swagger.yaml#/parameters/q_header"
       - $ref: "../swagger.yaml#/parameters/request_id_header"
+      - name: bookable
+        in: query
+        description: Limit to items that are bookable
+        required: false
+        type: boolean
     consumes:
       - application/json
     produces:
@@ -555,6 +634,166 @@
         description: Under maintenance
         schema:
           $ref: "../swagger.yaml#/definitions/error"
+"/public/biblios/{biblio_id}/bookings":
+  get:
+    x-mojo-to: Biblios#get_bookings
+    operationId: getBiblioBookingsPublic
+    tags:
+      - bookings
+    summary: Get bookings for a biblio
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/biblio_id_pp"
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - item
+            - patron
+            - pickup_library
+            - extended_attributes+strings
+        collectionFormat: csv
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: A list of the bookings attached to the record
+        schema:
+          type: array
+          items:
+            $ref: ../swagger.yaml#/definitions/booking
+      "400":
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `invalid_query`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "404":
+        description: Biblio not found
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "406":
+        description: Not acceptable
+        schema:
+          type: array
+          description: Accepted content-types
+          items:
+            type: string
+      "500":
+        description: Internal server error
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: ../swagger.yaml#/definitions/error
+"/public/biblios/{biblio_id}/checkouts":
+  get:
+    x-mojo-to: Biblios#get_checkouts_public
+    operationId: listBiblioCheckoutsPublic
+    tags:
+      - checkouts
+    summary: List checkouts for a biblio
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/biblio_id_pp"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - $ref: "../swagger.yaml#/parameters/request_id_header"
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - issuer
+            - item
+            - patron
+            - library
+        collectionFormat: csv
+      - name: checked_in
+        in: query
+        description:
+          By default, current checkouts are returned, when this is true then
+          checked in checkouts are returned as result.
+        type: boolean
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: A list of checkouts
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              item_id:
+                description: Item identifier
+                type: integer
+              checkout_date:
+                description: Date when the item was checked out
+                type: string
+                format: date-time
+              due_date:
+                description: Date when the item is due
+                type: string
+                format: date-time
+            required:
+              - item_id
+              - checkout_date
+              - due_date
+            additionalProperties: false
+      "400":
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `invalid_query`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Biblio not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
 "/public/biblios/{biblio_id}/items":
   get:
     x-mojo-to: Biblios#get_items_public
@@ -571,6 +810,20 @@
       - $ref: "../swagger.yaml#/parameters/q_param"
       - $ref: "../swagger.yaml#/parameters/q_body"
       - $ref: "../swagger.yaml#/parameters/q_header"
+      - name: bookable
+        in: query
+        description: Limit to items that are bookable
+        required: false
+        type: boolean
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - +strings
     consumes:
       - application/json
     produces:
@@ -619,6 +872,67 @@
         description: Under maintenance
         schema:
           $ref: "../swagger.yaml#/definitions/error"
+"/public/biblios/{biblio_id}/pickup_locations":
+  get:
+    x-mojo-to: Biblios#pickup_locations
+    operationId: getBiblioPickupLocationsPublic
+    tags:
+      - biblios
+    summary: Get valid pickup locations for a biblio
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/biblio_id_pp"
+      - name: patron_id
+        in: query
+        description: Internal patron identifier
+        required: true
+        type: integer
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: Biblio pickup locations
+        schema:
+          type: array
+          items:
+            $ref: "../swagger.yaml#/definitions/library"
+      "400":
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `invalid_query`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Bibliographic record not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
 "/public/biblios/{biblio_id}/ratings":
   post:
     x-mojo-to: Biblios#set_rating
@@ -640,7 +954,7 @@
                 - integer
                 - "null"
           required:
-              - rating
+            - rating
           additionalProperties: false
     produces:
       - application/json

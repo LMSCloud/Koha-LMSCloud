@@ -67,7 +67,8 @@
           $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
-        circulate: circulate_remaining_permissions
+        - circulate: circulate_remaining_permissions
+        - circulate: manage_bookings
 "/checkouts/{checkout_id}":
   get:
     x-mojo-to: Checkouts#get

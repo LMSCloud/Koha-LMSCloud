@@ -19,7 +19,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 16;
+use Test::More tests => 17;
 
 use Test::MockModule;
 use Test::Exception;
@@ -1975,6 +1975,54 @@ subtest 'filter_by_for_hold' => sub {
     is( $biblio->items->filter_by_for_hold->count, 0, '0 item-level_itypes=0' );
 
     t::lib::Mocks::mock_preference('item-level_itypes', 1);
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'filter_by_bookable' => sub {
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'item-level_itypes', 0 );
+
+    my $bookable_item_type     = $builder->build_object( { class => 'Koha::ItemTypes', value => { bookable => 1 } } );
+    my $non_bookable_item_type = $builder->build_object( { class => 'Koha::ItemTypes', value => { bookable => 0 } } );
+    my $biblio                 = $builder->build_sample_biblio( { itemtype => $bookable_item_type->itemtype } );
+
+    # bookable items
+    my $bookable_item1 = $builder->build_sample_item(
+        { biblionumber => $biblio->biblionumber, itype => $bookable_item_type->itemtype, bookable => 1 } );
+
+    # not bookable items
+    my $non_bookable_item1 = $builder->build_sample_item(
+        { biblionumber => $biblio->biblionumber, itype => $non_bookable_item_type->itemtype, bookable => 0 } );
+    my $non_bookable_item2 = $builder->build_sample_item(
+        { biblionumber => $biblio->biblionumber, itype => $non_bookable_item_type->itemtype, bookable => 0 } );
+
+    is(
+        $biblio->items->filter_by_bookable->count, 1,
+        "filter_by_bookable returns the correct number of items set at item level"
+    );
+    is(
+        $biblio->items->filter_by_bookable->next->itemnumber, $bookable_item1->itemnumber,
+        "the correct item is returned from filter_by_bookable at the item level"
+    );
+
+    $bookable_item1->bookable(undef)->store();
+    $non_bookable_item1->bookable(undef)->store();
+    $non_bookable_item2->bookable(undef)->store();
+    $biblio->get_from_storage;
+    is(
+        $biblio->items->filter_by_bookable->count, 3,
+        "filter_by_bookable returns the correct number of items when not set at item level and using biblio level itemtypes"
+    );
+
+    t::lib::Mocks::mock_preference( 'item-level_itypes', 1 );
+    is(
+        $biblio->items->filter_by_bookable->count, 1,
+        "filter_by_bookable returns the correct number of items when not set at item level and using item level itemtypes"
+    );
 
     $schema->storage->txn_rollback;
 };

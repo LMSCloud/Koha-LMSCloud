@@ -1641,6 +1641,20 @@ sub curbside_pickups {
     return Koha::CurbsidePickups->_new_from_dbic($curbside_pickups_rs);
 }
 
+=head3 bookings
+
+  my $bookings = $item->bookings();
+
+Returns the bookings for this patron.
+
+=cut
+
+sub bookings {
+    my ( $self, $params ) = @_;
+    my $bookings_rs = $self->_result->bookings->search($params);
+    return Koha::Bookings->_new_from_dbic( $bookings_rs );
+}
+
 =head3 return_claims
 
 my $return_claims = $patron->return_claims
@@ -2184,6 +2198,39 @@ sub get_extended_attribute {
     return $attribute->next;
 }
 
+=head3 is_accessible
+
+    if ( $patron->is_accessible({ user => $logged_in_user }) ) { ... }
+
+This overloaded method validates whether the current I<Koha::Patron> object can be accessed
+by the logged in user.
+
+Returns 0 if the I<user> parameter is missing.
+
+=cut
+
+sub is_accessible {
+    my ( $self, $params ) = @_;
+
+    unless ( defined( $params->{user} ) ) {
+        Koha::Exceptions::MissingParameter->throw( error => "The `user` parameter is mandatory" );
+    }
+
+    my $consumer = $params->{user};
+    return $consumer->can_see_patron_infos($self);
+}
+
+=head3 unredact_list
+
+This method returns the list of database fields that should be visible, even for restricted users,
+for both API and UI output purposes
+
+=cut
+
+sub unredact_list {
+    return ['surname', 'categorycode', 'branchcode'];
+}
+
 =head3 to_api
 
     my $json = $patron->to_api;
@@ -2205,6 +2252,20 @@ sub to_api {
     $json_patron->{restriction_comment} = $self->debarredcomment;
 
     return $json_patron;
+}
+
+=head3 public_read_list
+
+This method returns the list of publicly readable database fields for both API and UI output purposes
+
+=cut
+
+sub public_read_list {
+    return [
+        'surname',
+        'branchcode',
+        'categorycode',
+    ];
 }
 
 =head3 to_api_mapping

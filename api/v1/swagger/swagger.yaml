@@ -15,11 +15,15 @@ definitions:
   authorised_value_category:
     $ref: ./definitions/authorised_value_category.yaml
   identity_provider:
-    "$ref": ./definitions/identity_provider.yaml
+    $ref: ./definitions/identity_provider.yaml
   identity_provider_domain:
-    "$ref": ./definitions/identity_provider_domain.yaml
+    $ref: ./definitions/identity_provider_domain.yaml
   basket:
     $ref: ./definitions/basket.yaml
+  booking:
+    $ref: ./definitions/booking.yaml
+  booking_patch:
+    $ref: ./definitions/booking_patch.yaml
   bundle_link:
     $ref: ./definitions/bundle_link.yaml
   bzsh_bib_updates:
@@ -62,6 +66,10 @@ definitions:
     $ref: ./definitions/error.yaml
   external_order:
     $ref: ./definitions/external_order.yaml
+  extended_attribute_type:
+    $ref: ./definitions/extended_attribute_type.yaml
+  extended_attribute_value:
+    $ref: ./definitions/extended_attribute_value.yaml
   fund:
     $ref: ./definitions/fund.yaml
   hold:
@@ -88,6 +96,8 @@ definitions:
     $ref: ./definitions/item.yaml
   item_group:
     $ref: ./definitions/item_group.yaml
+  item_type:
+    $ref: ./definitions/item_type.yaml
   job:
     $ref: ./definitions/job.yaml
   library:
@@ -126,13 +136,13 @@ definitions:
     $ref: ./definitions/zkshp_illrequest.yaml
 paths:
   /acquisitions/baskets/managers:
-    $ref: paths/acquisitions_baskets.yaml#/~1acquisitions~1baskets~1managers
+    $ref: ./paths/acquisitions_baskets.yaml#/~1acquisitions~1baskets~1managers
   /acquisitions/funds:
     $ref: ./paths/acquisitions_funds.yaml#/~1acquisitions~1funds
   /acquisitions/funds/owners:
-    $ref: paths/acquisitions_funds.yaml#/~1acquisitions~1funds~1owners
+    $ref: ./paths/acquisitions_funds.yaml#/~1acquisitions~1funds~1owners
   /acquisitions/funds/users:
-    $ref: paths/acquisitions_funds.yaml#/~1acquisitions~1funds~1users
+    $ref: ./paths/acquisitions_funds.yaml#/~1acquisitions~1funds~1users
   /acquisitions/orders:
     $ref: ./paths/acquisitions_orders.yaml#/~1acquisitions~1orders
   "/acquisitions/orders/{order_id}":
@@ -145,6 +155,10 @@ paths:
     $ref: ./paths/advancededitormacros.yaml#/~1advanced_editor~1macros
   /advanced_editor/macros/shared:
     $ref: ./paths/advancededitormacros.yaml#/~1advanced_editor~1macros~1shared
+  /bookings:
+    $ref: ./paths/bookings.yaml#/~1bookings
+  "/bookings/{booking_id}":
+    $ref: ./paths/bookings.yaml#/~1bookings~1{booking_id}
   /search_filters:
     $ref: ./paths/search_filters.yaml#/~1search_filters
   "/search_filters/{search_filter_id}":
@@ -158,29 +172,31 @@ paths:
   "/article_requests/{article_request_id}":
     $ref: "./paths/article_requests.yaml#/~1article_requests~1{article_request_id}"
   /auth/otp/token_delivery:
-    $ref: paths/auth.yaml#/~1auth~1otp~1token_delivery
+    $ref: "./paths/auth.yaml#/~1auth~1otp~1token_delivery"
   "/auth/password/validation":
     $ref: "./paths/auth.yaml#/~1auth~1password~1validation"
   /auth/two-factor/registration:
-    $ref: paths/auth.yaml#/~1auth~1two-factor~1registration
+    $ref: ./paths/auth.yaml#/~1auth~1two-factor~1registration
   /auth/two-factor/registration/verification:
-    $ref: paths/auth.yaml#/~1auth~1two-factor~1registration~1verification
+    $ref: ./paths/auth.yaml#/~1auth~1two-factor~1registration~1verification
   /auth/identity_providers:
-    $ref: paths/auth.yaml#/~1auth~1identity_providers
+    $ref: ./paths/auth.yaml#/~1auth~1identity_providers
   "/auth/identity_providers/{identity_provider_id}":
-    $ref: paths/auth.yaml#/~1auth~1identity_providers~1{identity_provider_id}
+    $ref: ./paths/auth.yaml#/~1auth~1identity_providers~1{identity_provider_id}
   "/auth/identity_providers/{identity_provider_id}/domains":
-    $ref: paths/auth.yaml#/~1auth~1identity_providers~1{identity_provider_id}~1domains
+    $ref: ./paths/auth.yaml#/~1auth~1identity_providers~1{identity_provider_id}~1domains
   "/auth/identity_providers/{identity_provider_id}/domains/{identity_provider_domain_id}":
-    $ref: paths/auth.yaml#/~1auth~1identity_providers~1{identity_provider_id}~1domains~1{identity_provider_domain_id}
+    $ref: ./paths/auth.yaml#/~1auth~1identity_providers~1{identity_provider_id}~1domains~1{identity_provider_domain_id}
   /authorised_value_categories:
-    $ref: paths/authorised_value_categories.yaml#/~1authorised_value_categories
+    $ref: ./paths/authorised_value_categories.yaml#/~1authorised_value_categories
   "/authorised_value_categories/{authorised_value_category_name}/authorised_values":
     $ref: "./paths/authorised_values.yaml#/~1authorised_value_categories~1{authorised_value_category_name}~1authorised_values"
   "/biblios":
     $ref: "./paths/biblios.yaml#/~1biblios"
   "/biblios/{biblio_id}":
     $ref: "./paths/biblios.yaml#/~1biblios~1{biblio_id}"
+  "/biblios/{biblio_id}/bookings":
+    $ref: "./paths/biblios.yaml#/~1biblios~1{biblio_id}~1bookings"
   "/biblios/{biblio_id}/checkouts":
     $ref: "./paths/biblios.yaml#/~1biblios~1{biblio_id}~1checkouts"
   "/biblios/{biblio_id}/items":
@@ -217,8 +233,10 @@ paths:
     $ref: "./paths/checkouts.yaml#/~1checkouts~1{checkout_id}~1renewals"
   "/checkouts/{checkout_id}/renewal":
     $ref: "./paths/checkouts.yaml#/~1checkouts~1{checkout_id}~1renewal"
-  /circulation-rules/kinds:
-    $ref: ./paths/circulation-rules.yaml#/~1circulation-rules~1kinds
+  /circulation_rules:
+    $ref: ./paths/circulation_rules.yaml#/~1circulation_rules
+  /circulation_rules/kinds:
+    $ref: ./paths/circulation_rules.yaml#/~1circulation_rules~1kinds
   /cities:
     $ref: ./paths/cities.yaml#/~1cities
   "/cities/{city_id}":
@@ -263,6 +281,8 @@ paths:
     $ref: ./paths/erm_users.yaml#/~1erm~1users
   "/bzsh/external_order":
     $ref: "./paths/external_order.yaml#/~1bzsh~1external_order"
+  /extended_attribute_types:
+    $ref: ./paths/extended_attribute_types.yaml#/~1extended_attribute_types
   /holds:
     $ref: ./paths/holds.yaml#/~1holds
   "/holds/{hold_id}":
@@ -287,10 +307,14 @@ paths:
     $ref: ./paths/import_batch_profiles.yaml#/~1import_batch_profiles
   "/import_batch_profiles/{import_batch_profile_id}":
     $ref: "./paths/import_batch_profiles.yaml#/~1import_batch_profiles~1{import_batch_profile_id}"
+  /item_types:
+    $ref: ./paths/item_types.yaml#/~1item_types
   /items:
     $ref: ./paths/items.yaml#/~1items
   "/items/{item_id}":
     $ref: "./paths/items.yaml#/~1items~1{item_id}"
+  "/items/{item_id}/bookings":
+    $ref: "./paths/items.yaml#/~1items~1{item_id}~1bookings"
   "/items/{item_id}/bundled_items":
     $ref: ./paths/items.yaml#/~1items~1{item_id}~1bundled_items
   "/items/{item_id}/bundled_items/{bundled_item_id}":
@@ -329,8 +353,18 @@ paths:
     $ref: "./paths/patrons_password.yaml#/~1patrons~1{patron_id}~1password~1expiration_date"
   "/public/biblios/{biblio_id}":
     $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}"
+  /public/extended_attribute_types:
+    $ref: ./paths/extended_attribute_types.yaml#/~1public~1extended_attribute_types
+  "/public/items":
+    $ref: "./paths/items.yaml#/~1public~1items"
+  "/public/biblios/{biblio_id}/bookings":
+    $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}~1bookings"
+  "/public/biblios/{biblio_id}/checkouts":
+    $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}~1checkouts"
   "/public/biblios/{biblio_id}/items":
     $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}~1items"
+  "/public/biblios/{biblio_id}/pickup_locations":
+    $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}~1pickup_locations"
   "/public/biblios/{biblio_id}/ratings":
     $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}~1ratings"
   "/public/coverflow_data_biblionumber/{biblio_ids}":
@@ -341,12 +375,18 @@ paths:
     $ref: "./paths/coverflow_data_query.yaml#/~1public~1coverflow_data_query"
   "/public/generated_cover":
     $ref: "./paths/generated_cover.yaml#/~1public~1generated_cover"
+  /public/bookings:
+    $ref: ./paths/bookings.yaml#/~1public~1bookings
+  "/public/bookings/{booking_id}":
+    $ref: "./paths/bookings.yaml#/~1public~1bookings~1{booking_id}"
   /public/libraries:
     $ref: ./paths/libraries.yaml#/~1public~1libraries
   "/public/libraries/{library_id}":
     $ref: "./paths/libraries.yaml#/~1public~1libraries~1{library_id}"
   "/public/oauth/login/{provider_code}/{interface}":
     $ref: ./paths/public_oauth.yaml#/~1public~1oauth~1login~1{provider_code}~1{interface}
+  /public/patrons/{patron_id}:
+    $ref: "./paths/patrons.yaml#/~1public~1patrons~1{patron_id}"
   "/public/patrons/{patron_id}/article_requests/{article_request_id}":
     $ref: "./paths/article_requests.yaml#/~1public~1patrons~1{patron_id}~1article_requests~1{article_request_id}"
   "/public/patrons/{patron_id}/guarantors/can_see_charges":
@@ -376,7 +416,7 @@ paths:
   "/suggestions/{suggestion_id}":
     $ref: "./paths/suggestions.yaml#/~1suggestions~1{suggestion_id}"
   /suggestions/managers:
-    $ref: paths/suggestions.yaml#/~1suggestions~1managers
+    $ref: "./paths/suggestions.yaml#/~1suggestions~1managers"
   /transfer_limits:
     $ref: ./paths/transfer_limits.yaml#/~1transfer_limits
   /transfer_limits/batch:
@@ -416,6 +456,12 @@ parameters:
     description: Authority identifier
     in: path
     name: authority_id
+    required: true
+    type: integer
+  booking_id_pp:
+    description: Booking identifier
+    in: path
+    name: booking_id
     required: true
     type: integer
   framework_id_header:
@@ -800,6 +846,9 @@ info:
     context; If it is not included in the request, then the request context
     will default to using your api comsumer"s assigned home library.
 tags:
+  - description: "Manage additional fields\n"
+    name: additional_fields
+    x-displayName: Additional fields
   - description: "Manage article requests\n"
     name: article_requests
     x-displayName: Article requests
@@ -878,6 +927,9 @@ tags:
   - description: "Manage items\n"
     name: items
     x-displayName: Items
+  - description: "Manage item types\n"
+    name: item_types
+    x-displayName: Item Types
   - description: "Manage jobs\n"
     name: jobs
     x-displayName: Jobs

@@ -1064,6 +1064,21 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 bookings
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Booking>
+
+=cut
+
+__PACKAGE__->has_many(
+  "bookings",
+  "Koha::Schema::Result::Booking",
+  { "foreign.patron_id" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 borrower_attributes
 
 Type: has_many
@@ -2096,8 +2111,8 @@ Composing rels: L</user_permissions> -> permission
 __PACKAGE__->many_to_many("permissions", "user_permissions", "permission");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-05-12 07:24:19
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:q+ykAzV16DQlg/wdmihsmQ
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-11-03 14:18:06
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:PcGXqEI1ULB+Uoclqfbxig
 
 __PACKAGE__->has_many(
   "restrictions",

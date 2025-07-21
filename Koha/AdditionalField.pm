@@ -11,6 +11,84 @@ use Modern::Perl;
 use base qw(Koha::Object);
 
 use C4::Context;
+use Koha::MarcSubfieldStructures;
+
+=head1 METHODS
+
+=head2 effective_authorised_value_category
+
+Returns the authorised value category of the additional field or the authorised
+value category of the MARC field, if any.
+
+    my $av_category = $additional_field->effective_authorised_value_category;
+
+=cut
+
+sub effective_authorised_value_category {
+    my ($self) = @_;
+
+    my $category = $self->authorised_value_category;
+    unless ($category) {
+        if ($self->marcfield) {
+            my ($tag, $subfield) = split /\$/, $self->marcfield;
+
+            my $mss = Koha::MarcSubfieldStructures->find('', $tag, $subfield);
+            if ($mss) {
+                $category = $mss->authorised_value;
+            }
+        }
+    }
+
+    return $category;
+}
+
+=head3 to_api
+
+    my $json = $additional_field_type->to_api;
+
+Overloaded method that returns a JSON representation of the Koha::AdditionalField
+object, suitable for API output.
+
+=cut
+
+sub to_api {
+    my ( $self, $params ) = @_;
+
+    my $table_to_resource = {
+        'accountlines:credit' => 'credit',
+        'accountlines:debit'  => 'debit',
+        'aqbasket'            => 'basket',
+        'aqinvoices'          => 'invoice',
+        'erm_licenses'        => 'license',
+        'erm_agreements'      => 'agreement',
+        'erm_packages'        => 'package',
+        'aqorders'            => 'order',
+        'bookings'            => 'booking',
+    };
+
+    my $json = $self->SUPER::to_api($params);
+
+    $json->{resource_type} = $table_to_resource->{ $self->tablename };
+
+    return $json;
+}
+
+=head3 to_api_mapping
+
+This method returns the mapping for representing an AdditionalField object
+on the API.
+
+=cut
+
+sub to_api_mapping {
+    return {
+        id                        => 'extended_attribute_type_id',
+        tablename                 => 'resource_type',
+        authorised_value_category => 'authorised_value_category_name',
+        marcfield                 => 'marc_field',
+        marcfield_mode            => 'marc_field_mode'
+    };
+}
 
 sub _type { 'AdditionalField' }
 

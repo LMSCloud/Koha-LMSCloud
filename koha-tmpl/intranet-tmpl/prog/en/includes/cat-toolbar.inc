@@ -1,4 +1,5 @@
 [% USE Context %]
+[% USE Biblio %]
 [% INCLUDE 'blocking_errors.inc' %]
 <div id="toolbar" class="btn-toolbar">
 
@@ -191,6 +192,11 @@
     [% END %]
 [% END %]
 
+    [% IF ( CAN_user_circulate_manage_bookings && biblio.items.filter_by_bookable.count ) %]
+        [% INCLUDE 'modals/booking/button-place.inc' %]
+        [% INCLUDE 'modals/booking/island.inc' %]
+    [% END %]
+
 [% IF Koha.Preference('ArticleRequests') %]
     <div class="btn-group"><a id="placehold" class="btn btn-default" href="/cgi-bin/koha/circ/request-article.pl?biblionumber=[% biblionumber | html %]"><i class="fa fa-file-text-o"></i> Request article</a></div>
 [% END %]
@@ -239,5 +245,7 @@
         <input type="hidden" name="bib" value="[% biblionumber | html %]" />
         </form>
         </div>
-        </div>
     </div>
+</div>
+
+[% INCLUDE modals/place_booking.inc %]

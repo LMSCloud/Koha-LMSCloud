@@ -1,0 +1,216 @@
+[% USE raw %]
+[% USE Asset %]
+[% USE KohaDates %]
+[% USE Branches %]
+[% USE To %]
+[% USE TablesSettings %]
+[% PROCESS 'i18n.inc' %]
+[% SET footerjs = 1 %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>[% FILTER collapse %]
+    [% t("Bookings") | html %] &rsaquo;
+    [% INCLUDE 'biblio-title-head.inc' %] &rsaquo;
+    [% t("Catalog") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
+[% INCLUDE 'doc-head-close.inc' %]
+    <style>
+        #bookings-timeline .vis-item.vis-range {
+            &.cancelled {
+               background: rgba(128, 128, 128, 0.3);
+            }
+        }
+    </style>
+</head>
+
+<body id="circ_request" class="catalog">
+
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
+
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/catalogue/search.pl">Catalog</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
+            [% INCLUDE 'biblio-title.inc' link = 1 %]
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Bookings</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
+
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+                <div class="row">
+                    [% INCLUDE 'cat-toolbar.inc' %]
+                    <h1>Bookings for [% INCLUDE 'biblio-title-head.inc' %]</h1>
+
+        <div class="page-section bg-white p-3" style="min-height: 200px;">
+            [% INCLUDE 'bookings-timeline.inc'
+                timeline_id = 'bookings-timeline'
+                loading_id = 'bookings-timeline-loading'
+                show_filters = 0
+            %]
+        </div>
+        
+        <div class="page-section">
+            [% INCLUDE 'bookings-table-filters.inc' %]
+                        <table id="bookings_table"></table>
+                    </div>
+                </div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'biblio-view-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+    </div> <!-- /.row -->
+
+    [% INCLUDE modals/cancel_booking.inc %]
+
+    [% MACRO jsinclude BLOCK %]
+    [% Asset.js("lib/vis-timeline/vis-timeline-graph2d.min.js") | $raw %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'columns_settings.inc' %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'select2.inc' %]
+    [% INCLUDE 'js-patron-format.inc' %]
+    [% INCLUDE 'js-date-format.inc' %]
+    [% Asset.js("lib/dayjs/plugin/isSameOrAfter.js") | $raw %]
+    [% Asset.js("lib/dayjs/plugin/isSameOrBefore.js") | $raw %]
+    <script>
+        dayjs.extend(window.dayjs_plugin_isSameOrAfter);
+    </script>
+    <script>
+        dayjs.extend(window.dayjs_plugin_isSameOrBefore);
+    </script>
+    [% Asset.js("js/additional-fields.js") | $raw %]
+    [% Asset.js("js/cancel_booking_modal.js") | $raw %]
+    [% Asset.js("js/combobox.js") | $raw %]
+    [% Asset.js("js/bookings-timeline.js") | $raw %]
+    [% Asset.js("js/bookings-table-filters.js") | $raw %]
+    [% Asset.js("js/bookings-table.js") | $raw %]
+    
+    [%# Process library data for JavaScript %]
+    [% SET libraries = Branches.all %]
+    <script>
+    var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
+    </script>
+    
+    [% INCLUDE 'bookings-common.inc' %]
+    
+<script>
+    var cancel_success = 0;
+    var update_success = 0;
+    var bookings_table;
+    var timeline;
+    let biblionumber = "[% biblionumber | uri %]";
+    
+    // Set global variables for timeline permissions
+    var CAN_user_circulate_manage_bookings = [% IF CAN_user_circulate_manage_bookings %]true[% ELSE %]false[% END %];
+        
+    $(document).ready(function(){
+        // Initialize extended attributes
+        initializeBookingExtendedAttributes().then(({ extended_attribute_types, authorised_values }) => {
+            // Get table settings
+            let table_settings = [% TablesSettings.GetTableSettings( 'catalog', 'bookings', 'bookings', 'json' ) | $raw %];
+
+            // Define additional filters for this specific view
+            const additional_filters = {
+                end_date: () => {
+                            // When expired is false (default), we HIDE them by applying a date filter.
+                            // When expired is true, we SHOW them by not applying any date filter.
+                            if (!window.BookingsTableFilters.getStates().expired) {
+                        let today = new Date();
+                        return { ">=": today.toISOString() };
+                    }
+                            return undefined; // No filter
+                },
+                status: () => {
+                    const defaults = ["new", "pending", "active"];
+                            if (window.BookingsTableFilters.getStates().cancelled) {
+                        const filtered = [...defaults, "cancelled"];
+                        return { "-in": filtered };
+                    }
+                    return { "-in": defaults };
+                },
+            };
+
+            // Initialize the table using unified function
+            bookings_table = createBiblioBookingsTable('#bookings_table', table_settings, biblionumber, {
+                additionalFilters: additional_filters,
+                extended_attribute_types: extended_attribute_types,
+                authorised_values: authorised_values,
+                columnOptions: {
+                    showActions: true,
+                    showStatus: true,
+                    showCreationDate: false,
+                    showBookingDates: false,
+                    showStartEndDates: true,
+                    showPickupLibrary: true,
+                    showBiblioTitle: false,
+                    showItemData: true,
+                    showCallnumber: false,
+                    showLocation: false,
+                    showHoldingLibrary: false,
+                    showItemType: false,
+                    patronOptions: { display_cardnumber: true, url: true }
+                }
+            });
+
+            // Initialize timeline
+            var items = $.ajax({
+                url: '/api/v1/biblios/%s/items?bookable=1'.format(biblionumber),
+                dataType: 'json',
+                type: 'GET'
+            });
+            var bookings = $.ajax({
+                url: '/api/v1/biblios/%s/bookings?_per_page=-1'.format(biblionumber),
+                headers: { 'x-koha-embed': ['patron', 'extended_attributes'] },
+                dataType: 'json',
+                type: 'GET',
+            });
+
+            $.when(items, bookings).then(
+                function(items, bookings){
+                    timeline = window.BookingsTimeline.init({
+                        containerId: 'bookings-timeline',
+                        bookings: bookings[0],
+                        bookableItems: items[0]
+                    });
+                },
+                function(jqXHR, textStatus, errorThrown){
+                    console.log("Fetch failed", textStatus, errorThrown);
+                }
+            );
+
+            // Redraw table when filters change
+            document.addEventListener('bookingsTableFilters:changed', function() {
+                bookings_table.DataTable().draw();
+            });
+
+            // Show/hide status column when cancelled filter changes
+            document.addEventListener('bookingsTableFilters:changed', function() {
+                const showCancelled = window.BookingsTableFilters.getStates().cancelled;
+                bookings_table.DataTable().column('status:name').visible(showCancelled);
+            });
+
+            // Initialize combobox for cancellation reason
+            $("#cancellation-reason").comboBox({
+                displayProperty: 'name',
+                placeholder: _("Select or type a reason"),
+            });
+        });
+    });
+</script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]

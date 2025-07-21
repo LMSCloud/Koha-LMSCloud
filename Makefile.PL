@@ -304,6 +304,7 @@ my $target_map = {
   './authorities'               => 'INTRANET_CGI_DIR',
   './basket'                    => 'INTRANET_CGI_DIR',
   './bin'                       => { target => 'SCRIPT_DIR', trimdir => -1 },
+  './bookings'                  => 'INTRANET_CGI_DIR',
   './C4'                        => 'PERL_MODULE_DIR',
   './C4/SIP/t'                  => 'NONE',
   './C4/SIP/koha_test'          => 'NONE',
@@ -672,8 +673,6 @@ $file_map->{'koha-tmpl/intranet-tmpl/prog/css/holds.css'} = 'blib/INTRANET_TMPL_
 $file_map->{'koha-tmpl/intranet-tmpl/prog/css/installer.css'} = 'blib/INTRANET_TMPL_DIR/prog/css/installer.css';
 $file_map->{'koha-tmpl/intranet-tmpl/prog/css/mainpage.css'} = 'blib/INTRANET_TMPL_DIR/prog/css/mainpage.css';
 $file_map->{'koha-tmpl/intranet-tmpl/prog/css/staff-global.css'} = 'blib/INTRANET_TMPL_DIR/prog/css/staff-global.css';
-$file_map->{'koha-tmpl/intranet-tmpl/prog/js/vue/dist/erm.js'} = 'blib/INTRANET_TMPL_DIR/prog/js/vue/dist/erm.js';
-$file_map->{'koha-tmpl/intranet-tmpl/prog/js/vue/dist/erm.js.LICENSE.txt'} = 'blib/INTRANET_TMPL_DIR/prog/js/vue/dist/erm.js.LICENSE.txt';
 #OPAC_TMPL_DIR
 $file_map->{'koha-tmpl/opac-tmpl/bootstrap/css/opac.css'} = 'blib/OPAC_TMPL_DIR/bootstrap/css/opac.css';
 $file_map->{'koha-tmpl/opac-tmpl/bootstrap/css/opac-rtl.css'} = 'blib/OPAC_TMPL_DIR/bootstrap/css/opac-rtl.css';
@@ -1686,7 +1685,7 @@ KOHA_DEST_$key = $target_directories->{$key}
 ) unless exists $skip_directories->{$key};
 		}
 		$install .= qq(
-install :: all install_koha set_koha_ownership set_koha_permissions warn_koha_env_vars
+install :: install_koha set_koha_ownership set_koha_permissions warn_koha_env_vars
 \t\$(NOECHO) \$(NOOP)
 );
 			$install .= "install_koha ::\n";
@@ -1818,11 +1817,26 @@ sub postamble {
 sub top_targets {
     my $inherited = shift->SUPER::top_targets(@_);
     my $compile_step;
-    $compile_step .= "all :: compile_css_js\n";
+
+    #NOTE: Make "all" depend on "compile_css_js" and "move_compiled_js", so that it runs those targets/steps
+    $compile_step .= "all :: compile_css_js move_compiled_js\n";
     $compile_step .= "\t" . '$(NOECHO) $(NOOP)' . "\n";
     $compile_step .= "\n";
+
+    #NOTE: Build CSS and Javascript assets
     $compile_step .= "compile_css_js:\n";
     $compile_step .= "\t" . '$(PERLRUN) build-resources.PL' . "\n";
+    $compile_step .= "\n";
+
+    #NOTE: Make move_compiled_js depend on compile_css_js, so we have our generated Javascript assets
+    #NOTE: Make move_compiled_js depend on pm_to_blib, so we have access to the blib directory
+    #NOTE: Copy the generated vue dist files into the relevant blib
+    $compile_step .= "move_compiled_js: compile_css_js pm_to_blib\n";
+    $compile_step .= "\t" . 'cp -r koha-tmpl/intranet-tmpl/prog/js/vue/dist blib/INTRANET_TMPL_DIR/prog/js/vue/dist/' . "\n";
+    $compile_step .= "\t" . 'mkdir -p blib/OPAC_TMPL_DIR/bootstrap/js/vue/dist/' . "\n";
+    $compile_step .= "\t" . 'cp -r koha-tmpl/opac-tmpl/bootstrap/js/vue/dist/* blib/OPAC_TMPL_DIR/bootstrap/js/vue/dist/' . "\n";
+    $compile_step .= "\n";
+
     my $top_targets = $compile_step . "\n" . $inherited;
     return $top_targets;
 }

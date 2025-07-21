@@ -311,6 +311,11 @@
                                     <a class="nav-link" id="opac-user-holds-tab" data-toggle="tab" role="tab" aria-controls="opac-user-holds" aria-selected="false" href="#opac-user-holds">Holds ([% RESERVES.count | html %])</a>
                                 </li>
                             [% END %]
+                            [% IF Koha.Preference('OPACBookings') && BOOKINGS.count %]
+                                <li class="nav-item" role="presentation">
+                                    <a class="nav-link" id="opac-user-bookings-tab" data-toggle="tab" role="tab" aria-controls="opac-user-bookings" aria-selected="false" href="#opac-user-bookings">Bookings ([% BOOKINGS.count | html %])</a>
+                                </li>
+                            [% END %]
                             [% IF Koha.Preference('UseRecalls') && RECALLS.count %]
                                 <li class="nav-item" role="presentation">
                                     <a class="nav-link" id="opac-user-recalls-tab" data-toggle="tab" role="tab" aria-controls="opac-user-recalls" aria-selected="false" href="#opac-user-recalls">Recalls ([% RECALLS.count | html %])</a>
@@ -1082,7 +1087,12 @@
                                 </div> <!-- / #opac-user-overdues -->
                             [% END # /overdues_count %]
 
-                            [% PROCESS 'holds-table.inc' HOLDS = RESERVES, SuspendHoldsOpac = SuspendHoldsOpac, showpriority = showpriority, AutoResumeSuspendedHolds = AutoResumeSuspendedHolds %]
+                            [% IF ( RESERVES.count ) %]
+                                [% WRAPPER tab_panel tabname="opac-user-holds" %]
+                                    [% PROCESS 'holds-table.inc' HOLDS = RESERVES, SuspendHoldsOpac = SuspendHoldsOpac, showpriority = showpriority, AutoResumeSuspendedHolds = AutoResumeSuspendedHolds %]
+                                [% END # /tab_panel#opac-user-holds %]
+                            [% END # / #RESERVES.count %]
+
 
                             [% IF Koha.Preference('UseRecalls') && RECALLS.count %]
                                 <div id="opac-user-recalls" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-recalls-tab">
@@ -1158,6 +1168,13 @@
                                     </table>
                                 </div>
                             [% END # / # RECALLS.count %]
+
+                            [% IF Koha.Preference('OPACBookings') && BOOKINGS.count %]
+                                <div id="opac-user-bookings" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-bookings-tab">
+                                    [% INCLUDE 'bookings-table.inc' %]
+                                    [% INCLUDE 'modals/booking/cancel.inc' %]
+                                </div> <!-- / #opac-user-bookings -->
+                            [% END %]
 
                             [% IF Koha.Preference('ArticleRequests') %]
                                 <div id="opac-user-article-requests" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-article-requests-tab">
@@ -1322,6 +1339,10 @@
 [% BLOCK jsinclude %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
+    [% IF Koha.Preference('OPACBookings') && BOOKINGS.count %]
+        [% Asset.js("js/combobox.js") | $raw %]
+        [% Asset.js("js/modals/booking/cancel.js") | $raw %]
+    [% END %]
     <script>
         var AR_CAPTION_COUNT = _("(%s total)");
 
@@ -1447,7 +1468,7 @@
                 );
             });
 
-            var dTables = $("#checkoutst,#holdst,#overduest,#opac-user-relative-issues-table,#divibibcheckoutst");
+            var dTables = $("#checkoutst,#holdst,#overduest,#opac-user-relative-issues-table,#divibibcheckoutst,#opac-user-bookings-table");
             dTables.each(function(){
                 var thIndex = $(this).find("th.psort").index();
                 $(this).on("init.dt", function() {
@@ -1517,6 +1538,14 @@
             $('a[data-toggle="tab"]').on('shown.bs.tab', function (event) {
                 dTables.DataTable().responsive.recalc();
                 dataTables.DataTable().responsive.recalc();
+
+                // Initialize combobox for cancellation reason when bookings tab is shown
+                if (event.target.id === 'opac-user-bookings-tab') {
+                    $("#cancellation-reason").comboBox({
+                        displayProperty: 'name',
+                        placeholder: _("Select or type a reason"),
+                    });
+                }
             } );
 
             $("body").on("click", "#buttons-ics", function(){

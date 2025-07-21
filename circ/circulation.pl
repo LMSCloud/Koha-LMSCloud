@@ -53,6 +53,7 @@ use Koha::Plugins;
 use Koha::Database;
 use Koha::BiblioFrameworks;
 use Koha::Items;
+use Koha::CirculationRules;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
 use Koha::Patron::Modifications;
@@ -225,6 +226,10 @@ if( $onsite_checkout && !$duedatespec_allow ) {
         }
     }
 }
+my $reduced_datedue = $query->param('reduceddue');
+if ( $reduced_datedue ) {
+    $datedue = dt_from_string( $reduced_datedue );
+}
 
 my $inprocess = (@$barcodes == 0) ? '' : $query->param('inprocess');
 if ( @$barcodes == 0 && $charges eq 'yes' ) {
@@ -393,9 +398,16 @@ if (@$barcodes) {
         ? qw( UNKNOWN_BARCODE NO_OPEN_DAYS )
         : ( keys %$error );
 
+    if ( $error->{BOOKED_TO_ANOTHER} ) {
+        $template_params->{BOOKED_TO_ANOTHER} = $error->{BOOKED_TO_ANOTHER};
+        $template_params->{IMPOSSIBLE}        = 1;
+        $blocker                              = 1;
+    }
+
     foreach my $code ( @blocking_error_codes ) {
         if ($error->{$code}) {
             $template_params->{$code} = $error->{$code};
+
             $template_params->{IMPOSSIBLE} = 1;
             $blocker = 1;
         }
@@ -420,15 +432,29 @@ if (@$barcodes) {
                 $template_params->{getBarcodeMessageIteminfo} = $item->barcode;
                 $template_params->{NEEDSCONFIRMATION} = 1;
                 $confirm_required = 1;
+                if ( $needsconfirmation eq 'BOOKED_TO_ANOTHER' ) {
+                    my $rule = Koha::CirculationRules->get_effective_rule(
+                        {
+                            rule_name  => 'bookings_lead_period',
+                            itemtype   => $item->effective_itemtype,
+                            branchcode => "*"
+                        }
+                    );
+                    my $preparation_period = $rule ? $rule->rule_value : 1;
+                    my $reduceddue =
+                        dt_from_string( $$question{$needsconfirmation}->start_date )
+                        ->subtract( days => $preparation_period );
+                    $template_params->{reduceddue} = $reduceddue;
+                }
             }
         }
-        unless($confirm_required) {
+        unless ($confirm_required) {
             my $switch_onsite_checkout = exists $messages->{ONSITE_CHECKOUT_WILL_BE_SWITCHED};
             if ( C4::Context->preference('UseRecalls') && !$recall_id ) {
                 my $recall = Koha::Recalls->find(
                     {
                         biblio_id => $item->biblionumber,
-                        item_id   => [ undef, $item->itemnumber ],
+                        item_id   => [ undef,       $item->itemnumber ],
                         status    => [ 'requested', 'waiting' ],
                         completed => 0,
                         patron_id => $patron->borrowernumber,
@@ -436,7 +462,21 @@ if (@$barcodes) {
                 );
                 $recall_id = ( $recall and $recall->id ) ? $recall->id : undef;
             }
-            my $issue = AddIssue( $patron->unblessed, $barcode, $datedue, $cancelreserve, undef, undef, { onsite_checkout => $onsite_checkout, auto_renew => $session->param('auto_renew'), switch_onsite_checkout => $switch_onsite_checkout, cancel_recall => $cancel_recall, recall_id => $recall_id, } );
+
+            # If booked (alerts or confirmation) update datedue to end of booking
+            if ( my $booked = $question->{BOOKED_EARLY} // $alerts->{BOOKED} ) {
+                $datedue = $booked->end_date;
+            }
+            my $issue = AddIssue(
+                $patron->unblessed, $barcode, $datedue,
+                $cancelreserve,
+                undef, undef,
+                {
+                    onsite_checkout        => $onsite_checkout,        auto_renew    => $session->param('auto_renew'),
+                    switch_onsite_checkout => $switch_onsite_checkout, cancel_recall => $cancel_recall,
+                    recall_id              => $recall_id,
+                }
+            );
             $template_params->{issue} = $issue;
 
             # LMSCloud handling of ILL article requests:

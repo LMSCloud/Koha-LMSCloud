@@ -1,0 +1,148 @@
+[% USE raw %]
+[% USE Asset %]
+[% USE Koha %]
+[% USE KohaDates %]
+[% USE Branches %]
+[% USE ItemTypes %]
+[% USE Price %]
+[% USE AuthorisedValues %]
+[% USE AdditionalContents %]
+[% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% SET OpacMySummaryNote = AdditionalContents.get( location => "OpacMySummaryNote", lang => lang, library => branchcode ) %]
+
+[% SET borrower_club_enrollments = logged_in_user.get_club_enrollments %]
+[% SET borrower_enrollable_clubs = logged_in_user.get_enrollable_clubs(1) %] <!-- 1 => OPAC -->
+
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Your library home &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+[% INCLUDE 'doc-head-close.inc' %]
+[% Asset.css("css/overdrive.css") | $raw %]
+[% BLOCK cssinclude %][% END %]
+</head>
+[% INCLUDE 'bodytag.inc' bodyid='opac-user' bodyclass='scrollto' %]
+[% INCLUDE 'masthead.inc' %]
+
+<div class="main">
+    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
+            </li>
+            <li class="breadcrumb-item active">
+                <a href="#" aria-current="page">Your Bookings</a>
+            </li>
+        </ol>
+    </nav> <!-- /#breadcrumbs -->
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col col-lg-2 order-2 order-lg-1">
+                <div id="navigation">
+                    [% INCLUDE 'navigation.inc' IsPatronPage=1 %]
+                </div>
+            </div>
+            <div class="col-md-12 col-lg-10 order-1 order-lg-2">
+                <div id="userbookings" class="maincontent">
+                    <h1>Bookings</h1>
+
+                    [% IF op == 'list' %]
+                        <div class="toptabs">
+                            <ul class="nav nav-tabs" id="list-tabs">
+                                <li id="user-bookings-tab" class="nav-item">
+                                    <a class="nav-link active" id="your-bookings" href="/cgi-bin/koha/opac-bookings.pl?op=list">Your bookings</a>
+                                </li>
+                            </ul>
+                        </div> <!-- /.toptabs -->
+                        <div class="tab-content">
+                            [% PROCESS 'bookings-table.inc' %]
+                            [% INCLUDE 'modals/booking/cancel.inc' %]
+                        </div>
+                    [% END %]
+                </div> <!-- /#userdetails -->
+            </div> <!-- /.col-10 -->
+        </div> <!-- /.row -->
+    </div> <!-- /.container-fluid -->
+</div> <!-- /#main -->
+
+[% INCLUDE 'opac-bottom.inc' %]
+[% BLOCK jsinclude %]
+    [% Asset.js("js/form-submit.js") | $raw %]
+    [% Asset.js("lib/vis-timeline/vis-timeline-graph2d.min.js") | $raw %]
+    [% Asset.js("js/combobox.js") | $raw %]
+    [% Asset.js("js/modals/booking/cancel.js") | $raw %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+
+    <script>
+        $(document).ready(() => {
+            const dataTable = $("#opac-user-bookings-table");
+            const thIndex = $(dataTable).find("th.psort").index();
+            $(dataTable)
+                .dataTable($.extend(true, {}, dataTablesDefaults, {
+                    "sorting": [
+                        [thIndex, 'asc']
+                    ],
+                    "dom": '<"top"<"table_entries"><"table_controls"fB>>t',
+                    "columnDefs": [{
+                            "targets": ["nosort"],
+                            "sortable": false,
+                            "searchable": false
+                        },
+                        {
+                            "type": "anti-the",
+                            "targets": ["anti-the"]
+                        },
+                        {
+                            "visible": false,
+                            "targets": ["hidden"]
+                        },
+                        {
+                            "className": 'dtr-control',
+                            "orderable": false,
+                            "targets": -1
+                        }
+                    ],
+                    "language": {
+                        "search": "_INPUT_",
+                        "searchPlaceholder": _("Search")
+                    },
+                    "autoWidth": false,
+                    "responsive": {
+                        details: {
+                            type: 'column',
+                            target: -1
+                        }
+                    },
+                    buttons: [
+                        /* Override default button set so that we can extend the options of print and csv */
+                        'clearFilter', 'copy',
+                        {
+                            extend: "print",
+                            exportOptions: {
+                                /* Print view should show all columns (even invisible ones) unless they are .noExport */
+                                columns: ":not(.noExport)"
+                            }
+                        },
+                        {
+                            extend: "csv",
+                            exportOptions: {
+                                /* CSV export should include all columns (even invisible ones) unless they are .noExport */
+                                columns: ":not(.noExport)"
+                            }
+                        }
+                    ]
+                }));
+
+            // Initialize combobox for cancellation reason
+            $("#cancellation-reason").comboBox({
+                displayProperty: 'name',
+                placeholder: _("Select or type a reason"),
+            });
+        });
+    </script>
+
+[% END %]

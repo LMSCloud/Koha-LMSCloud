@@ -1,0 +1,97 @@
+---
+type: object
+properties:
+  item_type_id:
+    type: string
+    description: Unique key, a code associated with the item type
+    readOnly: true
+  parent_type:
+    description: Unique key, a code associated with the parent item type
+    type:
+      - string
+      - "null"
+  description:
+    description: A plain text explanation of the item type
+    type: string
+  bookable:
+    description: Boolean denoting whether this item type is normally bookable
+    type: boolean
+  rentalcharge:
+    description: The amount charged when this item is checked out/issued
+    type:
+      - number
+      - "null"
+  daily_rental_charge:
+    description: The amount charged for each day between checkout date and due date
+    type:
+      - number
+      - "null"
+  daily_rental_charge_calendar:
+    description: Controls if the daily rental fee is calculated directly or using finesCalendar
+    type: boolean
+  hourly_rental_charge:
+    description: The amount charged for each hour between checkout date and due date
+    type:
+      - number
+      - "null"
+  hourly_rental_charge_calendar:
+    description: Controls if the hourly rental fee is calculated directly or using finesCalendar
+    type: boolean
+  default_replacement_cost:
+    description: Default replacement cost
+    type:
+      - number
+      - "null"
+  process_fee:
+    description: Default text be recorded in the column note when the processing fee is applied
+    type:
+      - number
+      - "null"
+  not_for_loan_status:
+    description: If items of this type are not for loan
+    type: boolean
+  image_url:
+    description: URL for the item type icon
+    type:
+      - string
+      - "null"
+  summary:
+    description: Information from the summary field, may include HTML
+    type:
+      - string
+      - "null"
+  checkin_message:
+    description: Message that is displayed when an item with the given item type is checked in
+    type:
+      - string
+      - "null"
+  checkin_message_type:
+    description: Type (CSS class) for the checkin_message, can be 'alert' or 'message'
+    type:
+      - string
+      - "null"
+  sip_media_type:
+    description: SIP2 protocol media type for this item type
+    type:
+      - string
+      - "null"
+  hide_in_opac:
+    description: Hide the item type from the search options in OPAC
+    type: boolean
+  searchcategory:
+    description: Group this item type with others with the same value on OPAC search options
+    type:
+      - string
+      - "null"
+  automatic_checkin:
+    description: Controls if automatic checkin is enabled for items of this type
+    type: boolean
+  translated_descriptions:
+    description: Translations of description plain text (x-koha-embed)
+    type: array
+    items:
+      $ref: "item_type_translated_description.yaml"
+
+additionalProperties: false
+required:
+  - item_type_id

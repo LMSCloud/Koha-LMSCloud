@@ -18,7 +18,7 @@
 use Modern::Perl;
 use utf8;
 
-use Test::More tests => 67;
+use Test::More tests => 69;
 use Test::Exception;
 use Test::MockModule;
 use Test::Deep qw( cmp_deeply );
@@ -42,6 +42,7 @@ use C4::Overdues qw( CalcFine UpdateFine get_chargeable_units );
 use C4::Members::Messaging qw( SetMessagingPreference );
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Database;
+use Koha::Bookings;
 use Koha::Items;
 use Koha::Item::Transfers;
 use Koha::Checkouts;
@@ -1539,6 +1540,44 @@ subtest "CanBookBeRenewed tests" => sub {
     ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrowernumber, $recall_item1->itemnumber );
     is( $renewokay, 1, 'Can renew item if biblio-level recall has already been allocated an item' );
     $recall->set_cancelled;
+};
+
+subtest "CanBookBeRenewed | bookings" => sub {
+    plan tests => 3;
+
+    my $schema = Koha::Database->schema;
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'RenewalPeriodBase', 'date_due' );
+
+    my $renewing_patron = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $booked_patron   = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $item            = $builder->build_sample_item( { bookable => 1 } );
+    my $pickup_library  = $builder->build_object( { class => 'Koha::Libraries' } );
+
+    # issue
+    my $issue   = AddIssue( $renewing_patron, $item->barcode );
+    my $datedue = dt_from_string( $issue->date_due() );
+    is( defined $issue->date_due(), 1, "Item checked out, due date: " . $issue->date_due() );
+
+    # item-level booking
+    my $booking = Koha::Booking->new(
+        {
+            patron_id         => $booked_patron->borrowernumber,
+            pickup_library_id => $pickup_library->branchcode,
+            item_id           => $item->itemnumber,
+            biblio_id         => $item->biblio->biblionumber,
+            start_date        => $datedue->clone()->add( days => 2 ),
+            end_date          => $datedue->clone()->add( days => 10 ),
+        }
+    )->store();
+
+    # Proposed renewal would encroach on booking
+    my ( $renewok, $error ) = CanBookBeRenewed( $renewing_patron, $issue, 0 );
+    is( $renewok, 0,        "Renewal not allowed as it would mean the item was not returned before the next booking" );
+    is( $error,   'booked', "Error is 'booked'" );
+
+    $schema->storage->txn_rollback;
 };
 
 subtest "GetUpcomingDueIssues" => sub {
@@ -4420,6 +4459,79 @@ subtest 'CanBookBeIssued | recalls' => sub {
     is( $messages->{RECALLED}, $recall->id, "This book can be issued by this patron and they have placed a recall" );
 
     $recall->set_cancelled;
+};
+
+subtest 'CanBookBeIssued | bookings' => sub {
+    plan tests => 4;
+
+    my $schema = Koha::Database->schema;
+    $schema->storage->txn_begin;
+
+    my $patron1        = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $patron2        = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $pickup_library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $item           = $builder->build_sample_item( { bookable => 1 } );
+
+    # item-level booking
+    my $booking = Koha::Booking->new(
+        {
+            patron_id         => $patron1->borrowernumber,
+            pickup_library_id => $pickup_library->branchcode,
+            item_id           => $item->itemnumber,
+            biblio_id         => $item->biblio->biblionumber,
+            start_date        => dt_from_string()->subtract( days => 1 ),
+            end_date          => dt_from_string()->add( days => 6 ),
+        }
+    )->store();
+
+    # Booking encompasses proposed checkout
+    my ( $issuingimpossible, $needsconfirmation, $alerts, $messages ) = CanBookBeIssued(
+        $patron2, $item->barcode,
+        dt_from_string()->add( days => 5 ),
+        undef, undef, undef
+    );
+    is(
+        $issuingimpossible->{BOOKED_TO_ANOTHER}->booking_id,
+        $booking->booking_id,
+        "Another patron has booked this item with a start date before the proposed due date"
+    );
+
+    ( $issuingimpossible, $needsconfirmation, $alerts, $messages ) = CanBookBeIssued(
+        $patron1, $item->barcode,
+        dt_from_string()->add( days => 5 ),
+        undef, undef, undef
+    );
+    is(
+        $alerts->{BOOKED}->booking_id,
+        $booking->booking_id, "Booked to this user"
+    );
+
+    # Booking start will clash before issue due
+    $booking->start_date( dt_from_string()->add( days => 3 ) )->store();
+
+    ( $issuingimpossible, $needsconfirmation, $alerts, $messages ) = CanBookBeIssued(
+        $patron2, $item->barcode,
+        dt_from_string()->add( days => 5 ),
+        undef, undef, undef
+    );
+    is(
+        $needsconfirmation->{BOOKED_TO_ANOTHER}->booking_id,
+        $booking->booking_id,
+        "Another patron has booked this item for a period starting before the proposed due date"
+    );
+
+    ( $issuingimpossible, $needsconfirmation, $alerts, $messages ) = CanBookBeIssued(
+        $patron1, $item->barcode,
+        dt_from_string()->add( days => 5 ),
+        undef, undef, undef
+    );
+    is(
+        $needsconfirmation->{BOOKED_EARLY}->booking_id,
+        $booking->booking_id,
+        "Booked to this user, but they're collecting early"
+    );
+
+    $schema->storage->txn_rollback;
 };
 
 subtest 'AddReturn should clear items.onloan for unissued items' => sub {

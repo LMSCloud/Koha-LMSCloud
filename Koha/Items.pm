@@ -159,6 +159,41 @@ sub filter_out_lost {
     return $self->search( $params );
 }
 
+=head3 filter_by_bookable
+
+  my $filterd_items = $items->filter_by_bookable;
+
+Returns a new resultset, containing only those items that are allowed to be booked.
+
+=cut
+
+sub filter_by_bookable {
+    my ($self) = @_;
+
+    if ( !C4::Context->preference('item-level_itypes') ) {
+        return $self->search(
+            [
+                { bookable => 1 },
+                {
+                    bookable              => undef,
+                    'biblioitem.itemtype' =>
+                        { -in => [ Koha::ItemTypes->search( { bookable => 1 } )->get_column('itemtype') ] }
+                },
+            ],
+            { join => 'biblioitem' }
+        );
+    }
+
+    return $self->search(
+        [
+            { bookable => 1 },
+            {
+                bookable => undef,
+                itype    => { -in => [ Koha::ItemTypes->search( { bookable => 1 } )->get_column('itemtype') ] }
+            },
+        ]
+    );
+}
 
 =head3 move_to_biblio
 

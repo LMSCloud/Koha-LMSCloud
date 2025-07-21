@@ -270,6 +270,31 @@ sub get {
     };
 }
 
+=head3 get_public
+
+Controller function that handles retrieving a single Koha::Patron object for public access
+
+=cut
+
+sub get_public {
+    my $c = shift->openapi->valid_input or return;
+
+    return try {
+        my $patron_id = $c->param('patron_id');
+
+        $c->auth->public( $patron_id );
+
+        my $patron = $c->objects->find( Koha::Patrons->new, $patron_id );
+
+        return $c->render(
+            status  => 200,
+            openapi => $patron
+        );
+    } catch {
+        $c->unhandled_exception($_);
+    };
+}
+
 =head3 add
 
 Controller function that handles adding a new Koha::Patron object

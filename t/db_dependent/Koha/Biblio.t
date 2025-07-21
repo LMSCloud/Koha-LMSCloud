@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 23;
+use Test::More tests => 26;
 use Test::Exception;
 use Test::Warn;
 
@@ -25,6 +25,7 @@ use C4::Biblio qw( AddBiblio ModBiblio ModBiblioMarc );
 use C4::Circulation qw( AddIssue AddReturn );
 
 use Koha::Database;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Cache::Memory::Lite;
 use Koha::Caches;
 use Koha::Acquisition::Orders;
@@ -147,6 +148,30 @@ subtest 'items() tests' => sub {
 
 };
 
+subtest 'bookable_items() tests' => sub {
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+
+    my $biblio = $builder->build_sample_biblio();
+
+    # bookable items
+    my $bookable_item1 = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, bookable => 1 } );
+
+    # not bookable items
+    my $non_bookable_item1 = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, bookable => 0 } );
+    my $non_bookable_item2 = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, bookable => 0 } );
+
+    is( ref( $biblio->bookable_items ), 'Koha::Items', "bookable_items returns a Koha::Items resultset" );
+    is( $biblio->bookable_items->count, 1,             "bookable_items returns the correct number of items" );
+    is(
+        $biblio->bookable_items->next->itemnumber, $bookable_item1->itemnumber,
+        "bookable_items returned the correct item"
+    );
+
+    $schema->storage->txn_rollback;
+};
+
 subtest 'get_coins and get_openurl' => sub {
 
     plan tests => 4;
@@ -217,7 +242,7 @@ subtest 'is_serial() tests' => sub {
 
 subtest 'pickup_locations() tests' => sub {
 
-    plan tests => 11;
+    plan tests => 19;
 
     $schema->storage->txn_begin;
 
@@ -416,31 +441,77 @@ subtest 'pickup_locations() tests' => sub {
         "PatronLibrary-2-8" => 3,
     };
 
-    sub _doTest {
-        my ( $cbranch, $biblio, $patron, $results ) = @_;
-        t::lib::Mocks::mock_preference('ReservesControlBranch', $cbranch);
+    my $items_results = {
+        "ItemHomeLibrary-1-1" => {
+            $library1->branchcode => [ $item1_1->itemnumber ],
+            $library2->branchcode => [ $item1_1->itemnumber ],
+            $library4->branchcode => [ $item1_1->itemnumber ],
+            $library5->branchcode => [ $item1_1->itemnumber ],
+            $library6->branchcode => [ $item1_1->itemnumber ],
+            $library7->branchcode => [ $item1_1->itemnumber ]
+        },
+        "ItemHomeLibrary-1-8" => {
+            $library4->branchcode => [ $item1_7->itemnumber ],
+        },
+        "ItemHomeLibrary-2-1" => {
+            $library1->branchcode => [ $item2_2->itemnumber ],
+            $library2->branchcode => [ $item2_2->itemnumber ],
+        },
+        "ItemHomeLibrary-2-8" => {},
+        "PatronLibrary-1-1"   => {
+            $library1->branchcode => [ $item1_1->itemnumber ],
+            $library2->branchcode => [ $item1_1->itemnumber ],
+            $library4->branchcode => [ $item1_1->itemnumber ],
+            $library5->branchcode => [ $item1_1->itemnumber ],
+            $library6->branchcode => [ $item1_1->itemnumber ],
+            $library7->branchcode => [ $item1_1->itemnumber ]
+        },
+        "PatronLibrary-1-8" => {
+            $library5->branchcode => [ $item1_1->itemnumber, $item1_3->itemnumber, $item1_7->itemnumber ],
+            $library6->branchcode => [ $item1_1->itemnumber, $item1_3->itemnumber, $item1_7->itemnumber ],
+            $library7->branchcode => [ $item1_1->itemnumber, $item1_3->itemnumber, $item1_7->itemnumber ],
+        },
+        "PatronLibrary-2-1" => {},
+        "PatronLibrary-2-8" => {
+            $library5->branchcode => [ $item2_2->itemnumber, $item2_4->itemnumber, $item2_6->itemnumber ],
+            $library6->branchcode => [ $item2_2->itemnumber, $item2_4->itemnumber, $item2_6->itemnumber ],
+            $library7->branchcode => [ $item2_2->itemnumber, $item2_4->itemnumber, $item2_6->itemnumber ],
+        }
+    };
 
+    sub _doTest {
+        my ( $cbranch, $biblio, $patron, $results, $items_results ) = @_;
+        t::lib::Mocks::mock_preference( 'ReservesControlBranch', $cbranch );
+
+        my $pl = $biblio->pickup_locations( { patron => $patron } );
+
+        # Filter to just test branches
         my @pl = map {
             my $pickup_location = $_;
             grep { $pickup_location->branchcode eq $_ } @branchcodes
-        } $biblio->pickup_locations( { patron => $patron } )->as_list;
+        } $pl->as_list;
 
         ok(
-            scalar(@pl) == $results->{ $cbranch . '-'
-                  . $biblio->title . '-'
-                  . $patron->firstname },
+            scalar(@pl) == $results->{ $cbranch . '-' . $biblio->title . '-' . $patron->firstname },
             'ReservesControlBranch: '
-              . $cbranch
-              . ', biblio'
-              . $biblio->title
-              . ', patron'
-              . $patron->firstname
-              . ' should return '
-              . $results->{ $cbranch . '-'
-                  . $biblio->title . '-'
-                  . $patron->firstname }
-              . ' but returns '
-              . scalar(@pl)
+                . $cbranch
+                . ', biblio'
+                . $biblio->title
+                . ', patron'
+                . $patron->firstname
+                . ' should return '
+                . $results->{ $cbranch . '-' . $biblio->title . '-' . $patron->firstname }
+                . ' and returns '
+                . scalar(@pl)
+        );
+
+        my %filtered_location_items = map { $_ => $pl->{_pickup_location_items}->{$_} }
+            grep { exists $pl->{_pickup_location_items}->{$_} } @branchcodes;
+
+        is_deeply(
+            \%filtered_location_items, \%{ $items_results->{ $cbranch . '-'
+                        . $biblio->title . '-'
+                        . $patron->firstname } }, 'Items per location correctly cached in resultset'
         );
     }
 
@@ -449,7 +520,7 @@ subtest 'pickup_locations() tests' => sub {
         $cache->flush(); # needed since we change ReservesControlBranch
         foreach my $biblio ($biblio1, $biblio2) {
             foreach my $patron ($patron1, $patron8) {
-                _doTest($cbranch, $biblio, $patron, $results);
+                _doTest($cbranch, $biblio, $patron, $results, $items_results);
             }
         }
     }
@@ -482,6 +553,40 @@ subtest 'to_api() tests' => sub {
 
     $biblio_api = $biblio->to_api({ embed => { items => {} } });
     is_deeply( $biblio_api->{items}, [ $item->to_api ], 'Item correctly embedded' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'bookings() tests' => sub {
+
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+
+    my $biblio = $builder->build_sample_biblio();
+
+    is( ref( $biblio->bookings ), 'Koha::Bookings', 'Return type is correct' );
+
+    is_deeply(
+        $biblio->bookings->unblessed,
+        [],
+        '->bookings returns an empty Koha::Bookings resultset'
+    );
+
+    my $booking = $builder->build_object(
+        {
+            class => 'Koha::Bookings',
+            value => { biblio_id => $biblio->biblionumber }
+        }
+    );
+
+    my $bookings = $biblio->bookings->unblessed;
+
+    is_deeply(
+        $biblio->bookings->unblessed,
+        [ $booking->unblessed ],
+        '->bookings returns the related Koha::Booking objects'
+    );
 
     $schema->storage->txn_rollback;
 };
@@ -1118,3 +1223,122 @@ sub host_record {
     );
     return $marc;
 }
+
+subtest 'check_booking tests' => sub {
+    plan tests => 5;
+
+    $schema->storage->txn_begin;
+
+    my $biblio = $builder->build_sample_biblio();
+    my @items;
+    for ( 0 .. 2 ) {
+        my $item = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, bookable => 1 } );
+        push @items, $item;
+    }
+
+    my $can_book = $biblio->check_booking(
+        {
+            start_date => dt_from_string(),
+            end_date   => dt_from_string()->add( days => 7 )
+        }
+    );
+
+    is(
+        $can_book, 1,
+        "True returned from Koha::Biblio->check_booking if there are no bookings"
+    );
+
+    my $start_1 = dt_from_string()->subtract( days => 7 );
+    my $end_1   = dt_from_string()->subtract( days => 1 );
+    my $start_2 = dt_from_string();
+    my $end_2   = dt_from_string()->add( days => 7 );
+
+    # Past bookings
+    my @bookings;
+    for my $item (@items) {
+
+        my $booking = $builder->build_object(
+            {
+                class => 'Koha::Bookings',
+                value => {
+                    biblio_id  => $biblio->biblionumber,
+                    item_id    => $item->itemnumber,
+                    start_date => $start_1,
+                    end_date   => $end_1
+                }
+            }
+        );
+        push @bookings, $booking;
+    }
+
+    $can_book = $biblio->check_booking(
+        {
+            start_date => dt_from_string(),
+            end_date   => dt_from_string()->add( days => 7 ),
+        }
+    );
+
+    is(
+        $can_book,
+        1,
+        "Koha::Biblio->check_booking returns true when we all existing bookings are in the past"
+    );
+
+    # Current bookings
+    my @current_bookings;
+    for my $item (@items) {
+        my $booking = $builder->build_object(
+            {
+                class => 'Koha::Bookings',
+                value => {
+                    biblio_id  => $biblio->biblionumber,
+                    item_id    => $item->itemnumber,
+                    start_date => $start_2,
+                    end_date   => $end_2
+                }
+            }
+        );
+        push @current_bookings, $booking;
+    }
+
+    $can_book = $biblio->check_booking(
+        {
+            start_date => dt_from_string(),
+            end_date   => dt_from_string()->add( days => 7 ),
+        }
+    );
+    is(
+        $can_book,
+        0,
+        "Koha::Biblio->check_booking returns false if the booking would conflict with existing bookings"
+    );
+
+    $can_book = $biblio->check_booking(
+        {
+            start_date => dt_from_string(),
+            end_date   => dt_from_string()->add( days => 7 ),
+            booking_id => $current_bookings[0]->booking_id
+        }
+    );
+    is(
+        $can_book,
+        1,
+        "Koha::Biblio->check_booking returns true if we pass the booking_id of one of the bookings that we would conflict with"
+    );
+
+    # Cancelled booking
+    $current_bookings[0]->update( { status => 'cancelled' } );
+    $can_book = $biblio->check_booking(
+        {
+            start_date => dt_from_string(),
+            end_date   => dt_from_string()->add( days => 7 ),
+        }
+    );
+    is(
+        $can_book,
+        1,
+        "Koha::Item->check_booking takes account of cancelled status in bookings check"
+    );
+
+    $schema->storage->txn_rollback;
+};

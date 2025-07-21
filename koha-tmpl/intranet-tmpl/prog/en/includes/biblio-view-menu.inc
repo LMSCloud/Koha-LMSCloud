@@ -12,7 +12,7 @@
             <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblio_object_id | url  %]">Normal</a>
         </li>
 
-        [%- IF ( can_view_MARC ) -%]
+        [%- IF Koha.Preference('viewMARC') -%]
         [%- IF ( marcview ) -%]
         <li class="active">
         [%- ELSE -%]
@@ -22,7 +22,7 @@
         </li>
         [%- END -%]
 
-        [%- IF ( can_view_labeledMARC ) -%]
+        [%- IF Koha.Preference('viewLabeledMARC') -%]
         [%- IF ( labeledmarcview ) -%]
         <li class="active">
         [%- ELSE -%]
@@ -32,7 +32,7 @@
         </li>
         [%- END -%]
 
-        [%- IF ( can_view_ISBD ) -%]
+        [%- IF Koha.Preference('viewISBD') -%]
         [%- IF ( isbdview ) -%]
         <li class="active">
         [%- ELSE -%]
@@ -49,6 +49,16 @@
         [%- END -%]
             <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% biblio_object_id | url  %]">Items</a>
         </li>
+
+        [% IF ( CAN_user_circulate_manage_bookings && biblio.items.filter_by_bookable.count ) %]
+        [%- IF ( bookingsview ) -%]
+        <li class="active">
+        [%- ELSE -%]
+        <li>
+        [%- END -%]
+            <a href="/cgi-bin/koha/bookings/list.pl?biblionumber=[% biblio_object_id | url  %]">Bookings (<span class="bookings_count">[% biblio.bookings.filter_by_active.count | html %]</span>)</a>
+        </li>
+        [% END %]
 
         [%- IF ( CAN_user_reserveforothers ) -%]
         [%- IF ( holdsview ) -%]

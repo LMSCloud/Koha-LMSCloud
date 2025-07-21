@@ -1258,9 +1258,42 @@ sub CanBookBeIssued {
         }
     }
 
+    ## CHECK FOR BOOKINGS
+    if (
+        my $booking = $item_object->find_booking(
+            { checkout_date => $now, due_date => $duedate, patron_id => $patron->borrowernumber }
+        )
+        )
+    {
+        my $booking_start = dt_from_string( $booking->start_date );
+
+        # Booked to this patron :)
+        if ( $booking->patron_id == $patron->borrowernumber ) {
+            if ( $now < $booking_start ) {
+                $needsconfirmation{'BOOKED_EARLY'} = $booking;
+            } else {
+                $alerts{'BOOKED'} = $booking;
+            }
+        }
+
+        # Booked to another patron
+        else {
+            # Booking starts before due date, reduce loan?
+            if ( $now < $booking_start && $duedate > $booking_start ) {
+                $needsconfirmation{'BOOKED_TO_ANOTHER'} = $booking;
+            }
+
+            # Loan falls inside booking
+            else {
+                $issuingimpossible{'BOOKED_TO_ANOTHER'} = $booking;
+            }
+        }
+    }
+
     ## CHECK AGE RESTRICTION
-    my $agerestriction  = $biblioitem->agerestriction;
-    my ($restriction_age, $daysToAgeRestriction) = GetAgeRestriction( $agerestriction, $patron->unblessed );
+    my $agerestriction = $biblioitem->agerestriction;
+    my ( $restriction_age, $daysToAgeRestriction ) =
+      GetAgeRestriction( $agerestriction, $patron->unblessed );
     if ( $daysToAgeRestriction && $daysToAgeRestriction > 0 ) {
         if ( C4::Context->preference('AgeRestrictionOverride') ) {
             $needsconfirmation{AGE_RESTRICTION} = "$agerestriction";
@@ -3100,10 +3133,10 @@ sub CanBookBeRenewed {
     my $hasToMany = 0;
 
     # override_limit will override anything else except on_reserve
+    my $branchcode = $issue->branchcode;
+    $branchcode = _GetCircControlBranch( $item->unblessed, $patron->unblessed )
+        if (! C4::Context->preference('UseIssuingBranchConditionsForRenewals') );
     unless ( $override_limit ){
-        my $branchcode = $issue->branchcode;
-        $branchcode = _GetCircControlBranch( $item->unblessed, $patron->unblessed ) 
-            if (! C4::Context->preference('UseIssuingBranchConditionsForRenewals') );
         my $issuing_rule = Koha::CirculationRules->get_effective_rules(
             {
                 categorycode => $patron->categorycode,
@@ -3224,6 +3257,37 @@ sub CanBookBeRenewed {
     }
 
     return ( 0, $auto_renew, { soonest_renew_date => $soonest } ) if $auto_renew =~ 'too_soon';#$auto_renew ne "no" && $auto_renew ne "ok";
+
+    # CHECK FOR BOOKINGS
+    if ( $item->bookings->count ) {
+        my $startdate =
+            ( C4::Context->preference('RenewalPeriodBase') eq 'date_due' )
+            ? dt_from_string( $issue->date_due, 'sql' )
+            : dt_from_string();
+        my $datedue = CalcDateDue( $startdate, $item->effective_itemtype, $branchcode, $patron, 'is a renewal' );
+        if (
+            my $booking = $item->find_booking(
+                { checkout_date => $startdate, due_date => $datedue, patron_id => $patron->borrowernumber }
+            )
+            )
+        {
+            return ( 0, 'booked' ) unless ( $booking->patron_id == $patron->borrowernumber );
+        }
+
+    }
+
+    if ( $auto_renew eq 'auto_too_soon' ) {
+
+        # If its cron, tell it it's too soon for a an auto renewal
+        return ( 0, $auto_renew, { soonest_renew_date => $soonest } ) if $cron;
+
+        # Check if it's too soon for a manual renewal
+        my $soonestManual = GetSoonestRenewDate($issue);
+        if ( $soonestManual > dt_from_string() ) {
+            return ( 0, "too_soon", { soonest_renew_date => $soonestManual } ) unless $override_limit;
+        }
+    }
+
     $soonest = GetSoonestRenewDate($issue);
     if ( $soonest > dt_from_string() ){
         return (0, "too_soon", { soonest_renew_date => $soonest } ) unless $override_limit;

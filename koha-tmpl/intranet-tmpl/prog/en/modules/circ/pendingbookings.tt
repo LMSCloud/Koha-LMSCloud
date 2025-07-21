@@ -1,0 +1,126 @@
+[% USE raw %]
+[% USE Asset %]
+[% USE Branches %]
+[% USE Koha %]
+[% USE KohaDates %]
+[% USE TablesSettings %]
+[% USE To %]
+[% PROCESS 'i18n.inc' %]
+[% SET footerjs = 1 %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>[% FILTER collapse %]
+    [% t("Bookings to collect") | html %] &rsaquo;
+    [% t("Circulation") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
+[% INCLUDE 'doc-head-close.inc' %]
+</head>
+
+<body id="circ_pendingbookings" class="circ">
+    [% INCLUDE 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+
+    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+        <ol>
+            <li>
+                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+            </li>
+            <li>
+                <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                Bookings to collect
+            </a>
+            </li>
+        </ol>
+    </nav>
+
+    <div class="main container-fluid">
+        <div class="row">
+
+            <!-- Results -->
+            <div class="col-sm-10 col-sm-push-2">
+                <main>
+                    <h1>Items required for bookings between <span id="from_date">[% from | $KohaDates %]</span> and <span id="to_date">[% to | $KohaDates %]</span></h1>
+                    <h2>Reported on [% todaysdate | $KohaDates %]</h2>
+                    <p>The following items have not been collected for bookings. Please retrieve them
+                        and check them in.</p>
+                    <div id="searchresults">
+                        <table id="bookingst"></table>
+                    </div>
+                </main>
+            </div>
+
+            <!-- Filters & Navigation -->
+            <div class="col-sm-2 col-sm-pull-10">
+                <aside>
+                [% INCLUDE 'bookings-filters.inc' 
+                    show_holding_library = 1
+                    show_pickup_library = 1
+                    show_date_filters = 1
+                    from_date = from
+                    to_date = to
+                    branchcode = branchcode
+                %]
+
+                    [% INCLUDE 'circ-nav.inc' %]
+                </aside>
+            </div>
+        </div>
+        <!-- /.row -->
+
+        [% MACRO jsinclude BLOCK %]
+        [% INCLUDE 'calendar.inc' %]
+        [% INCLUDE 'datatables.inc' %]
+        [% INCLUDE 'columns_settings.inc' %]
+        [% Asset.js("lib/jquery/plugins/jquery.dataTables.columnFilter.js") | $raw %]
+        [% INCLUDE 'js-biblio-format.inc' %]
+        [% INCLUDE 'js-date-format.inc' %]
+        [% INCLUDE 'js-patron-format.inc' %]
+        [% Asset.js("js/additional-fields.js") | $raw %]
+
+        [%# Process library data for JavaScript %]
+        [% SET libraries = Branches.all %]
+    <script>
+    var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
+    </script>
+
+    [% INCLUDE 'bookings-common.inc' %]
+
+    <script>
+        $(document).ready(function() {
+            // Initialize extended attributes
+            initializeBookingExtendedAttributes().then(({ extended_attribute_types, authorised_values }) => {
+                // Get table settings
+                let table_settings = [% TablesSettings.GetTableSettings( 'circ', 'bookings', 'bookings-to-collect', 'json' ) | $raw %];
+                
+                // Create the table using common function
+                var bookings_table = createPendingBookingsTable("#bookingst", table_settings, {
+                    extended_attribute_types: extended_attribute_types,
+                    authorised_values: authorised_values,
+                    columnOptions: {
+                        showBiblioTitle: true,
+                        showItemData: true,
+                        showCallnumber: true,
+                        showLocation: true,
+                        showHoldingLibrary: true,
+                        showPickupLibrary: true,
+                        showBookingDates: true,
+                        showActions: false,
+                        showStatus: false,
+                        showCreationDate: false,
+                        patronOptions: { display_cardnumber: true, url: true }
+                    }
+                });
+
+                // Handle form submission for filtering
+                $("#bookingsf").on("submit", function(e){
+                    e.preventDefault();
+                    bookings_table.DataTable().draw();
+                });
+            });
+        });
+        </script>
+        [% END %]
+        [% INCLUDE 'intranet-bottom.inc' %]

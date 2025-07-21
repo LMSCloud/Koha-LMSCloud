@@ -36,6 +36,7 @@ use Koha::Biblio::Metadatas;
 use Koha::Biblio::ItemGroups;
 use Koha::Biblioitems;
 use Koha::Cache::Memory::Lite;
+use Koha::Bookings;
 use Koha::Checkouts;
 use Koha::CirculationRules;
 use Koha::Exceptions;
@@ -200,6 +201,69 @@ sub can_article_request {
     return q{};
 }
 
+
+
+=head3 check_booking
+
+  my $bookable =
+    $biblio->check_booking( { start_date => $datetime, end_date => $datetime, [ booking_id => $booking_id ] } );
+
+Returns a boolean denoting whether the passed booking can be made without clashing.
+
+Optionally, you may pass a booking id to exclude from the checks; This is helpful when you are updating an existing booking.
+
+=cut
+
+sub check_booking {
+    my ( $self, $params ) = @_;
+
+    my $start_date = dt_from_string( $params->{start_date} );
+    my $end_date   = dt_from_string( $params->{end_date} );
+    my $booking_id = $params->{booking_id};
+
+    my $bookable_items = $self->bookable_items;
+    my $total_bookable = $bookable_items->count;
+
+    my $dtf               = Koha::Database->new->schema->storage->datetime_parser;
+    my $existing_bookings = $self->bookings(
+        {
+            '-and' => [
+                {
+                    '-or' => [
+                        start_date => {
+                            '-between' => [
+                                $dtf->format_datetime($start_date),
+                                $dtf->format_datetime($end_date)
+                            ]
+                        },
+                        end_date => {
+                            '-between' => [
+                                $dtf->format_datetime($start_date),
+                                $dtf->format_datetime($end_date)
+                            ]
+                        },
+                        {
+                            start_date => { '<' => $dtf->format_datetime($start_date) },
+                            end_date   => { '>' => $dtf->format_datetime($end_date) }
+                        }
+                    ]
+                },
+                { status => { '-not_in' => [ 'cancelled', 'completed' ] } }
+            ]
+        }
+    );
+
+    my $booked_count =
+        defined($booking_id)
+        ? $existing_bookings->search( { booking_id => { '!=' => $booking_id } } )->count
+        : $existing_bookings->count;
+
+    my $checkouts = $self->current_checkouts->search( { date_due => { '>=' => $dtf->format_datetime($start_date) } } );
+    $booked_count += $checkouts->count;
+
+    return ( ( $total_bookable - $booked_count ) > 0 ) ? 1 : 0;
+}
+
 =head3 can_be_transferred
 
 $biblio->can_be_transferred({ to => $to_library, from => $from_library })
@@ -285,25 +349,34 @@ sub pickup_locations {
     my ( $self, $params ) = @_;
 
     Koha::Exceptions::MissingParameter->throw( parameter => 'patron' )
-      unless exists $params->{patron};
+        unless exists $params->{patron};
 
     my $patron = $params->{patron};
 
     my $memory_cache = Koha::Cache::Memory::Lite->get_instance();
     my @pickup_locations;
+    my $location_items;
     foreach my $item ( $self->items->as_list ) {
         my $cache_key = sprintf "Pickup_locations:%s:%s:%s:%s:%s",
-           $item->itype,$item->homebranch,$item->holdingbranch,$item->ccode || "",$patron->branchcode||"" ;
-        my $item_pickup_locations = $memory_cache->get_from_cache( $cache_key );
-        unless( $item_pickup_locations ){
-          @{ $item_pickup_locations } = $item->pickup_locations( { patron => $patron } )->_resultset->get_column('branchcode')->all;
-          $memory_cache->set_in_cache( $cache_key, $item_pickup_locations );
+            $item->itype, $item->homebranch, $item->holdingbranch, $item->ccode || "", $patron->branchcode || "";
+        my $item_pickup_locations = $memory_cache->get_from_cache($cache_key);
+        unless ($item_pickup_locations) {
+            @{$item_pickup_locations} =
+                $item->pickup_locations( { patron => $patron } )->_resultset->get_column('branchcode')->all;
+            $memory_cache->set_in_cache( $cache_key, $item_pickup_locations );
         }
-        push @pickup_locations, @{ $item_pickup_locations }
+        push @pickup_locations, @{$item_pickup_locations};
+        for my $location (@{$item_pickup_locations}) {
+            push @{ $location_items->{$location} }, $item->itemnumber;
+        }
     }
 
-    return Koha::Libraries->search(
-        { branchcode => { '-in' => \@pickup_locations } }, { order_by => ['branchname'] } );
+    my $resultSet =
+        Koha::Libraries->search( { branchcode => { '-in' => \@pickup_locations } }, { order_by => ['branchname'] } );
+
+    $resultSet->{_pickup_location_items} = $location_items;
+
+    return $resultSet;
 }
 
 =head3 hidden_in_opac
@@ -478,6 +551,19 @@ sub items {
     return Koha::Items->_new_from_dbic( $items_rs );
 }
 
+=head3 bookable_items
+
+  my $bookable_items = $biblio->bookable_items;
+
+Returns the related Koha::Items resultset filtered to those items that can be booked.
+
+=cut
+
+sub bookable_items {
+    my ($self) = @_;
+    return $self->items->filter_by_bookable;
+}
+
 =head3 host_items
 
 my $host_items = $biblio->host_items();
@@ -565,6 +651,20 @@ Returns the related Koha::Biblioitem object for this Biblio object
 sub biblioitem {
     my ($self) = @_;
     return Koha::Biblioitems->find( { biblionumber => $self->biblionumber } );
+}
+
+=head3 bookings
+
+  my $bookings = $item->bookings();
+
+Returns the bookings attached to this biblio.
+
+=cut
+
+sub bookings {
+    my ( $self, $params ) = @_;
+    my $bookings_rs = $self->_result->bookings->search($params);
+    return Koha::Bookings->_new_from_dbic($bookings_rs);
 }
 
 =head3 suggestions

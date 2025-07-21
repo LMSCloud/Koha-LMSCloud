@@ -17,7 +17,6 @@ package Koha::ItemType;
 
 use Modern::Perl;
 
-
 use C4::Koha qw( getitemtypeimagelocation );
 use C4::Languages;
 use Koha::Caches;
@@ -52,8 +51,7 @@ sub store {
 
     if ( !$self->in_storage ) {
         $flush = 1;
-    }
-    else {
+    } else {
         my $self_from_storage = $self->get_from_storage;
         $flush = 1 if ( $self_from_storage->description ne $self->description );
     }
@@ -96,22 +94,25 @@ sub image_location {
 sub translated_description {
     my ( $self, $lang ) = @_;
     if ( my $translated_description = eval { $self->get_column('translated_description') } ) {
+
         # If the value has already been fetched (eg. from sarch_with_localization),
         # do not search for it again
         # Note: This is a bit hacky but should be fast
         return $translated_description
-             ? $translated_description
-             : $self->description;
+            ? $translated_description
+            : $self->description;
     }
     $lang ||= C4::Languages::getlanguage;
-    my $translated_description = Koha::Localizations->search({
-        code => $self->itemtype,
-        entity => 'itemtypes',
-        lang => $lang
-    })->next;
+    my $translated_description = Koha::Localizations->search(
+        {
+            code   => $self->itemtype,
+            entity => 'itemtypes',
+            lang   => $lang
+        }
+    )->next;
     return $translated_description
-         ? $translated_description->translation
-         : $self->description;
+        ? $translated_description->translation
+        : $self->description;
 }
 
 =head3 translated_descriptions
@@ -119,18 +120,21 @@ sub translated_description {
 =cut
 
 sub translated_descriptions {
-    my ( $self ) = @_;
+    my ($self) = @_;
     my @translated_descriptions = Koha::Localizations->search(
-        {   entity => 'itemtypes',
+        {
+            entity => 'itemtypes',
             code   => $self->itemtype,
         }
     )->as_list;
-    return [ map {
-        {
-            lang => $_->lang,
-            translation => $_->translation,
-        }
-    } @translated_descriptions ];
+    return [
+        map {
+            {
+                lang        => $_->lang,
+                translation => $_->translation,
+            }
+        } @translated_descriptions
+    ];
 }
 
 =head3 can_be_deleted
@@ -142,8 +146,8 @@ Counts up the number of biblioitems and items with itemtype (code) and hands bac
 =cut
 
 sub can_be_deleted {
-    my ($self) = @_;
-    my $nb_items = Koha::Items->search( { itype => $self->itemtype } )->count;
+    my ($self)         = @_;
+    my $nb_items       = Koha::Items->search( { itype => $self->itemtype } )->count;
     my $nb_biblioitems = Koha::Biblioitems->search( { itemtype => $self->itemtype } )->count;
     return $nb_items + $nb_biblioitems == 0 ? 1 : 0;
 }
@@ -162,10 +166,12 @@ sub may_article_request {
     my $itemtype = $self->itemtype;
     my $category = $params->{categorycode};
 
-    my $guess = Koha::CirculationRules->guess_article_requestable_itemtypes({
-        $category ? ( categorycode => $category ) : (),
-    });
-    return ( $guess->{ $itemtype // q{} } || $guess->{ '*' } ) ? 1 : q{};
+    my $guess = Koha::CirculationRules->guess_article_requestable_itemtypes(
+        {
+            $category ? ( categorycode => $category ) : (),
+        }
+    );
+    return ( $guess->{ $itemtype // q{} } || $guess->{'*'} ) ? 1 : q{};
 }
 
 =head3 _library_limits
@@ -176,8 +182,8 @@ sub may_article_request {
 
 sub _library_limits {
     return {
-        class => "ItemtypesBranch",
-        id => "itemtype",
+        class   => "ItemtypesBranch",
+        id      => "itemtype",
         library => "branchcode",
     };
 }
@@ -189,10 +195,10 @@ sub _library_limits {
 =cut
 
 sub parent {
-    my ( $self ) = @_;
+    my ($self) = @_;
     my $parent_rs = $self->_result->parent_type;
     return unless $parent_rs;
-    return Koha::ItemType->_new_from_dbic( $parent_rs );
+    return Koha::ItemType->_new_from_dbic($parent_rs);
 
 }
 
@@ -203,11 +209,38 @@ sub parent {
 =cut
 
 sub children_with_localization {
-    my ( $self ) = @_;
-    return Koha::ItemTypes->search_with_localization({ parent_type => $self->itemtype });
+    my ($self) = @_;
+    return Koha::ItemTypes->search_with_localization( { parent_type => $self->itemtype } );
 }
 
-=head3 type
+=head3 to_api_mapping
+
+This method returns the mapping for representing a Koha::ItemType object
+on the API.
+
+=cut
+
+sub to_api_mapping {
+    return {
+        checkinmsg                   => 'checkin_message',
+        checkinmsgtype               => 'checkin_message_type',
+        defaultreplacecost           => 'default_replacement_cost',
+        hideinopac                   => 'hide_in_opac',
+        imageurl                     => 'image_url',
+        itemtype                     => 'item_type_id',
+        notforloan                   => 'not_for_loan_status',
+        processfee                   => 'process_fee',
+        rentalcharge_daily           => 'daily_rental_charge',
+        rentalcharge_daily_calendar  => 'daily_rental_charge_calendar',
+        rentalcharge_hourly          => 'hourly_rental_charge',
+        rentalcharge_hourly_calendar => 'hourly_rental_charge_calendar',
+        bookable_itemtype            => 'bookable_itemtype',
+    };
+}
+
+=head2 Internal methods
+
+=head3 _type
 
 =cut
 

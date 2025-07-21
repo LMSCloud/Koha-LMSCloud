@@ -90,6 +90,10 @@
                         <div class="dialog alert">Item was checked out to [% INCLUDE 'patron-title.inc' patron = alert.RETURNED_FROM_ANOTHER.patron %] and was returned automatically.</div>
                     [% END %]
 
+                    [% IF alert.BOOKED %]
+                        <div class="dialog alert">Item is booked by this user</div>
+                    [% END %]
+
                     [% IF ( nopermission ) %]
                         <div class="dialog alert">Staff members are not allowed to discharge borrowers, nor borrowers to request a discharge.</div>
                     [% END %]
@@ -242,6 +246,17 @@
                                     [% END %]
                                 [% END %]
 
+                                [% IF ( BOOKED_TO_ANOTHER ) %]
+                                    <li>
+                                        Due for another patron booking by: [% BOOKED_TO_ANOTHER.start_date | $KohaDates %]
+                                    </li>
+                                [% END %]
+
+                                [% IF ( BOOKED_EARLY ) %]
+                                    <li>
+                                        Patron has this item booked for checkout on [% BOOKED_EARLY.start_date | $KohaDates %]
+                                    </li>
+                                [% END %]
                             </ul>
 
                             [% IF CAN_user_circulate_force_checkout or HIGHHOLDS %]
@@ -321,6 +336,19 @@
                                         </p>
                                     [% ELSE %]
                                         <input type="hidden" name="duedatespec" value="[% duedatespec | html %]" />
+                                    [% END %]
+
+                                    [% IF ( BOOKED_TO_ANOTHER ) %]
+                                        <p>
+                                            <label for="reduceddue">Reducing due date to: <label>
+                                            <input type="text" size="20" id="reudceddue" name="reduceddue" value="[% reduceddue | $KohaDates with_hours => 1 %]" readonly="readonly">
+                                        </p>
+                                    [% END %]
+
+                                    [% IF ( BOOKED_EARLY ) %]
+                                        <p>
+                                            Allow early collection?
+                                        </p>
                                     [% END %]
 
                                     <input type="hidden" name="stickyduedate" value="[% stickyduedate | html %]" />
@@ -533,6 +561,10 @@
 
                                 [% IF (forceallow) %]
                                     <li>Restriction overridden temporarily.</li>
+                                [% END %]
+
+                                [% IF ( BOOKED_TO_ANOTHER ) %]
+                                    <li>The item is booked for another patron</li>
                                 [% END %]
                             </ul>
                         </div> <!-- /#circ_impossible -->
@@ -845,6 +877,14 @@
                             <a href="#reserves" id="holds-tab" aria-controls="reserves" role="tab" data-toggle="tab">Holds ([% holds_count || 0 | html %])</a>
                         </li>
 
+                        [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
+                            [% WRAPPER tab_item tabname="bookings" %]
+                                [% SET bookings_count = patron.bookings.filter_by_active.count %]
+                                [% SET expired_bookings_count = patron.bookings.count - bookings_count %]
+                                <span class="bookings_count">Bookings ([% bookings_count || 0 | html %])</span>
+                            [% END %]
+                        [% END %]
+
                         [% IF Koha.Preference('UseRecalls') %]
                             <li role="presentation">
                                 <a href="#recalls" id="recalls-tab" aria-controls="recalls" role="tab" data-toggle="tab">Recalls ([% recalls.count || 0 | html %])</a>
@@ -1007,6 +1047,22 @@
                             [% END # /IF holds_count %]
                         </div> <!-- /#reserves -->
 
+                        [% WRAPPER tab_panel tabname="bookings" %]
+                            [% IF ( bookings_count ) %]
+                                <fieldset class="action filters" style="cursor:pointer;">
+                                    <a id="expired_filter" class="filtered"><i class="fa fa-bars"></i> Show expired</a>
+                                </fieldset>
+                                <table id="bookings_table" style="width: 100% !Important;"></table>
+                            [% ELSIF ( expired_bookings_count ) %]
+                                <fieldset class="action filters" style="cursor:pointer;">
+                                    <a id="expired_filter"><i class="fa fa-filter"></i> Hide expired</a>
+                                </fieldset>
+                                <table id="bookings_table" style="width: 100% !Important;"></table>
+                            [% ELSE %]
+                                <p>Patron has nothing booked.</p>
+                            [% END %]
+                        [% END %]
+
                         [% IF Koha.Preference('UseRecalls') %]
                             <div id="recalls" role="tabpanel" class="tab-pane">
                                 [% INCLUDE 'recalls.inc' %]
@@ -1067,6 +1123,8 @@
     </div> <!-- /.modal-dialog -->
 </div> <!-- /#barcodeSubmittedModal -->
 
+[% INCLUDE modals/cancel_booking.inc %]
+
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'columns_settings.inc' %]
@@ -1104,10 +1162,18 @@
     [% END %]
     [% Asset.js("js/holds.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
+    [% Asset.js("js/additional-fields.js") | $raw %]
+    [% Asset.js("js/cancel_booking_modal.js") | $raw %]
+    [% Asset.js("js/combobox.js") | $raw %]
+    [% INCLUDE 'js-biblio-format.inc' %]
     <script>
         table_settings_issues_table = [% TablesSettings.GetTableSettings( 'circ', 'circulation', 'issues-table', 'json' ) | $raw %]
         table_settings_relatives_issues_table = [% TablesSettings.GetTableSettings( 'circ', 'circulation', 'relatives-issues-table', 'json' ) | $raw %]
         table_settings_borrowers_table = [% TablesSettings.GetTableSettings( 'circ', 'circulation', 'table_borrowers', 'json' ) | $raw %]
+        table_settings_holds_table = [% TablesSettings.GetTableSettings( 'circ', 'circulation', 'holds-table', 'json' ) | $raw %]
+        table_settings_bookings_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'bookings-table', 'json' ) | $raw %]
+        CAN_user_circulate_manage_bookings = [% CAN_user_circulate_manage_bookings | $raw %]
+        patron_borrowernumber = [% patron.borrowernumber | $raw %]
 
         [% IF borrowernumber and patron %]
             if( Cookies.get("holdfor") != [% patron.borrowernumber | html %]){
@@ -1182,10 +1248,16 @@
                     }
                 });
             [% END %]
+
+            $("#cancellation-reason").comboBox({
+                displayProperty: 'name',
+                placeholder: _("Select or type a reason"),
+            });
         });
     </script>
     [% INCLUDE 'str/members-menu.inc' %]
     [% Asset.js("js/members-menu.js") | $raw %]
+    [% Asset.js("js/tables/bookings.js") | $raw %]
     [% Asset.js("js/recalls.js") | $raw %]
 [% END %]
 

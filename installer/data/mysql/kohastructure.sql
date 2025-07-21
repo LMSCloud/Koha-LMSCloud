@@ -285,8 +285,9 @@ CREATE TABLE `additional_fields` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'primary key identifier',
   `tablename` varchar(255) NOT NULL DEFAULT '' COMMENT 'tablename of the new field',
   `name` varchar(255) NOT NULL DEFAULT '' COMMENT 'name of the field',
-  `authorised_value_category` varchar(32) NOT NULL DEFAULT '' COMMENT 'is an authorised value category',
+  `authorised_value_category` varchar(32) DEFAULT NULL COMMENT 'is an authorised value category',
   `marcfield` varchar(16) NOT NULL DEFAULT '' COMMENT 'contains the marc field to copied into the record',
+  `marcfield_mode` ENUM('get', 'set') NOT NULL DEFAULT 'get' COMMENT 'mode of operation (get or set) for marcfield',
   `searchable` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'is the field searchable?',
   PRIMARY KEY (`id`),
   UNIQUE KEY `fields_uniq` (`tablename`(191),`name`(191))
@@ -1204,6 +1205,36 @@ CREATE TABLE `biblioitems` (
   KEY `publishercode` (`publishercode`(191)),
   KEY `timestamp` (`timestamp`),
   CONSTRAINT `biblioitems_ibfk_1` FOREIGN KEY (`biblionumber`) REFERENCES `biblio` (`biblionumber`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `bookings`
+--
+
+DROP TABLE IF EXISTS `bookings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `bookings` (
+  `booking_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'primary key',
+  `patron_id` int(11) NOT NULL DEFAULT 0 COMMENT 'foreign key from the borrowers table defining which patron this booking is for',
+  `biblio_id` int(11) NOT NULL DEFAULT 0 COMMENT 'foreign key from the biblio table defining which bib record this booking is on',
+  `item_id` int(11) DEFAULT NULL COMMENT 'foreign key from the items table defining the specific item the patron has placed a booking for',
+  `pickup_library_id` varchar(10) NOT NULL COMMENT 'Identifier for booking pickup library',
+  `start_date` datetime DEFAULT NULL COMMENT 'the start date of the booking',
+  `end_date` datetime DEFAULT NULL COMMENT 'the end date of the booking',
+  `creation_date` timestamp NOT NULL DEFAULT current_timestamp() COMMENT 'the timestamp for when a booking was created',
+  `modification_date` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'the timestamp for when a booking has been updated',
+  `status` enum('new', 'cancelled', 'completed') NOT NULL DEFAULT 'new' COMMENT 'current status of the booking',
+  `cancellation_reason` varchar(80) DEFAULT NULL COMMENT 'optional authorised value BOOKING_CANCELLATION',
+  PRIMARY KEY (`booking_id`),
+  KEY `patron_id` (`patron_id`),
+  KEY `biblio_id` (`biblio_id`),
+  KEY `item_id` (`item_id`),
+  CONSTRAINT `bookings_ibfk_1` FOREIGN KEY (`patron_id`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `bookings_ibfk_2` FOREIGN KEY (`biblio_id`) REFERENCES `biblio` (`biblionumber`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `bookings_ibfk_3` FOREIGN KEY (`item_id`) REFERENCES `items` (`itemnumber`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `bookings_ibfk_4` FOREIGN KEY (`pickup_library_id`) REFERENCES `branches` (`branchcode`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -2851,6 +2882,7 @@ CREATE TABLE `deleteditems` (
   `biblionumber` int(11) NOT NULL DEFAULT 0 COMMENT 'foreign key from biblio table used to link this item to the right bib record',
   `biblioitemnumber` int(11) NOT NULL DEFAULT 0 COMMENT 'foreign key from the biblioitems table to link to item to additional information',
   `barcode` varchar(20) DEFAULT NULL COMMENT 'item barcode (MARC21 952$p)',
+  `bookable` tinyint(1) DEFAULT NULL COMMENT 'nullable boolean value defining whether this this item is available for bookings or not',
   `dateaccessioned` date DEFAULT NULL COMMENT 'date the item was acquired or added to Koha (MARC21 952$d)',
   `booksellerid` longtext DEFAULT NULL COMMENT 'where the item was purchased (MARC21 952$e)',
   `homebranch` varchar(10) DEFAULT NULL COMMENT 'foreign key from the branches table for the library that owns this item (MARC21 952$a)',
@@ -3842,6 +3874,7 @@ CREATE TABLE `items` (
   `biblionumber` int(11) NOT NULL DEFAULT 0 COMMENT 'foreign key from biblio table used to link this item to the right bib record',
   `biblioitemnumber` int(11) NOT NULL DEFAULT 0 COMMENT 'foreign key from the biblioitems table to link to item to additional information',
   `barcode` varchar(20) DEFAULT NULL COMMENT 'item barcode (MARC21 952$p)',
+  `bookable` tinyint(1) DEFAULT NULL COMMENT 'nullable boolean value defining whether this this item is available for bookings or not',
   `dateaccessioned` date DEFAULT NULL COMMENT 'date the item was acquired or added to Koha (MARC21 952$d)',
   `booksellerid` longtext DEFAULT NULL COMMENT 'where the item was purchased (MARC21 952$e)',
   `homebranch` varchar(10) DEFAULT NULL COMMENT 'foreign key from the branches table for the library that owns this item (MARC21 952$a)',
@@ -3969,6 +4002,7 @@ CREATE TABLE `itemtypes` (
   `hideinopac` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Hide the item type from the search options in OPAC',
   `searchcategory` varchar(80) DEFAULT NULL COMMENT 'Group this item type with others with the same value on OPAC search options',
   `automatic_checkin` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'If automatic checkin is enabled for items of this type',
+  `bookable` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Activate bookable feature for items related to this item type',
   PRIMARY KEY (`itemtype`),
   UNIQUE KEY `itemtype` (`itemtype`),
   KEY `itemtypes_ibfk_1` (`parent_type`),

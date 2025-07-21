@@ -24,10 +24,12 @@ use base qw( Template::Plugin );
 
 use Koha::Holds;
 use Koha::Biblios;
+use Koha::Database;
 use Koha::Patrons;
 use Koha::ArticleRequests;
 use Koha::Recalls;
 
+# Do not use HoldsCount, it is deprecated and will be removed in a future release.
 sub HoldsCount {
     my ( $self, $biblionumber ) = @_;
 

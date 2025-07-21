@@ -485,6 +485,175 @@ sub holds {
     return Koha::Holds->_new_from_dbic( $holds_rs );
 }
 
+=head3 bookings
+
+    my $bookings = $item->bookings();
+
+Returns the bookings attached to this item.
+
+=cut
+
+sub bookings {
+    my ( $self, $params ) = @_;
+    my $bookings_rs = $self->_result->bookings->search($params);
+    return Koha::Bookings->_new_from_dbic($bookings_rs);
+}
+
+=head3 find_booking
+
+  my $booking = $item->find_booking( { checkout_date => $now, due_date => $future_date } );
+
+Find the first booking that would conflict with the passed checkout dates for this item.  If a booking
+lead period is configured for the itemtype we will also take that into account here, counting bookings
+that fall in that lead period as conflicts too.
+
+FIXME: This can be simplified, it was originally intended to iterate all biblio level bookings
+to catch cases where this item may be the last available to satisfy a biblio level only booking.
+However, we dropped the biblio level functionality prior to push as bugs were found in it's
+implementation.
+
+=cut
+
+sub find_booking {
+    my ( $self, $params ) = @_;
+
+    my $checkout_date = $params->{checkout_date};
+    my $due_date      = $params->{due_date};
+    my $biblio        = $self->biblio;
+
+    my $rule = Koha::CirculationRules->get_effective_rule(
+        {
+            rule_name  => 'bookings_lead_period',
+            itemtype   => $self->effective_itemtype,
+            branchcode => "*"
+        }
+    );
+    my $preparation_period = $rule ? $rule->rule_value : 0;
+    $due_date = $due_date->clone->add( days => $preparation_period );
+
+    my $dtf      = Koha::Database->new->schema->storage->datetime_parser;
+    my $bookings = $biblio->bookings(
+        [
+            # Proposed checkout starts during booked period
+            start_date => {
+                '-between' => [
+                    $dtf->format_datetime($checkout_date),
+                    $dtf->format_datetime($due_date)
+                ]
+            },
+
+            # Proposed checkout is due during booked period
+            end_date => {
+                '-between' => [
+                    $dtf->format_datetime($checkout_date),
+                    $dtf->format_datetime($due_date)
+                ]
+            },
+
+            # Proposed checkout would contain the booked period
+            {
+                start_date => { '<' => $dtf->format_datetime($checkout_date) },
+                end_date   => { '>' => $dtf->format_datetime($due_date) }
+            }
+        ],
+        { order_by => { '-asc' => 'start_date' } }
+    );
+
+    my $checkouts      = {};
+    my $loanable_items = {};
+    my $bookable_items = $biblio->bookable_items;
+    while ( my $item = $bookable_items->next ) {
+        $loanable_items->{ $item->itemnumber } = 1;
+        if ( my $checkout = $item->checkout ) {
+            $checkouts->{ $item->itemnumber } = dt_from_string( $checkout->date_due );
+        }
+    }
+
+    while ( my $booking = $bookings->next ) {
+
+        # Booking for this item
+        if ( defined( $booking->item_id )
+            && $booking->item_id == $self->itemnumber )
+        {
+            return $booking;
+        }
+
+        # Booking for another item
+        elsif ( defined( $booking->item_id ) ) {
+            # Due for another booking, remove from pool
+            delete $loanable_items->{ $booking->item_id };
+            next;
+
+        }
+
+        # Booking for any item
+        else {
+            # Can another item satisfy this booking?
+        }
+    }
+    return;
+}
+
+=head3 check_booking
+
+    my $bookable =
+        $item->check_booking( { start_date => $datetime, end_date => $datetime, [ booking_id => $booking_id ] } );
+
+Returns a boolean denoting whether the passed booking can be made without clashing.
+
+Optionally, you may pass a booking id to exclude from the checks; This is helpful when you are updating an existing booking.
+
+=cut
+
+sub check_booking {
+    my ( $self, $params ) = @_;
+
+    my $start_date = dt_from_string( $params->{start_date} );
+    my $end_date   = dt_from_string( $params->{end_date} );
+    my $booking_id = $params->{booking_id};
+
+    if ( my $checkout = $self->checkout ) {
+        return 0 if ( $start_date <= dt_from_string( $checkout->date_due ) );
+    }
+
+    my $dtf = Koha::Database->new->schema->storage->datetime_parser;
+
+    my $existing_bookings = $self->bookings(
+        {
+            '-and' => [
+                {
+                    '-or' => [
+                        start_date => {
+                            '-between' => [
+                                $dtf->format_datetime($start_date),
+                                $dtf->format_datetime($end_date)
+                            ]
+                        },
+                        end_date => {
+                            '-between' => [
+                                $dtf->format_datetime($start_date),
+                                $dtf->format_datetime($end_date)
+                            ]
+                        },
+                        {
+                            start_date => { '<' => $dtf->format_datetime($start_date) },
+                            end_date   => { '>' => $dtf->format_datetime($end_date) }
+                        }
+                    ]
+                },
+                { status => { '-not_in' => [ 'cancelled', 'completed' ] } }
+            ]
+        }
+    );
+
+    my $bookings_count =
+        defined($booking_id)
+        ? $existing_bookings->search( { booking_id => { '!=' => $booking_id } } )->count
+        : $existing_bookings->count;
+
+    return $bookings_count ? 0 : 1;
+}
+
 =head3 request_transfer
 
   my $transfer = $item->request_transfer(
@@ -1442,17 +1611,17 @@ Overloaded to_api method to ensure item-level itypes is adhered to.
 =cut
 
 sub to_api {
-    my ($self, $params) = @_;
+    my ( $self, $params ) = @_;
 
     my $response = $self->SUPER::to_api($params);
+
     my $overrides = {};
-
-    $overrides->{effective_item_type_id} = $self->effective_itemtype;
-
     my $itype_notforloan;
     $itype_notforloan = $self->itemtype->notforloan if ($self->itemtype);
     $overrides->{effective_not_for_loan_status} =
         ( defined $itype_notforloan && !$self->notforloan ) ? $itype_notforloan : $self->notforloan;
+    $overrides->{effective_item_type_id}        = $self->effective_itemtype;
+    $overrides->{effective_bookable}            = $self->effective_bookable;
 
     return { %$response, %$overrides };
 }
@@ -1526,6 +1695,41 @@ sub itemtype {
     my ( $self ) = @_;
 
     return Koha::ItemTypes->find( $self->effective_itemtype );
+}
+
+=head3 item_type
+
+    my $item_type = $item->item_type;
+
+Returns the effective I<Koha::ItemType> for the item.
+
+FIXME: it should either return the 'real item type' or undef if no item type
+defined. And effective_itemtype should return... the effective itemtype. Right
+now it returns an id... This is all inconsistent. And the API should make it clear
+if the attribute is part of the resource, or a calculated value i.e. if the item
+is not linked to an item type on its own, then the API response should contain
+item_type: null! And the effective item type... be another attribute. I understand
+that this complicates filtering, but some query trickery could do it in the controller.
+
+=cut
+
+sub item_type {
+    return shift->itemtype;
+}
+
+
+=head3 effective_bookable
+
+  my $bookable = $item->effective_bookable;
+
+Returns the effective bookability of the current item, be that item or itemtype level
+
+=cut
+
+sub effective_bookable {
+    my ($self) = @_;
+
+    return $self->bookable // $self->itemtype->bookable;
 }
 
 =head3 orders

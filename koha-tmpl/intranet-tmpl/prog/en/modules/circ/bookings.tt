@@ -1,0 +1,128 @@
+[% USE raw %]
+[% USE Asset %]
+[% USE Branches %]
+[% USE Koha %]
+[% USE KohaDates %]
+[% USE TablesSettings %]
+[% USE To %]
+[% PROCESS 'i18n.inc' %]
+[% SET footerjs = 1 %]
+
+[% INCLUDE 'doc-head-open.inc' %]
+<title>[% FILTER collapse %]
+    [% t("Bookings") | html %]
+    &rsaquo; [% t("Circulation") | html %] &rsaquo; [% t("Koha") | html %]
+[% END %]</title>
+[% INCLUDE 'doc-head-close.inc' %]
+</head>
+
+<body id="circ_bookings" class="circ">
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+[% END %]
+
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Bookings</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
+
+<div class="main container-fluid">
+    <div class="row">
+        <!-- Results -->
+        <div class="col-md-10 col-md-push-2">
+            <main>
+                [% INCLUDE 'messages.inc' %]
+                <h1>Bookings</h1>
+                <div id="searchresults">
+                    <table id="bookingst"></table>
+                    [% INCLUDE 'modals/cancel_booking.inc' %]
+                    [% INCLUDE 'modals/booking/island.inc' %]
+                </div>
+            </main>
+        </div>
+
+        <!-- Navigation -->
+        <div class="col-md-2 col-md-pull-10">
+            <aside>
+                [% INCLUDE 'circ-nav.inc' %]
+            </aside>
+        </div>
+    </div>
+    <!-- /.row -->
+</div>
+<!-- /.main.container-fluid -->
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'js-biblio-format.inc' %]
+    [% INCLUDE 'js-date-format.inc' %]
+    [% INCLUDE 'js-patron-format.inc' %]
+    [% Asset.js("js/additional-fields.js") | $raw %]
+    [% Asset.js("js/combobox.js") | $raw %]
+    [% Asset.js("js/cancel_booking_modal.js") | $raw %]
+    
+    [%# Process library data for JavaScript %]
+    [% SET libraries = Branches.all %]
+    <script>
+    var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
+    </script>
+    
+    [% INCLUDE 'bookings-common.inc' %]
+    
+    <script>
+        let cancel_success = false;
+        var bookings_table;
+        
+        $(document).ready(function() {
+            // Initialize extended attributes
+            initializeBookingExtendedAttributes().then(({ extended_attribute_types, authorised_values }) => {
+                
+                // Get table settings
+                let table_settings = [% TablesSettings.GetTableSettings( 'circ', 'bookings', 'bookings', 'json' ) | $raw %];
+                
+                // Initialize the table using unified function
+                bookings_table = createBookingsTable("#bookingst", table_settings, {
+                    variant: 'default',
+                    extended_attribute_types: extended_attribute_types,
+                    authorised_values: authorised_values,
+                    columnOptions: {
+                        showActions: true,
+                        showCreationDate: true,
+                        showHoldingLibrary: true,
+                        showStartEndDates: true,
+                        showItemType: true,
+                        showPickupLibrary: true,
+                        showBiblioTitle: true,
+                        showItemData: true,
+                        showCallnumber: true,
+                        showLocation: true,
+                        showBookingDates: false,
+                        showStatus: false,
+                        patronOptions: { display_cardnumber: true, url: true }
+                    }
+                });
+
+                // Handle form submission for filtering
+                $("#bookingsf").on("submit", function(e){
+                    e.preventDefault();
+                    bookings_table.DataTable().draw();
+                });
+            });
+
+            // Initialize combobox for cancellation reason when modal is shown
+            $("#cancelBookingModal").on("shown.bs.modal", function() {
+                $("#cancellation-reason").comboBox({
+                    displayProperty: 'name',
+                    placeholder: _("Select or type a reason"),
+                });
+            });
+        }); 
+    </script>
+[% END %]
+[% INCLUDE 'intranet-bottom.inc' %] 
