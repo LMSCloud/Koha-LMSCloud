@@ -4,12 +4,11 @@
         class="modal show booking-modal-backdrop"
         tabindex="-1"
         role="dialog"
-        style="display: block; background: rgba(0, 0, 0, 0.5)"
     >
         <div class="modal-dialog booking-modal-window" role="document">
             <div class="modal-content">
-                <div class="modal-header booking-modal-header">
-                    <h5 class="modal-title booking-modal-title">
+                <div class="booking-modal-header">
+                    <h5 class="booking-modal-title">
                         {{ modalTitle }}
                     </h5>
                     <button
@@ -219,7 +218,7 @@
                             </legend>
                             <ul
                                 id="booking_extended_attributes"
-                                style="list-style: none; padding: 0"
+                                class="booking-extended-attributes"
                             ></ul>
                         </fieldset>
                         <div
@@ -231,7 +230,7 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <div class="form-group mt-3 d-flex gap-2">
+                    <div class="d-flex gap-2">
                         <button
                             class="btn btn-primary"
                             :disabled="loading.submit || !canProceedToStep3"
@@ -521,7 +520,12 @@ export default {
         );
 
         watch(isOpen, async open => {
-            if (!open) return;
+            if (open) {
+                disableBodyScroll();
+            } else {
+                enableBodyScroll();
+                return;
+            }
 
             step.value = 1;
             const biblionumber = props.biblionumber;
@@ -672,6 +676,31 @@ export default {
             });
         }
 
+        function enableBodyScroll() {
+            if (!window.kohaModalCount) window.kohaModalCount = 0;
+            window.kohaModalCount = Math.max(0, window.kohaModalCount - 1);
+
+            if (window.kohaModalCount === 0) {
+                document.body.classList.remove('modal-open');
+                if (document.body.style.paddingRight) {
+                    document.body.style.paddingRight = '';
+                }
+            }
+        }
+
+        function disableBodyScroll() {
+            if (!window.kohaModalCount) window.kohaModalCount = 0;
+            window.kohaModalCount++;
+
+            if (!document.body.classList.contains('modal-open')) {
+                const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+                if (scrollbarWidth > 0) {
+                    document.body.style.paddingRight = scrollbarWidth + 'px';
+                }
+                document.body.classList.add('modal-open');
+            }
+        }
+
         function resetModalState() {
             bookingPatron.value = null;
             bookingPickupLibraryId.value = null;
@@ -685,13 +714,13 @@ export default {
             }
             hasAdditionalFields.value = false;
             Object.keys(store.error).forEach(key => (store.error[key] = null));
-            // Do not reset store.loading here as it's shared and managed by async ops
         }
 
         function handleClose() {
             isOpen.value = false;
+            enableBodyScroll();
             emit("close");
-            resetModalState(); // Reset local and relevant store state on close
+            resetModalState();
         }
 
         async function handleSubmit(event) {
@@ -793,11 +822,36 @@ export default {
 </script>
 
 <style scoped>
+.booking-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1050;
+    display: block;
+    overflow-y: auto;
+}
+
+.booking-modal-window {
+    max-height: calc(100vh - 2rem);
+    margin: 1rem auto;
+}
+
+.modal-content {
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+}
+
 .booking-modal-header {
-    border-bottom: 1px solid var(--bs-border-color);
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-shrink: 0;
 }
 
 .booking-modal-title {
@@ -812,11 +866,25 @@ export default {
     font-size: 2rem;
     line-height: 1;
     cursor: pointer;
-    color: var(--bs-secondary-color);
+    color: #6c757d;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+}
+
+.booking-modal-close:hover {
+    opacity: 0.75;
 }
 
 .booking-modal-body {
     padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1 1 auto;
+}
+
+.booking-extended-attributes {
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
 .step-block {
