@@ -54,6 +54,7 @@ sub new {
     my ( $class, $params ) = @_;
 
     my $src_image = delete $params->{src_image};
+    my $dont_scale = delete $params->{dont_scale};
 
     if ( $src_image ) {
           ; # GD autodetects three basic image formats: PNG, JPEG, XPM; we will convert all to PNG which is lossless...
@@ -61,8 +62,13 @@ sub new {
         # Check the pixel size of the image we are about to import...
         my $thumbnail = $class->_scale_image( $src_image, 140, 200 )
           ;    # MAX pixel dims are 140 X 200 for thumbnail...
-        my $fullsize = $class->_scale_image( $src_image, 600, 800 )
-          ;    # MAX pixel dims are 600 X 800 for full-size image...
+        
+        my $fullsize = $src_image;
+        
+        if ( !$dont_scale ) {
+            $fullsize = $class->_scale_image( $src_image, 600, 800 )
+            ;    # MAX pixel dims are 600 X 800 for full-size image...
+        }
 
         $params->{mimetype} = 'image/png';
         $params->{imagefile} = $fullsize->png();
