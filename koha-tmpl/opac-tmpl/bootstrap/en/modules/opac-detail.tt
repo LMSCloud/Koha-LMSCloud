@@ -1310,7 +1310,7 @@
             <tr>
 
                 [% IF Koha.Preference('OPACLocalCoverImages') && ( tab == 'holdings' && itemloop_has_images || tab == 'otherholdings' && otheritemloop_has_images ) %]
-                    <th id="item_cover" data-colname="item_cover">Cover image</th>
+                    <th id="item_cover" data-colname="item_cover" class="cover">Cover image</th>
                 [% END %]
                 [% IF ( item_level_itypes ) %]
                     <th id="item_itemtype" data-colname="item_itemtype" class="itype">Item type</th>
@@ -1911,27 +1911,55 @@
 
             var columns_settings = [% TablesSettings.GetColumns( 'opac', 'biblio-detail', 'holdingst', 'json' ) | $raw %];
 
+            [% ShowChildRowImmediately = ( Koha.Preference('OpacDetailHoldingsResponsiveChildRow') == "ChildRow" ? "ChildRow" : "childRowImmediate" )  %]
+            
             KohaTable("#holdingst", {
                 dom: '<"clearfix">t',
                 "aoColumnDefs": [
-                    { "className": "dtr-control", "orderable": false, "targets": -1 }
+                    { "className": "dtr-control", "orderable": false, "targets": -1 },
+                    { "responsivePriority":  1, "targets": ["cover"] },
+                    { "responsivePriority":  2, "targets": ["itype"] },
+                    { "responsivePriority":  3, "targets": ["status"] },
+                    { "responsivePriority":  4, "targets": ["call_no"] },
+                    { "responsivePriority":  5, "targets": ["item_location"] },
+                    { "responsivePriority":  6, "targets": ["date_due"] },
+                    { "responsivePriority":  7, "targets": ["barcode"] },
+                    { "responsivePriority":  8, "targets": ["vol_info"] },
+                    { "responsivePriority":  9, "targets": ["materials"] },
+                    { "responsivePriority":  10, "targets": ["collection"] },
+                    { "responsivePriority":  11, "targets": ["url"] },
+                    { "responsivePriority":  12, "targets": ["notes"] },
+                    { "responsivePriority":  13, "targets": ["copynumber"] }
                 ],
                 "bKohaColumnsUseNames": true,
                 "autoWidth": false,
                 "responsive": {
-                    "details": { "type": 'column', "target": -1 }
+                    "details": { "type": 'column', "target": -1, display: $.fn.dataTable.Responsive.display.[% ShowChildRowImmediately %] }
                 }
             }, columns_settings);
 
             KohaTable("#otherholdingst", {
                 dom: '<"clearfix">t',
                 "aoColumnDefs": [
-                    { "className": "dtr-control", "orderable": false, "targets": -1 }
+                    { "className": "dtr-control", "orderable": false, "targets": -1 },
+                    { "responsivePriority":  1, "targets": ["cover"] },
+                    { "responsivePriority":  2, "targets": ["itype"] },
+                    { "responsivePriority":  3, "targets": ["status"] },
+                    { "responsivePriority":  4, "targets": ["call_no"] },
+                    { "responsivePriority":  5, "targets": ["item_location"] },
+                    { "responsivePriority":  6, "targets": ["date_due"] },
+                    { "responsivePriority":  7, "targets": ["barcode"] },
+                    { "responsivePriority":  8, "targets": ["vol_info"] },
+                    { "responsivePriority":  9, "targets": ["materials"] },
+                    { "responsivePriority":  10, "targets": ["collection"] },
+                    { "responsivePriority":  11, "targets": ["url"] },
+                    { "responsivePriority":  12, "targets": ["notes"] },
+                    { "responsivePriority":  13, "targets": ["copynumber"] }
                 ],
                 "bKohaColumnsUseNames": true,
                 "autoWidth": false,
                 "responsive": {
-                    "details": { "type": 'column', "target": -1 }
+                    "details": { "type": 'column', "target": -1, display: $.fn.dataTable.Responsive.display.[% ShowChildRowImmediately %] }
                 }
             }, columns_settings);
 
