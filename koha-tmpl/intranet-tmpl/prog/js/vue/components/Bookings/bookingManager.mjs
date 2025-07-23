@@ -5,9 +5,31 @@
 import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore.js";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter.js";
+import customParseFormat from "dayjs/plugin/customParseFormat.js";
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
+dayjs.extend(customParseFormat);
+
+// Map flatpickr format strings to dayjs format strings and regex patterns
+const DATE_FORMAT_MAP = {
+    "Y-m-d": {
+        pattern: /\d{4}-\d{2}-\d{2}/g,
+        dayjsFormat: "YYYY-MM-DD",
+    },
+    "m/d/Y": {
+        pattern: /\d{1,2}\/\d{1,2}\/\d{4}/g,
+        dayjsFormat: "MM/DD/YYYY",
+    },
+    "d/m/Y": {
+        pattern: /\d{1,2}\/\d{1,2}\/\d{4}/g,
+        dayjsFormat: "DD/MM/YYYY",
+    },
+    "d.m.Y": {
+        pattern: /\d{1,2}\.\d{1,2}\.\d{4}/g,
+        dayjsFormat: "DD.MM.YYYY",
+    },
+};
 
 /**
  * Pure function for Flatpickr's `disable` option.
@@ -344,8 +366,8 @@ export function getBookingMarkersForDate(
         typeof dateStr === "string"
             ? dayjs(dateStr).startOf("day")
             : dayjs(dateStr).isValid()
-              ? dayjs(dateStr).startOf("day")
-              : dayjs().startOf("day");
+            ? dayjs(dateStr).startOf("day")
+            : dayjs().startOf("day");
     const key = d.format("YYYY-MM-DD");
     const markers = [];
 
@@ -410,12 +432,39 @@ export function parseDateRange(val) {
             val[1] ? dayjs(val[1]).toISOString() : null,
         ];
     }
-    if (typeof val === "string" && val.includes(" to ")) {
-        const parts = val.split(" to ");
-        return [
-            parts[0] ? dayjs(parts[0].trim()).toISOString() : null,
-            parts[1] ? dayjs(parts[1].trim()).toISOString() : null,
-        ];
+    if (typeof val === "string" && window?.flatpickr) {
+        // Use flatpickr's built-in parseDate method
+        const dateFormat = window?.flatpickr_dateformat_string || "Y-m-d";
+        const formatConfig =
+            DATE_FORMAT_MAP[dateFormat] || DATE_FORMAT_MAP["Y-m-d"];
+
+        // Find dates in the string using our regex pattern
+        const foundDates = val.match(formatConfig.pattern);
+
+        if (foundDates?.length >= 2) {
+            try {
+                // Use flatpickr's parseDate for consistent parsing with the picker
+                const start = flatpickr.parseDate(foundDates[0], dateFormat);
+                const end = flatpickr.parseDate(foundDates[1], dateFormat);
+
+                if (start && end) {
+                    return [
+                        dayjs(start).toISOString(),
+                        dayjs(end).toISOString(),
+                    ];
+                }
+            } catch (e) {
+                // Fall back to dayjs parsing if flatpickr fails
+                const [start, end] = foundDates.slice(0, 2).map(dateStr => {
+                    const parsed = dayjs(dateStr, formatConfig.dayjsFormat);
+                    return parsed.isValid() ? parsed.toISOString() : null;
+                });
+
+                if (start && end) {
+                    return [start, end];
+                }
+            }
+        }
     }
     // Defensive: fallback
     return [null, null];

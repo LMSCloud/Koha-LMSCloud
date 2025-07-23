@@ -4,6 +4,96 @@ import {
 } from "./bookingManager.mjs";
 import dayjs from "dayjs";
 
+/**
+ * Get the current language code from the HTML lang attribute
+ */
+function getCurrentLanguageCode() {
+    const htmlLang = document.documentElement.lang || "en";
+    // Extract the language code (e.g., 'de-DE' -> 'de')
+    return htmlLang.split("-")[0].toLowerCase();
+}
+
+/**
+ * Pre-load flatpickr locale based on current language
+ * This should ideally be called once when the page loads
+ */
+export async function preloadFlatpickrLocale() {
+    const langCode = getCurrentLanguageCode();
+
+    // English is the default, no need to load
+    if (langCode === "en") {
+        return;
+    }
+
+    try {
+        // Try to load the locale dynamically
+        // The locale is automatically registered with flatpickr.l10ns
+        await import(`flatpickr/dist/l10n/${langCode}.js`);
+    } catch (e) {
+        console.warn(
+            `Flatpickr locale for '${langCode}' not found, will use fallback translations`
+        );
+    }
+}
+
+/**
+ * Create flatpickr locale configuration from Koha's global settings
+ * This is a fallback when the proper locale file isn't available
+ */
+function createFlatpickrLocaleFallback() {
+    if (typeof window === "undefined") return {};
+
+    const locale = {};
+
+    // Get translated weekdays and months (prefer global variables from calendar.js)
+    const globalLocale = window.flatpickr?.l10ns?.default || {};
+    locale.weekdays = window.flatpickr_weekdays || globalLocale.weekdays;
+    locale.months = window.flatpickr_months || globalLocale.months;
+
+    // Add first day of week preference
+    if (window.calendarFirstDayOfWeek !== undefined) {
+        locale.firstDayOfWeek = parseInt(window.calendarFirstDayOfWeek, 10);
+    }
+
+    // Add range separator translation
+    if (typeof window.__ === "function") {
+        const toTranslation = window.__("to");
+        locale.rangeSeparator = " " + toTranslation + " ";
+    }
+
+    return locale;
+}
+
+/**
+ * Create a complete flatpickr configuration with Koha i18n settings
+ * This is now synchronous and uses pre-loaded locale or fallback
+ */
+export function createFlatpickrConfig(baseConfig = {}) {
+    const config = { ...baseConfig };
+    const langCode = getCurrentLanguageCode();
+
+    // Check if a locale has been pre-loaded for this language
+    if (langCode !== "en" && window.flatpickr?.l10ns?.[langCode]) {
+        config.locale = langCode;
+    } else if (langCode !== "en") {
+        // Use custom fallback locale
+        const fallbackLocale = createFlatpickrLocaleFallback();
+        if (Object.keys(fallbackLocale).length > 0) {
+            config.locale = fallbackLocale;
+        }
+    }
+
+    if (window.flatpickr_dateformat_string) {
+        config.dateFormat = window.flatpickr_dateformat_string;
+    }
+
+    if (window.flatpickr_timeformat !== undefined) {
+        config.time_24hr = window.flatpickr_timeformat;
+    }
+
+    return config;
+}
+
 export function createOnChange(store, errorMessage, tooltipVisible) {
     return function (selectedDates) {
         const result = handleBookingDateChange(

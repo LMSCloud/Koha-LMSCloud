@@ -60,8 +60,8 @@
                                               "Select Pickup Location and Item Type or Item"
                                           )
                                         : showPickupLocationSelect
-                                          ? $__("Select Pickup Location")
-                                          : ""
+                                        ? $__("Select Pickup Location")
+                                        : ""
                                 }}
                             </legend>
                             <div
@@ -278,6 +278,8 @@ import {
     createOnDayCreate,
     createOnClose,
     createOnFlatpickrReady,
+    createFlatpickrConfig,
+    preloadFlatpickrLocale,
 } from "./bookingCalendar.js";
 import PatronSearchSelect from "./PatronSearchSelect.vue";
 
@@ -482,7 +484,7 @@ export default {
                 disable: () => false,
             };
 
-            return {
+            const baseConfig = {
                 mode: "range",
                 minDate: "today",
                 disable: [availability.disable],
@@ -490,8 +492,6 @@ export default {
                 dateFormat: "Y-m-d",
                 wrap: false,
                 allowInput: false,
-                altInput: false,
-                altInputClass: "booking-flatpickr-input",
                 onChange: createOnChange(store, errorMessage, tooltipVisible),
                 onDayCreate: createOnDayCreate(
                     store,
@@ -503,6 +503,8 @@ export default {
                 onClose: createOnClose(tooltipMarkers, tooltipVisible),
                 onFlatpickrReady: createOnFlatpickrReady(flatpickrInstance),
             };
+
+            return createFlatpickrConfig(baseConfig);
         });
 
         watch(
@@ -518,6 +520,8 @@ export default {
         watch(isOpen, async open => {
             if (open) {
                 disableBodyScroll();
+                // Preload the appropriate flatpickr locale
+                await preloadFlatpickrLocale();
             } else {
                 enableBodyScroll();
                 return;
@@ -677,9 +681,9 @@ export default {
             window.kohaModalCount = Math.max(0, window.kohaModalCount - 1);
 
             if (window.kohaModalCount === 0) {
-                document.body.classList.remove('modal-open');
+                document.body.classList.remove("modal-open");
                 if (document.body.style.paddingRight) {
-                    document.body.style.paddingRight = '';
+                    document.body.style.paddingRight = "";
                 }
             }
         }
@@ -688,12 +692,13 @@ export default {
             if (!window.kohaModalCount) window.kohaModalCount = 0;
             window.kohaModalCount++;
 
-            if (!document.body.classList.contains('modal-open')) {
-                const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+            if (!document.body.classList.contains("modal-open")) {
+                const scrollbarWidth =
+                    window.innerWidth - document.documentElement.clientWidth;
                 if (scrollbarWidth > 0) {
-                    document.body.style.paddingRight = scrollbarWidth + 'px';
+                    document.body.style.paddingRight = scrollbarWidth + "px";
                 }
-                document.body.classList.add('modal-open');
+                document.body.classList.add("modal-open");
             }
         }
 
@@ -907,9 +912,7 @@ hr {
     border: 1px solid #ced4da;
     border-radius: 0.25rem;
     font-size: 1rem;
-    transition:
-        border-color 0.15s ease-in-out,
-        box-shadow 0.15s ease-in-out;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 .calendar-legend {
