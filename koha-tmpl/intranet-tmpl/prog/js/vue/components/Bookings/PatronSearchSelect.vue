@@ -20,8 +20,8 @@
 import { computed, ref } from "vue";
 import vSelect from "vue-select";
 import "vue-select/dist/vue-select.css";
-import { useBookingStore } from "../bookingStore"; // Assuming path to store
-import { debounce } from "../bookingUtils.mjs"; // Assuming path to utils
+import { useBookingStore } from "../../stores/bookingStore";
+import { debounce } from "./bookingUtils.mjs";
 
 export default {
     name: "PatronSearchSelect",

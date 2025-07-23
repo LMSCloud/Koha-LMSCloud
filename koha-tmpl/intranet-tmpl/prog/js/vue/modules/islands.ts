@@ -2,7 +2,7 @@ import { Component, defineCustomElement } from "vue";
 import { createPinia } from "pinia";
 import { $__ } from "../i18n";
 import { useMainStore } from "../stores/main";
-import { useBookingStore } from "../../modals/place_booking/bookingStore";
+import { useBookingStore } from "../stores/bookingStore";
 
 /**
  * Represents a web component with an import function and optional configuration.
@@ -47,7 +47,7 @@ export const componentRegistry: Map<string, WebComponentDynamicImport> =
                 importFn: async () => {
                     const module = await import(
                         /* webpackChunkName: "booking-modal-island" */
-                        "../../modals/place_booking/BookingModal.vue"
+                        "../components/Bookings/BookingModal.vue"
                     );
                     return module.default;
                 },

@@ -266,8 +266,8 @@ import "flatpickr/dist/flatpickr.css";
 import { computed, ref, watch, watchEffect, nextTick } from "vue";
 import flatPickr from "vue-flatpickr-component";
 import vSelect from "vue-select";
-import BookingTooltip from "./components/BookingTooltip.vue";
-import { $__ } from "../../vue/i18n";
+import BookingTooltip from "./BookingTooltip.vue";
+import { $__ } from "../../i18n";
 import {
     calculateDisabledDates,
     constrainBookableItems,
@@ -275,7 +275,7 @@ import {
     constrainPickupLocations,
     parseDateRange,
 } from "./bookingManager.mjs";
-import { useBookingStore } from "./bookingStore";
+import { useBookingStore } from "../../stores/bookingStore";
 import { updateExternalDependents } from "./bookingUtils.mjs";
 import {
     createOnChange,
@@ -283,7 +283,7 @@ import {
     createOnClose,
     createOnFlatpickrReady,
 } from "./bookingCalendar.js";
-import PatronSearchSelect from "./components/PatronSearchSelect.vue";
+import PatronSearchSelect from "./PatronSearchSelect.vue";
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);

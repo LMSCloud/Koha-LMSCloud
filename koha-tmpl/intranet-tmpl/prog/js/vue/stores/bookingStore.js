@@ -3,7 +3,7 @@
 
 import { defineStore } from "pinia";
 import * as bookingApi from "@bookingApi";
-import { transformPatronData, transformPatronsData } from "./patronUtils";
+import { transformPatronData, transformPatronsData } from "../components/Bookings/patronUtils";
 
 /**
  * State shape is derived from legacy global variables and async data:

@@ -16,8 +16,8 @@ const createBaseConfig = (isOpac = false) => ({
             "@bookingApi": path.resolve(
                 __dirname,
                 isOpac
-                    ? "koha-tmpl/intranet-tmpl/prog/js/modals/place_booking/bookingApi.opac.js"
-                    : "koha-tmpl/intranet-tmpl/prog/js/modals/place_booking/bookingApi.js"
+                    ? "koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/bookingApi.opac.js"
+                    : "koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/bookingApi.js"
             ),
         },
     },
