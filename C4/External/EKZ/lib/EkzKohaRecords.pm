@@ -174,7 +174,8 @@ sub addNewRecords {
     # But ekz does not create title data for this ekzArtikelNr, so a call of webservice MedienDaten delivers only data for the subordinated volumes, not for this ekzArtikelNr.
     # LMSCloud does not accept this.
     my $isMultiVolumeSalesUnit = 0;
-    my $recordIndex = -1;
+    my $multiVolumeRecordIndex = -1;
+
     if ( $volumeEkzArtikelNr ) {    # check if webservice MedienDaten delivered data for a 'mehrbändige Verkaufseinheit'
         my $volumeEkzArtikelNrExistsInTitleHits = 0;
         foreach my $record ( @{$titleHits->{records}} ) {
@@ -190,16 +191,16 @@ sub addNewRecords {
                 }
             }
         }
-        $self->{'logger'}->debug("addNewRecords() Checking if its a MultiVolumeSalesUnit" .   $volumeEkzArtikelNr);
 
+        $self->{'logger'}->debug("addNewRecords() Checking if its a MultiVolumeSalesUnit" .   $volumeEkzArtikelNr);
         OUTER: foreach my $record (@{$titleHits->{records}}) {
             foreach my $field ($record->field('945')) {
-                $recordIndex++;
+                $multiVolumeRecordIndex++;
                 next unless $field->indicator(1) eq 'V';
                 next unless $field->indicator(2) eq 'e';
 
                 my $subfield = $field->subfield('a');
-                next unless $volumeEkzArtikelNr eq $subfield;
+                next unless ($subfield && $volumeEkzArtikelNr eq $subfield);
 
                 $isMultiVolumeSalesUnit = 1;
 
@@ -214,11 +215,11 @@ sub addNewRecords {
         }
 
     }
-    if ( $isMultiVolumeSalesUnit == 1)
-                @{$titleHits->{records}} = $titleHits->{records}->[$recordIndex];
-                $volumeEkzArtikelNr = $titleHits->{records}->[0]->field("001")->data();
-                $self->{'logger'}->debug("addNewRecords() isMultivolumeSalesUnit = 1: overwrite record with first Titlerecord" .   $volumeEkzArtikelNr);
-            }
+    if ( $isMultiVolumeSalesUnit == 1){
+        @{$titleHits->{records}} = $titleHits->{records}->[$multiVolumeRecordIndex];
+        $volumeEkzArtikelNr = $titleHits->{records}->[0]->field("001")->data();
+        $self->{'logger'}->debug("addNewRecords() isMultivolumeSalesUnit = 1: overwrite record with first Titlerecord" .   $volumeEkzArtikelNr);
+    }
 
     foreach my $record ( @{$titleHits->{records}} ) {
         my $selHashkey =  $titleSelHashkey;
