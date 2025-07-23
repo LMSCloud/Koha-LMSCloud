@@ -27,7 +27,6 @@
                         method="post"
                         @submit.prevent="handleSubmit"
                     >
-                        <!-- Step 1: Patron selection -->
                         <fieldset v-if="showPatronSelect" class="step-block">
                             <legend class="step-header">
                                 {{ stepNumber.patron }}.
@@ -46,7 +45,6 @@
                                 showPickupLocationSelect
                             "
                         />
-                        <!-- Step 2: Pickup location, itemtype, item selection -->
                         <fieldset
                             v-if="
                                 showItemDetailsSelects ||
@@ -169,7 +167,6 @@
                                 showPickupLocationSelect
                             "
                         />
-                        <!-- Step 3: Date selection -->
                         <fieldset class="step-block">
                             <legend class="step-header">
                                 {{ stepNumber.period }}.
@@ -207,7 +204,6 @@
                         <hr
                             v-if="showAdditionalFields && hasAdditionalFields"
                         />
-                        <!-- Step 4: Additional Fields -->
                         <fieldset
                             v-if="showAdditionalFields && hasAdditionalFields"
                             class="step-block"
