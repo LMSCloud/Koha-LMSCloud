@@ -173,6 +173,9 @@ sub addNewRecords {
     # </datafield>
     # But ekz does not create title data for this ekzArtikelNr, so a call of webservice MedienDaten delivers only data for the subordinated volumes, not for this ekzArtikelNr.
     # LMSCloud does not accept this.
+    my $isMultiVolumeSalesUnit = 0;
+    my $multiVolumeRecordIndex = -1;
+
     if ( $volumeEkzArtikelNr ) {    # check if webservice MedienDaten delivered data for a 'mehrbändige Verkaufseinheit'
         my $volumeEkzArtikelNrExistsInTitleHits = 0;
         foreach my $record ( @{$titleHits->{records}} ) {
@@ -188,11 +191,34 @@ sub addNewRecords {
                 }
             }
         }
-        if ( $volumeEkzArtikelNrExistsInTitleHits == 0 ) {
+
+        $self->{'logger'}->debug("addNewRecords() Checking if its a MultiVolumeSalesUnit" .   $volumeEkzArtikelNr);
+        OUTER: foreach my $record (@{$titleHits->{records}}) {
+            foreach my $field ($record->field('945')) {
+                $multiVolumeRecordIndex++;
+                next unless $field->indicator(1) eq 'V';
+                next unless $field->indicator(2) eq 'e';
+
+                my $subfield = $field->subfield('a');
+                next unless ($subfield && $volumeEkzArtikelNr eq $subfield);
+
+                $isMultiVolumeSalesUnit = 1;
+
+                last OUTER;
+            }
+        }
+
+        if ( $volumeEkzArtikelNrExistsInTitleHits == 0 && $isMultiVolumeSalesUnit == 0) {
             Koha::Exceptions::WrongParameter->throw(
                 error => sprintf("ekz Webservice MedienDaten liefert keine Titeldaten zur ekzArtikelNr:$volumeEkzArtikelNr:. Abbruch der Verarbeitung der gesamten ekz BestellInfo.\n"),
             );
         }
+
+    }
+    if ( $isMultiVolumeSalesUnit == 1){
+        @{$titleHits->{records}} = $titleHits->{records}->[$multiVolumeRecordIndex];
+        $volumeEkzArtikelNr = $titleHits->{records}->[0]->field("001")->data();
+        $self->{'logger'}->debug("addNewRecords() isMultivolumeSalesUnit = 1: overwrite record with first Titlerecord" .   $volumeEkzArtikelNr);
     }
 
     foreach my $record ( @{$titleHits->{records}} ) {
@@ -209,7 +235,7 @@ sub addNewRecords {
             # Check that this record is not the volume (if volume title exists, addNewRecords() would not have been called):
 
             # 1st attempt: look for ekzArtikelNr in field 001
-            my $tmp_cna = defined($record->field("003")) ? $record->field("003")->data() : 'undef';
+            my $tmp_cna = (defined($record) && defined($record->field("003"))) ? $record->field("003")->data() : 'undef';
             $self->{'logger'}->trace("addNewRecords() tmp_cna:$tmp_cna:");
             if ( $tmp_cna eq "DE-Rt5" ) {
                 $ekzArtikelNr = defined($record->field("001")) ? $record->field("001")->data() : 'undef';
