@@ -931,6 +931,11 @@ hr {
 </style>
 
 <style>
+.booking-modal-body .vs__selected {
+    font-size: var(--vs-font-size);
+    line-height: var(--vs-line-height);
+}
+
 .booking-marker-grid {
     position: relative;
     top: -0.75rem;
