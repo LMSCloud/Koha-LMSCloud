@@ -34,8 +34,12 @@
                             </legend>
                             <PatronSearchSelect
                                 v-model="bookingPatron"
-                                :label="$__('Patron')"
-                                :placeholder="$__('Search for a patron')"
+                                :label="
+                                    $__('Patron')
+                                "
+                                :placeholder="
+                                    $__('Search for a patron')
+                                "
                             />
                         </fieldset>
                         <hr
