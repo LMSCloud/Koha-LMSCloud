@@ -2,6 +2,7 @@
 // Pinia store for booking modal state management
 
 import { defineStore } from "pinia";
+import { processApiError } from "../utils/apiErrors.js";
 import * as bookingApi from "@bookingApi";
 import { transformPatronData, transformPatronsData } from "../components/Bookings/patronUtils";
 
@@ -65,8 +66,7 @@ export const useBookingStore = defineStore("bookingStore", {
                 const data = await bookingApi.fetchBookableItems(biblionumber);
                 this.bookableItems = data;
             } catch (e) {
-                this.error.items =
-                    e.message || "Failed to fetch bookable items.";
+                this.error.items = processApiError(e);
             } finally {
                 this.loading.items = false;
             }
@@ -81,7 +81,7 @@ export const useBookingStore = defineStore("bookingStore", {
                 const data = await bookingApi.fetchBookings(biblionumber);
                 this.bookings = data;
             } catch (e) {
-                this.error.bookings = e.message || "Failed to fetch bookings.";
+                this.error.bookings = processApiError(e);
             } finally {
                 this.loading.bookings = false;
             }
@@ -96,8 +96,7 @@ export const useBookingStore = defineStore("bookingStore", {
                 const data = await bookingApi.fetchCheckouts(biblionumber);
                 this.checkouts = data;
             } catch (e) {
-                this.error.checkouts =
-                    e.message || "Failed to fetch checkouts.";
+                this.error.checkouts = processApiError(e);
             } finally {
                 this.loading.checkouts = false;
             }
@@ -114,8 +113,7 @@ export const useBookingStore = defineStore("bookingStore", {
                     Array.isArray(data) ? data[0] : data
                 );
             } catch (e) {
-                this.error.bookingPatron =
-                    e.message || "Failed to fetch patron.";
+                this.error.bookingPatron = processApiError(e);
                 return null;
             } finally {
                 this.loading.bookingPatron = false;
@@ -131,7 +129,7 @@ export const useBookingStore = defineStore("bookingStore", {
                 const data = await bookingApi.fetchPatrons(term, page);
                 return transformPatronsData(data);
             } catch (e) {
-                this.error.patrons = e.message || "Failed to fetch patrons.";
+                this.error.patrons = processApiError(e);
                 return [];
             } finally {
                 this.loading.patrons = false;
@@ -150,8 +148,7 @@ export const useBookingStore = defineStore("bookingStore", {
                 );
                 this.pickupLocations = data;
             } catch (e) {
-                this.error.pickupLocations =
-                    e.message || "Failed to fetch pickup locations.";
+                this.error.pickupLocations = processApiError(e);
             } finally {
                 this.loading.pickupLocations = false;
             }
@@ -178,8 +175,7 @@ export const useBookingStore = defineStore("bookingStore", {
                     await bookingApi.fetchCirculationRules(filteredParams);
                 this.circulationRules = data;
             } catch (e) {
-                this.error.circulationRules =
-                    e.message || "Failed to fetch circulation rules.";
+                this.error.circulationRules = processApiError(e);
             } finally {
                 this.loading.circulationRules = false;
             }
@@ -229,7 +225,7 @@ export const useBookingStore = defineStore("bookingStore", {
                 }
                 return result;
             } catch (e) {
-                this.error.submit = e.message || "Failed to save booking.";
+                this.error.submit = processApiError(e);
                 throw e;
             } finally {
                 this.loading.submit = false;

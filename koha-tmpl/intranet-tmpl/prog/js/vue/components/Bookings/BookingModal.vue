@@ -264,6 +264,7 @@ import flatPickr from "vue-flatpickr-component";
 import vSelect from "vue-select";
 import BookingTooltip from "./BookingTooltip.vue";
 import { $__ } from "../../i18n";
+import { processApiError } from "../../utils/apiErrors.js";
 import {
     calculateDisabledDates,
     constrainBookableItems,
@@ -576,7 +577,7 @@ export default {
                 }
             } catch (error) {
                 console.error("Error initializing booking modal:", error);
-                errorMessage.value = $__("Failed to load booking data");
+                errorMessage.value = processApiError(error);
             }
         });
 
@@ -771,9 +772,8 @@ export default {
                 updateExternalDependents(store, result, !!props.bookingId);
                 emit("close");
                 resetModalState();
-            } catch {
-                errorMessage.value =
-                    store.error.submit || $__("Failed to save booking.");
+            } catch (error) {
+                errorMessage.value = store.error.submit || processApiError(error);
             }
         }
 

@@ -20,6 +20,7 @@
 import { computed, ref } from "vue";
 import vSelect from "vue-select";
 import "vue-select/dist/vue-select.css";
+import { processApiError } from "../../utils/apiErrors.js";
 import { useBookingStore } from "../../stores/bookingStore";
 import { debounce } from "./bookingUtils.mjs";
 
@@ -60,7 +61,7 @@ export default {
                 const data = await store.fetchPatrons(search);
                 patronOptions.value = data;
             } catch (error) {
-                console.error("Error searching patrons:", error);
+                console.error("Error searching patrons:", processApiError(error));
                 patronOptions.value = [];
             } finally {
                 loading.value = false; // Use internal loading state
