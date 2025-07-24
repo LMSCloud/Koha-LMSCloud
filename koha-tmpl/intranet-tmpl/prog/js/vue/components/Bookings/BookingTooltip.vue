@@ -25,7 +25,7 @@
                         `booking-marker-dot--${marker.type}`,
                     ]"
                 />
-                {{ marker.type }} (Barcode:
+                {{ getMarkerTypeLabel(marker.type) }} ({{ $__("Barcode") }}:
                 {{ marker.barcode || marker.external_id || "N/A" }})
             </div>
         </div>
@@ -34,6 +34,8 @@
 
 <script setup>
 import { defineProps } from "vue";
+import { $__ } from "../../i18n";
+
 defineProps({
     markers: {
         type: Array,
@@ -52,6 +54,16 @@ defineProps({
         required: true,
     },
 });
+
+function getMarkerTypeLabel(type) {
+    const labels = {
+        "booked": $__("Booked"),
+        "checked-out": $__("Checked out"),
+        "lead": $__("Lead period"),
+        "trail": $__("Trail period")
+    };
+    return labels[type] || type;
+}
 </script>
 
 <style scoped>

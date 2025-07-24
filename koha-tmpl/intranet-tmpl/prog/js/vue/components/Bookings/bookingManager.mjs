@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore.js";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter.js";
 import customParseFormat from "dayjs/plugin/customParseFormat.js";
+import { $__ } from "../../i18n";
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
@@ -272,7 +273,7 @@ export function handleBookingDateChange(
 
     // Validate: ensure start date is present
     if (!dayjsStart) {
-        errors.push("Start date is required.");
+        errors.push($__("Start date is required."));
         valid = false;
     } else {
         // Apply circulation rules: leadDays, trailDays, maxPeriod (in days)
@@ -289,19 +290,19 @@ export function handleBookingDateChange(
             ? dayjs(todayArg).startOf("day")
             : dayjs().startOf("day");
         if (dayjsStart.isBefore(today.add(leadDays, "day"))) {
-            errors.push("Start date is too soon (lead time required)");
+            errors.push($__("Start date is too soon (lead time required)"));
             valid = false;
         }
 
         // Validate: end must not be before start (only if end date exists)
         if (dayjsEnd && dayjsEnd.isBefore(dayjsStart)) {
-            errors.push("End date is before start date");
+            errors.push($__("End date is before start date"));
             valid = false;
         }
 
         // Validate: period must not exceed maxPeriod (only if end date exists)
         if (dayjsEnd && dayjsEnd.diff(dayjsStart, "day") + 1 > maxPeriod) {
-            errors.push("Booking period exceeds maximum allowed");
+            errors.push($__("Booking period exceeds maximum allowed"));
             valid = false;
         }
 
@@ -327,7 +328,7 @@ export function handleBookingDateChange(
             d = d.add(1, "day")
         ) {
             if (disableFnResults.disable(d.toDate())) {
-                errors.push(`Date ${d.format("YYYY-MM-DD")} is unavailable.`);
+                errors.push($__("Date %s is unavailable.").format(d.format("YYYY-MM-DD")));
                 valid = false;
                 break;
             }
