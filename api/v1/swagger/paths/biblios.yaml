@@ -757,16 +757,18 @@
                 type: integer
               checkout_date:
                 description: Date when the item was checked out
-                type: string
+                type:
+                  - string
+                  - "null"
                 format: date-time
               due_date:
                 description: Date when the item is due
-                type: string
+                type:
+                  - string
+                  - "null"
                 format: date-time
             required:
               - item_id
-              - checkout_date
-              - due_date
             additionalProperties: false
       "400":
         description: |

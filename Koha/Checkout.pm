@@ -173,6 +173,23 @@ sub to_api_mapping {
     };
 }
 
+=head3 public_read_list
+
+    my @public_read_list = @{$checkout->public_read_list};
+
+Returns the list of database columns that are allowed to be passed to render
+checkout objects on the public API.
+
+=cut
+
+sub public_read_list {
+    return [
+        'item_id',
+        'checkout_date',
+        'due_date',
+    ];
+}
+
 =head3 claim_returned
 
   my $return_claim = $checkout->claim_returned();

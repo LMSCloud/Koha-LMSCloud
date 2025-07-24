@@ -96,6 +96,11 @@ export function calculateDisabledDates(
         }
     }
     for (const checkout of checkouts) {
+        // Skip checkouts with missing required data
+        if (!checkout.item_id || !checkout.checkout_date || !checkout.due_date) {
+            continue;
+        }
+
         const issuedate = parse(checkout.checkout_date);
         const due = parse(checkout.due_date);
 
