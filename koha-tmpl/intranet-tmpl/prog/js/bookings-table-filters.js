@@ -14,11 +14,11 @@ window.BookingsTableFilters = (function() {
 
         if (expiredBtn) {
             expiredBtn.classList.toggle('filtered', filterStates.expired);
-            expiredBtn.innerHTML = `<i class="fa fa-${filterStates.expired ? 'filter' : 'bars'}"></i> ${filterStates.expired ? 'Hide expired' : 'Show expired'}`;
+            expiredBtn.innerHTML = `<i class="fa fa-${filterStates.expired ? 'filter' : 'bars'}"></i> ${filterStates.expired ? __('Hide expired') : __('Show expired')}`;
         }
         if (cancelledBtn) {
             cancelledBtn.classList.toggle('filtered', filterStates.cancelled);
-            cancelledBtn.innerHTML = `<i class="fa fa-${filterStates.cancelled ? 'filter' : 'bars'}"></i> ${filterStates.cancelled ? 'Hide cancelled' : 'Show cancelled'}`;
+            cancelledBtn.innerHTML = `<i class="fa fa-${filterStates.cancelled ? 'filter' : 'bars'}"></i> ${filterStates.cancelled ? __('Hide cancelled') : __('Show cancelled')}`;
         }
     }
 
