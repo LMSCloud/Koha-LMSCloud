@@ -6,7 +6,7 @@ import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore.js";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter.js";
 import customParseFormat from "dayjs/plugin/customParseFormat.js";
-import { $__ } from "../../i18n";
+import { $__ } from "../../i18n/index.js";
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
