@@ -4,6 +4,8 @@
  * All functions return promises and use async/await.
  */
 
+import { bookingValidation } from "./bookingValidationMessages.js";
+
 /**
  * Fetches bookable items for a given biblionumber
  * @param {number|string} biblionumber - The biblionumber to fetch items for
@@ -12,7 +14,7 @@
  */
 export async function fetchBookableItems(biblionumber) {
     if (!biblionumber) {
-        throw new Error("biblionumber is required");
+        throw bookingValidation.validationError("biblionumber_required");
     }
 
     const response = await fetch(
@@ -25,11 +27,10 @@ export async function fetchBookableItems(biblionumber) {
     );
 
     if (!response.ok) {
-        const error = new Error(
-            `Failed to fetch bookable items: ${response.status} ${response.statusText}`
-        );
-        error.status = response.status;
-        throw error;
+        throw bookingValidation.validationError("fetch_bookable_items_failed", {
+            status: response.status,
+            statusText: response.statusText
+        });
     }
 
     return await response.json();
@@ -43,7 +44,7 @@ export async function fetchBookableItems(biblionumber) {
  */
 export async function fetchBookings(biblionumber) {
     if (!biblionumber) {
-        throw new Error("biblionumber is required");
+        throw bookingValidation.validationError("biblionumber_required");
     }
 
     const response = await fetch(
@@ -51,11 +52,10 @@ export async function fetchBookings(biblionumber) {
     );
 
     if (!response.ok) {
-        const error = new Error(
-            `Failed to fetch bookings: ${response.status} ${response.statusText}`
-        );
-        error.status = response.status;
-        throw error;
+        throw bookingValidation.validationError("fetch_bookings_failed", {
+            status: response.status,
+            statusText: response.statusText
+        });
     }
 
     return await response.json();
@@ -69,7 +69,7 @@ export async function fetchBookings(biblionumber) {
  */
 export async function fetchCheckouts(biblionumber) {
     if (!biblionumber) {
-        throw new Error("biblionumber is required");
+        throw bookingValidation.validationError("biblionumber_required");
     }
 
     const response = await fetch(
@@ -77,11 +77,10 @@ export async function fetchCheckouts(biblionumber) {
     );
 
     if (!response.ok) {
-        const error = new Error(
-            `Failed to fetch checkouts: ${response.status} ${response.statusText}`
-        );
-        error.status = response.status;
-        throw error;
+        throw bookingValidation.validationError("fetch_checkouts_failed", {
+            status: response.status,
+            statusText: response.statusText
+        });
     }
 
     return await response.json();
@@ -100,11 +99,10 @@ export async function fetchPatron(patronId) {
     });
 
     if (!response.ok) {
-        const error = new Error(
-            `Failed to fetch patron: ${response.status} ${response.statusText}`
-        );
-        error.status = response.status;
-        throw error;
+        throw bookingValidation.validationError("fetch_patron_failed", {
+            status: response.status,
+            statusText: response.statusText
+        });
     }
 
     return await response.json();
@@ -126,7 +124,7 @@ export async function fetchPatrons() {
  */
 export async function fetchPickupLocations(biblionumber, patronId) {
     if (!biblionumber) {
-        throw new Error("biblionumber is required");
+        throw bookingValidation.validationError("biblionumber_required");
     }
 
     const params = new URLSearchParams({
@@ -145,11 +143,10 @@ export async function fetchPickupLocations(biblionumber, patronId) {
     );
 
     if (!response.ok) {
-        const error = new Error(
-            `Failed to fetch pickup locations: ${response.status} ${response.statusText}`
-        );
-        error.status = response.status;
-        throw error;
+        throw bookingValidation.validationError("fetch_pickup_locations_failed", {
+            status: response.status,
+            statusText: response.statusText
+        });
     }
 
     return await response.json();

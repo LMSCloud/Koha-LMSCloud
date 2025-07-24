@@ -66,6 +66,10 @@ export function translateApiError(errorMessage) {
             pattern: /Forbidden/i,
             translation: $__("Access to this resource is forbidden."),
         },
+        {
+            pattern: /Object not found/i,
+            translation: $__("The requested item was not found."),
+        },
     ];
 
     // Try to match error patterns
@@ -98,7 +102,10 @@ function extractErrorMessage(error) {
             return null;
         },
 
-        // Standard API error response
+        // Standard API error response with 'error' field
+        err => err?.response?.data?.error,
+
+        // Standard API error response with 'message' field
         err => err?.response?.data?.message,
 
         // Error object message

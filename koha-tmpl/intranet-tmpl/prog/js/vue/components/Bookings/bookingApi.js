@@ -5,6 +5,8 @@
  * All functions return promises and use async/await.
  */
 
+import { bookingValidation } from "./bookingValidationMessages.js";
+
 /**
  * Fetches bookable items for a given biblionumber
  * @param {number|string} biblionumber - The biblionumber to fetch items for
@@ -13,7 +15,7 @@
  */
 export async function fetchBookableItems(biblionumber) {
     if (!biblionumber) {
-        throw new Error("biblionumber is required");
+        throw bookingValidation.validationError("biblionumber_required");
     }
 
     const response = await fetch(
@@ -26,11 +28,10 @@ export async function fetchBookableItems(biblionumber) {
     );
 
     if (!response.ok) {
-        const error = new Error(
-            `Failed to fetch bookable items: ${response.status} ${response.statusText}`
-        );
-        error.status = response.status;
-        throw error;
+        throw bookingValidation.validationError("fetch_bookable_items_failed", {
+            status: response.status,
+            statusText: response.statusText
+        });
     }
 
     return await response.json();
@@ -44,7 +45,7 @@ export async function fetchBookableItems(biblionumber) {
  */
 export async function fetchBookings(biblionumber) {
     if (!biblionumber) {
-        throw new Error("biblionumber is required");
+        throw bookingValidation.validationError("biblionumber_required");
     }
 
     const response = await fetch(
@@ -52,11 +53,10 @@ export async function fetchBookings(biblionumber) {
     );
 
     if (!response.ok) {
-        const error = new Error(
-            `Failed to fetch bookings: ${response.status} ${response.statusText}`
-        );
-        error.status = response.status;
-        throw error;
+        throw bookingValidation.validationError("fetch_bookings_failed", {
+            status: response.status,
+            statusText: response.statusText
+        });
     }
 
     return await response.json();
@@ -70,7 +70,7 @@ export async function fetchBookings(biblionumber) {
  */
 export async function fetchCheckouts(biblionumber) {
     if (!biblionumber) {
-        throw new Error("biblionumber is required");
+        throw bookingValidation.validationError("biblionumber_required");
     }
 
     const response = await fetch(
@@ -78,11 +78,10 @@ export async function fetchCheckouts(biblionumber) {
     );
 
     if (!response.ok) {
-        const error = new Error(
-            `Failed to fetch checkouts: ${response.status} ${response.statusText}`
-        );
-        error.status = response.status;
-        throw error;
+        throw bookingValidation.validationError("fetch_checkouts_failed", {
+            status: response.status,
+            statusText: response.statusText
+        });
     }
 
     return await response.json();
@@ -96,7 +95,7 @@ export async function fetchCheckouts(biblionumber) {
  */
 export async function fetchPatron(patronId) {
     if (!patronId) {
-        throw new Error("patronId is required");
+        throw bookingValidation.validationError("patron_id_required");
     }
 
     const params = new URLSearchParams({
@@ -108,11 +107,10 @@ export async function fetchPatron(patronId) {
     });
 
     if (!response.ok) {
-        const error = new Error(
-            `Failed to fetch patron: ${response.status} ${response.statusText}`
-        );
-        error.status = response.status;
-        throw error;
+        throw bookingValidation.validationError("fetch_patron_failed", {
+            status: response.status,
+            statusText: response.statusText
+        });
     }
 
     return await response.json();
@@ -153,10 +151,10 @@ export async function fetchPatrons(term, page = 1) {
     });
 
     if (!response.ok) {
-        const error = new Error(
-            `Failed to fetch patrons: ${response.status} ${response.statusText}`
-        );
-        error.status = response.status;
+        const error = bookingValidation.validationError("fetch_patrons_failed", {
+            status: response.status,
+            statusText: response.statusText
+        });
 
         try {
             const errorData = await response.json();
@@ -182,7 +180,7 @@ export async function fetchPatrons(term, page = 1) {
  */
 export async function fetchPickupLocations(biblionumber, patronId) {
     if (!biblionumber) {
-        throw new Error("biblionumber is required");
+        throw bookingValidation.validationError("biblionumber_required");
     }
 
     const params = new URLSearchParams({
@@ -200,11 +198,10 @@ export async function fetchPickupLocations(biblionumber, patronId) {
     );
 
     if (!response.ok) {
-        const error = new Error(
-            `Failed to fetch pickup locations: ${response.status} ${response.statusText}`
-        );
-        error.status = response.status;
-        throw error;
+        throw bookingValidation.validationError("fetch_pickup_locations_failed", {
+            status: response.status,
+            statusText: response.statusText
+        });
     }
 
     return await response.json();
@@ -242,11 +239,10 @@ export async function fetchCirculationRules(params = {}) {
     );
 
     if (!response.ok) {
-        const error = new Error(
-            `Failed to fetch circulation rules: ${response.status} ${response.statusText}`
-        );
-        error.status = response.status;
-        throw error;
+        throw bookingValidation.validationError("fetch_circulation_rules_failed", {
+            status: response.status,
+            statusText: response.statusText
+        });
     }
 
     return await response.json();
@@ -266,20 +262,16 @@ export async function fetchCirculationRules(params = {}) {
  */
 export async function createBooking(bookingData) {
     if (!bookingData) {
-        throw new Error("bookingData is required");
+        throw bookingValidation.validationError("booking_data_required");
     }
 
-    const requiredFields = [
-        "start_date",
-        "end_date",
-        "biblio_id",
-        "patron_id",
-        "pickup_library_id",
-    ];
-    const missingFields = requiredFields.filter(field => !bookingData[field]);
+    const validationError = bookingValidation.validateRequiredFields(
+        bookingData,
+        ["start_date", "end_date", "biblio_id", "patron_id", "pickup_library_id"]
+    );
 
-    if (missingFields.length > 0) {
-        throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
+    if (validationError) {
+        throw validationError;
     }
 
     const response = await fetch("/api/v1/bookings", {
@@ -292,7 +284,10 @@ export async function createBooking(bookingData) {
     });
 
     if (!response.ok) {
-        let errorMessage = `Failed to create booking: ${response.status} ${response.statusText}`;
+        let errorMessage = bookingValidation.validationError("create_booking_failed", {
+            status: response.status,
+            statusText: response.statusText
+        }).message;
         try {
             const errorData = await response.json();
             if (errorData.error) {
@@ -322,11 +317,11 @@ export async function createBooking(bookingData) {
  */
 export async function updateBooking(bookingId, bookingData) {
     if (!bookingId) {
-        throw new Error("bookingId is required");
+        throw bookingValidation.validationError("booking_id_required");
     }
 
     if (!bookingData || Object.keys(bookingData).length === 0) {
-        throw new Error("No update data provided");
+        throw bookingValidation.validationError("no_update_data");
     }
 
     const response = await fetch(
@@ -342,7 +337,10 @@ export async function updateBooking(bookingId, bookingData) {
     );
 
     if (!response.ok) {
-        let errorMessage = `Failed to update booking: ${response.status} ${response.statusText}`;
+        let errorMessage = bookingValidation.validationError("update_booking_failed", {
+            status: response.status,
+            statusText: response.statusText
+        }).message;
         try {
             const errorData = await response.json();
             if (errorData.error) {
