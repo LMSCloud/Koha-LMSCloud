@@ -1363,6 +1363,15 @@ Circulation:
                 SCAN: Scan
             - "The first listed format is selected by default when you request via the OPAC."
 
+    Bookings:
+        -
+            - pref: BookingDateRangeConstraint
+              choices:
+                  "": "Don't constrain"
+                  issuelength: "Constrain to issue length"
+                  issuelength_with_renewals: "Constrain to issue length with renewals"
+            - booking date ranges based on circulation rules. When set, users can only create bookings within the specified period based on circulation rules for the patron category, item type, and library.
+
     RFID-Web-Service batch checkin/checkout:
          -
             - pref: RFIDWebService

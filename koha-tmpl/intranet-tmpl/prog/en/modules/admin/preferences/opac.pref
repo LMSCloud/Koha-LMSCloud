@@ -691,6 +691,13 @@ OPAC:
                   1: Allow
                   0: "Don't allow"
             - patrons to place and manage their bookings on the OPAC.
+        -
+            - pref: OPACBookingDateRangeConstraint
+              choices:
+                  "": "Don't constrain"
+                  issuelength: "Constrain to issue length"
+                  issuelength_with_renewals: "Constrain to issue length with renewals"
+            - OPAC booking date ranges based on circulation rules. When set, patrons can only create bookings within the specified period based on circulation rules for their patron category, item type, and library.
     OpenURL:
         -
             - 'Complete URL of OpenURL resolver (starting with <code>http://</code> or <code>https://</code>):'

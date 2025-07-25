@@ -24,7 +24,9 @@ use Koha::DateUtils qw( dt_from_string );
 use Koha::Items;
 use Koha::Patrons;
 use Koha::Libraries;
+use Koha::CirculationRules;
 
+use C4::Context;
 use C4::Letters;
 
 use List::Util qw(any);
@@ -124,6 +126,9 @@ sub store {
                 value     => $self->biblio_id,
             ) unless ( $self->biblio );
 
+            # Check date range constraints based on system preferences
+            $self->_check_date_range_constraints();
+
             # Throw exception for item level booking clash
             Koha::Exceptions::Booking::Clash->throw()
                 if $self->item_id && !$self->item->check_booking(
@@ -143,6 +148,7 @@ sub store {
                     booking_id => $self->in_storage ? $self->booking_id : undef
                 }
                 );
+
             # FIXME: We should be able to combine the above two functions into one
 
             # Assign item at booking time
@@ -331,6 +337,63 @@ sub to_api {
 }
 
 =head2 Internal methods
+
+=head3 _check_date_range_constraints
+
+Validates booking date range against system preference constraints
+
+=cut
+
+sub _check_date_range_constraints {
+    my ($self) = @_;
+
+    # Get the appropriate system preference based on context
+    my $constraint = C4::Context->preference('BookingDateRangeConstraint');
+
+    # Skip validation if no constraint is set
+    return unless $constraint;
+
+    # Calculate requested booking period in days
+    my $start_dt       = dt_from_string( $self->start_date );
+    my $end_dt         = dt_from_string( $self->end_date );
+    my $requested_days = $end_dt->delta_days($start_dt)->in_units('days') + 1;
+
+    # Get circulation rules for this booking context
+    my $patron    = $self->patron;
+    my $item_type = $self->item_id ? $self->item->effective_itemtype : undef;
+    my $library   = $self->pickup_library_id;
+
+    my $rules = Koha::CirculationRules->get_effective_rules(
+        {
+            categorycode => $patron->categorycode,
+            itemtype     => $item_type,
+            branchcode   => $library,
+            rules        => [ 'issuelength', 'renewalperiod', 'renewalsallowed' ]
+        }
+    );
+
+    # Calculate maximum allowed days based on constraint type
+    my $max_days;
+    if ( $constraint eq 'issuelength' ) {
+        $max_days = $rules->{issuelength} || 0;
+    } elsif ( $constraint eq 'issuelength_with_renewals' ) {
+        my $issue_length     = $rules->{issuelength}     || 0;
+        my $renewal_period   = $rules->{renewalperiod}   || 0;
+        my $renewals_allowed = $rules->{renewalsallowed} || 0;
+        $max_days = $issue_length + ( $renewal_period * $renewals_allowed );
+    }
+
+    # Throw exception if requested period exceeds maximum
+    if ( $max_days && $requested_days > $max_days ) {
+        Koha::Exceptions::Booking::DateRangeConstraint->throw(
+            requested_days  => $requested_days,
+            max_days        => $max_days,
+            constraint_type => $constraint
+        );
+    }
+
+    return;
+}
 
 =head3 _send_notice
 
