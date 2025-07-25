@@ -186,6 +186,33 @@
                                     :config="flatpickrConfig"
                                 />
                             </div>
+                            <div
+                                v-if="dateRangeConstraint && maxBookingPeriod"
+                                class="alert alert-info mb-2"
+                            >
+                                <small>
+                                    <strong>{{
+                                        $__("Booking constraint active:")
+                                    }}</strong>
+                                    {{
+                                        dateRangeConstraint === "issuelength"
+                                            ? $__(
+                                                  "Booking period limited to issue length (%s days)",
+                                                  maxBookingPeriod
+                                              )
+                                            : dateRangeConstraint ===
+                                              "issuelength_with_renewals"
+                                            ? $__(
+                                                  "Booking period limited to issue length with renewals (%s days)",
+                                                  maxBookingPeriod
+                                              )
+                                            : $__(
+                                                  "Booking period limited by circulation rules (%s days)",
+                                                  maxBookingPeriod
+                                              )
+                                    }}
+                                </small>
+                            </div>
                             <div class="calendar-legend mt-2 mb-3">
                                 <span
                                     class="booking-marker-dot booking-marker-dot--booked"
@@ -203,6 +230,25 @@
                                     class="booking-marker-dot booking-marker-dot--checked-out ml-3"
                                 ></span>
                                 {{ $__("Checked Out") }}
+                                <span
+                                    v-if="
+                                        dateRangeConstraint &&
+                                        dateRange &&
+                                        dateRange.length === 1
+                                    "
+                                    class="booking-marker-dot ml-3"
+                                    style="background-color: #28a745"
+                                ></span>
+                                <span
+                                    v-if="
+                                        dateRangeConstraint &&
+                                        dateRange &&
+                                        dateRange.length === 1
+                                    "
+                                    class="ml-1"
+                                >
+                                    {{ $__("Required end date") }}
+                                </span>
                             </div>
                         </fieldset>
                         <hr
@@ -324,6 +370,19 @@ export default {
         extendedAttributeTypes: { type: Object, default: null },
         authorizedValues: { type: Object, default: null },
         showAdditionalFields: { type: Boolean, default: false },
+        dateRangeConstraint: {
+            type: String,
+            default: null,
+            validator: value =>
+                !value ||
+                ["issuelength", "issuelength_with_renewals", "custom"].includes(
+                    value
+                ),
+        },
+        customDateRangeFormula: {
+            type: Function,
+            default: null,
+        },
     },
     emits: ["close"],
     setup(props, { emit }) {
@@ -473,20 +532,74 @@ export default {
         );
 
         const computedAvailabilityData = computed(() => {
-            return calculateDisabledDates(
+            const baseRules = store.circulationRules[0] || {};
+
+            // Apply date range constraint by overriding maxPeriod if configured
+            const effectiveRules = { ...baseRules };
+            if (props.dateRangeConstraint && maxBookingPeriod.value) {
+                effectiveRules.maxPeriod = maxBookingPeriod.value;
+            }
+
+            // Convert dateRange.value to proper selectedDates array for calculateDisabledDates
+            let selectedDatesArray = [];
+            if (typeof dateRange.value === "string") {
+                // Parse the string format back to Date array
+                if (dateRange.value.includes(" to ")) {
+                    const [start, end] = dateRange.value.split(" to ");
+                    selectedDatesArray = [new Date(start), new Date(end)];
+                } else if (dateRange.value) {
+                    selectedDatesArray = [new Date(dateRange.value)];
+                }
+            } else if (Array.isArray(dateRange.value)) {
+                selectedDatesArray = dateRange.value.map(d => new Date(d));
+            }
+
+            const result = calculateDisabledDates(
                 store.bookings,
                 store.checkouts,
                 store.bookableItems,
                 store.bookingItemId,
                 store.bookingId,
-                dateRange.value,
-                store.circulationRules[0] || {}
+                selectedDatesArray,
+                effectiveRules
             );
+
+            return result;
+        });
+
+        const maxBookingPeriod = computed(() => {
+            if (!props.dateRangeConstraint) return null;
+
+            const rules = store.circulationRules[0];
+            if (!rules) return null;
+
+            const issuelength = parseInt(rules.issuelength) || 0;
+
+            if (props.dateRangeConstraint === "issuelength") {
+                return issuelength;
+            }
+
+            if (props.dateRangeConstraint === "issuelength_with_renewals") {
+                const renewalperiod = parseInt(rules.renewalperiod) || 0;
+                const renewalsallowed = parseInt(rules.renewalsallowed) || 0;
+                return issuelength + renewalperiod * renewalsallowed;
+            }
+
+            if (props.dateRangeConstraint === "custom" && props.customDateRangeFormula) {
+                return props.customDateRangeFormula(rules);
+            }
+
+            return null;
         });
 
         const flatpickrConfig = computed(() => {
             const availability = computedAvailabilityData.value || {
                 disable: () => false,
+            };
+
+            const constraintOptions = {
+                dateRangeConstraint: props.dateRangeConstraint,
+                maxBookingPeriod: maxBookingPeriod.value,
             };
 
             const baseConfig = {
@@ -497,7 +610,14 @@ export default {
                 dateFormat: "Y-m-d",
                 wrap: false,
                 allowInput: false,
-                onChange: createOnChange(store, errorMessage, tooltipVisible),
+                altInput: false,
+                altInputClass: "booking-flatpickr-input",
+                onChange: createOnChange(
+                    store,
+                    errorMessage,
+                    tooltipVisible,
+                    constraintOptions
+                ),
                 onDayCreate: createOnDayCreate(
                     store,
                     tooltipMarkers,
@@ -777,7 +897,8 @@ export default {
                 emit("close");
                 resetModalState();
             } catch (error) {
-                errorMessage.value = store.error.submit || processApiError(error);
+                errorMessage.value =
+                    store.error.submit || processApiError(error);
             }
         }
 
@@ -816,6 +937,7 @@ export default {
             pickupLocationsTotal,
             bookableItemsFilteredOut,
             bookableItemsTotal,
+            maxBookingPeriod,
             flatpickrInstance,
             bookingPatron,
             bookingItemtypeId,
@@ -837,6 +959,44 @@ export default {
     z-index: 1050;
     display: block;
     overflow-y: auto;
+}
+
+/* Constraint highlighting styles with high specificity to override flatpickr */
+:global(.flatpickr-calendar .booking-constrained-range-marker) {
+    background-color: #d4edda !important;
+    border: 1px solid #28a745 !important;
+    color: #155724 !important;
+}
+
+:global(.flatpickr-calendar .flatpickr-day.booking-constrained-range-marker) {
+    background-color: #d4edda !important;
+    border-color: #28a745 !important;
+    color: #155724 !important;
+}
+
+:global(.flatpickr-calendar .flatpickr-day.booking-constrained-range-marker:hover) {
+    background-color: #c3e6cb !important;
+    border-color: #1e7e34 !important;
+}
+</style>
+
+<style>
+/* Additional global styles for constraint highlighting */
+.flatpickr-calendar .booking-constrained-range-marker {
+    background-color: #d4edda !important;
+    border: 1px solid #28a745 !important;
+    color: #155724 !important;
+}
+
+.flatpickr-calendar .flatpickr-day.booking-constrained-range-marker {
+    background-color: #d4edda !important;
+    border-color: #28a745 !important;
+    color: #155724 !important;
+}
+
+.flatpickr-calendar .flatpickr-day.booking-constrained-range-marker:hover {
+    background-color: #c3e6cb !important;
+    border-color: #1e7e34 !important;
 }
 
 .booking-modal-window {

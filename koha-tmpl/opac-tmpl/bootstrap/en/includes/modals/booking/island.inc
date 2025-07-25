@@ -1,9 +1,18 @@
+[% USE Koha %]
 [% USE To %]
 [% USE AdditionalFields %]
 [% USE AuthorisedValues %]
 
 <div id="booking-modal-mount">
-    <booking-modal-island biblionumber="[% biblionumber | html %]" submit-type="form-submission" submit-url="/cgi-bin/koha/opac-bookings.pl" show-additional-fields></booking-modal-island>
+    <booking-modal-island
+        biblionumber="[% biblionumber | html %]"
+        submit-type="form-submission"
+        submit-url="/cgi-bin/koha/opac-bookings.pl"
+        show-additional-fields
+        [% IF Koha.Preference('OPACBookingDateRangeConstraint') %]
+        date-range-constraint="[% Koha.Preference('OPACBookingDateRangeConstraint') | html %]"
+        [% END %]
+    ></booking-modal-island>
 </div>
 
 [% SET islands = Asset.js("js/vue/dist/islands.esm.js").match('(src="([^"]+)")').1 %] <script src="[% islands %]" type="module">

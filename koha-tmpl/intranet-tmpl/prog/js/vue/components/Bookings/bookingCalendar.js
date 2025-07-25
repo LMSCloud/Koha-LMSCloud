@@ -5,6 +5,59 @@ import {
 import dayjs from "dayjs";
 
 /**
+ * Clear constraint highlighting from flatpickr calendar
+ */
+function clearConstraintHighlighting(instance) {
+    if (!instance || !instance.calendarContainer) return;
+
+    const existingHighlights = instance.calendarContainer.querySelectorAll(
+        ".booking-constrained-range-marker"
+    );
+    existingHighlights.forEach(elem => {
+        elem.classList.remove("booking-constrained-range-marker");
+    });
+}
+
+/**
+ * Apply constraint highlighting to flatpickr calendar
+ * Can be called from multiple places (onChange, onReady, after DOM updates)
+ */
+function applyConstraintHighlighting(instance) {
+    if (!instance._constraintHighlighting) return;
+
+    const { startDate, targetEndDate } = instance._constraintHighlighting;
+
+    // Clear any existing highlighting first
+    clearConstraintHighlighting(instance);
+
+    // Use requestAnimationFrame to apply classes after flatpickr's own styling
+    requestAnimationFrame(() => {
+        // Safety check - instance might be destroyed (e.g., after successful booking)
+        if (!instance || !instance.calendarContainer) return;
+
+        const dayElements =
+            instance.calendarContainer.querySelectorAll(".flatpickr-day");
+        dayElements.forEach(dayElem => {
+            if (!dayElem.dateObj) return;
+
+            const dayTime = dayElem.dateObj.getTime();
+            const startTime = startDate.getTime();
+            const targetTime = targetEndDate.getTime();
+
+            // Highlight the entire allowed range (from start date to target end date)
+            if (
+                dayTime >= startTime &&
+                dayTime <= targetTime &&
+                !dayElem.classList.contains("flatpickr-disabled")
+            ) {
+                // Apply highlighting using CSS class only
+                dayElem.classList.add("booking-constrained-range-marker");
+            }
+        });
+    });
+}
+
+/**
  * Get the current language code from the HTML lang attribute
  */
 function getCurrentLanguageCode() {
@@ -94,11 +147,27 @@ export function createFlatpickrConfig(baseConfig = {}) {
     return config;
 }
 
-export function createOnChange(store, errorMessage, tooltipVisible) {
-    return function (selectedDates) {
+export function createOnChange(
+    store,
+    errorMessage,
+    tooltipVisible,
+    constraintOptions = {}
+) {
+    return function (...[selectedDates, , instance]) {
+        const baseRules = store.circulationRules[0] || {};
+
+        // Apply date range constraint by overriding maxPeriod if configured
+        const effectiveRules = { ...baseRules };
+        if (
+            constraintOptions.dateRangeConstraint &&
+            constraintOptions.maxBookingPeriod
+        ) {
+            effectiveRules.maxPeriod = constraintOptions.maxBookingPeriod;
+        }
+
         const result = handleBookingDateChange(
             selectedDates,
-            store.circulationRules[0] || {},
+            effectiveRules,
             store.bookings,
             store.checkouts,
             store.bookableItems,
@@ -111,6 +180,36 @@ export function createOnChange(store, errorMessage, tooltipVisible) {
             errorMessage.value = "";
         }
         tooltipVisible.value = false; // Hide tooltip on date change
+
+        // Handle highlighting for date range constraints
+        if (
+            constraintOptions.dateRangeConstraint &&
+            constraintOptions.maxBookingPeriod &&
+            instance &&
+            selectedDates.length === 1
+        ) {
+            const startDate = selectedDates[0];
+            const targetEndDate = new Date(startDate);
+            targetEndDate.setDate(
+                targetEndDate.getDate() + constraintOptions.maxBookingPeriod - 1
+            );
+
+            // Store the highlighting info on the instance for reuse
+            instance._constraintHighlighting = {
+                startDate,
+                targetEndDate,
+                maxPeriod: constraintOptions.maxBookingPeriod,
+            };
+
+            // Apply highlighting using the reusable function
+            applyConstraintHighlighting(instance);
+        }
+
+        // Clear highlighting when selection is cleared
+        if (selectedDates.length === 0 && instance) {
+            instance._constraintHighlighting = null;
+            clearConstraintHighlighting(instance);
+        }
     };
 }
 
@@ -121,7 +220,7 @@ export function createOnDayCreate(
     tooltipX,
     tooltipY
 ) {
-    return function (...[, , , dayElem]) {
+    return function (...[, , fp, dayElem]) {
         const existingGrids = dayElem.querySelectorAll(".booking-marker-grid");
         existingGrids.forEach(grid => grid.remove());
 
@@ -219,6 +318,13 @@ export function createOnDayCreate(
             );
             tooltipVisible.value = false; // Hide tooltip when mouse leaves the day cell
         });
+
+        // Reapply constraint highlighting if it exists (for month navigation, etc.)
+        if (fp && fp._constraintHighlighting && fp.calendarContainer) {
+            requestAnimationFrame(() => {
+                applyConstraintHighlighting(fp);
+            });
+        }
     };
 }
 
