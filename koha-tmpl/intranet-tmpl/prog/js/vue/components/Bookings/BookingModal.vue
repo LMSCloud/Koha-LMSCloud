@@ -197,19 +197,16 @@
                                     {{
                                         dateRangeConstraint === "issuelength"
                                             ? $__(
-                                                  "Booking period limited to issue length (%s days)",
-                                                  maxBookingPeriod
-                                              )
+                                                  "Booking period limited to issue length (%s days)"
+                                              ).format(maxBookingPeriod)
                                             : dateRangeConstraint ===
                                               "issuelength_with_renewals"
                                             ? $__(
-                                                  "Booking period limited to issue length with renewals (%s days)",
-                                                  maxBookingPeriod
-                                              )
+                                                  "Booking period limited to issue length with renewals (%s days)"
+                                              ).format(maxBookingPeriod)
                                             : $__(
-                                                  "Booking period limited by circulation rules (%s days)",
-                                                  maxBookingPeriod
-                                              )
+                                                  "Booking period limited by circulation rules (%s days)"
+                                              ).format(maxBookingPeriod)
                                     }}
                                 </small>
                             </div>
@@ -948,7 +945,7 @@ export default {
 };
 </script>
 
-<style scoped>
+<style>
 .booking-modal-backdrop {
     position: fixed;
     top: 0;
@@ -961,58 +958,109 @@ export default {
     overflow-y: auto;
 }
 
-/* Constraint highlighting styles with high specificity to override flatpickr */
-:global(.flatpickr-calendar .booking-constrained-range-marker) {
-    background-color: #d4edda !important;
-    border: 1px solid #28a745 !important;
-    color: #155724 !important;
+/* Global variables for external libraries (flatpickr) and cross-block usage */
+:root {
+    /* Success colors for constraint highlighting */
+    --booking-success-hue: 134;
+    --booking-success-bg: hsl(var(--booking-success-hue), 40%, 90%);
+    --booking-success-bg-hover: hsl(var(--booking-success-hue), 35%, 85%);
+    --booking-success-border: hsl(var(--booking-success-hue), 70%, 40%);
+    --booking-success-border-hover: hsl(var(--booking-success-hue), 75%, 30%);
+    --booking-success-text: hsl(var(--booking-success-hue), 80%, 20%);
+    
+    /* Border width used by flatpickr */
+    --booking-border-width: 1px;
+    
+    /* Variables used by second style block (booking markers, calendar states) */
+    --booking-marker-size: 0.25em;
+    --booking-marker-grid-gap: 0.25rem;
+    --booking-marker-grid-offset: -0.75rem;
+    
+    /* Color hues used in second style block */
+    --booking-warning-hue: 45;
+    --booking-danger-hue: 354;
+    --booking-info-hue: 195;
+    --booking-neutral-hue: 210;
+    
+    /* Colors derived from hues (used in second style block) */
+    --booking-warning-bg: hsl(var(--booking-warning-hue), 100%, 85%);
+    --booking-neutral-600: hsl(var(--booking-neutral-hue), 10%, 45%);
+    
+    /* Spacing used in second style block */
+    --booking-space-xs: 0.125rem;
+    
+    /* Typography used in second style block */
+    --booking-text-xs: 0.7rem;
+    
+    /* Border radius used in second style block and other components */
+    --booking-border-radius-sm: 0.25rem;
+    --booking-border-radius-md: 0.5rem;
+    --booking-border-radius-full: 50%;
 }
 
-:global(.flatpickr-calendar .flatpickr-day.booking-constrained-range-marker) {
-    background-color: #d4edda !important;
-    border-color: #28a745 !important;
-    color: #155724 !important;
+/* Design System: CSS Custom Properties (First Style Block Only) */
+.booking-modal-backdrop {
+    /* Colors not used in second style block */
+    --booking-warning-bg-hover: hsl(var(--booking-warning-hue), 100%, 70%);
+    --booking-neutral-100: hsl(var(--booking-neutral-hue), 15%, 92%);
+    --booking-neutral-300: hsl(var(--booking-neutral-hue), 15%, 75%);
+    --booking-neutral-500: hsl(var(--booking-neutral-hue), 10%, 55%);
+
+    /* Spacing Scale (first block only) */
+    --booking-space-sm: 0.25rem;   /* 4px */
+    --booking-space-md: 0.5rem;    /* 8px */
+    --booking-space-lg: 1rem;      /* 16px */
+    --booking-space-xl: 1.5rem;    /* 24px */
+    --booking-space-2xl: 2rem;     /* 32px */
+
+    /* Typography Scale (first block only) */
+    --booking-text-sm: 0.8125rem;
+    --booking-text-base: 1rem;
+    --booking-text-lg: 1.1rem;
+    --booking-text-xl: 1.3rem;
+    --booking-text-2xl: 2rem;
+
+    /* Layout */
+    --booking-modal-max-height: calc(100vh - var(--booking-space-2xl));
+    --booking-input-min-width: 15rem;
+
+    /* Animation */
+    --booking-transition-fast: 0.15s ease-in-out;
 }
 
-:global(.flatpickr-calendar .flatpickr-day.booking-constrained-range-marker:hover) {
-    background-color: #c3e6cb !important;
-    border-color: #1e7e34 !important;
-}
-</style>
-
-<style>
-/* Additional global styles for constraint highlighting */
+/* Constraint Highlighting Component */
 .flatpickr-calendar .booking-constrained-range-marker {
-    background-color: #d4edda !important;
-    border: 1px solid #28a745 !important;
-    color: #155724 !important;
+    background-color: var(--booking-success-bg) !important;
+    border: var(--booking-border-width) solid var(--booking-success-border) !important;
+    color: var(--booking-success-text) !important;
 }
 
 .flatpickr-calendar .flatpickr-day.booking-constrained-range-marker {
-    background-color: #d4edda !important;
-    border-color: #28a745 !important;
-    color: #155724 !important;
+    background-color: var(--booking-success-bg) !important;
+    border-color: var(--booking-success-border) !important;
+    color: var(--booking-success-text) !important;
 }
 
 .flatpickr-calendar .flatpickr-day.booking-constrained-range-marker:hover {
-    background-color: #c3e6cb !important;
-    border-color: #1e7e34 !important;
+    background-color: var(--booking-success-bg-hover) !important;
+    border-color: var(--booking-success-border-hover) !important;
 }
 
+/* Modal Layout Components */
 .booking-modal-window {
-    max-height: calc(100vh - 2rem);
-    margin: 1rem auto;
+    max-height: var(--booking-modal-max-height);
+    margin: var(--booking-space-lg) auto;
 }
 
 .modal-content {
-    max-height: calc(100vh - 2rem);
+    max-height: var(--booking-modal-max-height);
     display: flex;
     flex-direction: column;
 }
 
 .booking-modal-header {
-    padding: 1rem;
-    border-bottom: 1px solid #dee2e6;
+    padding: var(--booking-space-lg);
+    border-bottom: var(--booking-border-width) solid var(--booking-neutral-100);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1021,19 +1069,19 @@ export default {
 
 .booking-modal-title {
     margin: 0;
-    font-size: 1.3rem;
+    font-size: var(--booking-text-xl);
     font-weight: 600;
 }
 
 .booking-modal-close {
     background: transparent;
     border: none;
-    font-size: 2rem;
+    font-size: var(--booking-text-2xl);
     line-height: 1;
     cursor: pointer;
-    color: #6c757d;
+    color: var(--booking-neutral-500);
     opacity: 0.5;
-    transition: opacity 0.15s;
+    transition: opacity var(--booking-transition-fast);
 }
 
 .booking-modal-close:hover {
@@ -1041,11 +1089,12 @@ export default {
 }
 
 .booking-modal-body {
-    padding: 1.5rem;
+    padding: var(--booking-space-xl);
     overflow-y: auto;
     flex: 1 1 auto;
 }
 
+/* Form & Layout Components */
 .booking-extended-attributes {
     list-style: none;
     padding: 0;
@@ -1053,60 +1102,85 @@ export default {
 }
 
 .step-block {
-    margin-bottom: 2rem;
+    margin-bottom: var(--booking-space-2xl);
 }
 
 .step-header {
     font-weight: bold;
-    font-size: 1.1rem;
-    margin-bottom: var(--bs-spacing, 0.5rem);
+    font-size: var(--booking-text-lg);
+    margin-bottom: var(--booking-space-md);
 }
 
 hr {
     border: none;
-    border-top: 1px solid var(--bs-border-color);
-    margin: 2rem 0;
+    border-top: var(--booking-border-width) solid var(--booking-neutral-100);
+    margin: var(--booking-space-2xl) 0;
 }
 
+/* Input Components */
 .booking-flatpickr-input,
 .flatpickr-input.booking-flatpickr-input {
     width: 100%;
-    min-width: 15rem;
-    padding: 0.375rem 0.75rem;
-    border: 1px solid #ced4da;
-    border-radius: 0.25rem;
-    font-size: 1rem;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    min-width: var(--booking-input-min-width);
+    padding: calc(var(--booking-space-md) - var(--booking-space-xs)) calc(var(--booking-space-md) + var(--booking-space-sm));
+    border: var(--booking-border-width) solid var(--booking-neutral-300);
+    border-radius: var(--booking-border-radius-sm);
+    font-size: var(--booking-text-base);
+    transition: border-color var(--booking-transition-fast), box-shadow var(--booking-transition-fast);
 }
 
+/* Calendar Legend Component */
 .calendar-legend {
-    font-size: 0.8125rem;
+    font-size: var(--booking-text-sm);
     display: flex;
     align-items: center;
 }
 
 .calendar-legend .booking-marker-dot {
-    margin-right: 0.25rem;
+    /* Make legend dots much larger and more visible */
+    width: calc(var(--booking-marker-size) * 3) !important;
+    height: calc(var(--booking-marker-size) * 3) !important;
+    margin-right: calc(var(--booking-space-sm) * 1.5);
+    border: var(--booking-border-width) solid hsla(0, 0%, 0%, 0.15);
 }
 
 .calendar-legend .ml-3 {
-    margin-left: 1rem;
+    margin-left: var(--booking-space-lg);
+}
+
+/* Legend colors match actual calendar markers exactly */
+.calendar-legend .booking-marker-dot--booked {
+    background: var(--booking-warning-bg) !important;
+}
+
+.calendar-legend .booking-marker-dot--checked-out {
+    background: hsl(var(--booking-danger-hue), 60%, 85%) !important;
+}
+
+.calendar-legend .booking-marker-dot--lead {
+    background: hsl(var(--booking-info-hue), 60%, 85%) !important;
+}
+
+.calendar-legend .booking-marker-dot--trail {
+    background: var(--booking-warning-bg) !important;
 }
 </style>
 
 <style>
+/* External Library Integration */
 .booking-modal-body .vs__selected {
     font-size: var(--vs-font-size);
     line-height: var(--vs-line-height);
 }
 
+/* Booking Status Marker System */
 .booking-marker-grid {
     position: relative;
-    top: -0.75rem;
+    top: var(--booking-marker-grid-offset);
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 0.25em;
+    gap: var(--booking-marker-grid-gap);
     width: fit-content;
     max-width: 90%;
     margin-left: auto;
@@ -1121,53 +1195,56 @@ hr {
 
 .booking-marker-dot {
     display: inline-block;
-    width: 0.25em;
-    height: 0.25em;
-    border-radius: 50%;
+    width: var(--booking-marker-size);
+    height: var(--booking-marker-size);
+    border-radius: var(--booking-border-radius-full);
     vertical-align: middle;
 }
 
 .booking-marker-count {
-    font-size: 0.7em;
-    margin-left: 0.125em;
+    font-size: var(--booking-text-xs);
+    margin-left: var(--booking-space-xs);
     line-height: 1;
     font-weight: normal;
-    color: var(--bs-body-color);
+    color: var(--booking-neutral-600);
 }
 
+/* Status Indicator Colors */
 .booking-marker-dot--booked {
-    background: #ffc107;
+    background: var(--booking-warning-bg);
 }
 
 .booking-marker-dot--checked-out {
-    background: var(--bs-danger-bg-subtle);
+    background: hsl(var(--booking-danger-hue), 60%, 85%);
 }
 
 .booking-marker-dot--lead {
-    background: var(--bs-info-bg-subtle);
+    background: hsl(var(--booking-info-hue), 60%, 85%);
 }
 
 .booking-marker-dot--trail {
-    background: var(--bs-warning-bg-subtle);
+    background: var(--booking-warning-bg);
 }
 
+/* Calendar Day States */
 .booked {
-    background: var(--bs-warning-bg-subtle) !important;
-    color: var(--bs-warning-text-emphasis) !important;
-    border-radius: 50% !important;
+    background: var(--booking-warning-bg) !important;
+    color: hsl(var(--booking-warning-hue), 80%, 25%) !important;
+    border-radius: var(--booking-border-radius-full) !important;
 }
 
 .checked-out {
-    background: var(--bs-danger-bg-subtle) !important;
-    color: var(--bs-danger-text-emphasis) !important;
-    border-radius: 50% !important;
+    background: hsl(var(--booking-danger-hue), 60%, 85%) !important;
+    color: hsl(var(--booking-danger-hue), 80%, 25%) !important;
+    border-radius: var(--booking-border-radius-full) !important;
 }
 
+/* Hover States with Transparency */
 .flatpickr-day.booking-day--hover-lead {
-    background-color: rgba(255, 193, 7, 0.2) !important;
+    background-color: hsl(var(--booking-info-hue), 60%, 85%, 0.2) !important;
 }
 
 .flatpickr-day.booking-day--hover-trail {
-    background-color: rgba(13, 202, 240, 0.2) !important;
+    background-color: hsl(var(--booking-warning-hue), 100%, 70%, 0.2) !important;
 }
 </style>

@@ -68,27 +68,38 @@ function getMarkerTypeLabel(type) {
 
 <style scoped>
 .booking-tooltip {
-    background: #fffbe8;
-    color: #333;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    padding: 6px 10px;
-    font-size: 13px;
+    background: hsl(var(--booking-warning-hue), 100%, 95%);
+    color: hsl(var(--booking-neutral-hue), 20%, 20%);
+    border: var(--booking-border-width) solid hsl(var(--booking-neutral-hue), 15%, 75%);
+    border-radius: var(--booking-border-radius-md);
+    box-shadow: 0 0.125rem 0.5rem hsla(var(--booking-neutral-hue), 10%, 0%, 0.08);
+    padding: calc(var(--booking-space-xs) * 3) calc(var(--booking-space-xs) * 5);
+    font-size: var(--booking-text-lg);
     pointer-events: none;
 }
+
 .booking-marker-dot {
     display: inline-block;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    margin: 0 1px 0 0;
+    width: calc(var(--booking-marker-size) * 1.25);
+    height: calc(var(--booking-marker-size) * 1.25);
+    border-radius: var(--booking-border-radius-full);
+    margin: 0 var(--booking-space-xs) 0 0;
     vertical-align: middle;
 }
+
 .booking-marker-dot--booked {
-    background: #ffc107;
+    background: var(--booking-warning-bg);
 }
+
 .booking-marker-dot--checked-out {
-    background: #dc3545;
+    background: hsl(var(--booking-danger-hue), 60%, 85%);
+}
+
+.booking-marker-dot--lead {
+    background: hsl(var(--booking-info-hue), 60%, 85%);
+}
+
+.booking-marker-dot--trail {
+    background: var(--booking-warning-bg);
 }
 </style>
