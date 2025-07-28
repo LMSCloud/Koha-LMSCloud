@@ -121,7 +121,7 @@
         // Initialize extended attributes
         initializeBookingExtendedAttributes().then(({ extended_attribute_types, authorised_values }) => {
             // Get table settings
-            let table_settings = [% TablesSettings.GetTableSettings( 'catalog', 'bookings', 'bookings', 'json' ) | $raw %];
+            let table_settings = [% TablesSettings.GetTableSettings( 'catalogue', 'detail', 'bookings', 'json' ) | $raw %];
 
             // Define additional filters for this specific view
             const additional_filters = {
