@@ -40,7 +40,7 @@
                 group: booking.item_id ?? 0,
                 className: booking.status === 'cancelled' ? 'cancelled' : '',
                 style: booking.status === 'cancelled' ? TIMELINE_STYLES.cancelled : '',
-                editable: true
+                editable: booking.status !== 'cancelled'
             };
         });
 
@@ -135,8 +135,8 @@
     function createTempModalTrigger(bookingId, modalId) {
         const tempButton = document.createElement("button");
         tempButton.setAttribute("data-booking", bookingId);
-        tempButton.setAttribute("data-bs-toggle", "modal");
-        tempButton.setAttribute("data-bs-target", `#${modalId}`);
+        tempButton.setAttribute("data-toggle", "modal");
+        tempButton.setAttribute("data-target", `#${modalId}`);
         tempButton.style.display = "none";
         document.body.appendChild(tempButton);
 
@@ -152,9 +152,16 @@
     }
 
     function handleOnRemove(item, callback) {
+        // Only handle removal for booking items, not checkout items
+        if (!item.booking) {
+            callback(null);
+            return;
+        }
+
         const cancelBookingModal =
             document.getElementById("cancelBookingModal");
         if (!cancelBookingModal) {
+            callback(null);
             return;
         }
 
