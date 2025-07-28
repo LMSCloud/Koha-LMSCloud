@@ -12,7 +12,14 @@
             :reset-on-blur="false"
             :reset-on-select="false"
             @search="debouncedPatronSearch"
-        />
+        >
+            <template #no-options>
+                <slot name="no-options" :has-searched="hasSearched">Sorry, no matching options.</slot>
+            </template>
+            <template #spinner>
+                <slot name="spinner">Loading...</slot>
+            </template>
+        </v-select>
     </div>
 </template>
 
@@ -48,6 +55,7 @@ export default {
         const store = useBookingStore();
         const patronOptions = ref([]);
         const loading = ref(false); // Manage loading state internally
+        const hasSearched = ref(false); // Track if user has performed a search
 
         const selectedPatron = computed({
             get: () => props.modelValue,
@@ -55,6 +63,13 @@ export default {
         });
 
         const onPatronSearch = async search => {
+            if (!search || search.length < 2) {
+                hasSearched.value = false;
+                patronOptions.value = [];
+                return;
+            }
+
+            hasSearched.value = true;
             loading.value = true; // Use internal loading state
 
             try {
@@ -74,6 +89,7 @@ export default {
             selectedPatron,
             patronOptions, // Expose internal options
             loading, // Expose internal loading
+            hasSearched, // Expose search state
             debouncedPatronSearch, // Expose internal search handler
         };
     },

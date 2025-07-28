@@ -40,7 +40,14 @@
                                 :placeholder="
                                     $__('Search for a patron')
                                 "
-                            />
+                            >
+                                <template #no-options="{ hasSearched }">
+                                    {{ hasSearched ? $__("No patrons found") : $__("Type to search for patrons") }}
+                                </template>
+                                <template #spinner>
+                                    <span class="sr-only">{{ $__("Searching...") }}</span>
+                                </template>
+                            </PatronSearchSelect>
                         </fieldset>
                         <hr
                             v-if="
@@ -91,7 +98,14 @@
                                     :disabled="
                                         !bookingPatron && showPatronSelect
                                     "
-                                />
+                                >
+                                    <template #no-options>
+                                        {{ $__("No pickup locations available") }}
+                                    </template>
+                                    <template #spinner>
+                                        <span class="sr-only">{{ $__("Loading...") }}</span>
+                                    </template>
+                                </v-select>
                                 <span
                                     v-if="
                                         constrainedFlags.pickupLocations &&
@@ -125,7 +139,11 @@
                                     :disabled="
                                         !bookingPatron && showPatronSelect
                                     "
-                                />
+                                >
+                                    <template #no-options>
+                                        {{ $__("No item types available") }}
+                                    </template>
+                                </v-select>
                                 <span
                                     v-if="constrainedFlags.itemTypes"
                                     class="badge badge-warning ml-2"
@@ -150,7 +168,14 @@
                                     :disabled="
                                         !bookingPatron && showPatronSelect
                                     "
-                                />
+                                >
+                                    <template #no-options>
+                                        {{ $__("No items available") }}
+                                    </template>
+                                    <template #spinner>
+                                        <span class="sr-only">{{ $__("Loading...") }}</span>
+                                    </template>
+                                </v-select>
                                 <span
                                     v-if="constrainedFlags.bookableItems"
                                     class="badge badge-warning ml-2"
