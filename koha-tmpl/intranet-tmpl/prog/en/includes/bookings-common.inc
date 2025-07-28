@@ -95,7 +95,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
             name: "status",
             searchable: false,
             orderable: false,
-            visible: false,
+            visible: variant === 'biblio' ? false : true,
             render: function (data, type, row, meta) {
                 const isExpired = date => dayjs(date).isBefore(new Date());
                 const isActive = (startDate, endDate) => {

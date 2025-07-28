@@ -103,7 +103,7 @@
                         showCallnumber: true,
                         showLocation: true,
                         showBookingDates: false,
-                        showStatus: false,
+                        showStatus: true,
                         patronOptions: { display_cardnumber: true, url: true }
                     }
                 });
