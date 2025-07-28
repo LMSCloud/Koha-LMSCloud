@@ -19,6 +19,15 @@
             &.cancelled {
                background: rgba(128, 128, 128, 0.3);
             }
+            &.checkout {
+               background: rgba(255, 87, 34, 0.7);
+               border-color: #ff5722;
+               cursor: not-allowed;
+            }
+            &.checkout .vis-item-content {
+               color: #fff;
+               font-weight: bold;
+            }
         }
     </style>
 </head>
@@ -178,13 +187,20 @@
                 dataType: 'json',
                 type: 'GET',
             });
+            var checkouts = $.ajax({
+                url: '/api/v1/biblios/%s/checkouts?_per_page=-1'.format(biblionumber),
+                headers: { 'x-koha-embed': ['patron'] },
+                dataType: 'json',
+                type: 'GET',
+            });
 
-            $.when(items, bookings).then(
-                function(items, bookings){
+            $.when(items, bookings, checkouts).then(
+                function(items, bookings, checkouts){
                     timeline = window.BookingsTimeline.init({
                         containerId: 'bookings-timeline',
                         bookings: bookings[0],
-                        bookableItems: items[0]
+                        bookableItems: items[0],
+                        checkouts: checkouts[0]
                     });
                 },
                 function(jqXHR, textStatus, errorThrown){

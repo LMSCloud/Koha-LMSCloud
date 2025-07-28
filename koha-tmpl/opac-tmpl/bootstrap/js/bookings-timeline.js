@@ -1,5 +1,5 @@
 (() => {
-    function processBookingsData(loggedInUser, bookings, bookableItems) {
+    function processBookingsData(loggedInUser, bookings, bookableItems, checkouts = []) {
         const visSetItems = new vis.DataSet([
             { id: 0, content: __("Record level") },
             ...bookableItems.map(bookableItem => ({
@@ -8,28 +8,46 @@
             })),
         ]);
 
-        const visSetBookings = new vis.DataSet(
-            bookings.map(booking => {
-                const isActive = ["new", "pending", "active"].includes(
-                    booking.status
-                );
-                const patronContent = `${__("Booked by")}: ${loggedInUser == booking.patron_id ? __("You") : __("Another patron")}`;
-                return {
-                    id: booking.booking_id,
-                    booking: booking.booking_id,
-                    patron: booking.patron_id,
-                    pickup_library: booking.pickup_library_id,
-                    start: dayjs(booking.start_date).toDate(),
-                    end: dayjs(booking.end_date).toDate(),
-                    extended_attributes: booking.extended_attributes,
-                    content: !isActive
-                        ? `<s>${patronContent}</s>`
-                        : patronContent,
-                    type: "range",
-                    group: booking.item_id ?? 0,
-                };
-            })
-        );
+        // Process bookings
+        const bookingItems = bookings.map(booking => {
+            const isActive = ["new", "pending", "active"].includes(
+                booking.status
+            );
+            const patronContent = `${__("Booked by")}: ${loggedInUser == booking.patron_id ? __("You") : __("Another patron")}`;
+            return {
+                id: booking.booking_id,
+                booking: booking.booking_id,
+                patron: booking.patron_id,
+                pickup_library: booking.pickup_library_id,
+                start: dayjs(booking.start_date).toDate(),
+                end: dayjs(booking.end_date).toDate(),
+                extended_attributes: booking.extended_attributes,
+                content: !isActive
+                    ? `<s>${patronContent}</s>`
+                    : patronContent,
+                type: "range",
+                group: booking.item_id ?? 0,
+                editable: loggedInUser == booking.patron_id
+            };
+        });
+
+        // Process checkouts
+        const checkoutItems = checkouts.map(checkout => {
+            const patronContent = `${__("Checked out to")}: ${loggedInUser == checkout.patron_id ? __("You") : __("Another patron")}`;
+            
+            return {
+                id: `checkout-${checkout.checkout_id}`,
+                content: `<span class="checkout-label">${patronContent}</span>`,
+                start: dayjs(checkout.checkout_date).toDate(),
+                end: checkout.due_date ? dayjs(checkout.due_date).toDate() : dayjs().add(1, 'year').toDate(),
+                type: "range",
+                group: checkout.item_id,
+                className: 'checkout',
+                editable: false
+            };
+        });
+
+        const visSetBookings = new vis.DataSet([...bookingItems, ...checkoutItems]);
 
         return { visSetItems, visSetBookings };
     }
@@ -142,6 +160,7 @@
         loggedInUser,
         bookings,
         bookableItems,
+        checkouts = [],
         visTimelineOptions
     }) {
         const container = document.getElementById(containerId);
@@ -149,7 +168,8 @@
         const { visSetItems, visSetBookings } = processBookingsData(
             loggedInUser,
             bookings,
-            bookableItems
+            bookableItems,
+            checkouts
         );
 
         const handleOnMoving = makeHandleOnMoving(visSetBookings);
@@ -192,6 +212,7 @@
         loggedInUser,
         bookings,
         bookableItems,
+        checkouts = [],
         visTimelineOptions = {}
     }) {
         return {
@@ -214,6 +235,7 @@
                     loggedInUser,
                     bookings,
                     bookableItems,
+                    checkouts,
                     visTimelineOptions
                 });
             },

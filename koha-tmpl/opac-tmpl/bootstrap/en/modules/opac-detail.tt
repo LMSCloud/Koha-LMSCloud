@@ -36,6 +36,17 @@
         [% Asset.css("lib/verovio/midiplayer.css") | $raw %]
     [% END %]
     [% Asset.css("lib/Chocolat/css/chocolat.css") | $raw %]
+    <style>
+        #bookings-timeline .vis-item.vis-range.checkout {
+            background: rgba(255, 87, 34, 0.7);
+            border-color: #ff5722;
+            cursor: not-allowed;
+        }
+        #bookings-timeline .vis-item.vis-range.checkout .vis-item-content {
+            color: #fff;
+            font-weight: bold;
+        }
+    </style>
 </head>
 [% BLOCK cssinclude %][% END %]
 [% INCLUDE 'bodytag.inc' bodyid='opac-detail' bodyclass='scrollto' %]
@@ -2004,11 +2015,30 @@
                 if (event.target.closest('a').id === "bookings-tab") {
                     if (bookingsTabInitialized) return;
 
-                    window.BookingsTimeline({
-                        loggedInUser: "[% logged_in_user.borrowernumber %]",
-                        bookings: JSON.parse('[% To.json(biblio.bookings.filter_by_active.unblessed) | $raw %]' ?? "[]"),
-                        bookableItems: JSON.parse('[% To.json(biblio.items.filter_by_bookable.unblessed) | $raw %]' ?? "[]"),
-                    }).init();
+                    // Fetch checkouts data via AJAX
+                    $.ajax({
+                        url: '/api/v1/biblios/[% biblionumber | uri %]/checkouts?_per_page=-1',
+                        headers: { 'x-koha-embed': ['patron'] },
+                        dataType: 'json',
+                        type: 'GET',
+                        success: function(checkouts) {
+                            window.BookingsTimeline({
+                                loggedInUser: "[% logged_in_user.borrowernumber %]",
+                                bookings: JSON.parse('[% To.json(biblio.bookings.filter_by_active.unblessed) | $raw %]' ?? "[]"),
+                                bookableItems: JSON.parse('[% To.json(biblio.items.filter_by_bookable.unblessed) | $raw %]' ?? "[]"),
+                                checkouts: checkouts
+                            }).init();
+                        },
+                        error: function() {
+                            // If checkouts fetch fails, initialize timeline without checkouts
+                            window.BookingsTimeline({
+                                loggedInUser: "[% logged_in_user.borrowernumber %]",
+                                bookings: JSON.parse('[% To.json(biblio.bookings.filter_by_active.unblessed) | $raw %]' ?? "[]"),
+                                bookableItems: JSON.parse('[% To.json(biblio.items.filter_by_bookable.unblessed) | $raw %]' ?? "[]"),
+                                checkouts: []
+                            }).init();
+                        }
+                    });
                     $("#cancellation-reason").comboBox({
                         displayProperty: 'name',
                         placeholder: _("Select or type a reason"),
