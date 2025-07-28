@@ -40,7 +40,7 @@
             [% END %]
         </ul>
 
-        <h5>Holds</h5>
+        <h5>Holds and Bookings</h5>
         <ul>
             <li>
                 <a href="/cgi-bin/koha/circ/view_holdsqueue.pl">Holds queue</a>
@@ -59,6 +59,13 @@
             <li>
                 <a href="/cgi-bin/koha/circ/reserveratios.pl">Hold ratios</a>
             </li>
+            <li>
+                <a class="circ-button" href="/cgi-bin/koha/circ/pendingbookings.pl">Bookings to collect</a>
+            </li>
+            <li>
+                <a class="circ-button bookings" href="/cgi-bin/koha/circ/bookings.pl">Bookings</a>
+            </li>
+            
         </ul>
 
         [% IF Koha.Preference('UseRecalls') and CAN_user_recalls %]
