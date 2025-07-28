@@ -4,6 +4,15 @@
 @import "flatpickr";
 @import "fonts";
 
+// CSS custom properties for bookings timeline colors
+// These are used in JavaScript inline styles to override vis-timeline's CSS specificity
+:root {
+    --bookings-timeline-bg-checkout: #{map-deep-get($bookings, timeline, bg-checkout)};
+    --bookings-timeline-text-checkout: #{map-deep-get($bookings, timeline, text-checkout)};
+    --bookings-timeline-bg-cancelled: #{map-deep-get($bookings, timeline, bg-cancelled)};
+    --bookings-timeline-text-cancelled: #{map-deep-get($bookings, timeline, text-cancelled)};
+}
+
 ::selection {
     background: $background-color-primary;
     color: #FFFFFF;

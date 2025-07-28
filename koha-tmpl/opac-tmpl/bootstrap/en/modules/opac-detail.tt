@@ -36,17 +36,6 @@
         [% Asset.css("lib/verovio/midiplayer.css") | $raw %]
     [% END %]
     [% Asset.css("lib/Chocolat/css/chocolat.css") | $raw %]
-    <style>
-        #bookings-timeline .vis-item.vis-range.checkout {
-            background: rgba(255, 87, 34, 0.7);
-            border-color: #ff5722;
-            cursor: not-allowed;
-        }
-        #bookings-timeline .vis-item.vis-range.checkout .vis-item-content {
-            color: #fff;
-            font-weight: bold;
-        }
-    </style>
 </head>
 [% BLOCK cssinclude %][% END %]
 [% INCLUDE 'bodytag.inc' bodyid='opac-detail' bodyclass='scrollto' %]

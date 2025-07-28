@@ -14,22 +14,6 @@
     [% t("Koha") | html %]
 [% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-    <style>
-        #bookings-timeline .vis-item.vis-range {
-            &.cancelled {
-               background: rgba(128, 128, 128, 0.3);
-            }
-            &.checkout {
-               background: rgba(255, 87, 34, 0.7);
-               border-color: #ff5722;
-               cursor: not-allowed;
-            }
-            &.checkout .vis-item-content {
-               color: #fff;
-               font-weight: bold;
-            }
-        }
-    </style>
 </head>
 
 <body id="circ_request" class="catalog">

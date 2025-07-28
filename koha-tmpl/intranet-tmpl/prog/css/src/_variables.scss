@@ -6,6 +6,16 @@ $background-color-modal: lighten( saturate( $background-color-secondary, 5 ), 40
 $btn-primary: #FFC32B;
 $btn-primary-hover: lighten( $btn-primary, 10 );
 
+// Bookings component styles
+$bookings: (
+  timeline: (
+    bg-checkout: #ffc107,
+    text-checkout: #212529,
+    bg-cancelled: #dee2e6,
+    text-cancelled: #6c757d
+  )
+);
+
 // Copied from Bootstrap 5 without system-ui because of
 // https://infinnie.github.io/blog/2017/systemui.html
 $font-family-sans-serif:

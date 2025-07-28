@@ -1,4 +1,11 @@
 (() => {
+    // Timeline item styles
+    // Using inline styles because vis-timeline's CSS has higher specificity than utility classes
+    const TIMELINE_STYLES = {
+        cancelled: 'background-color: var(--bookings-timeline-bg-cancelled); color: var(--bookings-timeline-text-cancelled); text-decoration: line-through;',
+        checkout: 'background-color: var(--bookings-timeline-bg-checkout); color: var(--bookings-timeline-text-checkout); font-weight: bold;'
+    };
+
     function processBookingsData(bookings, bookableItems, checkouts = []) {
         const visSetItems = new vis.DataSet([
             { id: 0, content: __("Record level") },
@@ -32,6 +39,7 @@
                 type: "range",
                 group: booking.item_id ?? 0,
                 className: booking.status === 'cancelled' ? 'cancelled' : '',
+                style: booking.status === 'cancelled' ? TIMELINE_STYLES.cancelled : '',
                 editable: true
             };
         });
@@ -44,12 +52,13 @@
             
             return {
                 id: `checkout-${checkout.checkout_id}`,
-                content: `<span class="checkout-label">${__("Checkout")}: ${patronContent}</span>`,
+                content: `<span class="checkout-label font-weight-bold">${__("Checkout")}: ${patronContent}</span>`,
                 start: dayjs(checkout.checkout_date).toDate(),
                 end: checkout.due_date ? dayjs(checkout.due_date).toDate() : dayjs().add(1, 'year').toDate(),
                 type: "range",
                 group: checkout.item_id,
                 className: 'checkout',
+                style: TIMELINE_STYLES.checkout,
                 editable: false
             };
         });

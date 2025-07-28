@@ -1,6 +1,18 @@
 $font-monospace: "Courier New", Courier, monospace;
 
 $language-footer-min-height: 20px;
+
+// Deep map-get function for nested maps
+@function map-deep-get($map, $keys...) {
+    $value: $map;
+    @each $key in $keys {
+        $value: map-get($value, $key);
+        @if $value == null {
+            @return null;
+        }
+    }
+    @return $value;
+}
 $table-border-color: #BCBCBC;
 $table-header-background: #FFF;
 $table-odd-row: #f3f4f4;

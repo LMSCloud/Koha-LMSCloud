@@ -1,4 +1,9 @@
 (() => {
+    // Timeline item styles
+    const TIMELINE_STYLES = {
+        checkout: 'background-color: var(--warning); color: var(--dark); font-weight: bold;'
+    };
+
     function processBookingsData(loggedInUser, bookings, bookableItems, checkouts = []) {
         const visSetItems = new vis.DataSet([
             { id: 0, content: __("Record level") },
@@ -37,12 +42,13 @@
             
             return {
                 id: `checkout-${checkout.checkout_id}`,
-                content: `<span class="checkout-label">${patronContent}</span>`,
+                content: `<span class="checkout-label font-weight-bold">${patronContent}</span>`,
                 start: dayjs(checkout.checkout_date).toDate(),
                 end: checkout.due_date ? dayjs(checkout.due_date).toDate() : dayjs().add(1, 'year').toDate(),
                 type: "range",
                 group: checkout.item_id,
                 className: 'checkout',
+                style: TIMELINE_STYLES.checkout,
                 editable: false
             };
         });
