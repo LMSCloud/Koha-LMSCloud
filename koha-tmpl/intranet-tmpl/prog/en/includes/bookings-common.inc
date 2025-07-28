@@ -69,6 +69,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
     // Booking ID (usually hidden)
     columns.push({
         "data": "booking_id",
+        "name": "booking_id",
         "title": _("Booking ID"),
         "visible": false
     });
@@ -77,6 +78,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
     if (showCreationDate) {
         columns.push({
             "data": "creation_date",
+            "name": "creation_date",
             "title": _("Reserved on"),
             "type": "date",
             "searchable": true,
@@ -152,6 +154,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
     if (showHoldingLibrary) {
         columns.push({
             "data": "item.home_library_id",
+            "name": "home_library_id",
             "title": _("Holding library"),
             "searchable": true,
             "orderable": true,
@@ -165,6 +168,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
     if (showBiblioTitle) {
         columns.push({
             "data": "biblio.title",
+            "name": "title",
             "title": _("Title"),
             "searchable": true,
             "orderable": true,
@@ -180,6 +184,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
     if (showItemData) {
         columns.push({
             "data": "item.external_id",
+            "name": "itemdata",
             "title": _("Item"),
             "searchable": true,
             "orderable": true,
@@ -198,6 +203,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
     if (showCallnumber) {
         columns.push({
             "data": "item.callnumber",
+            "name": "callnumber",
             "title": _("Callnumber"),
             "searchable": true,
             "orderable": true,
@@ -215,6 +221,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
     if (showLocation) {
         columns.push({
             "data": "item.location",
+            "name": "location",
             "title": _("Location"),
             "searchable": true,
             "orderable": false,
@@ -237,6 +244,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
         columns.push({
             "data": "item.itype",
             "title": _("Item type"),
+            "name": "itemtype",
             "searchable": true,
             "orderable": true,
             "render": function(data, type, row, meta) {
@@ -248,6 +256,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
     // Patron
     columns.push({
         "data": "patron.firstname:patron.surname",
+        "name": "patron",
         "title": _("Patron"),
         "searchable": true,
         "orderable": true,
@@ -260,6 +269,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
     if (showPickupLibrary) {
         columns.push({
             "data": "pickup_library.name",
+            "name": "pickup_library",
             "title": _("Pickup library"),
             "searchable": true,
             "orderable": true,
@@ -285,6 +295,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
     } else if (showStartEndDates) {
         columns.push({
             "data": "start_date",
+            "name": "start_date",
             "title": _("Start date"),
             "type": "date",
             "searchable": true,
@@ -308,6 +319,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
     // Extended attributes
     columns.push({
         data: "extended_attributes",
+        name: "extended_attributes",
         title: _("Additional fields"),
         searchable: false,
         orderable: false,
@@ -325,6 +337,7 @@ function getBookingTableColumns(extended_attribute_types, authorised_values, opt
     if (showActions) {
         columns.push({
             "data": null,
+            "name": "actions",
             "title": _("Actions"),
             "searchable": false,
             "orderable": false,
