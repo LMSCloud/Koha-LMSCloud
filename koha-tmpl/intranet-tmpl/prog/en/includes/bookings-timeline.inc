@@ -8,7 +8,7 @@
     - show_cancelled_filter: Whether to show cancelled filter (default: 1)
 %]
 
-<div id="[% timeline_id || 'bookings-timeline' %]" class="position-relative">
+<div id="[% timeline_id || 'bookings-timeline' %]" class="position-relative bookings-timeline-container">
     [% IF show_filters %]
         <div class="page-section">
             <fieldset class="action filters d-flex gap-2" style="cursor: pointer;">
@@ -22,12 +22,10 @@
         </div>
     [% END %]
     
-    <div class="position-absolute w-100 h-100 d-flex justify-content-center align-items-center" 
-         id="[% loading_id || 'bookings-timeline-loading' %]" 
-         style="background: rgba(255, 255, 255, 0.8); z-index: 1000;" 
-         hidden>
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+    <div class="position-absolute w-100 h-100 d-flex justify-content-center align-items-center bookings-timeline-loading-overlay"
+         id="[% loading_id || 'bookings-timeline-loading' %]">
+        <div class="bookings-timeline-loading">
+            <i class="fa fa-spinner fa-spin"></i> Processing...
         </div>
     </div>
 </div> 

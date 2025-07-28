@@ -1011,8 +1011,10 @@
 
                         [% IF ( Koha.Preference('OPACBookings') && biblio.bookings.filter_by_active.count ) %]
                             [% WRAPPER tab_panel tabname="bookings" %]
-                                <table class="table table-bordered table-striped" id="bookingst">
+                                <div class="card bg-white p-3">
                                     [% INCLUDE 'bookings-timeline.inc' %]
+                                </div>
+                                <table class="table table-bordered table-striped" id="bookingst">
                                     <caption class="sr-only">Bookings</caption>
                                     <thead>
                                         <tr>

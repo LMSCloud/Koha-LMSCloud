@@ -12,7 +12,12 @@ $bookings: (
     bg-checkout: #ffc107,
     text-checkout: #212529,
     bg-cancelled: #dee2e6,
-    text-cancelled: #6c757d
+    text-cancelled: #6c757d,
+    loading: (
+      bg: #F4F8F9,
+      border: #538200,
+      text: #333
+    )
   )
 );
 

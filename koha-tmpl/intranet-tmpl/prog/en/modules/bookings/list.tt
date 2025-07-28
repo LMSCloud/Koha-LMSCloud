@@ -44,14 +44,14 @@
                     [% INCLUDE 'cat-toolbar.inc' %]
                     <h1>Bookings for [% INCLUDE 'biblio-title-head.inc' %]</h1>
 
-        <div class="page-section bg-white p-3" style="min-height: 200px;">
+        <div class="page-section bg-white p-3">
             [% INCLUDE 'bookings-timeline.inc'
                 timeline_id = 'bookings-timeline'
                 loading_id = 'bookings-timeline-loading'
                 show_filters = 0
             %]
         </div>
-        
+
         <div class="page-section">
             [% INCLUDE 'bookings-table-filters.inc' %]
                         <table id="bookings_table"></table>
@@ -160,6 +160,9 @@
             });
 
             // Initialize timeline
+            // Show loading indicator
+            $('#bookings-timeline-loading').show();
+
             var items = $.ajax({
                 url: '/api/v1/biblios/%s/items?bookable=1'.format(biblionumber),
                 dataType: 'json',
@@ -188,6 +191,8 @@
                     });
                 },
                 function(jqXHR, textStatus, errorThrown){
+                    // Hide loading indicator on error
+                    $('#bookings-timeline-loading').hide();
                     console.log("Fetch failed", textStatus, errorThrown);
                 }
             );
