@@ -42,7 +42,7 @@
                                 "
                             >
                                 <template #no-options="{ hasSearched }">
-                                    {{ hasSearched ? $__("No patrons found") : $__("Type to search for patrons") }}
+                                    {{ hasSearched ? $__("No patrons found.") : $__("Type to search for patrons.") }}
                                 </template>
                                 <template #spinner>
                                     <span class="sr-only">{{ $__("Searching...") }}</span>
@@ -100,7 +100,7 @@
                                     "
                                 >
                                     <template #no-options>
-                                        {{ $__("No pickup locations available") }}
+                                        {{ $__("No pickup locations available.") }}
                                     </template>
                                     <template #spinner>
                                         <span class="sr-only">{{ $__("Loading...") }}</span>
@@ -141,7 +141,7 @@
                                     "
                                 >
                                     <template #no-options>
-                                        {{ $__("No item types available") }}
+                                        {{ $__("No item types available.") }}
                                     </template>
                                 </v-select>
                                 <span
@@ -170,7 +170,7 @@
                                     "
                                 >
                                     <template #no-options>
-                                        {{ $__("No items available") }}
+                                        {{ $__("No items available.") }}
                                     </template>
                                     <template #spinner>
                                         <span class="sr-only">{{ $__("Loading...") }}</span>
