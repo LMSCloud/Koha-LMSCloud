@@ -184,9 +184,9 @@ checkout objects on the public API.
 
 sub public_read_list {
     return [
-        'item_id',
-        'checkout_date',
-        'due_date',
+        'itemnumber',
+        'issuedate',
+        'date_due',
     ];
 }
 

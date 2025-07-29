@@ -435,20 +435,9 @@ sub get_checkouts_public {
 
         my $checkouts = $c->objects->search($checkouts_rs);
 
-        # Transform the results to only include minimal information
-        my $public_checkouts = [
-            map {
-                {
-                    item_id       => $_->{item_id},
-                    checkout_date => $_->{checkout_date},
-                    due_date      => $_->{due_date},
-                }
-            } @{$checkouts}
-        ];
-
         return $c->render(
             status  => 200,
-            openapi => $public_checkouts
+            openapi => $checkouts
         );
     } catch {
         $c->unhandled_exception($_);

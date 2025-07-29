@@ -2010,8 +2010,7 @@
 
                     // Fetch checkouts data via AJAX
                     $.ajax({
-                        url: '/api/v1/biblios/[% biblionumber | uri %]/checkouts?_per_page=-1',
-                        headers: { 'x-koha-embed': ['patron'] },
+                        url: '/api/v1/public/biblios/[% biblionumber | uri %]/checkouts?_per_page=-1',
                         dataType: 'json',
                         type: 'GET',
                         success: function(checkouts) {
