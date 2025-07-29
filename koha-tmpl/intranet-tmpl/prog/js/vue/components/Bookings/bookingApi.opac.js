@@ -29,7 +29,7 @@ export async function fetchBookableItems(biblionumber) {
     if (!response.ok) {
         throw bookingValidation.validationError("fetch_bookable_items_failed", {
             status: response.status,
-            statusText: response.statusText
+            statusText: response.statusText,
         });
     }
 
@@ -48,13 +48,15 @@ export async function fetchBookings(biblionumber) {
     }
 
     const response = await fetch(
-        `/api/v1/public/biblios/${encodeURIComponent(biblionumber)}/bookings?q={"status":{"-in":["new","pending","active"]}}`
+        `/api/v1/public/biblios/${encodeURIComponent(
+            biblionumber
+        )}/bookings?q={"status":{"-in":["new","pending","active"]}}`
     );
 
     if (!response.ok) {
         throw bookingValidation.validationError("fetch_bookings_failed", {
             status: response.status,
-            statusText: response.statusText
+            statusText: response.statusText,
         });
     }
 
@@ -79,13 +81,12 @@ export async function fetchCheckouts(biblionumber) {
     if (!response.ok) {
         throw bookingValidation.validationError("fetch_checkouts_failed", {
             status: response.status,
-            statusText: response.statusText
+            statusText: response.statusText,
         });
     }
 
     return await response.json();
 }
-
 
 /**
  * Fetches a single patron by ID
@@ -101,7 +102,7 @@ export async function fetchPatron(patronId) {
     if (!response.ok) {
         throw bookingValidation.validationError("fetch_patron_failed", {
             status: response.status,
-            statusText: response.statusText
+            statusText: response.statusText,
         });
     }
 
@@ -143,21 +144,60 @@ export async function fetchPickupLocations(biblionumber, patronId) {
     );
 
     if (!response.ok) {
-        throw bookingValidation.validationError("fetch_pickup_locations_failed", {
-            status: response.status,
-            statusText: response.statusText
-        });
+        throw bookingValidation.validationError(
+            "fetch_pickup_locations_failed",
+            {
+                status: response.status,
+                statusText: response.statusText,
+            }
+        );
     }
 
     return await response.json();
 }
 
 /**
- * Fetches circulation rules - not used in OPAC
- * @returns {Promise<Object>}
+ * Fetches circulation rules for booking constraints
+ * @param {Object} params - Parameters for circulation rules query
+ * @param {string|number} [params.patron_category_id] - Patron category ID
+ * @param {string|number} [params.item_type_id] - Item type ID
+ * @param {string|number} [params.library_id] - Library ID
+ * @returns {Promise<Object>} Object containing circulation rules
+ * @throws {Error} If the request fails or returns a non-OK status
  */
-export async function fetchCirculationRules() {
-    return {};
+export async function fetchCirculationRules(params = {}) {
+    // Only include defined (non-null, non-undefined, non-empty) params
+    const filteredParams = {};
+    for (const key in params) {
+        if (
+            params[key] !== null &&
+            params[key] !== undefined &&
+            params[key] !== ""
+        ) {
+            filteredParams[key] = params[key];
+        }
+    }
+
+    const urlParams = new URLSearchParams({
+        ...filteredParams,
+        rules: "bookings_lead_period,bookings_trail_period,issuelength,renewalsallowed,renewalperiod",
+    });
+
+    const response = await fetch(
+        `/api/v1/public/circulation_rules?${urlParams.toString()}`
+    );
+
+    if (!response.ok) {
+        throw bookingValidation.validationError(
+            "fetch_circulation_rules_failed",
+            {
+                status: response.status,
+                statusText: response.statusText,
+            }
+        );
+    }
+
+    return await response.json();
 }
 
 export async function createBooking() {

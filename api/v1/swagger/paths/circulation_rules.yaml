@@ -101,9 +101,9 @@
     x-koha-authorization:
       permissions:
         - circulate: circulate_remaining_permissions
-public/circulation_rules:
+/public/circulation_rules:
   get:
-    x-mojo-to: CirculationRules#list_rules
+    x-mojo-to: CirculationRules#list_rules_public
     operationId: listCirculationRulesPublic
     tags:
       - circulation_rules
@@ -142,7 +142,7 @@ public/circulation_rules:
         schema:
           type: array
           items:
-            $ref: "../swagger.yaml#/definitions/circulation_rules"
+            type: object
       "400":
         description: Bad request
         schema:
@@ -166,6 +166,3 @@ public/circulation_rules:
         description: Under maintenance
         schema:
           $ref: "../swagger.yaml#/definitions/error"
-    x-koha-authorization:
-      permissions:
-        - circulate: circulate_remaining_permissions

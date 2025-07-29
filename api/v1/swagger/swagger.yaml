@@ -237,6 +237,8 @@ paths:
     $ref: ./paths/circulation_rules.yaml#/~1circulation_rules
   /circulation_rules/kinds:
     $ref: ./paths/circulation_rules.yaml#/~1circulation_rules~1kinds
+  /public/circulation_rules:
+    $ref: ./paths/circulation_rules.yaml#/~1public~1circulation_rules
   /cities:
     $ref: ./paths/cities.yaml#/~1cities
   "/cities/{city_id}":

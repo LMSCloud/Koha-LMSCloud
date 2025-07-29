@@ -20,6 +20,7 @@ use Modern::Perl;
 use Mojo::Base 'Mojolicious::Controller';
 
 use Koha::CirculationRules;
+use Try::Tiny qw( catch try );
 
 =head1 API
 
@@ -50,7 +51,7 @@ sub list_rules {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $effective       = $c->param('effective') // 1;
+        my $effective = $c->param('effective') // 1;
         my $kinds =
             defined( $c->param('rules') )
             ? [ split /\s*,\s*/, $c->param('rules') ]
@@ -160,6 +161,46 @@ sub list_rules {
         return $c->render(
             status  => 200,
             openapi => $rules
+        );
+    } catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 list_rules_public
+
+Get effective circulation rules for public access
+
+=cut
+
+sub list_rules_public {
+    my $c = shift->openapi->valid_input or return;
+
+    return try {
+        my $patron_category = $c->param('patron_category_id');
+        my $item_type       = $c->param('item_type_id');
+        my $branchcode      = $c->param('library_id');
+
+        my $kinds =
+            [ 'bookings_lead_period', 'bookings_trail_period', 'issuelength', 'renewalsallowed', 'renewalperiod' ];
+
+        my $effective_rules = Koha::CirculationRules->get_effective_rules(
+            {
+                categorycode => $patron_category,
+                itemtype     => $item_type,
+                branchcode   => $branchcode,
+                rules        => $kinds
+            }
+        ) // {};
+
+        my $return = {};
+        for my $kind ( @{$kinds} ) {
+            $return->{$kind} = $effective_rules->{$kind};
+        }
+
+        return $c->render(
+            status  => 200,
+            openapi => [$return],
         );
     } catch {
         $c->unhandled_exception($_);
