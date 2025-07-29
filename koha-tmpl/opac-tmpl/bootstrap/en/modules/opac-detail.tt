@@ -36,6 +36,9 @@
         [% Asset.css("lib/verovio/midiplayer.css") | $raw %]
     [% END %]
     [% Asset.css("lib/Chocolat/css/chocolat.css") | $raw %]
+    [% IF ( Koha.Preference('OPACBookings') && biblio.bookings.filter_by_active.count ) %]
+        [% INCLUDE 'js-date-format.inc' %]
+    [% END %]
 </head>
 [% BLOCK cssinclude %][% END %]
 [% INCLUDE 'bodytag.inc' bodyid='opac-detail' bodyclass='scrollto' %]
@@ -1637,7 +1640,6 @@
 
     [% IF ( Koha.Preference('OPACBookings') && biblio.bookings.filter_by_active.count ) %]
         [% Asset.js("lib/vis-timeline/vis-timeline-graph2d.min.js") | $raw %]
-        [% Asset.js("lib/dayjs/dayjs.min.js") | $raw %]
         [% Asset.js("js/combobox.js") | $raw %]
         [% Asset.js("js/bookings-timeline.js") %]
         [% Asset.js("js/modals/booking/cancel.js") | $raw %]

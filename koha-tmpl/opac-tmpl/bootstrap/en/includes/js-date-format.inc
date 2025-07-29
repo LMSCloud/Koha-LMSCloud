@@ -5,9 +5,15 @@
 [% Asset.js("lib/dayjs/dayjs.min.js") | $raw %]
 [% Asset.js("lib/dayjs/plugin/timezone.js") | $raw %]
 [% Asset.js("lib/dayjs/plugin/utc.js") | $raw %]
+[% Asset.js("lib/dayjs/plugin/customParseFormat.js") | $raw %]
+[% Asset.js("lib/dayjs/plugin/isSameOrBefore.js") | $raw %]
+[% Asset.js("lib/dayjs/plugin/isSameOrAfter.js") | $raw %]
 <script>
     dayjs.extend(window.dayjs_plugin_utc);
     dayjs.extend(window.dayjs_plugin_timezone);
+    dayjs.extend(window.dayjs_plugin_customParseFormat);
+    dayjs.extend(window.dayjs_plugin_isSameOrBefore);
+    dayjs.extend(window.dayjs_plugin_isSameOrAfter);
 </script>
 
 <!-- js-date-format.inc -->

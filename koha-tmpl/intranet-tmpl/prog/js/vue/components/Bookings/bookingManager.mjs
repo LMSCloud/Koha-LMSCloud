@@ -2,15 +2,8 @@
 // Pure utility functions for date/booking calculations and business logic
 // To be used by the Pinia store and BookingModal.vue
 
-import dayjs from "dayjs";
-import isSameOrBefore from "dayjs/plugin/isSameOrBefore.js";
-import isSameOrAfter from "dayjs/plugin/isSameOrAfter.js";
-import customParseFormat from "dayjs/plugin/customParseFormat.js";
+import dayjs from "../../utils/dayjs.js";
 import { $__ } from "../../i18n/index.js";
-
-dayjs.extend(isSameOrBefore);
-dayjs.extend(isSameOrAfter);
-dayjs.extend(customParseFormat);
 
 // Map flatpickr format strings to dayjs format strings and regex patterns
 const DATE_FORMAT_MAP = {

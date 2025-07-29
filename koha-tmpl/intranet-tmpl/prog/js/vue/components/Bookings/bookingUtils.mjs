@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import dayjs from "../../utils/dayjs.js";
 
 export function debounce(fn, delay) {
     let timeout;

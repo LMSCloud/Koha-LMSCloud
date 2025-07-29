@@ -327,10 +327,7 @@
 </template>
 
 <script>
-import dayjs from "dayjs";
-import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
-import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
-import "flatpickr/dist/flatpickr.css";
+import dayjs from "../../utils/dayjs.js";
 import { computed, ref, watch, watchEffect, nextTick } from "vue";
 import flatPickr from "vue-flatpickr-component";
 import vSelect from "vue-select";
@@ -356,8 +353,6 @@ import {
 } from "./bookingCalendar.js";
 import PatronSearchSelect from "./PatronSearchSelect.vue";
 
-dayjs.extend(isSameOrAfter);
-dayjs.extend(isSameOrBefore);
 
 export default {
     name: "BookingModal",

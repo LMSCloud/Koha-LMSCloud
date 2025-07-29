@@ -2,7 +2,7 @@ import {
     handleBookingDateChange,
     getBookingMarkersForDate,
 } from "./bookingManager.mjs";
-import dayjs from "dayjs";
+import dayjs from "../../utils/dayjs.js";
 
 /**
  * Clear constraint highlighting from flatpickr calendar
