@@ -92,7 +92,17 @@ $template->param(
     payment_error       => scalar $query->param('payment-error') || q{}
 );
 
-if ( $paymentsMinimumPatronAgeReached && C4::Context->config("enable_plugins") ) {
+# check wether PaymentsPatronCategories is set
+# if yes, check wether patron category is contained
+my $paymentBorrowerCategoryAccepted = 1;
+if (C4::Context->preference('PaymentsPatronCategories'))
+{
+    my $borrowerCategory = $patron->categorycode;
+    my @allowedCategories = split /\|/, C4::Context->preference('PaymentsPatronCategories');
+    $paymentBorrowerCategoryAccepted = (grep { $_ eq $borrowerCategory } @allowedCategories) ? 1 : 0;
+}
+
+if ( $paymentsMinimumPatronAgeReached && C4::Context->config("enable_plugins") && $paymentBorrowerCategoryAccepted == 1 ) {
     my @plugins = Koha::Plugins->new()->GetPlugins({
         method => 'opac_online_payment',
     });
