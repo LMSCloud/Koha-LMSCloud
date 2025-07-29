@@ -1,5 +1,34 @@
 @import "common";
 
+@function map-deep-get($map, $keys...) {
+    $value: $map;
+    @each $key in $keys {
+        $value: map-get($value, $key);
+        @if $value == null {
+            @return null;
+        }
+    }
+    @return $value;
+}
+
+$bookings: (
+    timeline: (bg-checkout: hsl(354, 60%, 85%),
+        text-checkout: hsl(354, 80%, 25%),
+        bg-cancelled: hsl(210, 16%, 88%),
+        text-cancelled: hsl(210, 8%, 46%),
+        loading: (bg: hsl(184, 25%, 96%),
+            border: hsl(78, 100%, 25%),
+            text: hsl(0, 0%, 20%)))
+);
+
+:root {
+    --bookings-timeline-bg-checkout: #{map-deep-get($bookings, timeline, bg-checkout)};
+    --bookings-timeline-text-checkout: #{map-deep-get($bookings, timeline, text-checkout)};
+    --bookings-timeline-bg-cancelled: #{map-deep-get($bookings, timeline, bg-cancelled)};
+    --bookings-timeline-text-cancelled: #{map-deep-get($bookings, timeline, text-cancelled)};
+}
+
+
 .bookings-timeline {
     &-container {
         min-height: 12.5rem;

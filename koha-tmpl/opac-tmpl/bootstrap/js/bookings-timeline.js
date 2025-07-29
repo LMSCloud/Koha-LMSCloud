@@ -1,7 +1,7 @@
 (() => {
     // Timeline item styles
     const TIMELINE_STYLES = {
-        checkout: 'background-color: var(--warning); color: var(--dark); font-weight: bold;'
+        checkout: 'background-color: var(--bookings-timeline-bg-checkout); color: var(--bookings-timeline-text-checkout); font-weight: bold;'
     };
 
     function processBookingsData(loggedInUser, bookings, bookableItems, checkouts = []) {

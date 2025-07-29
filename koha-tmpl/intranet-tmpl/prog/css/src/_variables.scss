@@ -9,14 +9,14 @@ $btn-primary-hover: lighten( $btn-primary, 10 );
 // Bookings component styles
 $bookings: (
   timeline: (
-    bg-checkout: #ffc107,
-    text-checkout: #212529,
-    bg-cancelled: #dee2e6,
-    text-cancelled: #6c757d,
+    bg-checkout: hsl(354, 60%, 85%),
+    text-checkout: hsl(354, 80%, 25%),
+    bg-cancelled: hsl(210, 16%, 88%),
+    text-cancelled: hsl(210, 8%, 46%),
     loading: (
-      bg: #F4F8F9,
-      border: #538200,
-      text: #333
+      bg: hsl(184, 25%, 96%),
+      border: hsl(78, 100%, 25%),
+      text: hsl(0, 0%, 20%)
     )
   )
 );
