@@ -723,7 +723,7 @@ my $holdable_items = $biblio->items->filter_by_for_hold->count;
 # If we don't have a patron, then holdable items determines holdability
 my $can_holds_be_placed = $patron ? 0 : $holdable_items;
 
-my $can_bookings_be_placed = $patron ? $biblio->bookable_items->count : 0;
+my $can_bookings_be_placed = $biblio->bookable_items->count;
 
 my ( $itemloop_has_images, $otheritemloop_has_images );
 if ( not $viewallitems and $items->count > $max_items_to_display ) {

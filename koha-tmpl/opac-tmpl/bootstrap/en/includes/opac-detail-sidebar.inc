@@ -11,10 +11,14 @@
         [% END %]
 
         [% IF Koha.Preference('OPACBookings') && BookableItems %]
-            <li>
-                [% INCLUDE 'modals/booking/button-place.inc' link => 1 %]
-                [% INCLUDE 'modals/booking/island.inc' %]
-            </li>
+            [% IF Koha.Preference( 'opacuserlogin' ) == 1 %]
+                <li>
+                    [% WRAPPER 'auth-redirect.inc' icon="fa fa-fw fa-calendar" label="Place booking" %]
+                        [% INCLUDE 'modals/booking/button-place.inc' link => 1 %]
+                        [% INCLUDE 'modals/booking/island.inc' %]
+                    [% END %]
+                </li>
+            [% END %]
         [% END %]
     [% END %]
 
