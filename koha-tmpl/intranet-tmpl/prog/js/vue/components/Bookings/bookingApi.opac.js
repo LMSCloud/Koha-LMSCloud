@@ -158,11 +158,15 @@ export async function fetchPickupLocations(biblionumber, patronId) {
 
 /**
  * Fetches circulation rules for booking constraints
+ * Now uses the enhanced circulation_rules endpoint with date calculation capabilities
  * @param {Object} params - Parameters for circulation rules query
  * @param {string|number} [params.patron_category_id] - Patron category ID
  * @param {string|number} [params.item_type_id] - Item type ID
  * @param {string|number} [params.library_id] - Library ID
- * @returns {Promise<Object>} Object containing circulation rules
+ * @param {string} [params.start_date] - Start date for calculations (ISO format)
+ * @param {string} [params.rules] - Comma-separated list of rule kinds (defaults to booking rules)
+ * @param {boolean} [params.calculate_dates] - Whether to calculate dates (defaults to true for bookings)
+ * @returns {Promise<Object>} Object containing circulation rules with calculated dates
  * @throws {Error} If the request fails or returns a non-OK status
  */
 export async function fetchCirculationRules(params = {}) {
@@ -178,10 +182,18 @@ export async function fetchCirculationRules(params = {}) {
         }
     }
 
-    const urlParams = new URLSearchParams({
-        ...filteredParams,
-        rules: "bookings_lead_period,bookings_trail_period,issuelength,renewalsallowed,renewalperiod",
-    });
+    // Default to calculated dates for bookings unless explicitly disabled
+    if (filteredParams.calculate_dates === undefined) {
+        filteredParams.calculate_dates = true;
+    }
+
+    // Default to booking rules unless specified
+    if (!filteredParams.rules) {
+        filteredParams.rules =
+            "bookings_lead_period,bookings_trail_period,issuelength,renewalsallowed,renewalperiod";
+    }
+
+    const urlParams = new URLSearchParams(filteredParams);
 
     const response = await fetch(
         `/api/v1/public/circulation_rules?${urlParams.toString()}`

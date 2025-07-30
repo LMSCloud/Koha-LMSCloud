@@ -30,7 +30,7 @@ export async function fetchBookableItems(biblionumber) {
     if (!response.ok) {
         throw bookingValidation.validationError("fetch_bookable_items_failed", {
             status: response.status,
-            statusText: response.statusText
+            statusText: response.statusText,
         });
     }
 
@@ -49,13 +49,15 @@ export async function fetchBookings(biblionumber) {
     }
 
     const response = await fetch(
-        `/api/v1/biblios/${encodeURIComponent(biblionumber)}/bookings?q={"status":{"-in":["new","pending","active"]}}`
+        `/api/v1/biblios/${encodeURIComponent(
+            biblionumber
+        )}/bookings?q={"status":{"-in":["new","pending","active"]}}`
     );
 
     if (!response.ok) {
         throw bookingValidation.validationError("fetch_bookings_failed", {
             status: response.status,
-            statusText: response.statusText
+            statusText: response.statusText,
         });
     }
 
@@ -80,7 +82,7 @@ export async function fetchCheckouts(biblionumber) {
     if (!response.ok) {
         throw bookingValidation.validationError("fetch_checkouts_failed", {
             status: response.status,
-            statusText: response.statusText
+            statusText: response.statusText,
         });
     }
 
@@ -109,7 +111,7 @@ export async function fetchPatron(patronId) {
     if (!response.ok) {
         throw bookingValidation.validationError("fetch_patron_failed", {
             status: response.status,
-            statusText: response.statusText
+            statusText: response.statusText,
         });
     }
 
@@ -151,10 +153,13 @@ export async function fetchPatrons(term, page = 1) {
     });
 
     if (!response.ok) {
-        const error = bookingValidation.validationError("fetch_patrons_failed", {
-            status: response.status,
-            statusText: response.statusText
-        });
+        const error = bookingValidation.validationError(
+            "fetch_patrons_failed",
+            {
+                status: response.status,
+                statusText: response.statusText,
+            }
+        );
 
         try {
             const errorData = await response.json();
@@ -194,14 +199,19 @@ export async function fetchPickupLocations(biblionumber, patronId) {
     }
 
     const response = await fetch(
-        `/api/v1/biblios/${encodeURIComponent(biblionumber)}/pickup_locations?${params.toString()}`
+        `/api/v1/biblios/${encodeURIComponent(
+            biblionumber
+        )}/pickup_locations?${params.toString()}`
     );
 
     if (!response.ok) {
-        throw bookingValidation.validationError("fetch_pickup_locations_failed", {
-            status: response.status,
-            statusText: response.statusText
-        });
+        throw bookingValidation.validationError(
+            "fetch_pickup_locations_failed",
+            {
+                status: response.status,
+                statusText: response.statusText,
+            }
+        );
     }
 
     return await response.json();
@@ -209,11 +219,15 @@ export async function fetchPickupLocations(biblionumber, patronId) {
 
 /**
  * Fetches circulation rules based on the provided context parameters
+ * Now uses the enhanced circulation_rules endpoint with date calculation capabilities
  * @param {Object} [params={}] - Context parameters for circulation rules
  * @param {string|number} [params.patron_category_id] - Patron category ID
  * @param {string|number} [params.item_type_id] - Item type ID
  * @param {string|number} [params.library_id] - Library ID
- * @returns {Promise<Object>} Object containing circulation rules
+ * @param {string} [params.start_date] - Start date for calculations (ISO format)
+ * @param {string} [params.rules] - Comma-separated list of rule kinds (defaults to booking rules)
+ * @param {boolean} [params.calculate_dates] - Whether to calculate dates (defaults to true for bookings)
+ * @returns {Promise<Object>} Object containing circulation rules with calculated dates
  * @throws {Error} If the request fails or returns a non-OK status
  */
 export async function fetchCirculationRules(params = {}) {
@@ -229,20 +243,31 @@ export async function fetchCirculationRules(params = {}) {
         }
     }
 
-    const urlParams = new URLSearchParams({
-        ...filteredParams,
-        rules: "bookings_lead_period,bookings_trail_period,issuelength,renewalsallowed,renewalperiod",
-    });
+    // Default to calculated dates for bookings unless explicitly disabled
+    if (filteredParams.calculate_dates === undefined) {
+        filteredParams.calculate_dates = true;
+    }
+
+    // Default to booking rules unless specified
+    if (!filteredParams.rules) {
+        filteredParams.rules =
+            "bookings_lead_period,bookings_trail_period,issuelength,renewalsallowed,renewalperiod";
+    }
+
+    const urlParams = new URLSearchParams(filteredParams);
 
     const response = await fetch(
         `/api/v1/circulation_rules?${urlParams.toString()}`
     );
 
     if (!response.ok) {
-        throw bookingValidation.validationError("fetch_circulation_rules_failed", {
-            status: response.status,
-            statusText: response.statusText
-        });
+        throw bookingValidation.validationError(
+            "fetch_circulation_rules_failed",
+            {
+                status: response.status,
+                statusText: response.statusText,
+            }
+        );
     }
 
     return await response.json();
@@ -267,7 +292,13 @@ export async function createBooking(bookingData) {
 
     const validationError = bookingValidation.validateRequiredFields(
         bookingData,
-        ["start_date", "end_date", "biblio_id", "patron_id", "pickup_library_id"]
+        [
+            "start_date",
+            "end_date",
+            "biblio_id",
+            "patron_id",
+            "pickup_library_id",
+        ]
     );
 
     if (validationError) {
@@ -284,10 +315,13 @@ export async function createBooking(bookingData) {
     });
 
     if (!response.ok) {
-        let errorMessage = bookingValidation.validationError("create_booking_failed", {
-            status: response.status,
-            statusText: response.statusText
-        }).message;
+        let errorMessage = bookingValidation.validationError(
+            "create_booking_failed",
+            {
+                status: response.status,
+                statusText: response.statusText,
+            }
+        ).message;
         try {
             const errorData = await response.json();
             if (errorData.error) {
@@ -337,10 +371,13 @@ export async function updateBooking(bookingId, bookingData) {
     );
 
     if (!response.ok) {
-        let errorMessage = bookingValidation.validationError("update_booking_failed", {
-            status: response.status,
-            statusText: response.statusText
-        }).message;
+        let errorMessage = bookingValidation.validationError(
+            "update_booking_failed",
+            {
+                status: response.status,
+                statusText: response.statusText,
+            }
+        ).message;
         try {
             const errorData = await response.json();
             if (errorData.error) {

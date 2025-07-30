@@ -34,6 +34,17 @@
         description: A comma-separated list of rule kinds
         required: false
         type: string
+      - name: calculate_dates
+        in: query
+        description: Whether to calculate actual due dates using CalcDateDue (accounting for holidays, etc.)
+        required: false
+        type: boolean
+      - name: start_date
+        in: query
+        description: The start date for date calculations (ISO format). Defaults to current date.
+        required: false
+        type: string
+        format: date-time
     responses:
       "200":
         description: A list of rules for this item type, library and patron category combination
@@ -136,6 +147,17 @@
         description: A comma-separated list of rule kinds
         required: false
         type: string
+      - name: calculate_dates
+        in: query
+        description: Whether to calculate actual due dates using CalcDateDue (accounting for holidays, etc.)
+        required: false
+        type: boolean
+      - name: start_date
+        in: query
+        description: The start date for date calculations (ISO format). Defaults to current date.
+        required: false
+        type: string
+        format: date-time
     responses:
       "200":
         description: A list of rules for this item type, library and patron category combination
@@ -155,6 +177,33 @@
         description: Access forbidden
         schema:
           $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+/public/circulation_rules/kinds:
+  get:
+    x-mojo-to: CirculationRules#get_kinds_public
+    operationId: getCirculationRuleKindsPublic
+    tags:
+      - circulation_rules
+    summary: Get circulation rule kinds available for public access
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: A map of public circulation rule kind information
+        schema:
+          type: object
+          additionalProperties:
+            $ref: "../swagger.yaml#/definitions/circ-rule-kind"
       "500":
         description: |
           Internal server error. Possible `error_code` attribute values:

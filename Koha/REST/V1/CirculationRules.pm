@@ -20,7 +20,88 @@ use Modern::Perl;
 use Mojo::Base 'Mojolicious::Controller';
 
 use Koha::CirculationRules;
+use Koha::DateUtils qw( dt_from_string );
+
+use C4::Circulation qw( GetLoanLength CalcDateDue _GetCircControlBranch );
+
 use Try::Tiny qw( catch try );
+
+=head1 PRIVATE METHODS
+
+=head2 _public_rule_kinds
+
+Get the list of circulation rule kinds that are allowed for public access
+
+=cut
+
+sub _public_rule_kinds {
+    return [
+        'bookings_lead_period',
+        'bookings_trail_period',
+        'issuelength',
+        'renewalsallowed',
+        'renewalperiod'
+    ];
+}
+
+=head2 _calculate_circulation_dates
+
+Calculate due dates and periods using CalcDateDue
+
+    my $calculated_data = _calculate_circulation_dates({
+        patron_category => $patron_category,
+        item_type => $item_type,
+        branchcode => $branchcode,
+        start_date => $start_date,
+        existing_rules => $existing_rules
+    });
+
+=cut
+
+sub _calculate_circulation_dates {
+    my ($args) = @_;
+
+    my $patron_category = $args->{patron_category};
+    my $item_type       = $args->{item_type};
+    my $branchcode      = $args->{branchcode};
+    my $start_date      = $args->{start_date};
+    my $existing_rules  = $args->{existing_rules};
+
+    if ( !defined $branchcode ) {
+        return {};
+    }
+
+    if ( !defined $item_type || !defined $patron_category ) {
+        return {};
+    }
+
+    my $test_item = {
+        itype         => $item_type,
+        homebranch    => $branchcode,
+        holdingbranch => $branchcode,
+    };
+
+    my $test_patron = {
+        categorycode => $patron_category,
+        branchcode   => $branchcode,
+    };
+
+    my $circ_branch      = _GetCircControlBranch( $test_item, $test_patron );
+    my $effective_branch = $circ_branch || $branchcode;
+
+    my $start_dt    = $start_date ? dt_from_string($start_date) : dt_from_string();
+    my $due_date    = CalcDateDue( $start_dt, $item_type, $effective_branch, $test_patron );
+    my $period_days = $start_dt->delta_days($due_date)->in_units('days');
+
+    my $loanlength = GetLoanLength( $patron_category, $item_type, $effective_branch );
+
+    return {
+        calculated_due_date    => join( $due_date->ymd(), q{ }, $due_date->hms() ),
+        calculated_period_days => $period_days,
+        circulation_branch     => $effective_branch,
+        lengthunit             => $loanlength->{lengthunit} // 'days',
+    };
+}
 
 =head1 API
 
@@ -59,6 +140,8 @@ sub list_rules {
         my $item_type       = $c->param('item_type_id');
         my $branchcode      = $c->param('library_id');
         my $patron_category = $c->param('patron_category_id');
+        my $calculate_dates = $c->param('calculate_dates');
+        my $start_date      = $c->param('start_date');
         my ( $filter_branch, $filter_itemtype, $filter_patron );
 
         if ($item_type) {
@@ -67,10 +150,13 @@ sub list_rules {
                 $item_type = undef;
             } else {
                 my $type = Koha::ItemTypes->find($item_type);
-                return $c->render_invalid_parameter_value(
-                    {
-                        path   => '/query/item_type_id',
-                        values => {
+                return $c->render(
+                    status  => 400,
+                    openapi => {
+                        error      => 'Invalid parameter value',
+                        error_code => 'invalid_parameter_value',
+                        path       => '/query/item_type_id',
+                        values     => {
                             uri   => '/api/v1/item_types',
                             field => 'item_type_id'
                         }
@@ -85,10 +171,13 @@ sub list_rules {
                 $branchcode = undef;
             } else {
                 my $library = Koha::Libraries->find($branchcode);
-                return $c->render_invalid_parameter_value(
-                    {
-                        path   => '/query/library_id',
-                        values => {
+                return $c->render(
+                    status  => 400,
+                    openapi => {
+                        error      => 'Invalid parameter value',
+                        error_code => 'invalid_parameter_value',
+                        path       => '/query/library_id',
+                        values     => {
                             uri   => '/api/v1/libraries',
                             field => 'library_id'
                         }
@@ -103,10 +192,13 @@ sub list_rules {
                 $patron_category = undef;
             } else {
                 my $category = Koha::Patron::Categories->find($patron_category);
-                return $c->render_invalid_parameter_value(
-                    {
-                        path   => '/query/patron_category_id',
-                        values => {
+                return $c->render(
+                    status  => 400,
+                    openapi => {
+                        error      => 'Invalid parameter value',
+                        error_code => 'invalid_parameter_value',
+                        path       => '/query/patron_category_id',
+                        values     => {
                             uri   => '/api/v1/patron_categories',
                             field => 'patron_category_id'
                         }
@@ -130,6 +222,26 @@ sub list_rules {
             for my $kind ( @{$kinds} ) {
                 $return->{$kind} = $effective_rules->{$kind};
             }
+
+            if ( $calculate_dates && $effective ) {
+                my $calculated_data = _calculate_circulation_dates(
+                    {
+                        patron_category => $patron_category,
+                        item_type       => $item_type,
+                        branchcode      => $branchcode,
+                        start_date      => $start_date,
+                        existing_rules  => $effective_rules
+                    }
+                );
+
+                %{$return} = ( %{$return}, %{$calculated_data} );
+            }
+
+            my $has_booking_rules = grep { /^booking/ } @{$kinds};
+            if ($has_booking_rules) {
+                $return->{booking_constraint_mode} = C4::Context->preference('BookingConstraintMode') || 'range';
+            }
+
             push @{$rules}, $return;
         } else {
             my $select = [
@@ -167,6 +279,29 @@ sub list_rules {
     };
 }
 
+=head3 get_kinds_public
+
+Get circulation rule kinds available for public access
+
+=cut
+
+sub get_kinds_public {
+    my $c = shift->openapi->valid_input or return;
+
+    my $allowed_kinds = _public_rule_kinds();
+    my %public_rule_kinds;
+
+    my $all_kinds = Koha::CirculationRules->rule_kinds;
+    for my $kind ( @{$allowed_kinds} ) {
+        $public_rule_kinds{$kind} = $all_kinds->{$kind} if exists $all_kinds->{$kind};
+    }
+
+    return $c->render(
+        status  => 200,
+        openapi => \%public_rule_kinds,
+    );
+}
+
 =head3 list_rules_public
 
 Get effective circulation rules for public access
@@ -180,9 +315,22 @@ sub list_rules_public {
         my $patron_category = $c->param('patron_category_id');
         my $item_type       = $c->param('item_type_id');
         my $branchcode      = $c->param('library_id');
+        my $calculate_dates = $c->param('calculate_dates');
+        my $start_date      = $c->param('start_date');
 
-        my $kinds =
-            [ 'bookings_lead_period', 'bookings_trail_period', 'issuelength', 'renewalsallowed', 'renewalperiod' ];
+        my $allowed_kinds   = _public_rule_kinds();
+        my $requested_rules = $c->param('rules');
+
+        my $kinds;
+        if ($requested_rules) {
+            my @requested = split /\s*,\s*/, $requested_rules;
+            my %allowed   = map { $_ => 1 } @{$allowed_kinds};
+
+            my @filtered_kinds = grep { $allowed{$_} } @requested;
+            $kinds = @filtered_kinds ? \@filtered_kinds : $allowed_kinds;
+        } else {
+            $kinds = $allowed_kinds;
+        }
 
         my $effective_rules = Koha::CirculationRules->get_effective_rules(
             {
@@ -196,6 +344,25 @@ sub list_rules_public {
         my $return = {};
         for my $kind ( @{$kinds} ) {
             $return->{$kind} = $effective_rules->{$kind};
+        }
+
+        if ($calculate_dates) {
+            my $calculated_data = _calculate_circulation_dates(
+                {
+                    patron_category => $patron_category,
+                    item_type       => $item_type,
+                    branchcode      => $branchcode,
+                    start_date      => $start_date,
+                    existing_rules  => $effective_rules
+                }
+            );
+
+            %{$return} = ( %{$return}, %{$calculated_data} );
+        }
+
+        my $has_booking_rules = grep { /^booking/ } @{$kinds};
+        if ($has_booking_rules) {
+            $return->{booking_constraint_mode} = C4::Context->preference('BookingConstraintMode') || 'range';
         }
 
         return $c->render(
