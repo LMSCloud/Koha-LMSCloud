@@ -19,6 +19,7 @@ use Modern::Perl;
 
 use Template::Plugin;
 use base qw( Template::Plugin );
+use UUID;
 
 =head1 NAME
 
@@ -45,20 +46,22 @@ This plugin provides a simple way to generate unique identifiers in Template Too
 
 =head2 generate
 
-Generate a UUID, optionally with a prefix.
+Generate a UUID v4 (random), optionally with a prefix.
 
-    UUID.generate()         # Returns: uuid-abc123def456
-    UUID.generate('auth')   # Returns: auth-abc123def456
+    UUID.generate()         # Returns: 550e8400-e29b-41d4-a716-446655440000
+    UUID.generate('auth')   # Returns: auth-550e8400-e29b-41d4-a716-446655440000
 
 =cut
 
 sub generate {
     my ( $self, $prefix ) = @_;
 
-    # Fast hex generation using time and random component
-    my $uuid = sprintf( "%x%x", time(), int( rand(0xFFFFFF) ) );
+    # Generate a proper UUID v4
+    my ( $uuid, $uuidstring );
+    UUID::generate($uuid);
+    UUID::unparse( $uuid, $uuidstring );
 
-    return join( '-', $prefix // 'uuid', $uuid );
+    return defined($prefix) ? "$prefix-$uuidstring" : $uuidstring;
 }
 
 1;

@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 8;
+use Test::More tests => 9;
 
 BEGIN {
     use_ok('Koha::Template::Plugin::UUID');
@@ -36,7 +36,10 @@ subtest 'generate without prefix' => sub {
 
     my $uuid = $plugin->generate();
     ok( $uuid, 'UUID generated' );
-    like( $uuid, qr/^uuid-[0-9a-f]+$/, 'UUID has correct format with default prefix' );
+    like(
+        $uuid, qr/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+        'UUID has correct format (8-4-4-4-12)'
+    );
 
     # Test that consecutive calls produce different UUIDs
     my $uuid2 = $plugin->generate();
@@ -48,7 +51,10 @@ subtest 'generate with custom prefix' => sub {
 
     my $uuid = $plugin->generate('auth');
     ok( $uuid, 'UUID with custom prefix generated' );
-    like( $uuid, qr/^auth-[0-9a-f]+$/, 'UUID has correct format with custom prefix' );
+    like(
+        $uuid, qr/^auth-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+        'UUID has correct format with custom prefix'
+    );
 };
 
 subtest 'generate with empty prefix' => sub {
@@ -56,7 +62,10 @@ subtest 'generate with empty prefix' => sub {
 
     my $uuid = $plugin->generate('');
     ok( $uuid, 'UUID with empty prefix generated' );
-    like( $uuid, qr/^-[0-9a-f]+$/, 'UUID with empty prefix starts with hyphen' );
+    like(
+        $uuid, qr/^-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+        'UUID with empty prefix starts with hyphen'
+    );
 };
 
 subtest 'uniqueness test' => sub {
@@ -85,4 +94,24 @@ subtest 'different prefixes produce different results' => sub {
 
     like( $uuid1, qr/^prefix1-/, 'First UUID has correct prefix' );
     like( $uuid2, qr/^prefix2-/, 'Second UUID has correct prefix' );
+};
+
+subtest 'UUID v4 format compliance' => sub {
+    plan tests => 3;
+
+    my $uuid = $plugin->generate();
+
+    # Check overall format
+    like(
+        $uuid, qr/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+        'UUID matches standard format'
+    );
+
+    # Extract version nibble (first character of 3rd group should be 4 for v4)
+    my ($version_part) = $uuid =~ /^[0-9a-f]{8}-[0-9a-f]{4}-([0-9a-f])/i;
+    is( lc($version_part), '4', 'UUID version nibble is 4 (UUID v4)' );
+
+    # Extract variant bits (first character of 4th group should be 8, 9, a, or b)
+    my ($variant_part) = $uuid =~ /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-([0-9a-f])/i;
+    like( lc($variant_part), qr/^[89ab]$/, 'UUID variant bits are correct (RFC 4122)' );
 };
