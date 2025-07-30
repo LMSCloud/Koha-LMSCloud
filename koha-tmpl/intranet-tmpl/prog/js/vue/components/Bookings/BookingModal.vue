@@ -5,7 +5,7 @@
         tabindex="-1"
         role="dialog"
     >
-        <div class="modal-dialog booking-modal-window" role="document">
+        <div class="modal-dialog booking-modal-window booking-modal" role="document">
             <div class="modal-content">
                 <div class="booking-modal-header">
                     <h5 class="booking-modal-title">
@@ -205,15 +205,31 @@
                                 <label for="booking_period">{{
                                     $__("Booking period")
                                 }}</label>
-                                <flat-pickr
-                                    v-model="dateRange"
-                                    class="booking-flatpickr-input"
-                                    :config="flatpickrConfig"
-                                />
+                                <div class="booking-date-picker">
+                                    <flat-pickr
+                                        v-model="dateRange"
+                                        class="booking-flatpickr-input form-control"
+                                        :config="flatpickrConfig"
+                                    />
+                                    <div class="booking-date-picker-append">
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-secondary"
+                                            :disabled="!dateRange || dateRange.length === 0"
+                                            @click="clearDateRange"
+                                            :title="
+                                                $__('Clear selected dates')
+                                            "
+                                        >
+                                            <i class="fa fa-times" aria-hidden="true"></i>
+                                            <span class="sr-only">{{ $__("Clear selected dates") }}</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                             <div
                                 v-if="dateRangeConstraint && maxBookingPeriod"
-                                class="alert alert-info mb-2"
+                                class="alert alert-info booking-constraint-info"
                             >
                                 <small>
                                     <strong>{{
@@ -235,7 +251,7 @@
                                     }}
                                 </small>
                             </div>
-                            <div class="calendar-legend mt-2 mb-3">
+                            <div class="calendar-legend">
                                 <span
                                     class="booking-marker-dot booking-marker-dot--booked"
                                 ></span>
@@ -327,7 +343,7 @@
 </template>
 
 <script>
-import dayjs from "../../utils/dayjs.js";
+import dayjs from "../../utils/dayjs.mjs";
 import { computed, ref, watch, watchEffect, nextTick } from "vue";
 import flatPickr from "vue-flatpickr-component";
 import vSelect from "vue-select";
@@ -549,6 +565,27 @@ export default {
         );
 
         const computedAvailabilityData = computed(() => {
+            // CRITICAL FIX: Wait for data to load before calculating availability
+            // This prevents race condition where modal opens before store is populated
+            if (!store.bookableItems || store.bookableItems.length === 0) {
+                console.debug("BookingModal: Waiting for bookableItems to load...", {
+                    bookableItems: store.bookableItems?.length || 0,
+                    bookings: store.bookings?.length || 0,
+                    checkouts: store.checkouts?.length || 0
+                });
+                // Return a permissive default while data loads
+                return {
+                    disable: () => false,
+                    unavailableByDate: {}
+                };
+            }
+
+            console.debug("BookingModal: Data loaded, calculating availability", {
+                bookableItems: store.bookableItems.length,
+                bookings: store.bookings.length,
+                checkouts: store.checkouts.length
+            });
+
             const baseRules = store.circulationRules[0] || {};
 
             // Apply date range constraint by overriding maxPeriod if configured
@@ -756,6 +793,23 @@ export default {
             { immediate: true }
         );
 
+        // Watch for dateRange changes to trigger constraint highlighting for pre-filled dates
+        watch(dateRange, (newValue) => {
+            if (flatpickrInstance.value && newValue && newValue.length > 0) {
+                // Trigger the onChange handler to set up constraint highlighting
+                const dates = Array.isArray(newValue) ? newValue : [newValue];
+                const dateObjects = dates.map(d => new Date(d));
+
+                // Wait for next tick to ensure flatpickr has processed the date change
+                nextTick(() => {
+                    if (flatpickrInstance.value && flatpickrInstance.value.config && flatpickrInstance.value.config.onChange) {
+                        // Manually trigger onChange to set up constraint highlighting
+                        flatpickrInstance.value.config.onChange(dateObjects, '', flatpickrInstance.value);
+                    }
+                });
+            }
+        });
+
         watch(
             [() => bookingPatron.value, () => store.pickupLocations],
             ([patron, pickupLocations]) => {
@@ -859,6 +913,17 @@ export default {
             Object.keys(store.error).forEach(key => (store.error[key] = null));
         }
 
+        function clearDateRange() {
+            // Clear the date range using flatpickr's built-in clear method
+            if (flatpickrInstance.value) {
+                flatpickrInstance.value.clear();
+            }
+            // Also clear the Vue reactive data
+            dateRange.value = [];
+            // Clear any error messages related to date selection
+            errorMessage.value = "";
+        }
+
         function handleClose() {
             isOpen.value = false;
             enableBodyScroll();
@@ -943,6 +1008,7 @@ export default {
             constrainedFlags,
             handleClose,
             handleSubmit,
+            clearDateRange,
             tooltipVisible,
             tooltipX,
             tooltipY,
@@ -987,31 +1053,31 @@ export default {
     --booking-success-border: hsl(var(--booking-success-hue), 70%, 40%);
     --booking-success-border-hover: hsl(var(--booking-success-hue), 75%, 30%);
     --booking-success-text: hsl(var(--booking-success-hue), 80%, 20%);
-    
+
     /* Border width used by flatpickr */
     --booking-border-width: 1px;
-    
+
     /* Variables used by second style block (booking markers, calendar states) */
     --booking-marker-size: 0.25em;
     --booking-marker-grid-gap: 0.25rem;
     --booking-marker-grid-offset: -0.75rem;
-    
+
     /* Color hues used in second style block */
     --booking-warning-hue: 45;
     --booking-danger-hue: 354;
     --booking-info-hue: 195;
     --booking-neutral-hue: 210;
-    
+
     /* Colors derived from hues (used in second style block) */
     --booking-warning-bg: hsl(var(--booking-warning-hue), 100%, 85%);
     --booking-neutral-600: hsl(var(--booking-neutral-hue), 10%, 45%);
-    
+
     /* Spacing used in second style block */
     --booking-space-xs: 0.125rem;
-    
+
     /* Typography used in second style block */
     --booking-text-xs: 0.7rem;
-    
+
     /* Border radius used in second style block and other components */
     --booking-border-radius-sm: 0.25rem;
     --booking-border-radius-md: 0.5rem;
@@ -1064,6 +1130,19 @@ export default {
 .flatpickr-calendar .flatpickr-day.booking-constrained-range-marker:hover {
     background-color: var(--booking-success-bg-hover) !important;
     border-color: var(--booking-success-border-hover) !important;
+}
+
+/* End Date Only Mode - Blocked Intermediate Dates */
+.flatpickr-calendar .flatpickr-day.booking-intermediate-blocked {
+    background-color: hsl(var(--booking-success-hue), 40%, 90%) !important;
+    border-color: hsl(var(--booking-success-hue), 40%, 70%) !important;
+    color: hsl(var(--booking-success-hue), 40%, 50%) !important;
+    cursor: not-allowed !important;
+    opacity: 0.7 !important;
+}
+.flatpickr-calendar .flatpickr-day.booking-intermediate-blocked:hover {
+    background-color: hsl(var(--booking-success-hue), 40%, 85%) !important;
+    border-color: hsl(var(--booking-success-hue), 40%, 60%) !important;
 }
 
 /* Modal Layout Components */
@@ -1140,7 +1219,6 @@ hr {
 /* Input Components */
 .booking-flatpickr-input,
 .flatpickr-input.booking-flatpickr-input {
-    width: 100%;
     min-width: var(--booking-input-min-width);
     padding: calc(var(--booking-space-md) - var(--booking-space-xs)) calc(var(--booking-space-md) + var(--booking-space-sm));
     border: var(--booking-border-width) solid var(--booking-neutral-300);
@@ -1151,6 +1229,8 @@ hr {
 
 /* Calendar Legend Component */
 .calendar-legend {
+    margin-top: var(--booking-space-lg);
+    margin-bottom: var(--booking-space-lg);
     font-size: var(--booking-text-sm);
     display: flex;
     align-items: center;
@@ -1187,10 +1267,42 @@ hr {
 </style>
 
 <style>
+.booking-date-picker {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+}
+
+.booking-date-picker > .form-control {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.booking-date-picker-append {
+    display: flex;
+    margin-left: -1px;
+}
+
+.booking-date-picker-append .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.booking-date-picker > .form-control:not(:last-child) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
 /* External Library Integration */
 .booking-modal-body .vs__selected {
     font-size: var(--vs-font-size);
     line-height: var(--vs-line-height);
+}
+
+.booking-constraint-info {
+    margin-top: var(--booking-space-lg);
+    margin-bottom: var(--booking-space-lg);
 }
 
 /* Booking Status Marker System */

@@ -118,6 +118,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('BlockReturnOfLostItems','0','0','If enabled, items that are marked as lost cannot be returned.','YesNo'),
 ('BlockReturnOfWithdrawnItems','1','0','If enabled, items that are marked as withdrawn cannot be returned.','YesNo'),
 ('BookingDateRangeConstraint', '', 'issuelength|issuelength_with_renewals', 'Constrains booking date ranges based on circulation rules. If set, users can only book for the specified period based on circulation rules.', 'Choice'),
+('BookingConstraintMode', 'range', 'range|end_date_only', 'Controls booking date constraint behavior. When set to end_date_only, patrons can only book the calculated start date or end date, with intermediate dates blocked.', 'Choice'),
 ('BookMobileSupportEnabled','0',NULL,'Enable bookmobile features: support for bookmobile stations, due-date updates, branch category selection','YesNo'),
 ('BookMobileStationOverdueRulesActive','0',NULL,'Enable bookmobile station specific overdue rules. If activated, book mobile stations can have individual overdue and claiming fee rules.','YesNo'),
 ('BorrowerMandatoryField','surname|cardnumber',NULL,'Choose the mandatory fields for a patron\'s account','free'),

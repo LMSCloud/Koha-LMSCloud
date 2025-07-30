@@ -1,4 +1,4 @@
-import dayjs from "../../utils/dayjs.js";
+import dayjs from "../../utils/dayjs.mjs";
 
 export function debounce(fn, delay) {
     let timeout;
@@ -50,7 +50,7 @@ export function updateExternalDependents(store, newBooking, isUpdate = false) {
     }
     try {
         const countEls = document.querySelectorAll(".bookings_count");
-        countEls.forEach((el) => {
+        countEls.forEach(el => {
             let html = el.innerHTML;
             let match = html.match(/(\d+)/);
             if (match) {

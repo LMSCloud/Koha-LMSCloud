@@ -1,60 +1,215 @@
 import {
     handleBookingDateChange,
     getBookingMarkersForDate,
+    calculateConstraintHighlighting,
+    getCalendarNavigationTarget,
+    aggregateMarkersByType,
 } from "./bookingManager.mjs";
-import dayjs from "../../utils/dayjs.js";
+import dayjs from "../../utils/dayjs.mjs";
+import { calendarLogger as logger } from "./bookingLogger.mjs";
 
 /**
  * Clear constraint highlighting from flatpickr calendar
  */
-function clearConstraintHighlighting(instance) {
+export function clearCalendarHighlighting(instance) {
+    logger.debug("Clearing calendar highlighting");
+
     if (!instance || !instance.calendarContainer) return;
 
     const existingHighlights = instance.calendarContainer.querySelectorAll(
         ".booking-constrained-range-marker"
     );
     existingHighlights.forEach(elem => {
-        elem.classList.remove("booking-constrained-range-marker");
+        elem.classList.remove(
+            "booking-constrained-range-marker",
+            "booking-intermediate-blocked"
+        );
     });
+}
+
+// Keep internal function for backward compatibility
+function clearConstraintHighlighting(instance) {
+    clearCalendarHighlighting(instance);
 }
 
 /**
  * Apply constraint highlighting to flatpickr calendar
- * Can be called from multiple places (onChange, onReady, after DOM updates)
+ * This is a pure UI function that applies visual styling based on data from the manager
  */
-function applyConstraintHighlighting(instance) {
-    if (!instance._constraintHighlighting) return;
+export function applyCalendarHighlighting(instance, highlightingData) {
+    logger.group("applyCalendarHighlighting");
 
-    const { startDate, targetEndDate } = instance._constraintHighlighting;
+    if (!instance || !instance.calendarContainer || !highlightingData) {
+        logger.debug("Missing requirements", {
+            hasInstance: !!instance,
+            hasContainer: !!instance?.calendarContainer,
+            hasData: !!highlightingData,
+        });
+        logger.groupEnd();
+        return;
+    }
+
+    // Store data for reuse (e.g., after month navigation)
+    instance._constraintHighlighting = highlightingData;
 
     // Clear any existing highlighting first
     clearConstraintHighlighting(instance);
 
-    // Use requestAnimationFrame to apply classes after flatpickr's own styling
-    requestAnimationFrame(() => {
-        // Safety check - instance might be destroyed (e.g., after successful booking)
-        if (!instance || !instance.calendarContainer) return;
-
+    // Apply highlighting with retry logic for DOM readiness
+    const applyHighlighting = (retryCount = 0) => {
         const dayElements =
             instance.calendarContainer.querySelectorAll(".flatpickr-day");
+
+        // Retry if DOM not ready
+        if (dayElements.length === 0 && retryCount < 5) {
+            logger.debug(`No day elements found, retry ${retryCount + 1}`);
+            requestAnimationFrame(() => applyHighlighting(retryCount + 1));
+            return;
+        }
+
+        let highlightedCount = 0;
+        let blockedCount = 0;
+
         dayElements.forEach(dayElem => {
             if (!dayElem.dateObj) return;
 
             const dayTime = dayElem.dateObj.getTime();
-            const startTime = startDate.getTime();
-            const targetTime = targetEndDate.getTime();
+            const startTime = highlightingData.startDate.getTime();
+            const targetTime = highlightingData.targetEndDate.getTime();
 
-            // Highlight the entire allowed range (from start date to target end date)
+            // Apply highlighting based on constraint mode
+            if (dayTime >= startTime && dayTime <= targetTime) {
+                if (highlightingData.constraintMode === "end_date_only") {
+                    // Check if this is an intermediate blocked date
+                    const isBlocked =
+                        highlightingData.blockedIntermediateDates.some(
+                            blockedDate => dayTime === blockedDate.getTime()
+                        );
+
+                    if (isBlocked) {
+                        // Intermediate dates - visual blocking
+                        if (!dayElem.classList.contains("flatpickr-disabled")) {
+                            dayElem.classList.add(
+                                "booking-constrained-range-marker",
+                                "booking-intermediate-blocked"
+                            );
+                            blockedCount++;
+                        }
+                    } else {
+                        // Start or end date - available
+                        if (!dayElem.classList.contains("flatpickr-disabled")) {
+                            dayElem.classList.add(
+                                "booking-constrained-range-marker"
+                            );
+                            highlightedCount++;
+                        }
+                    }
+                } else {
+                    // Normal range mode - highlight entire range
+                    if (!dayElem.classList.contains("flatpickr-disabled")) {
+                        dayElem.classList.add(
+                            "booking-constrained-range-marker"
+                        );
+                        highlightedCount++;
+                    }
+                }
+            }
+        });
+
+        logger.debug("Highlighting applied", {
+            highlightedCount,
+            blockedCount,
+            retryCount,
+        });
+
+        // Apply click prevention for blocked dates
+        if (highlightingData.constraintMode === "end_date_only") {
+            applyClickPrevention(instance);
+            fixTargetEndDateAvailability(
+                instance,
+                dayElements,
+                highlightingData.targetEndDate
+            );
+        }
+    };
+
+    // Start the highlighting process
+    requestAnimationFrame(() => applyHighlighting());
+    logger.groupEnd();
+}
+
+/**
+ * Fix flatpickr's incorrect marking of target end date as unavailable
+ * This is a workaround for flatpickr's range mode behavior
+ */
+function fixTargetEndDateAvailability(instance, dayElements, targetEndDate) {
+    const targetEndElem = Array.from(dayElements).find(
+        elem =>
+            elem.dateObj && elem.dateObj.getTime() === targetEndDate.getTime()
+    );
+
+    if (!targetEndElem) {
+        logger.warn("Target end date element not found", targetEndDate);
+        return;
+    }
+
+    // Force remove notAllowed class
+    const forceRemoveNotAllowed = () => {
+        if (targetEndElem.classList.contains("notAllowed")) {
+            targetEndElem.classList.remove("notAllowed");
+            targetEndElem.removeAttribute("tabindex");
+            logger.debug("Removed notAllowed class from target end date");
+        }
+    };
+
+    forceRemoveNotAllowed();
+
+    // Prevent flatpickr from re-adding it
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
             if (
-                dayTime >= startTime &&
-                dayTime <= targetTime &&
-                !dayElem.classList.contains("flatpickr-disabled")
+                mutation.type === "attributes" &&
+                mutation.attributeName === "class" &&
+                targetEndElem.classList.contains("notAllowed")
             ) {
-                // Apply highlighting using CSS class only
-                dayElem.classList.add("booking-constrained-range-marker");
+                logger.debug("Flatpickr re-added notAllowed, removing again");
+                forceRemoveNotAllowed();
             }
         });
     });
+
+    observer.observe(targetEndElem, {
+        attributes: true,
+        attributeFilter: ["class"],
+    });
+
+    // Clean up observer after 5 seconds
+    setTimeout(() => observer.disconnect(), 5000);
+}
+
+/**
+ * Apply click prevention for intermediate dates in end_date_only mode
+ */
+function applyClickPrevention(instance) {
+    if (!instance || !instance.calendarContainer) return;
+
+    const blockedElements = instance.calendarContainer.querySelectorAll(
+        ".booking-intermediate-blocked"
+    );
+    blockedElements.forEach(elem => {
+        // Remove existing listeners to avoid duplicates
+        elem.removeEventListener("click", preventClick, { capture: true });
+        elem.addEventListener("click", preventClick, { capture: true });
+    });
+}
+
+/**
+ * Click prevention handler - extracted for better cleanup
+ */
+function preventClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
 }
 
 /**
@@ -154,6 +309,11 @@ export function createOnChange(
     constraintOptions = {}
 ) {
     return function (...[selectedDates, , instance]) {
+        logger.debug("onChange triggered", {
+            selectedDates,
+            constraintOptions,
+        });
+
         const baseRules = store.circulationRules[0] || {};
 
         // Apply date range constraint by overriding maxPeriod if configured
@@ -165,6 +325,7 @@ export function createOnChange(
             effectiveRules.maxPeriod = constraintOptions.maxBookingPeriod;
         }
 
+        // Validate date selection using manager
         const result = handleBookingDateChange(
             selectedDates,
             effectiveRules,
@@ -174,6 +335,8 @@ export function createOnChange(
             store.bookingItemId,
             store.bookingId
         );
+
+        // Update UI based on validation
         if (!result.valid) {
             errorMessage.value = result.errors.join(", ");
         } else {
@@ -181,28 +344,41 @@ export function createOnChange(
         }
         tooltipVisible.value = false; // Hide tooltip on date change
 
-        // Handle highlighting for date range constraints
-        if (
-            constraintOptions.dateRangeConstraint &&
-            constraintOptions.maxBookingPeriod &&
-            instance &&
-            selectedDates.length === 1
-        ) {
-            const startDate = selectedDates[0];
-            const targetEndDate = new Date(startDate);
-            targetEndDate.setDate(
-                targetEndDate.getDate() + constraintOptions.maxBookingPeriod - 1
+        // Handle constraint highlighting
+        if (selectedDates.length === 1 && instance) {
+            // Calculate highlighting data using manager
+            const highlightingData = calculateConstraintHighlighting(
+                selectedDates[0],
+                effectiveRules,
+                constraintOptions
             );
 
-            // Store the highlighting info on the instance for reuse
-            instance._constraintHighlighting = {
-                startDate,
-                targetEndDate,
-                maxPeriod: constraintOptions.maxBookingPeriod,
-            };
+            if (highlightingData) {
+                // Apply UI highlighting
+                applyCalendarHighlighting(instance, highlightingData);
 
-            // Apply highlighting using the reusable function
-            applyConstraintHighlighting(instance);
+                // Check if calendar navigation is needed
+                const navigationInfo = getCalendarNavigationTarget(
+                    highlightingData.startDate,
+                    highlightingData.targetEndDate
+                );
+
+                if (navigationInfo.shouldNavigate) {
+                    logger.debug("Navigating calendar", navigationInfo);
+
+                    // Navigate to show target end date
+                    setTimeout(() => {
+                        if (instance && instance.jumpToDate) {
+                            instance.jumpToDate(navigationInfo.targetDate);
+                        } else if (instance && instance.changeMonth) {
+                            instance.changeMonth(
+                                navigationInfo.targetMonth,
+                                navigationInfo.targetYear
+                            );
+                        }
+                    }, 100);
+                }
+            }
         }
 
         // Clear highlighting when selection is cleared
@@ -235,13 +411,8 @@ export function createOnDayCreate(
             const gridContainer = document.createElement("div");
             gridContainer.className = "booking-marker-grid";
 
-            // Aggregate all markers by type, EXCLUDING lead and trail for dot display
-            const aggregatedMarkers = markersForDots.reduce((acc, marker) => {
-                if (marker.type !== "lead" && marker.type !== "trail") {
-                    acc[marker.type] = (acc[marker.type] || 0) + 1;
-                }
-                return acc;
-            }, {});
+            // Use manager function to aggregate markers
+            const aggregatedMarkers = aggregateMarkersByType(markersForDots);
 
             Object.entries(aggregatedMarkers).forEach(([type, count]) => {
                 const markerSpan = document.createElement("span");
@@ -322,7 +493,7 @@ export function createOnDayCreate(
         // Reapply constraint highlighting if it exists (for month navigation, etc.)
         if (fp && fp._constraintHighlighting && fp.calendarContainer) {
             requestAnimationFrame(() => {
-                applyConstraintHighlighting(fp);
+                applyCalendarHighlighting(fp, fp._constraintHighlighting);
             });
         }
     };
@@ -338,6 +509,17 @@ export function createOnClose(tooltipMarkers, tooltipVisible) {
 export function createOnFlatpickrReady(flatpickrInstance) {
     return function (...[, , instance]) {
         flatpickrInstance.value = instance;
+
+        // Apply constraint highlighting if it was set up before the instance was ready
+        if (instance && instance._constraintHighlighting) {
+            // Use a longer delay to ensure the calendar DOM is fully rendered
+            setTimeout(() => {
+                applyCalendarHighlighting(
+                    instance,
+                    instance._constraintHighlighting
+                );
+            }, 100);
+        }
     };
 }
 

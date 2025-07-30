@@ -725,8 +725,9 @@ describe("AdditionalFields", () => {
 
     describe("fetchExtendedAttributes", () => {
         it("should fetch extended attribute types", async () => {
-            const types =
-                await additionalFields.fetchExtendedAttributes("booking");
+            const types = await additionalFields.fetchExtendedAttributes(
+                "booking"
+            );
             expect(types).to.be.an("array");
             expect(types).to.have.lengthOf(4);
             expect(types[0]).to.have.property("name", "Urgency");

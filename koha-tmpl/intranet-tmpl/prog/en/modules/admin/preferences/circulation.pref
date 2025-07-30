@@ -1371,6 +1371,12 @@ Circulation:
                   issuelength: "Constrain to issue length"
                   issuelength_with_renewals: "Constrain to issue length with renewals"
             - booking date ranges based on circulation rules. When set, users can only create bookings within the specified period based on circulation rules for the patron category, item type, and library.
+        -
+            - pref: BookingConstraintMode
+              choices:
+                  range: "Allow any date within range"
+                  end_date_only: "Allow only start and end dates"
+            - for booking date constraints. When set to 'end_date_only', patrons can only book the calculated start date or end date, with intermediate dates blocked.
 
     RFID-Web-Service batch checkin/checkout:
          -
