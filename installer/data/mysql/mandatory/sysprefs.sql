@@ -661,6 +661,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('PaymentsMinimumPatronAge', '18', NULL , 'The minimum patron age in years for permission to the payment functionality', 'Integer' ),
 ('PaymentsOnlineCashRegisterManagerCardnumber', '', NULL , 'Cardnumber of main manager of the cash register used for online payments', 'Free' ),
 ('PaymentsOnlineCashRegisterName', '', NULL , 'Name of the cash register used for online payments', 'Free' ),
+('PaymentsPatronCategories', '', NULL, 'If set, the parameter enables only the listed patron categories (separated by |) to do online payments in OPAC.', 'free'),
 ('PayPalChargeDescription',  'Koha fee payment', NULL ,  'This preference defines what the user will see the charge listed as in PayPal',  'Free'),
 ('PayPalPwd',  '', NULL ,  'Your PayPal API password',  'Free'),
 ('PayPalSandboxMode',  '1', NULL ,  'If enabled, the system will use PayPal''s sandbox server for testing, rather than the production server.',  'YesNo'),

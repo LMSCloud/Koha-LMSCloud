@@ -1094,6 +1094,10 @@ OPAC:
               default: 18
               class: integer
             - " years."
+        -
+            - "Enable only the patrons of the listed patron categories (separated by |) to perform online payments"
+            - pref: PaymentsPatronCategories
+            - "."
 
     Authentication:
         -
