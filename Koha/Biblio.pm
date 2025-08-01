@@ -253,15 +253,28 @@ sub check_booking {
         }
     );
 
-    my $booked_count =
-        defined($booking_id)
-        ? $existing_bookings->search( { booking_id => { '!=' => $booking_id } } )->count
-        : $existing_bookings->count;
+    if (defined $booking_id) {
+        $existing_bookings = $existing_bookings->search( { booking_id => { '!=' => $booking_id } } );
+    }
+
+    my $unique_booked_items = {};
+    while (my $booking = $existing_bookings->next) {
+        if (!defined $booking->item_id) {
+            next;
+        }
+
+        $unique_booked_items->{$booking->item_id} = 1;
+    }
 
     my $checkouts = $self->current_checkouts->search( { date_due => { '>=' => $dtf->format_datetime($start_date) } } );
-    $booked_count += $checkouts->count;
 
-    return ( ( $total_bookable - $booked_count ) > 0 ) ? 1 : 0;
+    my $all_unavailable = { %{$unique_booked_items} };
+    while (my $checkout = $checkouts->next) {
+        $all_unavailable->{$checkout->itemnumber} = 1;
+    }
+    my $total_unavailable = scalar keys %{$all_unavailable};
+
+    return ( ( $total_bookable - $total_unavailable ) > 0 ) ? 1 : 0;
 }
 
 =head3 can_be_transferred
