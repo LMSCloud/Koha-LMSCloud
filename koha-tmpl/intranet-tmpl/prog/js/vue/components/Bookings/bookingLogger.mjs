@@ -15,8 +15,11 @@ class BookingLogger {
             WARN: "warn",
             ERROR: "error",
         };
-        // Always log errors and warnings
-        this.enabledLevels = new Set(["error", "warn"]);
+        // Don't log anything by default unless explicitly enabled
+        this.enabledLevels = new Set();
+        // Track active timers and groups to prevent console errors
+        this._activeTimers = new Set();
+        this._activeGroups = [];
 
         // Check for debug configuration
         if (typeof window !== "undefined" && window.localStorage) {
@@ -45,8 +48,8 @@ class BookingLogger {
             // When enabling debug, include all levels
             this.enabledLevels = new Set(["debug", "info", "warn", "error"]);
         } else {
-            // When disabling, keep only error and warn
-            this.enabledLevels = new Set(["error", "warn"]);
+            // When disabling, clear all levels
+            this.enabledLevels = new Set();
         }
         if (typeof window !== "undefined" && window.localStorage) {
             window.localStorage.setItem(
@@ -77,11 +80,8 @@ class BookingLogger {
      * @param  {...any} args
      */
     log(level, message, ...args) {
-        // Skip if logging is disabled and this isn't an error/warning
-        if (!this.enabled && !this.enabledLevels.has(level)) return;
-
-        // Skip if this specific level is disabled
-        if (this.enabled && !this.enabledLevels.has(level)) return;
+        // Skip if this specific level is not enabled
+        if (!this.enabledLevels.has(level)) return;
 
         const timestamp = new Date().toISOString();
         const prefix = `[${timestamp}] [${
@@ -125,17 +125,22 @@ class BookingLogger {
      * Performance timing utilities
      */
     time(label) {
-        if (!this.enabled && !this.enabledLevels.has("debug")) return;
+        if (!this.enabledLevels.has("debug")) return;
         const key = `[${this.module}] ${label}`;
         console.time(key);
+        this._activeTimers.add(label);
         this._timers = this._timers || {};
         this._timers[label] = performance.now();
     }
 
     timeEnd(label) {
-        if (!this.enabled && !this.enabledLevels.has("debug")) return;
+        if (!this.enabledLevels.has("debug")) return;
+        // Only call console.timeEnd if we actually started this timer
+        if (!this._activeTimers.has(label)) return;
+
         const key = `[${this.module}] ${label}`;
         console.timeEnd(key);
+        this._activeTimers.delete(label);
 
         // Also log the duration
         if (this._timers && this._timers[label]) {
@@ -149,13 +154,18 @@ class BookingLogger {
      * Group related log entries
      */
     group(label) {
-        if (!this.enabled && !this.enabledLevels.has("debug")) return;
+        if (!this.enabledLevels.has("debug")) return;
         console.group(`[${this.module}] ${label}`);
+        this._activeGroups.push(label);
     }
 
     groupEnd() {
-        if (!this.enabled && !this.enabledLevels.has("debug")) return;
+        if (!this.enabledLevels.has("debug")) return;
+        // Only call console.groupEnd if we have an active group
+        if (this._activeGroups.length === 0) return;
+
         console.groupEnd();
+        this._activeGroups.pop();
     }
 
     /**
@@ -175,6 +185,8 @@ class BookingLogger {
      */
     clearLogs() {
         this._logBuffer = [];
+        this._activeTimers.clear();
+        this._activeGroups = [];
     }
 }
 
@@ -238,8 +250,10 @@ if (typeof window !== "undefined") {
     // Set on browser window
     window.BookingDebug = debugObj;
 
-    // Log that debug utilities are available
-    console.log("Booking debug utilities available at window.BookingDebug");
+    // Only log availability message if debug is already enabled
+    if (managerLogger.enabled || calendarLogger.enabled) {
+        console.log("Booking debug utilities available at window.BookingDebug");
+    }
 }
 
 // Additional setup for Node.js testing environment

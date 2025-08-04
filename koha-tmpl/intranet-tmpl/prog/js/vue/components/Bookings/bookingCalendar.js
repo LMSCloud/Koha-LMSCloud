@@ -37,15 +37,12 @@ function clearConstraintHighlighting(instance) {
  * This is a pure UI function that applies visual styling based on data from the manager
  */
 export function applyCalendarHighlighting(instance, highlightingData) {
-    logger.group("applyCalendarHighlighting");
-
     if (!instance || !instance.calendarContainer || !highlightingData) {
         logger.debug("Missing requirements", {
             hasInstance: !!instance,
             hasContainer: !!instance?.calendarContainer,
             hasData: !!highlightingData,
         });
-        logger.groupEnd();
         return;
     }
 
@@ -57,6 +54,10 @@ export function applyCalendarHighlighting(instance, highlightingData) {
 
     // Apply highlighting with retry logic for DOM readiness
     const applyHighlighting = (retryCount = 0) => {
+        // Start group only when actually processing
+        if (retryCount === 0) {
+            logger.group("applyCalendarHighlighting");
+        }
         const dayElements =
             instance.calendarContainer.querySelectorAll(".flatpickr-day");
 
@@ -131,11 +132,13 @@ export function applyCalendarHighlighting(instance, highlightingData) {
                 highlightingData.targetEndDate
             );
         }
+
+        // End group when done processing
+        logger.groupEnd();
     };
 
     // Start the highlighting process
     requestAnimationFrame(() => applyHighlighting());
-    logger.groupEnd();
 }
 
 /**
