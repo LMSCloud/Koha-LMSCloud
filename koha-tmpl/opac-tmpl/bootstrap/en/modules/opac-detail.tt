@@ -36,7 +36,7 @@
         [% Asset.css("lib/verovio/midiplayer.css") | $raw %]
     [% END %]
     [% Asset.css("lib/Chocolat/css/chocolat.css") | $raw %]
-    [% IF ( Koha.Preference('OPACBookings') %]
+    [% IF ( Koha.Preference('OPACBookings') ) %]
         [% INCLUDE 'js-date-format.inc' %]
     [% END %]
 </head>
