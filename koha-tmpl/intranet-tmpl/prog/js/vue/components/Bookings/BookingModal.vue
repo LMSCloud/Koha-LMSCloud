@@ -1,6 +1,6 @@
 <template>
     <div
-        v-if="isOpen"
+        v-if="modalState.isOpen"
         class="modal show booking-modal-backdrop"
         tabindex="-1"
         role="dialog"
@@ -74,17 +74,17 @@
                             :flatpickr-config="flatpickrConfig"
                             :date-range-constraint="dateRangeConstraint"
                             :max-booking-period="maxBookingPeriod"
-                            :error-message="errorMessage"
+                            :error-message="modalState.errorMessage"
                             @clear-dates="clearDateRange"
                         />
                         <hr
-                            v-if="showAdditionalFields && hasAdditionalFields"
+                            v-if="showAdditionalFields && modalState.hasAdditionalFields"
                         />
                         <!-- Additional Fields Step -->
                         <BookingAdditionalFields
                             v-if="showAdditionalFields"
                             :step-number="stepNumber.additionalFields"
-                            :has-fields="hasAdditionalFields"
+                            :has-fields="modalState.hasAdditionalFields"
                             :extended-attributes="extendedAttributes"
                             :extended-attribute-types="extendedAttributeTypes"
                             :authorized-values="authorizedValues"
@@ -97,7 +97,7 @@
                     <div class="d-flex gap-2">
                         <button
                             class="btn btn-primary"
-                            :disabled="loading.submit || !canProceedToStep3"
+                            :disabled="loading.submit || !isCalendarReady"
                             type="submit"
                             form="form-booking"
                         >
@@ -115,16 +115,16 @@
         </div>
     </div>
     <BookingTooltip
-        :markers="tooltipMarkers"
-        :x="tooltipX"
-        :y="tooltipY"
-        :visible="tooltipVisible"
+        :markers="tooltipState.markers"
+        :x="tooltipState.x"
+        :y="tooltipState.y"
+        :visible="tooltipState.visible"
     />
 </template>
 
 <script>
 import dayjs from "../../utils/dayjs.mjs";
-import { computed, ref, watch, watchEffect, nextTick, onUnmounted } from "vue";
+import { computed, ref, reactive, watch, watchEffect, nextTick, onUnmounted } from "vue";
 import BookingTooltip from "./BookingTooltip.vue";
 import BookingPatronStep from "./BookingPatronStep.vue";
 import BookingDetailsStep from "./BookingDetailsStep.vue";
@@ -147,6 +147,7 @@ import {
     createOnClose,
     createOnFlatpickrReady,
     createFlatpickrConfig,
+    applyCalendarHighlighting,
     preloadFlatpickrLocale,
 } from "./bookingCalendar.js";
 import { createBookingServices } from "./BookingModalService.mjs";
@@ -210,30 +211,42 @@ export default {
             customDateRangeFormula: props.customDateRangeFormula,
         });
 
-        const isOpen = ref(props.open);
-        const dateRange = ref([]);
-        const loading = store.loading;
-        const step = ref(1);
-        const constrainedFlags = ref({
+        // Grouped reactive state following Vue 3 best practices
+        const modalState = reactive({
+            isOpen: props.open,
+            step: 1,
+            errorMessage: "",
+            hasAdditionalFields: false,
+        });
+
+        const tooltipState = reactive({
+            visible: false,
+            x: 0,
+            y: 0,
+            markers: [],
+        });
+
+        const constrainedFlags = reactive({
             pickupLocations: false,
             itemTypes: false,
             bookableItems: false,
         });
-        const errorMessage = ref("");
+
+        // Create a ref wrapper for functions that expect constrainedFlagsRef
+        const constrainedFlagsRef = ref(constrainedFlags);
+
+        // Refs for specific instances and external library integration
+        const dateRange = ref([]);
+        const loading = store.loading;
         const flatpickrInstance = ref(null);
-        const patronOptions = ref([]);
-        const tooltipVisible = ref(false);
-        const tooltipX = ref(0);
-        const tooltipY = ref(0);
-        const tooltipMarkers = ref([]);
         const additionalFieldsInstance = ref(null);
-        const hasAdditionalFields = ref(false);
 
         const modalTitle = computed(
             () =>
                 props.title ||
                 (store.bookingId ? $__("Edit booking") : $__("Place booking"))
         );
+
 
         const stepNumber = computed(() => {
             let currentStep = 1;
@@ -253,7 +266,7 @@ export default {
                 steps.details = currentStep++;
             }
             steps.period = currentStep++;
-            if (props.showAdditionalFields && hasAdditionalFields.value) {
+            if (props.showAdditionalFields && modalState.hasAdditionalFields) {
                 steps.additionalFields = currentStep++;
             }
             return steps;
@@ -321,7 +334,7 @@ export default {
                 store.bookableItems,
                 bookingItemtypeId.value,
                 bookingItemId.value,
-                constrainedFlags
+                constrainedFlagsRef
             )
         );
         const constrainedPickupLocations = computed(
@@ -340,7 +353,7 @@ export default {
                 store.pickupLocations,
                 bookingPickupLibraryId.value,
                 bookingItemtypeId.value,
-                constrainedFlags
+                constrainedFlagsRef
             )
         );
         const constrainedBookableItems = computed(
@@ -360,32 +373,21 @@ export default {
                 store.pickupLocations,
                 bookingPickupLibraryId.value,
                 bookingItemId.value,
-                constrainedFlags
+                constrainedFlagsRef
             )
         );
 
         const computedAvailabilityData = computed(() => {
             // CRITICAL FIX: Proper loading states for calendar availability
             // This prevents race condition where modal opens before store is populated
-            if (!store.bookableItems || store.bookableItems.length === 0 || store.loading.bookableItems) {
-                console.debug("BookingModal: Waiting for bookableItems to load...", {
-                    bookableItems: store.bookableItems?.length || 0,
-                    bookings: store.bookings?.length || 0,
-                    checkouts: store.checkouts?.length || 0,
-                    loading: store.loading.bookableItems
-                });
+            if (!store.bookableItems || store.bookableItems.length === 0 || 
+                store.loading.bookableItems || store.loading.bookings || store.loading.checkouts) {
                 // Return restrictive default while data loads to prevent invalid selections
                 return {
                     disable: () => true, // Disable all dates while loading
                     unavailableByDate: {}
                 };
             }
-
-            console.debug("BookingModal: Data loaded, calculating availability", {
-                bookableItems: store.bookableItems.length,
-                bookings: store.bookings.length,
-                checkouts: store.checkouts.length
-            });
 
             const baseRules = store.circulationRules[0] || {};
 
@@ -426,6 +428,14 @@ export default {
             bookingServices.configuration.calculateMaxBookingPeriod()
         );
 
+        // Prevent calendar interaction until all data is loaded to avoid race conditions
+        const isCalendarReady = computed(() => {
+            return !store.loading.bookableItems && 
+                   !store.loading.bookings && 
+                   !store.loading.checkouts &&
+                   store.bookableItems?.length > 0;
+        });
+
         const flatpickrConfig = computed(() => {
             const availability = computedAvailabilityData.value || {
                 disable: () => false,
@@ -440,7 +450,7 @@ export default {
                 mode: "range",
                 minDate: "today",
                 disable: [availability.disable],
-                clickOpens: canProceedToStep3.value,
+                clickOpens: isCalendarReady.value,
                 dateFormat: "Y-m-d",
                 wrap: false,
                 allowInput: false,
@@ -448,18 +458,45 @@ export default {
                 altInputClass: "booking-flatpickr-input",
                 onChange: createOnChange(
                     store,
-                    errorMessage,
-                    tooltipVisible,
+                    {
+                        get value() { return modalState.errorMessage; },
+                        set value(val) { modalState.errorMessage = val; }
+                    },
+                    {
+                        get value() { return tooltipState.visible; },
+                        set value(val) { tooltipState.visible = val; }
+                    },
                     constraintOptions
                 ),
                 onDayCreate: createOnDayCreate(
                     store,
-                    tooltipMarkers,
-                    tooltipVisible,
-                    tooltipX,
-                    tooltipY
+                    {
+                        get value() { return tooltipState.markers; },
+                        set value(val) { tooltipState.markers = val; }
+                    },
+                    {
+                        get value() { return tooltipState.visible; },
+                        set value(val) { tooltipState.visible = val; }
+                    },
+                    {
+                        get value() { return tooltipState.x; },
+                        set value(val) { tooltipState.x = val; }
+                    },
+                    {
+                        get value() { return tooltipState.y; },
+                        set value(val) { tooltipState.y = val; }
+                    }
                 ),
-                onClose: createOnClose(tooltipMarkers, tooltipVisible),
+                onClose: createOnClose(
+                    {
+                        get value() { return tooltipState.markers; },
+                        set value(val) { tooltipState.markers = val; }
+                    },
+                    {
+                        get value() { return tooltipState.visible; },
+                        set value(val) { tooltipState.visible = val; }
+                    }
+                ),
                 onFlatpickrReady: createOnFlatpickrReady(flatpickrInstance),
             };
 
@@ -469,14 +506,14 @@ export default {
         watch(
             () => props.open,
             val => {
-                isOpen.value = val;
+                modalState.isOpen = val;
                 if (val) {
                     resetModalState();
                 }
             }
         );
 
-        watch(isOpen, async open => {
+        watch(() => modalState.isOpen, async open => {
             if (open) {
                 disableBodyScroll();
                 // Preload the appropriate flatpickr locale
@@ -486,7 +523,7 @@ export default {
                 return;
             }
 
-            step.value = 1;
+            modalState.step = 1;
             const biblionumber = props.biblionumber;
             if (!biblionumber) return;
 
@@ -504,7 +541,7 @@ export default {
                 if (additionalFieldsModule) {
                     await renderExtendedAttributes(additionalFieldsModule);
                 } else {
-                    hasAdditionalFields.value = false;
+                    modalState.hasAdditionalFields = false;
                 }
 
                 // Derive item types after bookable items are loaded
@@ -535,7 +572,7 @@ export default {
                 }
             } catch (error) {
                 console.error("Error initializing booking modal:", error);
-                errorMessage.value = processApiError(error);
+                modalState.errorMessage = processApiError(error);
             }
         });
 
@@ -590,6 +627,41 @@ export default {
             }
         });
 
+        // Watch for all loading states to re-trigger highlighting when ALL data is loaded
+        watch(
+            () => ({
+                bookableItemsLoading: store.loading.bookableItems,
+                bookingsLoading: store.loading.bookings,
+                checkoutsLoading: store.loading.checkouts,
+                hasBookableItems: store.bookableItems?.length > 0
+            }),
+            (newState, oldState) => {
+                // Check if ALL loading states transitioned from loading to loaded
+                const wasAnyLoading = oldState?.bookableItemsLoading || oldState?.bookingsLoading || oldState?.checkoutsLoading;
+                const isNowAllLoaded = !newState.bookableItemsLoading && !newState.bookingsLoading && !newState.checkoutsLoading && newState.hasBookableItems;
+                
+                if (wasAnyLoading && isNowAllLoaded && flatpickrInstance.value) {
+                    console.debug("BookingModal: ALL data finished loading, re-triggering highlighting", {
+                        oldState,
+                        newState
+                    });
+                    nextTick(() => {
+                        // Directly re-apply highlighting if there's stored highlighting data
+                        if (flatpickrInstance.value._constraintHighlighting) {
+                            console.debug("Manually re-applying highlighting with stored data");
+                            applyCalendarHighlighting(
+                                flatpickrInstance.value, 
+                                flatpickrInstance.value._constraintHighlighting
+                            );
+                        } else {
+                            console.debug("No stored highlighting data found on flatpickr instance");
+                        }
+                    });
+                }
+            },
+            { deep: true }
+        );
+
         watch(
             [() => bookingPatron.value, () => store.pickupLocations],
             ([patron, pickupLocations]) => {
@@ -638,10 +710,10 @@ export default {
                         selectionParts.push($__("item type: %s").format(itemType?.description || itemtypeId));
                     }
 
-                    errorMessage.value = $__("No items are available for booking with the selected criteria (%s). Please adjust your selection.").format(selectionParts.join(", "));
-                } else if (errorMessage.value && errorMessage.value.includes($__("No items are available"))) {
+                    modalState.errorMessage = $__("No items are available for booking with the selected criteria (%s). Please adjust your selection.").format(selectionParts.join(", "));
+                } else if (modalState.errorMessage && modalState.errorMessage.includes($__("No items are available"))) {
                     // Clear the error message if items become available again
-                    errorMessage.value = "";
+                    modalState.errorMessage = "";
                 }
             },
             { immediate: true }
@@ -663,11 +735,11 @@ export default {
                         "booking"
                     ));
                 if (!additionalFieldTypes?.length) {
-                    hasAdditionalFields.value = false;
+                    modalState.hasAdditionalFields = false;
                     return;
                 }
 
-                hasAdditionalFields.value = true;
+                modalState.hasAdditionalFields = true;
 
                 nextTick(() => {
                     additionalFieldsInstance.value.renderExtendedAttributes(
@@ -678,7 +750,7 @@ export default {
                 });
             } catch (error) {
                 console.error("Failed to render extended attributes:", error);
-                hasAdditionalFields.value = false;
+                modalState.hasAdditionalFields = false;
             }
         }
 
@@ -722,12 +794,12 @@ export default {
             bookingItemtypeId.value = null;
             bookingItemId.value = null;
             dateRange.value = [];
-            step.value = 1;
-            errorMessage.value = "";
+            modalState.step = 1;
+            modalState.errorMessage = "";
             if (additionalFieldsInstance.value) {
                 additionalFieldsInstance.value.clear();
             }
-            hasAdditionalFields.value = false;
+            modalState.hasAdditionalFields = false;
             Object.keys(store.error).forEach(key => (store.error[key] = null));
         }
 
@@ -739,11 +811,11 @@ export default {
             // Also clear the Vue reactive data
             dateRange.value = [];
             // Clear any error messages related to date selection
-            errorMessage.value = "";
+            modalState.errorMessage = "";
         }
 
         function handleClose() {
-            isOpen.value = false;
+            modalState.isOpen = false;
             enableBodyScroll();
             emit("close");
             resetModalState();
@@ -797,7 +869,7 @@ export default {
                 emit("close");
                 resetModalState();
             } catch (error) {
-                errorMessage.value =
+                modalState.errorMessage =
                     store.error.submit || processApiError(error);
             }
         }
@@ -814,31 +886,26 @@ export default {
         });
 
         return {
-            isOpen,
+            // Grouped reactive state (Vue 3 best practices)
+            modalState,
             modalTitle,
             submitLabel,
             isFormSubmission,
-            errorMessage,
+            tooltipState,
             loading,
             flatpickrConfig,
             dateRange,
             store,
-            step,
             constrainedPickupLocations,
             constrainedItemTypes,
             constrainedBookableItems,
-            canProceedToStep3,
+            isCalendarReady,
             constrainedFlags,
             handleClose,
             handleSubmit,
             clearDateRange,
-            tooltipVisible,
-            tooltipX,
-            tooltipY,
-            tooltipMarkers,
             resetModalState,
             stepNumber,
-            hasAdditionalFields,
             pickupLocationsFilteredOut,
             pickupLocationsTotal,
             bookableItemsFilteredOut,

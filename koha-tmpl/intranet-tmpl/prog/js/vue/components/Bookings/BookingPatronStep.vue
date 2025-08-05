@@ -54,7 +54,6 @@ export default {
 
         return {
             selectedPatron,
-            $__,
         };
     },
 };

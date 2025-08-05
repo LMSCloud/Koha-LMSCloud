@@ -110,7 +110,7 @@ export default {
             required: true,
         },
         modelValue: {
-            type: Array,
+            type: [Array, String],
             default: () => [],
         },
         flatpickrConfig: {
@@ -157,7 +157,6 @@ export default {
             selectedDateRange,
             clearDateRange,
             flatpickrRef,
-            $__,
         };
     },
 };

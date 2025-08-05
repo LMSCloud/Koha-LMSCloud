@@ -116,7 +116,6 @@ export default {
 
         return {
             extendedAttributesContainer,
-            $__,
         };
     },
 };

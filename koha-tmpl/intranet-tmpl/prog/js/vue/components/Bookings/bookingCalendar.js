@@ -46,6 +46,7 @@ export function applyCalendarHighlighting(instance, highlightingData) {
         return;
     }
 
+
     // Store data for reuse (e.g., after month navigation)
     instance._constraintHighlighting = highlightingData;
 
@@ -131,6 +132,16 @@ export function applyCalendarHighlighting(instance, highlightingData) {
                 dayElements,
                 highlightingData.targetEndDate
             );
+            
+            // Re-apply highlighting for target end date after our modifications
+            const targetEndElem = Array.from(dayElements).find(
+                elem => elem.dateObj && elem.dateObj.getTime() === highlightingData.targetEndDate.getTime()
+            );
+            if (targetEndElem && !targetEndElem.classList.contains("flatpickr-disabled")) {
+                // Ensure the target end date has proper highlighting
+                targetEndElem.classList.add("booking-constrained-range-marker");
+                logger.debug("Re-applied highlighting to target end date after availability fix");
+            }
         }
 
         // End group when done processing
@@ -146,6 +157,12 @@ export function applyCalendarHighlighting(instance, highlightingData) {
  * Uses CSS-based approach instead of fighting with DOM mutations
  */
 function fixTargetEndDateAvailability(instance, dayElements, targetEndDate) {
+    // Ensure dayElements is array-like before processing
+    if (!dayElements || (typeof dayElements.length !== 'number')) {
+        logger.warn("Invalid dayElements passed to fixTargetEndDateAvailability", dayElements);
+        return;
+    }
+    
     const targetEndElem = Array.from(dayElements).find(
         elem =>
             elem.dateObj && elem.dateObj.getTime() === targetEndDate.getTime()
@@ -170,32 +187,15 @@ function fixTargetEndDateAvailability(instance, dayElements, targetEndDate) {
         element: targetEndElem,
     });
 
-    // Use a more robust approach: override Flatpickr's internal state
-    // This addresses the root cause rather than fighting symptoms
-    if (instance && instance.config && instance.config.disable) {
-        const originalDisable = instance.config.disable;
-
-        // Create a wrapped disable function that allows our target end date
-        instance.config.disable = function (date) {
-            // Allow the target end date regardless of other rules
-            if (date.getTime() === targetEndDate.getTime()) {
-                return false;
-            }
-
-            // Apply original disable logic for all other dates
-            if (Array.isArray(originalDisable)) {
-                return originalDisable.some(disableFn => {
-                    if (typeof disableFn === "function") {
-                        return disableFn(date);
-                    }
-                    return false;
-                });
-            }
-
-            return false;
-        };
-
-        logger.debug("Applied disable function override for target end date");
+    // Force enable the target end date element immediately
+    if (targetEndElem.classList.contains("flatpickr-disabled")) {
+        targetEndElem.classList.remove("flatpickr-disabled", "notAllowed");
+        targetEndElem.removeAttribute("tabindex");
+        targetEndElem.classList.add("booking-override-allowed");
+        
+        logger.debug("Applied fix for target end date availability", {
+            finalClasses: Array.from(targetEndElem.classList)
+        });
     }
 }
 

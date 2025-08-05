@@ -239,7 +239,6 @@ export default {
             selectedPickupLibraryId,
             selectedItemtypeId,
             selectedItemId,
-            $__,
         };
     },
 };
