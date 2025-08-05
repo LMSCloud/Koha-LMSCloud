@@ -165,18 +165,18 @@ export default {
 
 <style scoped>
 .step-block {
-    margin-bottom: 1rem;
+    margin-bottom: var(--booking-space-lg);
 }
 
 .step-header {
     font-weight: 600;
-    font-size: 1.1rem;
-    margin-bottom: 0.75rem;
-    color: #495057;
+    font-size: var(--booking-text-lg);
+    margin-bottom: calc(var(--booking-space-lg) * 0.75);
+    color: var(--booking-neutral-600);
 }
 
 .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: var(--booking-space-lg);
 }
 
 .booking-date-picker {
@@ -186,7 +186,7 @@ export default {
 
 .booking-flatpickr-input {
     flex: 1;
-    margin-right: 0.5rem;
+    margin-right: var(--booking-space-md);
 }
 
 .booking-date-picker-append {
@@ -194,58 +194,59 @@ export default {
 }
 
 .booking-constraint-info {
-    margin-top: 0.5rem;
-    margin-bottom: 1rem;
+    margin-top: var(--booking-space-md);
+    margin-bottom: var(--booking-space-lg);
 }
 
 .calendar-legend {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    margin-top: 1rem;
+    gap: var(--booking-space-md);
+    font-size: var(--booking-text-sm);
+    margin-top: var(--booking-space-lg);
 }
 
 .booking-marker-dot {
     display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    margin-right: 0.25rem;
+    width: calc(var(--booking-marker-size) * 3);
+    height: calc(var(--booking-marker-size) * 3);
+    border-radius: var(--booking-border-radius-full);
+    margin-right: var(--booking-space-sm);
+    border: var(--booking-border-width) solid hsla(0, 0%, 0%, 0.15);
 }
 
 .booking-marker-dot--booked {
-    background-color: #dc3545;
+    background-color: var(--booking-warning-bg);
 }
 
 .booking-marker-dot--lead {
-    background-color: #ffc107;
+    background-color: hsl(var(--booking-info-hue), 60%, 85%);
 }
 
 .booking-marker-dot--trail {
-    background-color: #fd7e14;
+    background-color: var(--booking-warning-bg);
 }
 
 .booking-marker-dot--checked-out {
-    background-color: #6f42c1;
+    background-color: hsl(var(--booking-danger-hue), 60%, 85%);
 }
 
 .alert {
-    padding: 0.75rem 1rem;
-    border: 1px solid transparent;
-    border-radius: 0.25rem;
+    padding: calc(var(--booking-space-lg) * 0.75) var(--booking-space-lg);
+    border: var(--booking-border-width) solid transparent;
+    border-radius: var(--booking-border-radius-sm);
 }
 
 .alert-info {
-    color: #0c5460;
-    background-color: #d1ecf1;
-    border-color: #bee5eb;
+    color: hsl(var(--booking-info-hue), 80%, 20%);
+    background-color: hsl(var(--booking-info-hue), 40%, 90%);
+    border-color: hsl(var(--booking-info-hue), 40%, 70%);
 }
 
 .alert-danger {
-    color: #721c24;
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
+    color: hsl(var(--booking-danger-hue), 80%, 20%);
+    background-color: hsl(var(--booking-danger-hue), 40%, 90%);
+    border-color: hsl(var(--booking-danger-hue), 40%, 70%);
 }
 </style>

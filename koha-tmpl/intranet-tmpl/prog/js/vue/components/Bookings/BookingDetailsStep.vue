@@ -247,26 +247,26 @@ export default {
 
 <style scoped>
 .step-block {
-    margin-bottom: 1rem;
+    margin-bottom: var(--booking-space-lg);
 }
 
 .step-header {
     font-weight: 600;
-    font-size: 1.1rem;
-    margin-bottom: 0.75rem;
-    color: #495057;
+    font-size: var(--booking-text-lg);
+    margin-bottom: calc(var(--booking-space-lg) * 0.75);
+    color: var(--booking-neutral-600);
 }
 
 .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: var(--booking-space-lg);
 }
 
 .badge {
-    font-size: 0.75rem;
+    font-size: var(--booking-text-xs);
 }
 
 .badge-warning {
-    background-color: #ffc107;
-    color: #212529;
+    background-color: var(--booking-warning-bg);
+    color: var(--booking-neutral-600);
 }
 </style>

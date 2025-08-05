@@ -124,14 +124,14 @@ export default {
 
 <style scoped>
 .step-block {
-    margin-bottom: 1rem;
+    margin-bottom: var(--booking-space-lg);
 }
 
 .step-header {
     font-weight: 600;
-    font-size: 1.1rem;
-    margin-bottom: 0.75rem;
-    color: #495057;
+    font-size: var(--booking-text-lg);
+    margin-bottom: calc(var(--booking-space-lg) * 0.75);
+    color: var(--booking-neutral-600);
 }
 
 .booking-extended-attributes {
@@ -141,34 +141,35 @@ export default {
 }
 
 .booking-extended-attributes :deep(.form-group) {
-    margin-bottom: 1rem;
+    margin-bottom: var(--booking-space-lg);
 }
 
 .booking-extended-attributes :deep(label) {
     font-weight: 500;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--booking-space-md);
     display: block;
 }
 
 .booking-extended-attributes :deep(.form-control) {
     width: 100%;
-    padding: 0.375rem 0.75rem;
-    font-size: 1rem;
+    min-width: var(--booking-input-min-width);
+    padding: calc(var(--booking-space-sm) * 1.5) calc(var(--booking-space-sm) * 3);
+    font-size: var(--booking-text-base);
     line-height: 1.5;
-    color: #495057;
+    color: var(--booking-neutral-600);
     background-color: #fff;
     background-clip: padding-box;
-    border: 1px solid #ced4da;
-    border-radius: 0.25rem;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    border: var(--booking-border-width) solid var(--booking-neutral-300);
+    border-radius: var(--booking-border-radius-sm);
+    transition: border-color var(--booking-transition-fast), box-shadow var(--booking-transition-fast);
 }
 
 .booking-extended-attributes :deep(.form-control:focus) {
-    color: #495057;
+    color: var(--booking-neutral-600);
     background-color: #fff;
-    border-color: #80bdff;
+    border-color: hsl(var(--booking-info-hue), 70%, 60%);
     outline: 0;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    box-shadow: 0 0 0 0.2rem hsla(var(--booking-info-hue), 70%, 60%, 0.25);
 }
 
 .booking-extended-attributes :deep(select.form-control) {
@@ -176,7 +177,7 @@ export default {
 }
 
 .booking-extended-attributes :deep(textarea.form-control) {
-    min-height: 80px;
+    min-height: calc(var(--booking-space-2xl) * 2.5);
     resize: vertical;
 }
 </style>
