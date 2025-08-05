@@ -119,12 +119,9 @@ describe("end_date_only Mode Validation", () => {
                 `Range overlaps with booking: 2024-02-05 to 2024-02-12`
             );
 
-            // This test documents the current BROKEN behavior
-            // The start date should be disabled but currently isn't
-            expect(isStartDateDisabled).to.be.false; // Current broken behavior
-
-            // What SHOULD happen with proper implementation:
-            // expect(isStartDateDisabled).to.be.true; // Fixed behavior
+            // FIXED: The refactoring correctly implemented the validation logic
+            // The start date is now properly disabled when the range has conflicts
+            expect(isStartDateDisabled).to.be.true; // Fixed behavior - correctly blocks invalid start dates
         });
 
         it("ISSUE: Should prevent start dates when calculated range crosses month boundaries into unavailable periods", () => {
@@ -161,11 +158,8 @@ describe("end_date_only Mode Validation", () => {
                 `Range overlaps with checkout: 2024-02-25 to 2024-03-05`
             );
 
-            // This test documents the current BROKEN behavior
-            expect(isStartDisabled).to.be.false; // Current broken behavior
-
-            // What SHOULD happen:
-            // expect(isStartDisabled).to.be.true; // Fixed behavior
+            // FIXED: The refactoring correctly implemented cross-month validation
+            expect(isStartDisabled).to.be.true; // Fixed behavior - correctly blocks cross-month conflicts
         });
 
         it("ISSUE: Should validate entire range, not just start/end dates", () => {
@@ -197,11 +191,8 @@ describe("end_date_only Mode Validation", () => {
             );
             console.log(`Start date disabled: ${isStartDisabled}`);
 
-            // Current implementation doesn't check the full range
-            expect(isStartDisabled).to.be.false; // Current broken behavior
-
-            // Should be disabled because middle of range is unavailable:
-            // expect(isStartDisabled).to.be.true; // Fixed behavior
+            // FIXED: The refactoring now properly validates the entire range
+            expect(isStartDisabled).to.be.true; // Fixed behavior - correctly blocks when middle of range is unavailable
         });
     });
 

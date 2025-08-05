@@ -7,6 +7,154 @@ import { managerLogger as logger } from "./bookingLogger.mjs";
 
 // Use global $__ function (available in browser, mocked in tests)
 const $__ = globalThis.$__ || (str => str);
+
+/**
+ * Validate end_date_only start date selection - checks entire range for conflicts
+ * @param {dayjs.Dayjs} date - Potential start date
+ * @param {number} maxPeriod - Maximum booking period
+ * @param {Object} intervalTree - Interval tree for conflict checking
+ * @param {string|null} selectedItem - Selected item ID
+ * @param {number|null} editBookingId - Booking ID being edited
+ * @param {Array} allItemIds - All available item IDs
+ * @returns {boolean} True if date should be disabled
+ */
+function validateEndDateOnlyStartDate(
+    date,
+    maxPeriod,
+    intervalTree,
+    selectedItem,
+    editBookingId,
+    allItemIds
+) {
+    const targetEndDate = date.add(maxPeriod - 1, "day");
+
+    logger.debug(
+        `Checking end_date_only range: ${date.format(
+            "YYYY-MM-DD"
+        )} to ${targetEndDate.format("YYYY-MM-DD")}`
+    );
+
+    if (selectedItem) {
+        // Specific item selected - check if that item has conflicts in the range
+        const conflicts = intervalTree.queryRange(
+            date.valueOf(),
+            targetEndDate.valueOf(),
+            String(selectedItem)
+        );
+
+        const relevantConflicts = conflicts.filter(
+            interval =>
+                !editBookingId || interval.metadata.booking_id != editBookingId
+        );
+
+        if (relevantConflicts.length > 0) {
+            logger.debug(
+                `Start date blocked - range conflicts for specific item ${selectedItem}`
+            );
+            return true;
+        }
+    } else {
+        // "Any item" mode - check if ALL items are unavailable for ANY date in the range
+        let allItemsBlockedOnSomeDate = false;
+
+        for (
+            let checkDate = date;
+            checkDate.isSameOrBefore(targetEndDate, "day");
+            checkDate = checkDate.add(1, "day")
+        ) {
+            const dayConflicts = intervalTree.query(checkDate.valueOf());
+            const relevantDayConflicts = dayConflicts.filter(
+                interval =>
+                    !editBookingId ||
+                    interval.metadata.booking_id != editBookingId
+            );
+
+            const unavailableItemIds = new Set(
+                relevantDayConflicts.map(c => String(c.itemId))
+            );
+            const allItemsUnavailableOnThisDay =
+                allItemIds.length > 0 &&
+                allItemIds.every(id => unavailableItemIds.has(String(id)));
+
+            if (allItemsUnavailableOnThisDay) {
+                allItemsBlockedOnSomeDate = true;
+                logger.debug(
+                    `Start date blocked - all items unavailable on ${checkDate.format(
+                        "YYYY-MM-DD"
+                    )} within end_date_only range`
+                );
+                break;
+            }
+        }
+
+        logger.debug(`End_date_only range validation (Any item):`, {
+            mode: "end_date_only",
+            startDate: date.format("YYYY-MM-DD"),
+            endDate: targetEndDate.format("YYYY-MM-DD"),
+            selectedItem: "ANY_AVAILABLE",
+            totalItems: allItemIds.length,
+            allItemsBlockedOnSomeDate: allItemsBlockedOnSomeDate,
+            decision: allItemsBlockedOnSomeDate ? "BLOCK" : "CONTINUE",
+        });
+
+        if (allItemsBlockedOnSomeDate) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Handle end_date_only intermediate date logic when start date is selected
+ * @param {dayjs.Dayjs} date - Date being checked
+ * @param {Array} selectedDates - Currently selected dates
+ * @param {number} maxPeriod - Maximum booking period
+ * @returns {boolean|null} True to disable, false to allow, null to continue with normal logic
+ */
+function handleEndDateOnlyIntermediateDates(date, selectedDates, maxPeriod) {
+    if (!selectedDates || selectedDates.length !== 1) {
+        return null; // Not applicable, continue with normal logic
+    }
+
+    const startDate = dayjs(selectedDates[0]).startOf("day");
+    const expectedEndDate = startDate.add(maxPeriod - 1, "day");
+
+    // If this is the expected end date, allow it (let it fall through to normal validation)
+    if (date.isSame(expectedEndDate, "day")) {
+        logger.debug(
+            `Allowing expected end date ${date.format(
+                "YYYY-MM-DD"
+            )} in end_date_only mode`
+        );
+        return null; // Continue with normal validation
+    }
+
+    // If this is an intermediate date, let calendar highlighting handle visual feedback
+    if (
+        date.isAfter(startDate, "day") &&
+        date.isBefore(expectedEndDate, "day")
+    ) {
+        logger.debug(
+            `Processing intermediate date ${date.format(
+                "YYYY-MM-DD"
+            )} in end_date_only mode (will be visually highlighted by calendar)`
+        );
+        return null; // Don't disable - let calendar highlighting handle visual feedback
+    }
+
+    // If this is after the expected end date, disable it
+    if (date.isAfter(expectedEndDate, "day")) {
+        logger.debug(
+            `Disabling date ${date.format(
+                "YYYY-MM-DD"
+            )} beyond end_date_only range`
+        );
+        return true; // Hard disable dates beyond the range
+    }
+
+    return null; // Continue with normal logic for other dates
+}
 import {
     IntervalTree,
     BookingInterval,
@@ -103,6 +251,16 @@ const DATE_FORMAT_MAP = {
 };
 
 /**
+ * Check if a date is in the past (before today)
+ * @param {dayjs.Dayjs} date - Date to check
+ * @param {dayjs.Dayjs} today - Today's date
+ * @returns {boolean} True if date is in the past
+ */
+function isPastDate(date, today) {
+    return date.isBefore(today, "day");
+}
+
+/**
  * Pure function for Flatpickr's `disable` option.
  * Disables dates that overlap with existing bookings or checkouts for the selected item, or when not enough items are available.
  * Also handles end_date_only constraint mode by disabling intermediate dates.
@@ -195,107 +353,48 @@ export function calculateDisabledDates(
     const disableFunction = date => {
         const dayjs_date = dayjs(date).startOf("day");
 
-        // Basic validations
+        // Guard clause: Basic past date validation
         if (dayjs_date.isBefore(today, "day")) return true;
 
-        // CRITICAL FIX: end_date_only complete range validation
-        logger.debug(`Checking end_date_only conditions:`, {
-            isEndDateOnly: isEndDateOnly,
-            selectedDates: selectedDates,
-            selectedDatesLength: selectedDates?.length || 0,
-            selectedItem: selectedItem,
-            shouldEnterEndDateOnlyLogic:
-                isEndDateOnly && (!selectedDates || selectedDates.length === 0),
-        });
-
-        if (isEndDateOnly && (!selectedDates || selectedDates.length === 0)) {
-            // This is a potential start date - validate ENTIRE range
-            const targetEndDate = dayjs_date.add(maxPeriod - 1, "day");
-
+        // Guard clause: No bookable items available
+        if (!bookableItems || bookableItems.length === 0) {
             logger.debug(
-                `Checking end_date_only range: ${dayjs_date.format(
+                `Date ${dayjs_date.format(
                     "YYYY-MM-DD"
-                )} to ${targetEndDate.format("YYYY-MM-DD")}`
+                )} disabled - no bookable items available`
             );
+            return true;
+        }
 
-            if (selectedItem) {
-                // Specific item selected - check if that item has conflicts in the range
-                const conflicts = intervalTree.queryRange(
-                    dayjs_date.valueOf(),
-                    targetEndDate.valueOf(),
-                    String(selectedItem)
-                );
-
-                const relevantConflicts = conflicts.filter(
-                    interval =>
-                        !editBookingId ||
-                        interval.metadata.booking_id != editBookingId
-                );
-
-                if (relevantConflicts.length > 0) {
-                    logger.debug(
-                        `Start date blocked - range conflicts for specific item ${selectedItem}`
-                    );
-                    return true;
-                }
-            } else {
-                // "Any item" mode - check if ALL items are unavailable for ANY date in the range
-                // Use efficient day-by-day check to find if all items are ever blocked simultaneously
-                let allItemsBlockedOnSomeDate = false;
-
-                // Check each day in the range to see if all items are unavailable
-                for (
-                    let checkDate = dayjs_date;
-                    checkDate.isSameOrBefore(targetEndDate, "day");
-                    checkDate = checkDate.add(1, "day")
-                ) {
-                    const dayConflicts = intervalTree.query(
-                        checkDate.valueOf()
-                    );
-                    const relevantDayConflicts = dayConflicts.filter(
-                        interval =>
-                            !editBookingId ||
-                            interval.metadata.booking_id != editBookingId
-                    );
-
-                    // Check if all items are unavailable on this specific day
-                    const unavailableItemIds = new Set(
-                        relevantDayConflicts.map(c => String(c.itemId))
-                    );
-                    const allItemsUnavailableOnThisDay =
-                        allItemIds.length > 0 &&
-                        allItemIds.every(id =>
-                            unavailableItemIds.has(String(id))
-                        );
-
-                    if (allItemsUnavailableOnThisDay) {
-                        allItemsBlockedOnSomeDate = true;
-                        logger.debug(
-                            `Start date blocked - all items unavailable on ${checkDate.format(
-                                "YYYY-MM-DD"
-                            )} within end_date_only range`
-                        );
-                        break;
-                    }
-                }
-
-                logger.debug(`End_date_only range validation (Any item):`, {
-                    mode: "end_date_only",
-                    startDate: dayjs_date.format("YYYY-MM-DD"),
-                    endDate: targetEndDate.format("YYYY-MM-DD"),
-                    selectedItem: "ANY_AVAILABLE",
-                    totalItems: allItemIds.length,
-                    allItemsBlockedOnSomeDate: allItemsBlockedOnSomeDate,
-                    decision: allItemsBlockedOnSomeDate ? "BLOCK" : "CONTINUE",
-                });
-
-                if (allItemsBlockedOnSomeDate) {
-                    return true;
-                }
+        // Guard clause: End date only mode - potential start date validation
+        if (isEndDateOnly && (!selectedDates || selectedDates.length === 0)) {
+            if (
+                validateEndDateOnlyStartDate(
+                    dayjs_date,
+                    maxPeriod,
+                    intervalTree,
+                    selectedItem,
+                    editBookingId,
+                    allItemIds
+                )
+            ) {
+                return true;
             }
         }
 
-        // Standard point-in-time availability check
+        // Guard clause: End date only mode - intermediate date handling
+        if (isEndDateOnly && selectedDates && selectedDates.length === 1) {
+            const intermediateResult = handleEndDateOnlyIntermediateDates(
+                dayjs_date,
+                selectedDates,
+                maxPeriod
+            );
+            if (intermediateResult === true) {
+                return true;
+            }
+        }
+
+        // Guard clause: Standard point-in-time availability check
         const pointConflicts = intervalTree.query(
             dayjs_date.valueOf(),
             selectedItem ? String(selectedItem) : null
@@ -305,20 +404,19 @@ export function calculateDisabledDates(
                 !editBookingId || interval.metadata.booking_id != editBookingId
         );
 
-        // Check if this affects the selected item or all items
-        if (selectedItem) {
-            // Specific item selected - check only that item
-            if (relevantPointConflicts.length > 0) {
-                logger.debug(
-                    `Date ${dayjs_date.format(
-                        "YYYY-MM-DD"
-                    )} blocked for item ${selectedItem}:`,
-                    relevantPointConflicts.map(c => c.type)
-                );
-                return true;
-            }
-        } else {
-            // No specific item - check if ALL items are unavailable
+        // Guard clause: Specific item conflicts
+        if (selectedItem && relevantPointConflicts.length > 0) {
+            logger.debug(
+                `Date ${dayjs_date.format(
+                    "YYYY-MM-DD"
+                )} blocked for item ${selectedItem}:`,
+                relevantPointConflicts.map(c => c.type)
+            );
+            return true;
+        }
+
+        // Guard clause: All items unavailable (any item mode)
+        if (!selectedItem) {
             const unavailableItemIds = new Set(
                 relevantPointConflicts.map(c => c.itemId)
             );
@@ -326,7 +424,6 @@ export function calculateDisabledDates(
                 allItemIds.length > 0 &&
                 allItemIds.every(id => unavailableItemIds.has(String(id)));
 
-            // DEBUG: Log multi-item availability details
             logger.debug(
                 `Multi-item availability check for ${dayjs_date.format(
                     "YYYY-MM-DD"

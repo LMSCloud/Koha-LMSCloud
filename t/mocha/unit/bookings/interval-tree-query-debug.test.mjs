@@ -194,7 +194,11 @@ describe("IntervalTree Query Debug - OPAC Scenario Replication", () => {
             const testDates = [
                 { date: "2025-08-01", inBooking: true, booking: "1st booking" },
                 { date: "2025-08-03", inBooking: true, booking: "1st booking" },
-                { date: "2025-08-05", inBooking: false, booking: "gap day?" },
+                {
+                    date: "2025-08-05",
+                    inBooking: true,
+                    booking: "start of 2nd booking",
+                },
                 { date: "2025-08-06", inBooking: true, booking: "2nd booking" },
                 { date: "2025-08-09", inBooking: true, booking: "2nd booking" },
                 { date: "2025-09-15", inBooking: true, booking: "2nd booking" },

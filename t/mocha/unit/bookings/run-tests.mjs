@@ -27,9 +27,13 @@ testProcess.on("close", code => {
     if (code === 0) {
         console.log("\n✅ All booking tests passed!");
         if (!watchMode) {
-            console.log("\n💡 To run in watch mode: node run-tests.mjs --watch");
+            console.log(
+                "\n💡 To run in watch mode: node run-tests.mjs --watch"
+            );
             console.log("💡 To run all mocha tests: yarn test:mocha");
-            console.log("💡 To run specific tests: yarn test:mocha --grep 'pattern'");
+            console.log(
+                "💡 To run specific tests: yarn test:mocha --grep 'pattern'"
+            );
         }
     } else {
         console.log(`\n❌ Tests failed with exit code ${code}`);
