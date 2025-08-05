@@ -362,7 +362,7 @@ sub list_rules_public {
 
         my $has_booking_rules = grep { /^booking/ } @{$kinds};
         if ($has_booking_rules) {
-            $return->{booking_constraint_mode} = C4::Context->preference('BookingConstraintMode') || 'range';
+            $return->{booking_constraint_mode} = C4::Context->preference('OPACBookingConstraintMode') || 'range';
         }
 
         return $c->render(

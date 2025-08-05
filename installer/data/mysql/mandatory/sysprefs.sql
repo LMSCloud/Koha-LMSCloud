@@ -504,6 +504,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('OpacPatronBarcodeFormat','CODE39','CODE39|CODE128|EAN|CODE128A|CODE128B|CODE128C|EAN13|EAN8|UPC','Format of the patron barcode to be displayed at OPAC patron pages','Choice'),
 ('OPACBaseURL','',NULL,'Specify the Base URL of the OPAC, e.g., http://opac.mylibrary.com, including the protocol (http:// or https://). Otherwise, the http:// will be added automatically by Koha upon saving.','Free'),
 ('OPACBookingDateRangeConstraint', '', 'issuelength|issuelength_with_renewals', 'Constrains booking date ranges in OPAC based on circulation rules. If set, patrons can only book for the specified period based on circulation rules.', 'Choice'),
+('OPACBookingConstraintMode', 'range', 'range|end_date_only', 'Controls booking date constraint behavior in the OPAC. When set to end_date_only, patrons can only book the calculated start date or end date, with intermediate dates blocked.', 'Choice'),
 ('OPACBookings', '0', NULL, 'If ON, enables patrons to place and manage their bookings on the OPAC', 'YesNo'),
 ('opacbookbag','1','','If ON, enables display of Cart feature','YesNo'),
 ('OpacBrowser','0',NULL,'If ON, enables subject authorities browser on OPAC (needs to set misc/cronjob/sbuild_browser_and_cloud.pl)','YesNo'),
