@@ -1004,7 +1004,7 @@ export function constrainBookableItems(
                 loc =>
                     loc.library_id === pickupLibraryId &&
                     loc.pickup_items &&
-                    loc.pickup_items.map(Number).includes(Number(item.item_id))
+                    loc.pickup_items.includes(item.item_id)
             );
             const match = item.item_type_id === bookingItemtypeId && found;
             return match;
@@ -1014,7 +1014,7 @@ export function constrainBookableItems(
                 loc =>
                     loc.library_id === pickupLibraryId &&
                     loc.pickup_items &&
-                    loc.pickup_items.map(Number).includes(Number(item.item_id))
+                    loc.pickup_items.includes(item.item_id)
             );
             return found;
         }

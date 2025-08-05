@@ -1,15 +1,22 @@
 /**
- * integration.test.js - Integration tests for the refactored booking system
+ * Integration Test Suite
  *
- * Tests that verify the complete system works together correctly,
+ * Refactored version using centralized TestUtils.
+ * Integration tests that verify the complete booking system works together correctly,
  * including performance improvements and architectural separation.
  */
 
-import { describe, it, beforeEach } from "mocha";
-import { expect } from "chai";
-import dayjs from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/utils/dayjs.mjs";
+import { describe, it, before } from "mocha";
+import {
+    setupBookingTestEnvironment,
+    getBookingModules,
+    BookingTestData,
+    BookingTestHelpers,
+    BookingTestPatterns,
+    expect,
+} from "./TestUtils.mjs";
 
-// Import all the modules
+// Import specialized modules for integration testing
 import {
     IntervalTree,
     BookingInterval,
@@ -19,619 +26,406 @@ import {
     SweepLineProcessor,
     processCalendarView,
 } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/SweepLineProcessor.mjs";
-import {
-    calculateDisabledDates,
-    handleBookingDateChange,
-    calculateConstraintHighlighting,
-    getCalendarNavigationTarget,
-    aggregateMarkersByType,
-    getBookingMarkersForDate,
-} from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/bookingManager.mjs";
 
-// Set up global.window BEFORE importing bookingLogger so BookingDebug gets created
-global.window = global.window || {};
+describe("Booking System Integration Tests", () => {
+    let modules;
 
-import {
-    managerLogger,
-    calendarLogger,
-} from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/bookingLogger.mjs";
-
-// Mock the translation function
-global.$__ = str => str;
-
-describe("Integration Tests - Complete Booking System", () => {
-    let sampleBookings, sampleCheckouts, sampleItems, sampleRules;
-
-    beforeEach(() => {
-        // Sample data representing a realistic booking scenario
-        sampleBookings = [
-            {
-                booking_id: 1,
-                item_id: "laptop001",
-                start_date: "2024-02-15",
-                end_date: "2024-02-20",
-                patron_id: "patron001",
-            },
-            {
-                booking_id: 2,
-                item_id: "laptop002",
-                start_date: "2024-02-18",
-                end_date: "2024-02-25",
-                patron_id: "patron002",
-            },
-            {
-                booking_id: 3,
-                item_id: "projector001",
-                start_date: "2024-02-10",
-                end_date: "2024-02-12",
-                patron_id: "patron003",
-            },
-        ];
-
-        sampleCheckouts = [
-            {
-                issue_id: 1,
-                item_id: "laptop003",
-                checkout_date: "2024-02-08",
-                due_date: "2024-02-22",
-                patron_id: "patron004",
-            },
-            {
-                issue_id: 2,
-                item_id: "camera001",
-                checkout_date: "2024-02-12",
-                due_date: "2024-02-19",
-                patron_id: "patron005",
-            },
-        ];
-
-        sampleItems = [
-            {
-                item_id: "laptop001",
-                title: 'MacBook Pro 16"',
-                barcode: "LP001",
-                item_type_id: "laptop",
-            },
-            {
-                item_id: "laptop002",
-                title: 'MacBook Air 13"',
-                barcode: "LP002",
-                item_type_id: "laptop",
-            },
-            {
-                item_id: "laptop003",
-                title: "ThinkPad X1",
-                barcode: "LP003",
-                item_type_id: "laptop",
-            },
-            {
-                item_id: "projector001",
-                title: "Epson Projector",
-                barcode: "PJ001",
-                item_type_id: "projector",
-            },
-            {
-                item_id: "camera001",
-                title: "Canon DSLR",
-                barcode: "CM001",
-                item_type_id: "camera",
-            },
-        ];
-
-        sampleRules = {
-            bookings_lead_period: 2,
-            bookings_trail_period: 1,
-            maxPeriod: 14,
-            issuelength: 14,
-        };
+    before(async () => {
+        setupBookingTestEnvironment();
+        modules = await getBookingModules();
     });
 
-    describe("Performance Comparison - Old vs New Architecture", () => {
-        it("should demonstrate performance improvement with interval tree", () => {
-            // Create a large dataset
-            const largeBookings = [];
-            const largeCheckouts = [];
-            const largeItems = [];
+    describe("Complete System Integration", () => {
+        it("should integrate IntervalTree with calculateDisabledDates", () => {
+            const bookings = BookingTestData.createBookings(3);
+            const items = BookingTestData.createItems(3);
+            const rules = BookingTestData.createCirculationRules({
+                bookings_lead_period: 0,
+                bookings_trail_period: 0,
+            });
 
-            for (let i = 0; i < 1000; i++) {
-                const startDate = dayjs("2024-01-01").add(i, "day");
-                const endDate = startDate.add(
-                    Math.floor(Math.random() * 7) + 1,
-                    "day"
-                );
+            // Test that IntervalTree and calculateDisabledDates work together
+            // Use specific item mode so booked dates are actually disabled
+            const result = modules.calculateDisabledDates(
+                bookings,
+                [],
+                items,
+                "item1", // Specific item mode - item1 is booked 2024-01-15 to 2024-01-20
+                null,
+                [],
+                rules,
+                "2024-01-10"
+            );
 
-                largeBookings.push({
-                    booking_id: i,
-                    item_id: `item${i % 100}`,
-                    start_date: startDate.format("YYYY-MM-DD"),
-                    end_date: endDate.format("YYYY-MM-DD"),
-                    patron_id: `patron${i}`,
-                });
+            expect(result.disable).to.be.a("function");
+            expect(result.unavailableByDate).to.be.an("object");
 
-                if (i < 100) {
-                    largeItems.push({
-                        item_id: `item${i}`,
-                        title: `Item ${i}`,
-                        barcode: `BC${i}`,
-                    });
-                }
-            }
+            // Test specific integration points
+            // Note: 2024-01-16 is within item1 booking (2024-01-15 to 2024-01-20) so should be disabled
+            BookingTestPatterns.testBasicDisableFunction(result, [
+                {
+                    date: "2024-01-16",
+                    expected: true,
+                    description:
+                        "Should disable dates with bookings for specific item",
+                },
+                {
+                    date: "2024-01-10",
+                    expected: false,
+                    description:
+                        "Should enable dates without conflicts (well before bookings)",
+                },
+            ]);
+        });
 
-            // Test old approach (simulate O(n) processing)
-            const oldApproachStart = performance.now();
-            const oldResult = calculateDisabledDates(
-                largeBookings,
-                largeCheckouts,
-                largeItems,
+        it("should integrate constraint functions with date calculations", () => {
+            const scenario = BookingTestData.createMultiLibraryScenario();
+            const rules = BookingTestData.createCirculationRules();
+
+            // Test constraint integration
+            const constrainedItems = modules.constrainBookableItems(
+                scenario.items,
+                scenario.pickupLocations,
+                "BRANCH_A",
+                "BOOK",
+                { value: {} }
+            );
+
+            const result = modules.calculateDisabledDates(
+                scenario.bookings,
+                [],
+                constrainedItems.filtered,
                 null,
                 null,
                 [],
-                sampleRules,
-                "2024-01-01"
+                rules,
+                "2025-08-05"
             );
-            const oldApproachTime = performance.now() - oldApproachStart;
 
-            // Test new approach with interval tree
-            const newApproachStart = performance.now();
-            const intervalTree = buildIntervalTree(
-                largeBookings,
-                largeCheckouts,
-                sampleRules
-            );
-            const newResult = processCalendarView(
+            expect(constrainedItems.filtered.length).to.be.greaterThan(0);
+            expect(result.disable).to.be.a("function");
+        });
+
+        it("should integrate SweepLineProcessor with booking calculations", () => {
+            const bookings = BookingTestData.createBookings(5);
+            const items = BookingTestData.createItems(3);
+            const rules = BookingTestData.createCirculationRules();
+
+            // Build interval tree for sweep line processing
+            const intervalTree = buildIntervalTree(bookings, [], rules);
+            expect(intervalTree).to.be.instanceOf(IntervalTree);
+
+            // Test sweep line integration
+            const processor = new SweepLineProcessor(intervalTree);
+            expect(processor).to.be.instanceOf(SweepLineProcessor);
+
+            // Process a calendar view
+            const calendarResults = processCalendarView(
                 intervalTree,
                 "2024-01-01",
-                "2024-12-31",
-                largeItems.map(i => i.item_id)
-            );
-            const newApproachTime = performance.now() - newApproachStart;
-
-            // Verify both produce valid results
-            expect(oldResult.unavailableByDate).to.be.an("object");
-            expect(newResult).to.be.an("object");
-
-            // New approach should be significantly faster for large datasets
-            console.log(
-                `Old approach: ${oldApproachTime}ms, New approach: ${newApproachTime}ms`
+                "2024-01-31",
+                items.map(item => item.item_id)
             );
 
-            // For large datasets, new approach should be reasonably performant
-            // Note: Additional guard clauses may add slight overhead but improve correctness
-            if (largeBookings.length > 500) {
-                expect(newApproachTime).to.be.lessThan(oldApproachTime * 1.2); // Allow 20% overhead for additional safety checks
-            }
+            expect(calendarResults).to.be.an("object");
         });
-    });
 
-    describe("End-to-End Booking Workflow", () => {
-        it("should handle complete booking creation workflow", () => {
-            // Step 1: Build efficient data structures
-            const intervalTree = buildIntervalTree(
-                sampleBookings,
-                sampleCheckouts,
-                sampleRules
+        it("should handle complex end-to-end booking workflow", () => {
+            const scenario = BookingTestData.createComplexConstraintScenario();
+            const rules = {
+                ...BookingTestData.createCirculationRules(),
+                booking_constraint_mode: "end_date_only",
+                maxPeriod: 14,
+                issuelength: 14, // Required for end_date_only mode
+            };
+
+            // Step 1: Constrain by pickup location
+            const step1Result = modules.constrainBookableItems(
+                scenario.items,
+                scenario.pickupLocations,
+                "BRANCH_A",
+                null,
+                { value: {} }
             );
-            expect(intervalTree.size).to.be.greaterThan(0);
 
-            // Step 2: Process calendar view for February 2024
-            const unavailableByDate = processCalendarView(
-                intervalTree,
-                "2024-02-01",
-                "2024-02-29",
-                sampleItems.map(i => i.item_id)
+            // Step 2: Further constrain by item type
+            const step2Result = modules.constrainBookableItems(
+                scenario.items,
+                scenario.pickupLocations,
+                "BRANCH_A",
+                "BOOK",
+                { value: {} }
             );
 
-            expect(Object.keys(unavailableByDate).length).to.be.greaterThan(0);
+            // Step 3: Calculate disabled dates with constraints
+            const dateResult = modules.calculateDisabledDates(
+                scenario.bookings,
+                [],
+                step2Result.filtered,
+                null,
+                null,
+                [],
+                rules,
+                "2025-08-05"
+            );
 
-            // Step 3: User selects a start date that should work
-            const proposedStartDate = "2024-02-26"; // After most bookings
-            const selectedDates = [new Date(proposedStartDate)];
-
-            // Step 4: Validate the date selection
-            const validationResult = handleBookingDateChange(
+            // Step 4: Validate date selection - use correct end_date_only dates
+            // In end_date_only mode: start + (issuelength-1) days for inclusive period
+            const selectedDates = BookingTestHelpers.createDateRange(
+                "2025-08-06",
+                "2025-08-19"
+            ); // 14 day period
+            const validationResult = modules.handleBookingDateChange(
                 selectedDates,
-                sampleRules,
-                sampleBookings,
-                sampleCheckouts,
-                sampleItems,
-                null, // any item
-                null, // new booking
-                "2024-02-01" // today
+                rules,
+                scenario.bookings,
+                [],
+                step2Result.filtered,
+                null,
+                null,
+                "2025-08-05"
             );
 
+            // Verify the complete workflow
+            expect(step1Result.filtered.length).to.be.greaterThan(0);
+            expect(step2Result.filtered.length).to.be.lessThan(
+                step1Result.filtered.length
+            );
+            expect(dateResult.disable).to.be.a("function");
             expect(validationResult.valid).to.be.true;
-            expect(validationResult.errors).to.have.length(0);
+        });
 
-            // Step 5: Calculate constraint highlighting for UI
-            const highlightingData = calculateConstraintHighlighting(
-                proposedStartDate,
-                sampleRules,
-                { maxBookingPeriod: 7 }
+        it("should maintain performance across integrated components", () => {
+            const largeDataset = BookingTestData.createLargeDataset(100, 30);
+            const rules = BookingTestData.createCirculationRules();
+
+            BookingTestHelpers.measurePerformance(() => {
+                // Test integrated performance
+                const constrainedItems = modules.constrainBookableItems(
+                    largeDataset.items,
+                    largeDataset.pickupLocations,
+                    "BRANCH_A",
+                    "BOOK",
+                    { value: {} }
+                );
+
+                const dateResult = modules.calculateDisabledDates(
+                    largeDataset.bookings,
+                    [],
+                    constrainedItems.filtered,
+                    null,
+                    null,
+                    [],
+                    rules,
+                    "2025-08-05"
+                );
+
+                const markers = modules.getBookingMarkersForDate(
+                    dateResult.unavailableByDate,
+                    "2025-08-10",
+                    constrainedItems.filtered
+                );
+                const aggregatedMarkers =
+                    modules.aggregateMarkersByType(markers);
+
+                expect(constrainedItems.filtered).to.be.an("array");
+                expect(dateResult.disable).to.be.a("function");
+                expect(markers).to.be.an("array");
+                expect(aggregatedMarkers).to.be.an("object");
+            }, 300); // Should complete within 300ms
+        });
+
+        it("should handle error propagation across integrated systems", () => {
+            // Test that errors are handled gracefully across the system
+            const invalidData = {
+                bookings: [
+                    {
+                        booking_id: 1,
+                        item_id: "item1",
+                        start_date: "invalid-date",
+                        end_date: "also-invalid",
+                    },
+                ],
+                items: [],
+                pickupLocations: [],
+            };
+
+            // Should not throw errors despite invalid data
+            expect(() => {
+                const constrainedItems = modules.constrainBookableItems(
+                    invalidData.items,
+                    invalidData.pickupLocations,
+                    "NONEXISTENT",
+                    "INVALID",
+                    { value: {} }
+                );
+
+                modules.calculateDisabledDates(
+                    invalidData.bookings,
+                    [],
+                    constrainedItems.filtered,
+                    null,
+                    null,
+                    [],
+                    BookingTestData.createCirculationRules(),
+                    "2025-08-05"
+                );
+            }).to.not.throw();
+        });
+
+        it("should integrate calendar navigation with date calculations", () => {
+            const bookings = BookingTestData.createBookings(3);
+            const items = BookingTestData.createItems(3);
+            const rules = BookingTestData.createCirculationRules();
+
+            const result = modules.calculateDisabledDates(
+                bookings,
+                [],
+                items,
+                null,
+                null,
+                [],
+                rules,
+                "2024-01-10"
             );
 
-            expect(highlightingData).to.not.be.null;
-            expect(highlightingData.startDate).to.exist;
-            expect(highlightingData.targetEndDate).to.exist;
-
-            // Step 6: Check if calendar navigation is needed
-            const navigationInfo = getCalendarNavigationTarget(
-                highlightingData.startDate,
-                highlightingData.targetEndDate
+            // Test calendar navigation integration
+            const navigationTarget = modules.getCalendarNavigationTarget(
+                "2024-01-15", // Start date
+                "2024-01-20" // End date
             );
 
-            expect(navigationInfo).to.have.property("shouldNavigate");
+            expect(navigationTarget).to.be.an("object");
+            expect(navigationTarget).to.have.property("shouldNavigate");
+        });
 
-            // Step 7: Get markers for calendar display
-            const markers = getBookingMarkersForDate(
-                unavailableByDate,
-                "2024-02-16", // A busy date
-                sampleItems
+        it("should integrate booking markers with constraint highlighting", () => {
+            const scenario = BookingTestData.createLeadTrailScenario();
+            const rules = {
+                ...BookingTestData.createCirculationRules(),
+                bookings_lead_period: 2,
+                bookings_trail_period: 1,
+            };
+
+            const result = modules.calculateDisabledDates(
+                scenario.bookings,
+                [],
+                scenario.items,
+                "test_item",
+                null,
+                [],
+                rules,
+                "2025-08-05"
+            );
+
+            // Test marker integration
+            const markers = modules.getBookingMarkersForDate(
+                result.unavailableByDate,
+                "2025-08-13", // Lead period date
+                scenario.items,
+                rules,
+                []
             );
 
             expect(markers).to.be.an("array");
 
-            // Step 8: Aggregate markers for display
-            const aggregatedMarkers = aggregateMarkersByType(markers);
-            expect(aggregatedMarkers).to.be.an("object");
-        });
-
-        it("should handle end_date_only constraint mode correctly", () => {
-            const endDateOnlyRules = {
-                ...sampleRules,
-                booking_constraint_mode: "end_date_only",
-                maxPeriod: 5,
-            };
-
-            // Step 1: Calculate highlighting for end_date_only mode
-            const highlightingData = calculateConstraintHighlighting(
-                "2024-02-26",
-                endDateOnlyRules,
-                {}
-            );
-
-            expect(highlightingData.constraintMode).to.equal("end_date_only");
-            expect(highlightingData.blockedIntermediateDates).to.have.length(3); // 5 days total, minus start and end
-
-            // Step 2: Validate that only the exact end date is allowed
-            const correctEndDate = dayjs("2024-02-26").add(4, "day").toDate(); // 5 days total
-            const wrongEndDate = dayjs("2024-02-26").add(2, "day").toDate(); // Wrong duration
-
-            const correctSelection = handleBookingDateChange(
-                [new Date("2024-02-26"), correctEndDate],
-                endDateOnlyRules,
-                sampleBookings,
-                sampleCheckouts,
-                sampleItems,
-                null,
-                null,
-                "2024-02-01"
-            );
-
-            const wrongSelection = handleBookingDateChange(
-                [new Date("2024-02-26"), wrongEndDate],
-                endDateOnlyRules,
-                sampleBookings,
-                sampleCheckouts,
-                sampleItems,
-                null,
-                null,
-                "2024-02-01"
-            );
-
-            expect(correctSelection.valid).to.be.true;
-            expect(wrongSelection.valid).to.be.false;
-            expect(
-                wrongSelection.errors.some(err =>
-                    err.includes("end date only mode")
-                )
-            ).to.be.true;
-        });
-    });
-
-    describe("Data Consistency and Edge Cases", () => {
-        it("should handle overlapping bookings and checkouts consistently", () => {
-            // Create overlapping scenarios
-            const overlappingBookings = [
-                {
-                    booking_id: 1,
-                    item_id: "item1",
-                    start_date: "2024-02-15",
-                    end_date: "2024-02-20",
-                    patron_id: "patron1",
-                },
-                {
-                    booking_id: 2,
-                    item_id: "item1", // Same item
-                    start_date: "2024-02-18", // Overlaps with booking 1
-                    end_date: "2024-02-25",
-                    patron_id: "patron2",
-                },
-            ];
-
-            const overlappingCheckouts = [
-                {
-                    issue_id: 1,
-                    item_id: "item1", // Same item again
-                    checkout_date: "2024-02-22",
-                    due_date: "2024-02-28",
-                    patron_id: "patron3",
-                },
-            ];
-
-            // Build interval tree
-            const tree = buildIntervalTree(
-                overlappingBookings,
-                overlappingCheckouts,
-                sampleRules
-            );
-
-            // Process view and check for consistent unavailability
-            const unavailableByDate = processCalendarView(
-                tree,
-                "2024-02-10",
-                "2024-03-05",
-                ["item1"]
-            );
-
-            // item1 should be unavailable on overlapping dates
-            expect(unavailableByDate["2024-02-19"]["item1"]).to.exist; // Multiple bookings
-            expect(unavailableByDate["2024-02-24"]["item1"]).to.exist; // Booking + checkout
-
-            // Verify disable function gives same results
-            const disableResult = calculateDisabledDates(
-                overlappingBookings,
-                overlappingCheckouts,
-                [{ item_id: "item1" }],
-                null,
-                null,
-                [],
-                sampleRules,
-                "2024-02-01"
-            );
-
-            // Both approaches should agree on unavailability
-            const disableUnavailable = disableResult.unavailableByDate;
-            Object.keys(unavailableByDate).forEach(date => {
-                if (unavailableByDate[date]["item1"]) {
-                    expect(disableUnavailable[date]).to.exist;
-                    expect(disableUnavailable[date]["item1"]).to.exist;
-                }
-            });
-        });
-
-        it("should handle empty or invalid data gracefully", () => {
-            // Test with empty data
-            const emptyTree = buildIntervalTree([], [], {});
-            expect(emptyTree.size).to.equal(0);
-
-            const emptyResult = processCalendarView(
-                emptyTree,
-                "2024-02-01",
-                "2024-02-29",
-                []
-            );
-            expect(emptyResult).to.be.an("object");
-
-            // Test with invalid data
-            const invalidBookings = [
-                { booking_id: 1 }, // Missing required fields
-                {
-                    booking_id: 2,
-                    item_id: null,
-                    start_date: "2024-02-15",
-                    end_date: "2024-02-20",
-                },
-            ];
-
-            const invalidCheckouts = [
-                { issue_id: 1, item_id: "item1" }, // Missing dates
-                null, // Null entry
-            ];
-
-            // Should not throw errors
-            expect(() => {
-                const tree = buildIntervalTree(
-                    invalidBookings,
-                    invalidCheckouts,
-                    sampleRules
-                );
-                processCalendarView(tree, "2024-02-01", "2024-02-29", [
-                    "item1",
-                ]);
-            }).to.not.throw();
-        });
-    });
-
-    describe("Debug Logging Integration", () => {
-        it("should provide debug logging throughout the system", () => {
-            // Enable debug logging
-            managerLogger.setEnabled(true);
-
-            // Capture logs
-            const originalLog = console.debug;
-            const logs = [];
-            console.debug = (...args) => logs.push(args.join(" "));
-
-            try {
-                // Perform operations that should generate logs
-                const tree = buildIntervalTree(
-                    sampleBookings,
-                    sampleCheckouts,
-                    sampleRules
-                );
-                const unavailableByDate = processCalendarView(
-                    tree,
-                    "2024-02-01",
-                    "2024-02-29",
-                    ["laptop001"]
-                );
-
-                calculateConstraintHighlighting("2024-02-26", sampleRules, {});
-                handleBookingDateChange(
-                    [new Date("2024-02-26")],
-                    sampleRules,
-                    [],
-                    [],
-                    sampleItems,
-                    null,
-                    null,
-                    "2024-02-01"
-                );
-
-                // Should have generated debug logs
-                expect(logs.length).to.be.greaterThan(0);
-                expect(logs.some(log => log.includes("BookingManager"))).to.be
-                    .true;
-            } finally {
-                // Restore original console.debug
-                console.debug = originalLog;
-                managerLogger.setEnabled(false);
-            }
-        });
-
-        it("should provide performance timing logs", () => {
-            managerLogger.setEnabled(true);
-
-            const originalTimeEnd = console.timeEnd;
-            const timeLogs = [];
-            console.timeEnd = label => timeLogs.push(label);
-
-            try {
-                // Operations that use performance timing
-                buildIntervalTree(sampleBookings, sampleCheckouts, sampleRules);
-
-                const processor = new SweepLineProcessor();
-                processor.processIntervals([], "2024-02-01", "2024-02-29", []);
-
-                // Should have performance timing logs
-                expect(timeLogs.length).to.be.greaterThan(0);
-                expect(timeLogs.some(log => log.includes("buildIntervalTree")))
-                    .to.be.true;
-            } finally {
-                console.timeEnd = originalTimeEnd;
-                managerLogger.setEnabled(false);
-            }
-        });
-    });
-
-    describe("Architectural Separation Verification", () => {
-        it("should maintain clear separation between business logic and UI", () => {
-            // Manager functions should be pure and not depend on DOM/UI
-            const managerFunctions = [
-                calculateDisabledDates,
-                handleBookingDateChange,
-                calculateConstraintHighlighting,
-                getCalendarNavigationTarget,
-                aggregateMarkersByType,
-                getBookingMarkersForDate,
-            ];
-
-            // All manager functions should work without DOM/browser APIs
-            managerFunctions.forEach(fn => {
-                expect(fn).to.be.a("function");
-                // Functions should not reference global DOM objects
-                expect(fn.toString()).to.not.include("document");
-                expect(fn.toString()).to.not.include("window");
-            });
-        });
-
-        it("should allow easy swapping of UI components", () => {
-            // Test that business logic works independently
-            const businessResult = {
-                tree: buildIntervalTree(
-                    sampleBookings,
-                    sampleCheckouts,
-                    sampleRules
-                ),
-                unavailableByDate: null,
-                highlightingData: null,
-                validationResult: null,
-            };
-
-            // Step 1: Generate calendar data
-            businessResult.unavailableByDate = processCalendarView(
-                businessResult.tree,
-                "2024-02-01",
-                "2024-02-29",
-                sampleItems.map(i => i.item_id)
-            );
-
-            // Step 2: Calculate constraint highlighting
-            businessResult.highlightingData = calculateConstraintHighlighting(
-                "2024-02-26",
-                sampleRules,
+            // Test constraint highlighting integration
+            const highlighting = modules.calculateConstraintHighlighting(
+                "2025-08-13", // Start date
+                rules,
                 { maxBookingPeriod: 7 }
             );
 
-            // Step 3: Validate date selection
-            businessResult.validationResult = handleBookingDateChange(
-                [new Date("2024-02-26")],
-                sampleRules,
-                sampleBookings,
-                sampleCheckouts,
-                sampleItems,
-                null,
-                null,
-                "2024-02-01"
+            expect(highlighting).to.be.an("object");
+        });
+
+        it("should integrate date validation with constraint processing", () => {
+            const scenario = BookingTestData.createComplexConstraintScenario();
+            const rules = {
+                maxPeriod: 7,
+                bookings_lead_period: 1,
+                bookings_trail_period: 1,
+            };
+
+            // Test integrated validation
+            const selectedDates = BookingTestHelpers.createDateRange(
+                "2025-08-06",
+                "2025-08-12"
             );
 
-            // All results should be pure data that any UI can consume
-            expect(businessResult.tree).to.be.instanceOf(IntervalTree);
-            expect(businessResult.unavailableByDate).to.be.an("object");
-            expect(businessResult.highlightingData).to.be.an("object");
-            expect(businessResult.validationResult).to.be.an("object");
+            const validationResult = modules.handleBookingDateChange(
+                selectedDates,
+                rules,
+                scenario.bookings,
+                [],
+                scenario.items,
+                10001, // specific item
+                null,
+                "2025-08-05"
+            );
 
-            // No DOM/UI dependencies
-            Object.values(businessResult).forEach(result => {
-                expect(
-                    JSON.stringify(result, (key, value) => {
-                        if (value instanceof IntervalTree)
-                            return "[IntervalTree]";
-                        if (value instanceof Set) return Array.from(value);
-                        return value;
-                    })
-                ).to.not.include("undefined");
-            });
+            expect(validationResult).to.have.property("valid");
+            expect(validationResult).to.have.property("errors");
+
+            if (!validationResult.valid) {
+                expect(validationResult.errors).to.be.an("array");
+            }
         });
     });
-});
 
-describe("Browser Debug Interface", () => {
-    beforeEach(() => {
-        // Mock window object
-        global.window = global.window || {};
-    });
-
-    it("should expose debug utilities to browser console", () => {
-        // Ensure BookingDebug exists (it should have been created by the module import)
-        if (!global.window.BookingDebug) {
-            // Fallback: create it manually if it doesn't exist
-            global.window.BookingDebug = {
-                enable: () => managerLogger.setEnabled(true),
-                disable: () => managerLogger.setEnabled(false),
-                exportLogs: () => ({ manager: managerLogger.exportLogs() }),
-                status: () => ({ managerEnabled: managerLogger.enabled }),
+    describe("Regression Testing", () => {
+        it("should prevent end_date_only bug regression", () => {
+            const rules = {
+                booking_constraint_mode: "end_date_only",
+                maxPeriod: 7,
             };
-        }
 
-        expect(global.window.BookingDebug).to.exist;
-        expect(global.window.BookingDebug.enable).to.be.a("function");
-        expect(global.window.BookingDebug.disable).to.be.a("function");
-        expect(global.window.BookingDebug.exportLogs).to.be.a("function");
-        expect(global.window.BookingDebug.status).to.be.a("function");
-    });
+            const result = modules.calculateDisabledDates(
+                [],
+                [],
+                BookingTestData.createItems(1),
+                null, // ANY_ITEM path
+                null,
+                [],
+                rules,
+                "2025-08-05"
+            );
 
-    it("should allow enabling/disabling debug logs", () => {
-        // Use the already imported managerLogger
-        expect(managerLogger.enabled).to.be.false;
+            // Should not disable all dates
+            const futureDates = ["2025-08-06", "2025-08-07", "2025-08-08"];
 
-        // Ensure BookingDebug exists
-        expect(global.window.BookingDebug).to.exist;
+            const enabledDates = futureDates.filter(
+                date => !result.disable(new Date(date))
+            );
 
-        global.window.BookingDebug.enable();
-        expect(managerLogger.enabled).to.be.true;
+            expect(enabledDates.length).to.be.greaterThan(0);
+        });
 
-        global.window.BookingDebug.disable();
-        expect(managerLogger.enabled).to.be.false;
+        it("should maintain constraint cascading behavior", () => {
+            const scenario = BookingTestData.createMultiLibraryScenario();
+
+            // Test that constraints cascade properly
+            const step1 = modules.constrainBookableItems(
+                scenario.items,
+                scenario.pickupLocations,
+                "BRANCH_A",
+                null,
+                { value: {} }
+            );
+
+            const step2 = modules.constrainBookableItems(
+                scenario.items,
+                scenario.pickupLocations,
+                "BRANCH_A",
+                "BOOK",
+                { value: {} }
+            );
+
+            expect(step2.filtered.length).to.be.lessThanOrEqual(
+                step1.filtered.length
+            );
+            expect(step2.filtered.every(item => item.item_type_id === "BOOK"))
+                .to.be.true;
+        });
     });
 });

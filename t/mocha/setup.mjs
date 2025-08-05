@@ -1,5 +1,5 @@
 /**
- * test-setup.mjs - Mocha test setup with path aliases
+ * setup.mjs - Mocha test setup with path aliases
  *
  * Sets up module path resolution for cleaner imports in tests
  */

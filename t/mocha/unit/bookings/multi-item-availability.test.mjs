@@ -1,310 +1,504 @@
 /**
- * Multi-Item Availability Test - Tests "Any available item" scenarios
- * Reproduces the issue where 2 items exist but dates are incorrectly disabled
+ * Multi-Item Availability Test Suite
+ *
+ * Refactored version using centralized TestUtils.
+ * Tests "Any available item" scenarios and reproduces issues where
+ * multiple items exist but dates are incorrectly disabled.
  */
 
-// Set up global mocks first
-import dayjsLib from "dayjs";
-import isSameOrBefore from "dayjs/plugin/isSameOrBefore.js";
-import isSameOrAfter from "dayjs/plugin/isSameOrAfter.js";
-import { expect } from "chai";
-
-// Mock the translation function that supports .format() method
-global.$__ = str => ({
-    toString: () => str,
-    format: arg => str.replace("%s", arg),
-});
-
-// Mock window object with dayjs for testing
-global.window = global.window || {};
-dayjsLib.extend(isSameOrBefore);
-dayjsLib.extend(isSameOrAfter);
-global.window.dayjs = dayjsLib;
-global.window.dayjs_plugin_isSameOrBefore = isSameOrBefore;
-global.window.dayjs_plugin_isSameOrAfter = isSameOrAfter;
-
-// Mock localStorage
-global.localStorage = global.localStorage || {
-    getItem: () => null,
-    setItem: () => {},
-    removeItem: () => {},
-};
-
-// Use dynamic imports for modules that depend on window object
-let dayjs, calculateDisabledDates;
-
-// Import modules dynamically after setting up mocks
-before(async () => {
-    const dayjsModule = await import(
-        "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/utils/dayjs.mjs"
-    );
-    dayjs = dayjsModule.default;
-
-    const managerModule = await import(
-        "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/bookingManager.mjs"
-    );
-    calculateDisabledDates = managerModule.calculateDisabledDates;
-});
+import { describe, it, before } from "mocha";
+import {
+    setupBookingTestEnvironment,
+    getBookingModules,
+    BookingTestData,
+    BookingTestHelpers,
+    BookingTestPatterns,
+    expect,
+} from "./TestUtils.mjs";
 
 describe('Multi-Item Availability - "Any Available Item" Scenarios', () => {
-    describe("Real-world scenario reproduction", () => {
-        it("should allow booking when only one of two items is booked", () => {
-            // Reproduce your EXACT scenario from the metadata
-            const testBookings = [
-                {
-                    booking_id: "1",
-                    item_id: "39999000006018", // Item A - FIRST booking
-                    start_date: "2025-07-31",
-                    end_date: "2025-08-04",
-                },
-                {
-                    booking_id: "2",
-                    item_id: "39999000006018", // Item A - SECOND booking (SAME ITEM!)
-                    start_date: "2025-08-05",
-                    end_date: "2025-09-27",
-                },
-            ];
+    let modules;
 
-            const testCheckouts = []; // No checkouts
-
-            const testItems = [
-                { item_id: "39999000006018", title: "Item A" },
-                { item_id: "39999000006019", title: "Item B" },
-            ];
-
-            const circulationRules = {
-                booking_constraint_mode: "normal", // or end_date_only
-                maxPeriod: 30,
-                bookings_lead_period: 0,
-                bookings_trail_period: 0,
-            };
-
-            const availability = calculateDisabledDates(
-                testBookings,
-                testCheckouts,
-                testItems,
-                null, // No specific item selected - "Any available item"
-                null, // No booking being edited
-                [], // No selected dates yet
-                circulationRules,
-                "2025-07-30" // Today (before all bookings)
-            );
-
-            // Test "Any Item" mode - should be available on ALL dates since Item B is always free
-
-            // August 1st - Item A booked, Item B free → Should be AVAILABLE
-            const aug1 = new Date("2025-08-01");
-            const aug1Disabled = availability.disable(aug1);
-            console.log(
-                `August 1st (Any Item - Item A booked, Item B free): ${
-                    aug1Disabled ? "DISABLED" : "AVAILABLE"
-                }`
-            );
-            expect(aug1Disabled).to.be.false; // Should be available
-
-            // August 6th - Item A booked, Item B free → Should be AVAILABLE
-            const aug6 = new Date("2025-08-06");
-            const aug6Disabled = availability.disable(aug6);
-            console.log(
-                `August 6th (Any Item - Item A booked, Item B free): ${
-                    aug6Disabled ? "DISABLED" : "AVAILABLE"
-                }`
-            );
-            expect(aug6Disabled).to.be.false; // Should be available
-
-            // Even during Item A's booking periods, Item B is available
-            const jul31 = new Date("2025-07-31"); // Item A first booking period
-            const sep15 = new Date("2025-09-15"); // Item A second booking period
-
-            expect(availability.disable(jul31)).to.be.false; // Item B available
-            expect(availability.disable(sep15)).to.be.false; // Item B available
-        });
-
-        it("should block dates only when ALL items are unavailable", () => {
-            // Scenario where both items have overlapping bookings
-            const testBookings = [
-                {
-                    booking_id: "1",
-                    item_id: "39999000006018",
-                    start_date: "2025-08-01",
-                    end_date: "2025-08-10",
-                },
-                {
-                    booking_id: "2",
-                    item_id: "39999000006019",
-                    start_date: "2025-08-05",
-                    end_date: "2025-08-15",
-                },
-            ];
-
-            const testItems = [
-                { item_id: "39999000006018", title: "Item A" },
-                { item_id: "39999000006019", title: "Item B" },
-            ];
-
-            const availability = calculateDisabledDates(
-                testBookings,
-                [],
-                testItems,
-                null, // Any available item
-                null,
-                [],
-                { maxPeriod: 30 },
-                "2025-07-30"
-            );
-
-            // August 2nd - Only Item A booked
-            const aug2 = new Date("2025-08-02");
-            expect(availability.disable(aug2)).to.be.false; // Item B available
-
-            // August 7th - BOTH items booked (overlap period)
-            const aug7 = new Date("2025-08-07");
-            expect(availability.disable(aug7)).to.be.true; // All items unavailable
-
-            // August 12th - Only Item B booked
-            const aug12 = new Date("2025-08-12");
-            expect(availability.disable(aug12)).to.be.false; // Item A available
-        });
-
-        it("should prevent overbooking when specific item is selected", () => {
-            // Same data as above scenario
-            const testBookings = [
-                {
-                    booking_id: "1",
-                    item_id: "39999000006018",
-                    start_date: "2025-07-31",
-                    end_date: "2025-08-04",
-                },
-                {
-                    booking_id: "2",
-                    item_id: "39999000006018", // Same item!
-                    start_date: "2025-08-05",
-                    end_date: "2025-09-27",
-                },
-            ];
-
-            const testItems = [
-                { item_id: "39999000006018", title: "Item A" },
-                { item_id: "39999000006019", title: "Item B" },
-            ];
-
-            // Test Item A specifically selected
-            const availabilityItemA = calculateDisabledDates(
-                testBookings,
-                [],
-                testItems,
-                "39999000006018", // Specific item A selected
-                null,
-                [],
-                { maxPeriod: 30 },
-                "2025-07-30"
-            );
-
-            // Item A should be blocked during its booking periods
-            const aug1ItemA = new Date("2025-08-01"); // During first booking
-            const sep15ItemA = new Date("2025-09-15"); // During second booking
-
-            console.log(
-                `August 1st (Item A selected): ${
-                    availabilityItemA.disable(aug1ItemA)
-                        ? "DISABLED"
-                        : "AVAILABLE"
-                }`
-            );
-            console.log(
-                `September 15th (Item A selected): ${
-                    availabilityItemA.disable(sep15ItemA)
-                        ? "DISABLED"
-                        : "AVAILABLE"
-                }`
-            );
-
-            expect(availabilityItemA.disable(aug1ItemA)).to.be.true; // Should be blocked
-            expect(availabilityItemA.disable(sep15ItemA)).to.be.true; // Should be blocked
-
-            // Test Item B specifically selected
-            const availabilityItemB = calculateDisabledDates(
-                testBookings,
-                [],
-                testItems,
-                "39999000006019", // Specific item B selected
-                null,
-                [],
-                { maxPeriod: 30 },
-                "2025-07-30"
-            );
-
-            // Item B should be available on all dates (no bookings)
-            const aug1ItemB = new Date("2025-08-01");
-            const sep15ItemB = new Date("2025-09-15");
-
-            console.log(
-                `August 1st (Item B selected): ${
-                    availabilityItemB.disable(aug1ItemB)
-                        ? "DISABLED"
-                        : "AVAILABLE"
-                }`
-            );
-            console.log(
-                `September 15th (Item B selected): ${
-                    availabilityItemB.disable(sep15ItemB)
-                        ? "DISABLED"
-                        : "AVAILABLE"
-                }`
-            );
-
-            expect(availabilityItemB.disable(aug1ItemB)).to.be.false; // Should be available
-            expect(availabilityItemB.disable(sep15ItemB)).to.be.false; // Should be available
-        });
+    before(async () => {
+        setupBookingTestEnvironment();
+        modules = await getBookingModules();
     });
 
-    describe("Edge cases", () => {
-        it("should handle empty bookableItems array", () => {
-            const availability = calculateDisabledDates(
+    describe("Real-world scenario reproduction", () => {
+        it("should not disable dates when multiple items are available (any item mode)", () => {
+            // Scenario: 2 items exist, one is booked, the other should be available
+            const bookings = [
+                BookingTestData.createBooking({
+                    item_id: "item1",
+                    start_date: "2025-08-10",
+                    end_date: "2025-08-15",
+                }),
+            ];
+
+            const items = [
+                { item_id: "item1", title: "Item 1", item_type_id: "BOOK" },
+                { item_id: "item2", title: "Item 2", item_type_id: "BOOK" },
+            ];
+
+            const rules = BookingTestData.createCirculationRules();
+
+            // Test ANY_ITEM mode (selectedItem = null)
+            const result = modules.calculateDisabledDates(
+                bookings,
                 [],
-                [],
-                [], // No items available
+                items,
+                null, // ANY_ITEM mode
                 null,
-                null,
                 [],
-                { maxPeriod: 30 },
-                "2025-07-30"
+                rules,
+                "2025-08-05"
             );
 
-            const testDate = new Date("2025-08-01");
-            // With no items, should probably block (no items to book)
-            expect(availability.disable(testDate)).to.be.true;
+            // Aug 12 should be available because item2 is free even though item1 is booked
+            BookingTestPatterns.testBasicDisableFunction(result, [
+                {
+                    date: "2025-08-08",
+                    expected: false,
+                    description: "Before any bookings - should be free",
+                },
+                {
+                    date: "2025-08-12",
+                    expected: false,
+                    description: "During item1 booking, but item2 is free",
+                },
+                {
+                    date: "2025-08-17",
+                    expected: false,
+                    description: "After bookings - both items free",
+                },
+            ]);
         });
 
-        it("should handle item ID type mismatches", () => {
-            const testBookings = [
+        it("should handle partial availability correctly", () => {
+            // Scenario: 3 items, 2 are booked on different dates, 1 is always free
+            const bookings = [
+                BookingTestData.createBooking({
+                    booking_id: 1,
+                    item_id: "item1",
+                    start_date: "2025-08-10",
+                    end_date: "2025-08-15",
+                }),
+                BookingTestData.createBooking({
+                    booking_id: 2,
+                    item_id: "item2",
+                    start_date: "2025-08-12",
+                    end_date: "2025-08-18",
+                }),
+            ];
+
+            const items = BookingTestData.createItems(3);
+            const rules = BookingTestData.createCirculationRules();
+
+            const result = modules.calculateDisabledDates(
+                bookings,
+                [],
+                items,
+                null, // ANY_ITEM mode
+                null,
+                [],
+                rules,
+                "2025-08-05"
+            );
+
+            // All test dates should be available because item3 is never booked
+            BookingTestPatterns.testBasicDisableFunction(result, [
                 {
-                    booking_id: "1",
-                    item_id: 123, // Number
-                    start_date: "2025-08-01",
-                    end_date: "2025-08-05",
+                    date: "2025-08-11",
+                    expected: false,
+                    description: "item1 booked, but item2 and item3 free",
+                },
+                {
+                    date: "2025-08-14",
+                    expected: false,
+                    description: "item1 and item2 booked, but item3 free",
+                },
+                {
+                    date: "2025-08-17",
+                    expected: false,
+                    description: "item2 booked, but item1 and item3 free",
+                },
+            ]);
+        });
+
+        it("should disable dates only when ALL items are booked", () => {
+            // Scenario: All items booked on the same dates
+            const bookings = [
+                BookingTestData.createBooking({
+                    booking_id: 1,
+                    item_id: "item1",
+                    start_date: "2025-08-10",
+                    end_date: "2025-08-15",
+                }),
+                BookingTestData.createBooking({
+                    booking_id: 2,
+                    item_id: "item2",
+                    start_date: "2025-08-10",
+                    end_date: "2025-08-15",
+                }),
+                BookingTestData.createBooking({
+                    booking_id: 3,
+                    item_id: "item3",
+                    start_date: "2025-08-10",
+                    end_date: "2025-08-15",
+                }),
+            ];
+
+            const items = BookingTestData.createItems(3);
+            const rules = BookingTestData.createCirculationRules({
+                bookings_lead_period: 0,
+                bookings_trail_period: 0,
+            });
+
+            const result = modules.calculateDisabledDates(
+                bookings,
+                [],
+                items,
+                null, // ANY_ITEM mode
+                null,
+                [],
+                rules,
+                "2025-08-05"
+            );
+
+            // Now dates should be disabled because ALL items are booked
+            BookingTestPatterns.testBasicDisableFunction(result, [
+                {
+                    date: "2025-08-08",
+                    expected: false,
+                    description: "Before bookings - should be free",
+                },
+                {
+                    date: "2025-08-12",
+                    expected: true,
+                    description: "All items booked - should be disabled",
+                },
+                {
+                    date: "2025-08-17",
+                    expected: false,
+                    description: "After bookings - should be free",
+                },
+            ]);
+        });
+
+        it("should handle overlapping partial bookings", () => {
+            // Complex scenario: Items booked at different overlapping times
+            const bookings = [
+                BookingTestData.createBooking({
+                    booking_id: 1,
+                    item_id: "item1",
+                    start_date: "2025-08-10",
+                    end_date: "2025-08-15",
+                }),
+                BookingTestData.createBooking({
+                    booking_id: 2,
+                    item_id: "item2",
+                    start_date: "2025-08-12",
+                    end_date: "2025-08-18",
+                }),
+                BookingTestData.createBooking({
+                    booking_id: 3,
+                    item_id: "item3",
+                    start_date: "2025-08-16",
+                    end_date: "2025-08-20",
+                }),
+            ];
+
+            const items = BookingTestData.createItems(3);
+            const rules = BookingTestData.createCirculationRules({
+                bookings_lead_period: 0,
+                bookings_trail_period: 0,
+            });
+
+            const result = modules.calculateDisabledDates(
+                bookings,
+                [],
+                items,
+                null, // ANY_ITEM mode
+                null,
+                [],
+                rules,
+                "2025-08-05"
+            );
+
+            // Test different time periods
+            BookingTestPatterns.testBasicDisableFunction(result, [
+                {
+                    date: "2025-08-09",
+                    expected: false,
+                    description: "Before any bookings",
+                },
+                {
+                    date: "2025-08-11",
+                    expected: false,
+                    description: "item1 booked, item2 and item3 free",
+                },
+                {
+                    date: "2025-08-14",
+                    expected: false,
+                    description: "item1 and item2 booked, item3 free",
+                },
+                {
+                    date: "2025-08-17",
+                    expected: false,
+                    description: "item2 and item3 booked, item1 free",
+                },
+                {
+                    date: "2025-08-21",
+                    expected: false,
+                    description: "After all bookings",
+                },
+            ]);
+        });
+
+        it("should handle mixed item types in ANY_ITEM mode", () => {
+            const bookings = [
+                {
+                    booking_id: 1,
+                    item_id: "book_001",
+                    start_date: "2025-08-10",
+                    end_date: "2025-08-15",
+                    patron_id: "patron1",
+                },
+                {
+                    booking_id: 2,
+                    item_id: "dvd_001",
+                    start_date: "2025-08-12",
+                    end_date: "2025-08-18",
+                    patron_id: "patron2",
                 },
             ];
 
-            const testItems = [
-                { item_id: "123", title: "Item A" }, // String
-                { item_id: "456", title: "Item B" }, // String
-            ];
+            const items = BookingTestData.createMixedTypeItems();
+            const rules = BookingTestData.createCirculationRules();
 
-            const availability = calculateDisabledDates(
-                testBookings,
+            const result = modules.calculateDisabledDates(
+                bookings,
                 [],
-                testItems,
-                null,
+                items,
+                null, // ANY_ITEM mode
                 null,
                 [],
-                { maxPeriod: 30 },
-                "2025-07-30"
+                rules,
+                "2025-08-05"
             );
 
-            const aug2 = new Date("2025-08-02");
-            // Should handle type conversion correctly
-            expect(availability.disable(aug2)).to.be.false; // Item B should be available
+            // Should have availability because other items of each type are free
+            BookingTestPatterns.testBasicDisableFunction(result, [
+                {
+                    date: "2025-08-12",
+                    expected: false,
+                    description:
+                        "book_001 and dvd_001 booked, but other items free",
+                },
+                {
+                    date: "2025-08-14",
+                    expected: false,
+                    description: "Multiple items available",
+                },
+            ]);
+        });
+
+        it("should handle checkouts mixed with bookings in ANY_ITEM mode", () => {
+            const bookings = [
+                BookingTestData.createBooking({
+                    item_id: "item1",
+                    start_date: "2025-08-15",
+                    end_date: "2025-08-20",
+                }),
+            ];
+
+            const checkouts = [
+                {
+                    item_id: "item2",
+                    checkout_date: "2025-08-05",
+                    due_date: "2025-08-12",
+                    patron_id: "patron1",
+                },
+            ];
+
+            const items = BookingTestData.createItems(3);
+            const rules = BookingTestData.createCirculationRules();
+
+            const result = modules.calculateDisabledDates(
+                bookings,
+                checkouts,
+                items,
+                null, // ANY_ITEM mode
+                null,
+                [],
+                rules,
+                "2025-08-05"
+            );
+
+            BookingTestPatterns.testBasicDisableFunction(result, [
+                {
+                    date: "2025-08-08",
+                    expected: false,
+                    description: "item2 checked out, but item1 and item3 free",
+                },
+                {
+                    date: "2025-08-17",
+                    expected: false,
+                    description: "item1 booked, but item2 and item3 free",
+                },
+            ]);
+        });
+
+        it("should handle performance with many items in ANY_ITEM mode", () => {
+            const largeDataset = BookingTestData.createLargeDataset(50, 25);
+            const rules = BookingTestData.createCirculationRules();
+
+            BookingTestHelpers.measurePerformance(() => {
+                const result = modules.calculateDisabledDates(
+                    largeDataset.bookings,
+                    [],
+                    largeDataset.items,
+                    null, // ANY_ITEM mode - most complex path
+                    null,
+                    [],
+                    rules,
+                    "2025-08-05"
+                );
+
+                expect(result.disable).to.be.a("function");
+                expect(result.unavailableByDate).to.be.an("object");
+            }, 200); // Should complete within 200ms even with many items
+        });
+
+        it("should handle edge case: single item in ANY_ITEM mode", () => {
+            const bookings = [
+                BookingTestData.createBooking({
+                    item_id: "only_item",
+                    start_date: "2025-08-10",
+                    end_date: "2025-08-15",
+                }),
+            ];
+
+            const items = [
+                {
+                    item_id: "only_item",
+                    title: "Only Item",
+                    item_type_id: "BOOK",
+                },
+            ];
+
+            const rules = BookingTestData.createCirculationRules({
+                bookings_lead_period: 0,
+                bookings_trail_period: 0,
+            });
+
+            const result = modules.calculateDisabledDates(
+                bookings,
+                [],
+                items,
+                null, // ANY_ITEM mode with only one item
+                null,
+                [],
+                rules,
+                "2025-08-05"
+            );
+
+            // Should behave like specific item mode when only one item exists
+            BookingTestPatterns.testBasicDisableFunction(result, [
+                {
+                    date: "2025-08-08",
+                    expected: false,
+                    description: "Before booking",
+                },
+                {
+                    date: "2025-08-12",
+                    expected: true,
+                    description: "During booking - only item unavailable",
+                },
+                {
+                    date: "2025-08-17",
+                    expected: false,
+                    description: "After booking",
+                },
+            ]);
+        });
+
+        it("should handle lead/trail periods correctly in ANY_ITEM mode", () => {
+            const bookings = [
+                BookingTestData.createBooking({
+                    item_id: "item1",
+                    start_date: "2025-08-15",
+                    end_date: "2025-08-20",
+                }),
+            ];
+
+            const items = BookingTestData.createItems(2);
+            const rules = {
+                ...BookingTestData.createCirculationRules(),
+                bookings_lead_period: 2,
+                bookings_trail_period: 1,
+            };
+
+            const result = modules.calculateDisabledDates(
+                bookings,
+                [],
+                items,
+                null, // ANY_ITEM mode
+                null,
+                [],
+                rules,
+                "2025-08-05"
+            );
+
+            // Lead/trail periods should only apply when ALL items are affected
+            // Since item2 is free, lead/trail periods shouldn't block dates
+            BookingTestPatterns.testBasicDisableFunction(result, [
+                {
+                    date: "2025-08-13",
+                    expected: false,
+                    description: "Lead period for item1, but item2 is free",
+                },
+                {
+                    date: "2025-08-21",
+                    expected: false,
+                    description: "Trail period for item1, but item2 is free",
+                },
+            ]);
+        });
+
+        it("should generate proper unavailableByDate in ANY_ITEM mode", () => {
+            const bookings = [
+                BookingTestData.createBooking({
+                    item_id: "item1",
+                    start_date: "2025-08-10",
+                    end_date: "2025-08-15",
+                }),
+            ];
+
+            const items = BookingTestData.createItems(2);
+            const rules = BookingTestData.createCirculationRules();
+
+            const result = modules.calculateDisabledDates(
+                bookings,
+                [],
+                items,
+                null, // ANY_ITEM mode
+                null,
+                [],
+                rules,
+                "2025-08-05"
+            );
+
+            // Should track unavailability per item
+            expect(result.unavailableByDate["2025-08-12"]).to.exist;
+            expect(result.unavailableByDate["2025-08-12"]["item1"]).to.exist;
+            expect(
+                result.unavailableByDate["2025-08-12"]["item1"].has("booking")
+            ).to.be.true;
+
+            // But item2 should not be marked as unavailable
+            expect(result.unavailableByDate["2025-08-12"]["item2"]).to.not
+                .exist;
         });
     });
 });
