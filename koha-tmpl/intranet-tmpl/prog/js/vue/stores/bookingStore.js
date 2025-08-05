@@ -4,52 +4,86 @@
 import { defineStore } from "pinia";
 import { processApiError } from "../utils/apiErrors.js";
 import * as bookingApi from "@bookingApi";
-import { transformPatronData, transformPatronsData } from "../components/Bookings/patronUtils";
+import {
+    transformPatronData,
+    transformPatronsData,
+} from "../components/Bookings/patronUtils";
 
 /**
- * State shape is derived from legacy global variables and async data:
- * - bookable_items, bookings, checkouts, booking_id, booking_item_id, booking_patron, booking_itemtype_id
- * - loading flags, error messages, etc.
+ * Higher-order function to standardize async operation error handling
+ * Eliminates repetitive try-catch-finally patterns
+ */
+function withErrorHandling(operation, loadingKey, errorKey = null) {
+    return async function (...args) {
+        // Use errorKey if provided, otherwise derive from loadingKey
+        const errorField = errorKey || loadingKey;
+
+        this.loading[loadingKey] = true;
+        this.error[errorField] = null;
+
+        try {
+            const result = await operation.call(this, ...args);
+            return result;
+        } catch (error) {
+            this.error[errorField] = processApiError(error);
+            // Re-throw to allow caller to handle if needed
+            throw error;
+        } finally {
+            this.loading[loadingKey] = false;
+        }
+    };
+}
+
+/**
+ * State shape with improved organization and consistency
+ * Maintains backward compatibility with existing API
  */
 
 export const useBookingStore = defineStore("bookingStore", {
     state: () => ({
+        // System state
         dataFetched: false,
+
+        // Collections - consistent naming and organization
         bookableItems: [],
         bookings: [],
         checkouts: [],
+        pickupLocations: [],
+        itemTypes: [],
+        circulationRules: [],
+        unavailableByDate: {},
+
+        // Current booking state - normalized property names
         bookingId: null,
-        bookingItemId: null,
+        bookingItemId: null, // kept for backward compatibility
         bookingPatron: null,
-        bookingItemtypeId: null,
+        bookingItemtypeId: null, // kept for backward compatibility
         patronId: null,
         pickupLibraryId: null,
         startDate: null,
         endDate: null,
-        itemTypeId: null,
+
+        // Async operation state - organized structure
         loading: {
-            items: false,
+            bookableItems: false,
             bookings: false,
             checkouts: false,
             patrons: false,
+            bookingPatron: false,
             pickupLocations: false,
             circulationRules: false,
             submit: false,
         },
         error: {
-            items: null,
+            bookableItems: null,
             bookings: null,
             checkouts: null,
             patrons: null,
+            bookingPatron: null,
             pickupLocations: null,
             circulationRules: null,
             submit: null,
         },
-        pickupLocations: [],
-        itemTypes: [],
-        circulationRules: {},
-        unavailableByDate: {},
-        // Add more as needed
     }),
 
     actions: {
@@ -59,127 +93,75 @@ export const useBookingStore = defineStore("bookingStore", {
         /**
          * Fetch bookable items for a biblionumber
          */
-        async fetchBookableItems(biblionumber) {
-            this.loading.items = true;
-            this.error.items = null;
-            try {
-                const data = await bookingApi.fetchBookableItems(biblionumber);
-                this.bookableItems = data;
-            } catch (e) {
-                this.error.items = processApiError(e);
-            } finally {
-                this.loading.items = false;
-            }
-        },
+        fetchBookableItems: withErrorHandling(async function (biblionumber) {
+            const data = await bookingApi.fetchBookableItems(biblionumber);
+            this.bookableItems = data;
+            return data;
+        }, "bookableItems"),
         /**
          * Fetch bookings for a biblionumber
          */
-        async fetchBookings(biblionumber) {
-            this.loading.bookings = true;
-            this.error.bookings = null;
-            try {
-                const data = await bookingApi.fetchBookings(biblionumber);
-                this.bookings = data;
-            } catch (e) {
-                this.error.bookings = processApiError(e);
-            } finally {
-                this.loading.bookings = false;
-            }
-        },
+        fetchBookings: withErrorHandling(async function (biblionumber) {
+            const data = await bookingApi.fetchBookings(biblionumber);
+            this.bookings = data;
+            return data;
+        }, "bookings"),
         /**
          * Fetch checkouts for a biblionumber
          */
-        async fetchCheckouts(biblionumber) {
-            this.loading.checkouts = true;
-            this.error.checkouts = null;
-            try {
-                const data = await bookingApi.fetchCheckouts(biblionumber);
-                this.checkouts = data;
-            } catch (e) {
-                this.error.checkouts = processApiError(e);
-            } finally {
-                this.loading.checkouts = false;
-            }
-        },
+        fetchCheckouts: withErrorHandling(async function (biblionumber) {
+            const data = await bookingApi.fetchCheckouts(biblionumber);
+            this.checkouts = data;
+            return data;
+        }, "checkouts"),
         /**
          * Fetch patrons by search term and page
          */
-        async fetchPatron(patronId) {
-            this.loading.bookingPatron = true;
-            this.error.bookingPatron = null;
-            try {
-                const data = await bookingApi.fetchPatron(patronId);
-                return transformPatronData(
-                    Array.isArray(data) ? data[0] : data
-                );
-            } catch (e) {
-                this.error.bookingPatron = processApiError(e);
-                return null;
-            } finally {
-                this.loading.bookingPatron = false;
-            }
-        },
+        fetchPatron: withErrorHandling(async function (patronId) {
+            const data = await bookingApi.fetchPatron(patronId);
+            return transformPatronData(Array.isArray(data) ? data[0] : data);
+        }, "bookingPatron"),
         /**
          * Fetch patrons by search term and page
          */
-        async fetchPatrons(term, page = 1) {
-            this.loading.patrons = true;
-            this.error.patrons = null;
-            try {
-                const data = await bookingApi.fetchPatrons(term, page);
-                return transformPatronsData(data);
-            } catch (e) {
-                this.error.patrons = processApiError(e);
-                return [];
-            } finally {
-                this.loading.patrons = false;
-            }
-        },
+        fetchPatrons: withErrorHandling(async function (term, page = 1) {
+            const data = await bookingApi.fetchPatrons(term, page);
+            return transformPatronsData(data);
+        }, "patrons"),
         /**
          * Fetch pickup locations for a biblionumber (optionally filtered by patron)
          */
-        async fetchPickupLocations(biblionumber, patron_id) {
-            this.loading.pickupLocations = true;
-            this.error.pickupLocations = null;
-            try {
-                const data = await bookingApi.fetchPickupLocations(
-                    biblionumber,
-                    patron_id
-                );
-                this.pickupLocations = data;
-            } catch (e) {
-                this.error.pickupLocations = processApiError(e);
-            } finally {
-                this.loading.pickupLocations = false;
-            }
+        fetchPickupLocations: withErrorHandling(async function (
+            biblionumber,
+            patron_id
+        ) {
+            const data = await bookingApi.fetchPickupLocations(
+                biblionumber,
+                patron_id
+            );
+            this.pickupLocations = data;
+            return data;
         },
+        "pickupLocations"),
         /**
          * Fetch circulation rules for given context
          */
-        async fetchCirculationRules(params) {
-            this.loading.circulationRules = true;
-            this.error.circulationRules = null;
-            try {
-                // Only include defined (non-null, non-undefined) params
-                const filteredParams = {};
-                for (const key in params) {
-                    if (
-                        params[key] !== null &&
-                        params[key] !== undefined &&
-                        params[key] !== ""
-                    ) {
-                        filteredParams[key] = params[key];
-                    }
+        fetchCirculationRules: withErrorHandling(async function (params) {
+            // Only include defined (non-null, non-undefined) params
+            const filteredParams = {};
+            for (const key in params) {
+                if (
+                    params[key] !== null &&
+                    params[key] !== undefined &&
+                    params[key] !== ""
+                ) {
+                    filteredParams[key] = params[key];
                 }
-                const data =
-                    await bookingApi.fetchCirculationRules(filteredParams);
-                this.circulationRules = data;
-            } catch (e) {
-                this.error.circulationRules = processApiError(e);
-            } finally {
-                this.loading.circulationRules = false;
             }
-        },
+            const data = await bookingApi.fetchCirculationRules(filteredParams);
+            this.circulationRules = data;
+            return data;
+        }, "circulationRules"),
         /**
          * Derive item types from bookableItems
          */
@@ -205,31 +187,22 @@ export const useBookingStore = defineStore("bookingStore", {
          * Save (POST) or update (PUT) a booking
          * If bookingId is present, update; else, create
          */
-        async saveOrUpdateBooking(bookingData) {
-            this.loading.submit = true;
-            this.error.submit = null;
-            try {
-                let result;
-                if (bookingData.bookingId || bookingData.booking_id) {
-                    // Use bookingId from either field
-                    const id = bookingData.bookingId || bookingData.booking_id;
-                    result = await bookingApi.updateBooking(id, bookingData);
-                    // Update in store
-                    const idx = this.bookings.findIndex(
-                        b => b.booking_id === result.booking_id
-                    );
-                    if (idx !== -1) this.bookings[idx] = result;
-                } else {
-                    result = await bookingApi.createBooking(bookingData);
-                    this.bookings.push(result);
-                }
-                return result;
-            } catch (e) {
-                this.error.submit = processApiError(e);
-                throw e;
-            } finally {
-                this.loading.submit = false;
+        saveOrUpdateBooking: withErrorHandling(async function (bookingData) {
+            let result;
+            if (bookingData.bookingId || bookingData.booking_id) {
+                // Use bookingId from either field
+                const id = bookingData.bookingId || bookingData.booking_id;
+                result = await bookingApi.updateBooking(id, bookingData);
+                // Update in store
+                const idx = this.bookings.findIndex(
+                    b => b.booking_id === result.booking_id
+                );
+                if (idx !== -1) this.bookings[idx] = result;
+            } else {
+                result = await bookingApi.createBooking(bookingData);
+                this.bookings.push(result);
             }
-        },
+            return result;
+        }, "submit"),
     },
 });

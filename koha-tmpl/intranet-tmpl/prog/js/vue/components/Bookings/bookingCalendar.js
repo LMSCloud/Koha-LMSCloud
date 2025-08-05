@@ -143,7 +143,7 @@ export function applyCalendarHighlighting(instance, highlightingData) {
 
 /**
  * Fix flatpickr's incorrect marking of target end date as unavailable
- * This is a workaround for flatpickr's range mode behavior
+ * Uses CSS-based approach instead of fighting with DOM mutations
  */
 function fixTargetEndDateAvailability(instance, dayElements, targetEndDate) {
     const targetEndElem = Array.from(dayElements).find(
@@ -156,38 +156,47 @@ function fixTargetEndDateAvailability(instance, dayElements, targetEndDate) {
         return;
     }
 
-    // Force remove notAllowed class
-    const forceRemoveNotAllowed = () => {
-        if (targetEndElem.classList.contains("notAllowed")) {
-            targetEndElem.classList.remove("notAllowed");
-            targetEndElem.removeAttribute("tabindex");
-            logger.debug("Removed notAllowed class from target end date");
-        }
-    };
+    // Use CSS approach instead of mutation observer hack
+    // Mark the element as explicitly allowed, overriding Flatpickr's styles
+    targetEndElem.classList.remove("notAllowed");
+    targetEndElem.removeAttribute("tabindex");
+    targetEndElem.classList.add("booking-override-allowed");
 
-    forceRemoveNotAllowed();
+    // Set a data attribute to prevent re-processing
+    targetEndElem.setAttribute("data-booking-override", "allowed");
 
-    // Prevent flatpickr from re-adding it
-    const observer = new MutationObserver(mutations => {
-        mutations.forEach(mutation => {
-            if (
-                mutation.type === "attributes" &&
-                mutation.attributeName === "class" &&
-                targetEndElem.classList.contains("notAllowed")
-            ) {
-                logger.debug("Flatpickr re-added notAllowed, removing again");
-                forceRemoveNotAllowed();
+    logger.debug("Applied CSS override for target end date availability", {
+        targetDate: targetEndDate,
+        element: targetEndElem,
+    });
+
+    // Use a more robust approach: override Flatpickr's internal state
+    // This addresses the root cause rather than fighting symptoms
+    if (instance && instance.config && instance.config.disable) {
+        const originalDisable = instance.config.disable;
+
+        // Create a wrapped disable function that allows our target end date
+        instance.config.disable = function (date) {
+            // Allow the target end date regardless of other rules
+            if (date.getTime() === targetEndDate.getTime()) {
+                return false;
             }
-        });
-    });
 
-    observer.observe(targetEndElem, {
-        attributes: true,
-        attributeFilter: ["class"],
-    });
+            // Apply original disable logic for all other dates
+            if (Array.isArray(originalDisable)) {
+                return originalDisable.some(disableFn => {
+                    if (typeof disableFn === "function") {
+                        return disableFn(date);
+                    }
+                    return false;
+                });
+            }
 
-    // Clean up observer after 5 seconds
-    setTimeout(() => observer.disconnect(), 5000);
+            return false;
+        };
+
+        logger.debug("Applied disable function override for target end date");
+    }
 }
 
 /**
@@ -305,82 +314,92 @@ export function createFlatpickrConfig(baseConfig = {}) {
     return config;
 }
 
-export function createOnChange(
-    store,
-    errorMessage,
-    tooltipVisible,
-    constraintOptions = {}
-) {
-    return function (...[selectedDates, , instance]) {
+/**
+ * Event handler class for Flatpickr calendar events
+ * Replaces closure-based factories with explicit state management
+ */
+export class FlatpickrEventHandlers {
+    constructor(store, errorMessage, tooltipVisible, constraintOptions = {}) {
+        this.store = store;
+        this.errorMessage = errorMessage;
+        this.tooltipVisible = tooltipVisible;
+        this.constraintOptions = constraintOptions;
+
+        // Bind methods to maintain correct 'this' context
+        this.handleDateChange = this.handleDateChange.bind(this);
+    }
+
+    /**
+     * Handle date selection changes with validation and highlighting
+     */
+    handleDateChange(selectedDates, dateStr, instance) {
         logger.debug("onChange triggered", {
             selectedDates,
-            constraintOptions,
+            constraintOptions: this.constraintOptions,
         });
 
-        const baseRules = store.circulationRules[0] || {};
-
-        // Apply date range constraint by overriding maxPeriod if configured
-        const effectiveRules = { ...baseRules };
-        if (
-            constraintOptions.dateRangeConstraint &&
-            constraintOptions.maxBookingPeriod
-        ) {
-            effectiveRules.maxPeriod = constraintOptions.maxBookingPeriod;
-        }
+        const baseRules = this.store.circulationRules[0] || {};
+        const effectiveRules = this._calculateEffectiveRules(baseRules);
 
         // Validate date selection using manager
         const result = handleBookingDateChange(
             selectedDates,
             effectiveRules,
-            store.bookings,
-            store.checkouts,
-            store.bookableItems,
-            store.bookingItemId,
-            store.bookingId
+            this.store.bookings,
+            this.store.checkouts,
+            this.store.bookableItems,
+            this.store.bookingItemId,
+            this.store.bookingId
         );
 
-        // Update UI based on validation
-        if (!result.valid) {
-            errorMessage.value = result.errors.join(", ");
-        } else {
-            errorMessage.value = "";
-        }
-        tooltipVisible.value = false; // Hide tooltip on date change
+        this._updateValidationUI(result);
+        this._handleConstraintHighlighting(
+            selectedDates,
+            effectiveRules,
+            instance
+        );
+    }
 
-        // Handle constraint highlighting
+    /**
+     * Calculate effective rules with constraint overrides
+     */
+    _calculateEffectiveRules(baseRules) {
+        const effectiveRules = { ...baseRules };
+        if (
+            this.constraintOptions.dateRangeConstraint &&
+            this.constraintOptions.maxBookingPeriod
+        ) {
+            effectiveRules.maxPeriod = this.constraintOptions.maxBookingPeriod;
+        }
+        return effectiveRules;
+    }
+
+    /**
+     * Update UI based on validation results
+     */
+    _updateValidationUI(result) {
+        if (!result.valid) {
+            this.errorMessage.value = result.errors.join(", ");
+        } else {
+            this.errorMessage.value = "";
+        }
+        this.tooltipVisible.value = false; // Hide tooltip on date change
+    }
+
+    /**
+     * Handle constraint highlighting for date selections
+     */
+    _handleConstraintHighlighting(selectedDates, effectiveRules, instance) {
         if (selectedDates.length === 1 && instance) {
-            // Calculate highlighting data using manager
             const highlightingData = calculateConstraintHighlighting(
                 selectedDates[0],
                 effectiveRules,
-                constraintOptions
+                this.constraintOptions
             );
 
             if (highlightingData) {
-                // Apply UI highlighting
                 applyCalendarHighlighting(instance, highlightingData);
-
-                // Check if calendar navigation is needed
-                const navigationInfo = getCalendarNavigationTarget(
-                    highlightingData.startDate,
-                    highlightingData.targetEndDate
-                );
-
-                if (navigationInfo.shouldNavigate) {
-                    logger.debug("Navigating calendar", navigationInfo);
-
-                    // Navigate to show target end date
-                    setTimeout(() => {
-                        if (instance && instance.jumpToDate) {
-                            instance.jumpToDate(navigationInfo.targetDate);
-                        } else if (instance && instance.changeMonth) {
-                            instance.changeMonth(
-                                navigationInfo.targetMonth,
-                                navigationInfo.targetYear
-                            );
-                        }
-                    }, 100);
-                }
+                this._handleCalendarNavigation(highlightingData, instance);
             }
         }
 
@@ -389,7 +408,51 @@ export function createOnChange(
             instance._constraintHighlighting = null;
             clearConstraintHighlighting(instance);
         }
-    };
+    }
+
+    /**
+     * Handle calendar navigation to show target dates
+     */
+    _handleCalendarNavigation(highlightingData, instance) {
+        const navigationInfo = getCalendarNavigationTarget(
+            highlightingData.startDate,
+            highlightingData.targetEndDate
+        );
+
+        if (navigationInfo.shouldNavigate) {
+            logger.debug("Navigating calendar", navigationInfo);
+
+            setTimeout(() => {
+                if (instance && instance.jumpToDate) {
+                    instance.jumpToDate(navigationInfo.targetDate);
+                } else if (instance && instance.changeMonth) {
+                    instance.changeMonth(
+                        navigationInfo.targetMonth,
+                        navigationInfo.targetYear
+                    );
+                }
+            }, 100);
+        }
+    }
+}
+
+/**
+ * Factory function to create event handlers - maintains backward compatibility
+ * @deprecated Use FlatpickrEventHandlers class directly
+ */
+export function createOnChange(
+    store,
+    errorMessage,
+    tooltipVisible,
+    constraintOptions = {}
+) {
+    const handlers = new FlatpickrEventHandlers(
+        store,
+        errorMessage,
+        tooltipVisible,
+        constraintOptions
+    );
+    return handlers.handleDateChange;
 }
 
 export function createOnDayCreate(

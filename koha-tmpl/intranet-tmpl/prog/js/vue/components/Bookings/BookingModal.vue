@@ -367,6 +367,7 @@ import {
     createFlatpickrConfig,
     preloadFlatpickrLocale,
 } from "./bookingCalendar.js";
+import { createBookingServices } from "./BookingModalService.mjs";
 import PatronSearchSelect from "./PatronSearchSelect.vue";
 
 
@@ -420,6 +421,12 @@ export default {
     emits: ["close"],
     setup(props, { emit }) {
         const store = useBookingStore();
+
+        // Initialize business logic services
+        const bookingServices = createBookingServices(store, {
+            dateRangeConstraint: props.dateRangeConstraint,
+            customDateRangeFormula: props.customDateRangeFormula,
+        });
 
         const isOpen = ref(props.open);
         const dateRange = ref([]);
@@ -632,30 +639,9 @@ export default {
             return result;
         });
 
-        const maxBookingPeriod = computed(() => {
-            if (!props.dateRangeConstraint) return null;
-
-            const rules = store.circulationRules[0];
-            if (!rules) return null;
-
-            const issuelength = parseInt(rules.issuelength) || 0;
-
-            if (props.dateRangeConstraint === "issuelength") {
-                return issuelength;
-            }
-
-            if (props.dateRangeConstraint === "issuelength_with_renewals") {
-                const renewalperiod = parseInt(rules.renewalperiod) || 0;
-                const renewalsallowed = parseInt(rules.renewalsallowed) || 0;
-                return issuelength + renewalperiod * renewalsallowed;
-            }
-
-            if (props.dateRangeConstraint === "custom" && props.customDateRangeFormula) {
-                return props.customDateRangeFormula(rules);
-            }
-
-            return null;
-        });
+        const maxBookingPeriod = computed(() =>
+            bookingServices.configuration.calculateMaxBookingPeriod()
+        );
 
         const flatpickrConfig = computed(() => {
             const availability = computedAvailabilityData.value || {

@@ -781,6 +781,16 @@ span.flatpickr-weekday {
         color: rgba($dayForeground, 0.1);
     }
 
+    // Override for booking system to allow specifically enabled dates
+    &.booking-override-allowed,
+    &.booking-override-allowed:hover {
+        color: $dayForeground !important;
+        background: $todayColor !important;
+        border-color: $todayColor !important;
+        cursor: pointer !important;
+        opacity: 1 !important;
+    }
+
     &.week.selected {
         border-radius: 0;
         box-shadow: -2.5 * $dayMargin 0 0 $selectedDayBackground, 2.5 * $dayMargin 0 0 $selectedDayBackground;

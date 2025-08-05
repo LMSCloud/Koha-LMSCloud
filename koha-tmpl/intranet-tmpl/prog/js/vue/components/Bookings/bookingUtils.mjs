@@ -8,57 +8,221 @@ export function debounce(fn, delay) {
     };
 }
 
-function renderContent(bookingPatron) {
-    if (typeof window.$patron_to_html === "function" && bookingPatron) {
-        return window.$patron_to_html(bookingPatron, {
-            display_cardnumber: true,
-            url: true,
+/**
+ * Default dependencies for external updates - can be overridden in tests
+ */
+const defaultDependencies = {
+    timeline: () => window.timeline,
+    bookingsTable: () => window.bookings_table,
+    patronRenderer: () => window.$patron_to_html,
+    domQuery: selector => document.querySelectorAll(selector),
+    logger: {
+        warn: (msg, data) => console.warn(msg, data),
+        error: (msg, error) => console.error(msg, error),
+    },
+};
+
+/**
+ * Renders patron content for display, with injected dependency
+ */
+function renderPatronContent(
+    bookingPatron,
+    dependencies = defaultDependencies
+) {
+    try {
+        const patronRenderer = dependencies.patronRenderer();
+        if (typeof patronRenderer === "function" && bookingPatron) {
+            return patronRenderer(bookingPatron, {
+                display_cardnumber: true,
+                url: true,
+            });
+        }
+
+        if (bookingPatron?.cardnumber) {
+            return bookingPatron.cardnumber;
+        }
+
+        return "";
+    } catch (error) {
+        dependencies.logger.error("Failed to render patron content", {
+            error,
+            bookingPatron,
         });
+        return bookingPatron?.cardnumber || "";
     }
-
-    if (bookingPatron?.cardnumber) {
-        return bookingPatron.cardnumber;
-    }
-
-    return "";
 }
 
-export function updateExternalDependents(store, newBooking, isUpdate = false) {
-    if (typeof window.timeline !== "undefined" && window.timeline !== null) {
+/**
+ * Updates timeline component with booking data
+ */
+function updateTimelineComponent(newBooking, store, isUpdate, dependencies) {
+    const timeline = dependencies.timeline();
+    if (!timeline) return { success: false, reason: "Timeline not available" };
+
+    try {
         const itemData = {
             id: newBooking.booking_id,
             booking: newBooking.booking_id,
             patron: newBooking.patron_id,
             start: dayjs(newBooking.start_date).toDate(),
             end: dayjs(newBooking.end_date).toDate(),
-            content: renderContent(store.bookingPatron),
+            content: renderPatronContent(store.bookingPatron, dependencies),
             type: "range",
             group: newBooking.item_id ? newBooking.item_id : 0,
         };
+
         if (isUpdate) {
-            window.timeline.itemsData.update(itemData);
+            timeline.itemsData.update(itemData);
         } else {
-            window.timeline.itemsData.add(itemData);
+            timeline.itemsData.add(itemData);
         }
-        window.timeline.focus(newBooking.booking_id);
+        timeline.focus(newBooking.booking_id);
+
+        return { success: true };
+    } catch (error) {
+        dependencies.logger.error("Failed to update timeline", {
+            error,
+            newBooking,
+        });
+        return { success: false, reason: error.message };
     }
-    if (
-        typeof window.bookings_table !== "undefined" &&
-        window.bookings_table !== null
-    ) {
-        window.bookings_table.api().ajax.reload();
-    }
+}
+
+/**
+ * Updates bookings table component
+ */
+function updateBookingsTable(dependencies) {
+    const bookingsTable = dependencies.bookingsTable();
+    if (!bookingsTable)
+        return { success: false, reason: "Bookings table not available" };
+
     try {
-        const countEls = document.querySelectorAll(".bookings_count");
+        bookingsTable.api().ajax.reload();
+        return { success: true };
+    } catch (error) {
+        dependencies.logger.error("Failed to update bookings table", { error });
+        return { success: false, reason: error.message };
+    }
+}
+
+/**
+ * Updates booking count elements in the DOM
+ */
+function updateBookingCounts(isUpdate, dependencies) {
+    if (isUpdate)
+        return { success: true, reason: "No count update needed for updates" };
+
+    try {
+        const countEls = dependencies.domQuery(".bookings_count");
+        let updatedCount = 0;
+
         countEls.forEach(el => {
-            let html = el.innerHTML;
-            let match = html.match(/(\d+)/);
+            const html = el.innerHTML;
+            const match = html.match(/(\d+)/);
             if (match) {
-                let newCount = parseInt(match[1], 10) + (isUpdate ? 0 : 1); // Only increment if not an update
+                const newCount = parseInt(match[1], 10) + 1;
                 el.innerHTML = html.replace(/(\d+)/, newCount);
+                updatedCount++;
             }
         });
-    } catch {
-        // Fails silently
+
+        return {
+            success: true,
+            updatedElements: updatedCount,
+            totalElements: countEls.length,
+        };
+    } catch (error) {
+        dependencies.logger.error("Failed to update booking counts", { error });
+        return { success: false, reason: error.message };
+    }
+}
+
+/**
+ * Updates external components that depend on booking data
+ *
+ * This function is designed with dependency injection to make it testable
+ * and to provide proper error handling with detailed feedback.
+ *
+ * @param {Object} store - Booking store instance
+ * @param {Object} newBooking - The booking data that was created/updated
+ * @param {boolean} isUpdate - Whether this is an update (true) or create (false)
+ * @param {Object} dependencies - Injectable dependencies (for testing)
+ * @returns {Object} Results summary with success/failure details
+ */
+export function updateExternalDependents(
+    store,
+    newBooking,
+    isUpdate = false,
+    dependencies = defaultDependencies
+) {
+    const results = {
+        timeline: { attempted: false },
+        bookingsTable: { attempted: false },
+        bookingCounts: { attempted: false },
+    };
+
+    // Update timeline if available
+    if (dependencies.timeline()) {
+        results.timeline = {
+            attempted: true,
+            ...updateTimelineComponent(
+                newBooking,
+                store,
+                isUpdate,
+                dependencies
+            ),
+        };
+    }
+
+    // Update bookings table if available
+    if (dependencies.bookingsTable()) {
+        results.bookingsTable = {
+            attempted: true,
+            ...updateBookingsTable(dependencies),
+        };
+    }
+
+    // Update booking counts
+    results.bookingCounts = {
+        attempted: true,
+        ...updateBookingCounts(isUpdate, dependencies),
+    };
+
+    // Log summary for debugging
+    const successCount = Object.values(results).filter(
+        r => r.attempted && r.success
+    ).length;
+    const attemptedCount = Object.values(results).filter(
+        r => r.attempted
+    ).length;
+
+    dependencies.logger.warn(
+        `External dependents update complete: ${successCount}/${attemptedCount} successful`,
+        {
+            isUpdate,
+            bookingId: newBooking.booking_id,
+            results,
+        }
+    );
+
+    return results;
+}
+
+/**
+ * Legacy wrapper for backward compatibility
+ * @deprecated Use updateExternalDependents with proper error handling
+ */
+export function updateExternalDependentsLegacy(
+    store,
+    newBooking,
+    isUpdate = false
+) {
+    try {
+        updateExternalDependents(store, newBooking, isUpdate);
+    } catch (error) {
+        console.warn(
+            "External dependents update failed silently (legacy mode)",
+            error
+        );
     }
 }

@@ -261,81 +261,152 @@ function isPastDate(date, today) {
 }
 
 /**
- * Pure function for Flatpickr's `disable` option.
- * Disables dates that overlap with existing bookings or checkouts for the selected item, or when not enough items are available.
- * Also handles end_date_only constraint mode by disabling intermediate dates.
- *
- * @param {Array} bookings - Array of booking objects ({ booking_id, item_id, start_date, end_date })
- * @param {Array} checkouts - Array of checkout objects ({ item_id, due_date, ... })
- * @param {Array} bookableItems - Array of all bookable item objects (must have item_id)
- * @param {number|string|null} selectedItem - The currently selected item (item_id or null for 'any')
- * @param {number|string|null} editBookingId - The booking_id being edited (if any)
- * @param {Array} selectedDates - Array of currently selected dates in Flatpickr (can be empty, or [start], or [start, end])
- * @param {Object} circulationRules - Circulation rules object (leadDays, trailDays, maxPeriod, booking_constraint_mode, etc.)
- * @param {Date|dayjs} todayArg - Optional today value for deterministic tests
- * @returns {Object} - { disable: Function, unavailableByDate: Object }
+ * Optimized lead period validation using range queries instead of individual point queries
+ * @param {dayjs.Dayjs} startDate - Potential start date to validate
+ * @param {number} leadDays - Number of lead period days to check
+ * @param {Object} intervalTree - Interval tree for conflict checking
+ * @param {string|null} selectedItem - Selected item ID or null
+ * @param {number|null} editBookingId - Booking ID being edited
+ * @param {Array} allItemIds - All available item IDs
+ * @returns {boolean} True if start date should be blocked due to lead period conflicts
  */
-export function calculateDisabledDates(
-    bookings,
-    checkouts,
-    bookableItems,
+function validateLeadPeriodOptimized(
+    startDate,
+    leadDays,
+    intervalTree,
     selectedItem,
     editBookingId,
-    selectedDates = [],
-    circulationRules = {},
-    todayArg = undefined
+    allItemIds
 ) {
-    logger.time("calculateDisabledDates");
-    logger.debug("calculateDisabledDates called", {
-        bookingsCount: bookings.length,
-        checkoutsCount: checkouts.length,
-        itemsCount: bookableItems.length,
-        selectedItem,
-        editBookingId,
-        selectedDates,
-        circulationRules,
-    });
+    if (leadDays <= 0) return false;
 
-    // DEBUG: Log detailed selection parameters for OPAC debugging
-    logger.debug("OPAC Selection Debug:", {
-        selectedItem: selectedItem,
-        selectedItemType:
-            selectedItem === null ? "ANY_AVAILABLE" : "SPECIFIC_ITEM",
-        bookableItems: bookableItems.map(item => ({
-            item_id: item.item_id,
-            title: item.title,
-            item_type_id: item.item_type_id,
-            holding_library: item.holding_library,
-            available_pickup_locations: item.available_pickup_locations,
-        })),
-        circulationRules: {
-            booking_constraint_mode: circulationRules?.booking_constraint_mode,
-            maxPeriod: circulationRules?.maxPeriod,
-            bookings_lead_period: circulationRules?.bookings_lead_period,
-            bookings_trail_period: circulationRules?.bookings_trail_period,
-        },
-        bookings: bookings.map(b => ({
-            booking_id: b.booking_id,
-            item_id: b.item_id,
-            start_date: b.start_date,
-            end_date: b.end_date,
-            patron_id: b.patron_id,
-        })),
-        checkouts: checkouts.map(c => ({
-            item_id: c.item_id,
-            checkout_date: c.checkout_date,
-            due_date: c.due_date,
-            patron_id: c.patron_id,
-        })),
-    });
+    const leadStart = startDate.subtract(leadDays, "day");
+    const leadEnd = startDate.subtract(1, "day");
 
-    // Build IntervalTree with all booking/checkout data
-    const intervalTree = buildIntervalTree(
-        bookings,
-        checkouts,
-        circulationRules
+    logger.debug(
+        `Optimized lead period check: ${leadStart.format(
+            "YYYY-MM-DD"
+        )} to ${leadEnd.format("YYYY-MM-DD")}`
     );
 
+    // Use range query to get all conflicts in the lead period at once
+    const leadConflicts = intervalTree.queryRange(
+        leadStart.valueOf(),
+        leadEnd.valueOf(),
+        selectedItem ? String(selectedItem) : null
+    );
+
+    const relevantLeadConflicts = leadConflicts.filter(
+        c => !editBookingId || c.metadata.booking_id != editBookingId
+    );
+
+    if (selectedItem) {
+        // For specific item, any conflict in lead period blocks the start date
+        return relevantLeadConflicts.length > 0;
+    } else {
+        // For "any item" mode, need to check if there are conflicts for ALL items
+        // on ANY day in the lead period
+        if (relevantLeadConflicts.length === 0) return false;
+
+        const unavailableItemIds = new Set(
+            relevantLeadConflicts.map(c => c.itemId)
+        );
+        const allUnavailable =
+            allItemIds.length > 0 &&
+            allItemIds.every(id => unavailableItemIds.has(String(id)));
+
+        logger.debug(`Lead period multi-item check (optimized):`, {
+            leadPeriod: `${leadStart.format("YYYY-MM-DD")} to ${leadEnd.format(
+                "YYYY-MM-DD"
+            )}`,
+            totalItems: allItemIds.length,
+            conflictsFound: relevantLeadConflicts.length,
+            unavailableItems: Array.from(unavailableItemIds),
+            allUnavailable: allUnavailable,
+            decision: allUnavailable ? "BLOCK" : "ALLOW",
+        });
+
+        return allUnavailable;
+    }
+}
+
+/**
+ * Optimized trail period validation using range queries instead of individual point queries
+ * @param {dayjs.Dayjs} endDate - Potential end date to validate
+ * @param {number} trailDays - Number of trail period days to check
+ * @param {Object} intervalTree - Interval tree for conflict checking
+ * @param {string|null} selectedItem - Selected item ID or null
+ * @param {number|null} editBookingId - Booking ID being edited
+ * @param {Array} allItemIds - All available item IDs
+ * @returns {boolean} True if end date should be blocked due to trail period conflicts
+ */
+function validateTrailPeriodOptimized(
+    endDate,
+    trailDays,
+    intervalTree,
+    selectedItem,
+    editBookingId,
+    allItemIds
+) {
+    if (trailDays <= 0) return false;
+
+    const trailStart = endDate.add(1, "day");
+    const trailEnd = endDate.add(trailDays, "day");
+
+    logger.debug(
+        `Optimized trail period check: ${trailStart.format(
+            "YYYY-MM-DD"
+        )} to ${trailEnd.format("YYYY-MM-DD")}`
+    );
+
+    // Use range query to get all conflicts in the trail period at once
+    const trailConflicts = intervalTree.queryRange(
+        trailStart.valueOf(),
+        trailEnd.valueOf(),
+        selectedItem ? String(selectedItem) : null
+    );
+
+    const relevantTrailConflicts = trailConflicts.filter(
+        c => !editBookingId || c.metadata.booking_id != editBookingId
+    );
+
+    if (selectedItem) {
+        // For specific item, any conflict in trail period blocks the end date
+        return relevantTrailConflicts.length > 0;
+    } else {
+        // For "any item" mode, need to check if there are conflicts for ALL items
+        // on ANY day in the trail period
+        if (relevantTrailConflicts.length === 0) return false;
+
+        const unavailableItemIds = new Set(
+            relevantTrailConflicts.map(c => c.itemId)
+        );
+        const allUnavailable =
+            allItemIds.length > 0 &&
+            allItemIds.every(id => unavailableItemIds.has(String(id)));
+
+        logger.debug(`Trail period multi-item check (optimized):`, {
+            trailPeriod: `${trailStart.format(
+                "YYYY-MM-DD"
+            )} to ${trailEnd.format("YYYY-MM-DD")}`,
+            totalItems: allItemIds.length,
+            conflictsFound: relevantTrailConflicts.length,
+            unavailableItems: Array.from(unavailableItemIds),
+            allUnavailable: allUnavailable,
+            decision: allUnavailable ? "BLOCK" : "ALLOW",
+        });
+
+        return allUnavailable;
+    }
+}
+
+/**
+ * Extracts and validates configuration from circulation rules
+ * @param {Object} circulationRules - Raw circulation rules object
+ * @param {Date|dayjs} todayArg - Optional today value for deterministic tests
+ * @returns {Object} Normalized configuration object
+ */
+function extractBookingConfiguration(circulationRules, todayArg) {
     const today = todayArg
         ? dayjs(todayArg).startOf("day")
         : dayjs().startOf("day");
@@ -347,10 +418,47 @@ export function calculateDisabledDates(
         30;
     const isEndDateOnly =
         circulationRules?.booking_constraint_mode === "end_date_only";
+
+    logger.debug("Booking configuration extracted:", {
+        today: today.format("YYYY-MM-DD"),
+        leadDays,
+        trailDays,
+        maxPeriod,
+        isEndDateOnly,
+        rawRules: circulationRules,
+    });
+
+    return {
+        today,
+        leadDays,
+        trailDays,
+        maxPeriod,
+        isEndDateOnly,
+    };
+}
+
+/**
+ * Creates the main disable function that determines if a date should be disabled
+ * @param {Object} intervalTree - Interval tree for conflict checking
+ * @param {Object} config - Configuration object from extractBookingConfiguration
+ * @param {Array} bookableItems - Array of bookable items
+ * @param {string|null} selectedItem - Selected item ID or null
+ * @param {number|null} editBookingId - Booking ID being edited
+ * @param {Array} selectedDates - Currently selected dates
+ * @returns {Function} Disable function for Flatpickr
+ */
+function createDisableFunction(
+    intervalTree,
+    config,
+    bookableItems,
+    selectedItem,
+    editBookingId,
+    selectedDates
+) {
+    const { today, leadDays, trailDays, maxPeriod, isEndDateOnly } = config;
     const allItemIds = bookableItems.map(i => i.item_id);
 
-    // Create optimized disable function using IntervalTree
-    const disableFunction = date => {
+    return date => {
         const dayjs_date = dayjs(date).startOf("day");
 
         // Guard clause: Basic past date validation
@@ -448,7 +556,7 @@ export function calculateDisabledDates(
             }
         }
 
-        // Lead/trail period validation using tree queries
+        // Lead/trail period validation using optimized queries
         if (!selectedDates || selectedDates.length === 0) {
             // Potential start date - check lead period
             if (leadDays > 0) {
@@ -459,71 +567,23 @@ export function calculateDisabledDates(
                 );
             }
 
-            for (let i = 1; i <= leadDays; i++) {
-                const leadDay = dayjs_date.subtract(i, "day");
-                const leadConflicts = intervalTree.query(
-                    leadDay.valueOf(),
-                    selectedItem ? String(selectedItem) : null
-                );
-                const relevantLeadConflicts = leadConflicts.filter(
-                    c =>
-                        !editBookingId || c.metadata.booking_id != editBookingId
-                );
-
+            // Optimized lead period validation using range queries
+            if (
+                validateLeadPeriodOptimized(
+                    dayjs_date,
+                    leadDays,
+                    intervalTree,
+                    selectedItem,
+                    editBookingId,
+                    allItemIds
+                )
+            ) {
                 logger.debug(
-                    `Lead period check day ${i}: ${leadDay.format(
+                    `Start date ${dayjs_date.format(
                         "YYYY-MM-DD"
-                    )}`,
-                    {
-                        selectedItem: selectedItem,
-                        conflicts: relevantLeadConflicts.length,
-                        conflictDetails: relevantLeadConflicts.map(c => ({
-                            type: c.type,
-                            item: c.itemId,
-                        })),
-                    }
+                    )} blocked - lead period conflict (optimized check)`
                 );
-
-                if (selectedItem) {
-                    if (relevantLeadConflicts.length > 0) {
-                        logger.debug(
-                            `Start date ${dayjs_date.format(
-                                "YYYY-MM-DD"
-                            )} blocked - lead period conflict on ${leadDay.format(
-                                "YYYY-MM-DD"
-                            )}`
-                        );
-                        return true;
-                    }
-                } else {
-                    // Check if all items unavailable in lead period
-                    const leadUnavailableIds = new Set(
-                        relevantLeadConflicts.map(c => c.itemId)
-                    );
-                    const allUnavailableInLead =
-                        allItemIds.length > 0 &&
-                        allItemIds.every(id =>
-                            leadUnavailableIds.has(String(id))
-                        );
-
-                    logger.debug(`Lead period multi-item check:`, {
-                        leadDay: leadDay.format("YYYY-MM-DD"),
-                        totalItems: allItemIds.length,
-                        unavailableItems: Array.from(leadUnavailableIds),
-                        allUnavailable: allUnavailableInLead,
-                    });
-
-                    if (allUnavailableInLead) {
-                        logger.debug(
-                            `Start date ${dayjs_date.format(
-                                "YYYY-MM-DD"
-                            )} blocked - all items in lead period unavailable on ${leadDay.format(
-                                "YYYY-MM-DD"
-                            )}`
-                        );
-                        return true;
-                    }
-                }
+                return true;
             }
         } else if (
             selectedDates[0] &&
@@ -541,56 +601,148 @@ export function calculateDisabledDates(
             )
                 return true;
 
-            for (let i = 1; i <= trailDays; i++) {
-                const trailDay = dayjs_date.add(i, "day");
-                const trailConflicts = intervalTree.query(
-                    trailDay.valueOf(),
-                    selectedItem ? String(selectedItem) : null
+            // Optimized trail period validation using range queries
+            if (
+                validateTrailPeriodOptimized(
+                    dayjs_date,
+                    trailDays,
+                    intervalTree,
+                    selectedItem,
+                    editBookingId,
+                    allItemIds
+                )
+            ) {
+                logger.debug(
+                    `End date ${dayjs_date.format(
+                        "YYYY-MM-DD"
+                    )} blocked - trail period conflict (optimized check)`
                 );
-                const relevantTrailConflicts = trailConflicts.filter(
-                    c =>
-                        !editBookingId || c.metadata.booking_id != editBookingId
-                );
-
-                if (selectedItem) {
-                    if (relevantTrailConflicts.length > 0) {
-                        logger.debug(
-                            `End date ${dayjs_date.format(
-                                "YYYY-MM-DD"
-                            )} blocked - trail period conflict`
-                        );
-                        return true;
-                    }
-                } else {
-                    // Check if all items unavailable in trail period
-                    const trailUnavailableIds = new Set(
-                        relevantTrailConflicts.map(c => c.itemId)
-                    );
-                    if (
-                        allItemIds.length > 0 &&
-                        allItemIds.every(id =>
-                            trailUnavailableIds.has(String(id))
-                        )
-                    ) {
-                        logger.debug(
-                            `End date ${dayjs_date.format(
-                                "YYYY-MM-DD"
-                            )} blocked - all items in trail period unavailable`
-                        );
-                        return true;
-                    }
-                }
+                return true;
             }
         }
 
         return false;
     };
+}
+
+/**
+ * Logs comprehensive debug information for OPAC booking selection debugging
+ * @param {Array} bookings - Array of booking objects
+ * @param {Array} checkouts - Array of checkout objects
+ * @param {Array} bookableItems - Array of bookable items
+ * @param {string|null} selectedItem - Selected item ID
+ * @param {Object} circulationRules - Circulation rules
+ */
+function logBookingDebugInfo(
+    bookings,
+    checkouts,
+    bookableItems,
+    selectedItem,
+    circulationRules
+) {
+    logger.debug("OPAC Selection Debug:", {
+        selectedItem: selectedItem,
+        selectedItemType:
+            selectedItem === null ? "ANY_AVAILABLE" : "SPECIFIC_ITEM",
+        bookableItems: bookableItems.map(item => ({
+            item_id: item.item_id,
+            title: item.title,
+            item_type_id: item.item_type_id,
+            holding_library: item.holding_library,
+            available_pickup_locations: item.available_pickup_locations,
+        })),
+        circulationRules: {
+            booking_constraint_mode: circulationRules?.booking_constraint_mode,
+            maxPeriod: circulationRules?.maxPeriod,
+            bookings_lead_period: circulationRules?.bookings_lead_period,
+            bookings_trail_period: circulationRules?.bookings_trail_period,
+        },
+        bookings: bookings.map(b => ({
+            booking_id: b.booking_id,
+            item_id: b.item_id,
+            start_date: b.start_date,
+            end_date: b.end_date,
+            patron_id: b.patron_id,
+        })),
+        checkouts: checkouts.map(c => ({
+            item_id: c.item_id,
+            checkout_date: c.checkout_date,
+            due_date: c.due_date,
+            patron_id: c.patron_id,
+        })),
+    });
+}
+
+/**
+ * Pure function for Flatpickr's `disable` option.
+ * Disables dates that overlap with existing bookings or checkouts for the selected item, or when not enough items are available.
+ * Also handles end_date_only constraint mode by disabling intermediate dates.
+ *
+ * @param {Array} bookings - Array of booking objects ({ booking_id, item_id, start_date, end_date })
+ * @param {Array} checkouts - Array of checkout objects ({ item_id, due_date, ... })
+ * @param {Array} bookableItems - Array of all bookable item objects (must have item_id)
+ * @param {number|string|null} selectedItem - The currently selected item (item_id or null for 'any')
+ * @param {number|string|null} editBookingId - The booking_id being edited (if any)
+ * @param {Array} selectedDates - Array of currently selected dates in Flatpickr (can be empty, or [start], or [start, end])
+ * @param {Object} circulationRules - Circulation rules object (leadDays, trailDays, maxPeriod, booking_constraint_mode, etc.)
+ * @param {Date|dayjs} todayArg - Optional today value for deterministic tests
+ * @returns {Object} - { disable: Function, unavailableByDate: Object }
+ */
+export function calculateDisabledDates(
+    bookings,
+    checkouts,
+    bookableItems,
+    selectedItem,
+    editBookingId,
+    selectedDates = [],
+    circulationRules = {},
+    todayArg = undefined
+) {
+    logger.time("calculateDisabledDates");
+    logger.debug("calculateDisabledDates called", {
+        bookingsCount: bookings.length,
+        checkoutsCount: checkouts.length,
+        itemsCount: bookableItems.length,
+        selectedItem,
+        editBookingId,
+        selectedDates,
+        circulationRules,
+    });
+
+    // Log comprehensive debug information for OPAC debugging
+    logBookingDebugInfo(
+        bookings,
+        checkouts,
+        bookableItems,
+        selectedItem,
+        circulationRules
+    );
+
+    // Build IntervalTree with all booking/checkout data
+    const intervalTree = buildIntervalTree(
+        bookings,
+        checkouts,
+        circulationRules
+    );
+
+    // Extract and validate configuration
+    const config = extractBookingConfiguration(circulationRules, todayArg);
+    const allItemIds = bookableItems.map(i => i.item_id);
+
+    // Create optimized disable function using extracted helper
+    const disableFunction = createDisableFunction(
+        intervalTree,
+        config,
+        bookableItems,
+        selectedItem,
+        editBookingId,
+        selectedDates
+    );
 
     // Build unavailableByDate for backward compatibility and markers
-    // Use SweepLineProcessor to build comprehensive unavailability data
     const unavailableByDate = buildUnavailableByDateMap(
         intervalTree,
-        today,
+        config.today,
         allItemIds,
         editBookingId
     );
