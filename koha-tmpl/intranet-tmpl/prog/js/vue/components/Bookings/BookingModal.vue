@@ -507,12 +507,23 @@ export default {
         });
 
         const canProceedToStep3 = computed(() => {
-            return !!(
+            // Basic form validation
+            const hasBasicData = !!(
                 bookingPatron.value &&
                 (bookingItemId.value ||
                     bookingItemtypeId.value ||
                     bookingPickupLibraryId.value)
             );
+
+            if (!hasBasicData) return false;
+
+            // Check if the current selection results in any available items
+            const availableItems = constrainedBookableItems.value;
+            if (availableItems.length === 0) {
+                return false; // No items available for current selection
+            }
+
+            return true;
         });
 
         const pickupLocationConstraint = computed(() =>
@@ -837,6 +848,31 @@ export default {
 
                 if (hasItemLib) {
                     bookingPickupLibraryId.value = firstItemLibId;
+                }
+            },
+            { immediate: true }
+        );
+
+        // Watch for no available items scenario and show error message
+        watch(
+            [constrainedBookableItems, () => bookingPatron.value, () => bookingPickupLibraryId.value, () => bookingItemtypeId.value],
+            ([availableItems, patron, pickupLibraryId, itemtypeId]) => {
+                // Only show error if user has made selections that result in no items
+                if (patron && (pickupLibraryId || itemtypeId) && availableItems.length === 0) {
+                    const selectionParts = [];
+                    if (pickupLibraryId) {
+                        const location = store.pickupLocations.find(l => l.library_id === pickupLibraryId);
+                        selectionParts.push($__("pickup location: %s").format(location?.name || pickupLibraryId));
+                    }
+                    if (itemtypeId) {
+                        const itemType = store.itemTypes.find(t => t.item_type_id === itemtypeId);
+                        selectionParts.push($__("item type: %s").format(itemType?.description || itemtypeId));
+                    }
+
+                    errorMessage.value = $__("No items are available for booking with the selected criteria (%s). Please adjust your selection.").format(selectionParts.join(", "));
+                } else if (errorMessage.value && errorMessage.value.includes($__("No items are available"))) {
+                    // Clear the error message if items become available again
+                    errorMessage.value = "";
                 }
             },
             { immediate: true }
