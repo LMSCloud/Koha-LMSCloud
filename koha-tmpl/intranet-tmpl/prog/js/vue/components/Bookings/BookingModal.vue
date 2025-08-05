@@ -27,28 +27,12 @@
                         method="post"
                         @submit.prevent="handleSubmit"
                     >
-                        <fieldset v-if="showPatronSelect" class="step-block">
-                            <legend class="step-header">
-                                {{ stepNumber.patron }}.
-                                {{ $__("Select Patron") }}
-                            </legend>
-                            <PatronSearchSelect
-                                v-model="bookingPatron"
-                                :label="
-                                    $__('Patron')
-                                "
-                                :placeholder="
-                                    $__('Search for a patron')
-                                "
-                            >
-                                <template #no-options="{ hasSearched }">
-                                    {{ hasSearched ? $__("No patrons found.") : $__("Type to search for patrons.") }}
-                                </template>
-                                <template #spinner>
-                                    <span class="sr-only">{{ $__("Searching...") }}</span>
-                                </template>
-                            </PatronSearchSelect>
-                        </fieldset>
+                        <!-- Patron Selection Step -->
+                        <BookingPatronStep
+                            v-if="showPatronSelect"
+                            v-model="bookingPatron"
+                            :step-number="stepNumber.patron"
+                        />
                         <hr
                             v-if="
                                 showPatronSelect ||
@@ -56,261 +40,57 @@
                                 showPickupLocationSelect
                             "
                         />
-                        <fieldset
-                            v-if="
-                                showItemDetailsSelects ||
-                                showPickupLocationSelect
-                            "
-                            class="step-block"
-                        >
-                            <legend class="step-header">
-                                {{ stepNumber.details }}.
-                                {{
-                                    showItemDetailsSelects
-                                        ? $__(
-                                              "Select Pickup Location and Item Type or Item"
-                                          )
-                                        : showPickupLocationSelect
-                                        ? $__("Select Pickup Location")
-                                        : ""
-                                }}
-                            </legend>
-                            <div
-                                v-if="
-                                    showPickupLocationSelect ||
-                                    showItemDetailsSelects
-                                "
-                                class="form-group"
-                            >
-                                <label for="pickup_library_id">{{
-                                    $__("Pickup location")
-                                }}</label>
-                                <v-select
-                                    v-model="bookingPickupLibraryId"
-                                    :placeholder="
-                                        $__('Select a pickup location')
-                                    "
-                                    :options="constrainedPickupLocations"
-                                    label="name"
-                                    :reduce="l => l.library_id"
-                                    :loading="loading.pickupLocations"
-                                    :clearable="true"
-                                    :disabled="
-                                        !bookingPatron && showPatronSelect
-                                    "
-                                >
-                                    <template #no-options>
-                                        {{ $__("No pickup locations available.") }}
-                                    </template>
-                                    <template #spinner>
-                                        <span class="sr-only">{{ $__("Loading...") }}</span>
-                                    </template>
-                                </v-select>
-                                <span
-                                    v-if="
-                                        constrainedFlags.pickupLocations &&
-                                        (showPickupLocationSelect ||
-                                            showItemDetailsSelects)
-                                    "
-                                    class="badge badge-warning ml-2"
-                                >
-                                    {{ $__("Options updated") }}
-                                    <span class="ml-1"
-                                        >({{
-                                            pickupLocationsTotal -
-                                            pickupLocationsFilteredOut
-                                        }}/{{ pickupLocationsTotal }})</span
-                                    >
-                                </span>
-                            </div>
-                            <div
-                                v-if="showItemDetailsSelects"
-                                class="form-group"
-                            >
-                                <label for="booking_itemtype">{{
-                                    $__("Item type")
-                                }}</label>
-                                <v-select
-                                    v-model="bookingItemtypeId"
-                                    :options="constrainedItemTypes"
-                                    label="description"
-                                    :reduce="t => t.item_type_id"
-                                    :clearable="true"
-                                    :disabled="
-                                        !bookingPatron && showPatronSelect
-                                    "
-                                >
-                                    <template #no-options>
-                                        {{ $__("No item types available.") }}
-                                    </template>
-                                </v-select>
-                                <span
-                                    v-if="constrainedFlags.itemTypes"
-                                    class="badge badge-warning ml-2"
-                                    >{{ $__("Options updated") }}</span
-                                >
-                            </div>
-                            <div
-                                v-if="showItemDetailsSelects"
-                                class="form-group"
-                            >
-                                <label for="booking_item_id">{{
-                                    $__("Item")
-                                }}</label>
-                                <v-select
-                                    v-model="bookingItemId"
-                                    :placeholder="$__('Any item')"
-                                    :options="constrainedBookableItems"
-                                    label="external_id"
-                                    :reduce="i => i.item_id"
-                                    :clearable="true"
-                                    :loading="loading.items"
-                                    :disabled="
-                                        !bookingPatron && showPatronSelect
-                                    "
-                                >
-                                    <template #no-options>
-                                        {{ $__("No items available.") }}
-                                    </template>
-                                    <template #spinner>
-                                        <span class="sr-only">{{ $__("Loading...") }}</span>
-                                    </template>
-                                </v-select>
-                                <span
-                                    v-if="constrainedFlags.bookableItems"
-                                    class="badge badge-warning ml-2"
-                                >
-                                    {{ $__("Options updated") }}
-                                    <span class="ml-1"
-                                        >({{
-                                            bookableItemsTotal -
-                                            bookableItemsFilteredOut
-                                        }}/{{ bookableItemsTotal }})</span
-                                    >
-                                </span>
-                            </div>
-                        </fieldset>
+                        <!-- Details Selection Step -->
+                        <BookingDetailsStep
+                            v-if="showItemDetailsSelects || showPickupLocationSelect"
+                            :step-number="stepNumber.details"
+                            :show-item-details-selects="showItemDetailsSelects"
+                            :show-pickup-location-select="showPickupLocationSelect"
+                            :selected-patron="bookingPatron"
+                            :patron-required="showPatronSelect"
+                            v-model:pickup-library-id="bookingPickupLibraryId"
+                            v-model:itemtype-id="bookingItemtypeId"
+                            v-model:item-id="bookingItemId"
+                            :constrained-pickup-locations="constrainedPickupLocations"
+                            :constrained-item-types="constrainedItemTypes"
+                            :constrained-bookable-items="constrainedBookableItems"
+                            :constrained-flags="constrainedFlags"
+                            :pickup-locations-total="pickupLocationsTotal"
+                            :pickup-locations-filtered-out="pickupLocationsFilteredOut"
+                            :bookable-items-total="bookableItemsTotal"
+                            :bookable-items-filtered-out="bookableItemsFilteredOut"
+                            :loading="loading"
+                        />
                         <hr
                             v-if="
                                 showItemDetailsSelects ||
                                 showPickupLocationSelect
                             "
                         />
-                        <fieldset class="step-block">
-                            <legend class="step-header">
-                                {{ stepNumber.period }}.
-                                {{ $__("Select Booking Period") }}
-                            </legend>
-                            <div class="form-group">
-                                <label for="booking_period">{{
-                                    $__("Booking period")
-                                }}</label>
-                                <div class="booking-date-picker">
-                                    <flat-pickr
-                                        v-model="dateRange"
-                                        class="booking-flatpickr-input form-control"
-                                        :config="flatpickrConfig"
-                                    />
-                                    <div class="booking-date-picker-append">
-                                        <button
-                                            type="button"
-                                            class="btn btn-outline-secondary"
-                                            :disabled="!dateRange || dateRange.length === 0"
-                                            @click="clearDateRange"
-                                            :title="
-                                                $__('Clear selected dates')
-                                            "
-                                        >
-                                            <i class="fa fa-times" aria-hidden="true"></i>
-                                            <span class="sr-only">{{ $__("Clear selected dates") }}</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div
-                                v-if="dateRangeConstraint && maxBookingPeriod"
-                                class="alert alert-info booking-constraint-info"
-                            >
-                                <small>
-                                    <strong>{{
-                                        $__("Booking constraint active:")
-                                    }}</strong>
-                                    {{
-                                        dateRangeConstraint === "issuelength"
-                                            ? $__(
-                                                  "Booking period limited to issue length (%s days)"
-                                              ).format(maxBookingPeriod)
-                                            : dateRangeConstraint ===
-                                              "issuelength_with_renewals"
-                                            ? $__(
-                                                  "Booking period limited to issue length with renewals (%s days)"
-                                              ).format(maxBookingPeriod)
-                                            : $__(
-                                                  "Booking period limited by circulation rules (%s days)"
-                                              ).format(maxBookingPeriod)
-                                    }}
-                                </small>
-                            </div>
-                            <div class="calendar-legend">
-                                <span
-                                    class="booking-marker-dot booking-marker-dot--booked"
-                                ></span>
-                                {{ $__("Booked") }}
-                                <span
-                                    class="booking-marker-dot booking-marker-dot--lead ml-3"
-                                ></span>
-                                {{ $__("Lead Period") }}
-                                <span
-                                    class="booking-marker-dot booking-marker-dot--trail ml-3"
-                                ></span>
-                                {{ $__("Trail Period") }}
-                                <span
-                                    class="booking-marker-dot booking-marker-dot--checked-out ml-3"
-                                ></span>
-                                {{ $__("Checked Out") }}
-                                <span
-                                    v-if="
-                                        dateRangeConstraint &&
-                                        dateRange &&
-                                        dateRange.length === 1
-                                    "
-                                    class="booking-marker-dot ml-3"
-                                    style="background-color: #28a745"
-                                ></span>
-                                <span
-                                    v-if="
-                                        dateRangeConstraint &&
-                                        dateRange &&
-                                        dateRange.length === 1
-                                    "
-                                    class="ml-1"
-                                >
-                                    {{ $__("Required end date") }}
-                                </span>
-                            </div>
-                        </fieldset>
+                        <!-- Period Selection Step -->
+                        <BookingPeriodStep
+                            v-model="dateRange"
+                            :step-number="stepNumber.period"
+                            :flatpickr-config="flatpickrConfig"
+                            :date-range-constraint="dateRangeConstraint"
+                            :max-booking-period="maxBookingPeriod"
+                            :error-message="errorMessage"
+                            @clear-dates="clearDateRange"
+                        />
                         <hr
                             v-if="showAdditionalFields && hasAdditionalFields"
                         />
-                        <fieldset
-                            v-if="showAdditionalFields && hasAdditionalFields"
-                            class="step-block"
-                        >
-                            <legend class="step-header">
-                                {{ stepNumber.additionalFields }}.
-                                {{ $__("Additional Fields") }}
-                            </legend>
-                            <ul
-                                id="booking_extended_attributes"
-                                class="booking-extended-attributes"
-                            ></ul>
-                        </fieldset>
-                        <div
-                            v-if="errorMessage"
-                            class="alert alert-danger mt-2"
-                        >
-                            {{ errorMessage }}
-                        </div>
+                        <!-- Additional Fields Step -->
+                        <BookingAdditionalFields
+                            v-if="showAdditionalFields"
+                            :step-number="stepNumber.additionalFields"
+                            :has-fields="hasAdditionalFields"
+                            :extended-attributes="extendedAttributes"
+                            :extended-attribute-types="extendedAttributeTypes"
+                            :authorized-values="authorizedValues"
+                            @fields-ready="onAdditionalFieldsReady"
+                            @fields-destroyed="onAdditionalFieldsDestroyed"
+                        />
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -344,10 +124,12 @@
 
 <script>
 import dayjs from "../../utils/dayjs.mjs";
-import { computed, ref, watch, watchEffect, nextTick } from "vue";
-import flatPickr from "vue-flatpickr-component";
-import vSelect from "vue-select";
+import { computed, ref, watch, watchEffect, nextTick, onUnmounted } from "vue";
 import BookingTooltip from "./BookingTooltip.vue";
+import BookingPatronStep from "./BookingPatronStep.vue";
+import BookingDetailsStep from "./BookingDetailsStep.vue";
+import BookingPeriodStep from "./BookingPeriodStep.vue";
+import BookingAdditionalFields from "./BookingAdditionalFields.vue";
 import { $__ } from "../../i18n";
 import { processApiError } from "../../utils/apiErrors.js";
 import {
@@ -368,16 +150,16 @@ import {
     preloadFlatpickrLocale,
 } from "./bookingCalendar.js";
 import { createBookingServices } from "./BookingModalService.mjs";
-import PatronSearchSelect from "./PatronSearchSelect.vue";
 
 
 export default {
     name: "BookingModal",
     components: {
-        vSelect,
-        flatPickr,
         BookingTooltip,
-        PatronSearchSelect,
+        BookingPatronStep,
+        BookingDetailsStep,
+        BookingPeriodStep,
+        BookingAdditionalFields,
     },
     props: {
         open: { type: Boolean, default: false },
@@ -583,17 +365,18 @@ export default {
         );
 
         const computedAvailabilityData = computed(() => {
-            // CRITICAL FIX: Wait for data to load before calculating availability
+            // CRITICAL FIX: Proper loading states for calendar availability
             // This prevents race condition where modal opens before store is populated
-            if (!store.bookableItems || store.bookableItems.length === 0) {
+            if (!store.bookableItems || store.bookableItems.length === 0 || store.loading.bookableItems) {
                 console.debug("BookingModal: Waiting for bookableItems to load...", {
                     bookableItems: store.bookableItems?.length || 0,
                     bookings: store.bookings?.length || 0,
-                    checkouts: store.checkouts?.length || 0
+                    checkouts: store.checkouts?.length || 0,
+                    loading: store.loading.bookableItems
                 });
-                // Return a permissive default while data loads
+                // Return restrictive default while data loads to prevent invalid selections
                 return {
-                    disable: () => false,
+                    disable: () => true, // Disable all dates while loading
                     unavailableByDate: {}
                 };
             }
@@ -865,33 +648,46 @@ export default {
         );
 
         /**
-         * @param additionalFieldsModule
+         * Handle additional fields initialization
          */
         async function renderExtendedAttributes(additionalFieldsModule) {
-            additionalFieldsInstance.value = additionalFieldsModule.init({
-                containerId: "booking_extended_attributes",
-                resourceType: "booking",
-            });
+            try {
+                additionalFieldsInstance.value = additionalFieldsModule.init({
+                    containerId: "booking_extended_attributes",
+                    resourceType: "booking",
+                });
 
-            const additionalFieldTypes =
-                props.extendedAttributeTypes ??
-                (await additionalFieldsInstance.value.fetchExtendedAttributes(
-                    "booking"
-                ));
-            if (!additionalFieldTypes?.length) {
+                const additionalFieldTypes =
+                    props.extendedAttributeTypes ??
+                    (await additionalFieldsInstance.value.fetchExtendedAttributes(
+                        "booking"
+                    ));
+                if (!additionalFieldTypes?.length) {
+                    hasAdditionalFields.value = false;
+                    return;
+                }
+
+                hasAdditionalFields.value = true;
+
+                nextTick(() => {
+                    additionalFieldsInstance.value.renderExtendedAttributes(
+                        additionalFieldTypes,
+                        props.extendedAttributes,
+                        props.authorizedValues
+                    );
+                });
+            } catch (error) {
+                console.error("Failed to render extended attributes:", error);
                 hasAdditionalFields.value = false;
-                return;
             }
+        }
 
-            hasAdditionalFields.value = true;
+        function onAdditionalFieldsReady(instance) {
+            additionalFieldsInstance.value = instance;
+        }
 
-            nextTick(() => {
-                additionalFieldsInstance.value.renderExtendedAttributes(
-                    additionalFieldTypes,
-                    props.extendedAttributes,
-                    props.authorizedValues
-                );
-            });
+        function onAdditionalFieldsDestroyed() {
+            additionalFieldsInstance.value = null;
         }
 
         function enableBodyScroll() {
@@ -1006,9 +802,16 @@ export default {
             }
         }
 
-        function goToStep(targetStep) {
-            step.value = targetStep;
-        }
+        // Cleanup function for proper memory management
+        onUnmounted(() => {
+            if (flatpickrInstance.value?.fp) {
+                flatpickrInstance.value.fp.destroy();
+            }
+            if (additionalFieldsInstance.value && typeof additionalFieldsInstance.value.destroy === 'function') {
+                additionalFieldsInstance.value.destroy();
+            }
+            enableBodyScroll();
+        });
 
         return {
             isOpen,
@@ -1017,12 +820,10 @@ export default {
             isFormSubmission,
             errorMessage,
             loading,
-            patronOptions,
             flatpickrConfig,
             dateRange,
             store,
             step,
-            goToStep,
             constrainedPickupLocations,
             constrainedItemTypes,
             constrainedBookableItems,
@@ -1048,6 +849,8 @@ export default {
             bookingItemtypeId,
             bookingItemId,
             bookingPickupLibraryId,
+            onAdditionalFieldsReady,
+            onAdditionalFieldsDestroyed,
         };
     },
 };
