@@ -61,14 +61,19 @@ export default {
                     extendedAttributesContainer.value.innerHTML = '';
                 }
 
-                // Initialize the patron extended attributes handler
-                // This is typically done via a global function in Koha
-                if (window.patron_extended_attributes && props.extendedAttributeTypes) {
-                    additionalFieldsInstance.value = window.patron_extended_attributes(
-                        extendedAttributesContainer.value,
+                // Use AdditionalFields module for booking extended attributes
+                const additionalFieldsModule = window["AdditionalFields"];
+                if (additionalFieldsModule && props.extendedAttributeTypes) {
+                    additionalFieldsInstance.value = additionalFieldsModule.init({
+                        containerId: "booking_extended_attributes",
+                        resourceType: "booking",
+                    });
+
+                    // Render the extended attributes
+                    additionalFieldsInstance.value.renderExtendedAttributes(
                         props.extendedAttributeTypes,
-                        props.authorizedValues || {},
-                        props.extendedAttributes || []
+                        props.extendedAttributes || [],
+                        props.authorizedValues || {}
                     );
                     
                     emit("fields-ready", additionalFieldsInstance.value);
