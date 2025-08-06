@@ -24,7 +24,9 @@
                         class="btn btn-outline-secondary"
                         :disabled="!selectedDateRange || selectedDateRange.length === 0"
                         @click="clearDateRange"
-                        :title="$__('Clear selected dates')"
+                        :title="
+                            $__('Clear selected dates')
+                        "
                     >
                         <i class="fa fa-times" aria-hidden="true"></i>
                         <span class="sr-only">{{ $__("Clear selected dates") }}</span>

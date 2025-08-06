@@ -21,7 +21,9 @@
             }}</label>
             <v-select
                 v-model="selectedPickupLibraryId"
-                :placeholder="$__('Select a pickup location')"
+                :placeholder="
+                    $__('Select a pickup location')
+                "
                 :options="constrainedPickupLocations"
                 label="name"
                 :reduce="l => l.library_id"
@@ -37,10 +39,7 @@
                 </template>
             </v-select>
             <span
-                v-if="
-                    constrainedFlags.pickupLocations &&
-                    (showPickupLocationSelect || showItemDetailsSelects)
-                "
+                v-if="constrainedFlags.pickupLocations && (showPickupLocationSelect || showItemDetailsSelects)"
                 class="badge badge-warning ml-2"
             >
                 {{ $__("Options updated") }}
@@ -83,7 +82,9 @@
             }}</label>
             <v-select
                 v-model="selectedItemId"
-                :placeholder="$__('Any item')"
+                :placeholder="
+                    $__('Any item')
+                "
                 :options="constrainedBookableItems"
                 label="external_id"
                 :reduce="i => i.item_id"
@@ -210,7 +211,7 @@ export default {
     },
     emits: [
         "update:pickupLibraryId",
-        "update:itemtypeId", 
+        "update:itemtypeId",
         "update:itemId"
     ],
     setup(props, { emit }) {

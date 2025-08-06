@@ -6,8 +6,12 @@
         </legend>
         <PatronSearchSelect
             v-model="selectedPatron"
-            :label="$__('Patron')"
-            :placeholder="$__('Search for a patron')"
+            :label="
+                $__('Patron')
+            "
+            :placeholder="
+                $__('Search for a patron')
+            "
         >
             <template #no-options="{ hasSearched }">
                 {{ hasSearched ? $__("No patrons found.") : $__("Type to search for patrons.") }}

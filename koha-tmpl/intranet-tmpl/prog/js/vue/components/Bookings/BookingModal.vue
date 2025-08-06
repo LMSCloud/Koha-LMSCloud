@@ -27,7 +27,6 @@
                         method="post"
                         @submit.prevent="handleSubmit"
                     >
-                        <!-- Patron Selection Step -->
                         <BookingPatronStep
                             v-if="showPatronSelect"
                             v-model="bookingPatron"
@@ -40,7 +39,6 @@
                                 showPickupLocationSelect
                             "
                         />
-                        <!-- Details Selection Step -->
                         <BookingDetailsStep
                             v-if="showItemDetailsSelects || showPickupLocationSelect"
                             :step-number="stepNumber.details"
@@ -67,7 +65,6 @@
                                 showPickupLocationSelect
                             "
                         />
-                        <!-- Period Selection Step -->
                         <BookingPeriodStep
                             v-model="dateRange"
                             :step-number="stepNumber.period"
@@ -80,7 +77,6 @@
                         <hr
                             v-if="showAdditionalFields && modalState.hasAdditionalFields"
                         />
-                        <!-- Additional Fields Step -->
                         <BookingAdditionalFields
                             v-if="showAdditionalFields"
                             :step-number="stepNumber.additionalFields"
