@@ -80,7 +80,7 @@ export default {
 
         // Clean up additional fields
         const destroyAdditionalFields = () => {
-            if (additionalFieldsInstance.value && typeof additionalFieldsInstance.value.destroy === 'function') {
+            if (typeof additionalFieldsInstance.value?.destroy === 'function') {
                 try {
                     additionalFieldsInstance.value.destroy();
                     emit("fields-destroyed");

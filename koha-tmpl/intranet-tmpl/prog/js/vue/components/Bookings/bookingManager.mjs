@@ -475,7 +475,7 @@ function createDisableFunction(
         }
 
         // Guard clause: End date only mode - potential start date validation
-        if (isEndDateOnly && (!selectedDates || selectedDates.length === 0)) {
+        if (isEndDateOnly && (!selectedDates || selectedDates?.length === 0)) {
             if (
                 validateEndDateOnlyStartDate(
                     dayjs_date,
@@ -491,7 +491,7 @@ function createDisableFunction(
         }
 
         // Guard clause: End date only mode - intermediate date handling
-        if (isEndDateOnly && selectedDates && selectedDates.length === 1) {
+        if (isEndDateOnly && selectedDates?.length === 1) {
             const intermediateResult = handleEndDateOnlyIntermediateDates(
                 dayjs_date,
                 selectedDates,

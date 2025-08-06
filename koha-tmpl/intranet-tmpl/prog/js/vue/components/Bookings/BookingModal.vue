@@ -619,7 +619,7 @@ export default {
 
         // Watch for dateRange changes to trigger constraint highlighting for pre-filled dates
         watch(dateRange, (newValue) => {
-            if (flatpickrInstance.value && newValue && newValue.length > 0) {
+            if (flatpickrInstance.value && newValue?.length > 0) {
                 // Trigger the onChange handler to set up constraint highlighting
                 const dates = Array.isArray(newValue) ? newValue : [newValue];
                 const dateObjects = dates.map(d => new Date(d));
@@ -656,7 +656,7 @@ export default {
                             !store.loading.checkouts &&
                             store.bookableItems?.length > 0;
 
-            const hasSelectedDate = store.selectedDateRange && store.selectedDateRange.length === 1;
+            const hasSelectedDate = store.selectedDateRange?.length === 1;
             const hasFlatpickr = !!flatpickrInstance.value;
 
             if (dataReady && hasFlatpickr && hasSelectedDate) {
@@ -721,7 +721,7 @@ export default {
 
         // Watch for selected date changes
         watch(() => store.selectedDateRange, (newDates, oldDates) => {
-            if (newDates && newDates.length === 1) {
+            if (newDates?.length === 1) {
                 // Date was just selected
                 nextTick(() => {
                     tryApplyHighlighting();
@@ -778,7 +778,7 @@ export default {
                     }
 
                     modalState.errorMessage = $__("No items are available for booking with the selected criteria (%s). Please adjust your selection.").format(selectionParts.join(", "));
-                } else if (modalState.errorMessage && modalState.errorMessage.includes($__("No items are available"))) {
+                } else if (modalState.errorMessage?.includes($__("No items are available"))) {
                     // Clear the error message if items become available again
                     modalState.errorMessage = "";
                 }
@@ -946,7 +946,7 @@ export default {
             if (flatpickrInstance.value?.fp) {
                 flatpickrInstance.value.fp.destroy();
             }
-            if (additionalFieldsInstance.value && typeof additionalFieldsInstance.value.destroy === 'function') {
+            if (typeof additionalFieldsInstance.value?.destroy === 'function') {
                 additionalFieldsInstance.value.destroy();
             }
             enableBodyScroll();
