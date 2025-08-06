@@ -2,7 +2,7 @@ use Modern::Perl;
 use Koha::Installer::Output qw(say_warning say_failure say_success say_info);
 
 return {
-    bug_number  => "XXXXX",
+    bug_number  => "CHANGME",
     description => "Add OPACBookingConstraintMode system preference",
     up          => sub {
         my ($args) = @_;
