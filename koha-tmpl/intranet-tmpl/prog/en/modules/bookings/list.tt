@@ -98,7 +98,7 @@
     var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
     </script>
     
-    [% INCLUDE 'bookings-common.inc' %]
+    [% Asset.js("js/bookings-common.js") | $raw %]
     
 <script>
     var cancel_success = 0;

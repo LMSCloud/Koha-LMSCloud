@@ -59,6 +59,7 @@
 <!-- /.main.container-fluid -->
 
 [% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'js-biblio-format.inc' %]
     [% INCLUDE 'js-date-format.inc' %]
@@ -71,9 +72,28 @@
     [% SET libraries = Branches.all %]
     <script>
     var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
+    
+    // Global filter arrays for column filtering (must be const variables in global scope)
+    const getLibraryOptions = BOOKINGS_LIBRARIES_DATA.map(e => ({
+        '_id': e.branchcode,
+        '_str': e.branchname
+    }));
+    
+    const getStatusOptions = [
+        { '_id': 'new', '_str': _('New') },
+        { '_id': 'pending', '_str': _('Pending') },
+        { '_id': 'active', '_str': _('Active') },
+        { '_id': 'expired', '_str': _('Expired') },
+        { '_id': 'cancelled', '_str': _('Cancelled') },
+        { '_id': 'completed', '_str': _('Completed') }
+    ];
+    
+    // Initialize empty arrays for dynamic filter options (will be populated from table data)
+    let getLocationOptions = [];
+    let getItemTypeOptions = [];
     </script>
     
-    [% INCLUDE 'bookings-common.inc' %]
+    [% Asset.js("js/bookings-common.js") | $raw %]
     
     <script>
         let cancel_success = false;
