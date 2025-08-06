@@ -46,7 +46,6 @@ export function applyCalendarHighlighting(instance, highlightingData) {
         return;
     }
 
-
     // Store data for reuse (e.g., after month navigation)
     instance._constraintHighlighting = highlightingData;
 
@@ -122,6 +121,7 @@ export function applyCalendarHighlighting(instance, highlightingData) {
             highlightedCount,
             blockedCount,
             retryCount,
+            constraintMode: highlightingData.constraintMode,
         });
 
         // Apply click prevention for blocked dates
@@ -132,15 +132,23 @@ export function applyCalendarHighlighting(instance, highlightingData) {
                 dayElements,
                 highlightingData.targetEndDate
             );
-            
+
             // Re-apply highlighting for target end date after our modifications
             const targetEndElem = Array.from(dayElements).find(
-                elem => elem.dateObj && elem.dateObj.getTime() === highlightingData.targetEndDate.getTime()
+                elem =>
+                    elem.dateObj &&
+                    elem.dateObj.getTime() ===
+                        highlightingData.targetEndDate.getTime()
             );
-            if (targetEndElem && !targetEndElem.classList.contains("flatpickr-disabled")) {
+            if (
+                targetEndElem &&
+                !targetEndElem.classList.contains("flatpickr-disabled")
+            ) {
                 // Ensure the target end date has proper highlighting
                 targetEndElem.classList.add("booking-constrained-range-marker");
-                logger.debug("Re-applied highlighting to target end date after availability fix");
+                logger.debug(
+                    "Re-applied highlighting to target end date after availability fix"
+                );
             }
         }
 
@@ -158,11 +166,14 @@ export function applyCalendarHighlighting(instance, highlightingData) {
  */
 function fixTargetEndDateAvailability(instance, dayElements, targetEndDate) {
     // Ensure dayElements is array-like before processing
-    if (!dayElements || (typeof dayElements.length !== 'number')) {
-        logger.warn("Invalid dayElements passed to fixTargetEndDateAvailability", dayElements);
+    if (!dayElements || typeof dayElements.length !== "number") {
+        logger.warn(
+            "Invalid dayElements passed to fixTargetEndDateAvailability",
+            dayElements
+        );
         return;
     }
-    
+
     const targetEndElem = Array.from(dayElements).find(
         elem =>
             elem.dateObj && elem.dateObj.getTime() === targetEndDate.getTime()
@@ -192,9 +203,9 @@ function fixTargetEndDateAvailability(instance, dayElements, targetEndDate) {
         targetEndElem.classList.remove("flatpickr-disabled", "notAllowed");
         targetEndElem.removeAttribute("tabindex");
         targetEndElem.classList.add("booking-override-allowed");
-        
+
         logger.debug("Applied fix for target end date availability", {
-            finalClasses: Array.from(targetEndElem.classList)
+            finalClasses: Array.from(targetEndElem.classList),
         });
     }
 }
@@ -419,16 +430,28 @@ export class FlatpickrEventHandlers {
             highlightingData.targetEndDate
         );
 
-        if (navigationInfo.shouldNavigate) {
+        if (navigationInfo.shouldNavigate && navigationInfo.targetDate) {
             logger.debug("Navigating calendar", navigationInfo);
 
             setTimeout(() => {
-                if (instance && instance.jumpToDate) {
-                    instance.jumpToDate(navigationInfo.targetDate);
-                } else if (instance && instance.changeMonth) {
-                    instance.changeMonth(
-                        navigationInfo.targetMonth,
-                        navigationInfo.targetYear
+                // Validate the target date before trying to jump
+                if (
+                    instance &&
+                    navigationInfo.targetDate &&
+                    !isNaN(navigationInfo.targetDate.getTime())
+                ) {
+                    if (instance.jumpToDate) {
+                        instance.jumpToDate(navigationInfo.targetDate);
+                    } else if (instance.changeMonth) {
+                        instance.changeMonth(
+                            navigationInfo.targetMonth,
+                            navigationInfo.targetYear
+                        );
+                    }
+                } else {
+                    logger.warn(
+                        "Invalid navigation target date",
+                        navigationInfo
                     );
                 }
             }, 100);

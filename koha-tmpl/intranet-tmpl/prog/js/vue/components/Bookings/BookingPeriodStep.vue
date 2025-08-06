@@ -12,9 +12,11 @@
             }}</label>
             <div class="booking-date-picker">
                 <flat-pickr
+                    ref="flatpickrRef"
                     v-model="selectedDateRange"
                     class="booking-flatpickr-input form-control"
                     :config="flatpickrConfig"
+                    @on-change="onFlatpickrChange"
                 />
                 <div class="booking-date-picker-append">
                     <button
@@ -146,6 +148,10 @@ export default {
             emit("clear-dates");
         };
 
+        const onFlatpickrChange = (selectedDates, dateStr) => {
+            // This is handled by the v-model binding
+        };
+
         // Cleanup event listeners when component is unmounted
         onUnmounted(() => {
             if (flatpickrRef.value?.fp) {
@@ -157,6 +163,7 @@ export default {
             selectedDateRange,
             clearDateRange,
             flatpickrRef,
+            onFlatpickrChange,
         };
     },
 };

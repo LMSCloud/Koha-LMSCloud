@@ -380,7 +380,7 @@ export default {
         const computedAvailabilityData = computed(() => {
             // CRITICAL FIX: Proper loading states for calendar availability
             // This prevents race condition where modal opens before store is populated
-            if (!store.bookableItems || store.bookableItems.length === 0 || 
+            if (!store.bookableItems || store.bookableItems.length === 0 ||
                 store.loading.bookableItems || store.loading.bookings || store.loading.checkouts) {
                 // Return restrictive default while data loads to prevent invalid selections
                 return {
@@ -430,8 +430,8 @@ export default {
 
         // Prevent calendar interaction until all data is loaded to avoid race conditions
         const isCalendarReady = computed(() => {
-            return !store.loading.bookableItems && 
-                   !store.loading.bookings && 
+            return !store.loading.bookableItems &&
+                   !store.loading.bookings &&
                    !store.loading.checkouts &&
                    store.bookableItems?.length > 0;
         });
@@ -450,7 +450,7 @@ export default {
                 mode: "range",
                 minDate: "today",
                 disable: [availability.disable],
-                clickOpens: isCalendarReady.value,
+                clickOpens: true, // Always allow calendar to open
                 dateFormat: "Y-m-d",
                 wrap: false,
                 allowInput: false,
@@ -497,7 +497,14 @@ export default {
                         set value(val) { tooltipState.visible = val; }
                     }
                 ),
-                onFlatpickrReady: createOnFlatpickrReady(flatpickrInstance),
+                onReady: function(...args) {
+                    // Call the original onReady handler
+                    createOnFlatpickrReady(flatpickrInstance)(...args);
+                    // Then try to apply highlighting
+                    nextTick(() => {
+                        tryApplyHighlighting();
+                    });
+                },
             };
 
             return createFlatpickrConfig(baseConfig);
@@ -619,13 +626,70 @@ export default {
 
                 // Wait for next tick to ensure flatpickr has processed the date change
                 nextTick(() => {
-                    if (flatpickrInstance.value && flatpickrInstance.value.config && flatpickrInstance.value.config.onChange) {
+                    if (flatpickrInstance.value) {
                         // Manually trigger onChange to set up constraint highlighting
-                        flatpickrInstance.value.config.onChange(dateObjects, '', flatpickrInstance.value);
+                        const onChangeHandler = createOnChange(
+                            store,
+                            {
+                                get value() { return modalState.errorMessage; },
+                                set value(val) { modalState.errorMessage = val; }
+                            },
+                            {
+                                get value() { return tooltipState.visible; },
+                                set value(val) { tooltipState.visible = val; }
+                            },
+                            {
+                                dateRangeConstraint: props.dateRangeConstraint,
+                                maxBookingPeriod: maxBookingPeriod.value,
+                            }
+                        );
+                        onChangeHandler(dateObjects, '', flatpickrInstance.value);
                     }
                 });
             }
         });
+
+        // Helper function to check if we should trigger highlighting
+        const tryApplyHighlighting = () => {
+            const dataReady = !store.loading.bookableItems &&
+                            !store.loading.bookings &&
+                            !store.loading.checkouts &&
+                            store.bookableItems?.length > 0;
+
+            const hasSelectedDate = store.selectedDateRange && store.selectedDateRange.length === 1;
+            const hasFlatpickr = !!flatpickrInstance.value;
+
+            if (dataReady && hasFlatpickr && hasSelectedDate) {
+                // Check if we already have highlighting data stored
+                if (flatpickrInstance.value._constraintHighlighting) {
+                    applyCalendarHighlighting(
+                        flatpickrInstance.value,
+                        flatpickrInstance.value._constraintHighlighting
+                    );
+                } else {
+                    // Generate new highlighting by manually calling the onChange handler
+                    // The onChange handler is stored in the hooks, not in config
+                    const onChangeHandler = createOnChange(
+                        store,
+                        {
+                            get value() { return modalState.errorMessage; },
+                            set value(val) { modalState.errorMessage = val; }
+                        },
+                        {
+                            get value() { return tooltipState.visible; },
+                            set value(val) { tooltipState.visible = val; }
+                        },
+                        {
+                            dateRangeConstraint: props.dateRangeConstraint,
+                            maxBookingPeriod: maxBookingPeriod.value,
+                        }
+                    );
+
+                    const dateObjects = [new Date(store.selectedDateRange[0])];
+                    onChangeHandler(dateObjects, '', flatpickrInstance.value);
+                }
+            }
+        };
 
         // Watch for all loading states to re-trigger highlighting when ALL data is loaded
         watch(
@@ -633,34 +697,37 @@ export default {
                 bookableItemsLoading: store.loading.bookableItems,
                 bookingsLoading: store.loading.bookings,
                 checkoutsLoading: store.loading.checkouts,
-                hasBookableItems: store.bookableItems?.length > 0
+                hasBookableItems: store.bookableItems?.length > 0,
+                hasFlatpickr: !!flatpickrInstance.value
             }),
             (newState, oldState) => {
-                // Check if ALL loading states transitioned from loading to loaded
-                const wasAnyLoading = oldState?.bookableItemsLoading || oldState?.bookingsLoading || oldState?.checkoutsLoading;
-                const isNowAllLoaded = !newState.bookableItemsLoading && !newState.bookingsLoading && !newState.checkoutsLoading && newState.hasBookableItems;
-                
-                if (wasAnyLoading && isNowAllLoaded && flatpickrInstance.value) {
-                    console.debug("BookingModal: ALL data finished loading, re-triggering highlighting", {
-                        oldState,
-                        newState
-                    });
-                    nextTick(() => {
-                        // Directly re-apply highlighting if there's stored highlighting data
-                        if (flatpickrInstance.value._constraintHighlighting) {
-                            console.debug("Manually re-applying highlighting with stored data");
-                            applyCalendarHighlighting(
-                                flatpickrInstance.value, 
-                                flatpickrInstance.value._constraintHighlighting
-                            );
-                        } else {
-                            console.debug("No stored highlighting data found on flatpickr instance");
-                        }
-                    });
-                }
+                // Try to apply highlighting whenever state changes
+                nextTick(() => {
+                    tryApplyHighlighting();
+                });
             },
             { deep: true }
         );
+
+        // Also watch flatpickrInstance separately to catch when it becomes available
+        watch(flatpickrInstance, (newInstance, oldInstance) => {
+            if (newInstance && !oldInstance) {
+                // Flatpickr just became available
+                nextTick(() => {
+                    tryApplyHighlighting();
+                });
+            }
+        });
+
+        // Watch for selected date changes
+        watch(() => store.selectedDateRange, (newDates, oldDates) => {
+            if (newDates && newDates.length === 1) {
+                // Date was just selected
+                nextTick(() => {
+                    tryApplyHighlighting();
+                });
+            }
+        }, { deep: true });
 
         watch(
             [() => bookingPatron.value, () => store.pickupLocations],
