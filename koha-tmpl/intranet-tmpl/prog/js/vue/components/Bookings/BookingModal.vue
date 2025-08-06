@@ -5,7 +5,10 @@
         tabindex="-1"
         role="dialog"
     >
-        <div class="modal-dialog booking-modal-window booking-modal" role="document">
+        <div
+            class="modal-dialog booking-modal-window booking-modal"
+            role="document"
+        >
             <div class="modal-content">
                 <div class="booking-modal-header">
                     <h5 class="booking-modal-title">
@@ -40,23 +43,36 @@
                             "
                         />
                         <BookingDetailsStep
-                            v-if="showItemDetailsSelects || showPickupLocationSelect"
+                            v-if="
+                                showItemDetailsSelects ||
+                                showPickupLocationSelect
+                            "
                             :step-number="stepNumber.details"
                             :show-item-details-selects="showItemDetailsSelects"
-                            :show-pickup-location-select="showPickupLocationSelect"
+                            :show-pickup-location-select="
+                                showPickupLocationSelect
+                            "
                             :selected-patron="bookingPatron"
                             :patron-required="showPatronSelect"
                             v-model:pickup-library-id="bookingPickupLibraryId"
                             v-model:itemtype-id="bookingItemtypeId"
                             v-model:item-id="bookingItemId"
-                            :constrained-pickup-locations="constrainedPickupLocations"
+                            :constrained-pickup-locations="
+                                constrainedPickupLocations
+                            "
                             :constrained-item-types="constrainedItemTypes"
-                            :constrained-bookable-items="constrainedBookableItems"
+                            :constrained-bookable-items="
+                                constrainedBookableItems
+                            "
                             :constrained-flags="constrainedFlags"
                             :pickup-locations-total="pickupLocationsTotal"
-                            :pickup-locations-filtered-out="pickupLocationsFilteredOut"
+                            :pickup-locations-filtered-out="
+                                pickupLocationsFilteredOut
+                            "
                             :bookable-items-total="bookableItemsTotal"
-                            :bookable-items-filtered-out="bookableItemsFilteredOut"
+                            :bookable-items-filtered-out="
+                                bookableItemsFilteredOut
+                            "
                             :loading="loading"
                         />
                         <hr
@@ -66,16 +82,21 @@
                             "
                         />
                         <BookingPeriodStep
-                            v-model="dateRange"
                             :step-number="stepNumber.period"
                             :flatpickr-config="flatpickrConfig"
                             :date-range-constraint="dateRangeConstraint"
                             :max-booking-period="maxBookingPeriod"
                             :error-message="modalState.errorMessage"
+                            :has-selected-dates="
+                                store.selectedDateRange?.length > 0
+                            "
                             @clear-dates="clearDateRange"
                         />
                         <hr
-                            v-if="showAdditionalFields && modalState.hasAdditionalFields"
+                            v-if="
+                                showAdditionalFields &&
+                                modalState.hasAdditionalFields
+                            "
                         />
                         <BookingAdditionalFields
                             v-if="showAdditionalFields"
@@ -120,7 +141,15 @@
 
 <script>
 import dayjs from "../../utils/dayjs.mjs";
-import { computed, ref, reactive, watch, watchEffect, nextTick, onUnmounted } from "vue";
+import {
+    computed,
+    ref,
+    reactive,
+    watch,
+    watchEffect,
+    nextTick,
+    onUnmounted,
+} from "vue";
 import BookingTooltip from "./BookingTooltip.vue";
 import BookingPatronStep from "./BookingPatronStep.vue";
 import BookingDetailsStep from "./BookingDetailsStep.vue";
@@ -147,7 +176,6 @@ import {
     preloadFlatpickrLocale,
 } from "./bookingCalendar.js";
 import { createBookingServices } from "./BookingModalService.mjs";
-
 
 export default {
     name: "BookingModal",
@@ -232,7 +260,6 @@ export default {
         const constrainedFlagsRef = ref(constrainedFlags);
 
         // Refs for specific instances and external library integration
-        const dateRange = ref([]);
         const loading = store.loading;
         const flatpickrInstance = ref(null);
         const additionalFieldsInstance = ref(null);
@@ -242,7 +269,6 @@ export default {
                 props.title ||
                 (store.bookingId ? $__("Edit booking") : $__("Place booking"))
         );
-
 
         const stepNumber = computed(() => {
             let currentStep = 1;
@@ -376,14 +402,22 @@ export default {
         const computedAvailabilityData = computed(() => {
             // CRITICAL FIX: Proper loading states for calendar availability
             // This prevents race condition where modal opens before store is populated
-            if (!store.bookableItems || store.bookableItems.length === 0 ||
-                store.loading.bookableItems || store.loading.bookings || store.loading.checkouts) {
+            if (
+                !store.bookableItems ||
+                store.bookableItems.length === 0 ||
+                store.loading.bookableItems ||
+                store.loading.bookings ||
+                store.loading.checkouts
+            ) {
                 // Return restrictive default while data loads to prevent invalid selections
                 return {
                     disable: () => true, // Disable all dates while loading
-                    unavailableByDate: {}
+                    unavailableByDate: {},
                 };
             }
+
+            // Use store.selectedDateRange (maintained by altInput solution)
+            const currentSelectedDates = store.selectedDateRange || [];
 
             const baseRules = store.circulationRules[0] || {};
 
@@ -393,19 +427,10 @@ export default {
                 effectiveRules.maxPeriod = maxBookingPeriod.value;
             }
 
-            // Convert dateRange.value to proper selectedDates array for calculateDisabledDates
-            let selectedDatesArray = [];
-            if (typeof dateRange.value === "string") {
-                // Parse the string format back to Date array
-                if (dateRange.value.includes(" to ")) {
-                    const [start, end] = dateRange.value.split(" to ");
-                    selectedDatesArray = [new Date(start), new Date(end)];
-                } else if (dateRange.value) {
-                    selectedDatesArray = [new Date(dateRange.value)];
-                }
-            } else if (Array.isArray(dateRange.value)) {
-                selectedDatesArray = dateRange.value.map(d => new Date(d));
-            }
+            // Convert ISO strings to Date objects for calculateDisabledDates
+            const selectedDatesArray = (currentSelectedDates || []).map(
+                isoString => dayjs(isoString).toDate()
+            );
 
             const result = calculateDisabledDates(
                 store.bookings,
@@ -426,10 +451,24 @@ export default {
 
         // Prevent calendar interaction until all data is loaded to avoid race conditions
         const isCalendarReady = computed(() => {
-            return !store.loading.bookableItems &&
-                   !store.loading.bookings &&
-                   !store.loading.checkouts &&
-                   store.bookableItems?.length > 0;
+            const dataLoaded =
+                !store.loading.bookableItems &&
+                !store.loading.bookings &&
+                !store.loading.checkouts &&
+                store.bookableItems?.length > 0;
+
+            // Also require form validation (same as canProceedToStep3)
+            const formValid = !!(
+                bookingPatron.value &&
+                (bookingItemId.value ||
+                    bookingItemtypeId.value ||
+                    bookingPickupLibraryId.value)
+            );
+
+            // Check if the current selection results in any available items
+            const hasAvailableItems = constrainedBookableItems.value.length > 0;
+
+            return dataLoaded && formValid && hasAvailableItems;
         });
 
         const flatpickrConfig = computed(() => {
@@ -446,54 +485,96 @@ export default {
                 mode: "range",
                 minDate: "today",
                 disable: [availability.disable],
-                clickOpens: true, // Always allow calendar to open
-                dateFormat: "Y-m-d",
+                clickOpens: isCalendarReady.value,
+                // CLEAN SOLUTION: No v-model, no altInput, just direct onChange handling
+                dateFormat: window.flatpickr_dateformat_string || "d.m.Y", // Localized display
                 wrap: false,
                 allowInput: false,
-                altInput: false,
-                altInputClass: "booking-flatpickr-input",
-                onChange: createOnChange(
-                    store,
-                    {
-                        get value() { return modalState.errorMessage; },
-                        set value(val) { modalState.errorMessage = val; }
-                    },
-                    {
-                        get value() { return tooltipState.visible; },
-                        set value(val) { tooltipState.visible = val; }
-                    },
-                    constraintOptions
-                ),
+                // Handle everything through onChange - no Vue component interference
+                onChange: (selectedDates, dateStr, instance) => {
+                    // Store the ISO strings from Date objects (our source of truth)
+                    const isoDateRange = selectedDates.map(date =>
+                        dayjs(date).toISOString()
+                    );
+                    store.selectedDateRange = isoDateRange;
+
+                    // Call the original onChange logic for validation and highlighting
+                    const originalOnChange = createOnChange(
+                        store,
+                        {
+                            get value() {
+                                return modalState.errorMessage;
+                            },
+                            set value(val) {
+                                modalState.errorMessage = val;
+                            },
+                        },
+                        {
+                            get value() {
+                                return tooltipState.visible;
+                            },
+                            set value(val) {
+                                tooltipState.visible = val;
+                            },
+                        },
+                        constraintOptions
+                    );
+                    originalOnChange(selectedDates, dateStr, instance);
+                },
                 onDayCreate: createOnDayCreate(
                     store,
                     {
-                        get value() { return tooltipState.markers; },
-                        set value(val) { tooltipState.markers = val; }
+                        get value() {
+                            return tooltipState.markers;
+                        },
+                        set value(val) {
+                            tooltipState.markers = val;
+                        },
                     },
                     {
-                        get value() { return tooltipState.visible; },
-                        set value(val) { tooltipState.visible = val; }
+                        get value() {
+                            return tooltipState.visible;
+                        },
+                        set value(val) {
+                            tooltipState.visible = val;
+                        },
                     },
                     {
-                        get value() { return tooltipState.x; },
-                        set value(val) { tooltipState.x = val; }
+                        get value() {
+                            return tooltipState.x;
+                        },
+                        set value(val) {
+                            tooltipState.x = val;
+                        },
                     },
                     {
-                        get value() { return tooltipState.y; },
-                        set value(val) { tooltipState.y = val; }
+                        get value() {
+                            return tooltipState.y;
+                        },
+                        set value(val) {
+                            tooltipState.y = val;
+                        },
                     }
                 ),
                 onClose: createOnClose(
                     {
-                        get value() { return tooltipState.markers; },
-                        set value(val) { tooltipState.markers = val; }
+                        get value() {
+                            return tooltipState.markers;
+                        },
+                        set value(val) {
+                            tooltipState.markers = val;
+                        },
                     },
                     {
-                        get value() { return tooltipState.visible; },
-                        set value(val) { tooltipState.visible = val; }
+                        get value() {
+                            return tooltipState.visible;
+                        },
+                        set value(val) {
+                            tooltipState.visible = val;
+                        },
                     }
                 ),
-                onReady: function(...args) {
+                onReady: function (...args) {
                     // Call the original onReady handler
                     createOnFlatpickrReady(flatpickrInstance)(...args);
                     // Then try to apply highlighting
@@ -516,68 +597,71 @@ export default {
             }
         );
 
-        watch(() => modalState.isOpen, async open => {
-            if (open) {
-                disableBodyScroll();
-                // Preload the appropriate flatpickr locale
-                await preloadFlatpickrLocale();
-            } else {
-                enableBodyScroll();
-                return;
-            }
-
-            modalState.step = 1;
-            const biblionumber = props.biblionumber;
-            if (!biblionumber) return;
-
-            store.bookingId = props.bookingId;
-
-            try {
-                // Fetch core data first
-                await Promise.all([
-                    store.fetchBookableItems(biblionumber),
-                    store.fetchBookings(biblionumber),
-                    store.fetchCheckouts(biblionumber),
-                ]);
-
-                const additionalFieldsModule = window["AdditionalFields"];
-                if (additionalFieldsModule) {
-                    await renderExtendedAttributes(additionalFieldsModule);
+        watch(
+            () => modalState.isOpen,
+            async open => {
+                if (open) {
+                    disableBodyScroll();
+                    // Preload the appropriate flatpickr locale
+                    await preloadFlatpickrLocale();
                 } else {
-                    modalState.hasAdditionalFields = false;
+                    enableBodyScroll();
+                    return;
                 }
 
-                // Derive item types after bookable items are loaded
-                store.deriveItemTypesFromBookableItems();
+                modalState.step = 1;
+                const biblionumber = props.biblionumber;
+                if (!biblionumber) return;
 
-                // If editing with patron, fetch patron-specific data
-                if (props.patronId) {
-                    const patron = await store.fetchPatron(props.patronId);
-                    await store.fetchPickupLocations(
-                        biblionumber,
-                        props.patronId
-                    );
+                store.bookingId = props.bookingId;
 
-                    // Now set patron after data is available
-                    bookingPatron.value = patron;
+                try {
+                    // Fetch core data first
+                    await Promise.all([
+                        store.fetchBookableItems(biblionumber),
+                        store.fetchBookings(biblionumber),
+                        store.fetchCheckouts(biblionumber),
+                    ]);
+
+                    const additionalFieldsModule = window["AdditionalFields"];
+                    if (additionalFieldsModule) {
+                        await renderExtendedAttributes(additionalFieldsModule);
+                    } else {
+                        modalState.hasAdditionalFields = false;
+                    }
+
+                    // Derive item types after bookable items are loaded
+                    store.deriveItemTypesFromBookableItems();
+
+                    // If editing with patron, fetch patron-specific data
+                    if (props.patronId) {
+                        const patron = await store.fetchPatron(props.patronId);
+                        await store.fetchPickupLocations(
+                            biblionumber,
+                            props.patronId
+                        );
+
+                        // Now set patron after data is available
+                        bookingPatron.value = patron;
+                    }
+
+                    // Set other form values after all dependencies are loaded
+                    store.pickupLibraryId = props.pickupLibraryId;
+                    store.bookingItemId = props.itemId;
+                    store.bookingItemtypeId = props.itemtypeId;
+
+                    if (props.startDate && props.endDate) {
+                        store.selectedDateRange = [
+                            dayjs(props.startDate).toISOString(),
+                            dayjs(props.endDate).toISOString(),
+                        ];
+                    }
+                } catch (error) {
+                    console.error("Error initializing booking modal:", error);
+                    modalState.errorMessage = processApiError(error);
                 }
-
-                // Set other form values after all dependencies are loaded
-                store.pickupLibraryId = props.pickupLibraryId;
-                store.bookingItemId = props.itemId;
-                store.bookingItemtypeId = props.itemtypeId;
-
-                if (props.startDate && props.endDate) {
-                    dateRange.value = [
-                        new Date(props.startDate),
-                        new Date(props.endDate),
-                    ].map(d => d.getTime());
-                }
-            } catch (error) {
-                console.error("Error initializing booking modal:", error);
-                modalState.errorMessage = processApiError(error);
             }
-        });
+        );
 
         watch(
             () => computedAvailabilityData.value,
@@ -613,44 +697,13 @@ export default {
             { immediate: true }
         );
 
-        // Watch for dateRange changes to trigger constraint highlighting for pre-filled dates
-        watch(dateRange, (newValue) => {
-            if (flatpickrInstance.value && newValue?.length > 0) {
-                // Trigger the onChange handler to set up constraint highlighting
-                const dates = Array.isArray(newValue) ? newValue : [newValue];
-                const dateObjects = dates.map(d => new Date(d));
-
-                // Wait for next tick to ensure flatpickr has processed the date change
-                nextTick(() => {
-                    if (flatpickrInstance.value) {
-                        // Manually trigger onChange to set up constraint highlighting
-                        const onChangeHandler = createOnChange(
-                            store,
-                            {
-                                get value() { return modalState.errorMessage; },
-                                set value(val) { modalState.errorMessage = val; }
-                            },
-                            {
-                                get value() { return tooltipState.visible; },
-                                set value(val) { tooltipState.visible = val; }
-                            },
-                            {
-                                dateRangeConstraint: props.dateRangeConstraint,
-                                maxBookingPeriod: maxBookingPeriod.value,
-                            }
-                        );
-                        onChangeHandler(dateObjects, '', flatpickrInstance.value);
-                    }
-                });
-            }
-        });
-
         // Helper function to check if we should trigger highlighting
         const tryApplyHighlighting = () => {
-            const dataReady = !store.loading.bookableItems &&
-                            !store.loading.bookings &&
-                            !store.loading.checkouts &&
-                            store.bookableItems?.length > 0;
+            const dataReady =
+                !store.loading.bookableItems &&
+                !store.loading.bookings &&
+                !store.loading.checkouts &&
+                store.bookableItems?.length > 0;
 
             const hasSelectedDate = store.selectedDateRange?.length === 1;
             const hasFlatpickr = !!flatpickrInstance.value;
@@ -668,12 +721,20 @@ export default {
                     const onChangeHandler = createOnChange(
                         store,
                         {
-                            get value() { return modalState.errorMessage; },
-                            set value(val) { modalState.errorMessage = val; }
+                            get value() {
+                                return modalState.errorMessage;
+                            },
+                            set value(val) {
+                                modalState.errorMessage = val;
+                            },
                         },
                         {
-                            get value() { return tooltipState.visible; },
-                            set value(val) { tooltipState.visible = val; }
+                            get value() {
+                                return tooltipState.visible;
+                            },
+                            set value(val) {
+                                tooltipState.visible = val;
+                            },
                         },
                         {
                             dateRangeConstraint: props.dateRangeConstraint,
@@ -681,8 +742,10 @@ export default {
                         }
                     );
 
-                    const dateObjects = [new Date(store.selectedDateRange[0])];
-                    onChangeHandler(dateObjects, '', flatpickrInstance.value);
+                    const dateObjects = [
+                        dayjs(store.selectedDateRange[0]).toDate(),
+                    ];
+                    onChangeHandler(dateObjects, "", flatpickrInstance.value);
                 }
             }
         };
@@ -694,13 +757,28 @@ export default {
                 bookingsLoading: store.loading.bookings,
                 checkoutsLoading: store.loading.checkouts,
                 hasBookableItems: store.bookableItems?.length > 0,
-                hasFlatpickr: !!flatpickrInstance.value
+                hasFlatpickr: !!flatpickrInstance.value,
             }),
             (newState, oldState) => {
                 // Try to apply highlighting whenever state changes
                 nextTick(() => {
                     tryApplyHighlighting();
                 });
+            },
+            { deep: true }
+        );
+
+        // Watch for changes in flatpickr's selectedDates to debug Invalid Date issue
+        watch(
+            () => flatpickrInstance.value?.selectedDates,
+            (newDates, oldDates) => {
+                if (newDates) {
+                    const invalidDates = newDates.filter(
+                        date => !(date instanceof Date) || isNaN(date)
+                    );
+                    if (invalidDates.length > 0) {
+                    }
+                }
             },
             { deep: true }
         );
@@ -716,14 +794,18 @@ export default {
         });
 
         // Watch for selected date changes
-        watch(() => store.selectedDateRange, (newDates, oldDates) => {
-            if (newDates?.length === 1) {
-                // Date was just selected
-                nextTick(() => {
-                    tryApplyHighlighting();
-                });
-            }
-        }, { deep: true });
+        watch(
+            () => store.selectedDateRange,
+            (newDates, oldDates) => {
+                if (newDates?.length === 1) {
+                    // Date was just selected
+                    nextTick(() => {
+                        tryApplyHighlighting();
+                    });
+                }
+            },
+            { deep: true }
+        );
 
         watch(
             [() => bookingPatron.value, () => store.pickupLocations],
@@ -759,22 +841,49 @@ export default {
 
         // Watch for no available items scenario and show error message
         watch(
-            [constrainedBookableItems, () => bookingPatron.value, () => bookingPickupLibraryId.value, () => bookingItemtypeId.value],
+            [
+                constrainedBookableItems,
+                () => bookingPatron.value,
+                () => bookingPickupLibraryId.value,
+                () => bookingItemtypeId.value,
+            ],
             ([availableItems, patron, pickupLibraryId, itemtypeId]) => {
                 // Only show error if user has made selections that result in no items
-                if (patron && (pickupLibraryId || itemtypeId) && availableItems.length === 0) {
+                if (
+                    patron &&
+                    (pickupLibraryId || itemtypeId) &&
+                    availableItems.length === 0
+                ) {
                     const selectionParts = [];
                     if (pickupLibraryId) {
-                        const location = store.pickupLocations.find(l => l.library_id === pickupLibraryId);
-                        selectionParts.push($__("pickup location: %s").format(location?.name || pickupLibraryId));
+                        const location = store.pickupLocations.find(
+                            l => l.library_id === pickupLibraryId
+                        );
+                        selectionParts.push(
+                            $__("pickup location: %s").format(
+                                location?.name || pickupLibraryId
+                            )
+                        );
                     }
                     if (itemtypeId) {
-                        const itemType = store.itemTypes.find(t => t.item_type_id === itemtypeId);
-                        selectionParts.push($__("item type: %s").format(itemType?.description || itemtypeId));
+                        const itemType = store.itemTypes.find(
+                            t => t.item_type_id === itemtypeId
+                        );
+                        selectionParts.push(
+                            $__("item type: %s").format(
+                                itemType?.description || itemtypeId
+                            )
+                        );
                     }
 
-                    modalState.errorMessage = $__("No items are available for booking with the selected criteria (%s). Please adjust your selection.").format(selectionParts.join(", "));
-                } else if (modalState.errorMessage?.includes($__("No items are available"))) {
+                    modalState.errorMessage = $__(
+                        "No items are available for booking with the selected criteria (%s). Please adjust your selection."
+                    ).format(selectionParts.join(", "));
+                } else if (
+                    modalState.errorMessage?.includes(
+                        $__("No items are available")
+                    )
+                ) {
                     // Clear the error message if items become available again
                     modalState.errorMessage = "";
                 }
@@ -856,7 +965,7 @@ export default {
             bookingPickupLibraryId.value = null;
             bookingItemtypeId.value = null;
             bookingItemId.value = null;
-            dateRange.value = [];
+            store.selectedDateRange = [];
             modalState.step = 1;
             modalState.errorMessage = "";
             if (additionalFieldsInstance.value) {
@@ -872,7 +981,7 @@ export default {
                 flatpickrInstance.value.clear();
             }
             // Also clear the Vue reactive data
-            dateRange.value = [];
+            store.selectedDateRange = [];
             // Clear any error messages related to date selection
             modalState.errorMessage = "";
         }
@@ -885,7 +994,19 @@ export default {
         }
 
         async function handleSubmit(event) {
-            const [start, end] = parseDateRange(dateRange.value);
+            // Use store.selectedDateRange (clean ISO strings maintained by onChange handler)
+            const selectedDates = store.selectedDateRange;
+
+            if (!selectedDates || selectedDates.length === 0) {
+                modalState.errorMessage = $__(
+                    "Please select a valid date range"
+                );
+                return;
+            }
+
+            const start = selectedDates[0];
+            const end =
+                selectedDates.length >= 2 ? selectedDates[1] : selectedDates[0];
             const bookingData = {
                 booking_id: props.bookingId ?? undefined,
                 start_date: start,
@@ -942,7 +1063,7 @@ export default {
             if (flatpickrInstance.value?.fp) {
                 flatpickrInstance.value.fp.destroy();
             }
-            if (typeof additionalFieldsInstance.value?.destroy === 'function') {
+            if (typeof additionalFieldsInstance.value?.destroy === "function") {
                 additionalFieldsInstance.value.destroy();
             }
             enableBodyScroll();
@@ -957,7 +1078,6 @@ export default {
             tooltipState,
             loading,
             flatpickrConfig,
-            dateRange,
             store,
             constrainedPickupLocations,
             constrainedItemTypes,
@@ -1048,11 +1168,11 @@ export default {
     --booking-neutral-500: hsl(var(--booking-neutral-hue), 10%, 55%);
 
     /* Spacing Scale (first block only) */
-    --booking-space-sm: 0.25rem;   /* 4px */
-    --booking-space-md: 0.5rem;    /* 8px */
-    --booking-space-lg: 1rem;      /* 16px */
-    --booking-space-xl: 1.5rem;    /* 24px */
-    --booking-space-2xl: 2rem;     /* 32px */
+    --booking-space-sm: 0.25rem; /* 4px */
+    --booking-space-md: 0.5rem; /* 8px */
+    --booking-space-lg: 1rem; /* 16px */
+    --booking-space-xl: 1.5rem; /* 24px */
+    --booking-space-2xl: 2rem; /* 32px */
 
     /* Typography Scale (first block only) */
     --booking-text-sm: 0.8125rem;
@@ -1175,11 +1295,13 @@ hr {
 .booking-flatpickr-input,
 .flatpickr-input.booking-flatpickr-input {
     min-width: var(--booking-input-min-width);
-    padding: calc(var(--booking-space-md) - var(--booking-space-xs)) calc(var(--booking-space-md) + var(--booking-space-sm));
+    padding: calc(var(--booking-space-md) - var(--booking-space-xs))
+        calc(var(--booking-space-md) + var(--booking-space-sm));
     border: var(--booking-border-width) solid var(--booking-neutral-300);
     border-radius: var(--booking-border-radius-sm);
     font-size: var(--booking-text-base);
-    transition: border-color var(--booking-transition-fast), box-shadow var(--booking-transition-fast);
+    transition: border-color var(--booking-transition-fast),
+        box-shadow var(--booking-transition-fast);
 }
 
 /* Calendar Legend Component */
@@ -1332,6 +1454,11 @@ hr {
 }
 
 .flatpickr-day.booking-day--hover-trail {
-    background-color: hsl(var(--booking-warning-hue), 100%, 70%, 0.2) !important;
+    background-color: hsl(
+        var(--booking-warning-hue),
+        100%,
+        70%,
+        0.2
+    ) !important;
 }
 </style>

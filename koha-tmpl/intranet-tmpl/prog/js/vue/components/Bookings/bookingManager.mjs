@@ -235,20 +235,65 @@ const DATE_FORMAT_MAP = {
     "Y-m-d": {
         pattern: /\d{4}-\d{2}-\d{2}/g,
         dayjsFormat: "YYYY-MM-DD",
-    },
-    "m/d/Y": {
-        pattern: /\d{1,2}\/\d{1,2}\/\d{4}/g,
-        dayjsFormat: "MM/DD/YYYY",
-    },
-    "d/m/Y": {
-        pattern: /\d{1,2}\/\d{1,2}\/\d{4}/g,
-        dayjsFormat: "DD/MM/YYYY",
+        priority: 1, // ISO format always preferred
     },
     "d.m.Y": {
         pattern: /\d{1,2}\.\d{1,2}\.\d{4}/g,
         dayjsFormat: "DD.MM.YYYY",
+        priority: 2, // Common European format
+    },
+    "d/m/Y": {
+        pattern: /\d{1,2}\/\d{1,2}\/\d{4}/g,
+        dayjsFormat: "DD/MM/YYYY",
+        priority: 3, // European slash format
+    },
+    "m/d/Y": {
+        pattern: /\d{1,2}\/\d{1,2}\/\d{4}/g,
+        dayjsFormat: "MM/DD/YYYY",
+        priority: 4, // US format (lower priority for international use)
+    },
+    "d-m-Y": {
+        pattern: /\d{1,2}-\d{1,2}-\d{4}/g,
+        dayjsFormat: "DD-MM-YYYY",
+        priority: 5, // European dash format
+    },
+    "m-d-Y": {
+        pattern: /\d{1,2}-\d{1,2}-\d{4}/g,
+        dayjsFormat: "MM-DD-YYYY",
+        priority: 6, // US dash format
     },
 };
+
+/**
+ * Get locale-aware date format configuration
+ * @returns {Object} Date format configuration based on current locale
+ */
+function getLocalizedDateFormat() {
+    const dateFormat = window?.flatpickr_dateformat_string || "Y-m-d";
+    const langCode =
+        window.KohaLanguage ||
+        document.documentElement.lang?.toLowerCase() ||
+        "en";
+
+    // Get base format configuration
+    let formatConfig = DATE_FORMAT_MAP[dateFormat] || DATE_FORMAT_MAP["Y-m-d"];
+
+    // For ambiguous formats (slash-separated), use locale to determine interpretation
+    if (dateFormat === "d/m/Y" || dateFormat === "m/d/Y") {
+        const isUSLocale =
+            langCode.startsWith("en-us") ||
+            (langCode === "en" &&
+                (navigator.language || "").toLowerCase().includes("us"));
+
+        if (isUSLocale) {
+            formatConfig = DATE_FORMAT_MAP["m/d/Y"];
+        } else {
+            formatConfig = DATE_FORMAT_MAP["d/m/Y"];
+        }
+    }
+
+    return { dateFormat, formatConfig, langCode };
+}
 
 /**
  * Check if a date is in the past (before today)
@@ -995,52 +1040,178 @@ export function getVisibleCalendarDates(flatpickrInstance) {
 }
 
 /**
- * Accepts array, string, or null and returns [start, end] ISO strings (or null)
+ * Parse a date range value into ISO date strings
+ *
+ * ⚠️  DEPRECATION NOTE: This function should become unnecessary once we eliminate
+ * all string-based date handling. The new approach stores ISO strings directly
+ * from flatpickr's Date objects, eliminating the need for complex parsing.
+ *
+ * Current usage: Fallback for cases where legacy string dates still exist.
+ * Future: Should be removable once all date handling uses ISO arrays.
+ *
  * @param {Array|string|null} val - Date range value
  * @returns {Array<string|null>} - [start, end] ISO strings (or null)
  */
 export function parseDateRange(val) {
     if (Array.isArray(val)) {
-        return [
+        const result = [
             val[0] ? dayjs(val[0]).toISOString() : null,
             val[1] ? dayjs(val[1]).toISOString() : null,
         ];
+        return result;
     }
-    if (typeof val === "string" && window?.flatpickr) {
-        // Use flatpickr's built-in parseDate method
-        const dateFormat = window?.flatpickr_dateformat_string || "Y-m-d";
-        const formatConfig =
-            DATE_FORMAT_MAP[dateFormat] || DATE_FORMAT_MAP["Y-m-d"];
 
-        // Find dates in the string using our regex pattern
+    if (typeof val === "string" && window?.flatpickr) {
+        const { dateFormat, formatConfig, langCode } = getLocalizedDateFormat();
+        console.log("🌍 Locale info:", { dateFormat, langCode, formatConfig });
+
+        // Get locale configuration for flatpickr parsing
+        let locale = null;
+
+        if (langCode !== "en" && window.flatpickr?.l10ns?.[langCode]) {
+            locale = window.flatpickr.l10ns[langCode];
+            console.log("🌍 Using flatpickr locale:", langCode, locale);
+        } else if (langCode !== "en") {
+            // Create fallback locale using available global settings
+            const fallbackLocale = {};
+            if (window.flatpickr_weekdays)
+                fallbackLocale.weekdays = window.flatpickr_weekdays;
+            if (window.flatpickr_months)
+                fallbackLocale.months = window.flatpickr_months;
+            if (Object.keys(fallbackLocale).length > 0) {
+                locale = fallbackLocale;
+                console.log("🌍 Using fallback locale:", locale);
+            }
+        } else {
+            console.log("🌍 Using English locale");
+        }
+
+        // First try: Use flatpickr's locale-aware range parsing
+        try {
+            // Get the actual rangeSeparator from flatpickr's loaded locale
+            let rangeSeparator = " to "; // default
+
+            if (window.flatpickr?.l10ns) {
+                const currentLang = langCode || "en";
+                const flatpickrLocale =
+                    window.flatpickr.l10ns[currentLang] ||
+                    window.flatpickr.l10ns.default;
+                if (flatpickrLocale?.rangeSeparator) {
+                    rangeSeparator = flatpickrLocale.rangeSeparator;
+                }
+            }
+
+            console.log(
+                "📅 Range separator from flatpickr locale:",
+                rangeSeparator
+            );
+
+            if (val.includes(rangeSeparator)) {
+                const parts = val.split(rangeSeparator);
+
+                if (parts.length >= 2) {
+                    console.log(
+                        "📅 Parsing range with flatpickr:",
+                        parts[0].trim(),
+                        "and",
+                        parts[1].trim(),
+                        "format:",
+                        dateFormat
+                    );
+                    const start = flatpickr.parseDate(
+                        parts[0].trim(),
+                        dateFormat,
+                        locale
+                    );
+                    const end = flatpickr.parseDate(
+                        parts[1].trim(),
+                        dateFormat,
+                        locale
+                    );
+
+                    if (start && end) {
+                        const result = [
+                            dayjs(start).toISOString(),
+                            dayjs(end).toISOString(),
+                        ];
+                        return result;
+                    }
+                }
+            }
+
+            // Single date case
+            console.log(
+                "📅 Single date parsing with flatpickr:",
+                val,
+                "format:",
+                dateFormat
+            );
+            const parsed = flatpickr.parseDate(val, dateFormat, locale);
+            if (parsed) {
+                const result = [dayjs(parsed).toISOString(), null];
+                return result;
+            }
+        } catch (e) {}
+
+        // Fallback: Pattern-based parsing with dayjs
+        console.log(
+            "📅 Falling back to pattern matching with regex:",
+            formatConfig.pattern
+        );
         const foundDates = val.match(formatConfig.pattern);
 
         if (foundDates?.length >= 2) {
             try {
-                // Use flatpickr's parseDate for consistent parsing with the picker
-                const start = flatpickr.parseDate(foundDates[0], dateFormat);
-                const end = flatpickr.parseDate(foundDates[1], dateFormat);
-
-                if (start && end) {
-                    return [
-                        dayjs(start).toISOString(),
-                        dayjs(end).toISOString(),
-                    ];
-                }
-            } catch (e) {
-                // Fall back to dayjs parsing if flatpickr fails
                 const [start, end] = foundDates.slice(0, 2).map(dateStr => {
-                    const parsed = dayjs(dateStr, formatConfig.dayjsFormat);
+                    const parsed = dayjs(
+                        dateStr,
+                        formatConfig.dayjsFormat,
+                        true
+                    ); // strict parsing
                     return parsed.isValid() ? parsed.toISOString() : null;
                 });
 
                 if (start && end) {
                     return [start, end];
                 }
+            } catch (e) {}
+        } else if (foundDates?.length === 1) {
+            // Single date found
+            try {
+                const parsed = dayjs(
+                    foundDates[0],
+                    formatConfig.dayjsFormat,
+                    true
+                );
+                console.log(
+                    "📅 Single date parsed:",
+                    parsed.isValid() ? parsed.format() : "INVALID"
+                );
+                if (parsed.isValid()) {
+                    const result = [parsed.toISOString(), null];
+                    console.log(
+                        "✅ Single date pattern parsing successful:",
+                        result
+                    );
+                    return result;
+                }
+            } catch (e) {
+                console.warn("❌ Single date parsing failed", e);
             }
         }
     }
-    // Defensive: fallback
+
+    // Final fallback: Try ISO parsing with dayjs
+    if (typeof val === "string" && val.trim()) {
+        try {
+            const parsed = dayjs(val);
+            if (parsed.isValid()) {
+                const result = [parsed.toISOString(), null];
+                return result;
+            }
+        } catch (e) {}
+    }
+
     return [null, null];
 }
 

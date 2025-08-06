@@ -7,6 +7,7 @@ import dayjs from "../../utils/dayjs.mjs";
 import {
     calculateDisabledDates,
     handleBookingDateChange,
+    parseDateRange,
 } from "./bookingManager.mjs";
 import {
     createFlatpickrConfig,
@@ -167,15 +168,24 @@ export class BookingConfigurationService {
 
         // Convert dateRange to proper selectedDates array for calculateDisabledDates
         let selectedDatesArray = [];
-        if (typeof dateRange === "string") {
-            if (dateRange.includes(" to ")) {
-                const [start, end] = dateRange.split(" to ");
-                selectedDatesArray = [new Date(start), new Date(end)];
-            } else if (dateRange) {
-                selectedDatesArray = [new Date(dateRange)];
+        if (Array.isArray(dateRange)) {
+            // dateRange now contains ISO strings, convert to Date objects
+            selectedDatesArray = dateRange.map(isoString =>
+                dayjs(isoString).toDate()
+            );
+        } else if (typeof dateRange === "string") {
+            // Fallback: if somehow we still get a string, try parsing it
+            // This should be rare now that we use flatpickrSelectedDates
+            // This is now an expected fallback case, no longer an error
+            const [startISO, endISO] = parseDateRange(dateRange);
+            if (startISO && endISO) {
+                selectedDatesArray = [
+                    dayjs(startISO).toDate(),
+                    dayjs(endISO).toDate(),
+                ];
+            } else if (startISO) {
+                selectedDatesArray = [dayjs(startISO).toDate()];
             }
-        } else if (Array.isArray(dateRange)) {
-            selectedDatesArray = dateRange.map(d => new Date(d));
         }
 
         return calculateDisabledDates(

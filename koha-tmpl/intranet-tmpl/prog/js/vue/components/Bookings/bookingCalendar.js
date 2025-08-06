@@ -292,6 +292,18 @@ function createFlatpickrLocaleFallback() {
         locale.rangeSeparator = " " + toTranslation + " ";
     }
 
+    // Override with actual flatpickr locale if available
+    if (window.flatpickr?.l10ns) {
+        const currentLang =
+            window.KohaLanguage ||
+            document.documentElement.lang?.toLowerCase() ||
+            "en";
+        const flatpickrLocale = window.flatpickr.l10ns[currentLang];
+        if (flatpickrLocale?.rangeSeparator) {
+            locale.rangeSeparator = flatpickrLocale.rangeSeparator;
+        }
+    }
+
     return locale;
 }
 
@@ -344,8 +356,41 @@ export class FlatpickrEventHandlers {
      * Handle date selection changes with validation and highlighting
      */
     handleDateChange(selectedDates, dateStr, instance) {
+        logger.debug("handleDateChange triggered", { selectedDates, dateStr });
+
+        // Filter out Invalid Date objects and log them
+        const validDates = selectedDates.filter(
+            date => date instanceof Date && !isNaN(date)
+        );
+        const invalidDates = selectedDates.filter(
+            date => !(date instanceof Date) || isNaN(date)
+        );
+
+        if (invalidDates.length > 0) {
+            logger.warn("Invalid Date objects detected", {
+                invalidDates,
+                totalDates: selectedDates.length,
+                validDates: validDates.length
+            });
+
+            // If we only have invalid dates, skip processing to avoid breaking state
+            if (validDates.length === 0 && selectedDates.length > 0) {
+                logger.warn("All dates invalid, skipping processing to preserve state");
+                return;
+            }
+        }
+
+        // Extract ISO dates from valid Date objects only
+        const isoDateRange = validDates.map(date => dayjs(date).toISOString());
+
+        logger.debug("Date processing complete", { validDates: validDates.length, isoDateRange });
+
+        // Store the ISO dates in the store (our primary source of truth)
+        this.store.selectedDateRange = isoDateRange;
+
         logger.debug("onChange triggered", {
             selectedDates,
+            isoDateRange,
             constraintOptions: this.constraintOptions,
         });
 
@@ -589,7 +634,8 @@ export function createOnDayCreate(
 }
 
 export function createOnClose(tooltipMarkers, tooltipVisible) {
-    return function () {
+    return function (selectedDates, dateStr, instance) {
+        // Clean up tooltips
         tooltipMarkers.value = [];
         tooltipVisible.value = false;
     };

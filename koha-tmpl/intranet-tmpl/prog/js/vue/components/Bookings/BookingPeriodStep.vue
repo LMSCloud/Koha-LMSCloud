@@ -13,7 +13,7 @@
             <div class="booking-date-picker">
                 <flat-pickr
                     ref="flatpickrRef"
-                    v-model="selectedDateRange"
+                    model-value=""
                     class="booking-flatpickr-input form-control"
                     :config="flatpickrConfig"
                     @on-change="onFlatpickrChange"
@@ -22,7 +22,7 @@
                     <button
                         type="button"
                         class="btn btn-outline-secondary"
-                        :disabled="!selectedDateRange || selectedDateRange.length === 0"
+                        :disabled="!hasSelectedDates"
                         @click="clearDateRange"
                         :title="
                             $__('Clear selected dates')
@@ -71,20 +71,12 @@
             <span class="booking-marker-dot booking-marker-dot--checked-out ml-3"></span>
             {{ $__("Checked Out") }}
             <span
-                v-if="
-                    dateRangeConstraint &&
-                    selectedDateRange &&
-                    selectedDateRange.length === 1
-                "
+                v-if="dateRangeConstraint && hasSelectedDates"
                 class="booking-marker-dot ml-3"
                 style="background-color: #28a745"
             ></span>
             <span
-                v-if="
-                    dateRangeConstraint &&
-                    selectedDateRange &&
-                    selectedDateRange.length === 1
-                "
+                v-if="dateRangeConstraint && hasSelectedDates"
                 class="ml-1"
             >
                 {{ $__("Required end date") }}
@@ -113,10 +105,6 @@ export default {
             type: Number,
             required: true,
         },
-        modelValue: {
-            type: [Array, String],
-            default: () => [],
-        },
         flatpickrConfig: {
             type: Object,
             required: true,
@@ -133,26 +121,28 @@ export default {
             type: String,
             default: "",
         },
+        hasSelectedDates: {
+            type: Boolean,
+            default: false,
+        },
     },
-    emits: ["update:modelValue", "clear-dates"],
+    emits: ["clear-dates"],
     setup(props, { emit }) {
         const flatpickrRef = ref(null);
 
-        const selectedDateRange = computed({
-            get: () => props.modelValue,
-            set: (value) => {
-                emit("update:modelValue", value);
-            },
-        });
 
         const clearDateRange = () => {
-            selectedDateRange.value = [];
+            // Clear flatpickr directly since we're not using v-model
+            if (flatpickrRef.value?.fp) {
+                flatpickrRef.value.fp.clear();
+            }
             emit("clear-dates");
         };
 
         const onFlatpickrChange = (selectedDates, dateStr) => {
-            // This is handled by the v-model binding
+            // This is handled by the flatpickr config onChange in BookingModal
         };
+
 
         // Cleanup event listeners when component is unmounted
         onUnmounted(() => {
@@ -162,7 +152,6 @@ export default {
         });
 
         return {
-            selectedDateRange,
             clearDateRange,
             flatpickrRef,
             onFlatpickrChange,

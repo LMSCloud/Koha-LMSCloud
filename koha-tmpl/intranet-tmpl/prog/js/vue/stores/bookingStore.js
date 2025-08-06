@@ -62,6 +62,7 @@ export const useBookingStore = defineStore("bookingStore", {
         pickupLibraryId: null,
         startDate: null,
         endDate: null,
+        selectedDateRange: [], // ISO date strings array for flatpickr
 
         // Async operation state - organized structure
         loading: {
