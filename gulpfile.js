@@ -216,8 +216,10 @@ const xgettext_options = '--from-code=UTF-8 --package-name Koha '
 function po_extract_messages_js () {
     const globs = [
         'koha-tmpl/intranet-tmpl/prog/js/vue/**/*.vue',
-        'koha-tmpl/intranet-tmpl/prog/js/**/*.{js,mjs}',
-        'koha-tmpl/opac-tmpl/bootstrap/js/**/*.{js,mjs}',
+        'koha-tmpl/intranet-tmpl/prog/js/**/*.js',
+        'koha-tmpl/intranet-tmpl/prog/js/**/*.mjs',
+        'koha-tmpl/opac-tmpl/bootstrap/js/**/*.js',
+        'koha-tmpl/opac-tmpl/bootstrap/js/**/*.mjs',
     ];
 
     return src(globs, { read: false, nocase: true })
