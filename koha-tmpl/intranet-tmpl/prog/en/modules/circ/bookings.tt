@@ -67,18 +67,18 @@
     [% Asset.js("js/additional-fields.js") | $raw %]
     [% Asset.js("js/combobox.js") | $raw %]
     [% Asset.js("js/cancel_booking_modal.js") | $raw %]
-    
+
     [%# Process library data for JavaScript %]
     [% SET libraries = Branches.all %]
     <script>
     var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
-    
+
     // Global filter arrays for column filtering (must be const variables in global scope)
     const getLibraryOptions = BOOKINGS_LIBRARIES_DATA.map(e => ({
         '_id': e.branchcode,
         '_str': e.branchname
     }));
-    
+
     const getStatusOptions = [
         { '_id': 'new', '_str': _('New') },
         { '_id': 'pending', '_str': _('Pending') },
@@ -87,25 +87,25 @@
         { '_id': 'cancelled', '_str': _('Cancelled') },
         { '_id': 'completed', '_str': _('Completed') }
     ];
-    
+
     // Initialize empty arrays for dynamic filter options (will be populated from table data)
     let getLocationOptions = [];
     let getItemTypeOptions = [];
     </script>
-    
-    [% Asset.js("js/bookings-common.js") | $raw %]
-    
+
+    [% Asset.js("js/bookings-common.js", type => "module") | $raw %]
+
     <script>
         let cancel_success = false;
         var bookings_table;
-        
+
         $(document).ready(function() {
             // Initialize extended attributes
             initializeBookingExtendedAttributes().then(({ extended_attribute_types, authorised_values }) => {
-                
+
                 // Get table settings
                 let table_settings = [% TablesSettings.GetTableSettings( 'circ', 'bookings', 'bookings', 'json' ) | $raw %];
-                
+
                 // Initialize the table using unified function
                 bookings_table = createBookingsTable("#bookingst", table_settings, {
                     variant: 'default',
@@ -142,7 +142,7 @@
                     placeholder: _("Select or type a reason"),
                 });
             });
-        }); 
+        });
     </script>
 [% END %]
-[% INCLUDE 'intranet-bottom.inc' %] 
+[% INCLUDE 'intranet-bottom.inc' %]

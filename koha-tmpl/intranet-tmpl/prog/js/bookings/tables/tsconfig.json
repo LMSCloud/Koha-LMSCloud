@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        // --- Basic project setup ---
+        "target": "es2020", // or "esnext" for latest features
+        "module": "esnext", // Use "esnext" for modern JS modules (.mjs)
+        "moduleResolution": "node", // How modules are resolved (classic or node)
+        "lib": ["es2020", "dom"], // Standard library declarations available
+
+        // --- JSDoc / JS-specific options ---
+        "allowJs": true, // Crucial: Allow JS files to be processed
+        "checkJs": true, // Crucial: Enable type checking for JS files
+        "noEmit": true, // Important: Don't emit any output files (like .js or .d.ts)
+
+        // --- Strictness & Error Handling ---
+        "strict": true, // Recommended: Enable all strict type-checking options
+        "forceConsistentCasingInFileNames": true, // Prevent issues with case-sensitive file systems
+        "noImplicitReturns": true, // Catch functions that don't return a value on all code paths
+        "noFallthroughCasesInSwitch": true, // Ensure switch statements are exhaustive
+        "noUnusedLocals": true, // Report errors on unused local variables
+        "noUnusedParameters": true // Report errors on unused parameters
+    },
+    "include": [
+        "./**/*.js", // Include all .js files in this directory and subdirectories
+        "./**/*.mjs" // Include all .mjs files
+    ]
+}

@@ -86,7 +86,7 @@
     var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
     </script>
 
-    [% Asset.js("js/bookings-common.js") | $raw %]
+    [% Asset.js("js/bookings-common.js", type => "module") | $raw %]
 
     <script>
         $(document).ready(function() {

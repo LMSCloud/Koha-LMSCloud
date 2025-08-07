@@ -91,25 +91,25 @@
     [% Asset.js("js/bookings-timeline.js") | $raw %]
     [% Asset.js("js/bookings-table-filters.js") | $raw %]
     [% Asset.js("js/bookings-table.js") | $raw %]
-    
+
     [%# Process library data for JavaScript %]
     [% SET libraries = Branches.all %]
     <script>
     var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
     </script>
-    
-    [% Asset.js("js/bookings-common.js") | $raw %]
-    
+
+    [% Asset.js("js/bookings-common.js", type => "module") | $raw %]
+
 <script>
     var cancel_success = 0;
     var update_success = 0;
     var bookings_table;
     var timeline;
     let biblionumber = "[% biblionumber | uri %]";
-    
+
     // Set global variables for timeline permissions
     var CAN_user_circulate_manage_bookings = [% IF CAN_user_circulate_manage_bookings %]true[% ELSE %]false[% END %];
-        
+
     $(document).ready(function(){
         // Initialize extended attributes
         initializeBookingExtendedAttributes().then(({ extended_attribute_types, authorised_values }) => {
