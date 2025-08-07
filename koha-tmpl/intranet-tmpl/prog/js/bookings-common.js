@@ -105,6 +105,23 @@ function initializeBookingExtendedAttributes() {
 }
 
 /**
+ * Filter function for extended attributes to only show fields with actual values
+ * @param {Array} attributes - Array of extended attributes from the API
+ * @param {string} recordId - The booking ID to filter attributes by
+ * @returns {Array} Filtered array of attributes with non-empty values
+ */
+function filterExtendedAttributesWithValues(attributes, recordId) {
+    // Filter out attributes that have null, undefined, or empty string values
+    return (attributes || []).filter(attr => {
+        return (
+            attr.record_id == recordId &&
+            attr.value != null &&
+            attr.value !== ""
+        );
+    });
+}
+
+/**
  * Get unified column definitions for booking tables
  * @param {Object} extended_attribute_types - Extended attribute types configuration
  * @param {Object} authorised_values - Authorized values configuration
@@ -415,8 +432,19 @@ function getBookingTableColumns(
         searchable: false,
         orderable: false,
         render: function (data, type, row, meta) {
-            return AdditionalFields.renderExtendedAttributesValues(
+            // Filter to only show attributes with actual values
+            const filteredAttributes = filterExtendedAttributesWithValues(
                 data,
+                row.booking_id
+            );
+
+            // Only render if there are attributes with values
+            if (filteredAttributes.length === 0) {
+                return "";
+            }
+
+            return AdditionalFields.renderExtendedAttributesValues(
+                filteredAttributes,
                 extended_attribute_types,
                 authorised_values,
                 row.booking_id
