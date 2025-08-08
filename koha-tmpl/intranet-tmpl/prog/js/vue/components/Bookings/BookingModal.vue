@@ -619,6 +619,24 @@ export default {
                         dateStr,
                         instance
                     );
+                    // If dates were provided (e.g., edit flow), reflect them in flatpickr UI
+                    try {
+                        const current = store.selectedDateRange || [];
+                        if (Array.isArray(current) && current.length > 0) {
+                            const dates = current
+                                .filter(Boolean)
+                                .map(d => dayjs(d).toDate());
+                            if (dates.length > 0 && instance?.setDate) {
+                                // Do not trigger onChange here; state is already set in the store
+                                instance.setDate(dates, false);
+                                if (dates[0] && instance.jumpToDate) {
+                                    instance.jumpToDate(dates[0]);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        // noop
+                    }
                     // Then try to apply highlighting
                     nextTick(() => {
                         tryApplyHighlighting();
@@ -839,6 +857,21 @@ export default {
                     nextTick(() => {
                         tryApplyHighlighting();
                     });
+                }
+                // Keep flatpickr UI in sync when dates are set programmatically (e.g., from table edit/timeline)
+                try {
+                    if (flatpickrInstance.value?.setDate && Array.isArray(newDates)) {
+                        const dates = newDates.filter(Boolean).map(d => dayjs(d).toDate());
+                        if (dates.length > 0) {
+                            // Avoid triggering onChange to prevent redundant store writes
+                            flatpickrInstance.value.setDate(dates, false);
+                            if (dates[0] && flatpickrInstance.value.jumpToDate) {
+                                flatpickrInstance.value.jumpToDate(dates[0]);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // noop
                 }
             },
             { deep: true }

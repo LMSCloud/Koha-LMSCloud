@@ -100,6 +100,23 @@ export function hydrate(): void {
                                 });
                             }
                             app.config.globalProperties.$__ = $__;
+                            // Bridge: sync selectedDateRange island property into booking store for external triggers
+                            try {
+                                const bookingStore = storesMatrix["bookingStore"];
+                                const proto = (customElements.get(name) as any)?.prototype;
+                                if (bookingStore && proto && !proto.__bookingSyncPatched) {
+                                    Object.defineProperty(proto, "selectedDateRange", {
+                                        set(val: any) {
+                                            const arr = Array.isArray(val) ? val.filter(Boolean) : [];
+                                            bookingStore.selectedDateRange = arr;
+                                        },
+                                        get() {
+                                            return bookingStore.selectedDateRange;
+                                        },
+                                    });
+                                    (proto as any).__bookingSyncPatched = true;
+                                }
+                            } catch (e) {}
                             // Further config options can be added here as we expand this further
                         },
                     }),

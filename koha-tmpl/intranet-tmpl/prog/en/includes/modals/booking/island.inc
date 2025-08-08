@@ -34,6 +34,12 @@
                 island.pickupLibraryId = props.pickup_library;
                 island.startDate = props.start_date;
                 island.endDate = props.end_date;
+                // Provide selectedDateRange to ensure immediate calendar sync on open
+                if (props.start_date) {
+                    const startIso = props.start_date;
+                    const endIso = props.end_date || props.start_date;
+                    island.selectedDateRange = [startIso, endIso];
+                }
                 island.itemtypeId = props.item_type_id;
                 island.extendedAttributes = JSON.parse(props.extended_attributes ?? "[]");
                 if (props.biblionumber) {

@@ -119,6 +119,12 @@
             island.pickupLibraryId = booking.pickup_library;
             island.startDate = data.start.toISOString();
             island.endDate = data.end.toISOString();
+            // Also update the island's internal store via properties to ensure flatpickr sync
+            try {
+                const startIso = data.start.toISOString();
+                const endIso = data.end ? data.end.toISOString() : startIso;
+                island.selectedDateRange = [startIso, endIso];
+            } catch (e) {}
             island.extendedAttributes = booking.extended_attributes || [];
 
             island.open = true;
