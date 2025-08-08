@@ -353,10 +353,51 @@ export class FlatpickrEventHandlers {
         this.errorMessage = errorMessage;
         this.tooltipVisible = tooltipVisible;
         this.constraintOptions = constraintOptions;
+        /** @type {any} */
+        this._tooltipRefs = null;
+        /** @type {any} */
+        this._flatpickrInstance = null;
 
         // Bind methods to maintain correct 'this' context
         this.handleDateChange = this.handleDateChange.bind(this);
     }
+
+    /**
+     * @param {any} markersRef
+     * @param {any} xRef
+     * @param {any} yRef
+     */
+    setTooltipRefs(markersRef, xRef, yRef) {
+        this._tooltipRefs = { markersRef, xRef, yRef };
+    }
+
+    /**
+     * @param {any} instance
+     */
+    setFlatpickrRef(instance) {
+        this._flatpickrInstance = instance;
+    }
+
+    /**
+     * @param {any} d
+     * @param {any} dateStr
+     * @param {any} inst
+     */
+    handleDayCreate(d, dateStr, inst) {}
+
+    /**
+     * @param {any} dates
+     * @param {any} dateStr
+     * @param {any} inst
+     */
+    handleClose(dates, dateStr, inst) {}
+
+    /**
+     * @param {any} dates
+     * @param {any} dateStr
+     * @param {any} inst
+     */
+    handleReady(dates, dateStr, inst) {}
 
     /**
      * Handle date selection changes with validation and highlighting
@@ -366,11 +407,12 @@ export class FlatpickrEventHandlers {
 
         // Filter out Invalid Date objects and log them
         const validDates = selectedDates.filter(
-            date => date instanceof Date && !isNaN(date)
+            date => date instanceof Date && !Number.isNaN(date.getTime())
         );
-        const invalidDates = selectedDates.filter(
-            date => !(date instanceof Date) || isNaN(date)
-        );
+        const invalidDates = selectedDates.filter(date => {
+            if (!(date instanceof Date)) return true;
+            return Number.isNaN(date.getTime());
+        });
 
         if (invalidDates.length > 0) {
             logger.warn("Invalid Date objects detected", {
@@ -417,8 +459,10 @@ export class FlatpickrEventHandlers {
             if (visibleDates && visibleDates.length > 0) {
                 calcOptions = {
                     onDemand: true,
-                    visibleStartDate: visibleDates[0],
-                    visibleEndDate: visibleDates[visibleDates.length - 1],
+                    visibleStartDate: /** @type {any} */ (visibleDates[0]),
+                    visibleEndDate: /** @type {any} */ (
+                        visibleDates[visibleDates.length - 1]
+                    ),
                 };
             }
         }

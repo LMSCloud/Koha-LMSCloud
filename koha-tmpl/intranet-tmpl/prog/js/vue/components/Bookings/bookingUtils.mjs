@@ -11,10 +11,12 @@ export function debounce(fn, delay) {
 /**
  * Default dependencies for external updates - can be overridden in tests
  */
+import { win } from "./utils.js";
+
 const defaultDependencies = {
-    timeline: () => window.timeline,
-    bookingsTable: () => window.bookings_table,
-    patronRenderer: () => window.$patron_to_html,
+    timeline: () => win("timeline"),
+    bookingsTable: () => win("bookings_table"),
+    patronRenderer: () => win("$patron_to_html"),
     domQuery: selector => document.querySelectorAll(selector),
     logger: {
         warn: (msg, data) => console.warn(msg, data),

@@ -1,3 +1,4 @@
+import { win } from "./utils.js";
 /**
  * Builds a search query for patron searches
  * This is a wrapper around the global buildPatronSearchQuery function
@@ -10,8 +11,12 @@
  * @returns {Array} Query conditions for the API
  */
 export function buildPatronSearchQuery(term, options = {}) {
-    if (typeof window.buildPatronSearchQuery === "function") {
-        return window.buildPatronSearchQuery(term, options);
+    const globalBuilder =
+        typeof win("buildPatronSearchQuery") === "function"
+            ? win("buildPatronSearchQuery")
+            : null;
+    if (globalBuilder) {
+        return globalBuilder(term, options);
     }
 
     // Fallback implementation if the global function is not available

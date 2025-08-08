@@ -26,7 +26,7 @@ class BookingLogger {
             // Check localStorage first, then global variable
             this.enabled =
                 window.localStorage.getItem("koha.booking.debug") === "true" ||
-                window.KOHA_BOOKING_DEBUG === true;
+                window["KOHA_BOOKING_DEBUG"] === true;
 
             // Allow configuring specific log levels
             const levels = window.localStorage.getItem(
@@ -248,7 +248,7 @@ if (typeof window !== "undefined") {
     };
 
     // Set on browser window
-    window.BookingDebug = debugObj;
+    window["BookingDebug"] = debugObj;
 
     // Only log availability message if debug is already enabled
     if (managerLogger.enabled || calendarLogger.enabled) {
@@ -257,9 +257,9 @@ if (typeof window !== "undefined") {
 }
 
 // Additional setup for Node.js testing environment
-if (typeof global !== "undefined" && typeof window === "undefined") {
+if (typeof globalThis !== "undefined" && typeof window === "undefined") {
     // We're in Node.js - set up global.window if it exists
-    if (global.window) {
+    if (globalThis.window) {
         const debugObj = {
             enable: () => {
                 managerLogger.setEnabled(true);
@@ -278,6 +278,6 @@ if (typeof global !== "undefined" && typeof window === "undefined") {
                 calendarEnabled: calendarLogger.enabled,
             }),
         };
-        global.window.BookingDebug = debugObj;
+        globalThis.window["BookingDebug"] = debugObj;
     }
 }

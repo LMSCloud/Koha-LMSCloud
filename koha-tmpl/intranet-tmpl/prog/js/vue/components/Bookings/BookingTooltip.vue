@@ -32,28 +32,31 @@
     </Teleport>
 </template>
 
-<script setup>
-import { defineProps } from "vue";
+<script setup lang="ts">
+import { defineProps, withDefaults } from "vue";
 import { $__ } from "../../i18n";
 
-defineProps({
-    markers: {
-        type: Array,
-        required: true,
-    },
-    x: {
-        type: Number,
-        required: true,
-    },
-    y: {
-        type: Number,
-        required: true,
-    },
-    visible: {
-        type: Boolean,
-        required: true,
-    },
-});
+type Marker = {
+    type: string;
+    barcode?: string;
+    external_id?: string;
+    itemnumber?: string;
+};
+
+withDefaults(
+    defineProps<{
+        markers: Marker[];
+        x: number;
+        y: number;
+        visible: boolean;
+    }>(),
+    {
+        markers: () => [],
+        x: 0,
+        y: 0,
+        visible: false,
+    }
+);
 
 function getMarkerTypeLabel(type) {
     const labels = {
