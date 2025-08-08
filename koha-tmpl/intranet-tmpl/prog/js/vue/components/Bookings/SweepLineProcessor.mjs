@@ -87,16 +87,17 @@ export class SweepLineProcessor {
                 return;
             }
 
-            // Clamp interval to view range
+            // Clamp interval to view range for starts
             const clampedStart = Math.max(interval.start, startTimestamp);
-            const clampedEnd = Math.min(interval.end, endTimestamp);
+            // For ends, schedule removal at the START of the next day so the interval remains active for its end date
+            const nextDayStart = dayjs(interval.end)
+                .add(1, "day")
+                .startOf("day")
+                .valueOf();
+            const endRemovalTs = Math.min(nextDayStart, endTimestamp + 1);
 
-            this.events.push(
-                new SweepEvent(clampedStart, "start", interval)
-            );
-            this.events.push(
-                new SweepEvent(clampedEnd, "end", interval)
-            );
+            this.events.push(new SweepEvent(clampedStart, "start", interval));
+            this.events.push(new SweepEvent(endRemovalTs, "end", interval));
         });
 
         // Sort events by timestamp, with starts before ends at the same time
@@ -169,9 +170,9 @@ export class SweepLineProcessor {
                         interval.start <= dateEnd &&
                         interval.end >= dateStart
                     ) {
-                        // Map interval types to reason strings (keep legacy names)
+                        // Map interval types to reason strings (processor uses 'core' for bookings)
                         if (interval.type === "booking") {
-                            reasons.add("booking");
+                            reasons.add("core");
                         } else if (interval.type === "checkout") {
                             reasons.add("checkout");
                         } else {
