@@ -163,6 +163,7 @@ import {
     constrainItemTypes,
     constrainPickupLocations,
     parseDateRange,
+    getVisibleCalendarDates,
 } from "./bookingManager.mjs";
 import { useBookingStore } from "../../stores/bookingStore";
 import { updateExternalDependents } from "./bookingUtils.mjs";
@@ -399,6 +400,10 @@ export default {
             )
         );
 
+        // Cache for availability data to prevent excessive recalculation
+        let availabilityCache = null;
+        let availabilityCacheKey = null;
+
         const computedAvailabilityData = computed(() => {
             // CRITICAL FIX: Proper loading states for calendar availability
             // This prevents race condition where modal opens before store is populated
@@ -414,6 +419,23 @@ export default {
                     disable: () => true, // Disable all dates while loading
                     unavailableByDate: {},
                 };
+            }
+
+            // Create a cache key from relevant data
+            const cacheKey = JSON.stringify({
+                bookingsCount: store.bookings?.length || 0,
+                checkoutsCount: store.checkouts?.length || 0,
+                bookableItemsCount: store.bookableItems?.length || 0,
+                selectedItem: store.bookingItemId,
+                editBookingId: store.bookingId,
+                selectedDates: store.selectedDateRange,
+                dateRangeConstraint: props.dateRangeConstraint,
+                maxBookingPeriod: maxBookingPeriod.value,
+            });
+
+            // Return cached result if data hasn't changed
+            if (availabilityCacheKey === cacheKey && availabilityCache) {
+                return availabilityCache;
             }
 
             // Use store.selectedDateRange (maintained by altInput solution)
@@ -432,6 +454,21 @@ export default {
                 isoString => dayjs(isoString).toDate()
             );
 
+            // Limit IntervalTree aggregation to visible calendar range when possible
+            let calcOptions = {};
+            if (flatpickrInstance.value) {
+                const visibleDates = getVisibleCalendarDates(
+                    flatpickrInstance.value
+                );
+                if (visibleDates && visibleDates.length > 0) {
+                    calcOptions = {
+                        onDemand: true,
+                        visibleStartDate: visibleDates[0],
+                        visibleEndDate: visibleDates[visibleDates.length - 1],
+                    };
+                }
+            }
+
             const result = calculateDisabledDates(
                 store.bookings,
                 store.checkouts,
@@ -439,9 +476,15 @@ export default {
                 store.bookingItemId,
                 store.bookingId,
                 selectedDatesArray,
-                effectiveRules
+                effectiveRules,
+                undefined,
+                calcOptions
             );
 
+            // Cache the result
+            availabilityCache = result;
+            availabilityCacheKey = cacheKey;
+            
             return result;
         });
 
@@ -492,13 +535,7 @@ export default {
                 allowInput: false,
                 // Handle everything through onChange - no Vue component interference
                 onChange: (selectedDates, dateStr, instance) => {
-                    // Store the ISO strings from Date objects (our source of truth)
-                    const isoDateRange = selectedDates.map(date =>
-                        dayjs(date).toISOString()
-                    );
-                    store.selectedDateRange = isoDateRange;
-
-                    // Call the original onChange logic for validation and highlighting
+                    // Delegate to centralized handler (avoids duplicate store writes)
                     const originalOnChange = createOnChange(
                         store,
                         {
@@ -606,6 +643,9 @@ export default {
                     await preloadFlatpickrLocale();
                 } else {
                     enableBodyScroll();
+                    // Clear availability cache on modal close
+                    availabilityCache = null;
+                    availabilityCacheKey = null;
                     return;
                 }
 
@@ -716,6 +756,10 @@ export default {
                         flatpickrInstance.value._constraintHighlighting
                     );
                 } else {
+                        // Only attempt to generate highlighting when a constraint is configured
+                        if (!props.dateRangeConstraint) {
+                            return;
+                        }
                     // Generate new highlighting by manually calling the onChange handler
                     // The onChange handler is stored in the hooks, not in config
                     const onChangeHandler = createOnChange(

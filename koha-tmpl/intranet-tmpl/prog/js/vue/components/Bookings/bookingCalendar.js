@@ -4,6 +4,7 @@ import {
     calculateConstraintHighlighting,
     getCalendarNavigationTarget,
     aggregateMarkersByType,
+    getVisibleCalendarDates,
 } from "./bookingManager.mjs";
 import dayjs from "../../utils/dayjs.mjs";
 import { calendarLogger as logger } from "./bookingLogger.mjs";
@@ -385,8 +386,14 @@ export class FlatpickrEventHandlers {
 
         logger.debug("Date processing complete", { validDates: validDates.length, isoDateRange });
 
-        // Store the ISO dates in the store (our primary source of truth)
-        this.store.selectedDateRange = isoDateRange;
+        // Avoid redundant writes that retrigger watchers
+        const current = this.store.selectedDateRange || [];
+        const sameLength = current.length === isoDateRange.length;
+        const sameContent =
+            sameLength && current.every((v, i) => v === isoDateRange[i]);
+        if (!sameContent) {
+            this.store.selectedDateRange = isoDateRange;
+        }
 
         logger.debug("onChange triggered", {
             selectedDates,
@@ -398,6 +405,19 @@ export class FlatpickrEventHandlers {
         const effectiveRules = this._calculateEffectiveRules(baseRules);
 
         // Validate date selection using manager
+        // Bound range for availability computation using visible calendar window
+        let calcOptions = {};
+        if (instance) {
+            const visibleDates = getVisibleCalendarDates(instance);
+            if (visibleDates && visibleDates.length > 0) {
+                calcOptions = {
+                    onDemand: true,
+                    visibleStartDate: visibleDates[0],
+                    visibleEndDate: visibleDates[visibleDates.length - 1],
+                };
+            }
+        }
+
         const result = handleBookingDateChange(
             selectedDates,
             effectiveRules,
@@ -405,7 +425,9 @@ export class FlatpickrEventHandlers {
             this.store.checkouts,
             this.store.bookableItems,
             this.store.bookingItemId,
-            this.store.bookingId
+            this.store.bookingId,
+            undefined,
+            calcOptions
         );
 
         this._updateValidationUI(result);

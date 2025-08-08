@@ -171,13 +171,18 @@ import {
  * @param {dayjs} today - Today's date for range calculation
  * @param {Array} allItemIds - Array of all item IDs
  * @param {number|string|null} editBookingId - The booking_id being edited (exclude from results)
+ * @param {Object} options - Additional options for optimization
+ * @param {Date} options.visibleStartDate - Start of visible calendar range
+ * @param {Date} options.visibleEndDate - End of visible calendar range
+ * @param {boolean} options.onDemand - Whether to build map on-demand for visible dates only
  * @returns {Object} - Map of date strings to item unavailability data
  */
 function buildUnavailableByDateMap(
     intervalTree,
     today,
     allItemIds,
-    editBookingId
+    editBookingId,
+    options = {}
 ) {
     const unavailableByDate = {};
 
@@ -185,49 +190,51 @@ function buildUnavailableByDateMap(
         return unavailableByDate;
     }
 
-    // Calculate a reasonable date range for unavailability data
-    // Start from today minus some buffer, go to today plus some buffer
-    const startDate = today.subtract(90, "day"); // 3 months ago
-    const endDate = today.add(365, "day"); // 1 year ahead
-
-    // Iterate through each day in the range
-    for (
-        let current = startDate;
-        current.isSameOrBefore(endDate, "day");
-        current = current.add(1, "day")
-    ) {
-        const dateKey = current.format("YYYY-MM-DD");
-        const timestamp = current.valueOf();
-
-        // Query intervals that overlap with this day
-        const overlappingIntervals = intervalTree.query(timestamp);
-
-        // Filter out the booking being edited
-        const relevantIntervals = overlappingIntervals.filter(
-            interval =>
-                !editBookingId ||
-                !interval.metadata ||
-                interval.metadata.booking_id != editBookingId
-        );
-
-        if (relevantIntervals.length > 0) {
-            unavailableByDate[dateKey] = {};
-
-            // Group by item and collect reasons
-            for (const interval of relevantIntervals) {
-                const itemId = String(interval.itemId);
-
-                if (!unavailableByDate[dateKey][itemId]) {
-                    unavailableByDate[dateKey][itemId] = new Set();
-                }
-
-                // Add the reason for unavailability
-                unavailableByDate[dateKey][itemId].add(interval.type);
-            }
-        }
+    // Determine the processing window
+    let startDate, endDate;
+    if (options.onDemand && options.visibleStartDate && options.visibleEndDate) {
+        // Visible calendar range with a small buffer
+        startDate = dayjs(options.visibleStartDate).subtract(7, "day");
+        endDate = dayjs(options.visibleEndDate).add(7, "day");
+        logger.debug("Building unavailableByDate map for visible range only", {
+            start: startDate.format("YYYY-MM-DD"),
+            end: endDate.format("YYYY-MM-DD"),
+            days: endDate.diff(startDate, "day") + 1,
+        });
+    } else {
+        // Fallback bounded range for unconstrained mode
+        startDate = today.subtract(7, "day");
+        endDate = today.add(90, "day");
+        logger.debug("Building unavailableByDate map with limited range", {
+            start: startDate.format("YYYY-MM-DD"),
+            end: endDate.format("YYYY-MM-DD"),
+            days: endDate.diff(startDate, "day") + 1,
+        });
     }
 
-    return unavailableByDate;
+    // Use a single range query and sweep-line aggregation instead of per-day point queries
+    const rangeIntervals = intervalTree.queryRange(
+        startDate.toDate(),
+        endDate.toDate()
+    );
+
+    // Exclude the booking being edited
+    const relevantIntervals = editBookingId
+        ? rangeIntervals.filter(
+              interval => interval.metadata?.booking_id != editBookingId
+          )
+        : rangeIntervals;
+
+    const processor = new SweepLineProcessor();
+    const sweptMap = processor.processIntervals(
+        relevantIntervals,
+        startDate.toDate(),
+        endDate.toDate(),
+        allItemIds
+    );
+
+    // The sweep processor already returns the desired structure
+    return sweptMap || unavailableByDate;
 }
 
 // Map flatpickr format strings to dayjs format strings and regex patterns
@@ -731,6 +738,7 @@ function logBookingDebugInfo(
  * @param {Array} selectedDates - Array of currently selected dates in Flatpickr (can be empty, or [start], or [start, end])
  * @param {Object} circulationRules - Circulation rules object (leadDays, trailDays, maxPeriod, booking_constraint_mode, etc.)
  * @param {Date|dayjs} todayArg - Optional today value for deterministic tests
+ * @param {Object} options - Additional options for optimization
  * @returns {Object} - { disable: Function, unavailableByDate: Object }
  */
 export function calculateDisabledDates(
@@ -741,7 +749,8 @@ export function calculateDisabledDates(
     editBookingId,
     selectedDates = [],
     circulationRules = {},
-    todayArg = undefined
+    todayArg = undefined,
+    options = {}
 ) {
     logger.time("calculateDisabledDates");
     logger.debug("calculateDisabledDates called", {
@@ -785,11 +794,13 @@ export function calculateDisabledDates(
     );
 
     // Build unavailableByDate for backward compatibility and markers
+    // Pass options for performance optimization
     const unavailableByDate = buildUnavailableByDateMap(
         intervalTree,
         config.today,
         allItemIds,
-        editBookingId
+        editBookingId,
+        options
     );
 
     logger.debug("IntervalTree-based availability calculated", {
@@ -826,7 +837,8 @@ export function handleBookingDateChange(
     bookableItems,
     selectedItem,
     editBookingId,
-    todayArg = undefined
+    todayArg = undefined,
+    options = {}
 ) {
     logger.time("handleBookingDateChange");
     logger.debug("handleBookingDateChange called", {
@@ -924,7 +936,8 @@ export function handleBookingDateChange(
             editBookingId,
             selectedDates, // Pass selectedDates
             circulationRules, // Pass circulationRules
-            todayArg // Pass todayArg
+            todayArg, // Pass todayArg
+            options
         );
         for (
             let d = dayjsStart.clone();
