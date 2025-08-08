@@ -246,6 +246,21 @@ function buildUnavailableByDateMap(
         if (!filledMap[key]) filledMap[key] = {};
     }
 
+    // Normalize reasons for legacy API expectations: convert 'core' -> 'booking'
+    Object.keys(filledMap).forEach(dateKey => {
+        const byItem = filledMap[dateKey];
+        Object.keys(byItem).forEach(itemId => {
+            const original = byItem[itemId];
+            if (original && original instanceof Set) {
+                const mapped = new Set();
+                original.forEach(reason => {
+                    mapped.add(reason === "core" ? "booking" : reason);
+                });
+                byItem[itemId] = mapped;
+            }
+        });
+    });
+
     return filledMap;
 }
 
@@ -1033,8 +1048,9 @@ export function getBookingMarkersForDate(
         const item = findItem(item_id);
         for (const reason of reasons) {
             let type = reason;
-            // Map IntervalTree types to CSS class names
+            // Map IntervalTree/Sweep reasons to CSS class names
             if (type === "booking") type = "booked";
+            if (type === "core") type = "booked";
             if (type === "checkout") type = "checked-out";
             // lead and trail periods keep their original names for CSS
             markers.push({
