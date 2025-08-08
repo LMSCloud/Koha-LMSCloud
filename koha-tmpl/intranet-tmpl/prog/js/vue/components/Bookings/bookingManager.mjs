@@ -235,8 +235,18 @@ function buildUnavailableByDateMap(
         allItemIds
     );
 
-    // The sweep processor already returns the desired structure
-    return sweptMap || unavailableByDate;
+    // Ensure the map contains all dates in the requested range, even if empty
+    const filledMap = sweptMap && typeof sweptMap === "object" ? sweptMap : {};
+    for (
+        let d = startDate.clone();
+        d.isSameOrBefore(endDate, "day");
+        d = d.add(1, "day")
+    ) {
+        const key = d.format("YYYY-MM-DD");
+        if (!filledMap[key]) filledMap[key] = {};
+    }
+
+    return filledMap;
 }
 
 // Map flatpickr format strings to dayjs format strings and regex patterns
