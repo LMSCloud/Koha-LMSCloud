@@ -98,6 +98,8 @@
     <script>
         let cancel_success = false;
         var bookings_table;
+        // Expose permission to JS for actions column rendering
+        var CAN_user_circulate_manage_bookings = [% CAN_user_circulate_manage_bookings | $raw %];
 
         $(document).ready(function() {
             // Initialize extended attributes
