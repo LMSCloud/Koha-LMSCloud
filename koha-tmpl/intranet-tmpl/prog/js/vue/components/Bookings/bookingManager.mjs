@@ -1024,6 +1024,7 @@ export function getBookingMarkersForDate(
         for (const reason of reasons) {
             let type = reason;
             // Map IntervalTree types to CSS class names
+            if (type === "core") type = "booking"; // Normalize sweep-line 'core' to legacy 'booking'
             if (type === "booking") type = "booked";
             if (type === "checkout") type = "checked-out";
             // lead and trail periods keep their original names for CSS
