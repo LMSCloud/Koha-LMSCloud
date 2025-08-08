@@ -506,6 +506,8 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('OPACBookingDateRangeConstraint', '', 'issuelength|issuelength_with_renewals', 'Constrains booking date ranges in OPAC based on circulation rules. If set, patrons can only book for the specified period based on circulation rules.', 'Choice'),
 ('OPACBookingConstraintMode', 'range', 'range|end_date_only', 'Controls booking date constraint behavior in the OPAC. When set to end_date_only, patrons can only book the calculated start date or end date, with intermediate dates blocked.', 'Choice'),
 ('OPACBookings', '0', NULL, 'If ON, enables patrons to place and manage their bookings on the OPAC', 'YesNo'),
+('OPACBookingDefaultLibrary','',NULL,'Branchcode to use as default booking pickup library in OPAC when override is enabled','Free'),
+('OPACBookingDefaultLibraryEnabled','0',NULL,'Enable overriding OPAC default booking pickup library with a fixed branch','YesNo'),
 ('opacbookbag','1','','If ON, enables display of Cart feature','YesNo'),
 ('OpacBrowser','0',NULL,'If ON, enables subject authorities browser on OPAC (needs to set misc/cronjob/sbuild_browser_and_cloud.pl)','YesNo'),
 ('OpacBrowseResults','1',NULL,'Disable/enable browsing and paging search results from the OPAC detail page.','YesNo'),

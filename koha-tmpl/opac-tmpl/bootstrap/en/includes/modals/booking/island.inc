@@ -12,6 +12,8 @@
         [% IF Koha.Preference('OPACBookingDateRangeConstraint') %]
         date-range-constraint="[% Koha.Preference('OPACBookingDateRangeConstraint') | html %]"
         [% END %]
+        opac-default-booking-library-enabled="[% Koha.Preference('OPACDefaultBookingLibraryEnabled') | html %]"
+        opac-default-booking-library="[% Koha.Preference('OPACDefaultBookingLibrary') | html %]"
     ></booking-modal-island>
 </div>
 

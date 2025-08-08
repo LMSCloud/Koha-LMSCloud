@@ -226,6 +226,8 @@ export default {
             type: Function,
             default: null,
         },
+        opacDefaultBookingLibraryEnabled: { type: [Boolean, String], default: null },
+        opacDefaultBookingLibrary: { type: String, default: null },
     },
     emits: ["close"],
     setup(props, { emit }) {
@@ -718,7 +720,24 @@ export default {
                     }
 
                     // Set other form values after all dependencies are loaded
-                    store.pickupLibraryId = props.pickupLibraryId;
+                    (function applyPickupDefault() {
+                        const enabled = String(
+                            /** @type {any} */ (props.opacDefaultBookingLibraryEnabled)
+                        ) === "1" || /** @type {any} */ (props.opacDefaultBookingLibraryEnabled) === true;
+                        const branch = props.opacDefaultBookingLibrary;
+                        if (
+                            enabled &&
+                            typeof branch === "string" &&
+                            branch &&
+                            Array.isArray(store.pickupLocations) &&
+                            store.pickupLocations.some(l => l.library_id === branch)
+                        ) {
+                            store.pickupLibraryId = branch;
+                        } else {
+                            store.pickupLibraryId = props.pickupLibraryId;
+                        }
+                    })();
+
                     // Normalize itemId type to match bookableItems' item_id type for vue-select strict matching
                     if (props.itemId != null) {
                         const sample = store.bookableItems?.[0]?.item_id;
@@ -901,6 +920,29 @@ export default {
             ([patron, pickupLocations]) => {
                 // Attempt to set default if pickupLibraryId is not already set
                 if (bookingPickupLibraryId.value) return;
+
+
+                // OPAC override: Use configured default pickup library if enabled
+                try {
+                    const opacOverrideEnabled = String(
+                        /** @type {any} */ (props.opacDefaultBookingLibraryEnabled)
+                    ) === "1" || /** @type {any} */ (props.opacDefaultBookingLibraryEnabled) === true;
+                    const opacDefaultBranch = props.opacDefaultBookingLibrary;
+                    if (
+                        opacOverrideEnabled &&
+                        typeof opacDefaultBranch === "string" &&
+                        opacDefaultBranch &&
+                        Array.isArray(pickupLocations) &&
+                        pickupLocations.some(
+                            l => l.library_id === opacDefaultBranch
+                        )
+                    ) {
+                        bookingPickupLibraryId.value = opacDefaultBranch;
+                        return;
+                    }
+                } catch (e) {
+                    // noop
+                }
 
                 if (!patron || pickupLocations.length === 0) return;
 

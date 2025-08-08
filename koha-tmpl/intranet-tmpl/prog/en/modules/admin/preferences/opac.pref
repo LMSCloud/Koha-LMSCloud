@@ -692,6 +692,18 @@ OPAC:
                   0: "Don't allow"
             - patrons to place and manage their bookings on the OPAC.
         -
+            - "Override the default pickup library selection in the OPAC with"
+            - pref: OPACDefaultBookingLibraryEnabled
+              choices:
+                  1: Enable
+                  0: Disable
+            - ". When enabled, the OPAC will preselect the configured library in <a href=\"/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OPACDefaultBookingLibrary\">OPACDefaultBookingLibrary</a> as the default pickup location when placing a booking."
+        -
+            - "Use the following library as the default pickup location for bookings in the OPAC when the override is enabled:"
+            - pref: OPACDefaultBookingLibrary
+              class: branch
+            - "(Leave empty to disable. This will only be applied when the override in <a href=\"/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OPACDefaultBookingLibraryEnabled\">OPACDefaultBookingLibraryEnabled</a> is enabled and the selected library is available for pickup.)"
+        -
             - pref: OPACBookingDateRangeConstraint
               choices:
                   "": "Don't constrain"
