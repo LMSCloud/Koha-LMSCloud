@@ -3,7 +3,7 @@
 // To be used by the Pinia store and BookingModal.vue
 
 import dayjs from "../../utils/dayjs.mjs";
-import { win } from "./utils.js";
+import { win } from "./utils.mjs";
 import { managerLogger as logger } from "./bookingLogger.mjs";
 
 // Use global $__ function (available in browser, mocked in tests)

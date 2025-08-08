@@ -8,7 +8,7 @@ import {
 } from "./bookingManager.mjs";
 import dayjs from "../../utils/dayjs.mjs";
 import { calendarLogger as logger } from "./bookingLogger.mjs";
-import { win } from "./utils.js";
+import { win } from "./utils.mjs";
 
 /**
  * Clear constraint highlighting from flatpickr calendar

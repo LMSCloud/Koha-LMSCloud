@@ -177,6 +177,7 @@ import {
     preloadFlatpickrLocale,
 } from "./bookingCalendar.js";
 import { createBookingServices } from "./BookingModalService.mjs";
+import { win } from "./utils.mjs";
 
 export default {
     name: "BookingModal",
@@ -205,7 +206,7 @@ export default {
         submitType: {
             type: String,
             default: "api",
-            validator: value => ["api", "form-submission"].includes(value),
+            validator: value => ["api", "form-submission"].includes(String(value)),
         },
         submitUrl: { type: String, default: "" },
         extendedAttributes: { type: Array, default: () => [] },
@@ -218,7 +219,7 @@ export default {
             validator: value =>
                 !value ||
                 ["issuelength", "issuelength_with_renewals", "custom"].includes(
-                    value
+                    String(value)
                 ),
         },
         customDateRangeFormula: {
@@ -530,7 +531,7 @@ export default {
                 disable: [availability.disable],
                 clickOpens: isCalendarReady.value,
                 // CLEAN SOLUTION: No v-model, no altInput, just direct onChange handling
-                dateFormat: window.flatpickr_dateformat_string || "d.m.Y", // Localized display
+                dateFormat: win("flatpickr_dateformat_string") || "d.m.Y", // Localized display
                 wrap: false,
                 allowInput: false,
                 // Handle everything through onChange - no Vue component interference
@@ -611,9 +612,13 @@ export default {
                         },
                     }
                 ),
-                onReady: function (...args) {
+                onReady: function (selectedDates, dateStr, instance) {
                     // Call the original onReady handler
-                    createOnFlatpickrReady(flatpickrInstance)(...args);
+                    createOnFlatpickrReady(flatpickrInstance)(
+                        selectedDates,
+                        dateStr,
+                        instance
+                    );
                     // Then try to apply highlighting
                     nextTick(() => {
                         tryApplyHighlighting();
@@ -813,19 +818,7 @@ export default {
         );
 
         // Watch for changes in flatpickr's selectedDates to debug Invalid Date issue
-        watch(
-            () => flatpickrInstance.value?.selectedDates,
-            (newDates, oldDates) => {
-                if (newDates) {
-                    const invalidDates = newDates.filter(
-                        date => !(date instanceof Date) || isNaN(date)
-                    );
-                    if (invalidDates.length > 0) {
-                    }
-                }
-            },
-            { deep: true }
-        );
+        // Drop debug watcher on selectedDates to avoid type churn
 
         // Also watch flatpickrInstance separately to catch when it becomes available
         watch(flatpickrInstance, (newInstance, oldInstance) => {
@@ -979,10 +972,11 @@ export default {
         }
 
         function enableBodyScroll() {
-            if (!window.kohaModalCount) window.kohaModalCount = 0;
-            window.kohaModalCount = Math.max(0, window.kohaModalCount - 1);
+            // Use window property via bracket notation for TS friendliness
+            const count = Number(window["kohaModalCount"]) || 0;
+            window["kohaModalCount"] = Math.max(0, count - 1);
 
-            if (window.kohaModalCount === 0) {
+            if ((window["kohaModalCount"] || 0) === 0) {
                 document.body.classList.remove("modal-open");
                 if (document.body.style.paddingRight) {
                     document.body.style.paddingRight = "";
@@ -991,8 +985,8 @@ export default {
         }
 
         function disableBodyScroll() {
-            if (!window.kohaModalCount) window.kohaModalCount = 0;
-            window.kohaModalCount++;
+            const current = Number(window["kohaModalCount"]) || 0;
+            window["kohaModalCount"] = current + 1;
 
             if (!document.body.classList.contains("modal-open")) {
                 const scrollbarWidth =
@@ -1021,7 +1015,8 @@ export default {
 
         function clearDateRange() {
             // Clear the date range using flatpickr's built-in clear method
-            if (flatpickrInstance.value) {
+            if (flatpickrInstance.value?.clear) {
+                // @ts-ignore - flatpickr instance from plugin
                 flatpickrInstance.value.clear();
             }
             // Also clear the Vue reactive data
@@ -1066,7 +1061,9 @@ export default {
 
             if (isFormSubmission.value) {
                 const form = event.target.closest("form");
-                const csrfToken = document.querySelector('[name="csrf_token"]');
+                const csrfToken = /** @type {HTMLInputElement|null} */ (
+                    document.querySelector('[name="csrf_token"]')
+                );
 
                 const dataToSubmit = { ...bookingData };
                 if (dataToSubmit.extended_attributes) {
@@ -1083,8 +1080,8 @@ export default {
                     if (value === undefined || value === null) return;
                     const input = document.createElement("input");
                     input.type = "hidden";
-                    input.name = name;
-                    input.value = value;
+                    input.name = String(name);
+                    input.value = String(value);
                     form.appendChild(input);
                 });
                 form.submit();

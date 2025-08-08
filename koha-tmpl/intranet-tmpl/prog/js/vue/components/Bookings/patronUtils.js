@@ -1,4 +1,4 @@
-import { win } from "./utils.js";
+import { win } from "./utils.mjs";
 /**
  * Builds a search query for patron searches
  * This is a wrapper around the global buildPatronSearchQuery function
