@@ -197,15 +197,15 @@ export function createAdditionalFilters(variant = "default", options = {}) {
     switch (variant) {
         case "pending":
             return {
-                start_date: createDateFilter(fromSelector, toSelector, variant),
-                // Server field names must match API; use item.home_library_id and pickup_library_id
+                "me.start_date": createDateFilter(fromSelector, toSelector, variant),
+                // Server field names must match API
                 "item.home_library_id": function () {
                     let library = $(holdingLibrarySelector)
                         .find(":selected")
                         .val();
                     return library;
                 },
-                pickup_library_id: function () {
+                "me.pickup_library_id": function () {
                     let library = $(pickupLibrarySelector)
                         .find(":selected")
                         .val();

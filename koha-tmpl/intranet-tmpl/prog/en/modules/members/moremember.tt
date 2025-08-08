@@ -849,15 +849,8 @@
                                 </div> [% # /div#reserves %]
 
                                 [% WRAPPER tab_panel tabname="bookings" %]
-                                    [% IF ( bookings_count ) %]
-                                        <fieldset class="action filters" style="cursor:pointer;">
-                                            <a id="expired_filter" class="filtered"><i class="fa fa-bars"></i> Show expired</a>
-                                        </fieldset>
-                                        <table id="bookings_table" style="width: 100% !Important;"></table>
-                                    [% ELSIF ( expired_bookings_count ) %]
-                                        <fieldset class="action filters" style="cursor:pointer;">
-                                            <a id="expired_filter"><i class="fa fa-filter"></i> Hide expired</a>
-                                        </fieldset>
+                                    [% IF ( bookings_count || expired_bookings_count ) %]
+                                        [% INCLUDE 'bookings-table-filters.inc' %]
                                         <table id="bookings_table" style="width: 100% !Important;"></table>
                                     [% ELSE %]
                                         <p>Patron has nothing booked.</p>
@@ -1002,7 +995,66 @@
             }
         }
     </script>
-    [% Asset.js("js/tables/bookings.js") | $raw %]
+    [% Asset.js("js/bookings-common.js", type => "module") | $raw %]
+    <script>
+        (function() {
+            document.addEventListener('DOMContentLoaded', function () {
+                var bookingsTabLinks = document.querySelectorAll('a[data-tabname="bookings"]');
+
+                function additionalFilters() {
+                    return {
+                        patron_id: window.patron_borrowernumber,
+                    };
+                }
+
+                function ensureBookingsTable() {
+                    var tableEl = document.getElementById('bookings_table');
+                    if (!tableEl) return;
+                    if (window.__embedded_bookings_table_init_done) return;
+                    window.__embedded_bookings_table_init_done = true;
+                    window.bookings_table_p = Promise.resolve(
+                        window.createBookingsTable('#bookings_table', window.table_settings_bookings_table, {
+                            additionalFilters: additionalFilters(),
+                            columnFiltersEnabled: false,
+                            quickTogglesEnabled: true,
+                            columnOptions: {
+                                showActions: true,
+                                showEditAction: false,
+                                showDeleteAction: true,
+                                showStatus: true,
+                                showCreationDate: false,
+                                showBookingDates: false,
+                                showStartEndDates: true,
+                                showPickupLibrary: true,
+                                showBiblioTitle: true,
+                                showItemData: true
+                            },
+                        })
+                    ).then(function (tbl) {
+                        window.bookings_table = tbl;
+                        return tbl;
+                    });
+                }
+
+                function ensureBookingsTableReady() {
+                    ensureBookingsTable();
+                    if (window.bookings_table) return Promise.resolve(window.bookings_table);
+                    if (window.bookings_table_p) return window.bookings_table_p;
+                    return Promise.resolve(null);
+                }
+
+                // Initialize immediately if table exists in DOM
+                ensureBookingsTable();
+
+                if (window.location.hash === '#bookings_panel') {
+                    ensureBookingsTable();
+                }
+                bookingsTabLinks.forEach(function (el) {
+                    el.addEventListener('click', ensureBookingsTable);
+                });
+            });
+        })();
+    </script>
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

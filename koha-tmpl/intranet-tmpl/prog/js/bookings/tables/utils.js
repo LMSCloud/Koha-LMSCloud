@@ -84,7 +84,7 @@ export function $dateFn() {
 export function $biblioToHtmlFn() {
     /** @type {any} */
     const w = window;
-    return w["$biblio_to_html"] || ((b, _opts) => (b && b.title) || "");
+    return w["$biblio_to_html"] || ((b) => (b && b.title) || "");
 }
 
 /**
@@ -96,7 +96,7 @@ export function $patronToHtmlFn() {
     const w = window;
     return (
         w["$patron_to_html"] ||
-        ((p, _opts) =>
+        ((p) =>
             p ? [p.firstname, p.surname].filter(Boolean).join(" ") : "")
     );
 }

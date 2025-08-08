@@ -4,8 +4,6 @@
  * Feature configuration utilities for booking tables
  */
 
-/* global __, dayjs */
-
 import {
     BOOKING_TABLE_FEATURES,
     BOOKING_TABLE_CONSTANTS,

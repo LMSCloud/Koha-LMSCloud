@@ -51,7 +51,7 @@ export function getBookingsUrl(variant = "default", biblionumber) {
 /**
  * Get column filter configuration based on variant
  * @param {string} [variant='default'] - The variant to use for column filter configuration
- * @returns {number} Column filter flag (1 for enabled, 0 for disabled)
+ * @returns {1|0} Column filter flag (1 for enabled, 0 for disabled)
  */
 export function getBookingsColumnFilterFlag(variant = "default") {
     switch (variant) {

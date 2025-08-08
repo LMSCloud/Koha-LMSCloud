@@ -7,6 +7,7 @@
 import { BOOKING_TABLE_CONSTANTS } from "./constants.js";
 import { enhanceDateRangeFilters } from "./dateRangeEnhancement.js";
 import { enhanceStatusFilter } from "./statusEnhancement.js";
+import { enhanceQuickToggles } from "./quickTogglesEnhancement.js";
 
 // shared helpers moved to utils.js
 
@@ -195,13 +196,18 @@ export function enhanceBookingTableFilters(
     dataTable,
     tableElement,
     additionalFilters,
-    filterManager
+    filterManager,
+    /** @type {{ dateRange?: boolean, status?: boolean, quickToggles?: boolean }} */ options = {}
 ) {
-    // Enhanced filters in priority order
-    const enhancements = [
-        { type: "dateRange", handler: enhanceDateRangeFilters },
-        { type: "status", handler: enhanceStatusFilter },
-    ];
+    const enableDateRange = options.dateRange !== false;
+    const enableStatus = options.status !== false;
+    const enableQuickToggles = options.quickToggles === true;
+
+    // Select enhancements based on options
+    const enhancements = [];
+    if (enableDateRange) enhancements.push({ type: "dateRange", handler: enhanceDateRangeFilters });
+    if (enableStatus) enhancements.push({ type: "status", handler: enhanceStatusFilter });
+    if (enableQuickToggles) enhancements.push({ type: "quickToggles", handler: enhanceQuickToggles });
 
     enhancements.forEach(enhancement => {
         try {

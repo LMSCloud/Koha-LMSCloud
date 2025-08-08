@@ -89,8 +89,6 @@
     [% Asset.js("js/cancel_booking_modal.js") | $raw %]
     [% Asset.js("js/combobox.js") | $raw %]
     [% Asset.js("js/bookings-timeline.js") | $raw %]
-    [% Asset.js("js/bookings-table-filters.js") | $raw %]
-    [% Asset.js("js/bookings-table.js") | $raw %]
 
     [%# Process library data for JavaScript %]
     [% SET libraries = Branches.all %]
@@ -116,30 +114,9 @@
             // Get table settings
             let table_settings = [% TablesSettings.GetTableSettings( 'catalogue', 'detail', 'bookings', 'json' ) | $raw %];
 
-            // Define additional filters for this specific view
-            const additional_filters = {
-                end_date: () => {
-                            // When expired is false (default), we HIDE them by applying a date filter.
-                            // When expired is true, we SHOW them by not applying any date filter.
-                            if (!window.BookingsTableFilters.getStates().expired) {
-                        let today = new Date();
-                        return { ">=": today.toISOString() };
-                    }
-                            return undefined; // No filter
-                },
-                status: () => {
-                    const defaults = ["new", "pending", "active"];
-                            if (window.BookingsTableFilters.getStates().cancelled) {
-                        const filtered = [...defaults, "cancelled"];
-                        return { "-in": filtered };
-                    }
-                    return { "-in": defaults };
-                },
-            };
-
             // Initialize the table using unified function
             bookings_table = createBiblioBookingsTable('#bookings_table', table_settings, biblionumber, {
-                additionalFilters: additional_filters,
+                quickTogglesEnabled: true,
                 extended_attribute_types: extended_attribute_types,
                 authorised_values: authorised_values,
                 columnOptions: {
@@ -163,49 +140,34 @@
             // Show loading indicator
             $('#bookings-timeline-loading').show();
 
-            var items = $.ajax({
-                url: '/api/v1/biblios/%s/items?bookable=1'.format(biblionumber),
-                dataType: 'json',
-                type: 'GET'
-            });
-            var bookings = $.ajax({
-                url: '/api/v1/biblios/%s/bookings?_per_page=-1'.format(biblionumber),
-                headers: { 'x-koha-embed': ['patron', 'extended_attributes'] },
-                dataType: 'json',
-                type: 'GET',
-            });
-            var checkouts = $.ajax({
-                url: '/api/v1/biblios/%s/checkouts?_per_page=-1'.format(biblionumber),
-                headers: { 'x-koha-embed': ['patron'] },
-                dataType: 'json',
-                type: 'GET',
-            });
-
-            $.when(items, bookings, checkouts).then(
-                function(items, bookings, checkouts){
-                    timeline = window.BookingsTimeline.init({
-                        containerId: 'bookings-timeline',
-                        bookings: bookings[0],
-                        bookableItems: items[0],
-                        checkouts: checkouts[0]
-                    });
-                },
-                function(jqXHR, textStatus, errorThrown){
-                    // Hide loading indicator on error
-                    $('#bookings-timeline-loading').hide();
-                    console.log("Fetch failed", textStatus, errorThrown);
-                }
-            );
-
-            // Redraw table when filters change
-            document.addEventListener('bookingsTableFilters:changed', function() {
-                bookings_table.DataTable().draw();
-            });
-
-            // Show/hide status column when cancelled filter changes
-            document.addEventListener('bookingsTableFilters:changed', function() {
-                const showCancelled = window.BookingsTableFilters.getStates().cancelled;
-                bookings_table.DataTable().column('status:name').visible(showCancelled);
+            Promise.all([
+                fetch(`/api/v1/biblios/${biblionumber}/items?bookable=1`).then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                }),
+                fetch(`/api/v1/biblios/${biblionumber}/bookings?_per_page=-1`, {
+                    headers: { 'x-koha-embed': ['patron', 'extended_attributes'] }
+                }).then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                }),
+                fetch(`/api/v1/biblios/${biblionumber}/checkouts?_per_page=-1`, {
+                    headers: { 'x-koha-embed': ['patron'] }
+                }).then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+            ]).then(([items, bookings, checkouts]) => {
+                timeline = window.BookingsTimeline.init({
+                    containerId: 'bookings-timeline',
+                    bookings: bookings,
+                    bookableItems: items,
+                    checkouts: checkouts
+                });
+            }).catch(error => {
+                // Hide loading indicator on error
+                $('#bookings-timeline-loading').hide();
+                console.log("Fetch failed", error);
             });
 
             // Initialize combobox for cancellation reason

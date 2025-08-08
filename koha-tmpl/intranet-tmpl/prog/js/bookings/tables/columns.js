@@ -4,7 +4,14 @@
  * Column configuration and rendering for booking tables
  */
 
-import { $dateFn, $biblioToHtmlFn, $patronToHtmlFn, additionalFields, canManageBookings, escapeAttr } from "./utils.js";
+import {
+    $dateFn,
+    $biblioToHtmlFn,
+    $patronToHtmlFn,
+    additionalFields,
+    canManageBookings,
+    escapeAttr,
+} from "./utils.js";
 import { calculateBookingStatus } from "./features.js";
 
 /**
@@ -35,7 +42,11 @@ import { calculateBookingStatus } from "./features.js";
  * @returns {string}
  */
 function renderStatusBadge(row) {
-    const derived = calculateBookingStatus(row.status, row.start_date, row.end_date);
+    const derived = calculateBookingStatus(
+        row.status,
+        row.start_date,
+        row.end_date
+    );
     /** @type {Record<string, string>} */
     const statusTextMap = {
         expired: __("Expired"),
@@ -55,7 +66,9 @@ function renderStatusBadge(row) {
         { status: __("Completed"), class: "bg-info" },
         { status: __("New"), class: "bg-success" },
     ];
-    const badgeClass = classMap.find(m => statusText.startsWith(m.status))?.class || "bg-secondary";
+    const badgeClass =
+        classMap.find(m => statusText.startsWith(m.status))?.class ||
+        "bg-secondary";
     return `<span class="badge rounded-pill ${badgeClass}">${statusText}</span>`;
 }
 
@@ -66,7 +79,9 @@ function renderStatusBadge(row) {
  */
 function renderItemCell(row) {
     if (!row.item) return null;
-    return `${escapeAttr(row.item.external_id)} (${escapeAttr(row.booking_id)})`;
+    return `${escapeAttr(row.item.external_id)} (${escapeAttr(
+        row.booking_id
+    )})`;
 }
 
 /**
@@ -96,7 +111,10 @@ export function initializeBookingExtendedAttributes() {
         .then((/** @type {any} */ types) => {
             extended_attribute_types = types;
             const catArray = Object.values(types)
-                .map((/** @type {any} */ attr) => attr.authorised_value_category_name)
+                .map(
+                    (/** @type {any} */ attr) =>
+                        attr.authorised_value_category_name
+                )
                 .filter(Boolean);
             return additionalFields().fetchAndProcessAuthorizedValues(catArray);
         })
@@ -129,7 +147,9 @@ export function filterExtendedAttributesWithValues(attributes, recordId) {
  * @param {Object} authorised_values - Authorized values configuration
  * @param {Object} options - Column configuration options
  * @param {string} [options.variant='default'] - The variant to use for column configuration
- * @param {boolean} [options.showActions=false] - Whether to show action buttons (edit/cancel)
+ * @param {boolean} [options.showActions=false] - Whether to show the actions column
+ * @param {boolean} [options.showEditAction=true] - Whether to show the edit button in the actions column
+ * @param {boolean} [options.showDeleteAction=true] - Whether to show the delete/cancel button in the actions column
  * @param {boolean} [options.showStatus=false] - Whether to show status column with badges
  * @param {boolean} [options.showCreationDate=false] - Whether to show creation date column
  * @param {boolean} [options.showCallnumber=false] - Whether to show callnumber column
@@ -151,8 +171,9 @@ export function getBookingTableColumns(
     options = {}
 ) {
     const {
-        variant = "default",
         showActions = false,
+        showEditAction = true,
+        showDeleteAction = true,
         showStatus = false,
         showCreationDate = false,
         showCallnumber = false,
@@ -187,8 +208,8 @@ export function getBookingTableColumns(
             type: "date",
             searchable: true,
             orderable: true,
-            /** @type {(data:any, type:any, row:any, meta:any)=>any} */
-            render: function (_data, _type, row, _meta) {
+            /** @type {(data:any, type:any, row:any)=>any} */
+            render: function (_data, _type, row) {
                 return row.creation_date ? $dateFn()(row.creation_date) : "";
             },
         });
@@ -202,9 +223,8 @@ export function getBookingTableColumns(
             name: "status",
             searchable: false,
             orderable: false,
-            visible: variant === "biblio" ? false : true,
-            /** @type {(data:any, type:any, row:any, meta:any)=>any} */
-            render: function (_data, _type, row, _meta) {
+            /** @type {(data:any, type:any, row:any)=>any} */
+            render: function (_data, _type, row) {
                 return renderStatusBadge(row);
             },
         });
@@ -218,8 +238,8 @@ export function getBookingTableColumns(
             title: __("Holding library"),
             searchable: true,
             orderable: true,
-            /** @type {(data:any, type:any, row:any, meta:any)=>any} */
-            render: function (_data, _type, row, _meta) {
+            /** @type {(data:any, type:any, row:any)=>any} */
+            render: function (_data, _type, row) {
                 return row.item._strings.home_library_id.str || "";
             },
         });
@@ -233,13 +253,9 @@ export function getBookingTableColumns(
             title: __("Title"),
             searchable: true,
             orderable: true,
-            /** @type {(data:any, type:any, row:any, meta:any)=>any} */
-            render: function (_data, _type, row, _meta) {
-                return row.biblio
-                    ? $biblioToHtmlFn()(row.biblio, {
-                          link: linkBiblio,
-                      })
-                    : "";
+            /** @type {(data:any, type:any, row:any)=>any} */
+            render: function (_data, _type, row) {
+                return row.biblio ? $biblioToHtmlFn()(row.biblio, { link: linkBiblio }) : "";
             },
         });
     }
@@ -253,8 +269,8 @@ export function getBookingTableColumns(
             searchable: true,
             orderable: true,
             defaultContent: __("Any item"),
-            /** @type {(data:any, type:any, row:BookingRow, meta:any)=>any} */
-            render: function (_data, _type, row, _meta) {
+            /** @type {(data:any, type:any, row:BookingRow)=>any} */
+            render: function (_data, _type, row) {
                 return renderItemCell(row);
             },
         });
@@ -268,8 +284,8 @@ export function getBookingTableColumns(
             title: __("Callnumber"),
             searchable: true,
             orderable: true,
-            /** @type {(data:any, type:any, row:any, meta:any)=>any} */
-            render: function (_data, _type, row, _meta) {
+            /** @type {(data:any, type:any, row:any)=>any} */
+            render: function (_data, _type, row) {
                 if (row.item) {
                     return row.item.callnumber || "";
                 } else {
@@ -287,8 +303,8 @@ export function getBookingTableColumns(
             title: __("Location"),
             searchable: true,
             orderable: false,
-            /** @type {(data:any, type:any, row:any, meta:any)=>any} */
-            render: function (_data, _type, row, _meta) {
+            /** @type {(data:any, type:any, row:any)=>any} */
+            render: function (_data, _type, row) {
                 if (row.item) {
                     if (row.item.checked_out_date) {
                         return (
@@ -313,8 +329,8 @@ export function getBookingTableColumns(
             name: "itemtype",
             searchable: true,
             orderable: true,
-            /** @type {(data:any, type:any, row:any, meta:any)=>any} */
-            render: function (_data, _type, row, _meta) {
+            /** @type {(data:any, type:any, row:any)=>any} */
+            render: function (_data, _type, row) {
                 return row.item._strings.item_type_id.str || "";
             },
         });
@@ -327,8 +343,8 @@ export function getBookingTableColumns(
         title: __("Patron"),
         searchable: true,
         orderable: true,
-        /** @type {(data:any, type:any, row:any, meta:any)=>any} */
-        render: function (_data, _type, row, _meta) {
+        /** @type {(data:any, type:any, row:any)=>any} */
+        render: function (_data, _type, row) {
             return renderPatronCell(row.patron, patronOptions);
         },
     });
@@ -343,8 +359,8 @@ export function getBookingTableColumns(
             title: __("Pickup library"),
             searchable: true,
             orderable: true,
-            /** @type {(data:any, type:any, row:any, meta:any)=>any} */
-            render: function (_data, _type, row, _meta) {
+            /** @type {(data:any, type:any, row:any)=>any} */
+            render: function (_data, _type, row) {
                 return row.pickup_library.name || "";
             },
         });
@@ -359,8 +375,8 @@ export function getBookingTableColumns(
             type: "date",
             searchable: true,
             orderable: true,
-            /** @type {(data:any, type:any, row:any, meta:any)=>any} */
-            render: function (_data, _type, row, _meta) {
+            /** @type {(data:any, type:any, row:any)=>any} */
+            render: function (_data, _type, row) {
                 return (
                     $dateFn()(row.start_date) + " - " + $dateFn()(row.end_date)
                 );
@@ -374,8 +390,8 @@ export function getBookingTableColumns(
             type: "date",
             searchable: true,
             orderable: true,
-            /** @type {(data:any, type:any, row:any, meta:any)=>any} */
-            render: function (_data, _type, row, _meta) {
+            /** @type {(data:any, type:any, row:any)=>any} */
+            render: function (_data, _type, row) {
                 return $dateFn()(row.start_date);
             },
         });
@@ -385,8 +401,8 @@ export function getBookingTableColumns(
             type: "date",
             searchable: true,
             orderable: true,
-            /** @type {(data:any, type:any, row:any, meta:any)=>any} */
-            render: function (_data, _type, row, _meta) {
+            /** @type {(data:any, type:any, row:any)=>any} */
+            render: function (_data, _type, row) {
                 return $dateFn()(row.end_date);
             },
         });
@@ -399,8 +415,8 @@ export function getBookingTableColumns(
         title: __("Additional fields"),
         searchable: false,
         orderable: false,
-        /** @type {(data:any, type:any, row:any, meta:any)=>any} */
-        render: function (data, _type, row, _meta) {
+        /** @type {(data:any, type:any, row:any)=>any} */
+        render: function (data, _type, row) {
             // Filter to only show attributes with actual values
             const filteredAttributes = filterExtendedAttributesWithValues(
                 data,
@@ -412,12 +428,14 @@ export function getBookingTableColumns(
                 return "";
             }
 
-            return additionalFields().renderExtendedAttributesValues(
-                filteredAttributes,
-                extended_attribute_types,
-                authorised_values,
-                row.booking_id
-            ).join("<br>");
+            return additionalFields()
+                .renderExtendedAttributesValues(
+                    filteredAttributes,
+                    extended_attribute_types,
+                    authorised_values,
+                    row.booking_id
+                )
+                .join("<br>");
         },
     });
 
@@ -429,38 +447,52 @@ export function getBookingTableColumns(
             title: __("Actions"),
             searchable: false,
             orderable: false,
-            /** @type {(data:any, type:any, row:any, meta:any)=>any} */
-            render: function (_data, _type, row, _meta) {
+            /** @type {(data:any, type:any, row:any)=>any} */
+            render: function (_data, _type, row) {
                 if (!canManageBookings()) return "";
                 const isCancelled = row.status === "cancelled";
                 if (isCancelled) return "";
                 const ext = (row.extended_attributes || [])
-                    .filter((/** @type {{record_id:string|number}} */ a) => a && String(a.record_id) === String(row.booking_id))
-                    .map((/** @type {{field_id:string|number, value:any}} */ a) => ({ field_id: a.field_id, value: a.value }));
+                    .filter(
+                        (/** @type {{record_id:string|number}} */ a) =>
+                            a && String(a.record_id) === String(row.booking_id)
+                    )
+                    .map(
+                        (
+                            /** @type {{field_id:string|number, value:any}} */ a
+                        ) => ({ field_id: a.field_id, value: a.value })
+                    );
                 const attrs = JSON.stringify(ext);
-                return `
-                    <button
-                        type="button"
-                        class="btn btn-default btn-xs edit-action"
-                        data-booking-modal
-                        data-booking="${escapeAttr(row.booking_id)}"
-                        data-biblionumber="${escapeAttr(row.biblio_id)}"
-                        data-itemnumber="${escapeAttr(row.item_id)}"
-                        data-patron="${escapeAttr(row.patron_id)}"
-                        data-pickup_library="${escapeAttr(row.pickup_library_id)}"
-                        data-start_date="${escapeAttr(row.start_date)}"
-                        data-end_date="${escapeAttr(row.end_date)}"
-                        data-item_type_id="${escapeAttr(row.item?.item_type_id)}"
-                        data-extended_attributes='${escapeAttr(attrs)}'
-                    >
-                        <i class="fa fa-pencil" aria-hidden="true"></i> ${__("Edit")}
-                    </button>
-                    <button type="button" class="btn btn-default btn-xs cancel-action"
-                        data-toggle="modal"
-                        data-target="#cancelBookingModal"
-                        data-booking="${escapeAttr(row.booking_id)}">
-                        <i class="fa fa-trash" aria-hidden="true"></i> ${__("Cancel")}
-                    </button>`;
+                let html = "";
+                if (showEditAction) {
+                    html += `
+                        <button
+                            type="button"
+                            class="btn btn-default btn-xs edit-action"
+                            data-booking-modal
+                            data-booking="${escapeAttr(row.booking_id)}"
+                            data-biblionumber="${escapeAttr(row.biblio_id)}"
+                            data-itemnumber="${escapeAttr(row.item_id)}"
+                            data-patron="${escapeAttr(row.patron_id)}"
+                            data-pickup_library="${escapeAttr(row.pickup_library_id)}"
+                            data-start_date="${escapeAttr(row.start_date)}"
+                            data-end_date="${escapeAttr(row.end_date)}"
+                            data-item_type_id="${escapeAttr(row.item?.item_type_id)}"
+                            data-extended_attributes='${escapeAttr(attrs)}'
+                        >
+                            <i class="fa fa-pencil" aria-hidden="true"></i> ${__("Edit")}
+                        </button>`;
+                }
+                if (showDeleteAction) {
+                    html += `
+                        <button type="button" class="btn btn-default btn-xs cancel-action"
+                            data-toggle="modal"
+                            data-target="#cancelBookingModal"
+                            data-booking="${escapeAttr(row.booking_id)}">
+                            <i class="fa fa-trash" aria-hidden="true"></i> ${__("Cancel")}
+                        </button>`;
+                }
+                return html;
             },
         });
     }

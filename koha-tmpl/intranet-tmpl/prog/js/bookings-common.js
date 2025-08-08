@@ -22,12 +22,12 @@ import {
 
 // For backwards compatibility with templates, expose the main functions globally
 // These will be available on the window object for templates to use
-window.createBookingsTable = createBookingsTable;
-window.createPendingBookingsTable = createPendingBookingsTable;
-window.createBiblioBookingsTable = createBiblioBookingsTable;
-window.initializeBookingExtendedAttributes = initializeBookingExtendedAttributes;
-window.getBookingTableColumns = getBookingTableColumns;
-window.getBookingsFilterOptions = getBookingsFilterOptions;
+window["createBookingsTable"] = createBookingsTable;
+window["createPendingBookingsTable"] = createPendingBookingsTable;
+window["createBiblioBookingsTable"] = createBiblioBookingsTable;
+window["initializeBookingExtendedAttributes"] = initializeBookingExtendedAttributes;
+window["getBookingTableColumns"] = getBookingTableColumns;
+window["getBookingsFilterOptions"] = getBookingsFilterOptions;
 
 // Initialize global filter arrays for datatables.js compatibility
 initializeGlobalFilterArrays();
