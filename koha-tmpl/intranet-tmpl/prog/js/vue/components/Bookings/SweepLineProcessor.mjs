@@ -169,9 +169,9 @@ export class SweepLineProcessor {
                         interval.start <= dateEnd &&
                         interval.end >= dateStart
                     ) {
-                        // Map interval types to reason strings
+                        // Map interval types to reason strings (keep legacy names)
                         if (interval.type === "booking") {
-                            reasons.add("core");
+                            reasons.add("booking");
                         } else if (interval.type === "checkout") {
                             reasons.add("checkout");
                         } else {
