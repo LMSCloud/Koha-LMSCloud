@@ -159,11 +159,19 @@ export class BookingConfigurationService {
 
         const baseRules = this.store.circulationRules[0] || {};
 
-        // Apply date range constraint by overriding maxPeriod if configured
+        // Apply date range constraint only for constraining modes; otherwise strip caps
         const effectiveRules = { ...baseRules };
         const maxBookingPeriod = this.calculateMaxBookingPeriod();
-        if (this.dateRangeConstraint && maxBookingPeriod) {
-            effectiveRules.maxPeriod = maxBookingPeriod;
+        if (
+            this.dateRangeConstraint === "issuelength" ||
+            this.dateRangeConstraint === "issuelength_with_renewals"
+        ) {
+            if (maxBookingPeriod) {
+                effectiveRules.maxPeriod = maxBookingPeriod;
+            }
+        } else {
+            if ("maxPeriod" in effectiveRules) delete effectiveRules.maxPeriod;
+            if ("issuelength" in effectiveRules) delete effectiveRules.issuelength;
         }
 
         // Convert dateRange to proper selectedDates array for calculateDisabledDates

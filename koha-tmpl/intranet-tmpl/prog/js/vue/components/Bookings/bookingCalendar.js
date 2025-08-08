@@ -492,11 +492,18 @@ export class FlatpickrEventHandlers {
      */
     _calculateEffectiveRules(baseRules) {
         const effectiveRules = { ...baseRules };
+        // Only override when a constraining preference is set
         if (
-            this.constraintOptions.dateRangeConstraint &&
-            this.constraintOptions.maxBookingPeriod
+            this.constraintOptions.dateRangeConstraint === "issuelength" ||
+            this.constraintOptions.dateRangeConstraint === "issuelength_with_renewals"
         ) {
-            effectiveRules.maxPeriod = this.constraintOptions.maxBookingPeriod;
+            if (this.constraintOptions.maxBookingPeriod) {
+                effectiveRules.maxPeriod = this.constraintOptions.maxBookingPeriod;
+            }
+        } else {
+            // Unconstrained: strip implicit caps coming from API defaults
+            if ("maxPeriod" in effectiveRules) delete effectiveRules.maxPeriod;
+            if ("issuelength" in effectiveRules) delete effectiveRules.issuelength;
         }
         return effectiveRules;
     }

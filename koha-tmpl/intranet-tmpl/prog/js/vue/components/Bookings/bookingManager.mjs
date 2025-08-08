@@ -491,10 +491,11 @@ function extractBookingConfiguration(circulationRules, todayArg) {
         : dayjs().startOf("day");
     const leadDays = Number(circulationRules?.bookings_lead_period) || 0;
     const trailDays = Number(circulationRules?.bookings_trail_period) || 0;
+    // In unconstrained mode, do not enforce a default max period
     const maxPeriod =
         Number(circulationRules?.maxPeriod) ||
         Number(circulationRules?.issuelength) ||
-        30;
+        0;
     const isEndDateOnly =
         circulationRules?.booking_constraint_mode === "end_date_only";
 
@@ -900,11 +901,15 @@ export function handleBookingDateChange(
         const maxPeriod =
             Number(circulationRules?.maxPeriod) ||
             Number(circulationRules?.issuelength) ||
-            30;
+            0;
 
-        // Calculate min/max end date
-        newMinEndDate = dayjsStart.add(1, "day").startOf("day"); // Assign here
-        newMaxEndDate = dayjsStart.add(maxPeriod - 1, "day").startOf("day"); // Assign here
+        // Calculate min end date; max end date only when constrained
+        newMinEndDate = dayjsStart.add(1, "day").startOf("day");
+        if (maxPeriod > 0) {
+            newMaxEndDate = dayjsStart.add(maxPeriod - 1, "day").startOf("day");
+        } else {
+            newMaxEndDate = null;
+        }
 
         // Validate: start must be after today + leadDays
         const today = todayArg
@@ -924,7 +929,7 @@ export function handleBookingDateChange(
         }
 
         // Validate: period must not exceed maxPeriod (only if end date exists)
-        if (dayjsEnd && dayjsEnd.diff(dayjsStart, "day") + 1 > maxPeriod) {
+        if (maxPeriod > 0 && dayjsEnd && dayjsEnd.diff(dayjsStart, "day") + 1 > maxPeriod) {
             errors.push(String($__("Booking period exceeds maximum allowed")));
             valid = false;
         }
@@ -937,8 +942,8 @@ export function handleBookingDateChange(
             const numericMaxPeriod =
                 Number(circulationRules.maxPeriod) ||
                 Number(circulationRules.issuelength) ||
-                30;
-            const targetEndDate = dayjsStart.add(numericMaxPeriod - 1, "day");
+                0;
+            const targetEndDate = dayjsStart.add(Math.max(1, numericMaxPeriod) - 1, "day");
 
             // In end_date_only mode, end date must exactly match the calculated target end date
             if (!dayjsEnd.isSame(targetEndDate, "day")) {

@@ -444,10 +444,19 @@ export default {
 
             const baseRules = store.circulationRules[0] || {};
 
-            // Apply date range constraint by overriding maxPeriod if configured
+            // Apply date range constraint only when constraining preference is active
             const effectiveRules = { ...baseRules };
-            if (props.dateRangeConstraint && maxBookingPeriod.value) {
-                effectiveRules.maxPeriod = maxBookingPeriod.value;
+            if (
+                props.dateRangeConstraint === "issuelength" ||
+                props.dateRangeConstraint === "issuelength_with_renewals"
+            ) {
+                if (maxBookingPeriod.value) {
+                    effectiveRules.maxPeriod = maxBookingPeriod.value;
+                }
+            } else {
+                // Unconstrained: ensure no implicit cap leaks through from API defaults
+                if ("maxPeriod" in effectiveRules) delete effectiveRules.maxPeriod;
+                if ("issuelength" in effectiveRules) delete effectiveRules.issuelength;
             }
 
             // Convert ISO strings to Date objects for calculateDisabledDates
