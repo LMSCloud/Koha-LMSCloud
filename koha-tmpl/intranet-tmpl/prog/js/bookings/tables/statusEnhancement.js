@@ -57,27 +57,27 @@ export function enhanceStatusFilter(dataTable, tableElement, additionalFilters, 
             const nowIso = new Date().toISOString();
             switch (selectedValue) {
                 case "pending":
-                    return [
+                    return { "-and": [
                         { "me.status": "new" },
                         { "me.start_date": { ">": nowIso } },
-                    ];
+                    ]};
                 case "active":
-                    return [
+                    return { "-and": [
                         { "me.status": "new" },
                         { "me.start_date": { "<=": nowIso } },
                         { "me.end_date": { ">=": nowIso } },
-                    ];
+                    ]};
                 case "expired":
-                    return [
+                    return { "-and": [
                         { "me.status": "new" },
                         { "me.end_date": { "<": nowIso } },
-                    ];
+                    ]};
                 case "new":
-                    return [ { "me.status": "new" } ];
+                    return { "-and": [ { "me.status": "new" } ] };
                 case "cancelled":
-                    return [ { "me.status": "cancelled" } ];
+                    return { "-and": [ { "me.status": "cancelled" } ] };
                 case "completed":
-                    return [ { "me.status": "completed" } ];
+                    return { "-and": [ { "me.status": "completed" } ] };
                 default:
                     return undefined;
             }
