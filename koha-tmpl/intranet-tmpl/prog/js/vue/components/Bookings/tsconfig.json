@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+        "target": "ES2021",
+        "module": "ES2020",
+        "moduleResolution": "Node",
+        "checkJs": true,
+        "allowJs": true,
+        "noEmit": true,
+        "strict": false,
+        "baseUrl": ".",
+        "paths": {},
+        "types": []
+    },
+    "include": [
+        "./**/*.js",
+        "./**/*.mjs",
+        "./**/*.vue"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}
+
+
