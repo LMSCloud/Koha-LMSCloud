@@ -317,7 +317,8 @@ export function getBookingTableColumns(
     // Pickup library
     if (showPickupLibrary) {
         columns.push({
-            data: "pickup_library.name",
+            // Use the ID for searching/filtering; render will still show the name
+            data: "pickup_library_id",
             // Important: use API field name so server-side filtering targets booking.pickup_library_id
             name: "pickup_library_id",
             title: __("Pickup library"),
