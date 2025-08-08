@@ -53,48 +53,20 @@ import { updateDynamicFilterDropdowns as updateDynamicFilterDropdownsDynamic } f
  * @param {string} selectedStatus - The selected status filter value
  */
 export function applyClientSideStatusFilter(dataTable, selectedStatus) {
-    let visibleCount = 0;
-    let totalCount = 0;
-
-    // Get all rows
-    dataTable
-        .rows()
-        .nodes()
-        .each(function (/** @type {any} */ row, /** @type {any} */ _index) {
-            const $row = $(/** @type {any} */ (row));
-            const data = dataTable.row(row).data();
-            totalCount++;
-
-            // Skip if no data
-            if (!data || !data.start_date || !data.end_date) {
-                return;
-            }
-
-            // Calculate the actual status based on the same logic as the render function
-            const calculatedStatus = calculateBookingStatus(
-                data.status,
-                data.start_date,
-                data.end_date
-            );
-
-            // Show/hide row based on whether calculated status matches selected filter
-            if (
-                selectedStatus === "" ||
-                calculatedStatus.toLowerCase() === selectedStatus.toLowerCase()
-            ) {
-                $row.show();
-                visibleCount++;
-            } else {
-                $row.hide();
-            }
-        });
-
-    // If no rows are visible, trigger DataTables empty state
-    if (visibleCount === 0 && totalCount > 0) {
-        // Force DataTables to recognize there are no visible rows
-        dataTable.rows().remove();
-        dataTable.draw();
-    }
+    dataTable.rows().every(function () {
+        const row = this;
+        const data = row.data();
+        if (!data || !data.start_date || !data.end_date) return;
+        const calculatedStatus = calculateBookingStatus(
+            data.status,
+            data.start_date,
+            data.end_date
+        );
+        const show =
+            !selectedStatus ||
+            calculatedStatus.toLowerCase() === selectedStatus.toLowerCase();
+        $(row.node()).toggle(show);
+    });
 }
 
 /**

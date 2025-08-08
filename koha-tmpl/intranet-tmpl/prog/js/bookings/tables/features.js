@@ -90,7 +90,7 @@ export function getColumnFilterType(
     if (col.name === "home_library_id" && columnOptions.showHoldingLibrary) {
         return "getLibraryOptions";
     } else if (
-        col.name === "pickup_library" &&
+        (col.name === "pickup_library" || col.name === "pickup_library_id") &&
         columnOptions.showPickupLibrary
     ) {
         return "getLibraryOptions";

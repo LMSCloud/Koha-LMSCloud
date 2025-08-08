@@ -75,8 +75,42 @@ export function enhanceStatusFilter(dataTable, tableElement, additionalFilters, 
     statusDropdown.off("change");
     statusDropdown.on("change", function () {
         filterManager.selectedSyntheticStatus = getSelectValueString(statusDropdown);
+        // Clear server-side search on status column; rely on me.status mapping + client-side second stage
         dataTable.column(columnIndex).search("");
         dataTable.draw();
+        // Apply client-side filtering for synthetic statuses (pending/active/expired)
+        const selected = filterManager.selectedSyntheticStatus || "";
+        if (["pending", "active", "expired", "new", "cancelled", "completed"].includes(selected)) {
+            // Iterate rows and toggle visibility without destroying paging
+            dataTable.rows().every(function () {
+                const row = this;
+                const data = row.data();
+                if (!data || !data.start_date || !data.end_date) return;
+                // Compute synthetic status mirroring columns.js
+                const now = dayjs();
+                const isExpired = d => dayjs(d).isBefore(new Date());
+                const isActive = (s, e) => now.isAfter(dayjs(s)) && now.isBefore(dayjs(e).add(1, "day"));
+                let synthetic = "unknown";
+                switch (data.status) {
+                    case "new":
+                        if (isExpired(data.end_date)) synthetic = "expired";
+                        else if (isActive(data.start_date, data.end_date)) synthetic = "active";
+                        else if (dayjs(data.start_date).isAfter(new Date())) synthetic = "pending";
+                        else synthetic = "new";
+                        break;
+                    case "cancelled":
+                        synthetic = "cancelled";
+                        break;
+                    case "completed":
+                        synthetic = "completed";
+                        break;
+                    default:
+                        synthetic = "unknown";
+                }
+                const show = !selected || synthetic === selected;
+                $(row.node()).toggle(show);
+            });
+        }
     });
 }
 

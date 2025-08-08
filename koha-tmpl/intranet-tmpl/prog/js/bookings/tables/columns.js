@@ -318,7 +318,8 @@ export function getBookingTableColumns(
     if (showPickupLibrary) {
         columns.push({
             data: "pickup_library.name",
-            name: "pickup_library",
+            // Important: use API field name so server-side filtering targets booking.pickup_library_id
+            name: "pickup_library_id",
             title: __("Pickup library"),
             searchable: true,
             orderable: true,

@@ -194,7 +194,8 @@ export function createAdditionalFilters(variant = "default", options = {}) {
         case "pending":
             return {
                 start_date: createDateFilter(fromSelector, toSelector, variant),
-                "item.holding_library_id": function () {
+                // Server field names must match API; use item.home_library_id and pickup_library_id
+                "item.home_library_id": function () {
                     let library = $(holdingLibrarySelector)
                         .find(":selected")
                         .val();
