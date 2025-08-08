@@ -12,7 +12,7 @@ import {
 import {
     createFlatpickrConfig,
     FlatpickrEventHandlers,
-} from "./bookingCalendar.js";
+} from "./bookingCalendar.mjs";
 
 /**
  * Service class for booking form validation and business logic

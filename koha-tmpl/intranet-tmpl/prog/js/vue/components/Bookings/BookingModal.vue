@@ -175,7 +175,7 @@ import {
     createFlatpickrConfig,
     applyCalendarHighlighting,
     preloadFlatpickrLocale,
-} from "./bookingCalendar.js";
+    } from "./bookingCalendar.mjs";
 import { createBookingServices } from "./BookingModalService.mjs";
 import { win } from "./utils.mjs";
 
