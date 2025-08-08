@@ -14,6 +14,7 @@ use strict;
 use warnings;
 
 use base 'DBIx::Class::Core';
+use DateTime;
 
 =head1 TABLE: C<bookings>
 

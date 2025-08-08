@@ -4,7 +4,6 @@
  * Filter enhancement functionality for booking tables
  */
 
-import { calculateBookingStatus } from "./features.js";
 import { BOOKING_TABLE_CONSTANTS } from "./constants.js";
 import { enhanceDateRangeFilters } from "./dateRangeEnhancement.js";
 import { enhanceStatusFilter } from "./statusEnhancement.js";
@@ -52,22 +51,7 @@ import { updateDynamicFilterDropdowns as updateDynamicFilterDropdownsDynamic } f
  * @param {any} dataTable - The DataTables instance
  * @param {string} selectedStatus - The selected status filter value
  */
-export function applyClientSideStatusFilter(dataTable, selectedStatus) {
-    dataTable.rows().every(function () {
-        const row = this;
-        const data = row.data();
-        if (!data || !data.start_date || !data.end_date) return;
-        const calculatedStatus = calculateBookingStatus(
-            data.status,
-            data.start_date,
-            data.end_date
-        );
-        const show =
-            !selectedStatus ||
-            calculatedStatus.toLowerCase() === selectedStatus.toLowerCase();
-        $(row.node()).toggle(show);
-    });
-}
+// Client-side status filtering removed; synthetic statuses now enforced server-side
 
 /**
  * Populate dynamic filter options from raw API data using filter manager
