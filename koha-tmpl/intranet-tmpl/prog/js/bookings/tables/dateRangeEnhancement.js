@@ -63,7 +63,7 @@ export function enhanceDateRangeFilters(dataTable, tableElement, additionalFilte
                             setTimeout(() => dataTable.draw(), BOOKING_TABLE_CONSTANTS.FILTER_REDRAW_DELAY)
                         );
                     },
-                    onReady: function (_selectedDates, _dateStr, instance) {
+                    onReady: function (/** @type {any} */ _selectedDates, /** @type {any} */ _dateStr, /** @type {{ input: any; clear: () => void; }} */ instance) {
                         const $wrapper = $("<span/>").css({
                             display: "flex",
                             "justify-content": "center",

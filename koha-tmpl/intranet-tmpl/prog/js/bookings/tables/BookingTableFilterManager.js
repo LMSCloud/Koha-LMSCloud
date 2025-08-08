@@ -55,6 +55,7 @@ function createInstance(tableId) {
         initializeFilterOptions(variant = "default") {
             // Use the global BOOKINGS_LIBRARIES_DATA if available
             // This comes from the template and must be accessed via window
+            void variant;
             /** @type {any[]} */
             const libraries = getWindowValue("BOOKINGS_LIBRARIES_DATA", []);
             const all_libraries = libraries.map((/** @type {any} */ e) => ({
