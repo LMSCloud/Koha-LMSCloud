@@ -29,6 +29,7 @@
             if (e.target.closest("[data-booking-modal]")) {
                 const props = e.target.dataset;
                 island.bookingId = props.booking;
+                // Normalize itemId to the expected type for vue-select matching (string vs number)
                 island.itemId = props.itemnumber;
                 island.patronId = props.patron;
                 island.pickupLibraryId = props.pickup_library;

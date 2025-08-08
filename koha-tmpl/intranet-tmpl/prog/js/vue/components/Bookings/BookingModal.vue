@@ -710,7 +710,17 @@ export default {
 
                     // Set other form values after all dependencies are loaded
                     store.pickupLibraryId = props.pickupLibraryId;
-                    store.bookingItemId = props.itemId;
+                    // Normalize itemId type to match bookableItems' item_id type for vue-select strict matching
+                    if (props.itemId != null) {
+                        const sample = store.bookableItems?.[0]?.item_id;
+                        const normalized =
+                            typeof sample === "number"
+                                ? Number(props.itemId)
+                                : String(props.itemId);
+                        store.bookingItemId = normalized;
+                    } else {
+                        store.bookingItemId = null;
+                    }
                     store.bookingItemtypeId = props.itemtypeId;
 
                     if (props.startDate && props.endDate) {
