@@ -21,7 +21,7 @@ export async function fetchBookableItems(biblionumber) {
         `/api/v1/public/biblios/${encodeURIComponent(biblionumber)}/items`,
         {
             headers: {
-                "x-koha-embed": ["+strings"],
+                "x-koha-embed": "+strings",
             },
         }
     );
@@ -193,7 +193,11 @@ export async function fetchCirculationRules(params = {}) {
             "bookings_lead_period,bookings_trail_period,issuelength,renewalsallowed,renewalperiod";
     }
 
-    const urlParams = new URLSearchParams(filteredParams);
+    const urlParams = new URLSearchParams();
+    Object.entries(filteredParams).forEach(([k, v]) => {
+        if (v === undefined || v === null) return;
+        urlParams.set(k, String(v));
+    });
 
     const response = await fetch(
         `/api/v1/public/circulation_rules?${urlParams.toString()}`

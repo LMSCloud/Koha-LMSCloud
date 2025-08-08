@@ -15,8 +15,8 @@ import { managerLogger as logger } from "./bookingLogger.mjs";
 export class BookingInterval {
     /**
      * Create a booking interval
-     * @param {string|Date|dayjs.Dayjs} startDate - Start date of the interval
-     * @param {string|Date|dayjs.Dayjs} endDate - End date of the interval
+     * @param {string|Date|import("dayjs").Dayjs} startDate - Start date of the interval
+     * @param {string|Date|import("dayjs").Dayjs} endDate - End date of the interval
      * @param {string|number} itemId - Item ID (will be converted to string)
      * @param {'booking'|'checkout'|'lead'|'trail'} type - Type of interval
      * @param {Object} metadata - Additional metadata (booking_id, patron_id, etc.)
@@ -47,7 +47,7 @@ export class BookingInterval {
 
     /**
      * Check if this interval contains a specific date
-     * @param {number|Date|dayjs.Dayjs} date - Date to check (timestamp, Date object, or dayjs instance)
+     * @param {number|Date|import("dayjs").Dayjs} date - Date to check (timestamp, Date object, or dayjs instance)
      * @returns {boolean} True if the date is within this interval (inclusive)
      */
     containsDate(date) {
@@ -101,7 +101,6 @@ class IntervalTreeNode {
 
     /**
      * Update the max value based on children (internal method)
-     * @private
      */
     updateMax() {
         this.max = this.interval.end;
@@ -189,6 +188,7 @@ export class IntervalTree {
         this._updateHeight(y);
         this._updateHeight(x);
 
+        // Update max values after rotation
         y.updateMax();
         x.updateMax();
 
@@ -217,6 +217,7 @@ export class IntervalTree {
         this._updateHeight(x);
         this._updateHeight(y);
 
+        // Update max values after rotation
         x.updateMax();
         y.updateMax();
 
@@ -284,7 +285,7 @@ export class IntervalTree {
 
     /**
      * Query all intervals that contain a specific date
-     * @param {Date|dayjs.Dayjs|number} date - The date to query (Date object, dayjs instance, or timestamp)
+     * @param {Date|import("dayjs").Dayjs|number} date - The date to query (Date object, dayjs instance, or timestamp)
      * @param {string|null} [itemId=null] - Optional: filter by item ID (null for all items)
      * @returns {BookingInterval[]} Array of intervals that contain the date
      */
@@ -335,8 +336,8 @@ export class IntervalTree {
 
     /**
      * Query all intervals that overlap with a date range
-     * @param {Date|dayjs.Dayjs|number} startDate - Start of the range to query
-     * @param {Date|dayjs.Dayjs|number} endDate - End of the range to query
+     * @param {Date|import("dayjs").Dayjs|number} startDate - Start of the range to query
+     * @param {Date|import("dayjs").Dayjs|number} endDate - End of the range to query
      * @param {string|null} [itemId=null] - Optional: filter by item ID (null for all items)
      * @returns {BookingInterval[]} Array of intervals that overlap with the range
      */
@@ -359,7 +360,7 @@ export class IntervalTree {
             startTimestamp,
             endTimestamp,
             "",
-            "query"
+            /** @type {any} */ ("query")
         );
         const results = [];
         this._queryRangeNode(this.root, queryInterval, results, itemId);
@@ -485,9 +486,6 @@ export class IntervalTree {
     /**
      * Get statistics about the tree for debugging and monitoring
      * @returns {Object} Statistics object
-     * @returns {number} returns.size - Number of intervals in the tree
-     * @returns {number} returns.height - Height of the tree
-     * @returns {boolean} returns.balanced - Whether the tree is balanced (AVL property)
      */
     getStats() {
         const stats = {
@@ -503,21 +501,9 @@ export class IntervalTree {
 
 /**
  * Build an interval tree from bookings and checkouts data
- * @param {Array<Object>} bookings - Array of booking objects
- * @param {number} bookings[].booking_id - Unique booking ID
- * @param {string|number} bookings[].item_id - Item ID
- * @param {string} bookings[].start_date - Start date (ISO string or parseable format)
- * @param {string} bookings[].end_date - End date (ISO string or parseable format)
- * @param {number} bookings[].patron_id - Patron ID
- * @param {Array<Object>} checkouts - Array of checkout objects
- * @param {string|number} checkouts[].item_id - Item ID
- * @param {string} checkouts[].checkout_date - Checkout date
- * @param {string} checkouts[].due_date - Due date
- * @param {number} checkouts[].issue_id - Checkout ID
- * @param {number} checkouts[].patron_id - Patron ID
+     * @param {Array<Object>} bookings - Array of booking objects
+     * @param {Array<Object>} checkouts - Array of checkout objects
  * @param {Object} circulationRules - Circulation rules configuration
- * @param {number} [circulationRules.bookings_lead_period] - Lead period in days
- * @param {number} [circulationRules.bookings_trail_period] - Trail period in days
  * @returns {IntervalTree} Populated interval tree ready for queries
  */
 export function buildIntervalTree(bookings, checkouts, circulationRules) {

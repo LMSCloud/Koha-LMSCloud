@@ -22,7 +22,7 @@ export async function fetchBookableItems(biblionumber) {
         `/api/v1/biblios/${encodeURIComponent(biblionumber)}/items?bookable=1`,
         {
             headers: {
-                "x-koha-embed": ["+strings"],
+                "x-koha-embed": "+strings",
             },
         }
     );
@@ -101,7 +101,7 @@ export async function fetchPatron(patronId) {
     }
 
     const params = new URLSearchParams({
-        patron_id: patronId,
+        patron_id: String(patronId),
     });
 
     const response = await fetch(`/api/v1/patrons?${params.toString()}`, {
@@ -140,14 +140,14 @@ export async function fetchPatrons(term, page = 1) {
 
     const params = new URLSearchParams({
         q: JSON.stringify(query), // Send the query as a JSON string
-        _page: page,
+        _page: String(page),
         _per_page: "10", // Limit results per page
         _order_by: "surname,firstname",
     });
 
     const response = await fetch(`/api/v1/patrons?${params.toString()}`, {
         headers: {
-            "x-koha-embed": ["library"],
+            "x-koha-embed": "library",
             Accept: "application/json",
         },
     });
@@ -195,7 +195,7 @@ export async function fetchPickupLocations(biblionumber, patronId) {
 
     // Only add patron_id if it's provided
     if (patronId) {
-        params.append("patron_id", patronId);
+        params.append("patron_id", String(patronId));
     }
 
     const response = await fetch(
@@ -239,7 +239,7 @@ export async function fetchCirculationRules(params = {}) {
             params[key] !== undefined &&
             params[key] !== ""
         ) {
-            filteredParams[key] = params[key];
+        filteredParams[key] = params[key];
         }
     }
 
@@ -254,7 +254,11 @@ export async function fetchCirculationRules(params = {}) {
             "bookings_lead_period,bookings_trail_period,issuelength,renewalsallowed,renewalperiod";
     }
 
-    const urlParams = new URLSearchParams(filteredParams);
+    const urlParams = new URLSearchParams();
+    Object.entries(filteredParams).forEach(([k, v]) => {
+        if (v === undefined || v === null) return;
+        urlParams.set(k, String(v));
+    });
 
     const response = await fetch(
         `/api/v1/circulation_rules?${urlParams.toString()}`
@@ -331,7 +335,7 @@ export async function createBooking(bookingData) {
             // If we can't parse the error JSON, use the default error message
         }
         const error = new Error(errorMessage);
-        error.status = response.status;
+        /** @type {any} */ (error).status = response.status;
         throw error;
     }
 
@@ -387,7 +391,7 @@ export async function updateBooking(bookingId, bookingData) {
             // If we can't parse the error JSON, use the default error message
         }
         const error = new Error(errorMessage);
-        error.status = response.status;
+        /** @type {any} */ (error).status = response.status;
         throw error;
     }
 

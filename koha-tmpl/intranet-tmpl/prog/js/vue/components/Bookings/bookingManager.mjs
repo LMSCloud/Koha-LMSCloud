@@ -3,6 +3,7 @@
 // To be used by the Pinia store and BookingModal.vue
 
 import dayjs from "../../utils/dayjs.mjs";
+import { win } from "./utils.js";
 import { managerLogger as logger } from "./bookingLogger.mjs";
 
 // Use global $__ function (available in browser, mocked in tests)
@@ -10,7 +11,7 @@ const $__ = globalThis.$__ || (str => str);
 
 /**
  * Validate end_date_only start date selection - checks entire range for conflicts
- * @param {dayjs.Dayjs} date - Potential start date
+ * @param {any} date - Potential start date
  * @param {number} maxPeriod - Maximum booking period
  * @param {Object} intervalTree - Interval tree for conflict checking
  * @param {string|null} selectedItem - Selected item ID
@@ -107,7 +108,7 @@ function validateEndDateOnlyStartDate(
 
 /**
  * Handle end_date_only intermediate date logic when start date is selected
- * @param {dayjs.Dayjs} date - Date being checked
+ * @param {any} date - Date being checked
  * @param {Array} selectedDates - Currently selected dates
  * @param {number} maxPeriod - Maximum booking period
  * @returns {boolean|null} True to disable, false to allow, null to continue with normal logic
@@ -168,13 +169,14 @@ import {
 /**
  * Build unavailableByDate map from IntervalTree for backward compatibility
  * @param {IntervalTree} intervalTree - The interval tree containing all bookings/checkouts
- * @param {dayjs} today - Today's date for range calculation
+ * @param {any} today - Today's date for range calculation
  * @param {Array} allItemIds - Array of all item IDs
  * @param {number|string|null} editBookingId - The booking_id being edited (exclude from results)
  * @param {Object} options - Additional options for optimization
- * @param {Date} options.visibleStartDate - Start of visible calendar range
- * @param {Date} options.visibleEndDate - End of visible calendar range
- * @param {boolean} options.onDemand - Whether to build map on-demand for visible dates only
+ * @param {Object} [options] - Additional options for optimization
+ * @param {Date} [options.visibleStartDate] - Start of visible calendar range
+ * @param {Date} [options.visibleEndDate] - End of visible calendar range
+ * @param {boolean} [options.onDemand] - Whether to build map on-demand for visible dates only
  * @returns {Object} - Map of date strings to item unavailability data
  */
 function buildUnavailableByDateMap(
@@ -276,9 +278,9 @@ const DATE_FORMAT_MAP = {
  * @returns {Object} Date format configuration based on current locale
  */
 function getLocalizedDateFormat() {
-    const dateFormat = window?.flatpickr_dateformat_string || "Y-m-d";
+    const dateFormat = win("flatpickr_dateformat_string") || "Y-m-d";
     const langCode =
-        window.KohaLanguage ||
+        win("KohaLanguage") ||
         document.documentElement.lang?.toLowerCase() ||
         "en";
 
@@ -304,8 +306,8 @@ function getLocalizedDateFormat() {
 
 /**
  * Check if a date is in the past (before today)
- * @param {dayjs.Dayjs} date - Date to check
- * @param {dayjs.Dayjs} today - Today's date
+ * @param {import("dayjs").Dayjs} date - Date to check
+ * @param {import("dayjs").Dayjs} today - Today's date
  * @returns {boolean} True if date is in the past
  */
 function isPastDate(date, today) {
@@ -314,7 +316,7 @@ function isPastDate(date, today) {
 
 /**
  * Optimized lead period validation using range queries instead of individual point queries
- * @param {dayjs.Dayjs} startDate - Potential start date to validate
+ * @param {import("dayjs").Dayjs} startDate - Potential start date to validate
  * @param {number} leadDays - Number of lead period days to check
  * @param {Object} intervalTree - Interval tree for conflict checking
  * @param {string|null} selectedItem - Selected item ID or null
@@ -345,7 +347,7 @@ function validateLeadPeriodOptimized(
     const leadConflicts = intervalTree.queryRange(
         leadStart.valueOf(),
         leadEnd.valueOf(),
-        selectedItem ? String(selectedItem) : null
+        selectedItem != null ? String(selectedItem) : null
     );
 
     const relevantLeadConflicts = leadConflicts.filter(
@@ -384,7 +386,7 @@ function validateLeadPeriodOptimized(
 
 /**
  * Optimized trail period validation using range queries instead of individual point queries
- * @param {dayjs.Dayjs} endDate - Potential end date to validate
+ * @param {import("dayjs").Dayjs} endDate - Potential end date to validate
  * @param {number} trailDays - Number of trail period days to check
  * @param {Object} intervalTree - Interval tree for conflict checking
  * @param {string|null} selectedItem - Selected item ID or null
@@ -415,7 +417,7 @@ function validateTrailPeriodOptimized(
     const trailConflicts = intervalTree.queryRange(
         trailStart.valueOf(),
         trailEnd.valueOf(),
-        selectedItem ? String(selectedItem) : null
+        selectedItem != null ? String(selectedItem) : null
     );
 
     const relevantTrailConflicts = trailConflicts.filter(
@@ -508,7 +510,9 @@ function createDisableFunction(
     selectedDates
 ) {
     const { today, leadDays, trailDays, maxPeriod, isEndDateOnly } = config;
-    const allItemIds = bookableItems.map(i => i.item_id);
+    const allItemIds = bookableItems.map(i => String(i.item_id));
+    // Normalize selectedItem for downstream calls that expect string or null
+    const normalizedSelectedItem = selectedItem != null ? String(selectedItem) : null;
 
     return date => {
         const dayjs_date = dayjs(date).startOf("day");
@@ -557,7 +561,7 @@ function createDisableFunction(
         // Guard clause: Standard point-in-time availability check
         const pointConflicts = intervalTree.query(
             dayjs_date.valueOf(),
-            selectedItem ? String(selectedItem) : null
+            selectedItem != null ? String(selectedItem) : null
         );
         const relevantPointConflicts = pointConflicts.filter(
             interval =>
@@ -753,11 +757,12 @@ export function calculateDisabledDates(
     options = {}
 ) {
     logger.time("calculateDisabledDates");
+    const normalizedSelectedItem = selectedItem != null ? String(selectedItem) : null;
     logger.debug("calculateDisabledDates called", {
         bookingsCount: bookings.length,
         checkoutsCount: checkouts.length,
         itemsCount: bookableItems.length,
-        selectedItem,
+        normalizedSelectedItem,
         editBookingId,
         selectedDates,
         circulationRules,
@@ -768,7 +773,7 @@ export function calculateDisabledDates(
         bookings,
         checkouts,
         bookableItems,
-        selectedItem,
+        normalizedSelectedItem,
         circulationRules
     );
 
@@ -781,31 +786,32 @@ export function calculateDisabledDates(
 
     // Extract and validate configuration
     const config = extractBookingConfiguration(circulationRules, todayArg);
-    const allItemIds = bookableItems.map(i => i.item_id);
+    const allItemIds = bookableItems.map(i => String(i.item_id));
 
     // Create optimized disable function using extracted helper
+    const normalizedEditBookingId = editBookingId != null ? Number(editBookingId) : null;
     const disableFunction = createDisableFunction(
         intervalTree,
         config,
         bookableItems,
-        selectedItem,
-        editBookingId,
+        normalizedSelectedItem,
+        normalizedEditBookingId,
         selectedDates
     );
 
     // Build unavailableByDate for backward compatibility and markers
     // Pass options for performance optimization
+    
     const unavailableByDate = buildUnavailableByDateMap(
         intervalTree,
-        config.today,
+        /** @type {any} */ (config.today),
         allItemIds,
-        editBookingId,
+        normalizedEditBookingId,
         options
     );
 
     logger.debug("IntervalTree-based availability calculated", {
         treeSize: intervalTree.size,
-        treeHeight: intervalTree._getHeight(intervalTree.root),
     });
     logger.timeEnd("calculateDisabledDates");
 
@@ -971,12 +977,9 @@ export function handleBookingDateChange(
 
 /**
  * Aggregate all booking/checkouts for a given date (for calendar indicators)
- * @param {Array} bookings - Array of booking objects
- * @param {Array} checkouts - Array of checkout objects
- * @param {string|Date|dayjs} dateStr - date to check (YYYY-MM-DD or Date or dayjs)
+ * @param {Object} unavailableByDate - Map produced by buildUnavailableByDateMap
+ * @param {string|Date|import("dayjs").Dayjs} dateStr - date to check (YYYY-MM-DD or Date or dayjs)
  * @param {Array} bookableItems - Array of all bookable items
- * @param {Object} circulationRules - Circulation rules object (leadDays, trailDays)
- * @param {Array} selectedDates - Array of currently selected dates ([start], or [start, end])
  * @returns {Array<{ type: string, item: string, itemName: string, barcode: string|null }>} indicators for that date
  */
 export function getBookingMarkersForDate(
@@ -1074,23 +1077,23 @@ export function parseDateRange(val) {
         return result;
     }
 
-    if (typeof val === "string" && window?.flatpickr) {
+    if (typeof val === "string" && win("flatpickr")) {
         const { dateFormat, formatConfig, langCode } = getLocalizedDateFormat();
         console.log("🌍 Locale info:", { dateFormat, langCode, formatConfig });
 
         // Get locale configuration for flatpickr parsing
         let locale = null;
 
-        if (langCode !== "en" && window.flatpickr?.l10ns?.[langCode]) {
-            locale = window.flatpickr.l10ns[langCode];
+        if (langCode !== "en" && win("flatpickr")?.l10ns?.[langCode]) {
+            locale = win("flatpickr").l10ns[langCode];
             console.log("🌍 Using flatpickr locale:", langCode, locale);
         } else if (langCode !== "en") {
             // Create fallback locale using available global settings
             const fallbackLocale = {};
-            if (window.flatpickr_weekdays)
-                fallbackLocale.weekdays = window.flatpickr_weekdays;
-            if (window.flatpickr_months)
-                fallbackLocale.months = window.flatpickr_months;
+            if (win("flatpickr_weekdays"))
+                fallbackLocale.weekdays = win("flatpickr_weekdays");
+            if (win("flatpickr_months"))
+                fallbackLocale.months = win("flatpickr_months");
             if (Object.keys(fallbackLocale).length > 0) {
                 locale = fallbackLocale;
                 console.log("🌍 Using fallback locale:", locale);
@@ -1104,11 +1107,11 @@ export function parseDateRange(val) {
             // Get the actual rangeSeparator from flatpickr's loaded locale
             let rangeSeparator = " to "; // default
 
-            if (window.flatpickr?.l10ns) {
+            if (win("flatpickr")?.l10ns) {
                 const currentLang = langCode || "en";
                 const flatpickrLocale =
-                    window.flatpickr.l10ns[currentLang] ||
-                    window.flatpickr.l10ns.default;
+                    win("flatpickr").l10ns[currentLang] ||
+                    win("flatpickr").l10ns.default;
                 if (flatpickrLocale?.rangeSeparator) {
                     rangeSeparator = flatpickrLocale.rangeSeparator;
                 }
@@ -1131,16 +1134,20 @@ export function parseDateRange(val) {
                         "format:",
                         dateFormat
                     );
-                    const start = flatpickr.parseDate(
-                        parts[0].trim(),
-                        dateFormat,
-                        locale
-                    );
-                    const end = flatpickr.parseDate(
-                        parts[1].trim(),
-                        dateFormat,
-                        locale
-                    );
+                    const start = (win("flatpickr") && win("flatpickr").parseDate)
+                        ? win("flatpickr").parseDate(
+                              parts[0].trim(),
+                              dateFormat,
+                              locale
+                          )
+                        : null;
+                    const end = (win("flatpickr") && win("flatpickr").parseDate)
+                        ? win("flatpickr").parseDate(
+                              parts[1].trim(),
+                              dateFormat,
+                              locale
+                          )
+                        : null;
 
                     if (start && end) {
                         const result = [
@@ -1159,7 +1166,9 @@ export function parseDateRange(val) {
                 "format:",
                 dateFormat
             );
-            const parsed = flatpickr.parseDate(val, dateFormat, locale);
+            const parsed = (win("flatpickr") && win("flatpickr").parseDate)
+                ? win("flatpickr").parseDate(val, dateFormat, locale)
+                : null;
             if (parsed) {
                 const result = [dayjs(parsed).toISOString(), null];
                 return result;

@@ -30,14 +30,14 @@ class SweepEvent {
      * Create a sweep event
      * @param {number} timestamp - Unix timestamp of the event
      * @param {'start'|'end'} type - Type of event
-     * @param {BookingInterval} interval - The interval associated with this event
+     * @param {any} interval - The interval associated with this event
      */
     constructor(timestamp, type, interval) {
         /** @type {number} Unix timestamp of the event */
         this.timestamp = timestamp;
         /** @type {'start'|'end'} Type of event */
         this.type = type; // 'start' or 'end'
-        /** @type {BookingInterval} The booking/checkout interval */
+        /** @type {any} The booking/checkout interval */
         this.interval = interval; // The booking/checkout interval
     }
 }
@@ -58,13 +58,11 @@ export class SweepLineProcessor {
 
     /**
      * Process intervals to generate unavailability data for a date range
-     * @param {Array<BookingInterval>} intervals - All booking/checkout intervals
-     * @param {Date|dayjs.Dayjs} viewStart - Start of the visible date range
-     * @param {Date|dayjs.Dayjs} viewEnd - End of the visible date range
+     * @param {Array} intervals - All booking/checkout intervals
+     * @param {Date|import("dayjs").Dayjs} viewStart - Start of the visible date range
+     * @param {Date|import("dayjs").Dayjs} viewEnd - End of the visible date range
      * @param {Array<string>} allItemIds - All bookable item IDs
      * @returns {Object<string, Object<string, Set<string>>>} unavailableByDate map
-     * @returns {Object<string, Set<string>>} returns[dateKey] - Map of item IDs to reasons for that date
-     * @returns {Set<string>} returns[dateKey][itemId] - Set of unavailability reasons for that item on that date
      */
     processIntervals(intervals, viewStart, viewEnd, allItemIds) {
         logger.time("SweepLineProcessor.processIntervals");
@@ -94,10 +92,10 @@ export class SweepLineProcessor {
             const clampedEnd = Math.min(interval.end, endTimestamp);
 
             this.events.push(
-                new SweepEvent(clampedStart, EventType.START, interval)
+                new SweepEvent(clampedStart, "start", interval)
             );
             this.events.push(
-                new SweepEvent(clampedEnd, EventType.END, interval)
+                new SweepEvent(clampedEnd, "end", interval)
             );
         });
 
@@ -107,12 +105,13 @@ export class SweepLineProcessor {
                 return a.timestamp - b.timestamp;
             }
             // At the same timestamp, process starts before ends
-            return a.type === EventType.START ? -1 : 1;
+            return a.type === "start" ? -1 : 1;
         });
 
         logger.debug(`Created ${this.events.length} sweep events`);
 
         // Process events using sweep line
+        /** @type {Record<string, Record<string, Set<string>>>} */
         const unavailableByDate = {};
         const activeIntervals = new Map(); // itemId -> Set of intervals
 
@@ -202,9 +201,9 @@ export class SweepLineProcessor {
 
     /**
      * Process intervals and return aggregated statistics
-     * @param {Array<BookingInterval>} intervals
-     * @param {Date|dayjs} viewStart
-     * @param {Date|dayjs} viewEnd
+     * @param {Array} intervals
+     * @param {Date|import("dayjs").Dayjs} viewStart
+     * @param {Date|import("dayjs").Dayjs} viewEnd
      * @returns {Object} Statistics about the date range
      */
     getDateRangeStatistics(intervals, viewStart, viewEnd) {
@@ -280,7 +279,7 @@ export class SweepLineProcessor {
 
     /**
      * Find the next available date for a specific item
-     * @param {Array<BookingInterval>} intervals
+     * @param {Array} intervals
      * @param {string} itemId
      * @param {Date|dayjs} startDate
      * @param {number} maxDaysToSearch
@@ -325,7 +324,7 @@ export class SweepLineProcessor {
 
     /**
      * Find gaps (available periods) for an item
-     * @param {Array<BookingInterval>} intervals
+     * @param {Array} intervals
      * @param {string} itemId
      * @param {Date|dayjs} viewStart
      * @param {Date|dayjs} viewEnd
@@ -392,13 +391,11 @@ export class SweepLineProcessor {
 
 /**
  * Create and process unavailability data using sweep line algorithm
- * @param {IntervalTree} intervalTree - The interval tree containing all bookings/checkouts
- * @param {Date|dayjs.Dayjs} viewStart - Start of the calendar view date range
- * @param {Date|dayjs.Dayjs} viewEnd - End of the calendar view date range
+ * @param {any} intervalTree - The interval tree containing all bookings/checkouts
+ * @param {Date|import("dayjs").Dayjs} viewStart - Start of the calendar view date range
+ * @param {Date|import("dayjs").Dayjs} viewEnd - End of the calendar view date range
  * @param {Array<string>} allItemIds - All bookable item IDs
  * @returns {Object<string, Object<string, Set<string>>>} unavailableByDate map
- * @returns {Object<string, Set<string>>} returns[dateKey] - Map of item IDs to reasons for that date
- * @returns {Set<string>} returns[dateKey][itemId] - Set of unavailability reasons for that item on that date
  */
 export function processCalendarView(
     intervalTree,

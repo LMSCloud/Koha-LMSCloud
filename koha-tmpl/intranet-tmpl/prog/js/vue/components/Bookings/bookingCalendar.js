@@ -8,6 +8,7 @@ import {
 } from "./bookingManager.mjs";
 import dayjs from "../../utils/dayjs.mjs";
 import { calendarLogger as logger } from "./bookingLogger.mjs";
+import { win } from "./utils.js";
 
 /**
  * Clear constraint highlighting from flatpickr calendar
@@ -278,28 +279,28 @@ function createFlatpickrLocaleFallback() {
     const locale = {};
 
     // Get translated weekdays and months (prefer global variables from calendar.js)
-    const globalLocale = window.flatpickr?.l10ns?.default || {};
-    locale.weekdays = window.flatpickr_weekdays || globalLocale.weekdays;
-    locale.months = window.flatpickr_months || globalLocale.months;
+    const globalLocale = win("flatpickr")?.l10ns?.default || {};
+    locale.weekdays = win("flatpickr_weekdays") || globalLocale.weekdays;
+    locale.months = win("flatpickr_months") || globalLocale.months;
 
     // Add first day of week preference
-    if (window.calendarFirstDayOfWeek !== undefined) {
-        locale.firstDayOfWeek = parseInt(window.calendarFirstDayOfWeek, 10);
+    if (win("calendarFirstDayOfWeek") !== undefined) {
+        locale.firstDayOfWeek = parseInt(win("calendarFirstDayOfWeek"), 10);
     }
 
     // Add range separator translation
-    if (typeof window.__ === "function") {
-        const toTranslation = window.__("to");
+    if (typeof win("__") === "function") {
+        const toTranslation = win("__")("to");
         locale.rangeSeparator = " " + toTranslation + " ";
     }
 
     // Override with actual flatpickr locale if available
-    if (window.flatpickr?.l10ns) {
+    if (win("flatpickr")?.l10ns) {
         const currentLang =
-            window.KohaLanguage ||
+            win("KohaLanguage") ||
             document.documentElement.lang?.toLowerCase() ||
             "en";
-        const flatpickrLocale = window.flatpickr.l10ns[currentLang];
+        const flatpickrLocale = win("flatpickr").l10ns[currentLang];
         if (flatpickrLocale?.rangeSeparator) {
             locale.rangeSeparator = flatpickrLocale.rangeSeparator;
         }
@@ -317,22 +318,26 @@ export function createFlatpickrConfig(baseConfig = {}) {
     const langCode = getCurrentLanguageCode();
 
     // Check if a locale has been pre-loaded for this language
-    if (langCode !== "en" && window.flatpickr?.l10ns?.[langCode]) {
-        config.locale = langCode;
+    if (langCode !== "en" && win("flatpickr")?.l10ns?.[langCode]) {
+        /** @type {any} */
+        (config).locale = langCode;
     } else if (langCode !== "en") {
         // Use custom fallback locale
         const fallbackLocale = createFlatpickrLocaleFallback();
         if (Object.keys(fallbackLocale).length > 0) {
-            config.locale = fallbackLocale;
+            /** @type {any} */
+            (config).locale = fallbackLocale;
         }
     }
 
-    if (window.flatpickr_dateformat_string) {
-        config.dateFormat = window.flatpickr_dateformat_string;
+    if (win("flatpickr_dateformat_string")) {
+        /** @type {any} */
+        (config).dateFormat = win("flatpickr_dateformat_string");
     }
 
-    if (window.flatpickr_timeformat !== undefined) {
-        config.time_24hr = window.flatpickr_timeformat;
+    if (win("flatpickr_timeformat") !== undefined) {
+        /** @type {any} */
+        (config).time_24hr = win("flatpickr_timeformat");
     }
 
     return config;
@@ -408,7 +413,7 @@ export class FlatpickrEventHandlers {
         // Bound range for availability computation using visible calendar window
         let calcOptions = {};
         if (instance) {
-            const visibleDates = getVisibleCalendarDates(instance);
+            const visibleDates = getVisibleCalendarDates(/** @type {any} */ (instance));
             if (visibleDates && visibleDates.length > 0) {
                 calcOptions = {
                     onDemand: true,
@@ -434,7 +439,7 @@ export class FlatpickrEventHandlers {
         this._handleConstraintHighlighting(
             selectedDates,
             effectiveRules,
-            instance
+            /** @type {any} */ (instance)
         );
     }
 
