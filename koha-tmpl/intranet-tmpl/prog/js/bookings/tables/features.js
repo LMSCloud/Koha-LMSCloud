@@ -27,6 +27,8 @@ import { dayjsFn } from "./utils.js";
  * @typedef {Object} Column
  * @property {string=} name
  * @property {string=} type
+ * @property {string=} data
+ * @property {string=} title
  */
 
 /**
@@ -35,6 +37,8 @@ import { dayjsFn } from "./utils.js";
  * @property {boolean=} showPickupLibrary
  * @property {boolean=} showLocation
  * @property {boolean=} showItemType
+ * @property {string=} linkBiblio
+ * @property {{display_cardnumber?: boolean, url?: boolean}=} patronOptions
  */
 
 /**

@@ -4,18 +4,6 @@
  */
 
 /**
- * Translate text using global __ if available
- * @param {string} s
- * @returns {string}
- */
-export function t(s) {
-    /** @type {any} */
-    const w = window;
-    const fn = w["__"];
-    return typeof fn === "function" ? fn(s) : s;
-}
-
-/**
  * Generic accessor for window keys using bracket notation
  * @param {string} key
  * @returns {any}
@@ -51,6 +39,22 @@ export function setWindowValue(key, value) {
     /** @type {any} */
     const w = window;
     w[key] = value;
+}
+
+/**
+ * Escape a string for safe inclusion in HTML attribute values
+ * @param {any} value
+ * @returns {string}
+ */
+export function escapeAttr(value) {
+    const s = String(value ?? "");
+    return s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+        .replace(/[\r\n]+/g, " ");
 }
 
 /**
@@ -92,7 +96,8 @@ export function $patronToHtmlFn() {
     const w = window;
     return (
         w["$patron_to_html"] ||
-        ((p, _opts) => (p ? [p.firstname, p.surname].filter(Boolean).join(" ") : ""))
+        ((p, _opts) =>
+            p ? [p.firstname, p.surname].filter(Boolean).join(" ") : "")
     );
 }
 
@@ -201,9 +206,11 @@ export function rangeToIsoBounds(selectedDates, dayStart, dayEnd) {
         dayStart.second,
         dayStart.millisecond
     );
-    toDate.setHours(dayEnd.hour, dayEnd.minute, dayEnd.second, dayEnd.millisecond);
+    toDate.setHours(
+        dayEnd.hour,
+        dayEnd.minute,
+        dayEnd.second,
+        dayEnd.millisecond
+    );
     return { ">=": fromDate.toISOString(), "<=": toDate.toISOString() };
 }
-
-
-

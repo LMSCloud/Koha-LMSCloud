@@ -4,7 +4,80 @@
  * Column configuration and rendering for booking tables
  */
 
-import { dayjsFn, $dateFn, $biblioToHtmlFn, $patronToHtmlFn, additionalFields, canManageBookings } from "./utils.js";
+import { $dateFn, $biblioToHtmlFn, $patronToHtmlFn, additionalFields, canManageBookings, escapeAttr } from "./utils.js";
+import { calculateBookingStatus } from "./features.js";
+
+/**
+ * @typedef {Object} BookingRow
+ * @property {number|string} booking_id
+ * @property {number|string} biblio_id
+ * @property {number|string} patron_id
+ * @property {number|string|null} item_id
+ * @property {string} status
+ * @property {string} start_date
+ * @property {string} end_date
+ * @property {{ name: string }} pickup_library
+ * @property {{
+ *   external_id?: string,
+ *   callnumber?: string,
+ *   location?: string,
+ *   checked_out_date?: string,
+ *   item_type_id?: string|number,
+ *   _strings?: { location?: { str: string }, item_type_id?: { str: string }, home_library_id?: { str: string } }
+ * }} item
+ * @property {{ title?: string }} biblio
+ * @property {Array<{ record_id: string|number, field_id: string|number, value: any }>} extended_attributes
+ */
+
+/**
+ * Render a status badge for a booking row
+ * @param {BookingRow} row
+ * @returns {string}
+ */
+function renderStatusBadge(row) {
+    const derived = calculateBookingStatus(row.status, row.start_date, row.end_date);
+    /** @type {Record<string, string>} */
+    const statusTextMap = {
+        expired: __("Expired"),
+        cancelled: __("Cancelled"),
+        pending: __("Pending"),
+        active: __("Active"),
+        completed: __("Completed"),
+        new: __("New"),
+        unknown: __("Unknown"),
+    };
+    const statusText = statusTextMap[derived] || __("Unknown");
+    const classMap = [
+        { status: __("Expired"), class: "bg-secondary" },
+        { status: __("Cancelled"), class: "bg-secondary" },
+        { status: __("Pending"), class: "bg-warning" },
+        { status: __("Active"), class: "bg-primary" },
+        { status: __("Completed"), class: "bg-info" },
+        { status: __("New"), class: "bg-success" },
+    ];
+    const badgeClass = classMap.find(m => statusText.startsWith(m.status))?.class || "bg-secondary";
+    return `<span class="badge rounded-pill ${badgeClass}">${statusText}</span>`;
+}
+
+/**
+ * Render item cell
+ * @param {BookingRow} row
+ * @returns {string|null}
+ */
+function renderItemCell(row) {
+    if (!row.item) return null;
+    return `${escapeAttr(row.item.external_id)} (${escapeAttr(row.booking_id)})`;
+}
+
+/**
+ * Render patron cell
+ * @param {any} patron
+ * @param {any} options
+ * @returns {string}
+ */
+function renderPatronCell(patron, options) {
+    return $patronToHtmlFn()(patron, options);
+}
 
 // shared helpers moved to utils.js
 
@@ -132,57 +205,7 @@ export function getBookingTableColumns(
             visible: variant === "biblio" ? false : true,
             /** @type {(data:any, type:any, row:any, meta:any)=>any} */
             render: function (_data, _type, row, _meta) {
-                /** @param {string} date */
-                const isExpired = date => dayjsFn()(date).isBefore(new Date());
-                /** @param {string} startDate @param {string} endDate */
-                const isActive = (startDate, endDate) => {
-                    const now = dayjsFn()();
-                    return (
-                        now.isAfter(dayjsFn()(startDate)) &&
-                        now.isBefore(dayjsFn()(endDate).add(1, "day"))
-                    );
-                };
-
-                /** @type {any} */
-                const statusMap = {
-                    new: () => {
-                        if (isExpired(row.end_date)) {
-                            return __("Expired");
-                        }
-                        if (isActive(row.start_date, row.end_date)) {
-                            return __("Active");
-                        }
-                        if (dayjsFn()(row.start_date).isAfter(new Date())) {
-                            return __("Pending");
-                        }
-                        return __("New");
-                    },
-                    cancelled: () =>
-                        [__("Cancelled"), row.cancellation_reason]
-                            .filter(Boolean)
-                            .join(": "),
-                    completed: () => __("Completed"),
-                };
-
-                const statusText = statusMap[row.status]
-                    ? statusMap[row.status]()
-                    : __("Unknown");
-
-                const classMap = [
-                    { status: __("Expired"), class: "bg-secondary" },
-                    { status: __("Cancelled"), class: "bg-secondary" },
-                    { status: __("Pending"), class: "bg-warning" },
-                    { status: __("Active"), class: "bg-primary" },
-                    { status: __("Completed"), class: "bg-info" },
-                    { status: __("New"), class: "bg-success" },
-                ];
-
-                const badgeClass =
-                    classMap.find(mapping =>
-                        statusText.startsWith(mapping.status)
-                    )?.class || "bg-secondary";
-
-                return `<span class="badge rounded-pill ${badgeClass}">${statusText}</span>`;
+                return renderStatusBadge(row);
             },
         });
     }
@@ -230,13 +253,9 @@ export function getBookingTableColumns(
             searchable: true,
             orderable: true,
             defaultContent: __("Any item"),
-            /** @type {(data:any, type:any, row:any, meta:any)=>any} */
+            /** @type {(data:any, type:any, row:BookingRow, meta:any)=>any} */
             render: function (_data, _type, row, _meta) {
-                if (row.item) {
-                    return row.item.external_id + " (" + row.booking_id + ")";
-                } else {
-                    return null;
-                }
+                return renderItemCell(row);
             },
         });
     }
@@ -310,7 +329,7 @@ export function getBookingTableColumns(
         orderable: true,
         /** @type {(data:any, type:any, row:any, meta:any)=>any} */
         render: function (_data, _type, row, _meta) {
-            return $patronToHtmlFn()(row.patron, patronOptions);
+            return renderPatronCell(row.patron, patronOptions);
         },
     });
 
@@ -412,53 +431,36 @@ export function getBookingTableColumns(
             orderable: false,
             /** @type {(data:any, type:any, row:any, meta:any)=>any} */
             render: function (_data, _type, row, _meta) {
-                let result = "";
-                let is_cancelled = row.status === "cancelled";
-                if (
-                    canManageBookings()
-                ) {
-                    if (!is_cancelled) {
-                        result += `
-                        <button
-                            type="button"
-                            class="btn btn-default btn-xs edit-action"
-                            data-booking-modal
-                            data-booking="${row.booking_id}"
-                            data-biblionumber="${row.biblio_id}"
-                            data-itemnumber="${row.item_id}"
-                            data-patron="${row.patron_id}"
-                            data-pickup_library="${row.pickup_library_id}"
-                            data-start_date="${row.start_date}"
-                            data-end_date="${row.end_date}"
-                            data-item_type_id="${row.item.item_type_id}"
-                            data-extended_attributes='${JSON.stringify(
-                                row.extended_attributes
-                                    ?.filter(
-                                        (/** @type {any} */ attribute) =>
-                                            attribute.record_id ==
-                                            row.booking_id
-                                    )
-                                    ?.map((/** @type {any} */ attribute) => ({
-                                        field_id: attribute.field_id,
-                                        value: attribute.value,
-                                    })) ?? []
-                            )}'
-                        >
-                            <i class="fa fa-pencil" aria-hidden="true"></i> ${__(
-                                "Edit"
-                            )}
-                        </button>
-                        <button type="button" class="btn btn-default btn-xs cancel-action"
-                            data-toggle="modal"
-                            data-target="#cancelBookingModal"
-                            data-booking="${row.booking_id}">
-                            <i class="fa fa-trash" aria-hidden="true"></i> ${__(
-                                "Cancel"
-                            )}
-                        </button>`;
-                    }
-                }
-                return result;
+                if (!canManageBookings()) return "";
+                const isCancelled = row.status === "cancelled";
+                if (isCancelled) return "";
+                const ext = (row.extended_attributes || [])
+                    .filter((/** @type {{record_id:string|number}} */ a) => a && String(a.record_id) === String(row.booking_id))
+                    .map((/** @type {{field_id:string|number, value:any}} */ a) => ({ field_id: a.field_id, value: a.value }));
+                const attrs = JSON.stringify(ext);
+                return `
+                    <button
+                        type="button"
+                        class="btn btn-default btn-xs edit-action"
+                        data-booking-modal
+                        data-booking="${escapeAttr(row.booking_id)}"
+                        data-biblionumber="${escapeAttr(row.biblio_id)}"
+                        data-itemnumber="${escapeAttr(row.item_id)}"
+                        data-patron="${escapeAttr(row.patron_id)}"
+                        data-pickup_library="${escapeAttr(row.pickup_library_id)}"
+                        data-start_date="${escapeAttr(row.start_date)}"
+                        data-end_date="${escapeAttr(row.end_date)}"
+                        data-item_type_id="${escapeAttr(row.item?.item_type_id)}"
+                        data-extended_attributes='${escapeAttr(attrs)}'
+                    >
+                        <i class="fa fa-pencil" aria-hidden="true"></i> ${__("Edit")}
+                    </button>
+                    <button type="button" class="btn btn-default btn-xs cancel-action"
+                        data-toggle="modal"
+                        data-target="#cancelBookingModal"
+                        data-booking="${escapeAttr(row.booking_id)}">
+                        <i class="fa fa-trash" aria-hidden="true"></i> ${__("Cancel")}
+                    </button>`;
             },
         });
     }

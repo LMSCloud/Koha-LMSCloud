@@ -26,11 +26,15 @@ import { getWindowValue, setWindowValue } from "./utils.js";
  * @param {Object} options - Filter options to populate global arrays
  */
 /**
+ * @typedef {{ _id: string|number, _str: string }} OptionPair
+ */
+
+/**
  * @typedef {Object} GlobalFilterArraysOptions
- * @property {any[]=} getLibraryOptions
- * @property {any[]=} getStatusOptions
- * @property {any[]=} getLocationOptions
- * @property {any[]=} getItemTypeOptions
+ * @property {OptionPair[]=} getLibraryOptions
+ * @property {OptionPair[]=} getStatusOptions
+ * @property {OptionPair[]=} getLocationOptions
+ * @property {OptionPair[]=} getItemTypeOptions
  */
 
 /**

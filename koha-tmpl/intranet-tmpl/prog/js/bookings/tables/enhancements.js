@@ -7,7 +7,6 @@
 import { BOOKING_TABLE_CONSTANTS } from "./constants.js";
 import { enhanceDateRangeFilters } from "./dateRangeEnhancement.js";
 import { enhanceStatusFilter } from "./statusEnhancement.js";
-import { updateDynamicFilterDropdowns as updateDynamicFilterDropdownsDynamic } from "./dynamicDropdowns.js";
 
 // shared helpers moved to utils.js
 
@@ -59,7 +58,9 @@ import { updateDynamicFilterDropdowns as updateDynamicFilterDropdownsDynamic } f
  * @param {FilterManager} filterManager - The filter manager instance
  */
 export function populateDynamicFilterOptionsFromData(data, filterManager) {
-    const rows = Array.isArray(data) ? data : (/** @type {any} */ (data)).data || [];
+    const rows = Array.isArray(data)
+        ? data
+        : /** @type {any} */ (data).data || [];
 
     // Collect unique locations and item types
     const locations = new Map();
@@ -147,7 +148,9 @@ export function updateDynamicFilterDropdowns(tableElement, filterManager) {
                         })
                         .get();
 
-                    const newOptionValues = options.map((/** @type {any} */ opt) => opt._id);
+                    const newOptionValues = options.map(
+                        (/** @type {any} */ opt) => opt._id
+                    );
 
                     // Update if options have changed OR if dropdown is empty (initial load)
                     if (
@@ -198,12 +201,11 @@ export function enhanceBookingTableFilters(
     const enhancements = [
         { type: "dateRange", handler: enhanceDateRangeFilters },
         { type: "status", handler: enhanceStatusFilter },
-        { type: "dynamic", handler: updateDynamicFilterDropdownsDynamic },
     ];
 
     enhancements.forEach(enhancement => {
         try {
-            (/** @type {any} */ (enhancement.handler))(
+            /** @type {any} */ (enhancement.handler)(
                 dataTable,
                 tableElement,
                 additionalFilters,

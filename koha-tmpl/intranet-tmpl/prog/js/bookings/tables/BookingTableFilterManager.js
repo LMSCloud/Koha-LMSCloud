@@ -23,11 +23,15 @@ import { getWindowValue, setWindowValue } from "./utils.js";
 const instances = new Map();
 
 /**
+ * @typedef {{ _id: string|number, _str: string }} OptionPair
+ */
+
+/**
  * @typedef {{
- *   getLibraryOptions: any[];
- *   getStatusOptions: any[];
- *   getLocationOptions: any[];
- *   getItemTypeOptions: any[];
+ *   getLibraryOptions: OptionPair[];
+ *   getStatusOptions: OptionPair[];
+ *   getLocationOptions: OptionPair[];
+ *   getItemTypeOptions: OptionPair[];
  * }} FilterOptions
  */
 
@@ -39,10 +43,10 @@ function createInstance(tableId) {
         tableId: tableId,
         /** @type {FilterOptions} */
         filterOptions: {
-            getLibraryOptions: /** @type {any[]} */ ([]),
-            getStatusOptions: /** @type {any[]} */ ([]),
-            getLocationOptions: /** @type {any[]} */ ([]),
-            getItemTypeOptions: /** @type {any[]} */ ([]),
+            getLibraryOptions: /** @type {OptionPair[]} */ ([]),
+            getStatusOptions: /** @type {OptionPair[]} */ ([]),
+            getLocationOptions: /** @type {OptionPair[]} */ ([]),
+            getItemTypeOptions: /** @type {OptionPair[]} */ ([]),
         },
         dynamicFiltersPopulated: false,
         dateRangeFilters: new Map(),
@@ -56,7 +60,7 @@ function createInstance(tableId) {
             // Use the global BOOKINGS_LIBRARIES_DATA if available
             // This comes from the template and must be accessed via window
             void variant;
-            /** @type {any[]} */
+            /** @type {Array<{branchcode:string, branchname:string}>} */
             const libraries = getWindowValue("BOOKINGS_LIBRARIES_DATA", []);
             const all_libraries = libraries.map((/** @type {any} */ e) => ({
                 _id: e.branchcode,
