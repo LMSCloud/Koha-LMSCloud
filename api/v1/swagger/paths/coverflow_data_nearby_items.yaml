@@ -3,10 +3,9 @@
     x-mojo-to: CoverflowDataNearbyItems#get
     operationId: getCoverflowDataNearbyItems
     description: Get coverflow data of nearby items on the shelf
-    summary: Get coverflow data of nearby items on the shelf
+    summary: Get coverflow data of nearby items on the shelf from itemnumber
     tags:
       - coverflow_data_nearby_items
-    summary: Get coverflow data of nearby items from itemnumber
     parameters:
       - $ref: "../swagger.yaml#/parameters/item_id_pp"
       - name: quantity

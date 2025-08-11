@@ -3,10 +3,9 @@
     x-mojo-to: CoverflowDataQuery#get
     operationId: getCoverflowDataQuery
     description: Get coverflow data based on a catalog query
-    summary: Get coverflow data based on a catalog query
+    summary: Get coverflow data based on a catalog query string
     tags:
       - coverflow_data_query
-    summary: Get coverflow data by query string
     parameters:
       - name: query
         in: query

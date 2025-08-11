@@ -3,10 +3,9 @@
     x-mojo-to: CoverflowDataBiblionumber#get
     operationId: getCoverflowDataBiblionumber
     description: Get coverflow data of a biblio record
-    summary: Get coverflow data of a biblio record
+    summary: Get coverflow data of a biblio record by biblionumber
     tags:
       - coverflow_data_biblionumber
-    summary: Get coverflow data by biblionumber
     parameters:
       - $ref: "../swagger.yaml#/parameters/biblio_ids_pp"
     consumes:
