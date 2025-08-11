@@ -403,6 +403,8 @@ export default {
             )
         );
 
+        const lastRulesKey = ref(null);
+
         // Cache for availability data to prevent excessive recalculation
         let availabilityCache = null;
         let availabilityCacheKey = null;
@@ -773,20 +775,35 @@ export default {
             { immediate: true, deep: true }
         );
 
-        watchEffect(() => {
-            const patronId = bookingPatron.value?.patron_id;
-            const biblionumber = props.biblionumber;
-            if (patronId && biblionumber) {
-                store.fetchPickupLocations(biblionumber, patronId);
-            }
+        watchEffect(
+            () => {
+                const patronId = bookingPatron.value?.patron_id;
+                const biblionumber = props.biblionumber;
+                if (patronId && biblionumber) {
+                    store.fetchPickupLocations(biblionumber, patronId);
+                }
 
-            const patron = bookingPatron.value;
-            store.fetchCirculationRules({
-                patron_category_id: patron?.category_id,
-                item_type_id: bookingItemtypeId.value,
-                library_id: bookingPickupLibraryId.value,
-            });
-        });
+                const patron = bookingPatron.value;
+                const derivedItemTypeId =
+                    bookingItemtypeId.value ??
+                    (Array.isArray(constrainedItemTypes.value) &&
+                    constrainedItemTypes.value.length === 1
+                        ? constrainedItemTypes.value[0].item_type_id
+                        : undefined);
+
+                const rulesParams = {
+                    patron_category_id: patron?.category_id,
+                    item_type_id: derivedItemTypeId,
+                    library_id: bookingPickupLibraryId.value,
+                };
+                const key = JSON.stringify(rulesParams);
+                if (lastRulesKey.value !== key) {
+                    lastRulesKey.value = key;
+                    store.fetchCirculationRules(rulesParams);
+                }
+            },
+            { flush: "post" }
+        );
 
         watch(
             constrainedItemTypes,
