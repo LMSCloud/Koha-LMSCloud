@@ -815,6 +815,31 @@ export default {
             { immediate: true, deep: true }
         );
 
+        // Consolidated: clear errors on any core input or date range change
+        watch(
+            [
+                () => bookingPatron.value?.patron_id,
+                () => bookingPickupLibraryId.value,
+                () => bookingItemtypeId.value,
+                () => bookingItemId.value,
+                () => store.selectedDateRange?.[0],
+                () => store.selectedDateRange?.[1],
+            ],
+            () => {
+                clearErrors();
+            }
+        );
+
+        // Clear lingering errors when circulation rules finish (re)loading
+        watch(
+            () => store.loading.circulationRules,
+            (isLoading, wasLoading) => {
+                if (wasLoading && !isLoading) {
+                    clearErrors();
+                }
+            }
+        );
+
         // Helper function to check if we should trigger highlighting
         const tryApplyHighlighting = () => {
             const dataReady =
@@ -1032,8 +1057,7 @@ export default {
                         $__("No items are available")
                     )
                 ) {
-                    // Clear the error message if items become available again
-                    modalState.errorMessage = "";
+                    clearErrors();
                 }
             },
             { immediate: true }
@@ -1082,6 +1106,16 @@ export default {
             additionalFieldsInstance.value = null;
         }
 
+        // Globally clear all error states (modal + store)
+        function clearErrors() {
+            modalState.errorMessage = "";
+            if (store && store.error) {
+                Object.keys(store.error).forEach(key => {
+                    store.error[key] = null;
+                });
+            }
+        }
+
         function enableBodyScroll() {
             // Use window property via bracket notation for TS friendliness
             const count = Number(window["kohaModalCount"]) || 0;
@@ -1116,7 +1150,7 @@ export default {
             bookingItemId.value = null;
             store.selectedDateRange = [];
             modalState.step = 1;
-            modalState.errorMessage = "";
+            clearErrors();
             if (additionalFieldsInstance.value) {
                 additionalFieldsInstance.value.clear();
             }
@@ -1133,7 +1167,7 @@ export default {
             // Also clear the Vue reactive data
             store.selectedDateRange = [];
             // Clear any error messages related to date selection
-            modalState.errorMessage = "";
+            clearErrors();
         }
 
         function handleClose() {
