@@ -798,6 +798,23 @@ export default {
             { immediate: true }
         );
 
+        watch(
+            [() => bookingItemId.value, () => store.bookableItems],
+            ([itemId, items]) => {
+                if (!itemId || bookingItemtypeId.value) return;
+                const item = (items || []).find(
+                    i => String(i.item_id) === String(itemId)
+                );
+                if (item) {
+                    bookingItemtypeId.value =
+                        item.effective_item_type_id ||
+                        item.item_type_id ||
+                        null;
+                }
+            },
+            { immediate: true, deep: true }
+        );
+
         // Helper function to check if we should trigger highlighting
         const tryApplyHighlighting = () => {
             const dataReady =
