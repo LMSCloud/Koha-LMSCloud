@@ -1292,18 +1292,4 @@ $(document).ready(function() {
         $("#return-claims-table").DataTable().search("is_unresolved").draw();
     });
 
-    $("#show_all_claims").on("click", function(e){
-        e.preventDefault();
-        $(".ctrl_link").removeClass("disabled");
-        $(this).addClass("disabled");
-        $("#return-claims-table").DataTable().search("").draw();
-    });
-
-    $("#show_unresolved_claims").on("click", function (e) {
-        e.preventDefault();
-        $(".ctrl_link").removeClass("disabled");
-        $(this).addClass("disabled");
-        $("#return-claims-table").DataTable().search("is_unresolved").draw();
-    });
-
  });

@@ -1395,6 +1395,7 @@
             .on('shown.bs.modal', function() {
                 $("#barcode").prop("disabled", false).focus();
             }).on('hidden.bs.modal', function() {
+                $("body").removeClass("nobackdrop");
                 $("#barcode").prop("disabled", false).focus();
             });
 
