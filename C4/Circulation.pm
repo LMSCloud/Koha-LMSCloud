@@ -1760,30 +1760,38 @@ sub AddIssue {
             # and SwitchOnSiteCheckouts is enabled this converts it to a regular checkout
             $issue = Koha::Checkouts->find( { itemnumber => $item_object->itemnumber } );
 
-            # If this checkout relates to a booking, handle booking status appropriately
-            if ( my $booking = $item_object->find_booking( { checkout_date => $issuedate, due_date => $datedue } ) ) {
-                if ( $booking->patron_id == $patron->borrowernumber ) {
-
-                    # Patron's own booking - mark as completed
-                    $booking->status('completed')->store;
-                } else {
-
-                    # Another patron's booking - only cancel if checkout period overlaps with actual booking period
-                    my $booking_start = dt_from_string( $booking->start_date );
-                    my $booking_end   = dt_from_string( $booking->end_date );
-
-                    # Check if checkout period overlaps with actual booking period (not just lead/trail)
-                    if (   ( $issuedate >= $booking_start && $issuedate <= $booking_end )
-                        || ( $datedue >= $booking_start   && $datedue <= $booking_end )
-                        || ( $issuedate <= $booking_start && $datedue >= $booking_end ) )
+            my $schema = Koha::Database->schema;
+            $schema->txn_do(
+                sub {
+                    # If this checkout relates to a booking, handle booking status appropriately
+                    if ( my $booking =
+                        $item_object->find_booking( { checkout_date => $issuedate, due_date => $datedue } ) )
                     {
-                        # Checkout overlaps with actual booking period - cancel the booking
-                        $booking->status('cancelled')->store;
-                    }
+                        if ( $booking->patron_id == $patron->borrowernumber ) {
 
-                    # If only in lead/trail period, do nothing - librarian has made informed decision
+                            # Patron's own booking - mark as completed and link checkout to booking
+                            $booking->status('completed')->store;
+                            $issue_attributes->{'booking_id'} = $booking->booking_id;
+                        } else {
+
+                            # Another patron's booking - only cancel if checkout period overlaps with actual booking period
+                            my $booking_start = dt_from_string( $booking->start_date );
+                            my $booking_end   = dt_from_string( $booking->end_date );
+
+                            # Check if checkout period overlaps with actual booking period (not just lead/trail)
+                            if (   ( $issuedate >= $booking_start && $issuedate <= $booking_end )
+                                || ( $datedue >= $booking_start   && $datedue <= $booking_end )
+                                || ( $issuedate <= $booking_start && $datedue >= $booking_end ) )
+                            {
+                                # Checkout overlaps with actual booking period - cancel the booking
+                                $booking->status('cancelled')->store;
+                            }
+
+                            # If only in lead/trail period, do nothing - librarian has made informed decision
+                        }
+                    }
                 }
-            }
+            );
 
             if ($issue) {
                 $issue->set($issue_attributes)->store;
@@ -3526,10 +3534,10 @@ sub AddRenewal {
         # Update the issues record to have the new due date, and a new count
         # of how many times it has been renewed.
         my $renews = ( $issue->renewals_count || 0 ) + 1;
-        my $sth = $dbh->prepare("UPDATE issues SET date_due = ?, renewals_count = ?, unseen_renewals = ?, lastreneweddate = ? WHERE issue_id = ?");
+        my $sth = $dbh->prepare("UPDATE issues SET date_due = ?, renewals_count = ?, unseen_renewals = ?, lastreneweddate = ?, booking_id = ? WHERE issue_id = ?");
 
         eval{
-            $sth->execute( $datedue->strftime('%Y-%m-%d %H:%M'), $renews, $unseen_renewals, $lastreneweddate, $issue->issue_id );
+            $sth->execute( $datedue->strftime('%Y-%m-%d %H:%M'), $renews, $unseen_renewals, $lastreneweddate, $issue->booking_id, $issue->issue_id );
         };
         if( $sth->err ){
             Koha::Exceptions::Checkout::FailedRenewal->throw(
