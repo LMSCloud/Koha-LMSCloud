@@ -11,7 +11,16 @@ properties:
     type:
       - integer
       - "null"
-    description: internal identifier of checked out item
+  booking_id:
+    type:
+      - integer
+      - "null"
+    description: Internal booking identifier that this checkout fulfills
+  external_id:
+    type:
+      - string
+      - "null"
+    description: other identifier of checked out item f.e. barcode
   due_date:
     type: string
     format: date-time
@@ -102,4 +111,9 @@ properties:
       - object
       - "null"
     description: The object representing the checkout patron
+  booking:
+    type:
+      - object
+      - "null"
+    description: The object representing the linked booking
 additionalProperties: false

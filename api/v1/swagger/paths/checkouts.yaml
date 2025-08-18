@@ -29,6 +29,7 @@
         items:
           type: string
           enum:
+            - booking
             - issuer
             - renewals
         collectionFormat: csv
@@ -86,6 +87,7 @@
         items:
           type: string
           enum:
+            - booking
             - issuer
             - renewals
         collectionFormat: csv
