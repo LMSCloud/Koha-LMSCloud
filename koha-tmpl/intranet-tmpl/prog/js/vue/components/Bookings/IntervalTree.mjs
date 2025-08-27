@@ -501,8 +501,8 @@ export class IntervalTree {
 
 /**
  * Build an interval tree from bookings and checkouts data
-     * @param {Array<Object>} bookings - Array of booking objects
-     * @param {Array<Object>} checkouts - Array of checkout objects
+ * @param {Array<Object>} bookings - Array of booking objects
+ * @param {Array<Object>} checkouts - Array of checkout objects
  * @param {Object} circulationRules - Circulation rules configuration
  * @returns {IntervalTree} Populated interval tree ready for queries
  */

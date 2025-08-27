@@ -166,7 +166,7 @@ export function applyCalendarHighlighting(instance, highlightingData) {
  * Fix flatpickr's incorrect marking of target end date as unavailable
  * Uses CSS-based approach instead of fighting with DOM mutations
  */
-function fixTargetEndDateAvailability(instance, dayElements, targetEndDate) {
+function fixTargetEndDateAvailability(_instance, dayElements, targetEndDate) {
     // Ensure dayElements is array-like before processing
     if (!dayElements || typeof dayElements.length !== "number") {
         logger.warn(
@@ -379,25 +379,25 @@ export class FlatpickrEventHandlers {
     }
 
     /**
-     * @param {any} d
-     * @param {any} dateStr
-     * @param {any} inst
+     * @param {any} _d
+     * @param {any} _dateStr
+     * @param {any} _inst
      */
-    handleDayCreate(d, dateStr, inst) {}
+    handleDayCreate(_d, _dateStr, _inst) {}
 
     /**
-     * @param {any} dates
-     * @param {any} dateStr
-     * @param {any} inst
+     * @param {any} _dates
+     * @param {any} _dateStr
+     * @param {any} _inst
      */
-    handleClose(dates, dateStr, inst) {}
+    handleClose(_dates, _dateStr, _inst) {}
 
     /**
-     * @param {any} dates
-     * @param {any} dateStr
-     * @param {any} inst
+     * @param {any} _dates
+     * @param {any} _dateStr
+     * @param {any} _inst
      */
-    handleReady(dates, dateStr, inst) {}
+    handleReady(_dates, _dateStr, _inst) {}
 
     /**
      * Handle date selection changes with validation and highlighting
@@ -712,7 +712,7 @@ export function createOnDayCreate(
 }
 
 export function createOnClose(tooltipMarkers, tooltipVisible) {
-    return function (selectedDates, dateStr, instance) {
+    return function () {
         // Clean up tooltips
         tooltipMarkers.value = [];
         tooltipVisible.value = false;

@@ -23,5 +23,3 @@ export function getWindowValue(key, defaultValue) {
     if (window[key] === undefined) window[key] = defaultValue;
     return window[key];
 }
-
-
