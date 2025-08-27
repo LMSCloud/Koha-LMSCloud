@@ -6,9 +6,7 @@
         </legend>
 
         <div class="form-group">
-            <label for="booking_period">{{
-                $__("Booking period")
-            }}</label>
+            <label for="booking_period">{{ $__("Booking period") }}</label>
             <div class="booking-date-picker">
                 <flat-pickr
                     ref="flatpickrRef"
@@ -23,59 +21,48 @@
                         class="btn btn-outline-secondary"
                         :disabled="!hasSelectedDates"
                         @click="clearDateRange"
-                        :title="
-                            $__('Clear selected dates')
-                        "
+                        :title="$__('Clear selected dates')"
                     >
                         <i class="fa fa-times" aria-hidden="true"></i>
-                        <span class="sr-only">{{ $__("Clear selected dates") }}</span>
+                        <span class="sr-only">{{
+                            $__("Clear selected dates")
+                        }}</span>
                     </button>
                 </div>
             </div>
         </div>
 
         <div
-            v-if="dateRangeConstraint && maxBookingPeriod"
+            v-if="dateRangeConstraint"
             class="alert alert-info booking-constraint-info"
         >
             <small>
-                <strong>{{
-                    $__("Booking constraint active:")
-                }}</strong>
-                {{
-                    dateRangeConstraint === "issuelength"
-                        ? $__(
-                              "Booking period limited to issue length (%s days)"
-                          ).format(maxBookingPeriod)
-                        : dateRangeConstraint === "issuelength_with_renewals"
-                        ? $__(
-                              "Booking period limited to issue length with renewals (%s days)"
-                          ).format(maxBookingPeriod)
-                        : $__(
-                              "Booking period limited by circulation rules (%s days)"
-                          ).format(maxBookingPeriod)
-                }}
+                <strong>{{ $__("Booking constraint active:") }}</strong>
+                {{ constraintHelpText }}
             </small>
         </div>
 
         <div class="calendar-legend">
             <span class="booking-marker-dot booking-marker-dot--booked"></span>
             {{ $__("Booked") }}
-            <span class="booking-marker-dot booking-marker-dot--lead ml-3"></span>
+            <span
+                class="booking-marker-dot booking-marker-dot--lead ml-3"
+            ></span>
             {{ $__("Lead Period") }}
-            <span class="booking-marker-dot booking-marker-dot--trail ml-3"></span>
+            <span
+                class="booking-marker-dot booking-marker-dot--trail ml-3"
+            ></span>
             {{ $__("Trail Period") }}
-            <span class="booking-marker-dot booking-marker-dot--checked-out ml-3"></span>
+            <span
+                class="booking-marker-dot booking-marker-dot--checked-out ml-3"
+            ></span>
             {{ $__("Checked Out") }}
             <span
                 v-if="dateRangeConstraint && hasSelectedDates"
                 class="booking-marker-dot ml-3"
                 style="background-color: #28a745"
             ></span>
-            <span
-                v-if="dateRangeConstraint && hasSelectedDates"
-                class="ml-1"
-            >
+            <span v-if="dateRangeConstraint && hasSelectedDates" class="ml-1">
                 {{ $__("Required end date") }}
             </span>
         </div>
@@ -126,6 +113,33 @@ export default {
     setup(props, { emit }) {
         const flatpickrRef = ref(null);
 
+        const constraintHelpText = computed(() => {
+            if (!props.dateRangeConstraint) return "";
+
+            const baseMessages = {
+                issuelength: props.maxBookingPeriod
+                    ? $__(
+                          "Booking period limited to issue length (%s days)"
+                      ).format(props.maxBookingPeriod)
+                    : $__("Booking period limited to issue length"),
+                issuelength_with_renewals: props.maxBookingPeriod
+                    ? $__(
+                          "Booking period limited to issue length with renewals (%s days)"
+                      ).format(props.maxBookingPeriod)
+                    : $__(
+                          "Booking period limited to issue length with renewals"
+                      ),
+                default: props.maxBookingPeriod
+                    ? $__(
+                          "Booking period limited by circulation rules (%s days)"
+                      ).format(props.maxBookingPeriod)
+                    : $__("Booking period limited by circulation rules"),
+            };
+
+            return (
+                baseMessages[props.dateRangeConstraint] || baseMessages.default
+            );
+        });
 
         const clearDateRange = () => {
             // Clear flatpickr directly since we're not using v-model
@@ -139,7 +153,6 @@ export default {
             // This is handled by the flatpickr config onChange in BookingModal
         };
 
-
         // Cleanup event listeners when component is unmounted
         onUnmounted(() => {
             if (flatpickrRef.value?.fp) {
@@ -151,6 +164,7 @@ export default {
             clearDateRange,
             flatpickrRef,
             onFlatpickrChange,
+            constraintHelpText,
         };
     },
 };

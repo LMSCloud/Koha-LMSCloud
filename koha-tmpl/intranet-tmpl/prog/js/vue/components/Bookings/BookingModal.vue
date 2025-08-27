@@ -251,7 +251,7 @@ export default {
         } = storeToRefs(store);
 
         // Initialize business logic services
-        const bookingServices = createBookingServices(store, {
+        const bookingServices = createBookingServices({
             dateRangeConstraint: props.dateRangeConstraint,
             customDateRangeFormula: props.customDateRangeFormula,
         });
@@ -477,7 +477,7 @@ export default {
         });
 
         const maxBookingPeriod = computed(() =>
-            bookingServices.configuration.calculateMaxBookingPeriod()
+            bookingServices.configuration.calculateMaxBookingPeriod(circulationRules.value)
         );
 
         // Prevent calendar interaction until all data is loaded to avoid race conditions

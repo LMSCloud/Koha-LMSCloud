@@ -1,115 +1,32 @@
 /**
  * Business logic service for BookingModal
- * Extracts validation, configuration, and state management from the Vue component
+ * Refactored to use pure functions and composables instead of store-coupled classes
  */
 
 import dayjs from "../../utils/dayjs.mjs";
-import {
-    calculateDisabledDates,
-    handleBookingDateChange,
-    parseDateRange,
-} from "./bookingManager.mjs";
+import { calculateDisabledDates, parseDateRange } from "./bookingManager.mjs";
 import {
     createFlatpickrConfig,
     FlatpickrEventHandlers,
 } from "./bookingCalendar.mjs";
+import {
+    canProceedToStep3,
+    canSubmitBooking,
+    validateDateSelection,
+} from "./bookingValidation.mjs";
+import {
+    calculateStepNumbers,
+    shouldShowAdditionalFields,
+} from "./bookingSteps.mjs";
 
-/**
- * Service class for booking form validation and business logic
- */
-export class BookingValidationService {
-    constructor(store) {
-        this.store = store;
-    }
-
-    /**
-     * Validate if user can proceed to step 3 (period selection)
-     */
-    canProceedToStep3() {
-        // Step 1: Patron validation (if required)
-        if (this.store.showPatronSelect && !this.store.bookingPatron) {
-            return false;
-        }
-
-        // Step 2: Item details validation
-        if (
-            this.store.showItemDetailsSelects ||
-            this.store.showPickupLocationSelect
-        ) {
-            if (
-                this.store.showPickupLocationSelect &&
-                !this.store.pickupLibraryId
-            ) {
-                return false;
-            }
-            if (this.store.showItemDetailsSelects) {
-                if (
-                    !this.store.bookingItemtypeId &&
-                    this.store.itemtypeOptions.length > 0
-                ) {
-                    return false;
-                }
-                if (
-                    !this.store.bookingItemId &&
-                    this.store.bookableItems.length > 0
-                ) {
-                    return false;
-                }
-            }
-        }
-
-        // Additional validation: Check if there are any bookable items available
-        if (
-            !this.store.bookableItems ||
-            this.store.bookableItems.length === 0
-        ) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Validate if form can be submitted
-     */
-    canSubmit(dateRange) {
-        if (!this.canProceedToStep3()) return false;
-        if (!dateRange || dateRange.length === 0) return false;
-
-        // For range mode, need both start and end dates
-        if (Array.isArray(dateRange) && dateRange.length < 2) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Validate date selection and return detailed result
-     */
-    validateDateSelection(selectedDates, circulationRules) {
-        return handleBookingDateChange(
-            selectedDates,
-            circulationRules,
-            this.store.bookings,
-            this.store.checkouts,
-            this.store.bookableItems,
-            this.store.bookingItemId,
-            this.store.bookingId
-        );
-    }
-}
+// Validation functions are now available as pure functions from bookingValidation.mjs
+// Use canProceedToStep3(), canSubmitBooking(), and validateDateSelection() directly
 
 /**
  * Service class for booking configuration and constraint handling
  */
 export class BookingConfigurationService {
-    constructor(
-        store,
-        dateRangeConstraint = null,
-        customDateRangeFormula = null
-    ) {
-        this.store = store;
+    constructor(dateRangeConstraint = null, customDateRangeFormula = null) {
         this.dateRangeConstraint = dateRangeConstraint;
         this.customDateRangeFormula = customDateRangeFormula;
     }
@@ -117,10 +34,10 @@ export class BookingConfigurationService {
     /**
      * Calculate maximum booking period based on constraints
      */
-    calculateMaxBookingPeriod() {
+    calculateMaxBookingPeriod(circulationRules) {
         if (!this.dateRangeConstraint) return null;
 
-        const rules = this.store.circulationRules[0];
+        const rules = circulationRules?.[0];
         if (!rules) return null;
 
         const issuelength = parseInt(rules.issuelength) || 0;
@@ -148,20 +65,26 @@ export class BookingConfigurationService {
     /**
      * Calculate availability data for calendar disable function
      */
-    calculateAvailabilityData(dateRange) {
-        if (
-            !this.store.bookings ||
-            !this.store.checkouts ||
-            !this.store.bookableItems
-        ) {
+    calculateAvailabilityData(dateRange, storeData) {
+        const {
+            bookings,
+            checkouts,
+            bookableItems,
+            circulationRules,
+            bookingItemId,
+            bookingId,
+        } = storeData;
+
+        if (!bookings || !checkouts || !bookableItems) {
             return { disable: () => false, unavailableByDate: {} };
         }
 
-        const baseRules = this.store.circulationRules[0] || {};
+        const baseRules = circulationRules?.[0] || {};
 
         // Apply date range constraint only for constraining modes; otherwise strip caps
         const effectiveRules = { ...baseRules };
-        const maxBookingPeriod = this.calculateMaxBookingPeriod();
+        const maxBookingPeriod =
+            this.calculateMaxBookingPeriod(circulationRules);
         if (
             this.dateRangeConstraint === "issuelength" ||
             this.dateRangeConstraint === "issuelength_with_renewals"
@@ -171,7 +94,8 @@ export class BookingConfigurationService {
             }
         } else {
             if ("maxPeriod" in effectiveRules) delete effectiveRules.maxPeriod;
-            if ("issuelength" in effectiveRules) delete effectiveRules.issuelength;
+            if ("issuelength" in effectiveRules)
+                delete effectiveRules.issuelength;
         }
 
         // Convert dateRange to proper selectedDates array for calculateDisabledDates
@@ -197,11 +121,11 @@ export class BookingConfigurationService {
         }
 
         return calculateDisabledDates(
-            this.store.bookings,
-            this.store.checkouts,
-            this.store.bookableItems,
-            this.store.bookingItemId,
-            this.store.bookingId,
+            bookings,
+            checkouts,
+            bookableItems,
+            bookingItemId,
+            bookingId,
             selectedDatesArray,
             effectiveRules
         );
@@ -212,6 +136,7 @@ export class BookingConfigurationService {
      */
     createFlatpickrConfiguration(
         dateRange,
+        storeData,
         errorMessage,
         tooltipVisible,
         tooltipMarkers,
@@ -220,8 +145,13 @@ export class BookingConfigurationService {
         flatpickrInstance,
         canProceedToStep3
     ) {
-        const availabilityData = this.calculateAvailabilityData(dateRange);
-        const maxBookingPeriod = this.calculateMaxBookingPeriod();
+        const availabilityData = this.calculateAvailabilityData(
+            dateRange,
+            storeData
+        );
+        const maxBookingPeriod = this.calculateMaxBookingPeriod(
+            storeData.circulationRules
+        );
 
         const constraintOptions = {
             dateRangeConstraint: this.dateRangeConstraint,
@@ -229,8 +159,9 @@ export class BookingConfigurationService {
         };
 
         // Create event handlers using the new class-based approach
+        // TODO: This will be refactored in Phase 2 to use callback pattern
         const eventHandlers = new FlatpickrEventHandlers(
-            this.store,
+            storeData,
             errorMessage,
             tooltipVisible,
             constraintOptions
@@ -260,70 +191,32 @@ export class BookingConfigurationService {
     }
 }
 
-/**
- * Service class for step management and flow control
- */
-export class BookingStepService {
-    /**
-     * Calculate step numbers based on configuration
-     */
-    static calculateStepNumbers(
-        showPatronSelect,
-        showItemDetailsSelects,
-        showPickupLocationSelect,
-        showAdditionalFields,
-        hasAdditionalFields
-    ) {
-        let currentStep = 1;
-        const steps = {
-            patron: 0,
-            details: 0,
-            period: 0,
-            additionalFields: 0,
-        };
-
-        if (showPatronSelect) {
-            steps.patron = currentStep++;
-        }
-
-        if (showItemDetailsSelects || showPickupLocationSelect) {
-            steps.details = currentStep++;
-        }
-
-        steps.period = currentStep++;
-
-        if (showAdditionalFields && hasAdditionalFields) {
-            steps.additionalFields = currentStep++;
-        }
-
-        return steps;
-    }
-
-    /**
-     * Determine if additional fields section should be shown
-     */
-    static shouldShowAdditionalFields(
-        showAdditionalFields,
-        hasAdditionalFields
-    ) {
-        return showAdditionalFields && hasAdditionalFields;
-    }
-}
+// Step management functions are now available as pure functions from bookingSteps.mjs
+// Use calculateStepNumbers() and shouldShowAdditionalFields() directly
 
 /**
- * Factory function to create booking services
+ * Factory function to create booking services - updated for new architecture
+ * Returns pure functions and service instances without store coupling
  */
-export function createBookingServices(store, options = {}) {
-    const validationService = new BookingValidationService(store);
+export function createBookingServices(options = {}) {
     const configurationService = new BookingConfigurationService(
-        store,
         options.dateRangeConstraint,
         options.customDateRangeFormula
     );
 
     return {
-        validation: validationService,
+        // Pure validation functions (no longer store-coupled)
+        validation: {
+            canProceedToStep3,
+            canSubmit: canSubmitBooking,
+            validateDateSelection,
+        },
+        // Configuration service (refactored to accept data as parameters)
         configuration: configurationService,
-        step: BookingStepService,
+        // Pure step calculation functions
+        step: {
+            calculateStepNumbers,
+            shouldShowAdditionalFields,
+        },
     };
 }
