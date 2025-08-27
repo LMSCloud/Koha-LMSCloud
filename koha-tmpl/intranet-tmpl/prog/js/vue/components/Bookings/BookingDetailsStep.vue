@@ -11,7 +11,6 @@
             }}
         </legend>
 
-        <!-- Pickup Location Selection -->
         <div
             v-if="showPickupLocationSelect || showItemDetailsSelects"
             class="form-group"
@@ -51,7 +50,6 @@
             </span>
         </div>
 
-        <!-- Item Type Selection -->
         <div v-if="showItemDetailsSelects" class="form-group">
             <label for="booking_itemtype">{{
                 $__("Item type")
@@ -75,7 +73,6 @@
             >
         </div>
 
-        <!-- Item Selection -->
         <div v-if="showItemDetailsSelects" class="form-group">
             <label for="booking_item_id">{{
                 $__("Item")

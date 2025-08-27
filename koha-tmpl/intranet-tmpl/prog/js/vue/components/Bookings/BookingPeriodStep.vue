@@ -5,7 +5,6 @@
             {{ $__("Select Booking Period") }}
         </legend>
 
-        <!-- Date Picker -->
         <div class="form-group">
             <label for="booking_period">{{
                 $__("Booking period")
@@ -35,7 +34,6 @@
             </div>
         </div>
 
-        <!-- Constraint Information -->
         <div
             v-if="dateRangeConstraint && maxBookingPeriod"
             class="alert alert-info booking-constraint-info"
@@ -60,7 +58,6 @@
             </small>
         </div>
 
-        <!-- Calendar Legend -->
         <div class="calendar-legend">
             <span class="booking-marker-dot booking-marker-dot--booked"></span>
             {{ $__("Booked") }}
@@ -83,7 +80,6 @@
             </span>
         </div>
 
-        <!-- Error Message -->
         <div v-if="errorMessage" class="alert alert-danger mt-2">
             {{ errorMessage }}
         </div>
