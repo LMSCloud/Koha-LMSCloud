@@ -48,7 +48,13 @@ describe("Unconstrained preference behavior", () => {
             bookings: [],
             checkouts: [],
             bookableItems: [
-                { item_id: 1, title: "A", item_type_id: 1, holding_library: "CPL", available_pickup_locations: [] },
+                {
+                    item_id: 1,
+                    title: "A",
+                    item_type_id: 1,
+                    holding_library: "CPL",
+                    available_pickup_locations: [],
+                },
             ],
             bookingItemId: 1,
             bookingId: null,
@@ -57,12 +63,13 @@ describe("Unconstrained preference behavior", () => {
 
         it("should not enforce max period when preference is Don't constrain", () => {
             const store = makeStore({ issuelength: 5 });
-            const svc = new BookingConfigurationService(store, null, null);
+            const svc = new BookingConfigurationService(null, null);
 
             const start = dayjs().startOf("day");
-            const availability = svc.calculateAvailabilityData([
-                start.toISOString(),
-            ]);
+            const availability = svc.calculateAvailabilityData(
+                [start.toISOString()],
+                store
+            );
 
             const farEnd = start.add(20, "day").toDate();
             const disabled = availability.disable(farEnd);
@@ -71,12 +78,13 @@ describe("Unconstrained preference behavior", () => {
 
         it("should enforce max period when preference is issuelength", () => {
             const store = makeStore({ issuelength: 5 });
-            const svc = new BookingConfigurationService(store, "issuelength", null);
+            const svc = new BookingConfigurationService("issuelength", null);
 
             const start = dayjs().startOf("day");
-            const availability = svc.calculateAvailabilityData([
-                start.toISOString(),
-            ]);
+            const availability = svc.calculateAvailabilityData(
+                [start.toISOString()],
+                store
+            );
 
             const within = start.add(4, "day").toDate();
             const beyond = start.add(6, "day").toDate();
@@ -85,5 +93,3 @@ describe("Unconstrained preference behavior", () => {
         });
     });
 });
-
-
