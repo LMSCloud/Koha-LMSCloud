@@ -271,11 +271,6 @@ export default {
             markers: [],
         });
 
-        const constrainedFlags = reactive({
-            pickupLocations: false,
-            itemTypes: false,
-            bookableItems: false,
-        });
 
         // Refs for specific instances and external library integration
         const flatpickrInstance = ref(null);
@@ -325,16 +320,19 @@ export default {
             set: value => { pickupLibraryId.value = value; },
         });
 
-        // Create a ref wrapper for constraint functions that expect ref.value
-        const constrainedFlagsRef = ref(constrainedFlags);
+        // Constraint flags computed from pure function results
+        const constrainedFlags = computed(() => ({
+            pickupLocations: pickupLocationConstraint.value.constraintApplied,
+            bookableItems: bookableItemsConstraint.value.constraintApplied,
+            itemTypes: itemTypeConstraint.value.constraintApplied,
+        }));
 
         const pickupLocationConstraint = computed(() =>
             constrainPickupLocations(
                 pickupLocations.value,
                 bookableItems.value,
                 bookingItemtypeId.value,
-                bookingItemId.value,
-                constrainedFlagsRef
+                bookingItemId.value
             )
         );
         const constrainedPickupLocations = computed(
@@ -352,8 +350,7 @@ export default {
                 bookableItems.value,
                 pickupLocations.value,
                 pickupLibraryId.value,
-                bookingItemtypeId.value,
-                constrainedFlagsRef
+                bookingItemtypeId.value
             )
         );
         const constrainedBookableItems = computed(
@@ -366,15 +363,17 @@ export default {
             () => bookableItemsConstraint.value.total
         );
 
-        const constrainedItemTypes = computed(() =>
+        const itemTypeConstraint = computed(() =>
             constrainItemTypes(
                 itemTypes.value,
                 bookableItems.value,
                 pickupLocations.value,
                 pickupLibraryId.value,
-                bookingItemId.value,
-                constrainedFlagsRef
+                bookingItemId.value
             )
+        );
+        const constrainedItemTypes = computed(
+            () => itemTypeConstraint.value.filtered
         );
 
         const lastRulesKey = ref(null);

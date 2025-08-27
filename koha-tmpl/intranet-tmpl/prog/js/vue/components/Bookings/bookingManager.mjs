@@ -157,8 +157,8 @@ function handleEndDateOnlyIntermediateDates(date, selectedDates, maxPeriod) {
     return null; // Continue with normal logic for other dates
 }
 import {
+    // eslint-disable-next-line no-unused-vars
     IntervalTree,
-    BookingInterval,
     buildIntervalTree,
 } from "./IntervalTree.mjs";
 import {
@@ -194,7 +194,11 @@ function buildUnavailableByDateMap(
 
     // Determine the processing window
     let startDate, endDate;
-    if (options.onDemand && options.visibleStartDate && options.visibleEndDate) {
+    if (
+        options.onDemand &&
+        options.visibleStartDate &&
+        options.visibleEndDate
+    ) {
         // Visible calendar range with a small buffer
         startDate = dayjs(options.visibleStartDate).subtract(7, "day");
         endDate = dayjs(options.visibleEndDate).add(7, "day");
@@ -327,16 +331,6 @@ function getLocalizedDateFormat() {
     }
 
     return { dateFormat, formatConfig, langCode };
-}
-
-/**
- * Check if a date is in the past (before today)
- * @param {import("dayjs").Dayjs} date - Date to check
- * @param {import("dayjs").Dayjs} today - Today's date
- * @returns {boolean} True if date is in the past
- */
-function isPastDate(date, today) {
-    return date.isBefore(today, "day");
 }
 
 /**
@@ -537,8 +531,6 @@ function createDisableFunction(
 ) {
     const { today, leadDays, trailDays, maxPeriod, isEndDateOnly } = config;
     const allItemIds = bookableItems.map(i => String(i.item_id));
-    // Normalize selectedItem for downstream calls that expect string or null
-    const normalizedSelectedItem = selectedItem != null ? String(selectedItem) : null;
 
     return date => {
         const dayjs_date = dayjs(date).startOf("day");
@@ -783,7 +775,8 @@ export function calculateDisabledDates(
     options = {}
 ) {
     logger.time("calculateDisabledDates");
-    const normalizedSelectedItem = selectedItem != null ? String(selectedItem) : null;
+    const normalizedSelectedItem =
+        selectedItem != null ? String(selectedItem) : null;
     logger.debug("calculateDisabledDates called", {
         bookingsCount: bookings.length,
         checkoutsCount: checkouts.length,
@@ -815,7 +808,8 @@ export function calculateDisabledDates(
     const allItemIds = bookableItems.map(i => String(i.item_id));
 
     // Create optimized disable function using extracted helper
-    const normalizedEditBookingId = editBookingId != null ? Number(editBookingId) : null;
+    const normalizedEditBookingId =
+        editBookingId != null ? Number(editBookingId) : null;
     const disableFunction = createDisableFunction(
         intervalTree,
         config,
@@ -827,7 +821,7 @@ export function calculateDisabledDates(
 
     // Build unavailableByDate for backward compatibility and markers
     // Pass options for performance optimization
-    
+
     const unavailableByDate = buildUnavailableByDateMap(
         intervalTree,
         /** @type {any} */ (config.today),
@@ -897,7 +891,7 @@ export function handleBookingDateChange(
     } else {
         // Apply circulation rules: leadDays, trailDays, maxPeriod (in days)
         const leadDays = circulationRules?.leadDays || 0;
-        const trailDays = circulationRules?.trailDays || 0; // Still needed for start date check
+        const _trailDays = circulationRules?.trailDays || 0; // Still needed for start date check
         const maxPeriod =
             Number(circulationRules?.maxPeriod) ||
             Number(circulationRules?.issuelength) ||
@@ -929,7 +923,11 @@ export function handleBookingDateChange(
         }
 
         // Validate: period must not exceed maxPeriod (only if end date exists)
-        if (maxPeriod > 0 && dayjsEnd && dayjsEnd.diff(dayjsStart, "day") + 1 > maxPeriod) {
+        if (
+            maxPeriod > 0 &&
+            dayjsEnd &&
+            dayjsEnd.diff(dayjsStart, "day") + 1 > maxPeriod
+        ) {
             errors.push(String($__("Booking period exceeds maximum allowed")));
             valid = false;
         }
@@ -943,7 +941,10 @@ export function handleBookingDateChange(
                 Number(circulationRules.maxPeriod) ||
                 Number(circulationRules.issuelength) ||
                 0;
-            const targetEndDate = dayjsStart.add(Math.max(1, numericMaxPeriod) - 1, "day");
+            const targetEndDate = dayjsStart.add(
+                Math.max(1, numericMaxPeriod) - 1,
+                "day"
+            );
 
             // In end_date_only mode, end date must exactly match the calculated target end date
             if (!dayjsEnd.isSame(targetEndDate, "day")) {
@@ -1165,20 +1166,22 @@ export function parseDateRange(val) {
                         "format:",
                         dateFormat
                     );
-                    const start = (win("flatpickr") && win("flatpickr").parseDate)
-                        ? win("flatpickr").parseDate(
-                              parts[0].trim(),
-                              dateFormat,
-                              locale
-                          )
-                        : null;
-                    const end = (win("flatpickr") && win("flatpickr").parseDate)
-                        ? win("flatpickr").parseDate(
-                              parts[1].trim(),
-                              dateFormat,
-                              locale
-                          )
-                        : null;
+                    const start =
+                        win("flatpickr") && win("flatpickr").parseDate
+                            ? win("flatpickr").parseDate(
+                                  parts[0].trim(),
+                                  dateFormat,
+                                  locale
+                              )
+                            : null;
+                    const end =
+                        win("flatpickr") && win("flatpickr").parseDate
+                            ? win("flatpickr").parseDate(
+                                  parts[1].trim(),
+                                  dateFormat,
+                                  locale
+                              )
+                            : null;
 
                     if (start && end) {
                         const result = [
@@ -1197,9 +1200,10 @@ export function parseDateRange(val) {
                 "format:",
                 dateFormat
             );
-            const parsed = (win("flatpickr") && win("flatpickr").parseDate)
-                ? win("flatpickr").parseDate(val, dateFormat, locale)
-                : null;
+            const parsed =
+                win("flatpickr") && win("flatpickr").parseDate
+                    ? win("flatpickr").parseDate(val, dateFormat, locale)
+                    : null;
             if (parsed) {
                 const result = [dayjs(parsed).toISOString(), null];
                 return result;
@@ -1270,14 +1274,13 @@ export function parseDateRange(val) {
 
 /**
  * Constrain pickup locations based on selected itemtype or item
- * Returns { filtered, filteredOutCount, total }
+ * Returns { filtered, filteredOutCount, total, constraintApplied }
  */
 export function constrainPickupLocations(
     pickupLocations,
     bookableItems,
     bookingItemtypeId,
-    bookingItemId,
-    constrainedFlagsRef
+    bookingItemId
 ) {
     logger.debug("constrainPickupLocations called", {
         inputLocations: pickupLocations.length,
@@ -1298,6 +1301,7 @@ export function constrainPickupLocations(
             filtered: pickupLocations,
             filteredOutCount: 0,
             total: pickupLocations.length,
+            constraintApplied: false,
         };
     }
     const filtered = pickupLocations.filter(loc => {
@@ -1331,26 +1335,25 @@ export function constrainPickupLocations(
         },
     });
 
-    if (constrainedFlagsRef)
-        constrainedFlagsRef.value.pickupLocations =
-            filtered.length !== pickupLocations.length;
+    const constraintApplied = filtered.length !== pickupLocations.length;
+
     return {
         filtered,
         filteredOutCount: pickupLocations.length - filtered.length,
         total: pickupLocations.length,
+        constraintApplied,
     };
 }
 
 /**
  * Constrain bookable items based on selected pickup location and/or itemtype
- * Returns { filtered, filteredOutCount, total }
+ * Returns { filtered, filteredOutCount, total, constraintApplied }
  */
 export function constrainBookableItems(
     bookableItems,
     pickupLocations,
     pickupLibraryId,
-    bookingItemtypeId,
-    constrainedFlagsRef
+    bookingItemtypeId
 ) {
     logger.debug("constrainBookableItems called", {
         inputItems: bookableItems.length,
@@ -1372,6 +1375,7 @@ export function constrainBookableItems(
             filtered: bookableItems,
             filteredOutCount: 0,
             total: bookableItems.length,
+            constraintApplied: false,
         };
     }
     const filtered = bookableItems.filter(item => {
@@ -1414,28 +1418,35 @@ export function constrainBookableItems(
         },
     });
 
-    if (constrainedFlagsRef)
-        constrainedFlagsRef.value.bookableItems =
-            filtered.length !== bookableItems.length;
+    const constraintApplied = filtered.length !== bookableItems.length;
+
     return {
         filtered,
         filteredOutCount: bookableItems.length - filtered.length,
         total: bookableItems.length,
+        constraintApplied,
     };
 }
 
 /**
  * Constrain item types based on selected pickup location or item
+ * Returns { filtered, filteredOutCount, total, constraintApplied }
  */
 export function constrainItemTypes(
     itemTypes,
     bookableItems,
     pickupLocations,
     pickupLibraryId,
-    bookingItemId,
-    constrainedFlagsRef
+    bookingItemId
 ) {
-    if (!pickupLibraryId && !bookingItemId) return itemTypes;
+    if (!pickupLibraryId && !bookingItemId) {
+        return {
+            filtered: itemTypes,
+            filteredOutCount: 0,
+            total: itemTypes.length,
+            constraintApplied: false,
+        };
+    }
     const filtered = itemTypes.filter(type => {
         if (bookingItemId) {
             return bookableItems.some(
@@ -1460,10 +1471,14 @@ export function constrainItemTypes(
         }
         return true;
     });
-    if (constrainedFlagsRef)
-        constrainedFlagsRef.value.itemTypes =
-            filtered.length !== itemTypes.length;
-    return filtered;
+    const constraintApplied = filtered.length !== itemTypes.length;
+
+    return {
+        filtered,
+        filteredOutCount: itemTypes.length - filtered.length,
+        total: itemTypes.length,
+        constraintApplied,
+    };
 }
 
 /**

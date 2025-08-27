@@ -130,15 +130,12 @@ describe("Date Selection Edge Cases - Comprehensive Permutation Testing", () => 
         });
 
         it("should test constrainBookableItems with pickup location filters", () => {
-            const constrainedFlags = { value: { bookableItems: false } };
-
             // Test filtering by pickup location
             const branchAConstraint = modules.constrainBookableItems(
                 scenario.items,
                 scenario.pickupLocations,
                 "BRANCH_A", // pickup library
-                null, // no item type filter
-                constrainedFlags
+                null // no item type filter
             );
 
             // constrainBookableItems filters to only items available at BRANCH_A
@@ -156,8 +153,7 @@ describe("Date Selection Edge Cases - Comprehensive Permutation Testing", () => 
                 scenario.items,
                 scenario.pickupLocations,
                 "BRANCH_A",
-                "BOOK", // item type filter
-                constrainedFlags
+                "BOOK" // item type filter
             );
 
             expect(branchABookConstraint.filtered).to.have.length(2);
@@ -339,13 +335,14 @@ describe("Date Selection Edge Cases - Comprehensive Permutation Testing", () => 
                 mixedTypeItems,
                 pickupLocations,
                 "MAIN", // pickup library
-                null, // no specific item
-                { value: { itemTypes: false } }
+                null // no specific item
             );
 
             // Should only include item types that have items available at MAIN
-            expect(constrainedTypes).to.have.length(3); // BOOK, DVD, MAGAZINE
-            expect(constrainedTypes.find(t => t.item_type_id === "CD")).to.be
+            expect(constrainedTypes.filtered).to.have.length(3); // BOOK, DVD, MAGAZINE
+            expect(constrainedTypes.constraintApplied).to.be.true;
+            expect(constrainedTypes.filteredOutCount).to.equal(1); // CD filtered out
+            expect(constrainedTypes.filtered.find(t => t.item_type_id === "CD")).to.be
                 .undefined;
         });
     });
@@ -358,15 +355,12 @@ describe("Date Selection Edge Cases - Comprehensive Permutation Testing", () => 
         });
 
         it("should handle pickup location + item type + specific item constraints", () => {
-            const constrainedFlags = { value: {} };
-
             // Test: Branch A + Books + Specific Item
             const step1_pickupConstraint = modules.constrainBookableItems(
                 complexScenario.items,
                 complexScenario.pickupLocations,
                 "BRANCH_A", // pickup
-                null, // no item type yet
-                constrainedFlags
+                null // no item type yet
             );
 
             // Should filter to only items available at BRANCH_A pickup location
@@ -376,8 +370,7 @@ describe("Date Selection Edge Cases - Comprehensive Permutation Testing", () => 
                 complexScenario.items,
                 complexScenario.pickupLocations,
                 "BRANCH_A", // pickup
-                "BOOK", // item type
-                constrainedFlags
+                "BOOK" // item type
             );
 
             expect(step2_itemTypeConstraint.filtered).to.have.length(2); // Branch A books only
@@ -435,18 +428,17 @@ describe("Date Selection Edge Cases - Comprehensive Permutation Testing", () => 
                 complexScenario.items,
                 complexScenario.pickupLocations,
                 null,
-                null,
-                { value: {} }
+                null
             );
             // Without constraints, should return all provided item types that exist in items
             // Check if the function is properly filtering vs returning all types
-            const actualLength = unconstrained.length;
+            const actualLength = unconstrained.filtered.length;
             if (actualLength === 3) {
                 // Function returns all provided types regardless of item existence
-                expect(unconstrained).to.have.length(3);
+                expect(unconstrained.filtered).to.have.length(3);
             } else {
                 // Function filters to only existing types
-                expect(unconstrained).to.have.length(2); // Only BOOK and DVD exist in items
+                expect(unconstrained.filtered).to.have.length(2); // Only BOOK and DVD exist in items
             }
 
             // Branch A constraint - should still have both types
@@ -455,10 +447,9 @@ describe("Date Selection Edge Cases - Comprehensive Permutation Testing", () => 
                 complexScenario.items,
                 complexScenario.pickupLocations,
                 "BRANCH_A",
-                null,
-                { value: {} }
+                null
             );
-            expect(branchAConstrained).to.have.length(2); // BOOK and DVD
+            expect(branchAConstrained.filtered).to.have.length(2); // BOOK and DVD
 
             // Branch B constraint - should have both types but different availability
             const branchBConstrained = modules.constrainItemTypes(
@@ -466,10 +457,10 @@ describe("Date Selection Edge Cases - Comprehensive Permutation Testing", () => 
                 complexScenario.items,
                 complexScenario.pickupLocations,
                 "BRANCH_B",
-                null,
-                { value: {} }
+                null
             );
-            expect(branchBConstrained).to.have.length(2); // BOOK and DVD
+            expect(branchBConstrained.filtered).to.have.length(2); // BOOK and DVD
+            expect(branchBConstrained.constraintApplied).to.be.true;
         });
     });
 
@@ -980,10 +971,10 @@ describe("Date Selection Edge Cases - Comprehensive Permutation Testing", () => 
             expect(result2).to.be.an("object");
             expect(result2.filtered).to.be.an("array").with.length(0);
 
-            const result3 = modules.constrainItemTypes([], [], [], null, null, {
-                value: {},
-            });
-            expect(result3).to.be.an("array").with.length(0);
+            const result3 = modules.constrainItemTypes([], [], [], null, null);
+            expect(result3).to.be.an("object");
+            expect(result3.filtered).to.be.an("array").with.length(0);
+            expect(result3.constraintApplied).to.be.false;
         });
     });
 });
