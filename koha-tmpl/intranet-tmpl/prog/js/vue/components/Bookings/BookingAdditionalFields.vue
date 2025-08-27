@@ -13,7 +13,7 @@
 </template>
 
 <script>
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import { $__ } from "../../i18n";
 
 export default {
@@ -53,21 +53,26 @@ export default {
         // Initialize additional fields when component mounts and data is available
         const initializeAdditionalFields = () => {
             if (!props.visible || !props.hasFields) return;
-            if (!props.extendedAttributeTypes || !extendedAttributesContainer.value) return;
+            if (
+                !props.extendedAttributeTypes ||
+                !extendedAttributesContainer.value
+            )
+                return;
 
             try {
                 // Clear any existing content
                 if (extendedAttributesContainer.value) {
-                    extendedAttributesContainer.value.innerHTML = '';
+                    extendedAttributesContainer.value.innerHTML = "";
                 }
 
                 // Use AdditionalFields module for booking extended attributes
                 const additionalFieldsModule = window["AdditionalFields"];
                 if (additionalFieldsModule && props.extendedAttributeTypes) {
-                    additionalFieldsInstance.value = additionalFieldsModule.init({
-                        containerId: "booking_extended_attributes",
-                        resourceType: "booking",
-                    });
+                    additionalFieldsInstance.value =
+                        additionalFieldsModule.init({
+                            containerId: "booking_extended_attributes",
+                            resourceType: "booking",
+                        });
 
                     // Render the extended attributes
                     additionalFieldsInstance.value.renderExtendedAttributes(
@@ -75,7 +80,7 @@ export default {
                         props.extendedAttributes || [],
                         props.authorizedValues || {}
                     );
-                    
+
                     emit("fields-ready", additionalFieldsInstance.value);
                 }
             } catch (error) {
@@ -85,12 +90,15 @@ export default {
 
         // Clean up additional fields
         const destroyAdditionalFields = () => {
-            if (typeof additionalFieldsInstance.value?.destroy === 'function') {
+            if (typeof additionalFieldsInstance.value?.destroy === "function") {
                 try {
                     additionalFieldsInstance.value.destroy();
                     emit("fields-destroyed");
                 } catch (error) {
-                    console.error("Failed to destroy additional fields:", error);
+                    console.error(
+                        "Failed to destroy additional fields:",
+                        error
+                    );
                 }
             }
             additionalFieldsInstance.value = null;
@@ -98,7 +106,11 @@ export default {
 
         // Watch for changes that require re-initialization
         watch(
-            () => [props.hasFields, props.extendedAttributeTypes, props.visible],
+            () => [
+                props.hasFields,
+                props.extendedAttributeTypes,
+                props.visible,
+            ],
             () => {
                 destroyAdditionalFields();
                 if (props.visible && props.hasFields) {
@@ -157,7 +169,8 @@ export default {
 .booking-extended-attributes :deep(.form-control) {
     width: 100%;
     min-width: var(--booking-input-min-width);
-    padding: calc(var(--booking-space-sm) * 1.5) calc(var(--booking-space-sm) * 3);
+    padding: calc(var(--booking-space-sm) * 1.5)
+        calc(var(--booking-space-sm) * 3);
     font-size: var(--booking-text-base);
     line-height: 1.5;
     color: var(--booking-neutral-600);
@@ -165,7 +178,8 @@ export default {
     background-clip: padding-box;
     border: var(--booking-border-width) solid var(--booking-neutral-300);
     border-radius: var(--booking-border-radius-sm);
-    transition: border-color var(--booking-transition-fast), box-shadow var(--booking-transition-fast);
+    transition: border-color var(--booking-transition-fast),
+        box-shadow var(--booking-transition-fast);
 }
 
 .booking-extended-attributes :deep(.form-control:focus) {

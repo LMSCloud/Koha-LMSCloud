@@ -14,7 +14,9 @@
             @search="debouncedPatronSearch"
         >
             <template #no-options>
-                <slot name="no-options" :has-searched="hasSearched">Sorry, no matching options.</slot>
+                <slot name="no-options" :has-searched="hasSearched"
+                    >Sorry, no matching options.</slot
+                >
             </template>
             <template #spinner>
                 <slot name="spinner">Loading...</slot>
@@ -29,6 +31,7 @@ import vSelect from "vue-select";
 import "vue-select/dist/vue-select.css";
 import { processApiError } from "../../utils/apiErrors.js";
 import { useBookingStore } from "../../stores/bookingStore";
+import { storeToRefs } from "pinia";
 import { debounce } from "./bookingUtils.mjs";
 
 export default {
@@ -53,8 +56,8 @@ export default {
     emits: ["update:modelValue"],
     setup(props, { emit }) {
         const store = useBookingStore();
+        const { loading } = storeToRefs(store);
         const patronOptions = ref([]);
-        const loading = ref(false); // Manage loading state internally
         const hasSearched = ref(false); // Track if user has performed a search
 
         const selectedPatron = computed({
@@ -70,16 +73,16 @@ export default {
             }
 
             hasSearched.value = true;
-            loading.value = true; // Use internal loading state
-
+            // Store handles loading state through withErrorHandling
             try {
                 const data = await store.fetchPatrons(search);
                 patronOptions.value = data;
             } catch (error) {
-                console.error("Error searching patrons:", processApiError(error));
+                console.error(
+                    "Error searching patrons:",
+                    processApiError(error)
+                );
                 patronOptions.value = [];
-            } finally {
-                loading.value = false; // Use internal loading state
             }
         };
 
@@ -88,14 +91,10 @@ export default {
         return {
             selectedPatron,
             patronOptions, // Expose internal options
-            loading, // Expose internal loading
+            loading: computed(() => loading.value.patrons), // Use store loading state
             hasSearched, // Expose search state
             debouncedPatronSearch, // Expose internal search handler
         };
     },
 };
 </script>
-
-<style scoped>
-/* Add any specific styles for this component if needed */
-</style>

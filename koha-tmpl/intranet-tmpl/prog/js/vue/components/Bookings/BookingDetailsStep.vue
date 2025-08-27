@@ -86,7 +86,7 @@
                 label="external_id"
                 :reduce="i => i.item_id"
                 :clearable="true"
-                :loading="loading.items"
+                :loading="loading.bookableItems"
                 :disabled="!selectedPatron && patronRequired"
             >
                 <template #no-options>
@@ -115,6 +115,8 @@
 import { computed } from "vue";
 import vSelect from "vue-select";
 import { $__ } from "../../i18n";
+import { useBookingStore } from "../../stores/bookingStore";
+import { storeToRefs } from "pinia";
 
 export default {
     name: "BookingDetailsStep",
@@ -197,14 +199,6 @@ export default {
             type: Number,
             default: 0,
         },
-        // Loading states
-        loading: {
-            type: Object,
-            default: () => ({
-                pickupLocations: false,
-                items: false,
-            }),
-        },
     },
     emits: [
         "update:pickupLibraryId",
@@ -212,6 +206,8 @@ export default {
         "update:itemId"
     ],
     setup(props, { emit }) {
+        const store = useBookingStore();
+        const { loading } = storeToRefs(store);
         const selectedPickupLibraryId = computed({
             get: () => props.pickupLibraryId,
             set: (value) => {
@@ -237,6 +233,7 @@ export default {
             selectedPickupLibraryId,
             selectedItemtypeId,
             selectedItemId,
+            loading,
         };
     },
 };

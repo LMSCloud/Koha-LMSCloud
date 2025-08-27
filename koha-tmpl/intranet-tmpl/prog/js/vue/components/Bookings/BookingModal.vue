@@ -54,7 +54,7 @@
                             "
                             :selected-patron="bookingPatron"
                             :patron-required="showPatronSelect"
-                            v-model:pickup-library-id="bookingPickupLibraryId"
+                            v-model:pickup-library-id="pickupLibraryId"
                             v-model:itemtype-id="bookingItemtypeId"
                             v-model:item-id="bookingItemId"
                             :constrained-pickup-locations="
@@ -73,7 +73,6 @@
                             :bookable-items-filtered-out="
                                 bookableItemsFilteredOut
                             "
-                            :loading="loading"
                         />
                         <hr
                             v-if="
@@ -88,7 +87,7 @@
                             :max-booking-period="maxBookingPeriod"
                             :error-message="modalState.errorMessage"
                             :has-selected-dates="
-                                store.selectedDateRange?.length > 0
+                                selectedDateRange?.value?.length > 0
                             "
                             @clear-dates="clearDateRange"
                         />
@@ -162,10 +161,10 @@ import {
     constrainBookableItems,
     constrainItemTypes,
     constrainPickupLocations,
-    parseDateRange,
     getVisibleCalendarDates,
 } from "./bookingManager.mjs";
 import { useBookingStore } from "../../stores/bookingStore";
+import { storeToRefs } from "pinia";
 import { updateExternalDependents } from "./bookingUtils.mjs";
 import {
     createOnChange,
@@ -233,6 +232,24 @@ export default {
     setup(props, { emit }) {
         const store = useBookingStore();
 
+        // Properly destructure reactive store state using storeToRefs
+        const {
+            bookingId,
+            bookingItemId,
+            bookingPatron,
+            bookingItemtypeId,
+            pickupLibraryId,
+            selectedDateRange,
+            bookableItems,
+            bookings,
+            checkouts,
+            pickupLocations,
+            itemTypes,
+            circulationRules,
+            loading,
+            error
+        } = storeToRefs(store);
+
         // Initialize business logic services
         const bookingServices = createBookingServices(store, {
             dateRangeConstraint: props.dateRangeConstraint,
@@ -260,18 +277,14 @@ export default {
             bookableItems: false,
         });
 
-        // Create a ref wrapper for functions that expect constrainedFlagsRef
-        const constrainedFlagsRef = ref(constrainedFlags);
-
         // Refs for specific instances and external library integration
-        const loading = store.loading;
         const flatpickrInstance = ref(null);
         const additionalFieldsInstance = ref(null);
 
         const modalTitle = computed(
             () =>
                 props.title ||
-                (store.bookingId ? $__("Edit booking") : $__("Place booking"))
+                (bookingId.value ? $__("Edit booking") : $__("Place booking"))
         );
 
         const stepNumber = computed(() => {
@@ -299,65 +312,26 @@ export default {
         });
 
         const submitLabel = computed(() =>
-            store.bookingId ? $__("Update booking") : $__("Place booking")
+            bookingId.value ? $__("Update booking") : $__("Place booking")
         );
 
         const isFormSubmission = computed(
             () => props.submitType === "form-submission"
         );
 
-        const bookingPatron = computed({
-            get: () => store.bookingPatron,
-            set: value => {
-                store.bookingPatron = value;
-            },
-        });
-
+        // Create computed wrappers for v-model bindings in child components
         const bookingPickupLibraryId = computed({
-            get: () => store.pickupLibraryId,
-            set: value => {
-                store.pickupLibraryId = value;
-            },
+            get: () => pickupLibraryId.value,
+            set: value => { pickupLibraryId.value = value; },
         });
 
-        const bookingItemtypeId = computed({
-            get: () => store.bookingItemtypeId,
-            set: value => {
-                store.bookingItemtypeId = value;
-            },
-        });
-
-        const bookingItemId = computed({
-            get: () => store.bookingItemId,
-            set: value => {
-                store.bookingItemId = value;
-            },
-        });
-
-        const canProceedToStep3 = computed(() => {
-            // Basic form validation
-            const hasBasicData = !!(
-                bookingPatron.value &&
-                (bookingItemId.value ||
-                    bookingItemtypeId.value ||
-                    bookingPickupLibraryId.value)
-            );
-
-            if (!hasBasicData) return false;
-
-            // Check if the current selection results in any available items
-            const availableItems = constrainedBookableItems.value;
-            if (availableItems.length === 0) {
-                return false; // No items available for current selection
-            }
-
-            return true;
-        });
+        // Create a ref wrapper for constraint functions that expect ref.value
+        const constrainedFlagsRef = ref(constrainedFlags);
 
         const pickupLocationConstraint = computed(() =>
             constrainPickupLocations(
-                store.pickupLocations,
-                store.bookableItems,
+                pickupLocations.value,
+                bookableItems.value,
                 bookingItemtypeId.value,
                 bookingItemId.value,
                 constrainedFlagsRef
@@ -375,9 +349,9 @@ export default {
 
         const bookableItemsConstraint = computed(() =>
             constrainBookableItems(
-                store.bookableItems,
-                store.pickupLocations,
-                bookingPickupLibraryId.value,
+                bookableItems.value,
+                pickupLocations.value,
+                pickupLibraryId.value,
                 bookingItemtypeId.value,
                 constrainedFlagsRef
             )
@@ -394,10 +368,10 @@ export default {
 
         const constrainedItemTypes = computed(() =>
             constrainItemTypes(
-                store.itemTypes,
-                store.bookableItems,
-                store.pickupLocations,
-                bookingPickupLibraryId.value,
+                itemTypes.value,
+                bookableItems.value,
+                pickupLocations.value,
+                pickupLibraryId.value,
                 bookingItemId.value,
                 constrainedFlagsRef
             )
@@ -413,11 +387,11 @@ export default {
             // CRITICAL FIX: Proper loading states for calendar availability
             // This prevents race condition where modal opens before store is populated
             if (
-                !store.bookableItems ||
-                store.bookableItems.length === 0 ||
-                store.loading.bookableItems ||
-                store.loading.bookings ||
-                store.loading.checkouts
+                !bookableItems.value ||
+                bookableItems.value.length === 0 ||
+                loading.value.bookableItems ||
+                loading.value.bookings ||
+                loading.value.checkouts
             ) {
                 // Return restrictive default while data loads to prevent invalid selections
                 return {
@@ -428,12 +402,12 @@ export default {
 
             // Create a cache key from relevant data
             const cacheKey = JSON.stringify({
-                bookingsCount: store.bookings?.length || 0,
-                checkoutsCount: store.checkouts?.length || 0,
-                bookableItemsCount: store.bookableItems?.length || 0,
-                selectedItem: store.bookingItemId,
-                editBookingId: store.bookingId,
-                selectedDates: store.selectedDateRange,
+                bookingsCount: bookings.value?.length || 0,
+                checkoutsCount: checkouts.value?.length || 0,
+                bookableItemsCount: bookableItems.value?.length || 0,
+                selectedItem: bookingItemId.value,
+                editBookingId: bookingId.value,
+                selectedDates: selectedDateRange.value,
                 dateRangeConstraint: props.dateRangeConstraint,
                 maxBookingPeriod: maxBookingPeriod.value,
             });
@@ -443,10 +417,10 @@ export default {
                 return availabilityCache;
             }
 
-            // Use store.selectedDateRange (maintained by altInput solution)
-            const currentSelectedDates = store.selectedDateRange || [];
+            // Use selectedDateRange (maintained by altInput solution)
+            const currentSelectedDates = selectedDateRange.value || [];
 
-            const baseRules = store.circulationRules[0] || {};
+            const baseRules = circulationRules.value[0] || {};
 
             // Apply date range constraint only when constraining preference is active
             const effectiveRules = { ...baseRules };
@@ -484,11 +458,11 @@ export default {
             }
 
             const result = calculateDisabledDates(
-                store.bookings,
-                store.checkouts,
-                store.bookableItems,
-                store.bookingItemId,
-                store.bookingId,
+                bookings.value,
+                checkouts.value,
+                bookableItems.value,
+                bookingItemId.value,
+                bookingId.value,
                 selectedDatesArray,
                 effectiveRules,
                 undefined,
@@ -509,17 +483,17 @@ export default {
         // Prevent calendar interaction until all data is loaded to avoid race conditions
         const isCalendarReady = computed(() => {
             const dataLoaded =
-                !store.loading.bookableItems &&
-                !store.loading.bookings &&
-                !store.loading.checkouts &&
-                store.bookableItems?.length > 0;
+                !loading.value.bookableItems &&
+                !loading.value.bookings &&
+                !loading.value.checkouts &&
+                bookableItems.value?.length > 0;
 
             // Also require form validation (same as canProceedToStep3)
             const formValid = !!(
                 bookingPatron.value &&
                 (bookingItemId.value ||
                     bookingItemtypeId.value ||
-                    bookingPickupLibraryId.value)
+                    pickupLibraryId.value)
             );
 
             // Check if the current selection results in any available items
@@ -634,7 +608,7 @@ export default {
                     );
                     // If dates were provided (e.g., edit flow), reflect them in flatpickr UI
                     try {
-                        const current = store.selectedDateRange || [];
+                        const current = selectedDateRange.value || [];
                         if (Array.isArray(current) && current.length > 0) {
                             const dates = current
                                 .filter(Boolean)
@@ -689,7 +663,7 @@ export default {
                 const biblionumber = props.biblionumber;
                 if (!biblionumber) return;
 
-                store.bookingId = props.bookingId;
+                bookingId.value = props.bookingId;
 
                 try {
                     // Fetch core data first
@@ -731,30 +705,30 @@ export default {
                             enabled &&
                             typeof branch === "string" &&
                             branch &&
-                            Array.isArray(store.pickupLocations) &&
-                            store.pickupLocations.some(l => l.library_id === branch)
+                            Array.isArray(pickupLocations.value) &&
+                            pickupLocations.value.some(l => l.library_id === branch)
                         ) {
-                            store.pickupLibraryId = branch;
+                            pickupLibraryId.value = branch;
                         } else {
-                            store.pickupLibraryId = props.pickupLibraryId;
+                            pickupLibraryId.value = props.pickupLibraryId;
                         }
                     })();
 
                     // Normalize itemId type to match bookableItems' item_id type for vue-select strict matching
                     if (props.itemId != null) {
-                        const sample = store.bookableItems?.[0]?.item_id;
+                        const sample = bookableItems.value?.[0]?.item_id;
                         const normalized =
                             typeof sample === "number"
                                 ? Number(props.itemId)
                                 : String(props.itemId);
-                        store.bookingItemId = normalized;
+                        bookingItemId.value = normalized;
                     } else {
-                        store.bookingItemId = null;
+                        bookingItemId.value = null;
                     }
-                    store.bookingItemtypeId = props.itemtypeId;
+                    bookingItemtypeId.value = props.itemtypeId;
 
                     if (props.startDate && props.endDate) {
-                        store.selectedDateRange = [
+                        selectedDateRange.value = [
                             dayjs(props.startDate).toISOString(),
                             dayjs(props.endDate).toISOString(),
                         ];
@@ -769,8 +743,8 @@ export default {
         watch(
             () => computedAvailabilityData.value,
             newAvailability => {
-                store.unavailableByDate =
-                    newAvailability?.unavailableByDate || {};
+                store.setUnavailableByDate(
+                    newAvailability?.unavailableByDate || {});
             },
             { immediate: true, deep: true }
         );
@@ -816,7 +790,7 @@ export default {
         );
 
         watch(
-            [() => bookingItemId.value, () => store.bookableItems],
+            [() => bookingItemId.value, () => bookableItems.value],
             ([itemId, items]) => {
                 if (!itemId || bookingItemtypeId.value) return;
                 const item = (items || []).find(
@@ -839,8 +813,8 @@ export default {
                 () => bookingPickupLibraryId.value,
                 () => bookingItemtypeId.value,
                 () => bookingItemId.value,
-                () => store.selectedDateRange?.[0],
-                () => store.selectedDateRange?.[1],
+                () => selectedDateRange.value?.[0],
+                () => selectedDateRange.value?.[1],
             ],
             () => {
                 clearErrors();
@@ -849,7 +823,7 @@ export default {
 
         // Clear lingering errors when circulation rules finish (re)loading
         watch(
-            () => store.loading.circulationRules,
+            () => loading.value.circulationRules,
             (isLoading, wasLoading) => {
                 if (wasLoading && !isLoading) {
                     clearErrors();
@@ -860,12 +834,12 @@ export default {
         // Helper function to check if we should trigger highlighting
         const tryApplyHighlighting = () => {
             const dataReady =
-                !store.loading.bookableItems &&
-                !store.loading.bookings &&
-                !store.loading.checkouts &&
-                store.bookableItems?.length > 0;
+                !loading.value.bookableItems &&
+                !loading.value.bookings &&
+                !loading.value.checkouts &&
+                bookableItems.value?.length > 0;
 
-            const hasSelectedDate = store.selectedDateRange?.length === 1;
+            const hasSelectedDate = selectedDateRange.value?.length === 1;
             const hasFlatpickr = !!flatpickrInstance.value;
 
             if (dataReady && hasFlatpickr && hasSelectedDate) {
@@ -907,7 +881,7 @@ export default {
                     );
 
                     const dateObjects = [
-                        dayjs(store.selectedDateRange[0]).toDate(),
+                        dayjs(selectedDateRange.value[0]).toDate(),
                     ];
                     onChangeHandler(dateObjects, "", flatpickrInstance.value);
                 }
@@ -917,13 +891,13 @@ export default {
         // Watch for all loading states to re-trigger highlighting when ALL data is loaded
         watch(
             () => ({
-                bookableItemsLoading: store.loading.bookableItems,
-                bookingsLoading: store.loading.bookings,
-                checkoutsLoading: store.loading.checkouts,
-                hasBookableItems: store.bookableItems?.length > 0,
+                bookableItemsLoading: loading.value.bookableItems,
+                bookingsLoading: loading.value.bookings,
+                checkoutsLoading: loading.value.checkouts,
+                hasBookableItems: bookableItems.value?.length > 0,
                 hasFlatpickr: !!flatpickrInstance.value,
             }),
-            (newState, oldState) => {
+            () => {
                 // Try to apply highlighting whenever state changes
                 nextTick(() => {
                     tryApplyHighlighting();
@@ -947,8 +921,8 @@ export default {
 
         // Watch for selected date changes
         watch(
-            () => store.selectedDateRange,
-            (newDates, oldDates) => {
+            () => selectedDateRange.value,
+            (newDates) => {
                 if (newDates?.length === 1) {
                     // Date was just selected
                     nextTick(() => {
@@ -975,7 +949,7 @@ export default {
         );
 
         watch(
-            [() => bookingPatron.value, () => store.pickupLocations],
+            [() => bookingPatron.value, () => pickupLocations.value],
             ([patron, pickupLocations]) => {
                 // Attempt to set default if pickupLibraryId is not already set
                 if (bookingPickupLibraryId.value) return;
@@ -1015,9 +989,9 @@ export default {
                     return;
                 }
 
-                if (store.bookableItems.length === 0) return;
+                if (bookableItems.value.length === 0) return;
 
-                const firstItemLibId = store.bookableItems[0].home_library_id;
+                const firstItemLibId = bookableItems.value[0].home_library_id;
                 const hasItemLib = pickupLocations.some(
                     l => l.library_id === firstItemLibId
                 );
@@ -1046,7 +1020,7 @@ export default {
                 ) {
                     const selectionParts = [];
                     if (pickupLibraryId) {
-                        const location = store.pickupLocations.find(
+                        const location = pickupLocations.value.find(
                             l => l.library_id === pickupLibraryId
                         );
                         selectionParts.push(
@@ -1056,7 +1030,7 @@ export default {
                         );
                     }
                     if (itemtypeId) {
-                        const itemType = store.itemTypes.find(
+                        const itemType = itemTypes.value.find(
                             t => t.item_type_id === itemtypeId
                         );
                         selectionParts.push(
@@ -1126,9 +1100,9 @@ export default {
         // Globally clear all error states (modal + store)
         function clearErrors() {
             modalState.errorMessage = "";
-            if (store && store.error) {
-                Object.keys(store.error).forEach(key => {
-                    store.error[key] = null;
+            if (error.value) {
+                Object.keys(error.value).forEach(key => {
+                    error.value[key] = null;
                 });
             }
         }
@@ -1165,14 +1139,14 @@ export default {
             bookingPickupLibraryId.value = null;
             bookingItemtypeId.value = null;
             bookingItemId.value = null;
-            store.selectedDateRange = [];
+            selectedDateRange.value = [];
             modalState.step = 1;
             clearErrors();
             if (additionalFieldsInstance.value) {
                 additionalFieldsInstance.value.clear();
             }
             modalState.hasAdditionalFields = false;
-            Object.keys(store.error).forEach(key => (store.error[key] = null));
+            Object.keys(error.value).forEach(key => (error.value[key] = null));
         }
 
         function clearDateRange() {
@@ -1182,7 +1156,7 @@ export default {
                 flatpickrInstance.value.clear();
             }
             // Also clear the Vue reactive data
-            store.selectedDateRange = [];
+            selectedDateRange.value = [];
             // Clear any error messages related to date selection
             clearErrors();
         }
@@ -1195,8 +1169,8 @@ export default {
         }
 
         async function handleSubmit(event) {
-            // Use store.selectedDateRange (clean ISO strings maintained by onChange handler)
-            const selectedDates = store.selectedDateRange;
+            // Use selectedDateRange (clean ISO strings maintained by onChange handler)
+            const selectedDates = selectedDateRange.value;
 
             if (!selectedDates || selectedDates.length === 0) {
                 modalState.errorMessage = $__(
@@ -1255,9 +1229,9 @@ export default {
                 updateExternalDependents(store, result, !!props.bookingId);
                 emit("close");
                 resetModalState();
-            } catch (error) {
+            } catch (errorObj) {
                 modalState.errorMessage =
-                    store.error.submit || processApiError(error);
+                    error.value.submit || processApiError(errorObj);
             }
         }
 
@@ -1273,7 +1247,6 @@ export default {
         });
 
         return {
-            // Grouped reactive state (Vue 3 best practices)
             modalState,
             modalTitle,
             submitLabel,
@@ -1282,6 +1255,21 @@ export default {
             loading,
             flatpickrConfig,
             store,
+            // Store refs from storeToRefs
+            selectedDateRange,
+            bookingId,
+            bookingItemId,
+            bookingPatron,
+            bookingItemtypeId,
+            pickupLibraryId,
+            bookableItems,
+            bookings,
+            checkouts,
+            pickupLocations,
+            itemTypes,
+            circulationRules,
+            error,
+            // Computed values
             constrainedPickupLocations,
             constrainedItemTypes,
             constrainedBookableItems,
@@ -1298,9 +1286,6 @@ export default {
             bookableItemsTotal,
             maxBookingPeriod,
             flatpickrInstance,
-            bookingPatron,
-            bookingItemtypeId,
-            bookingItemId,
             bookingPickupLibraryId,
             onAdditionalFieldsReady,
             onAdditionalFieldsDestroyed,
