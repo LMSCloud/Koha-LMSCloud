@@ -8,7 +8,12 @@
         "noEmit": true,
         "strict": false,
         "baseUrl": ".",
-        "paths": {},
+        "paths": {
+            "@bookingApi": [
+                "./lib/booking/bookingApi.js",
+                "./lib/booking/bookingApi.opac.js"
+            ]
+        },
         "types": []
     },
     "include": [

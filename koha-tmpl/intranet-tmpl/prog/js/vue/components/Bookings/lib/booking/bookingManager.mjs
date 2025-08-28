@@ -2,8 +2,8 @@
 // Pure utility functions for date/booking calculations and business logic
 // To be used by the Pinia store and BookingModal.vue
 
-import dayjs from "../../utils/dayjs.mjs";
-import { win } from "./lib/index.mjs";
+import dayjs from "../../../../utils/dayjs.mjs";
+import { win } from "../index.mjs";
 import { managerLogger as logger } from "./bookingLogger.mjs";
 
 // Use global $__ function (available in browser, mocked in tests)
@@ -160,11 +160,11 @@ import {
     // eslint-disable-next-line no-unused-vars
     IntervalTree,
     buildIntervalTree,
-} from "./IntervalTree.mjs";
+} from "../IntervalTree.mjs";
 import {
     SweepLineProcessor,
     processCalendarView,
-} from "./SweepLineProcessor.mjs";
+} from "../SweepLineProcessor.mjs";
 
 /**
  * Build unavailableByDate map from IntervalTree for backward compatibility

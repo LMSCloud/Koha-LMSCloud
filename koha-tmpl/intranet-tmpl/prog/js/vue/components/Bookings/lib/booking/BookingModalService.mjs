@@ -3,7 +3,7 @@
  * Refactored to use pure functions and composables instead of store-coupled classes
  */
 
-import dayjs from "../../utils/dayjs.mjs";
+import dayjs from "../../../../utils/dayjs.mjs";
 import { calculateDisabledDates, parseDateRange } from "./bookingManager.mjs";
 import {
     createFlatpickrConfig,

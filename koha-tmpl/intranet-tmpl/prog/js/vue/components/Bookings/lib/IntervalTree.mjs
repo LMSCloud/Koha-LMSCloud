@@ -5,8 +5,8 @@
  * Based on augmented red-black tree with interval overlap detection
  */
 
-import dayjs from "../../utils/dayjs.mjs";
-import { managerLogger as logger } from "./bookingLogger.mjs";
+import dayjs from "../../../utils/dayjs.mjs";
+import { managerLogger as logger } from "./booking/bookingLogger.mjs";
 
 /**
  * Represents a booking or checkout interval

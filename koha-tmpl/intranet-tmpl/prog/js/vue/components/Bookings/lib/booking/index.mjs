@@ -1,4 +1,4 @@
-import dayjs from "../../../utils/dayjs.mjs";
+import dayjs from "../../../../utils/dayjs.mjs";
 
 export function debounce(fn, delay) {
     let timeout;
@@ -57,7 +57,7 @@ function renderPatronContent(
 /**
  * Updates timeline component with booking data
  */
-function updateTimelineComponent(newBooking, store, isUpdate, dependencies) {
+function updateTimelineComponent(newBooking, bookingPatron, isUpdate, dependencies) {
     const timeline = dependencies.timeline();
     if (!timeline) return { success: false, reason: "Timeline not available" };
 
@@ -68,7 +68,7 @@ function updateTimelineComponent(newBooking, store, isUpdate, dependencies) {
             patron: newBooking.patron_id,
             start: dayjs(newBooking.start_date).toDate(),
             end: dayjs(newBooking.end_date).toDate(),
-            content: renderPatronContent(store.bookingPatron, dependencies),
+            content: renderPatronContent(bookingPatron, dependencies),
             type: "range",
             group: newBooking.item_id ? newBooking.item_id : 0,
         };
@@ -145,15 +145,15 @@ function updateBookingCounts(isUpdate, dependencies) {
  * This function is designed with dependency injection to make it testable
  * and to provide proper error handling with detailed feedback.
  *
- * @param {Object} store - Booking store instance
  * @param {Object} newBooking - The booking data that was created/updated
+ * @param {Object|null} bookingPatron - The patron data for rendering
  * @param {boolean} isUpdate - Whether this is an update (true) or create (false)
  * @param {Object} dependencies - Injectable dependencies (for testing)
  * @returns {Object} Results summary with success/failure details
  */
 export function updateExternalDependents(
-    store,
     newBooking,
+    bookingPatron,
     isUpdate = false,
     dependencies = defaultDependencies
 ) {
@@ -169,7 +169,7 @@ export function updateExternalDependents(
             attempted: true,
             ...updateTimelineComponent(
                 newBooking,
-                store,
+                bookingPatron,
                 isUpdate,
                 dependencies
             ),
@@ -220,7 +220,7 @@ export function updateExternalDependentsLegacy(
     isUpdate = false
 ) {
     try {
-        updateExternalDependents(store, newBooking, isUpdate);
+        updateExternalDependents(newBooking, store.bookingPatron, isUpdate);
     } catch (error) {
         console.warn(
             "External dependents update failed silently (legacy mode)",

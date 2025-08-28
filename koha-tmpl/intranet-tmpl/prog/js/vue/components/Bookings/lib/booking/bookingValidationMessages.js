@@ -1,5 +1,5 @@
-import { $__ } from "../../i18n/index.js";
-import { createValidationErrorHandler } from "../../utils/validationErrors.js";
+import { $__ } from "../../../../i18n/index.js";
+import { createValidationErrorHandler } from "../../../../utils/validationErrors.js";
 
 /**
  * Booking-specific validation error messages

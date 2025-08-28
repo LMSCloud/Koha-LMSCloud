@@ -162,7 +162,7 @@ import {
     constrainItemTypes,
     constrainPickupLocations,
     getVisibleCalendarDates,
-} from "./bookingManager.mjs";
+} from "./lib/booking/bookingManager.mjs";
 import { useBookingStore } from "../../stores/bookingStore";
 import { storeToRefs } from "pinia";
 import { updateExternalDependents } from "./lib/booking/index.mjs";
@@ -174,11 +174,11 @@ import {
     createFlatpickrConfig,
     applyCalendarHighlighting,
     preloadFlatpickrLocale,
-    } from "./bookingCalendar.mjs";
+    } from "./lib/booking/bookingCalendar.mjs";
 // Pure functions and composables (new architecture)
-import { calculateStepNumbers } from "./bookingSteps.mjs";
+import { calculateStepNumbers } from "./lib/booking/bookingSteps.mjs";
 import { useBookingValidation } from "./composables/useBookingValidation.mjs";
-import { BookingConfigurationService } from "./BookingModalService.mjs";
+import { BookingConfigurationService } from "./lib/booking/BookingModalService.mjs";
 import { win } from "./lib/index.mjs";
 
 export default {
@@ -1222,7 +1222,7 @@ export default {
 
             try {
                 const result = await store.saveOrUpdateBooking(bookingData);
-                updateExternalDependents(store, result, !!props.bookingId);
+                updateExternalDependents(result, bookingPatron.value, !!props.bookingId);
                 emit("close");
                 resetModalState();
             } catch (errorObj) {

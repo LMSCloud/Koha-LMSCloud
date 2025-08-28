@@ -21,11 +21,11 @@ import {
     IntervalTree,
     BookingInterval,
     buildIntervalTree,
-} from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/IntervalTree.mjs";
+} from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/IntervalTree.mjs";
 import {
     SweepLineProcessor,
     processCalendarView,
-} from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/SweepLineProcessor.mjs";
+} from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/SweepLineProcessor.mjs";
 
 describe("Booking System Integration Tests", () => {
     let modules;

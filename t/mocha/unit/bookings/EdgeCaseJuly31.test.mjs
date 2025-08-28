@@ -40,12 +40,12 @@ before(async () => {
     dayjs = dayjsModule.default;
 
     const managerModule = await import(
-        "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/bookingManager.mjs"
+        "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/bookingManager.mjs"
     );
     calculateDisabledDates = managerModule.calculateDisabledDates;
 
     const intervalTreeModule = await import(
-        "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/IntervalTree.mjs"
+        "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/IntervalTree.mjs"
     );
     buildIntervalTree = intervalTreeModule.buildIntervalTree;
     IntervalTree = intervalTreeModule.IntervalTree;

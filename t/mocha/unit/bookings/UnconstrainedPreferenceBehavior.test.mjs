@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import dayjs from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/utils/dayjs.mjs";
-import { FlatpickrEventHandlers } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/bookingCalendar.mjs";
-import { BookingConfigurationService } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/BookingModalService.mjs";
+import { FlatpickrEventHandlers } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/bookingCalendar.mjs";
+import { BookingConfigurationService } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/BookingModalService.mjs";
 
 describe("Unconstrained preference behavior", () => {
     describe("FlatpickrEventHandlers._calculateEffectiveRules", () => {

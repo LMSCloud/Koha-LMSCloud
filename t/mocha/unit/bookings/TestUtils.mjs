@@ -45,7 +45,7 @@ export async function getBookingModules() {
         _dayjs = dayjsModule.default;
 
         _bookingManager = await import(
-            "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/bookingManager.mjs"
+            "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/bookingManager.mjs"
         );
     }
 
