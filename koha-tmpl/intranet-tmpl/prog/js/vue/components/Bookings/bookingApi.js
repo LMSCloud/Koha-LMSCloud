@@ -118,7 +118,7 @@ export async function fetchPatron(patronId) {
     return await response.json();
 }
 
-import { buildPatronSearchQuery } from "./patronUtils";
+import { buildPatronSearchQuery } from "./lib/patron/index.mjs";
 
 /**
  * Searches for patrons matching a search term

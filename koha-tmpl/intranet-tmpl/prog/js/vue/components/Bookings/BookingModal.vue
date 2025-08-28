@@ -165,7 +165,7 @@ import {
 } from "./bookingManager.mjs";
 import { useBookingStore } from "../../stores/bookingStore";
 import { storeToRefs } from "pinia";
-import { updateExternalDependents } from "./bookingUtils.mjs";
+import { updateExternalDependents } from "./lib/booking/index.mjs";
 import {
     createOnChange,
     createOnDayCreate,
@@ -179,7 +179,7 @@ import {
 import { calculateStepNumbers } from "./bookingSteps.mjs";
 import { useBookingValidation } from "./composables/useBookingValidation.mjs";
 import { BookingConfigurationService } from "./BookingModalService.mjs";
-import { win } from "./utils.mjs";
+import { win } from "./lib/index.mjs";
 
 export default {
     name: "BookingModal",

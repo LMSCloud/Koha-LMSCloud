@@ -1,4 +1,4 @@
-import dayjs from "../../utils/dayjs.mjs";
+import dayjs from "../../../utils/dayjs.mjs";
 
 export function debounce(fn, delay) {
     let timeout;
@@ -11,7 +11,7 @@ export function debounce(fn, delay) {
 /**
  * Default dependencies for external updates - can be overridden in tests
  */
-import { win } from "./utils.mjs";
+import { win } from "../index.mjs";
 
 const defaultDependencies = {
     timeline: () => win("timeline"),
