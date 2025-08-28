@@ -113,7 +113,7 @@
                     <div class="d-flex gap-2">
                         <button
                             class="btn btn-primary"
-                            :disabled="loading.submit || !isCalendarReady"
+                            :disabled="loading.submit || !isSubmitReady"
                             type="submit"
                             form="form-booking"
                         >
@@ -175,7 +175,10 @@ import {
     applyCalendarHighlighting,
     preloadFlatpickrLocale,
     } from "./bookingCalendar.mjs";
-import { createBookingServices } from "./BookingModalService.mjs";
+// Pure functions and composables (new architecture)
+import { calculateStepNumbers } from "./bookingSteps.mjs";
+import { useBookingValidation } from "./composables/useBookingValidation.mjs";
+import { BookingConfigurationService } from "./BookingModalService.mjs";
 import { win } from "./utils.mjs";
 
 export default {
@@ -250,11 +253,14 @@ export default {
             error
         } = storeToRefs(store);
 
-        // Initialize business logic services
-        const bookingServices = createBookingServices({
-            dateRangeConstraint: props.dateRangeConstraint,
-            customDateRangeFormula: props.customDateRangeFormula,
-        });
+        // Initialize business logic - new architecture using pure functions and composables
+        const configurationService = new BookingConfigurationService(
+            props.dateRangeConstraint,
+            props.customDateRangeFormula
+        );
+
+        // Use validation composable for reactive validation logic
+        const { canProceedToStep3: canProceedToStep3Reactive } = useBookingValidation(store);
 
         // Grouped reactive state following Vue 3 best practices
         const modalState = reactive({
@@ -283,27 +289,13 @@ export default {
         );
 
         const stepNumber = computed(() => {
-            let currentStep = 1;
-            const steps = {
-                patron: 0,
-                details: 0,
-                period: 0,
-                additionalFields: 0,
-            };
-            if (props.showPatronSelect) {
-                steps.patron = currentStep++;
-            }
-            if (
-                props.showItemDetailsSelects ||
-                props.showPickupLocationSelect
-            ) {
-                steps.details = currentStep++;
-            }
-            steps.period = currentStep++;
-            if (props.showAdditionalFields && modalState.hasAdditionalFields) {
-                steps.additionalFields = currentStep++;
-            }
-            return steps;
+            return calculateStepNumbers(
+                props.showPatronSelect,
+                props.showItemDetailsSelects,
+                props.showPickupLocationSelect,
+                props.showAdditionalFields,
+                modalState.hasAdditionalFields
+            );
         });
 
         const submitLabel = computed(() =>
@@ -476,7 +468,7 @@ export default {
         });
 
         const maxBookingPeriod = computed(() =>
-            bookingServices.configuration.calculateMaxBookingPeriod(circulationRules.value)
+            configurationService.calculateMaxBookingPeriod(circulationRules.value)
         );
 
         // Prevent calendar interaction until all data is loaded to avoid race conditions
@@ -487,7 +479,7 @@ export default {
                 !loading.value.checkouts &&
                 bookableItems.value?.length > 0;
 
-            // Also require form validation (same as canProceedToStep3)
+            // Basic form validation for calendar readiness (not full step 3 validation)
             const formValid = !!(
                 bookingPatron.value &&
                 (bookingItemId.value ||
@@ -499,6 +491,11 @@ export default {
             const hasAvailableItems = constrainedBookableItems.value.length > 0;
 
             return dataLoaded && formValid && hasAvailableItems;
+        });
+
+        // Separate validation for submit button using reactive composable
+        const isSubmitReady = computed(() => {
+            return isCalendarReady.value && canProceedToStep3Reactive.value;
         });
 
         const flatpickrConfig = computed(() => {
@@ -1273,6 +1270,7 @@ export default {
             constrainedItemTypes,
             constrainedBookableItems,
             isCalendarReady,
+            isSubmitReady,
             constrainedFlags,
             handleClose,
             handleSubmit,
