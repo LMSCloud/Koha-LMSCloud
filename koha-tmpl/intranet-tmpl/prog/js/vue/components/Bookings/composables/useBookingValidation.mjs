@@ -22,7 +22,7 @@ export function useBookingValidation(store) {
         bookingPatron,
         pickupLibraryId,
         bookingItemtypeId,
-        itemtypeOptions,
+        itemTypes,
         bookingItemId,
         bookableItems,
         selectedDateRange,
@@ -41,7 +41,7 @@ export function useBookingValidation(store) {
             showPickupLocationSelect: store.showPickupLocationSelect,
             pickupLibraryId: pickupLibraryId.value,
             bookingItemtypeId: bookingItemtypeId.value,
-            itemtypeOptions: itemtypeOptions.value,
+            itemtypeOptions: itemTypes.value,
             bookingItemId: bookingItemId.value,
             bookableItems: bookableItems.value,
         });
@@ -56,7 +56,7 @@ export function useBookingValidation(store) {
             showPickupLocationSelect: store.showPickupLocationSelect,
             pickupLibraryId: pickupLibraryId.value,
             bookingItemtypeId: bookingItemtypeId.value,
-            itemtypeOptions: itemtypeOptions.value,
+            itemtypeOptions: itemTypes.value,
             bookingItemId: bookingItemId.value,
             bookableItems: bookableItems.value,
         };
