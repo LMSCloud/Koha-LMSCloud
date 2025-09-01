@@ -473,23 +473,6 @@ export default {
                     }
 
                     // Set other form values after all dependencies are loaded
-                    (function applyPickupDefault() {
-                        const enabled = String(
-                            /** @type {any} */ (props.opacDefaultBookingLibraryEnabled)
-                        ) === "1" || /** @type {any} */ (props.opacDefaultBookingLibraryEnabled) === true;
-                        const branch = props.opacDefaultBookingLibrary;
-                        if (
-                            enabled &&
-                            typeof branch === "string" &&
-                            branch &&
-                            Array.isArray(pickupLocations.value) &&
-                            pickupLocations.value.some(l => l.library_id === branch)
-                        ) {
-                            pickupLibraryId.value = branch;
-                        } else {
-                            pickupLibraryId.value = props.pickupLibraryId;
-                        }
-                    })();
 
                     // Normalize itemId type to match bookableItems' item_id type for vue-select strict matching
                     if (props.itemId != null) {
