@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import dayjs from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/utils/dayjs.mjs";
 import { deriveEffectiveRules } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/bookingCalendar.mjs";
-import { BookingConfigurationService } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/BookingModalService.mjs";
+import { calculateAvailabilityData } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/BookingModalService.mjs";
 
 describe("Unconstrained preference behavior", () => {
     describe("deriveEffectiveRules", () => {
@@ -27,7 +27,7 @@ describe("Unconstrained preference behavior", () => {
         });
     });
 
-    describe("BookingConfigurationService.calculateAvailabilityData", () => {
+    describe("calculateAvailabilityData", () => {
         const makeStore = (rulesObj = {}) => ({
             bookings: [],
             checkouts: [],
@@ -47,13 +47,9 @@ describe("Unconstrained preference behavior", () => {
 
         it("should not enforce max period when preference is Don't constrain", () => {
             const store = makeStore({ issuelength: 5 });
-            const svc = new BookingConfigurationService(null, null);
 
             const start = dayjs().startOf("day");
-            const availability = svc.calculateAvailabilityData(
-                [start.toISOString()],
-                store
-            );
+            const availability = calculateAvailabilityData([start.toISOString()], store, { dateRangeConstraint: null });
 
             const farEnd = start.add(20, "day").toDate();
             const disabled = availability.disable(farEnd);
@@ -62,13 +58,9 @@ describe("Unconstrained preference behavior", () => {
 
         it("should enforce max period when preference is issuelength", () => {
             const store = makeStore({ issuelength: 5 });
-            const svc = new BookingConfigurationService("issuelength", null);
 
             const start = dayjs().startOf("day");
-            const availability = svc.calculateAvailabilityData(
-                [start.toISOString()],
-                store
-            );
+            const availability = calculateAvailabilityData([start.toISOString()], store, { dateRangeConstraint: "issuelength" });
 
             const within = start.add(4, "day").toDate();
             const beyond = start.add(6, "day").toDate();

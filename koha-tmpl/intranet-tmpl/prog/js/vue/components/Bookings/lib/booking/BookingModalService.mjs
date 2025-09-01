@@ -1,8 +1,3 @@
-/**
- * Business logic service for BookingModal
- * Refactored to use pure functions and composables instead of store-coupled classes
- */
-
 import dayjs from "../../../../utils/dayjs.mjs";
 import { calculateDisabledDates, parseDateRange } from "./bookingManager.mjs";
 import { deriveEffectiveRules } from "./bookingCalendar.mjs";
@@ -16,135 +11,74 @@ import {
     shouldShowAdditionalFields,
 } from "./bookingSteps.mjs";
 
-// Validation functions are now available as pure functions from bookingValidation.mjs
-// Use canProceedToStep3(), canSubmitBooking(), and validateDateSelection() directly
-
-/**
- * Service class for booking configuration and constraint handling
- */
-export class BookingConfigurationService {
-    constructor(dateRangeConstraint = null, customDateRangeFormula = null) {
-        this.dateRangeConstraint = dateRangeConstraint;
-        this.customDateRangeFormula = customDateRangeFormula;
+export function calculateMaxBookingPeriod(circulationRules, dateRangeConstraint, customDateRangeFormula = null) {
+    if (!dateRangeConstraint) return null;
+    const rules = circulationRules?.[0];
+    if (!rules) return null;
+    const issuelength = parseInt(rules.issuelength) || 0;
+    switch (dateRangeConstraint) {
+        case "issuelength":
+            return issuelength;
+        case "issuelength_with_renewals":
+            const renewalperiod = parseInt(rules.renewalperiod) || 0;
+            const renewalsallowed = parseInt(rules.renewalsallowed) || 0;
+            return issuelength + renewalperiod * renewalsallowed;
+        case "custom":
+            return typeof customDateRangeFormula === "function"
+                ? customDateRangeFormula(rules)
+                : null;
+        default:
+            return null;
     }
-
-    /**
-     * Calculate maximum booking period based on constraints
-     */
-    calculateMaxBookingPeriod(circulationRules) {
-        if (!this.dateRangeConstraint) return null;
-
-        const rules = circulationRules?.[0];
-        if (!rules) return null;
-
-        const issuelength = parseInt(rules.issuelength) || 0;
-
-        switch (this.dateRangeConstraint) {
-            case "issuelength":
-                return issuelength;
-
-            case "issuelength_with_renewals":
-                const renewalperiod = parseInt(rules.renewalperiod) || 0;
-                const renewalsallowed = parseInt(rules.renewalsallowed) || 0;
-                return issuelength + renewalperiod * renewalsallowed;
-
-            case "custom":
-                if (this.customDateRangeFormula) {
-                    return this.customDateRangeFormula(rules);
-                }
-                return null;
-
-            default:
-                return null;
-        }
-    }
-
-    /**
-     * Calculate availability data for calendar disable function
-     */
-    calculateAvailabilityData(dateRange, storeData) {
-        const {
-            bookings,
-            checkouts,
-            bookableItems,
-            circulationRules,
-            bookingItemId,
-            bookingId,
-        } = storeData;
-
-        if (!bookings || !checkouts || !bookableItems) {
-            return { disable: () => false, unavailableByDate: {} };
-        }
-
-        const baseRules = circulationRules?.[0] || {};
-        const maxBookingPeriod = this.calculateMaxBookingPeriod(circulationRules);
-        const effectiveRules = deriveEffectiveRules(baseRules, {
-            dateRangeConstraint: this.dateRangeConstraint,
-            maxBookingPeriod,
-        });
-
-        // Convert dateRange to proper selectedDates array for calculateDisabledDates
-        let selectedDatesArray = [];
-        if (Array.isArray(dateRange)) {
-            // dateRange now contains ISO strings, convert to Date objects
-            selectedDatesArray = dateRange.map(isoString =>
-                dayjs(isoString).toDate()
-            );
-        } else if (typeof dateRange === "string") {
-            // Fallback: if somehow we still get a string, try parsing it
-            // This should be rare now that we use flatpickrSelectedDates
-            // This is now an expected fallback case, no longer an error
-            const [startISO, endISO] = parseDateRange(dateRange);
-            if (startISO && endISO) {
-                selectedDatesArray = [
-                    dayjs(startISO).toDate(),
-                    dayjs(endISO).toDate(),
-                ];
-            } else if (startISO) {
-                selectedDatesArray = [dayjs(startISO).toDate()];
-            }
-        }
-
-        return calculateDisabledDates(
-            bookings,
-            checkouts,
-            bookableItems,
-            bookingItemId,
-            bookingId,
-            selectedDatesArray,
-            effectiveRules
-        );
-    }
-
-    // Note: Former createFlatpickrConfiguration method removed (runtime does not use it).
 }
 
-// Step management functions are now available as pure functions from bookingSteps.mjs
-// Use calculateStepNumbers() and shouldShowAdditionalFields() directly
+export function calculateAvailabilityData(dateRange, storeData, options = {}) {
+    const {
+        bookings,
+        checkouts,
+        bookableItems,
+        circulationRules,
+        bookingItemId,
+        bookingId,
+    } = storeData;
 
-/**
- * Factory function to create booking services - updated for new architecture
- * Returns pure functions and service instances without store coupling
- */
-export function createBookingServices(options = {}) {
-    const configurationService = new BookingConfigurationService(
+    if (!bookings || !checkouts || !bookableItems) {
+        return { disable: () => false, unavailableByDate: {} };
+    }
+
+    const baseRules = circulationRules?.[0] || {};
+    const maxBookingPeriod = calculateMaxBookingPeriod(
+        circulationRules,
         options.dateRangeConstraint,
         options.customDateRangeFormula
     );
+    const effectiveRules = deriveEffectiveRules(baseRules, {
+        dateRangeConstraint: options.dateRangeConstraint,
+        maxBookingPeriod,
+    });
 
-    return {
-        // Pure validation functions (no longer store-coupled)
-        validation: {
-            canProceedToStep3,
-            canSubmit: canSubmitBooking,
-            validateDateSelection,
-        },
-        // Configuration service (refactored to accept data as parameters)
-        configuration: configurationService,
-        // Pure step calculation functions
-        step: {
-            calculateStepNumbers,
-            shouldShowAdditionalFields,
-        },
-    };
+    // Convert dateRange to proper selectedDates array for calculateDisabledDates
+    let selectedDatesArray = [];
+    if (Array.isArray(dateRange)) {
+        selectedDatesArray = dateRange.map(isoString => dayjs(isoString).toDate());
+    } else if (typeof dateRange === "string") {
+        const [startISO, endISO] = parseDateRange(dateRange);
+        if (startISO && endISO) {
+            selectedDatesArray = [dayjs(startISO).toDate(), dayjs(endISO).toDate()];
+        } else if (startISO) {
+            selectedDatesArray = [dayjs(startISO).toDate()];
+        }
+    }
+
+    return calculateDisabledDates(
+        bookings,
+        checkouts,
+        bookableItems,
+        bookingItemId,
+        bookingId,
+        selectedDatesArray,
+        effectiveRules
+    );
 }
+
+export { canProceedToStep3, canSubmitBooking, validateDateSelection, calculateStepNumbers, shouldShowAdditionalFields };

@@ -165,7 +165,7 @@ import { useAvailability } from "./composables/useAvailability.mjs";
 // Pure functions and composables (new architecture)
 import { calculateStepNumbers } from "./lib/booking/bookingSteps.mjs";
 import { useBookingValidation } from "./composables/useBookingValidation.mjs";
-import { BookingConfigurationService } from "./lib/booking/BookingModalService.mjs";
+import { calculateMaxBookingPeriod } from "./lib/booking/BookingModalService.mjs";
 
 export default {
     name: "BookingModal",
@@ -238,11 +238,7 @@ export default {
             error
         } = storeToRefs(store);
 
-        // Initialize business logic - new architecture using pure functions and composables
-        const configurationService = new BookingConfigurationService(
-            props.dateRangeConstraint,
-            props.customDateRangeFormula
-        );
+        // Calculate max booking period from circulation rules and selected constraint
 
         // Use validation composable for reactive validation logic
         const { canProceedToStep3: canProceedToStep3Reactive } = useBookingValidation(store);
@@ -348,7 +344,11 @@ export default {
         const lastRulesKey = ref(null);
 
         const maxBookingPeriod = computed(() =>
-            configurationService.calculateMaxBookingPeriod(circulationRules.value)
+            calculateMaxBookingPeriod(
+                circulationRules.value,
+                props.dateRangeConstraint,
+                props.customDateRangeFormula
+            )
         );
 
         // Centralized availability (unavailableByDate + disable fn) via composable
