@@ -153,7 +153,6 @@ import BookingAdditionalFields from "./BookingAdditionalFields.vue";
 import { $__ } from "../../i18n";
 import { processApiError } from "../../utils/apiErrors.js";
 import {
-    calculateDisabledDates,
     constrainBookableItems,
     constrainItemTypes,
     constrainPickupLocations,
@@ -161,7 +160,7 @@ import {
 import { useBookingStore } from "../../stores/bookingStore";
 import { storeToRefs } from "pinia";
 import { updateExternalDependents } from "./lib/booking/index.mjs";
-import { preloadFlatpickrLocale, deriveEffectiveRules } from "./lib/booking/bookingCalendar.mjs";
+import { preloadFlatpickrLocale } from "./lib/booking/bookingCalendar.mjs";
 import { useAvailability } from "./composables/useAvailability.mjs";
 // Pure functions and composables (new architecture)
 import { calculateStepNumbers } from "./lib/booking/bookingSteps.mjs";
