@@ -465,8 +465,21 @@ export default {
             return isCalendarReady.value && canProceedToStep3Reactive.value;
         });
 
-        // flatpickrConfig removed in favor of composable-driven widget in child
+        /*
+         * Watchers overview
+         *
+         * - Open prop sync: mirror `open` into local modal state and reset inputs on open
+         * - Modal lifecycle: when the modal opens/closes, handle async data loads, body scroll, and locale preload
+         * - Availability mapping: push computed unavailableByDate to the store for calendar markers
+         * - Data-driven fetches: react to patron/library/item type changes to load pickup locations and circulation rules
+         * - Item type auto-selection: prefer a unique constrained type, otherwise infer from the selected item
+         * - Error maintenance: clear messages on core input/date changes and after circulation rules finish loading
+         * - Defaults: set a sensible pickup library based on OPAC default, patron library, or first item’s home library
+         * - Guidance: warn when no items are available for the current selection to help the user adjust filters
+         */
 
+        // Sync internal modal state with the `open` prop and reset inputs when
+        // opening to ensure a clean form each time.
         watch(
             () => props.open,
             val => {
@@ -477,11 +490,9 @@ export default {
             }
         );
 
-        /**
-         * This watcher is the main entry point for all business logic.
-         * It executes once the modal is opened and orchestrates data loading,
-         * state initialization, and side effects.
-         */
+        // Orchestrates initial data loading on modal open. This needs to
+        // remain isolated because it handles async fetch ordering, DOM body
+        // scroll state and localization preload.
         watch(
             () => modalState.isOpen,
             async open => {
@@ -578,6 +589,9 @@ export default {
             }
         );
 
+        // Keep unavailableByDate in sync for calendar markers. Using a watcher
+        // allows us to reuse the manager’s cached data and push the result to
+        // the store without re-computing in multiple places.
         watch(
             () => computedAvailabilityData.value,
             newAvailability => {
@@ -587,6 +601,10 @@ export default {
             { immediate: true, deep: true }
         );
 
+        // Respond to patron/library/itemtype changes by fetching pickup
+        // locations and circulation rules. This uses watchEffect so any of the
+        // referenced reactive sources re-trigger the logic and the lastRulesKey
+        // guard prevents redundant network calls.
         watchEffect(
             () => {
                 const patronId = bookingPatron.value?.patron_id;
@@ -617,62 +635,59 @@ export default {
             { flush: "post" }
         );
 
+        // Auto-derive item type: prefer a unique constrained type; otherwise
+        // infer it from the currently selected item id.
         watch(
-            constrainedItemTypes,
-            newTypes => {
-                if (newTypes.length === 1 && !bookingItemtypeId.value) {
-                    bookingItemtypeId.value = newTypes[0].item_type_id;
+            [constrainedItemTypes, () => bookingItemId.value, () => bookableItems.value],
+            ([types, itemId, items]) => {
+                if (!bookingItemtypeId.value && Array.isArray(types) && types.length === 1) {
+                    bookingItemtypeId.value = types[0].item_type_id;
+                    return;
                 }
-            },
-            { immediate: true }
-        );
-
-        watch(
-            [() => bookingItemId.value, () => bookableItems.value],
-            ([itemId, items]) => {
-                if (!itemId || bookingItemtypeId.value) return;
-                const item = (items || []).find(
-                    i => String(i.item_id) === String(itemId)
-                );
-                if (item) {
-                    bookingItemtypeId.value =
-                        item.effective_item_type_id ||
-                        item.item_type_id ||
-                        null;
+                if (!bookingItemtypeId.value && itemId) {
+                    const item = (items || []).find(i => String(i.item_id) === String(itemId));
+                    if (item) {
+                        bookingItemtypeId.value = item.effective_item_type_id || item.item_type_id || null;
+                    }
                 }
             },
             { immediate: true, deep: true }
         );
 
-        // Consolidated: clear errors on any core input or date range change
+        // Clear errors on core inputs/date changes and when circulation rules
+        // finish loading (true -> false). Keeps feedback fresh without wiping
+        // messages mid-load.
         watch(
-            [
-                () => bookingPatron.value?.patron_id,
-                () => bookingPickupLibraryId.value,
-                () => bookingItemtypeId.value,
-                () => bookingItemId.value,
-                () => selectedDateRange.value?.[0],
-                () => selectedDateRange.value?.[1],
-            ],
-            () => {
-                clearErrors();
-            }
-        );
+            () => ({
+                patron: bookingPatron.value?.patron_id,
+                pickup: bookingPickupLibraryId.value,
+                itemtype: bookingItemtypeId.value,
+                item: bookingItemId.value,
+                d0: selectedDateRange.value?.[0],
+                d1: selectedDateRange.value?.[1],
+                rulesLoading: loading.value.circulationRules,
+            }),
+            (curr, prev) => {
+                const inputsChanged =
+                    !prev ||
+                    curr.patron !== prev.patron ||
+                    curr.pickup !== prev.pickup ||
+                    curr.itemtype !== prev.itemtype ||
+                    curr.item !== prev.item ||
+                    curr.d0 !== prev.d0 ||
+                    curr.d1 !== prev.d1;
+                if (inputsChanged) clearErrors();
 
-        // Clear lingering errors when circulation rules finish (re)loading
-        watch(
-            () => loading.value.circulationRules,
-            (isLoading, wasLoading) => {
-                if (wasLoading && !isLoading) {
+                if (prev && prev.rulesLoading && !curr.rulesLoading) {
                     clearErrors();
                 }
-            }
+            },
+            { deep: true }
         );
 
-        // Highlighting logic moved to child; no parent-calculated application
-
-        // Parent no longer manages flatpickr instance or highlighting; child composable handles it
-
+        // Choose a default pickup library when none is set yet. Preference
+        // order: configured OPAC default (if enabled), patron’s library, then
+        // the first bookable item’s home library when available.
         watch(
             [() => bookingPatron.value, () => pickupLocations.value],
             ([patron, pickupLocations]) => {
@@ -728,7 +743,8 @@ export default {
             { immediate: true }
         );
 
-        // Watch for no available items scenario and show error message
+        // Show an actionable error when current selection yields no available
+        // items, helping the user adjust filters.
         watch(
             [
                 constrainedBookableItems,
