@@ -640,6 +640,11 @@ export default {
             }
         );
 
+        /**
+         * This watcher is the main entry point for all business logic.
+         * It executes once the modal is opened and orchestrates data loading,
+         * state initialization, and side effects.
+         */
         watch(
             () => modalState.isOpen,
             async open => {
