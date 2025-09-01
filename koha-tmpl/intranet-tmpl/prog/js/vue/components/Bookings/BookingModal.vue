@@ -1255,7 +1255,6 @@ export default {
             tooltipState,
             loading,
             flatpickrConfig,
-            store,
             // Store refs from storeToRefs
             selectedDateRange,
             bookingId,
