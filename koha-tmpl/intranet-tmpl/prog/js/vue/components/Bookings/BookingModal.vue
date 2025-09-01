@@ -769,11 +769,7 @@ export default {
         // Globally clear all error states (modal + store)
         function clearErrors() {
             modalState.errorMessage = "";
-            if (error.value) {
-                Object.keys(error.value).forEach(key => {
-                    error.value[key] = null;
-                });
-            }
+            store.resetErrors();
         }
 
         function enableBodyScroll() {
@@ -815,7 +811,7 @@ export default {
                 additionalFieldsInstance.value.clear();
             }
             modalState.hasAdditionalFields = false;
-            Object.keys(error.value).forEach(key => (error.value[key] = null));
+            store.resetErrors();
         }
 
         function clearDateRange() {

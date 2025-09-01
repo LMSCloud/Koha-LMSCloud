@@ -88,6 +88,11 @@ export const useBookingStore = defineStore("bookingStore", {
     }),
 
     actions: {
+        resetErrors() {
+            Object.keys(this.error).forEach(key => {
+                this.error[key] = null;
+            });
+        },
         setUnavailableByDate(unavailableByDate) {
             this.unavailableByDate = unavailableByDate;
         },
