@@ -70,6 +70,12 @@
             {{ errorMessage }}
         </div>
     </fieldset>
+    <BookingTooltip
+        :markers="tooltipMarkers"
+        :x="tooltipX"
+        :y="tooltipY"
+        :visible="tooltipVisible"
+    />
 </template>
 
 <script>
@@ -80,11 +86,12 @@ import { storeToRefs } from "pinia";
 import dayjs from "../../utils/dayjs.mjs";
 import { calculateDisabledDates } from "./lib/booking/bookingManager.mjs";
 import { deriveEffectiveRules } from "./lib/booking/bookingCalendar.mjs";
+import BookingTooltip from "./BookingTooltip.vue";
 import { $__ } from "../../i18n";
 
 export default {
     name: "BookingPeriodStep",
-    components: {},
+    components: { BookingTooltip },
     props: {
         stepNumber: {
             type: Number,
@@ -121,7 +128,6 @@ export default {
             bookingId,
             selectedDateRange,
             circulationRules,
-            loading,
         } = storeToRefs(store);
         const inputEl = ref(null);
 
@@ -183,15 +189,21 @@ export default {
             return availability.disable || (() => false);
         });
 
+        // Tooltip refs local to this component, used by the composable and rendered via BookingTooltip
+        const tooltipMarkers = ref([]);
+        const tooltipVisible = ref(false);
+        const tooltipX = ref(0);
+        const tooltipY = ref(0);
+
         const { clear } = useFlatpickr(inputEl, {
             store,
             disableFnRef,
             constraintOptionsRef: toRef(props, "constraintOptions"),
             setError: props.setError,
-            tooltipMarkersRef: ref([]),
-            tooltipVisibleRef: ref(false),
-            tooltipXRef: ref(0),
-            tooltipYRef: ref(0),
+            tooltipMarkersRef: tooltipMarkers,
+            tooltipVisibleRef: tooltipVisible,
+            tooltipXRef: tooltipX,
+            tooltipYRef: tooltipY,
         });
 
         const clearDateRange = () => {
@@ -203,6 +215,10 @@ export default {
             clearDateRange,
             inputEl,
             constraintHelpText,
+            tooltipMarkers,
+            tooltipVisible,
+            tooltipX,
+            tooltipY,
         };
     },
 };

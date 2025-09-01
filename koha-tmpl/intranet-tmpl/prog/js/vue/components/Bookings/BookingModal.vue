@@ -133,12 +133,6 @@
             </div>
         </div>
     </div>
-    <BookingTooltip
-        :markers="tooltipState.markers"
-        :x="tooltipState.x"
-        :y="tooltipState.y"
-        :visible="tooltipState.visible"
-    />
 </template>
 
 <script>
@@ -152,7 +146,6 @@ import {
     nextTick,
     onUnmounted,
 } from "vue";
-import BookingTooltip from "./BookingTooltip.vue";
 import BookingPatronStep from "./BookingPatronStep.vue";
 import BookingDetailsStep from "./BookingDetailsStep.vue";
 import BookingPeriodStep from "./BookingPeriodStep.vue";
@@ -177,7 +170,6 @@ import { BookingConfigurationService } from "./lib/booking/BookingModalService.m
 export default {
     name: "BookingModal",
     components: {
-        BookingTooltip,
         BookingPatronStep,
         BookingDetailsStep,
         BookingPeriodStep,
@@ -263,12 +255,7 @@ export default {
             hasAdditionalFields: false,
         });
 
-        const tooltipState = reactive({
-            visible: false,
-            x: 0,
-            y: 0,
-            markers: [],
-        });
+        // Tooltip state is now managed inside BookingPeriodStep via composable
         // Refs for specific instances and external library integration
         const additionalFieldsInstance = ref(null);
 
@@ -982,7 +969,6 @@ export default {
             modalTitle,
             submitLabel,
             isFormSubmission,
-            tooltipState,
             loading,
             // Store refs from storeToRefs
             selectedDateRange,
