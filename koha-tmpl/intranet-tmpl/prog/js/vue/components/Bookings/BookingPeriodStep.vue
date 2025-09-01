@@ -83,9 +83,7 @@ import { computed, ref, toRef } from "vue";
 import { useFlatpickr } from "./composables/useFlatpickr.mjs";
 import { useBookingStore } from "../../stores/bookingStore";
 import { storeToRefs } from "pinia";
-import dayjs from "../../utils/dayjs.mjs";
-import { calculateDisabledDates } from "./lib/booking/bookingManager.mjs";
-import { deriveEffectiveRules } from "./lib/booking/bookingCalendar.mjs";
+import { useAvailability } from "./composables/useAvailability.mjs";
 import BookingTooltip from "./BookingTooltip.vue";
 import { $__ } from "../../i18n";
 
@@ -159,35 +157,18 @@ export default {
             );
         });
 
-        const disableFnRef = computed(() => {
-            if (
-                loading.value.bookableItems ||
-                loading.value.bookings ||
-                loading.value.checkouts ||
-                !Array.isArray(bookableItems.value) ||
-                bookableItems.value.length === 0
-            ) {
-                return () => true;
-            }
-            const baseRules = circulationRules.value?.[0] || {};
-            const effectiveRules = deriveEffectiveRules(
-                baseRules,
-                props.constraintOptions || {}
-            );
-            const selectedDatesArray = (selectedDateRange.value || [])
-                .filter(Boolean)
-                .map(d => dayjs(d).toDate());
-            const availability = calculateDisabledDates(
-                bookings.value,
-                checkouts.value,
-                bookableItems.value,
-                bookingItemId.value,
-                bookingId.value,
-                selectedDatesArray,
-                effectiveRules
-            );
-            return availability.disable || (() => false);
-        });
+        const { disableFnRef } = useAvailability(
+            {
+                bookings,
+                checkouts,
+                bookableItems,
+                bookingItemId,
+                bookingId,
+                selectedDateRange,
+                circulationRules,
+            },
+            toRef(props, "constraintOptions")
+        );
 
         // Tooltip refs local to this component, used by the composable and rendered via BookingTooltip
         const tooltipMarkers = ref([]);

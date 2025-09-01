@@ -162,6 +162,7 @@ import { useBookingStore } from "../../stores/bookingStore";
 import { storeToRefs } from "pinia";
 import { updateExternalDependents } from "./lib/booking/index.mjs";
 import { preloadFlatpickrLocale, deriveEffectiveRules } from "./lib/booking/bookingCalendar.mjs";
+import { useAvailability } from "./composables/useAvailability.mjs";
 // Pure functions and composables (new architecture)
 import { calculateStepNumbers } from "./lib/booking/bookingSteps.mjs";
 import { useBookingValidation } from "./composables/useBookingValidation.mjs";
@@ -347,82 +348,25 @@ export default {
 
         const lastRulesKey = ref(null);
 
-        // Cache for availability data to prevent excessive recalculation
-        let availabilityCache = null;
-        let availabilityCacheKey = null;
-
-        const computedAvailabilityData = computed(() => {
-            // CRITICAL FIX: Proper loading states for calendar availability
-            // This prevents race condition where modal opens before store is populated
-            if (
-                !bookableItems.value ||
-                bookableItems.value.length === 0 ||
-                loading.value.bookableItems ||
-                loading.value.bookings ||
-                loading.value.checkouts
-            ) {
-                // Return restrictive default while data loads to prevent invalid selections
-                return {
-                    disable: () => true, // Disable all dates while loading
-                    unavailableByDate: {},
-                };
-            }
-
-            // Create a cache key from relevant data
-            const cacheKey = JSON.stringify({
-                bookingsCount: bookings.value?.length || 0,
-                checkoutsCount: checkouts.value?.length || 0,
-                bookableItemsCount: bookableItems.value?.length || 0,
-                selectedItem: bookingItemId.value,
-                editBookingId: bookingId.value,
-                selectedDates: selectedDateRange.value,
-                dateRangeConstraint: props.dateRangeConstraint,
-                maxBookingPeriod: maxBookingPeriod.value,
-            });
-
-            // Return cached result if data hasn't changed
-            if (availabilityCacheKey === cacheKey && availabilityCache) {
-                return availabilityCache;
-            }
-
-            // Use selectedDateRange supplied by store
-            const currentSelectedDates = selectedDateRange.value || [];
-
-            const baseRules = circulationRules.value[0] || {};
-            const effectiveRules = deriveEffectiveRules(baseRules, {
-                dateRangeConstraint: props.dateRangeConstraint,
-                maxBookingPeriod: maxBookingPeriod.value,
-            });
-
-            // Convert ISO strings to Date objects for calculateDisabledDates
-            const selectedDatesArray = (currentSelectedDates || []).map(
-                isoString => dayjs(isoString).toDate()
-            );
-
-            // Parent no longer uses visible calendar window optimization
-            let calcOptions = {};
-
-            const result = calculateDisabledDates(
-                bookings.value,
-                checkouts.value,
-                bookableItems.value,
-                bookingItemId.value,
-                bookingId.value,
-                selectedDatesArray,
-                effectiveRules,
-                undefined,
-                calcOptions
-            );
-
-            // Cache the result
-            availabilityCache = result;
-            availabilityCacheKey = cacheKey;
-            
-            return result;
-        });
-
         const maxBookingPeriod = computed(() =>
             configurationService.calculateMaxBookingPeriod(circulationRules.value)
+        );
+
+        // Centralized availability (unavailableByDate + disable fn) via composable
+        const { unavailableByDateRef } = useAvailability(
+            {
+                bookings,
+                checkouts,
+                bookableItems,
+                bookingItemId,
+                bookingId,
+                selectedDateRange,
+                circulationRules,
+            },
+            computed(() => ({
+                dateRangeConstraint: props.dateRangeConstraint,
+                maxBookingPeriod: maxBookingPeriod.value,
+            }))
         );
 
         // Prevent calendar interaction until all data is loaded to avoid race conditions
@@ -489,9 +433,6 @@ export default {
                     await preloadFlatpickrLocale();
                 } else {
                     enableBodyScroll();
-                    // Clear availability cache on modal close
-                    availabilityCache = null;
-                    availabilityCacheKey = null;
                     return;
                 }
 
@@ -579,11 +520,11 @@ export default {
         // Keep unavailableByDate in sync for calendar markers. Using a watcher
         // allows us to reuse the manager’s cached data and push the result to
         // the store without re-computing in multiple places.
+        // Push availability map to store for calendar markers
         watch(
-            () => computedAvailabilityData.value,
-            newAvailability => {
-                store.setUnavailableByDate(
-                    newAvailability?.unavailableByDate || {});
+            () => unavailableByDateRef.value,
+            newMap => {
+                store.setUnavailableByDate(newMap || {});
             },
             { immediate: true, deep: true }
         );
