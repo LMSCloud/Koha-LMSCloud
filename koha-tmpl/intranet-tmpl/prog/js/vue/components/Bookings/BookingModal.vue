@@ -81,14 +81,17 @@
                             "
                         />
                         <BookingPeriodStep
+                            v-if="isCalendarReady"
                             :step-number="stepNumber.period"
-                            :flatpickr-config="flatpickrConfig"
+                            :constraint-options="{
+                                dateRangeConstraint: dateRangeConstraint,
+                                maxBookingPeriod: maxBookingPeriod,
+                            }"
                             :date-range-constraint="dateRangeConstraint"
                             :max-booking-period="maxBookingPeriod"
                             :error-message="modalState.errorMessage"
-                            :has-selected-dates="
-                                selectedDateRange?.value?.length > 0
-                            "
+                            :set-error="val => (modalState.errorMessage = val)"
+                            :has-selected-dates="selectedDateRange?.value?.length > 0"
                             @clear-dates="clearDateRange"
                         />
                         <hr
@@ -161,26 +164,15 @@ import {
     constrainBookableItems,
     constrainItemTypes,
     constrainPickupLocations,
-    getVisibleCalendarDates,
 } from "./lib/booking/bookingManager.mjs";
 import { useBookingStore } from "../../stores/bookingStore";
 import { storeToRefs } from "pinia";
 import { updateExternalDependents } from "./lib/booking/index.mjs";
-import {
-    createOnChange,
-    createOnDayCreate,
-    createOnClose,
-    createOnFlatpickrReady,
-    createFlatpickrConfig,
-    applyCalendarHighlighting,
-    preloadFlatpickrLocale,
-    deriveEffectiveRules,
-    } from "./lib/booking/bookingCalendar.mjs";
+import { preloadFlatpickrLocale, deriveEffectiveRules } from "./lib/booking/bookingCalendar.mjs";
 // Pure functions and composables (new architecture)
 import { calculateStepNumbers } from "./lib/booking/bookingSteps.mjs";
 import { useBookingValidation } from "./composables/useBookingValidation.mjs";
 import { BookingConfigurationService } from "./lib/booking/BookingModalService.mjs";
-import { win } from "./lib/index.mjs";
 
 export default {
     name: "BookingModal",
@@ -277,10 +269,7 @@ export default {
             y: 0,
             markers: [],
         });
-
-
         // Refs for specific instances and external library integration
-        const flatpickrInstance = ref(null);
         const additionalFieldsInstance = ref(null);
 
         const modalTitle = computed(
@@ -423,20 +412,8 @@ export default {
                 isoString => dayjs(isoString).toDate()
             );
 
-            // Limit IntervalTree aggregation to visible calendar range when possible
+            // Parent no longer uses visible calendar window optimization
             let calcOptions = {};
-            if (flatpickrInstance.value) {
-                const visibleDates = getVisibleCalendarDates(
-                    flatpickrInstance.value
-                );
-                if (visibleDates && visibleDates.length > 0) {
-                    calcOptions = {
-                        onDemand: true,
-                        visibleStartDate: visibleDates[0],
-                        visibleEndDate: visibleDates[visibleDates.length - 1],
-                    };
-                }
-            }
 
             const result = calculateDisabledDates(
                 bookings.value,
@@ -488,137 +465,7 @@ export default {
             return isCalendarReady.value && canProceedToStep3Reactive.value;
         });
 
-        const flatpickrConfig = computed(() => {
-            const availability = computedAvailabilityData.value || {
-                disable: () => false,
-            };
-
-            const constraintOptions = {
-                dateRangeConstraint: props.dateRangeConstraint,
-                maxBookingPeriod: maxBookingPeriod.value,
-            };
-
-            const baseConfig = {
-                mode: "range",
-                minDate: "today",
-                disable: [availability.disable],
-                clickOpens: isCalendarReady.value,
-                // CLEAN SOLUTION: No v-model, no altInput, just direct onChange handling
-                dateFormat: win("flatpickr_dateformat_string") || "d.m.Y", // Localized display
-                wrap: false,
-                allowInput: false,
-                // Handle everything through onChange - no Vue component interference
-                onChange: (selectedDates, dateStr, instance) => {
-                    // Delegate to centralized handler (avoids duplicate store writes)
-                    const originalOnChange = createOnChange(
-                        store,
-                        {
-                            get value() {
-                                return modalState.errorMessage;
-                            },
-                            set value(val) {
-                                modalState.errorMessage = val;
-                            },
-                        },
-                        {
-                            get value() {
-                                return tooltipState.visible;
-                            },
-                            set value(val) {
-                                tooltipState.visible = val;
-                            },
-                        },
-                        constraintOptions
-                    );
-                    originalOnChange(selectedDates, dateStr, instance);
-                },
-                onDayCreate: createOnDayCreate(
-                    store,
-                    {
-                        get value() {
-                            return tooltipState.markers;
-                        },
-                        set value(val) {
-                            tooltipState.markers = val;
-                        },
-                    },
-                    {
-                        get value() {
-                            return tooltipState.visible;
-                        },
-                        set value(val) {
-                            tooltipState.visible = val;
-                        },
-                    },
-                    {
-                        get value() {
-                            return tooltipState.x;
-                        },
-                        set value(val) {
-                            tooltipState.x = val;
-                        },
-                    },
-                    {
-                        get value() {
-                            return tooltipState.y;
-                        },
-                        set value(val) {
-                            tooltipState.y = val;
-                        },
-                    }
-                ),
-                onClose: createOnClose(
-                    {
-                        get value() {
-                            return tooltipState.markers;
-                        },
-                        set value(val) {
-                            tooltipState.markers = val;
-                        },
-                    },
-                    {
-                        get value() {
-                            return tooltipState.visible;
-                        },
-                        set value(val) {
-                            tooltipState.visible = val;
-                        },
-                    }
-                ),
-                onReady: function (selectedDates, dateStr, instance) {
-                    // Call the original onReady handler
-                    createOnFlatpickrReady(flatpickrInstance)(
-                        selectedDates,
-                        dateStr,
-                        instance
-                    );
-                    // If dates were provided (e.g., edit flow), reflect them in flatpickr UI
-                    try {
-                        const current = selectedDateRange.value || [];
-                        if (Array.isArray(current) && current.length > 0) {
-                            const dates = current
-                                .filter(Boolean)
-                                .map(d => dayjs(d).toDate());
-                            if (dates.length > 0 && instance?.setDate) {
-                                // Do not trigger onChange here; state is already set in the store
-                                instance.setDate(dates, false);
-                                if (dates[0] && instance.jumpToDate) {
-                                    instance.jumpToDate(dates[0]);
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        // noop
-                    }
-                    // Then try to apply highlighting
-                    nextTick(() => {
-                        tryApplyHighlighting();
-                    });
-                },
-            };
-
-            return createFlatpickrConfig(baseConfig);
-        });
+        // flatpickrConfig removed in favor of composable-driven widget in child
 
         watch(
             () => props.open,
@@ -822,122 +669,9 @@ export default {
             }
         );
 
-        // Helper function to check if we should trigger highlighting
-        const tryApplyHighlighting = () => {
-            const dataReady =
-                !loading.value.bookableItems &&
-                !loading.value.bookings &&
-                !loading.value.checkouts &&
-                bookableItems.value?.length > 0;
+        // Highlighting logic moved to child; no parent-calculated application
 
-            const hasSelectedDate = selectedDateRange.value?.length === 1;
-            const hasFlatpickr = !!flatpickrInstance.value;
-
-            if (dataReady && hasFlatpickr && hasSelectedDate) {
-                // Check if we already have highlighting data stored
-                if (flatpickrInstance.value._constraintHighlighting) {
-                    applyCalendarHighlighting(
-                        flatpickrInstance.value,
-                        flatpickrInstance.value._constraintHighlighting
-                    );
-                } else {
-                        // Only attempt to generate highlighting when a constraint is configured
-                        if (!props.dateRangeConstraint) {
-                            return;
-                        }
-                    // Generate new highlighting by manually calling the onChange handler
-                    // The onChange handler is stored in the hooks, not in config
-                    const onChangeHandler = createOnChange(
-                        store,
-                        {
-                            get value() {
-                                return modalState.errorMessage;
-                            },
-                            set value(val) {
-                                modalState.errorMessage = val;
-                            },
-                        },
-                        {
-                            get value() {
-                                return tooltipState.visible;
-                            },
-                            set value(val) {
-                                tooltipState.visible = val;
-                            },
-                        },
-                        {
-                            dateRangeConstraint: props.dateRangeConstraint,
-                            maxBookingPeriod: maxBookingPeriod.value,
-                        }
-                    );
-
-                    const dateObjects = [
-                        dayjs(selectedDateRange.value[0]).toDate(),
-                    ];
-                    onChangeHandler(dateObjects, "", flatpickrInstance.value);
-                }
-            }
-        };
-
-        // Watch for all loading states to re-trigger highlighting when ALL data is loaded
-        watch(
-            () => ({
-                bookableItemsLoading: loading.value.bookableItems,
-                bookingsLoading: loading.value.bookings,
-                checkoutsLoading: loading.value.checkouts,
-                hasBookableItems: bookableItems.value?.length > 0,
-                hasFlatpickr: !!flatpickrInstance.value,
-            }),
-            () => {
-                // Try to apply highlighting whenever state changes
-                nextTick(() => {
-                    tryApplyHighlighting();
-                });
-            },
-            { deep: true }
-        );
-
-        // Watch for changes in flatpickr's selectedDates to debug Invalid Date issue
-        // Drop debug watcher on selectedDates to avoid type churn
-
-        // Also watch flatpickrInstance separately to catch when it becomes available
-        watch(flatpickrInstance, (newInstance, oldInstance) => {
-            if (newInstance && !oldInstance) {
-                // Flatpickr just became available
-                nextTick(() => {
-                    tryApplyHighlighting();
-                });
-            }
-        });
-
-        // Watch for selected date changes
-        watch(
-            () => selectedDateRange.value,
-            (newDates) => {
-                if (newDates?.length === 1) {
-                    // Date was just selected
-                    nextTick(() => {
-                        tryApplyHighlighting();
-                    });
-                }
-                // Keep flatpickr UI in sync when dates are set programmatically (e.g., from table edit/timeline)
-                try {
-                    if (flatpickrInstance.value?.setDate && Array.isArray(newDates)) {
-                        const dates = newDates.filter(Boolean).map(d => dayjs(d).toDate());
-                        if (dates.length > 0) {
-                            // Avoid triggering onChange to prevent redundant store writes
-                            flatpickrInstance.value.setDate(dates, false);
-                            if (dates[0] && flatpickrInstance.value.jumpToDate) {
-                                flatpickrInstance.value.jumpToDate(dates[0]);
-                            }
-                        }
-                    }
-                } catch (e) {
-                    // noop
-                }
-            },
-            { deep: true }
-        );
+        // Parent no longer manages flatpickr instance or highlighting; child composable handles it
 
         watch(
             [() => bookingPatron.value, () => pickupLocations.value],
@@ -1141,14 +875,7 @@ export default {
         }
 
         function clearDateRange() {
-            // Clear the date range using flatpickr's built-in clear method
-            if (flatpickrInstance.value?.clear) {
-                // @ts-ignore - flatpickr instance from plugin
-                flatpickrInstance.value.clear();
-            }
-            // Also clear the Vue reactive data
             selectedDateRange.value = [];
-            // Clear any error messages related to date selection
             clearErrors();
         }
 
@@ -1241,7 +968,6 @@ export default {
             isFormSubmission,
             tooltipState,
             loading,
-            flatpickrConfig,
             // Store refs from storeToRefs
             selectedDateRange,
             bookingId,
@@ -1273,7 +999,6 @@ export default {
             bookableItemsFilteredOut,
             bookableItemsTotal,
             maxBookingPeriod,
-            flatpickrInstance,
             bookingPickupLibraryId,
             onAdditionalFieldsReady,
             onAdditionalFieldsDestroyed,

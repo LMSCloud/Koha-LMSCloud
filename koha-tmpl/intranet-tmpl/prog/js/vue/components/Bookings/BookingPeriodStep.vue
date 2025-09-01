@@ -8,11 +8,11 @@
         <div class="form-group">
             <label for="booking_period">{{ $__("Booking period") }}</label>
             <div class="booking-date-picker">
-                <flat-pickr
-                    ref="flatpickrRef"
-                    model-value=""
+                <input
+                    ref="inputEl"
+                    type="text"
                     class="booking-flatpickr-input form-control"
-                    :config="flatpickrConfig"
+                    readonly
                 />
                 <div class="booking-date-picker-append">
                     <button
@@ -73,24 +73,25 @@
 </template>
 
 <script>
-import { computed, onUnmounted, ref } from "vue";
-import flatPickr from "vue-flatpickr-component";
+import { computed, ref, toRef } from "vue";
+import { useFlatpickr } from "./composables/useFlatpickr.mjs";
+import { useBookingStore } from "../../stores/bookingStore";
+import { storeToRefs } from "pinia";
+import dayjs from "../../utils/dayjs.mjs";
+import { calculateDisabledDates } from "./lib/booking/bookingManager.mjs";
+import { deriveEffectiveRules } from "./lib/booking/bookingCalendar.mjs";
 import { $__ } from "../../i18n";
 
 export default {
     name: "BookingPeriodStep",
-    components: {
-        flatPickr,
-    },
+    components: {},
     props: {
         stepNumber: {
             type: Number,
             required: true,
         },
-        flatpickrConfig: {
-            type: Object,
-            required: true,
-        },
+        // disable fn now computed in child
+        constraintOptions: { type: Object, required: true },
         dateRangeConstraint: {
             type: String,
             default: null,
@@ -103,6 +104,7 @@ export default {
             type: String,
             default: "",
         },
+        setError: { type: Function, required: true },
         hasSelectedDates: {
             type: Boolean,
             default: false,
@@ -110,7 +112,18 @@ export default {
     },
     emits: ["clear-dates"],
     setup(props, { emit }) {
-        const flatpickrRef = ref(null);
+        const store = useBookingStore();
+        const {
+            bookings,
+            checkouts,
+            bookableItems,
+            bookingItemId,
+            bookingId,
+            selectedDateRange,
+            circulationRules,
+            loading,
+        } = storeToRefs(store);
+        const inputEl = ref(null);
 
         const constraintHelpText = computed(() => {
             if (!props.dateRangeConstraint) return "";
@@ -140,25 +153,55 @@ export default {
             );
         });
 
-        const clearDateRange = () => {
-            // Clear flatpickr directly since we're not using v-model
-            if (flatpickrRef.value?.fp) {
-                flatpickrRef.value.fp.clear();
+        const disableFnRef = computed(() => {
+            if (
+                loading.value.bookableItems ||
+                loading.value.bookings ||
+                loading.value.checkouts ||
+                !Array.isArray(bookableItems.value) ||
+                bookableItems.value.length === 0
+            ) {
+                return () => true;
             }
+            const baseRules = circulationRules.value?.[0] || {};
+            const effectiveRules = deriveEffectiveRules(
+                baseRules,
+                props.constraintOptions || {}
+            );
+            const selectedDatesArray = (selectedDateRange.value || [])
+                .filter(Boolean)
+                .map(d => dayjs(d).toDate());
+            const availability = calculateDisabledDates(
+                bookings.value,
+                checkouts.value,
+                bookableItems.value,
+                bookingItemId.value,
+                bookingId.value,
+                selectedDatesArray,
+                effectiveRules
+            );
+            return availability.disable || (() => false);
+        });
+
+        const { clear } = useFlatpickr(inputEl, {
+            store,
+            disableFnRef,
+            constraintOptionsRef: toRef(props, "constraintOptions"),
+            setError: props.setError,
+            tooltipMarkersRef: ref([]),
+            tooltipVisibleRef: ref(false),
+            tooltipXRef: ref(0),
+            tooltipYRef: ref(0),
+        });
+
+        const clearDateRange = () => {
+            clear();
             emit("clear-dates");
         };
 
-
-        // Cleanup event listeners when component is unmounted
-        onUnmounted(() => {
-            if (flatpickrRef.value?.fp) {
-                flatpickrRef.value.fp.destroy();
-            }
-        });
-
         return {
             clearDateRange,
-            flatpickrRef,
+            inputEl,
             constraintHelpText,
         };
     },
