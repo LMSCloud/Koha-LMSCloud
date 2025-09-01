@@ -1,44 +1,28 @@
 import { expect } from "chai";
 import dayjs from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/utils/dayjs.mjs";
-import { FlatpickrEventHandlers } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/bookingCalendar.mjs";
+import { deriveEffectiveRules } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/bookingCalendar.mjs";
 import { BookingConfigurationService } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/BookingModalService.mjs";
 
 describe("Unconstrained preference behavior", () => {
-    describe("FlatpickrEventHandlers._calculateEffectiveRules", () => {
+    describe("deriveEffectiveRules", () => {
         it("should strip caps when dateRangeConstraint is null (Don't constrain)", () => {
-            const store = { circulationRules: [{}] };
             const constraintOptions = {
                 dateRangeConstraint: null,
                 maxBookingPeriod: 10,
             };
-            const handlers = new FlatpickrEventHandlers(
-                store,
-                { value: "" },
-                { value: false },
-                constraintOptions
-            );
-
             const baseRules = { issuelength: 5, maxPeriod: 7 };
-            const effective = handlers._calculateEffectiveRules(baseRules);
+            const effective = deriveEffectiveRules(baseRules, constraintOptions);
             expect(effective).to.not.have.property("maxPeriod");
             expect(effective).to.not.have.property("issuelength");
         });
 
         it("should apply cap only for constraining modes (issuelength, issuelength_with_renewals)", () => {
-            const store = { circulationRules: [{}] };
             const constraintOptions = {
                 dateRangeConstraint: "issuelength",
                 maxBookingPeriod: 12,
             };
-            const handlers = new FlatpickrEventHandlers(
-                store,
-                { value: "" },
-                { value: false },
-                constraintOptions
-            );
-
             const baseRules = { issuelength: 5 };
-            const effective = handlers._calculateEffectiveRules(baseRules);
+            const effective = deriveEffectiveRules(baseRules, constraintOptions);
             expect(effective).to.have.property("maxPeriod", 12);
         });
     });

@@ -5,10 +5,7 @@
 
 import dayjs from "../../../../utils/dayjs.mjs";
 import { calculateDisabledDates, parseDateRange } from "./bookingManager.mjs";
-import {
-    createFlatpickrConfig,
-    FlatpickrEventHandlers,
-} from "./bookingCalendar.mjs";
+import { deriveEffectiveRules } from "./bookingCalendar.mjs";
 import {
     canProceedToStep3,
     canSubmitBooking,
@@ -80,23 +77,11 @@ export class BookingConfigurationService {
         }
 
         const baseRules = circulationRules?.[0] || {};
-
-        // Apply date range constraint only for constraining modes; otherwise strip caps
-        const effectiveRules = { ...baseRules };
-        const maxBookingPeriod =
-            this.calculateMaxBookingPeriod(circulationRules);
-        if (
-            this.dateRangeConstraint === "issuelength" ||
-            this.dateRangeConstraint === "issuelength_with_renewals"
-        ) {
-            if (maxBookingPeriod) {
-                effectiveRules.maxPeriod = maxBookingPeriod;
-            }
-        } else {
-            if ("maxPeriod" in effectiveRules) delete effectiveRules.maxPeriod;
-            if ("issuelength" in effectiveRules)
-                delete effectiveRules.issuelength;
-        }
+        const maxBookingPeriod = this.calculateMaxBookingPeriod(circulationRules);
+        const effectiveRules = deriveEffectiveRules(baseRules, {
+            dateRangeConstraint: this.dateRangeConstraint,
+            maxBookingPeriod,
+        });
 
         // Convert dateRange to proper selectedDates array for calculateDisabledDates
         let selectedDatesArray = [];
@@ -131,64 +116,7 @@ export class BookingConfigurationService {
         );
     }
 
-    /**
-     * Create Flatpickr configuration with event handlers
-     */
-    createFlatpickrConfiguration(
-        dateRange,
-        storeData,
-        errorMessage,
-        tooltipVisible,
-        tooltipMarkers,
-        tooltipX,
-        tooltipY,
-        flatpickrInstance,
-        canProceedToStep3
-    ) {
-        const availabilityData = this.calculateAvailabilityData(
-            dateRange,
-            storeData
-        );
-        const maxBookingPeriod = this.calculateMaxBookingPeriod(
-            storeData.circulationRules
-        );
-
-        const constraintOptions = {
-            dateRangeConstraint: this.dateRangeConstraint,
-            maxBookingPeriod: maxBookingPeriod,
-        };
-
-        // Create event handlers using the new class-based approach
-        // TODO: This will be refactored in Phase 2 to use callback pattern
-        const eventHandlers = new FlatpickrEventHandlers(
-            storeData,
-            errorMessage,
-            tooltipVisible,
-            constraintOptions
-        );
-
-        // Set additional references needed by handlers
-        eventHandlers.setTooltipRefs(tooltipMarkers, tooltipX, tooltipY);
-        eventHandlers.setFlatpickrRef(flatpickrInstance);
-
-        const baseConfig = {
-            mode: "range",
-            minDate: "today",
-            disable: [availabilityData.disable],
-            clickOpens: canProceedToStep3,
-            dateFormat: "Y-m-d",
-            wrap: false,
-            allowInput: false,
-            altInput: false,
-            altInputClass: "booking-flatpickr-input",
-            onChange: eventHandlers.handleDateChange,
-            onDayCreate: eventHandlers.handleDayCreate,
-            onClose: eventHandlers.handleClose,
-            onFlatpickrReady: eventHandlers.handleReady,
-        };
-
-        return createFlatpickrConfig(baseConfig);
-    }
+    // Note: Former createFlatpickrConfiguration method removed (runtime does not use it).
 }
 
 // Step management functions are now available as pure functions from bookingSteps.mjs

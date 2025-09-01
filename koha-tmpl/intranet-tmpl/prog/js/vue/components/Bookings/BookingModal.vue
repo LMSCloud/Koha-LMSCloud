@@ -174,6 +174,7 @@ import {
     createFlatpickrConfig,
     applyCalendarHighlighting,
     preloadFlatpickrLocale,
+    deriveEffectiveRules,
     } from "./lib/booking/bookingCalendar.mjs";
 // Pure functions and composables (new architecture)
 import { calculateStepNumbers } from "./lib/booking/bookingSteps.mjs";
@@ -408,25 +409,14 @@ export default {
                 return availabilityCache;
             }
 
-            // Use selectedDateRange (maintained by altInput solution)
+            // Use selectedDateRange supplied by store
             const currentSelectedDates = selectedDateRange.value || [];
 
             const baseRules = circulationRules.value[0] || {};
-
-            // Apply date range constraint only when constraining preference is active
-            const effectiveRules = { ...baseRules };
-            if (
-                props.dateRangeConstraint === "issuelength" ||
-                props.dateRangeConstraint === "issuelength_with_renewals"
-            ) {
-                if (maxBookingPeriod.value) {
-                    effectiveRules.maxPeriod = maxBookingPeriod.value;
-                }
-            } else {
-                // Unconstrained: ensure no implicit cap leaks through from API defaults
-                if ("maxPeriod" in effectiveRules) delete effectiveRules.maxPeriod;
-                if ("issuelength" in effectiveRules) delete effectiveRules.issuelength;
-            }
+            const effectiveRules = deriveEffectiveRules(baseRules, {
+                dateRangeConstraint: props.dateRangeConstraint,
+                maxBookingPeriod: maxBookingPeriod.value,
+            });
 
             // Convert ISO strings to Date objects for calculateDisabledDates
             const selectedDatesArray = (currentSelectedDates || []).map(

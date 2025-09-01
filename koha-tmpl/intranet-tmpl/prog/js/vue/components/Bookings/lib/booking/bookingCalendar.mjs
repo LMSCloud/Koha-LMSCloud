@@ -347,244 +347,25 @@ export function createFlatpickrConfig(baseConfig = {}) {
  * Event handler class for Flatpickr calendar events
  * Replaces closure-based factories with explicit state management
  */
-export class FlatpickrEventHandlers {
-    constructor(store, errorMessage, tooltipVisible, constraintOptions = {}) {
-        this.store = store;
-        this.errorMessage = errorMessage;
-        this.tooltipVisible = tooltipVisible;
-        this.constraintOptions = constraintOptions;
-        /** @type {any} */
-        this._tooltipRefs = null;
-        /** @type {any} */
-        this._flatpickrInstance = null;
-
-        // Bind methods to maintain correct 'this' context
-        this.handleDateChange = this.handleDateChange.bind(this);
-    }
-
-    /**
-     * @param {any} markersRef
-     * @param {any} xRef
-     * @param {any} yRef
-     */
-    setTooltipRefs(markersRef, xRef, yRef) {
-        this._tooltipRefs = { markersRef, xRef, yRef };
-    }
-
-    /**
-     * @param {any} instance
-     */
-    setFlatpickrRef(instance) {
-        this._flatpickrInstance = instance;
-    }
-
-    /**
-     * @param {any} _d
-     * @param {any} _dateStr
-     * @param {any} _inst
-     */
-    handleDayCreate(_d, _dateStr, _inst) {}
-
-    /**
-     * @param {any} _dates
-     * @param {any} _dateStr
-     * @param {any} _inst
-     */
-    handleClose(_dates, _dateStr, _inst) {}
-
-    /**
-     * @param {any} _dates
-     * @param {any} _dateStr
-     * @param {any} _inst
-     */
-    handleReady(_dates, _dateStr, _inst) {}
-
-    /**
-     * Handle date selection changes with validation and highlighting
-     */
-    handleDateChange(selectedDates, dateStr, instance) {
-        logger.debug("handleDateChange triggered", { selectedDates, dateStr });
-
-        // Filter out Invalid Date objects and log them
-        const validDates = selectedDates.filter(
-            date => date instanceof Date && !Number.isNaN(date.getTime())
-        );
-        const invalidDates = selectedDates.filter(date => {
-            if (!(date instanceof Date)) return true;
-            return Number.isNaN(date.getTime());
-        });
-
-        if (invalidDates.length > 0) {
-            logger.warn("Invalid Date objects detected", {
-                invalidDates,
-                totalDates: selectedDates.length,
-                validDates: validDates.length
-            });
-
-            // If we only have invalid dates, skip processing to avoid breaking state
-            if (validDates.length === 0 && selectedDates.length > 0) {
-                logger.warn("All dates invalid, skipping processing to preserve state");
-                return;
-            }
+//
+// Shared rules derivation helper
+//
+export function deriveEffectiveRules(baseRules = {}, constraintOptions = {}) {
+    const effectiveRules = { ...baseRules };
+    const mode = constraintOptions.dateRangeConstraint;
+    if (mode === "issuelength" || mode === "issuelength_with_renewals") {
+        if (constraintOptions.maxBookingPeriod) {
+            effectiveRules.maxPeriod = constraintOptions.maxBookingPeriod;
         }
-
-        // Extract ISO dates from valid Date objects only
-        const isoDateRange = validDates.map(date => dayjs(date).toISOString());
-
-        logger.debug("Date processing complete", { validDates: validDates.length, isoDateRange });
-
-        // Avoid redundant writes that retrigger watchers
-        const current = this.store.selectedDateRange || [];
-        const sameLength = current.length === isoDateRange.length;
-        const sameContent =
-            sameLength && current.every((v, i) => v === isoDateRange[i]);
-        if (!sameContent) {
-            this.store.selectedDateRange = isoDateRange;
-        }
-
-        logger.debug("onChange triggered", {
-            selectedDates,
-            isoDateRange,
-            constraintOptions: this.constraintOptions,
-        });
-
-        const baseRules = this.store.circulationRules[0] || {};
-        const effectiveRules = this._calculateEffectiveRules(baseRules);
-
-        // Validate date selection using manager
-        // Bound range for availability computation using visible calendar window
-        let calcOptions = {};
-        if (instance) {
-            const visibleDates = getVisibleCalendarDates(/** @type {any} */ (instance));
-            if (visibleDates && visibleDates.length > 0) {
-                calcOptions = {
-                    onDemand: true,
-                    visibleStartDate: /** @type {any} */ (visibleDates[0]),
-                    visibleEndDate: /** @type {any} */ (
-                        visibleDates[visibleDates.length - 1]
-                    ),
-                };
-            }
-        }
-
-        const result = handleBookingDateChange(
-            selectedDates,
-            effectiveRules,
-            this.store.bookings,
-            this.store.checkouts,
-            this.store.bookableItems,
-            this.store.bookingItemId,
-            this.store.bookingId,
-            undefined,
-            calcOptions
-        );
-
-        this._updateValidationUI(result);
-        this._handleConstraintHighlighting(
-            selectedDates,
-            effectiveRules,
-            /** @type {any} */ (instance)
-        );
+    } else {
+        if ("maxPeriod" in effectiveRules) delete effectiveRules.maxPeriod;
+        if ("issuelength" in effectiveRules) delete effectiveRules.issuelength;
     }
-
-    /**
-     * Calculate effective rules with constraint overrides
-     */
-    _calculateEffectiveRules(baseRules) {
-        const effectiveRules = { ...baseRules };
-        // Only override when a constraining preference is set
-        if (
-            this.constraintOptions.dateRangeConstraint === "issuelength" ||
-            this.constraintOptions.dateRangeConstraint === "issuelength_with_renewals"
-        ) {
-            if (this.constraintOptions.maxBookingPeriod) {
-                effectiveRules.maxPeriod = this.constraintOptions.maxBookingPeriod;
-            }
-        } else {
-            // Unconstrained: strip implicit caps coming from API defaults
-            if ("maxPeriod" in effectiveRules) delete effectiveRules.maxPeriod;
-            if ("issuelength" in effectiveRules) delete effectiveRules.issuelength;
-        }
-        return effectiveRules;
-    }
-
-    /**
-     * Update UI based on validation results
-     */
-    _updateValidationUI(result) {
-        if (!result.valid) {
-            this.errorMessage.value = result.errors.join(", ");
-        } else {
-            this.errorMessage.value = "";
-        }
-        this.tooltipVisible.value = false; // Hide tooltip on date change
-    }
-
-    /**
-     * Handle constraint highlighting for date selections
-     */
-    _handleConstraintHighlighting(selectedDates, effectiveRules, instance) {
-        if (selectedDates.length === 1 && instance) {
-            const highlightingData = calculateConstraintHighlighting(
-                selectedDates[0],
-                effectiveRules,
-                this.constraintOptions
-            );
-
-            if (highlightingData) {
-                applyCalendarHighlighting(instance, highlightingData);
-                this._handleCalendarNavigation(highlightingData, instance);
-            }
-        }
-
-        // Clear highlighting when selection is cleared
-        if (selectedDates.length === 0 && instance) {
-            instance._constraintHighlighting = null;
-            clearConstraintHighlighting(instance);
-        }
-    }
-
-    /**
-     * Handle calendar navigation to show target dates
-     */
-    _handleCalendarNavigation(highlightingData, instance) {
-        const navigationInfo = getCalendarNavigationTarget(
-            highlightingData.startDate,
-            highlightingData.targetEndDate
-        );
-
-        if (navigationInfo.shouldNavigate && navigationInfo.targetDate) {
-            logger.debug("Navigating calendar", navigationInfo);
-
-            setTimeout(() => {
-                // Validate the target date before trying to jump
-                if (
-                    instance &&
-                    navigationInfo.targetDate &&
-                    !isNaN(navigationInfo.targetDate.getTime())
-                ) {
-                    if (instance.jumpToDate) {
-                        instance.jumpToDate(navigationInfo.targetDate);
-                    } else if (instance.changeMonth) {
-                        instance.changeMonth(
-                            navigationInfo.targetMonth,
-                            navigationInfo.targetYear
-                        );
-                    }
-                } else {
-                    logger.warn(
-                        "Invalid navigation target date",
-                        navigationInfo
-                    );
-                }
-            }, 100);
-        }
-    }
+    return effectiveRules;
 }
 
 /**
- * Factory function to create event handlers - maintains backward compatibility
- * @deprecated Use FlatpickrEventHandlers class directly
+ * Factory to create functional onChange handler
  */
 export function createOnChange(
     store,
@@ -592,13 +373,86 @@ export function createOnChange(
     tooltipVisible,
     constraintOptions = {}
 ) {
-    const handlers = new FlatpickrEventHandlers(
-        store,
-        errorMessage,
-        tooltipVisible,
-        constraintOptions
-    );
-    return handlers.handleDateChange;
+    return function (selectedDates, dateStr, instance) {
+        logger.debug("handleDateChange triggered", { selectedDates, dateStr });
+
+        const validDates = (selectedDates || []).filter(
+            d => d instanceof Date && !Number.isNaN(d.getTime())
+        );
+        if ((selectedDates || []).length > 0 && validDates.length === 0) {
+            logger.warn("All dates invalid, skipping processing to preserve state");
+            return;
+        }
+
+        const isoDateRange = validDates.map(d => dayjs(d).toISOString());
+        const current = store.selectedDateRange || [];
+        const same =
+            current.length === isoDateRange.length &&
+            current.every((v, i) => v === isoDateRange[i]);
+        if (!same) {
+            store.selectedDateRange = isoDateRange;
+        }
+
+        const baseRules = (store.circulationRules && store.circulationRules[0]) || {};
+        const effectiveRules = deriveEffectiveRules(baseRules, constraintOptions);
+
+        let calcOptions = {};
+        if (instance) {
+            const visible = getVisibleCalendarDates(instance);
+            if (visible && visible.length > 0) {
+                calcOptions = {
+                    onDemand: true,
+                    visibleStartDate: visible[0],
+                    visibleEndDate: visible[visible.length - 1],
+                };
+            }
+        }
+
+        const result = handleBookingDateChange(
+            selectedDates,
+            effectiveRules,
+            store.bookings,
+            store.checkouts,
+            store.bookableItems,
+            store.bookingItemId,
+            store.bookingId,
+            undefined,
+            calcOptions
+        );
+
+        errorMessage.value = result.valid ? "" : result.errors.join(", ");
+        tooltipVisible.value = false;
+
+        if (instance) {
+            if (selectedDates.length === 1) {
+                const highlightingData = calculateConstraintHighlighting(
+                    selectedDates[0],
+                    effectiveRules,
+                    constraintOptions
+                );
+                if (highlightingData) {
+                    applyCalendarHighlighting(instance, highlightingData);
+                    const nav = getCalendarNavigationTarget(
+                        highlightingData.startDate,
+                        highlightingData.targetEndDate
+                    );
+                    if (nav.shouldNavigate && nav.targetDate) {
+                        setTimeout(() => {
+                            if (instance.jumpToDate) {
+                                instance.jumpToDate(nav.targetDate);
+                            } else if (instance.changeMonth) {
+                                instance.changeMonth(nav.targetMonth, nav.targetYear);
+                            }
+                        }, 100);
+                    }
+                }
+            }
+            if (selectedDates.length === 0) {
+                instance._constraintHighlighting = null;
+                clearConstraintHighlighting(instance);
+            }
+        }
+    };
 }
 
 export function createOnDayCreate(
