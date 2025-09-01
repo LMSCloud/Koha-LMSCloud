@@ -1238,9 +1238,6 @@ export default {
 
         // Cleanup function for proper memory management
         onUnmounted(() => {
-            if (flatpickrInstance.value?.fp) {
-                flatpickrInstance.value.fp.destroy();
-            }
             if (typeof additionalFieldsInstance.value?.destroy === "function") {
                 additionalFieldsInstance.value.destroy();
             }
