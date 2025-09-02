@@ -60,9 +60,14 @@ export const useBookingStore = defineStore("bookingStore", {
         bookingItemtypeId: null, // kept for backward compatibility
         patronId: null,
         pickupLibraryId: null,
-        startDate: null,
-        endDate: null,
-        selectedDateRange: [], // ISO date strings array for flatpickr
+        /**
+         * Canonical date representation for the bookings UI.
+         * Always store ISO 8601 strings here (e.g., "2025-03-14T00:00:00.000Z").
+         * - Widgets (Flatpickr) work with Date objects and must convert to ISO when writing
+         * - Computation utilities convert ISO -> Date close to the boundary
+         * - API payloads use ISO strings as-is
+         */
+        selectedDateRange: [],
 
         // Async operation state - organized structure
         loading: {

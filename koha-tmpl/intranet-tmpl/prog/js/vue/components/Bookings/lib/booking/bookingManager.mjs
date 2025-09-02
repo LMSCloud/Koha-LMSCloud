@@ -842,6 +842,110 @@ export function calculateDisabledDates(
 }
 
 /**
+ * Derive effective circulation rules with constraint options applied.
+ * - Applies maxPeriod only for constraining modes
+ * - Strips caps for unconstrained mode
+ */
+export function deriveEffectiveRules(baseRules = {}, constraintOptions = {}) {
+    const effectiveRules = { ...baseRules };
+    const mode = constraintOptions.dateRangeConstraint;
+    if (mode === "issuelength" || mode === "issuelength_with_renewals") {
+        if (constraintOptions.maxBookingPeriod) {
+            effectiveRules.maxPeriod = constraintOptions.maxBookingPeriod;
+        }
+    } else {
+        if ("maxPeriod" in effectiveRules) delete effectiveRules.maxPeriod;
+        if ("issuelength" in effectiveRules) delete effectiveRules.issuelength;
+    }
+    return effectiveRules;
+}
+
+/**
+ * Calculate maximum booking period from circulation rules and constraint mode.
+ */
+export function calculateMaxBookingPeriod(
+    circulationRules,
+    dateRangeConstraint,
+    customDateRangeFormula = null
+) {
+    if (!dateRangeConstraint) return null;
+    const rules = circulationRules?.[0];
+    if (!rules) return null;
+    const issuelength = parseInt(rules.issuelength) || 0;
+    switch (dateRangeConstraint) {
+        case "issuelength":
+            return issuelength;
+        case "issuelength_with_renewals":
+            const renewalperiod = parseInt(rules.renewalperiod) || 0;
+            const renewalsallowed = parseInt(rules.renewalsallowed) || 0;
+            return issuelength + renewalperiod * renewalsallowed;
+        case "custom":
+            return typeof customDateRangeFormula === "function"
+                ? customDateRangeFormula(rules)
+                : null;
+        default:
+            return null;
+    }
+}
+
+/**
+ * Convenience wrapper to calculate availability (disable fn + map) given a dateRange.
+ * Accepts ISO strings for dateRange and returns the result of calculateDisabledDates.
+ */
+export function calculateAvailabilityData(dateRange, storeData, options = {}) {
+    const {
+        bookings,
+        checkouts,
+        bookableItems,
+        circulationRules,
+        bookingItemId,
+        bookingId,
+    } = storeData;
+
+    if (!bookings || !checkouts || !bookableItems) {
+        return { disable: () => false, unavailableByDate: {} };
+    }
+
+    const baseRules = circulationRules?.[0] || {};
+    const maxBookingPeriod = calculateMaxBookingPeriod(
+        circulationRules,
+        options.dateRangeConstraint,
+        options.customDateRangeFormula
+    );
+    const effectiveRules = deriveEffectiveRules(baseRules, {
+        dateRangeConstraint: options.dateRangeConstraint,
+        maxBookingPeriod,
+    });
+
+    let selectedDatesArray = [];
+    if (Array.isArray(dateRange)) {
+        selectedDatesArray = dateRange.map(isoString =>
+            dayjs(isoString).toDate()
+        );
+    } else if (typeof dateRange === "string") {
+        const [startISO, endISO] = parseDateRange(dateRange);
+        if (startISO && endISO) {
+            selectedDatesArray = [
+                dayjs(startISO).toDate(),
+                dayjs(endISO).toDate(),
+            ];
+        } else if (startISO) {
+            selectedDatesArray = [dayjs(startISO).toDate()];
+        }
+    }
+
+    return calculateDisabledDates(
+        bookings,
+        checkouts,
+        bookableItems,
+        bookingItemId,
+        bookingId,
+        selectedDatesArray,
+        effectiveRules
+    );
+}
+
+/**
  * Pure function to handle Flatpickr's onChange event logic for booking period selection.
  * Determines the valid end date range, applies circulation rules, and returns validation info.
  *
@@ -1111,14 +1215,12 @@ export function parseDateRange(val) {
 
     if (typeof val === "string" && win("flatpickr")) {
         const { dateFormat, formatConfig, langCode } = getLocalizedDateFormat();
-        console.log("🌍 Locale info:", { dateFormat, langCode, formatConfig });
 
         // Get locale configuration for flatpickr parsing
         let locale = null;
 
         if (langCode !== "en" && win("flatpickr")?.l10ns?.[langCode]) {
             locale = win("flatpickr").l10ns[langCode];
-            console.log("🌍 Using flatpickr locale:", langCode, locale);
         } else if (langCode !== "en") {
             // Create fallback locale using available global settings
             const fallbackLocale = {};
@@ -1128,10 +1230,7 @@ export function parseDateRange(val) {
                 fallbackLocale.months = win("flatpickr_months");
             if (Object.keys(fallbackLocale).length > 0) {
                 locale = fallbackLocale;
-                console.log("🌍 Using fallback locale:", locale);
             }
-        } else {
-            console.log("🌍 Using English locale");
         }
 
         // First try: Use flatpickr's locale-aware range parsing
@@ -1149,23 +1248,10 @@ export function parseDateRange(val) {
                 }
             }
 
-            console.log(
-                "📅 Range separator from flatpickr locale:",
-                rangeSeparator
-            );
-
             if (val.includes(rangeSeparator)) {
                 const parts = val.split(rangeSeparator);
 
                 if (parts.length >= 2) {
-                    console.log(
-                        "📅 Parsing range with flatpickr:",
-                        parts[0].trim(),
-                        "and",
-                        parts[1].trim(),
-                        "format:",
-                        dateFormat
-                    );
                     const start =
                         win("flatpickr") && win("flatpickr").parseDate
                             ? win("flatpickr").parseDate(
@@ -1194,12 +1280,6 @@ export function parseDateRange(val) {
             }
 
             // Single date case
-            console.log(
-                "📅 Single date parsing with flatpickr:",
-                val,
-                "format:",
-                dateFormat
-            );
             const parsed =
                 win("flatpickr") && win("flatpickr").parseDate
                     ? win("flatpickr").parseDate(val, dateFormat, locale)

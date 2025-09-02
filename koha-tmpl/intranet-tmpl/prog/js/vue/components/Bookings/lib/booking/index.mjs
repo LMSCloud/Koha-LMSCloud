@@ -57,7 +57,12 @@ function renderPatronContent(
 /**
  * Updates timeline component with booking data
  */
-function updateTimelineComponent(newBooking, bookingPatron, isUpdate, dependencies) {
+function updateTimelineComponent(
+    newBooking,
+    bookingPatron,
+    isUpdate,
+    dependencies
+) {
     const timeline = dependencies.timeline();
     if (!timeline) return { success: false, reason: "Timeline not available" };
 
@@ -214,17 +219,4 @@ export function updateExternalDependents(
  * Legacy wrapper for backward compatibility
  * @deprecated Use updateExternalDependents with proper error handling
  */
-export function updateExternalDependentsLegacy(
-    store,
-    newBooking,
-    isUpdate = false
-) {
-    try {
-        updateExternalDependents(newBooking, store.bookingPatron, isUpdate);
-    } catch (error) {
-        console.warn(
-            "External dependents update failed silently (legacy mode)",
-            error
-        );
-    }
-}
+// Note: Legacy wrapper removed. Use updateExternalDependents(newBooking, bookingPatron, isUpdate).

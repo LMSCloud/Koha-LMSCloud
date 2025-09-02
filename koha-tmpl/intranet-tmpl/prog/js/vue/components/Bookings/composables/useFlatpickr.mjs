@@ -3,7 +3,6 @@ import flatpickr from "flatpickr";
 import dayjs from "../../../utils/dayjs.mjs";
 import { useBookingStore } from "../../../stores/bookingStore.js";
 import {
-    deriveEffectiveRules,
     applyCalendarHighlighting,
     createOnDayCreate,
     createOnClose,
@@ -12,9 +11,17 @@ import {
     handleBookingDateChange,
     getVisibleCalendarDates,
     calculateConstraintHighlighting,
+    deriveEffectiveRules,
 } from "../lib/booking/bookingManager.mjs";
 import { win } from "../lib/index.mjs";
 
+/**
+ * Flatpickr integration for the bookings calendar.
+ * Date type policy:
+ * - Store holds ISO strings in selectedDateRange (single source of truth)
+ * - Flatpickr works with Date objects; we convert at the boundary
+ * - API receives ISO strings
+ */
 export function useFlatpickr(elRef, options) {
     const store = options.store || useBookingStore();
 
@@ -36,7 +43,9 @@ export function useFlatpickr(elRef, options) {
     function setDisableOnInstance() {
         if (!fp) return;
         const disableFn = disableFnRef?.value;
-        fp.set("disable", [typeof disableFn === "function" ? disableFn : () => false]);
+        fp.set("disable", [
+            typeof disableFn === "function" ? disableFn : () => false,
+        ]);
     }
 
     function syncInstanceDatesFromStore() {
@@ -71,9 +80,13 @@ export function useFlatpickr(elRef, options) {
         if (!same) store.selectedDateRange = isoRange;
 
         // Effective rules and validation
-        const baseRules = (store.circulationRules && store.circulationRules[0]) || {};
+        const baseRules =
+            (store.circulationRules && store.circulationRules[0]) || {};
         const constraintOptions = constraintOptionsRef?.value || {};
-        const effectiveRules = deriveEffectiveRules(baseRules, constraintOptions);
+        const effectiveRules = deriveEffectiveRules(
+            baseRules,
+            constraintOptions
+        );
 
         let calcOptions = {};
         if (instance) {
@@ -99,7 +112,8 @@ export function useFlatpickr(elRef, options) {
             calcOptions
         );
 
-        if (typeof setError === "function") setError(result.valid ? "" : result.errors.join(", "));
+        if (typeof setError === "function")
+            setError(result.valid ? "" : result.errors.join(", "));
         if (tooltipVisibleRef) tooltipVisibleRef.value = false;
 
         // Highlighting
@@ -131,7 +145,10 @@ export function useFlatpickr(elRef, options) {
             dateFormat: win("flatpickr_dateformat_string") || "d.m.Y",
             allowInput: false,
             onChange: handleOnChange,
-            onClose: createOnClose(tooltipMarkersRef || { value: [] }, tooltipVisibleRef || { value: false }),
+            onClose: createOnClose(
+                tooltipMarkersRef || { value: [] },
+                tooltipVisibleRef || { value: false }
+            ),
             onDayCreate: createOnDayCreate(
                 store,
                 tooltipMarkersRef || { value: [] },

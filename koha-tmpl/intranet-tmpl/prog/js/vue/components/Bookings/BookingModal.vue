@@ -81,7 +81,6 @@
                             "
                         />
                         <BookingPeriodStep
-                            v-if="isCalendarReady"
                             :step-number="stepNumber.period"
                             :constraint-options="{
                                 dateRangeConstraint: dateRangeConstraint,
@@ -91,7 +90,7 @@
                             :max-booking-period="maxBookingPeriod"
                             :error-message="modalState.errorMessage"
                             :set-error="val => (modalState.errorMessage = val)"
-                            :has-selected-dates="selectedDateRange?.value?.length > 0"
+                            :has-selected-dates="selectedDateRange?.length > 0"
                             @clear-dates="clearDateRange"
                         />
                         <hr
@@ -162,10 +161,9 @@ import { storeToRefs } from "pinia";
 import { updateExternalDependents } from "./lib/booking/index.mjs";
 import { preloadFlatpickrLocale } from "./lib/booking/bookingCalendar.mjs";
 import { useAvailability } from "./composables/useAvailability.mjs";
-// Pure functions and composables (new architecture)
 import { calculateStepNumbers } from "./lib/booking/bookingSteps.mjs";
 import { useBookingValidation } from "./composables/useBookingValidation.mjs";
-import { calculateMaxBookingPeriod } from "./lib/booking/BookingModalService.mjs";
+import { calculateMaxBookingPeriod } from "./lib/booking/bookingManager.mjs";
 
 export default {
     name: "BookingModal",
@@ -535,6 +533,7 @@ export default {
                     patron_category_id: patron?.category_id,
                     item_type_id: derivedItemTypeId,
                     library_id: bookingPickupLibraryId.value,
+                    start_date: selectedDateRange.value?.[0] || undefined,
                 };
                 const key = JSON.stringify(rulesParams);
                 if (lastRulesKey.value !== key) {

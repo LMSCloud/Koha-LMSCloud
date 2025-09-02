@@ -5,10 +5,10 @@ import {
     getCalendarNavigationTarget,
     aggregateMarkersByType,
     getVisibleCalendarDates,
+    deriveEffectiveRules,
 } from "./bookingManager.mjs";
 import dayjs from "../../../../utils/dayjs.mjs";
 import { calendarLogger as logger } from "./bookingLogger.mjs";
-import { win } from "../index.mjs";
 
 /**
  * Clear constraint highlighting from flatpickr calendar
@@ -30,9 +30,7 @@ export function clearCalendarHighlighting(instance) {
 }
 
 // Keep internal function for backward compatibility
-function clearConstraintHighlighting(instance) {
-    clearCalendarHighlighting(instance);
-}
+// Deprecated alias removed; use clearCalendarHighlighting directly
 
 /**
  * Apply constraint highlighting to flatpickr calendar
@@ -52,7 +50,7 @@ export function applyCalendarHighlighting(instance, highlightingData) {
     instance._constraintHighlighting = highlightingData;
 
     // Clear any existing highlighting first
-    clearConstraintHighlighting(instance);
+    clearCalendarHighlighting(instance);
 
     // Apply highlighting with retry logic for DOM readiness
     const applyHighlighting = (retryCount = 0) => {
@@ -270,99 +268,13 @@ export async function preloadFlatpickrLocale() {
 }
 
 /**
- * Create flatpickr locale configuration from Koha's global settings
- * This is a fallback when the proper locale file isn't available
- */
-function createFlatpickrLocaleFallback() {
-    if (typeof window === "undefined") return {};
-
-    const locale = {};
-
-    // Get translated weekdays and months (prefer global variables from calendar.js)
-    const globalLocale = win("flatpickr")?.l10ns?.default || {};
-    locale.weekdays = win("flatpickr_weekdays") || globalLocale.weekdays;
-    locale.months = win("flatpickr_months") || globalLocale.months;
-
-    // Add first day of week preference
-    if (win("calendarFirstDayOfWeek") !== undefined) {
-        locale.firstDayOfWeek = parseInt(win("calendarFirstDayOfWeek"), 10);
-    }
-
-    // Add range separator translation
-    if (typeof win("__") === "function") {
-        const toTranslation = win("__")("to");
-        locale.rangeSeparator = " " + toTranslation + " ";
-    }
-
-    // Override with actual flatpickr locale if available
-    if (win("flatpickr")?.l10ns) {
-        const currentLang =
-            win("KohaLanguage") ||
-            document.documentElement.lang?.toLowerCase() ||
-            "en";
-        const flatpickrLocale = win("flatpickr").l10ns[currentLang];
-        if (flatpickrLocale?.rangeSeparator) {
-            locale.rangeSeparator = flatpickrLocale.rangeSeparator;
-        }
-    }
-
-    return locale;
-}
-
-/**
- * Create a complete flatpickr configuration with Koha i18n settings
- * This is now synchronous and uses pre-loaded locale or fallback
- */
-export function createFlatpickrConfig(baseConfig = {}) {
-    const config = { ...baseConfig };
-    const langCode = getCurrentLanguageCode();
-
-    // Check if a locale has been pre-loaded for this language
-    if (langCode !== "en" && win("flatpickr")?.l10ns?.[langCode]) {
-        /** @type {any} */
-        (config).locale = langCode;
-    } else if (langCode !== "en") {
-        // Use custom fallback locale
-        const fallbackLocale = createFlatpickrLocaleFallback();
-        if (Object.keys(fallbackLocale).length > 0) {
-            /** @type {any} */
-            (config).locale = fallbackLocale;
-        }
-    }
-
-    if (win("flatpickr_dateformat_string")) {
-        /** @type {any} */
-        (config).dateFormat = win("flatpickr_dateformat_string");
-    }
-
-    if (win("flatpickr_timeformat") !== undefined) {
-        /** @type {any} */
-        (config).time_24hr = win("flatpickr_timeformat");
-    }
-
-    return config;
-}
-
-/**
  * Event handler class for Flatpickr calendar events
  * Replaces closure-based factories with explicit state management
  */
 //
 // Shared rules derivation helper
 //
-export function deriveEffectiveRules(baseRules = {}, constraintOptions = {}) {
-    const effectiveRules = { ...baseRules };
-    const mode = constraintOptions.dateRangeConstraint;
-    if (mode === "issuelength" || mode === "issuelength_with_renewals") {
-        if (constraintOptions.maxBookingPeriod) {
-            effectiveRules.maxPeriod = constraintOptions.maxBookingPeriod;
-        }
-    } else {
-        if ("maxPeriod" in effectiveRules) delete effectiveRules.maxPeriod;
-        if ("issuelength" in effectiveRules) delete effectiveRules.issuelength;
-    }
-    return effectiveRules;
-}
+// deriveEffectiveRules moved to bookingManager.mjs (rule/business logic layer)
 
 /**
  * Factory to create functional onChange handler
@@ -380,7 +292,9 @@ export function createOnChange(
             d => d instanceof Date && !Number.isNaN(d.getTime())
         );
         if ((selectedDates || []).length > 0 && validDates.length === 0) {
-            logger.warn("All dates invalid, skipping processing to preserve state");
+            logger.warn(
+                "All dates invalid, skipping processing to preserve state"
+            );
             return;
         }
 
@@ -393,8 +307,12 @@ export function createOnChange(
             store.selectedDateRange = isoDateRange;
         }
 
-        const baseRules = (store.circulationRules && store.circulationRules[0]) || {};
-        const effectiveRules = deriveEffectiveRules(baseRules, constraintOptions);
+        const baseRules =
+            (store.circulationRules && store.circulationRules[0]) || {};
+        const effectiveRules = deriveEffectiveRules(
+            baseRules,
+            constraintOptions
+        );
 
         let calcOptions = {};
         if (instance) {
@@ -441,7 +359,10 @@ export function createOnChange(
                             if (instance.jumpToDate) {
                                 instance.jumpToDate(nav.targetDate);
                             } else if (instance.changeMonth) {
-                                instance.changeMonth(nav.targetMonth, nav.targetYear);
+                                instance.changeMonth(
+                                    nav.targetMonth,
+                                    nav.targetYear
+                                );
                             }
                         }, 100);
                     }
@@ -449,7 +370,7 @@ export function createOnChange(
             }
             if (selectedDates.length === 0) {
                 instance._constraintHighlighting = null;
-                clearConstraintHighlighting(instance);
+                clearCalendarHighlighting(instance);
             }
         }
     };
@@ -572,24 +493,3 @@ export function createOnClose(tooltipMarkers, tooltipVisible) {
         tooltipVisible.value = false;
     };
 }
-
-export function createOnFlatpickrReady(flatpickrInstance) {
-    return function (...[, , instance]) {
-        flatpickrInstance.value = instance;
-
-        // Apply constraint highlighting if it was set up before the instance was ready
-        if (instance && instance._constraintHighlighting) {
-            // Use a longer delay to ensure the calendar DOM is fully rendered
-            setTimeout(() => {
-                applyCalendarHighlighting(
-                    instance,
-                    instance._constraintHighlighting
-                );
-            }, 100);
-        }
-    };
-}
-
-// function handleFlatpickrClose() {
-//     tooltipVisible.value = false;
-// }

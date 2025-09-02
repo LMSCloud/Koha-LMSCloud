@@ -1,5 +1,5 @@
 <template>
-    <fieldset v-if="visible" class="step-block">
+    <fieldset class="step-block">
         <legend class="step-header">
             {{ stepNumber }}.
             {{ $__("Select Patron") }}
@@ -34,10 +34,6 @@ export default {
         PatronSearchSelect,
     },
     props: {
-        visible: {
-            type: Boolean,
-            default: true,
-        },
         stepNumber: {
             type: Number,
             required: true,

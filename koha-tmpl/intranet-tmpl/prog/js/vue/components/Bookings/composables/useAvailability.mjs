@@ -1,8 +1,16 @@
 import { computed } from "vue";
 import dayjs from "../../../utils/dayjs.mjs";
-import { calculateDisabledDates } from "../lib/booking/bookingManager.mjs";
-import { deriveEffectiveRules } from "../lib/booking/bookingCalendar.mjs";
+import {
+    calculateDisabledDates,
+    deriveEffectiveRules,
+} from "../lib/booking/bookingManager.mjs";
 
+/**
+ * Central availability computation.
+ * Date type policy:
+ * - Input: storeRefs.selectedDateRange is ISO[]; this composable converts to Date[]
+ * - Output: disableFnRef for Flatpickr, unavailableByDateRef for calendar markers
+ */
 export function useAvailability(storeRefs, optionsRef) {
     const {
         bookings,
@@ -26,7 +34,10 @@ export function useAvailability(storeRefs, optionsRef) {
         }
 
         const baseRules = circulationRules.value?.[0] || {};
-        const effectiveRules = deriveEffectiveRules(baseRules, optionsRef.value || {});
+        const effectiveRules = deriveEffectiveRules(
+            baseRules,
+            optionsRef.value || {}
+        );
 
         const selectedDatesArray = (selectedDateRange.value || [])
             .filter(Boolean)
@@ -43,11 +54,12 @@ export function useAvailability(storeRefs, optionsRef) {
         );
     });
 
-    const disableFnRef = computed(() => availability.value.disable || (() => false));
+    const disableFnRef = computed(
+        () => availability.value.disable || (() => false)
+    );
     const unavailableByDateRef = computed(
         () => availability.value.unavailableByDate || {}
     );
 
     return { availability, disableFnRef, unavailableByDateRef };
 }
-

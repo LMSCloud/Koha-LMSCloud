@@ -1,7 +1,6 @@
 import { expect } from "chai";
 import dayjs from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/utils/dayjs.mjs";
-import { deriveEffectiveRules } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/bookingCalendar.mjs";
-import { calculateAvailabilityData } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/BookingModalService.mjs";
+import { deriveEffectiveRules, calculateAvailabilityData } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/bookingManager.mjs";
 
 describe("Unconstrained preference behavior", () => {
     describe("deriveEffectiveRules", () => {
