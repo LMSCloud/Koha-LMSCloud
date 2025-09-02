@@ -35,6 +35,7 @@
 <script setup lang="ts">
 import { defineProps, withDefaults } from "vue";
 import { $__ } from "../../i18n";
+import { getMarkerTypeLabel } from "./lib/ui/markerLabels.mjs";
 
 type Marker = {
     type: string;
@@ -58,15 +59,7 @@ withDefaults(
     }
 );
 
-function getMarkerTypeLabel(type) {
-    const labels = {
-        "booked": $__("Booked"),
-        "checked-out": $__("Checked out"),
-        "lead": $__("Lead period"),
-        "trail": $__("Trail period")
-    };
-    return labels[type] || type;
-}
+// getMarkerTypeLabel provided by shared UI helper
 </script>
 
 <style scoped>

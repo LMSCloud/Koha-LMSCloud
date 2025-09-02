@@ -1,18 +1,14 @@
 import { onMounted, onUnmounted, watch } from "vue";
 import flatpickr from "flatpickr";
-import dayjs from "../../../utils/dayjs.mjs";
+import { isoArrayToDates } from "../lib/booking/dateUtils.mjs";
 import { useBookingStore } from "../../../stores/bookingStore.js";
 import {
     applyCalendarHighlighting,
     createOnDayCreate,
     createOnClose,
+    createOnChange,
 } from "../lib/booking/bookingCalendar.mjs";
-import {
-    handleBookingDateChange,
-    getVisibleCalendarDates,
-    calculateConstraintHighlighting,
-    deriveEffectiveRules,
-} from "../lib/booking/bookingManager.mjs";
+import { useConstraintHighlighting } from "./useConstraintHighlighting.mjs";
 import { win } from "../lib/index.mjs";
 
 /**
@@ -36,8 +32,7 @@ export function useFlatpickr(elRef, options) {
     let fp = null;
 
     function toDateArrayFromStore() {
-        const current = store.selectedDateRange || [];
-        return (current || []).filter(Boolean).map(d => dayjs(d).toDate());
+        return isoArrayToDates(store.selectedDateRange || []);
     }
 
     function setDisableOnInstance() {
@@ -63,77 +58,6 @@ export function useFlatpickr(elRef, options) {
         }
     }
 
-    function handleOnChange(selectedDates, _dateStr, instance) {
-        // Sanitize dates
-        const valid = (selectedDates || []).filter(
-            d => d instanceof Date && !Number.isNaN(d.getTime())
-        );
-        if ((selectedDates || []).length > 0 && valid.length === 0) {
-            return;
-        }
-
-        const isoRange = valid.map(d => dayjs(d).toISOString());
-        const current = store.selectedDateRange || [];
-        const same =
-            current.length === isoRange.length &&
-            current.every((v, i) => v === isoRange[i]);
-        if (!same) store.selectedDateRange = isoRange;
-
-        // Effective rules and validation
-        const baseRules =
-            (store.circulationRules && store.circulationRules[0]) || {};
-        const constraintOptions = constraintOptionsRef?.value || {};
-        const effectiveRules = deriveEffectiveRules(
-            baseRules,
-            constraintOptions
-        );
-
-        let calcOptions = {};
-        if (instance) {
-            const visible = getVisibleCalendarDates(instance);
-            if (visible && visible.length > 0) {
-                calcOptions = {
-                    onDemand: true,
-                    visibleStartDate: visible[0],
-                    visibleEndDate: visible[visible.length - 1],
-                };
-            }
-        }
-
-        const result = handleBookingDateChange(
-            selectedDates,
-            effectiveRules,
-            store.bookings,
-            store.checkouts,
-            store.bookableItems,
-            store.bookingItemId,
-            store.bookingId,
-            undefined,
-            calcOptions
-        );
-
-        if (typeof setError === "function")
-            setError(result.valid ? "" : result.errors.join(", "));
-        if (tooltipVisibleRef) tooltipVisibleRef.value = false;
-
-        // Highlighting
-        if (instance) {
-            if (selectedDates.length === 1) {
-                const highlightingData = calculateConstraintHighlighting(
-                    selectedDates[0],
-                    effectiveRules,
-                    constraintOptions
-                );
-                if (highlightingData) {
-                    applyCalendarHighlighting(instance, highlightingData);
-                }
-            }
-            if (selectedDates.length === 0) {
-                instance._constraintHighlighting = null;
-            }
-        }
-    }
-
     onMounted(() => {
         if (!elRef?.value) return;
 
@@ -144,7 +68,11 @@ export function useFlatpickr(elRef, options) {
             clickOpens: true,
             dateFormat: win("flatpickr_dateformat_string") || "d.m.Y",
             allowInput: false,
-            onChange: handleOnChange,
+            onChange: createOnChange(store, {
+                setError,
+                tooltipVisibleRef: tooltipVisibleRef || { value: false },
+                constraintOptions: constraintOptionsRef?.value || {},
+            }),
             onClose: createOnClose(
                 tooltipMarkersRef || { value: [] },
                 tooltipVisibleRef || { value: false }
@@ -156,17 +84,6 @@ export function useFlatpickr(elRef, options) {
                 tooltipXRef || { value: 0 },
                 tooltipYRef || { value: 0 }
             ),
-            onMonthChange: (...args) => {
-                // re-apply highlighting if cached
-                if (fp && fp._constraintHighlighting) {
-                    applyCalendarHighlighting(fp, fp._constraintHighlighting);
-                }
-            },
-            onYearChange: (...args) => {
-                if (fp && fp._constraintHighlighting) {
-                    applyCalendarHighlighting(fp, fp._constraintHighlighting);
-                }
-            },
         };
 
         fp = flatpickr(elRef.value, baseConfig);
@@ -180,6 +97,21 @@ export function useFlatpickr(elRef, options) {
         watch(disableFnRef, () => {
             setDisableOnInstance();
         });
+    }
+
+    // Recalculate visual constraint highlighting when constraint options or rules change
+    if (constraintOptionsRef) {
+        const { highlightingData } = useConstraintHighlighting(
+            store,
+            constraintOptionsRef
+        );
+        watch(
+            () => highlightingData.value,
+            data => {
+                if (!fp || !data) return;
+                applyCalendarHighlighting(fp, data);
+            }
+        );
     }
 
     // Sync UI when dates change programmatically

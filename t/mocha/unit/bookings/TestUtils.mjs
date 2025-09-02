@@ -62,7 +62,6 @@ export async function getBookingModules() {
         constrainPickupLocations: _bookingManager.constrainPickupLocations,
         constrainBookableItems: _bookingManager.constrainBookableItems,
         constrainItemTypes: _bookingManager.constrainItemTypes,
-        parseDateRange: _bookingManager.parseDateRange,
     };
 }
 

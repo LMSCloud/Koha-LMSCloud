@@ -12,6 +12,7 @@
             :placeholder="
                 $__('Search for a patron')
             "
+            :set-error="setError"
         >
             <template #no-options="{ hasSearched }">
                 {{ hasSearched ? $__("No patrons found.") : $__("Type to search for patrons.") }}
@@ -40,6 +41,10 @@ export default {
         },
         modelValue: {
             type: Object,
+            default: null,
+        },
+        setError: {
+            type: Function,
             default: null,
         },
     },

@@ -8,13 +8,11 @@ import { expect } from "chai";
 import sinon from "sinon";
 import { JSDOM } from "jsdom";
 import {
-    createFlatpickrConfig,
     applyCalendarHighlighting,
     clearCalendarHighlighting,
     createOnChange,
     createOnDayCreate,
     createOnClose,
-    createOnFlatpickrReady,
     preloadFlatpickrLocale,
 } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/bookingCalendar.mjs";
 import dayjs from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/utils/dayjs.mjs";
@@ -28,7 +26,11 @@ const dom = new JSDOM('<!DOCTYPE html><html lang="en"><body></body></html>', {
 
 global.document = dom.window.document;
 global.window = dom.window;
-global.navigator = dom.window.navigator;
+try {
+    global.navigator = dom.window.navigator;
+} catch (e) {
+    // Some Node versions expose a read-only global.navigator; skip in that case
+}
 global.HTMLElement = dom.window.HTMLElement;
 
 // Mock DOM environment for testing
@@ -210,58 +212,8 @@ describe("Flatpickr Integration in BookingModal", () => {
         sandbox.restore();
     });
     
-    describe("createFlatpickrConfig", () => {
-        it("should create a base flatpickr configuration", () => {
-            const baseConfig = {
-                mode: "range",
-                minDate: "today",
-                disable: [() => false],
-                clickOpens: true,
-                dateFormat: "d.m.Y",
-            };
-            
-            const result = createFlatpickrConfig(baseConfig);
-            
-            expect(result).to.include({
-                mode: "range",
-                minDate: "today",
-                dateFormat: "d.m.Y",
-                clickOpens: true,
-            });
-            expect(result.disable).to.be.an("array");
-        });
-        
-        it("should preserve custom event handlers", () => {
-            const onChange = sinon.stub();
-            const onDayCreate = sinon.stub();
-            const onClose = sinon.stub();
-            const onReady = sinon.stub();
-            
-            const baseConfig = {
-                mode: "range",
-                onChange,
-                onDayCreate,
-                onClose,
-                onReady,
-            };
-            
-            const result = createFlatpickrConfig(baseConfig);
-            
-            expect(result.onChange).to.equal(onChange);
-            expect(result.onDayCreate).to.equal(onDayCreate);
-            expect(result.onClose).to.equal(onClose);
-            expect(result.onReady).to.equal(onReady);
-        });
-        
-        it("should set locale from configuration", () => {
-            global.window = { flatpickr_dateformat_string: "Y-m-d" };
-            
-            const baseConfig = { mode: "range" };
-            const result = createFlatpickrConfig(baseConfig);
-            
-            expect(result.dateFormat).to.equal("Y-m-d");
-        });
-    });
+    // Note: createFlatpickrConfig helper was removed during refactor. Tests now
+    // focus on the calendar UI helpers and event factories actually used.
     
     describe("applyCalendarHighlighting", () => {
         it("should apply booking-constrained-range-marker class to dates in range", done => {
@@ -699,17 +651,7 @@ describe("Flatpickr Integration in BookingModal", () => {
         });
     });
     
-    describe("createOnFlatpickrReady handler", () => {
-        it("should store flatpickr instance reference", () => {
-            const instanceRef = { value: null };
-            const onReady = createOnFlatpickrReady(instanceRef);
-            
-            const mockInstance = createMockFlatpickrInstance();
-            onReady([], "", mockInstance);
-            
-            expect(instanceRef.value).to.equal(mockInstance);
-        });
-    });
+    // createOnFlatpickrReady helper removed; no longer tested here.
     
     describe("Calendar readiness based on loading states", () => {
         it("should disable calendar when data is loading", () => {
@@ -767,19 +709,8 @@ describe("Flatpickr Integration in BookingModal", () => {
     });
     
     describe("Race condition prevention", () => {
-        it("should prevent date selection when calendar not ready", () => {
-            const baseConfig = {
-                mode: "range",
-                minDate: "today",
-                disable: [() => true], // All dates disabled during loading
-                clickOpens: false, // Prevent opening during load
-            };
-            
-            const config = createFlatpickrConfig(baseConfig);
-            
-            expect(config.clickOpens).to.be.false;
-            expect(config.disable[0]()).to.be.true;
-        });
+        // The prevention of date selection during loading is now handled in
+        // the Vue layer (isCalendarReady), not via a config helper.
         
         it("should re-apply highlighting after data loads", done => {
             const { container, dayElements } = createMockDOMEnvironment();

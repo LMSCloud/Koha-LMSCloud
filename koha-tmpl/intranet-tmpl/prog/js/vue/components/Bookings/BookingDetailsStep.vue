@@ -197,9 +197,9 @@ export default {
         },
     },
     emits: [
-        "update:pickupLibraryId",
-        "update:itemtypeId",
-        "update:itemId"
+        "update:pickup-library-id",
+        "update:itemtype-id",
+        "update:item-id",
     ],
     setup(props, { emit }) {
         const store = useBookingStore();
@@ -207,21 +207,21 @@ export default {
         const selectedPickupLibraryId = computed({
             get: () => props.pickupLibraryId,
             set: (value) => {
-                emit("update:pickupLibraryId", value);
+                emit("update:pickup-library-id", value);
             },
         });
 
         const selectedItemtypeId = computed({
             get: () => props.itemtypeId,
             set: (value) => {
-                emit("update:itemtypeId", value);
+                emit("update:itemtype-id", value);
             },
         });
 
         const selectedItemId = computed({
             get: () => props.itemId,
             set: (value) => {
-                emit("update:itemId", value);
+                emit("update:item-id", value);
             },
         });
 

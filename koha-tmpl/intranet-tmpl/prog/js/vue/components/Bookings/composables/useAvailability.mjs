@@ -1,9 +1,6 @@
 import { computed } from "vue";
-import dayjs from "../../../utils/dayjs.mjs";
-import {
-    calculateDisabledDates,
-    deriveEffectiveRules,
-} from "../lib/booking/bookingManager.mjs";
+import { isoArrayToDates } from "../lib/booking/dateUtils.mjs";
+import { calculateDisabledDates, toEffectiveRules } from "../lib/booking/bookingManager.mjs";
 
 /**
  * Central availability computation.
@@ -33,15 +30,14 @@ export function useAvailability(storeRefs, optionsRef) {
             return { disable: () => true, unavailableByDate: {} };
         }
 
-        const baseRules = circulationRules.value?.[0] || {};
-        const effectiveRules = deriveEffectiveRules(
-            baseRules,
+        const effectiveRules = toEffectiveRules(
+            circulationRules.value,
             optionsRef.value || {}
         );
 
-        const selectedDatesArray = (selectedDateRange.value || [])
-            .filter(Boolean)
-            .map(d => dayjs(d).toDate());
+        const selectedDatesArray = isoArrayToDates(
+            selectedDateRange.value || []
+        );
 
         return calculateDisabledDates(
             bookings.value,

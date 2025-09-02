@@ -44,6 +44,10 @@ export default {
             type: Object,
             default: null,
         },
+        setError: {
+            type: Function,
+            default: null,
+        },
     },
     emits: ["fields-ready", "fields-destroyed"],
     setup(props, { emit }) {
@@ -85,6 +89,16 @@ export default {
                 }
             } catch (error) {
                 console.error("Failed to initialize additional fields:", error);
+                if (typeof props.setError === "function") {
+                    try {
+                        props.setError(
+                            $__("Failed to initialize additional fields"),
+                            "ui"
+                        );
+                    } catch (e) {
+                        // silent
+                    }
+                }
             }
         };
 
@@ -99,6 +113,16 @@ export default {
                         "Failed to destroy additional fields:",
                         error
                     );
+                    if (typeof props.setError === "function") {
+                        try {
+                            props.setError(
+                                $__("Failed to clean up additional fields"),
+                                "ui"
+                            );
+                        } catch (e) {
+                            // silent
+                        }
+                    }
                 }
             }
             additionalFieldsInstance.value = null;

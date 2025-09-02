@@ -34,6 +34,7 @@
                             v-if="showPatronSelect"
                             v-model="bookingPatron"
                             :step-number="stepNumber.patron"
+                            :set-error="setError"
                         />
                         <hr
                             v-if="
@@ -82,14 +83,11 @@
                         />
                         <BookingPeriodStep
                             :step-number="stepNumber.period"
-                            :constraint-options="{
-                                dateRangeConstraint: dateRangeConstraint,
-                                maxBookingPeriod: maxBookingPeriod,
-                            }"
+                            :constraint-options="constraintOptions"
                             :date-range-constraint="dateRangeConstraint"
                             :max-booking-period="maxBookingPeriod"
-                            :error-message="modalState.errorMessage"
-                            :set-error="val => (modalState.errorMessage = val)"
+                            :error-message="uiError.message"
+                            :set-error="setError"
                             :has-selected-dates="selectedDateRange?.length > 0"
                             @clear-dates="clearDateRange"
                         />
@@ -106,6 +104,7 @@
                             :extended-attributes="extendedAttributes"
                             :extended-attribute-types="extendedAttributeTypes"
                             :authorized-values="authorizedValues"
+                            :set-error="setError"
                             @fields-ready="onAdditionalFieldsReady"
                             @fields-destroyed="onAdditionalFieldsDestroyed"
                         />
@@ -141,7 +140,6 @@ import {
     ref,
     reactive,
     watch,
-    watchEffect,
     nextTick,
     onUnmounted,
 } from "vue";
@@ -164,6 +162,11 @@ import { useAvailability } from "./composables/useAvailability.mjs";
 import { calculateStepNumbers } from "./lib/booking/bookingSteps.mjs";
 import { useBookingValidation } from "./composables/useBookingValidation.mjs";
 import { calculateMaxBookingPeriod } from "./lib/booking/bookingManager.mjs";
+import { useDefaultPickup } from "./composables/useDefaultPickup.mjs";
+import { buildNoItemsAvailableMessage } from "./lib/ui/selectionMessage.mjs";
+import { useRulesFetcher } from "./composables/useRulesFetcher.mjs";
+import { useDerivedItemType } from "./composables/useDerivedItemType.mjs";
+import { useErrorState } from "./composables/useErrorState.mjs";
 
 export default {
     name: "BookingModal",
@@ -233,7 +236,6 @@ export default {
             itemTypes,
             circulationRules,
             loading,
-            error
         } = storeToRefs(store);
 
         // Calculate max booking period from circulation rules and selected constraint
@@ -245,9 +247,9 @@ export default {
         const modalState = reactive({
             isOpen: props.open,
             step: 1,
-            errorMessage: "",
             hasAdditionalFields: false,
         });
+        const { error: uiError, setError, clear: clearError } = useErrorState();
 
         // Tooltip state is now managed inside BookingPeriodStep via composable
         // Refs for specific instances and external library integration
@@ -339,8 +341,6 @@ export default {
             () => itemTypeConstraint.value.filtered
         );
 
-        const lastRulesKey = ref(null);
-
         const maxBookingPeriod = computed(() =>
             calculateMaxBookingPeriod(
                 circulationRules.value,
@@ -348,6 +348,11 @@ export default {
                 props.customDateRangeFormula
             )
         );
+
+        const constraintOptions = computed(() => ({
+            dateRangeConstraint: props.dateRangeConstraint,
+            maxBookingPeriod: maxBookingPeriod.value,
+        }));
 
         // Centralized availability (unavailableByDate + disable fn) via composable
         const { unavailableByDateRef } = useAvailability(
@@ -360,10 +365,7 @@ export default {
                 selectedDateRange,
                 circulationRules,
             },
-            computed(() => ({
-                dateRangeConstraint: props.dateRangeConstraint,
-                maxBookingPeriod: maxBookingPeriod.value,
-            }))
+            constraintOptions
         );
 
         // Prevent calendar interaction until all data is loaded to avoid race conditions
@@ -492,7 +494,7 @@ export default {
                     }
                 } catch (error) {
                     console.error("Error initializing booking modal:", error);
-                    modalState.errorMessage = processApiError(error);
+                    setError(processApiError(error), "api");
                 }
             }
         );
@@ -509,59 +511,22 @@ export default {
             { immediate: true, deep: true }
         );
 
-        // Respond to patron/library/itemtype changes by fetching pickup
-        // locations and circulation rules. This uses watchEffect so any of the
-        // referenced reactive sources re-trigger the logic and the lastRulesKey
-        // guard prevents redundant network calls.
-        watchEffect(
-            () => {
-                const patronId = bookingPatron.value?.patron_id;
-                const biblionumber = props.biblionumber;
-                if (patronId && biblionumber) {
-                    store.fetchPickupLocations(biblionumber, patronId);
-                }
+        useRulesFetcher({
+            store,
+            bookingPatron,
+            bookingPickupLibraryId,
+            bookingItemtypeId,
+            constrainedItemTypes,
+            selectedDateRange,
+            biblionumber: props.biblionumber,
+        });
 
-                const patron = bookingPatron.value;
-                const derivedItemTypeId =
-                    bookingItemtypeId.value ??
-                    (Array.isArray(constrainedItemTypes.value) &&
-                    constrainedItemTypes.value.length === 1
-                        ? constrainedItemTypes.value[0].item_type_id
-                        : undefined);
-
-                const rulesParams = {
-                    patron_category_id: patron?.category_id,
-                    item_type_id: derivedItemTypeId,
-                    library_id: bookingPickupLibraryId.value,
-                    start_date: selectedDateRange.value?.[0] || undefined,
-                };
-                const key = JSON.stringify(rulesParams);
-                if (lastRulesKey.value !== key) {
-                    lastRulesKey.value = key;
-                    store.fetchCirculationRules(rulesParams);
-                }
-            },
-            { flush: "post" }
-        );
-
-        // Auto-derive item type: prefer a unique constrained type; otherwise
-        // infer it from the currently selected item id.
-        watch(
-            [constrainedItemTypes, () => bookingItemId.value, () => bookableItems.value],
-            ([types, itemId, items]) => {
-                if (!bookingItemtypeId.value && Array.isArray(types) && types.length === 1) {
-                    bookingItemtypeId.value = types[0].item_type_id;
-                    return;
-                }
-                if (!bookingItemtypeId.value && itemId) {
-                    const item = (items || []).find(i => String(i.item_id) === String(itemId));
-                    if (item) {
-                        bookingItemtypeId.value = item.effective_item_type_id || item.item_type_id || null;
-                    }
-                }
-            },
-            { immediate: true, deep: true }
-        );
+        useDerivedItemType({
+            bookingItemtypeId,
+            bookingItemId,
+            constrainedItemTypes,
+            bookableItems,
+        });
 
         // Clear errors on core inputs/date changes and when circulation rules
         // finish loading (true -> false). Keeps feedback fresh without wiping
@@ -594,63 +559,15 @@ export default {
             { deep: true }
         );
 
-        // Choose a default pickup library when none is set yet. Preference
-        // order: configured OPAC default (if enabled), patron’s library, then
-        // the first bookable item’s home library when available.
-        watch(
-            [() => bookingPatron.value, () => pickupLocations.value],
-            ([patron, pickupLocations]) => {
-                // Attempt to set default if pickupLibraryId is not already set
-                if (bookingPickupLibraryId.value) return;
-
-
-                // OPAC override: Use configured default pickup library if enabled
-                try {
-                    const opacOverrideEnabled = String(
-                        /** @type {any} */ (props.opacDefaultBookingLibraryEnabled)
-                    ) === "1" || /** @type {any} */ (props.opacDefaultBookingLibraryEnabled) === true;
-                    const opacDefaultBranch = props.opacDefaultBookingLibrary;
-                    if (
-                        opacOverrideEnabled &&
-                        typeof opacDefaultBranch === "string" &&
-                        opacDefaultBranch &&
-                        Array.isArray(pickupLocations) &&
-                        pickupLocations.some(
-                            l => l.library_id === opacDefaultBranch
-                        )
-                    ) {
-                        bookingPickupLibraryId.value = opacDefaultBranch;
-                        return;
-                    }
-                } catch (e) {
-                    // noop
-                }
-
-                if (!patron || pickupLocations.length === 0) return;
-
-                const patronLibId = patron.library_id;
-                const hasPatronLib = pickupLocations.some(
-                    l => l.library_id === patronLibId
-                );
-
-                if (hasPatronLib) {
-                    bookingPickupLibraryId.value = patronLibId;
-                    return;
-                }
-
-                if (bookableItems.value.length === 0) return;
-
-                const firstItemLibId = bookableItems.value[0].home_library_id;
-                const hasItemLib = pickupLocations.some(
-                    l => l.library_id === firstItemLibId
-                );
-
-                if (hasItemLib) {
-                    bookingPickupLibraryId.value = firstItemLibId;
-                }
-            },
-            { immediate: true }
-        );
+        // Default pickup selection handled by composable
+        useDefaultPickup({
+            bookingPickupLibraryId,
+            bookingPatron,
+            pickupLocations,
+            bookableItems,
+            opacDefaultBookingLibraryEnabled: props.opacDefaultBookingLibraryEnabled,
+            opacDefaultBookingLibrary: props.opacDefaultBookingLibrary,
+        });
 
         // Show an actionable error when current selection yields no available
         // items, helping the user adjust filters.
@@ -668,36 +585,14 @@ export default {
                     (pickupLibraryId || itemtypeId) &&
                     availableItems.length === 0
                 ) {
-                    const selectionParts = [];
-                    if (pickupLibraryId) {
-                        const location = pickupLocations.value.find(
-                            l => l.library_id === pickupLibraryId
-                        );
-                        selectionParts.push(
-                            $__("pickup location: %s").format(
-                                location?.name || pickupLibraryId
-                            )
-                        );
-                    }
-                    if (itemtypeId) {
-                        const itemType = itemTypes.value.find(
-                            t => t.item_type_id === itemtypeId
-                        );
-                        selectionParts.push(
-                            $__("item type: %s").format(
-                                itemType?.description || itemtypeId
-                            )
-                        );
-                    }
-
-                    modalState.errorMessage = $__(
-                        "No items are available for booking with the selected criteria (%s). Please adjust your selection."
-                    ).format(selectionParts.join(", "));
-                } else if (
-                    modalState.errorMessage?.includes(
-                        $__("No items are available")
-                    )
-                ) {
+                    const msg = buildNoItemsAvailableMessage(
+                        pickupLocations.value,
+                        itemTypes.value,
+                        pickupLibraryId,
+                        itemtypeId
+                    );
+                    setError(msg, "no_items");
+                } else if (uiError.code === "no_items") {
                     clearErrors();
                 }
             },
@@ -749,7 +644,7 @@ export default {
 
         // Globally clear all error states (modal + store)
         function clearErrors() {
-            modalState.errorMessage = "";
+            clearError();
             store.resetErrors();
         }
 
@@ -812,9 +707,7 @@ export default {
             const selectedDates = selectedDateRange.value;
 
             if (!selectedDates || selectedDates.length === 0) {
-                modalState.errorMessage = $__(
-                    "Please select a valid date range"
-                );
+                setError($__("Please select a valid date range"), "invalid_date_range");
                 return;
             }
 
@@ -869,8 +762,7 @@ export default {
                 emit("close");
                 resetModalState();
             } catch (errorObj) {
-                modalState.errorMessage =
-                    error.value.submit || processApiError(errorObj);
+                setError(processApiError(errorObj), "api");
             }
         }
 
@@ -900,8 +792,8 @@ export default {
             checkouts,
             pickupLocations,
             itemTypes,
-            circulationRules,
-            error,
+            uiError,
+            setError,
             // Computed values
             constrainedPickupLocations,
             constrainedItemTypes,
@@ -909,6 +801,7 @@ export default {
             isCalendarReady,
             isSubmitReady,
             constrainedFlags,
+            constraintOptions,
             handleClose,
             handleSubmit,
             clearDateRange,

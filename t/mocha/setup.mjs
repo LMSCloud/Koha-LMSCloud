@@ -4,8 +4,14 @@
  * Sets up module path resolution for cleaner imports in tests
  */
 
+// Ensure consistent timezone across tests
+process.env.TZ = "UTC";
+
 import { pathToFileURL } from "url";
 import { resolve } from "path";
+import dayjsLib from "dayjs";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore.js";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter.js";
 
 // Define path aliases for commonly used modules
 const aliases = {
@@ -39,7 +45,22 @@ if (originalResolve) {
 }
 
 // Global test setup
-global.$__ = str => str; // Mock translation function
+global.$__ = str => ({
+    toString: () => str,
+    format: arg => String(str).replace("%s", arg),
+    includes: searchStr => String(str).includes(searchStr),
+    valueOf: () => str,
+});
+
+// Minimal window shim for modules expecting browser dayjs globals
+global.window = global.window || {};
+// Extend local dayjs instance with required plugins once
+dayjsLib.extend(isSameOrBefore);
+dayjsLib.extend(isSameOrAfter);
+// Expose to window to satisfy utils/dayjs.mjs expectations
+global.window.dayjs = dayjsLib;
+global.window.dayjs_plugin_isSameOrBefore = isSameOrBefore;
+global.window.dayjs_plugin_isSameOrAfter = isSameOrAfter;
 
 // Export aliases for manual resolution if needed
 export { aliases, projectRoot };

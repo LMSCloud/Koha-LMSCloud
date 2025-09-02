@@ -144,24 +144,8 @@ describe("Error States and Recovery Patterns", () => {
             }).to.not.throw();
         });
 
-        it("should handle date selection with invalid formats", () => {
-            const bookings = [];
-            const items = BookingTestData.createItems(1);
-            const rules = BookingTestData.createCirculationRules();
-
-            // Test with various invalid date formats
-            expect(() => {
-                modules.parseDateRange(["not-a-date", new Date("2025-08-10")]);
-            }).to.throw();
-
-            // Test with valid dates
-            const validDates = [new Date("2025-08-10"), new Date("2025-08-15")];
-
-            const parsed = modules.parseDateRange(validDates);
-            expect(parsed).to.be.an("array");
-            expect(parsed[0]).to.be.a("string"); // start date
-            expect(parsed[1]).to.be.a("string"); // end date
-        });
+        // parseDateRange has been removed; date handling now uses ISO arrays directly.
+        // This test block is no longer applicable.
 
         it("should validate date range logic errors", () => {
             const bookings = [];

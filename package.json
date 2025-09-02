@@ -55,8 +55,8 @@
     "build:prod": "yarn css:build:prod && yarn js:build:prod",
     "cypress": "cypress",
     "prettier": "prettier",
-    "test:mocha": "mocha t/mocha/unit/**/*.test.mjs --timeout 10000",
-    "test:mocha:watch": "mocha t/mocha/unit/**/*.test.mjs --timeout 10000 --watch"
+    "test:mocha": "mocha --require t/mocha/setup.mjs t/mocha/unit/**/*.test.mjs --timeout 10000",
+    "test:mocha:watch": "mocha --require t/mocha/setup.mjs t/mocha/unit/**/*.test.mjs --timeout 10000 --watch"
   },
   "repository": {
     "type": "git",

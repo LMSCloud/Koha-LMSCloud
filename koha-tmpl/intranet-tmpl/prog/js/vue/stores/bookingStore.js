@@ -93,6 +93,19 @@ export const useBookingStore = defineStore("bookingStore", {
     }),
 
     actions: {
+        /**
+         * Invalidate backend-calculated due values to avoid stale UI when inputs change.
+         * Keeps the rules object shape but removes calculated fields so consumers
+         * fall back to maxPeriod-based logic until fresh rules arrive.
+         */
+        invalidateCalculatedDue() {
+            if (Array.isArray(this.circulationRules) && this.circulationRules.length > 0) {
+                const first = { ...this.circulationRules[0] };
+                if ("calculated_due_date" in first) delete first.calculated_due_date;
+                if ("calculated_period_days" in first) delete first.calculated_period_days;
+                this.circulationRules = [first];
+            }
+        },
         resetErrors() {
             Object.keys(this.error).forEach(key => {
                 this.error[key] = null;

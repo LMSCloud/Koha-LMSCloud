@@ -52,6 +52,10 @@ export default {
             type: String,
             default: "",
         },
+        setError: {
+            type: Function,
+            default: null,
+        },
     },
     emits: ["update:modelValue"],
     setup(props, { emit }) {
@@ -78,10 +82,15 @@ export default {
                 const data = await store.fetchPatrons(search);
                 patronOptions.value = data;
             } catch (error) {
-                console.error(
-                    "Error searching patrons:",
-                    processApiError(error)
-                );
+                const msg = processApiError(error);
+                console.error("Error searching patrons:", msg);
+                if (typeof props.setError === "function") {
+                    try {
+                        props.setError(msg, "api");
+                    } catch (e) {
+                        // no-op: avoid breaking search on error propagation
+                    }
+                }
                 patronOptions.value = [];
             }
         };

@@ -3,168 +3,24 @@
 // To be used by the Pinia store and BookingModal.vue
 
 import dayjs from "../../../../utils/dayjs.mjs";
-import { win } from "../index.mjs";
 import { managerLogger as logger } from "./bookingLogger.mjs";
-
-// Use global $__ function (available in browser, mocked in tests)
-const $__ = globalThis.$__ || (str => str);
-
-/**
- * Validate end_date_only start date selection - checks entire range for conflicts
- * @param {any} date - Potential start date
- * @param {number} maxPeriod - Maximum booking period
- * @param {Object} intervalTree - Interval tree for conflict checking
- * @param {string|null} selectedItem - Selected item ID
- * @param {number|null} editBookingId - Booking ID being edited
- * @param {Array} allItemIds - All available item IDs
- * @returns {boolean} True if date should be disabled
- */
-function validateEndDateOnlyStartDate(
-    date,
-    maxPeriod,
-    intervalTree,
-    selectedItem,
-    editBookingId,
-    allItemIds
-) {
-    const targetEndDate = date.add(maxPeriod - 1, "day");
-
-    logger.debug(
-        `Checking end_date_only range: ${date.format(
-            "YYYY-MM-DD"
-        )} to ${targetEndDate.format("YYYY-MM-DD")}`
-    );
-
-    if (selectedItem) {
-        // Specific item selected - check if that item has conflicts in the range
-        const conflicts = intervalTree.queryRange(
-            date.valueOf(),
-            targetEndDate.valueOf(),
-            String(selectedItem)
-        );
-
-        const relevantConflicts = conflicts.filter(
-            interval =>
-                !editBookingId || interval.metadata.booking_id != editBookingId
-        );
-
-        if (relevantConflicts.length > 0) {
-            logger.debug(
-                `Start date blocked - range conflicts for specific item ${selectedItem}`
-            );
-            return true;
-        }
-    } else {
-        // "Any item" mode - check if ALL items are unavailable for ANY date in the range
-        let allItemsBlockedOnSomeDate = false;
-
-        for (
-            let checkDate = date;
-            checkDate.isSameOrBefore(targetEndDate, "day");
-            checkDate = checkDate.add(1, "day")
-        ) {
-            const dayConflicts = intervalTree.query(checkDate.valueOf());
-            const relevantDayConflicts = dayConflicts.filter(
-                interval =>
-                    !editBookingId ||
-                    interval.metadata.booking_id != editBookingId
-            );
-
-            const unavailableItemIds = new Set(
-                relevantDayConflicts.map(c => String(c.itemId))
-            );
-            const allItemsUnavailableOnThisDay =
-                allItemIds.length > 0 &&
-                allItemIds.every(id => unavailableItemIds.has(String(id)));
-
-            if (allItemsUnavailableOnThisDay) {
-                allItemsBlockedOnSomeDate = true;
-                logger.debug(
-                    `Start date blocked - all items unavailable on ${checkDate.format(
-                        "YYYY-MM-DD"
-                    )} within end_date_only range`
-                );
-                break;
-            }
-        }
-
-        logger.debug(`End_date_only range validation (Any item):`, {
-            mode: "end_date_only",
-            startDate: date.format("YYYY-MM-DD"),
-            endDate: targetEndDate.format("YYYY-MM-DD"),
-            selectedItem: "ANY_AVAILABLE",
-            totalItems: allItemIds.length,
-            allItemsBlockedOnSomeDate: allItemsBlockedOnSomeDate,
-            decision: allItemsBlockedOnSomeDate ? "BLOCK" : "CONTINUE",
-        });
-
-        if (allItemsBlockedOnSomeDate) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-/**
- * Handle end_date_only intermediate date logic when start date is selected
- * @param {any} date - Date being checked
- * @param {Array} selectedDates - Currently selected dates
- * @param {number} maxPeriod - Maximum booking period
- * @returns {boolean|null} True to disable, false to allow, null to continue with normal logic
- */
-function handleEndDateOnlyIntermediateDates(date, selectedDates, maxPeriod) {
-    if (!selectedDates || selectedDates.length !== 1) {
-        return null; // Not applicable, continue with normal logic
-    }
-
-    const startDate = dayjs(selectedDates[0]).startOf("day");
-    const expectedEndDate = startDate.add(maxPeriod - 1, "day");
-
-    // If this is the expected end date, allow it (let it fall through to normal validation)
-    if (date.isSame(expectedEndDate, "day")) {
-        logger.debug(
-            `Allowing expected end date ${date.format(
-                "YYYY-MM-DD"
-            )} in end_date_only mode`
-        );
-        return null; // Continue with normal validation
-    }
-
-    // If this is an intermediate date, let calendar highlighting handle visual feedback
-    if (
-        date.isAfter(startDate, "day") &&
-        date.isBefore(expectedEndDate, "day")
-    ) {
-        logger.debug(
-            `Processing intermediate date ${date.format(
-                "YYYY-MM-DD"
-            )} in end_date_only mode (will be visually highlighted by calendar)`
-        );
-        return null; // Don't disable - let calendar highlighting handle visual feedback
-    }
-
-    // If this is after the expected end date, disable it
-    if (date.isAfter(expectedEndDate, "day")) {
-        logger.debug(
-            `Disabling date ${date.format(
-                "YYYY-MM-DD"
-            )} beyond end_date_only range`
-        );
-        return true; // Hard disable dates beyond the range
-    }
-
-    return null; // Continue with normal logic for other dates
-}
+import { createConstraintStrategy } from "./strategies.mjs";
 import {
     // eslint-disable-next-line no-unused-vars
     IntervalTree,
     buildIntervalTree,
 } from "../IntervalTree.mjs";
+import { SweepLineProcessor, processCalendarView } from "../SweepLineProcessor.mjs";
+import { idsEqual, includesId } from "./idUtils.mjs";
 import {
-    SweepLineProcessor,
-    processCalendarView,
-} from "../SweepLineProcessor.mjs";
+    CONSTRAINT_MODE_END_DATE_ONLY,
+    CONSTRAINT_MODE_NORMAL,
+    SELECTION_ANY_AVAILABLE,
+    SELECTION_SPECIFIC_ITEM,
+} from "./constants.mjs";
+
+// Use global $__ function (available in browser, mocked in tests)
+const $__ = globalThis.$__ || (str => str);
 
 /**
  * Build unavailableByDate map from IntervalTree for backward compatibility
@@ -268,69 +124,15 @@ function buildUnavailableByDateMap(
     return filledMap;
 }
 
-// Map flatpickr format strings to dayjs format strings and regex patterns
-const DATE_FORMAT_MAP = {
-    "Y-m-d": {
-        pattern: /\d{4}-\d{2}-\d{2}/g,
-        dayjsFormat: "YYYY-MM-DD",
-        priority: 1, // ISO format always preferred
-    },
-    "d.m.Y": {
-        pattern: /\d{1,2}\.\d{1,2}\.\d{4}/g,
-        dayjsFormat: "DD.MM.YYYY",
-        priority: 2, // Common European format
-    },
-    "d/m/Y": {
-        pattern: /\d{1,2}\/\d{1,2}\/\d{4}/g,
-        dayjsFormat: "DD/MM/YYYY",
-        priority: 3, // European slash format
-    },
-    "m/d/Y": {
-        pattern: /\d{1,2}\/\d{1,2}\/\d{4}/g,
-        dayjsFormat: "MM/DD/YYYY",
-        priority: 4, // US format (lower priority for international use)
-    },
-    "d-m-Y": {
-        pattern: /\d{1,2}-\d{1,2}-\d{4}/g,
-        dayjsFormat: "DD-MM-YYYY",
-        priority: 5, // European dash format
-    },
-    "m-d-Y": {
-        pattern: /\d{1,2}-\d{1,2}-\d{4}/g,
-        dayjsFormat: "MM-DD-YYYY",
-        priority: 6, // US dash format
-    },
-};
-
-/**
- * Get locale-aware date format configuration
- * @returns {Object} Date format configuration based on current locale
- */
-function getLocalizedDateFormat() {
-    const dateFormat = win("flatpickr_dateformat_string") || "Y-m-d";
-    const langCode =
-        win("KohaLanguage") ||
-        document.documentElement.lang?.toLowerCase() ||
-        "en";
-
-    // Get base format configuration
-    let formatConfig = DATE_FORMAT_MAP[dateFormat] || DATE_FORMAT_MAP["Y-m-d"];
-
-    // For ambiguous formats (slash-separated), use locale to determine interpretation
-    if (dateFormat === "d/m/Y" || dateFormat === "m/d/Y") {
-        const isUSLocale =
-            langCode.startsWith("en-us") ||
-            (langCode === "en" &&
-                (navigator.language || "").toLowerCase().includes("us"));
-
-        if (isUSLocale) {
-            formatConfig = DATE_FORMAT_MAP["m/d/Y"];
-        } else {
-            formatConfig = DATE_FORMAT_MAP["d/m/Y"];
-        }
-    }
-
-    return { dateFormat, formatConfig, langCode };
+// Small helper to standardize constraint function return shape
+function buildConstraintResult(filtered, total) {
+    const filteredOutCount = total - filtered.length;
+    return {
+        filtered,
+        filteredOutCount,
+        total,
+        constraintApplied: filtered.length !== total,
+    };
 }
 
 /**
@@ -491,7 +293,16 @@ function extractBookingConfiguration(circulationRules, todayArg) {
         Number(circulationRules?.issuelength) ||
         0;
     const isEndDateOnly =
-        circulationRules?.booking_constraint_mode === "end_date_only";
+        circulationRules?.booking_constraint_mode ===
+        CONSTRAINT_MODE_END_DATE_ONLY;
+    const calculatedDueDate = circulationRules?.calculated_due_date
+        ? dayjs(circulationRules.calculated_due_date).startOf("day")
+        : null;
+    const calculatedPeriodDays = Number(
+        circulationRules?.calculated_period_days
+    )
+        ? Number(circulationRules.calculated_period_days)
+        : null;
 
     logger.debug("Booking configuration extracted:", {
         today: today.format("YYYY-MM-DD"),
@@ -508,6 +319,8 @@ function extractBookingConfiguration(circulationRules, todayArg) {
         trailDays,
         maxPeriod,
         isEndDateOnly,
+        calculatedDueDate,
+        calculatedPeriodDays,
     };
 }
 
@@ -529,8 +342,18 @@ function createDisableFunction(
     editBookingId,
     selectedDates
 ) {
-    const { today, leadDays, trailDays, maxPeriod, isEndDateOnly } = config;
+    const {
+        today,
+        leadDays,
+        trailDays,
+        maxPeriod,
+        isEndDateOnly,
+        calculatedDueDate,
+    } = config;
     const allItemIds = bookableItems.map(i => String(i.item_id));
+    const strategy = createConstraintStrategy(
+        isEndDateOnly ? CONSTRAINT_MODE_END_DATE_ONLY : CONSTRAINT_MODE_NORMAL
+    );
 
     return date => {
         const dayjs_date = dayjs(date).startOf("day");
@@ -548,32 +371,36 @@ function createDisableFunction(
             return true;
         }
 
-        // Guard clause: End date only mode - potential start date validation
-        if (isEndDateOnly && (!selectedDates || selectedDates?.length === 0)) {
-            if (
-                validateEndDateOnlyStartDate(
-                    dayjs_date,
+        // Mode-specific start date validation
+        if (
+            strategy.validateStartDateSelection(
+                dayjs_date,
+                {
+                    today,
+                    leadDays,
+                    trailDays,
                     maxPeriod,
-                    intervalTree,
-                    selectedItem,
-                    editBookingId,
-                    allItemIds
-                )
-            ) {
-                return true;
-            }
+                    isEndDateOnly,
+                    calculatedDueDate,
+                },
+                intervalTree,
+                selectedItem,
+                editBookingId,
+                allItemIds,
+                selectedDates
+            )
+        ) {
+            return true;
         }
 
-        // Guard clause: End date only mode - intermediate date handling
-        if (isEndDateOnly && selectedDates?.length === 1) {
-            const intermediateResult = handleEndDateOnlyIntermediateDates(
-                dayjs_date,
-                selectedDates,
-                maxPeriod
-            );
-            if (intermediateResult === true) {
-                return true;
-            }
+        // Mode-specific intermediate date handling
+        const intermediateResult = strategy.handleIntermediateDate(
+            dayjs_date,
+            selectedDates,
+            { today, leadDays, trailDays, maxPeriod, isEndDateOnly, calculatedDueDate }
+        );
+        if (intermediateResult === true) {
+            return true;
         }
 
         // Guard clause: Standard point-in-time availability check
@@ -669,11 +496,20 @@ function createDisableFunction(
 
             // Basic end date validations
             if (dayjs_date.isBefore(start, "day")) return true;
+            // Respect backend-calculated due date in end_date_only mode only if it's not before start
             if (
-                maxPeriod > 0 &&
-                dayjs_date.isAfter(start.add(maxPeriod - 1, "day"), "day")
-            )
-                return true;
+                isEndDateOnly &&
+                config.calculatedDueDate &&
+                !config.calculatedDueDate.isBefore(start, "day")
+            ) {
+                const targetEnd = config.calculatedDueDate;
+                if (dayjs_date.isAfter(targetEnd, "day")) return true;
+            } else if (maxPeriod > 0) {
+                if (
+                    dayjs_date.isAfter(start.add(maxPeriod - 1, "day"), "day")
+                )
+                    return true;
+            }
 
             // Optimized trail period validation using range queries
             if (
@@ -717,7 +553,9 @@ function logBookingDebugInfo(
     logger.debug("OPAC Selection Debug:", {
         selectedItem: selectedItem,
         selectedItemType:
-            selectedItem === null ? "ANY_AVAILABLE" : "SPECIFIC_ITEM",
+            selectedItem === null
+                ? SELECTION_ANY_AVAILABLE
+                : SELECTION_SPECIFIC_ITEM,
         bookableItems: bookableItems.map(item => ({
             item_id: item.item_id,
             title: item.title,
@@ -861,6 +699,15 @@ export function deriveEffectiveRules(baseRules = {}, constraintOptions = {}) {
 }
 
 /**
+ * Convenience: take full circulationRules array and constraint options,
+ * return effective rules applying maxPeriod logic.
+ */
+export function toEffectiveRules(circulationRules, constraintOptions = {}) {
+    const baseRules = circulationRules?.[0] || {};
+    return deriveEffectiveRules(baseRules, constraintOptions);
+}
+
+/**
  * Calculate maximum booking period from circulation rules and constraint mode.
  */
 export function calculateMaxBookingPeriod(
@@ -919,19 +766,11 @@ export function calculateAvailabilityData(dateRange, storeData, options = {}) {
 
     let selectedDatesArray = [];
     if (Array.isArray(dateRange)) {
-        selectedDatesArray = dateRange.map(isoString =>
-            dayjs(isoString).toDate()
-        );
+        selectedDatesArray = dateRange.map(d => dayjs(d).toDate());
     } else if (typeof dateRange === "string") {
-        const [startISO, endISO] = parseDateRange(dateRange);
-        if (startISO && endISO) {
-            selectedDatesArray = [
-                dayjs(startISO).toDate(),
-                dayjs(endISO).toDate(),
-            ];
-        } else if (startISO) {
-            selectedDatesArray = [dayjs(startISO).toDate()];
-        }
+        throw new TypeError(
+            "calculateAvailabilityData expects an array of ISO/date values for dateRange"
+        );
     }
 
     return calculateDisabledDates(
@@ -1026,41 +865,44 @@ export function handleBookingDateChange(
             valid = false;
         }
 
-        // Validate: period must not exceed maxPeriod (only if end date exists)
-        if (
-            maxPeriod > 0 &&
-            dayjsEnd &&
-            dayjsEnd.diff(dayjsStart, "day") + 1 > maxPeriod
-        ) {
-            errors.push(String($__("Booking period exceeds maximum allowed")));
-            valid = false;
+        // Validate: period must not exceed maxPeriod unless overridden in end_date_only by backend due date
+        if (dayjsEnd) {
+            const isEndDateOnly =
+                circulationRules?.booking_constraint_mode ===
+                CONSTRAINT_MODE_END_DATE_ONLY;
+            const dueStr = circulationRules?.calculated_due_date;
+            const hasBackendDue = Boolean(dueStr);
+            if (!isEndDateOnly || !hasBackendDue) {
+                if (
+                    maxPeriod > 0 &&
+                    dayjsEnd.diff(dayjsStart, "day") + 1 > maxPeriod
+                ) {
+                    errors.push(
+                        String($__("Booking period exceeds maximum allowed"))
+                    );
+                    valid = false;
+                }
+            }
         }
 
-        // Validate: end_date_only constraint (only if end date exists)
-        if (
-            dayjsEnd &&
-            circulationRules?.booking_constraint_mode === "end_date_only"
-        ) {
-            const numericMaxPeriod =
-                Number(circulationRules.maxPeriod) ||
-                Number(circulationRules.issuelength) ||
-                0;
-            const targetEndDate = dayjsStart.add(
-                Math.max(1, numericMaxPeriod) - 1,
-                "day"
-            );
-
-            // In end_date_only mode, end date must exactly match the calculated target end date
-            if (!dayjsEnd.isSame(targetEndDate, "day")) {
-                errors.push(
-                    String(
-                        $__(
-                            "In end date only mode, you can only select the calculated end date"
-                        )
+        // Strategy-specific enforcement for end date (e.g., end_date_only)
+        const strategy = createConstraintStrategy(
+            circulationRules?.booking_constraint_mode
+        );
+        const enforcement = strategy.enforceEndDateSelection(
+            dayjsStart,
+            dayjsEnd,
+            circulationRules
+        );
+        if (!enforcement.ok) {
+            errors.push(
+                String(
+                    $__(
+                        "In end date only mode, you can only select the calculated end date"
                     )
-                );
-                valid = false;
-            }
+                )
+            );
+            valid = false;
         }
 
         // Validate: check for booking/checkouts overlap using calculateDisabledDates
@@ -1138,12 +980,7 @@ export function getBookingMarkersForDate(
 
     const findItem = item_id => {
         if (item_id == null) return undefined;
-        return bookableItems.find(
-            i =>
-                i.item_id != null &&
-                (String(i.item_id) === String(item_id) ||
-                    Number(i.item_id) === Number(item_id))
-        );
+        return bookableItems.find(i => idsEqual(i?.item_id, item_id));
     };
 
     const entry = unavailableByDate[key]; // This was line 496
@@ -1175,184 +1012,6 @@ export function getBookingMarkersForDate(
 }
 
 /**
- * Helper to generate all visible dates for the current calendar view
- * @param {Object} flatpickrInstance - Flatpickr instance
- * @returns {Array<Date>} - Array of Date objects
- */
-export function getVisibleCalendarDates(flatpickrInstance) {
-    if (
-        !flatpickrInstance ||
-        !Array.isArray(flatpickrInstance.days) ||
-        !flatpickrInstance.days.length
-    )
-        return [];
-    return Array.from(flatpickrInstance.days)
-        .filter(el => el && el.dateObj)
-        .map(el => el.dateObj);
-}
-
-/**
- * Parse a date range value into ISO date strings
- *
- * ⚠️  DEPRECATION NOTE: This function should become unnecessary once we eliminate
- * all string-based date handling. The new approach stores ISO strings directly
- * from flatpickr's Date objects, eliminating the need for complex parsing.
- *
- * Current usage: Fallback for cases where legacy string dates still exist.
- * Future: Should be removable once all date handling uses ISO arrays.
- *
- * @param {Array|string|null} val - Date range value
- * @returns {Array<string|null>} - [start, end] ISO strings (or null)
- */
-export function parseDateRange(val) {
-    if (Array.isArray(val)) {
-        const result = [
-            val[0] ? dayjs(val[0]).toISOString() : null,
-            val[1] ? dayjs(val[1]).toISOString() : null,
-        ];
-        return result;
-    }
-
-    if (typeof val === "string" && win("flatpickr")) {
-        const { dateFormat, formatConfig, langCode } = getLocalizedDateFormat();
-
-        // Get locale configuration for flatpickr parsing
-        let locale = null;
-
-        if (langCode !== "en" && win("flatpickr")?.l10ns?.[langCode]) {
-            locale = win("flatpickr").l10ns[langCode];
-        } else if (langCode !== "en") {
-            // Create fallback locale using available global settings
-            const fallbackLocale = {};
-            if (win("flatpickr_weekdays"))
-                fallbackLocale.weekdays = win("flatpickr_weekdays");
-            if (win("flatpickr_months"))
-                fallbackLocale.months = win("flatpickr_months");
-            if (Object.keys(fallbackLocale).length > 0) {
-                locale = fallbackLocale;
-            }
-        }
-
-        // First try: Use flatpickr's locale-aware range parsing
-        try {
-            // Get the actual rangeSeparator from flatpickr's loaded locale
-            let rangeSeparator = " to "; // default
-
-            if (win("flatpickr")?.l10ns) {
-                const currentLang = langCode || "en";
-                const flatpickrLocale =
-                    win("flatpickr").l10ns[currentLang] ||
-                    win("flatpickr").l10ns.default;
-                if (flatpickrLocale?.rangeSeparator) {
-                    rangeSeparator = flatpickrLocale.rangeSeparator;
-                }
-            }
-
-            if (val.includes(rangeSeparator)) {
-                const parts = val.split(rangeSeparator);
-
-                if (parts.length >= 2) {
-                    const start =
-                        win("flatpickr") && win("flatpickr").parseDate
-                            ? win("flatpickr").parseDate(
-                                  parts[0].trim(),
-                                  dateFormat,
-                                  locale
-                              )
-                            : null;
-                    const end =
-                        win("flatpickr") && win("flatpickr").parseDate
-                            ? win("flatpickr").parseDate(
-                                  parts[1].trim(),
-                                  dateFormat,
-                                  locale
-                              )
-                            : null;
-
-                    if (start && end) {
-                        const result = [
-                            dayjs(start).toISOString(),
-                            dayjs(end).toISOString(),
-                        ];
-                        return result;
-                    }
-                }
-            }
-
-            // Single date case
-            const parsed =
-                win("flatpickr") && win("flatpickr").parseDate
-                    ? win("flatpickr").parseDate(val, dateFormat, locale)
-                    : null;
-            if (parsed) {
-                const result = [dayjs(parsed).toISOString(), null];
-                return result;
-            }
-        } catch (e) {}
-
-        // Fallback: Pattern-based parsing with dayjs
-        console.log(
-            "📅 Falling back to pattern matching with regex:",
-            formatConfig.pattern
-        );
-        const foundDates = val.match(formatConfig.pattern);
-
-        if (foundDates?.length >= 2) {
-            try {
-                const [start, end] = foundDates.slice(0, 2).map(dateStr => {
-                    const parsed = dayjs(
-                        dateStr,
-                        formatConfig.dayjsFormat,
-                        true
-                    ); // strict parsing
-                    return parsed.isValid() ? parsed.toISOString() : null;
-                });
-
-                if (start && end) {
-                    return [start, end];
-                }
-            } catch (e) {}
-        } else if (foundDates?.length === 1) {
-            // Single date found
-            try {
-                const parsed = dayjs(
-                    foundDates[0],
-                    formatConfig.dayjsFormat,
-                    true
-                );
-                console.log(
-                    "📅 Single date parsed:",
-                    parsed.isValid() ? parsed.format() : "INVALID"
-                );
-                if (parsed.isValid()) {
-                    const result = [parsed.toISOString(), null];
-                    console.log(
-                        "✅ Single date pattern parsing successful:",
-                        result
-                    );
-                    return result;
-                }
-            } catch (e) {
-                console.warn("❌ Single date parsing failed", e);
-            }
-        }
-    }
-
-    // Final fallback: Try ISO parsing with dayjs
-    if (typeof val === "string" && val.trim()) {
-        try {
-            const parsed = dayjs(val);
-            if (parsed.isValid()) {
-                const result = [parsed.toISOString(), null];
-                return result;
-            }
-        } catch (e) {}
-    }
-
-    return [null, null];
-}
-
-/**
  * Constrain pickup locations based on selected itemtype or item
  * Returns { filtered, filteredOutCount, total, constraintApplied }
  */
@@ -1377,29 +1036,19 @@ export function constrainPickupLocations(
         logger.debug(
             "constrainPickupLocations: No constraints, returning all locations"
         );
-        return {
-            filtered: pickupLocations,
-            filteredOutCount: 0,
-            total: pickupLocations.length,
-            constraintApplied: false,
-        };
+        return buildConstraintResult(pickupLocations, pickupLocations.length);
     }
     const filtered = pickupLocations.filter(loc => {
         if (bookingItemId) {
-            return (
-                loc.pickup_items &&
-                loc.pickup_items.map(Number).includes(Number(bookingItemId))
-            );
+            return loc.pickup_items && includesId(loc.pickup_items, bookingItemId);
         }
         if (bookingItemtypeId) {
             return (
                 loc.pickup_items &&
                 bookableItems.some(
                     item =>
-                        item.item_type_id === bookingItemtypeId &&
-                        loc.pickup_items
-                            .map(Number)
-                            .includes(Number(item.item_id))
+                        idsEqual(item.item_type_id, bookingItemtypeId) &&
+                        includesId(loc.pickup_items, item.item_id)
                 )
             );
         }
@@ -1415,14 +1064,7 @@ export function constrainPickupLocations(
         },
     });
 
-    const constraintApplied = filtered.length !== pickupLocations.length;
-
-    return {
-        filtered,
-        filteredOutCount: pickupLocations.length - filtered.length,
-        total: pickupLocations.length,
-        constraintApplied,
-    };
+    return buildConstraintResult(filtered, pickupLocations.length);
 }
 
 /**
@@ -1451,35 +1093,30 @@ export function constrainBookableItems(
         logger.debug(
             "constrainBookableItems: No constraints, returning all items"
         );
-        return {
-            filtered: bookableItems,
-            filteredOutCount: 0,
-            total: bookableItems.length,
-            constraintApplied: false,
-        };
+        return buildConstraintResult(bookableItems, bookableItems.length);
     }
     const filtered = bookableItems.filter(item => {
         if (pickupLibraryId && bookingItemtypeId) {
             const found = pickupLocations.find(
                 loc =>
-                    loc.library_id === pickupLibraryId &&
+                    idsEqual(loc.library_id, pickupLibraryId) &&
                     loc.pickup_items &&
-                    loc.pickup_items.includes(item.item_id)
+                    includesId(loc.pickup_items, item.item_id)
             );
-            const match = item.item_type_id === bookingItemtypeId && found;
+            const match = idsEqual(item.item_type_id, bookingItemtypeId) && found;
             return match;
         }
         if (pickupLibraryId) {
             const found = pickupLocations.find(
                 loc =>
-                    loc.library_id === pickupLibraryId &&
+                    idsEqual(loc.library_id, pickupLibraryId) &&
                     loc.pickup_items &&
-                    loc.pickup_items.includes(item.item_id)
+                    includesId(loc.pickup_items, item.item_id)
             );
             return found;
         }
         if (bookingItemtypeId) {
-            return item.item_type_id === bookingItemtypeId;
+            return idsEqual(item.item_type_id, bookingItemtypeId);
         }
         return true;
     });
@@ -1498,14 +1135,7 @@ export function constrainBookableItems(
         },
     });
 
-    const constraintApplied = filtered.length !== bookableItems.length;
-
-    return {
-        filtered,
-        filteredOutCount: bookableItems.length - filtered.length,
-        total: bookableItems.length,
-        constraintApplied,
-    };
+    return buildConstraintResult(filtered, bookableItems.length);
 }
 
 /**
@@ -1520,45 +1150,31 @@ export function constrainItemTypes(
     bookingItemId
 ) {
     if (!pickupLibraryId && !bookingItemId) {
-        return {
-            filtered: itemTypes,
-            filteredOutCount: 0,
-            total: itemTypes.length,
-            constraintApplied: false,
-        };
+        return buildConstraintResult(itemTypes, itemTypes.length);
     }
     const filtered = itemTypes.filter(type => {
         if (bookingItemId) {
             return bookableItems.some(
                 item =>
-                    Number(item.item_id) === Number(bookingItemId) &&
-                    item.item_type_id === type.item_type_id
+                    idsEqual(item.item_id, bookingItemId) &&
+                    idsEqual(item.item_type_id, type.item_type_id)
             );
         }
         if (pickupLibraryId) {
             return bookableItems.some(
                 item =>
-                    item.item_type_id === type.item_type_id &&
+                    idsEqual(item.item_type_id, type.item_type_id) &&
                     pickupLocations.find(
                         loc =>
-                            loc.library_id === pickupLibraryId &&
+                            idsEqual(loc.library_id, pickupLibraryId) &&
                             loc.pickup_items &&
-                            loc.pickup_items
-                                .map(Number)
-                                .includes(Number(item.item_id))
+                            includesId(loc.pickup_items, item.item_id)
                     )
             );
         }
         return true;
     });
-    const constraintApplied = filtered.length !== itemTypes.length;
-
-    return {
-        filtered,
-        filteredOutCount: itemTypes.length - filtered.length,
-        total: itemTypes.length,
-        constraintApplied,
-    };
+    return buildConstraintResult(filtered, itemTypes.length);
 }
 
 /**
@@ -1573,50 +1189,14 @@ export function calculateConstraintHighlighting(
     circulationRules,
     constraintOptions = {}
 ) {
-    logger.debug("Calculating constraint highlighting", {
+    const strategy = createConstraintStrategy(
+        circulationRules?.booking_constraint_mode
+    );
+    const result = strategy.calculateConstraintHighlighting(
         startDate,
         circulationRules,
-        constraintOptions,
-    });
-
-    const start = dayjs(startDate).startOf("day");
-
-    // Determine the constraint period
-    let maxPeriod = constraintOptions.maxBookingPeriod;
-    if (
-        !maxPeriod &&
-        circulationRules?.booking_constraint_mode === "end_date_only"
-    ) {
-        maxPeriod =
-            Number(circulationRules.maxPeriod) ||
-            Number(circulationRules.issuelength) ||
-            30;
-    }
-
-    if (!maxPeriod) {
-        logger.debug("No constraint period to highlight");
-        return null;
-    }
-
-    // Calculate target end date
-    const targetEndDate = start.add(maxPeriod - 1, "day").toDate();
-
-    // Calculate intermediate dates for end_date_only mode
-    const blockedIntermediateDates = [];
-    if (circulationRules?.booking_constraint_mode === "end_date_only") {
-        for (let i = 1; i < maxPeriod - 1; i++) {
-            blockedIntermediateDates.push(start.add(i, "day").toDate());
-        }
-    }
-
-    const result = {
-        startDate: start.toDate(),
-        targetEndDate,
-        blockedIntermediateDates,
-        constraintMode: circulationRules?.booking_constraint_mode || "normal",
-        maxPeriod,
-    };
-
+        constraintOptions
+    );
     logger.debug("Constraint highlighting calculated", result);
     return result;
 }
@@ -1642,7 +1222,28 @@ export function getCalendarNavigationTarget(
     const start = dayjs(startDate);
     const target = dayjs(targetEndDate);
 
-    // Check if target is in a different month
+    // Never navigate backwards if target is before the chosen start
+    if (target.isBefore(start, "day")) {
+        logger.debug("Target end before start; skip navigation");
+        return { shouldNavigate: false };
+    }
+
+    // If we know the currently visible range, do not navigate when target is already visible
+    if (
+        currentView.visibleStartDate &&
+        currentView.visibleEndDate
+    ) {
+        const visibleStart = dayjs(currentView.visibleStartDate).startOf("day");
+        const visibleEnd = dayjs(currentView.visibleEndDate).endOf("day");
+        const inView = target.isBetween(visibleStart, visibleEnd, undefined, "[]");
+        if (inView) {
+            logger.debug("Target end date already visible; no navigation");
+            console.log("[nav] already visible: skip");
+            return { shouldNavigate: false };
+        }
+    }
+
+    // Fallback: navigate when target month differs from start month
     if (start.month() !== target.month() || start.year() !== target.year()) {
         const navigationTarget = {
             shouldNavigate: true,
@@ -1650,7 +1251,6 @@ export function getCalendarNavigationTarget(
             targetYear: target.year(),
             targetDate: target.toDate(),
         };
-
         logger.debug("Calendar should navigate", navigationTarget);
         return navigationTarget;
     }
