@@ -89,14 +89,14 @@ sub _calculate_circulation_dates {
     my $circ_branch      = _GetCircControlBranch( $test_item, $test_patron );
     my $effective_branch = $circ_branch || $branchcode;
 
-    my $start_dt    = $start_date ? dt_from_string($start_date) : dt_from_string();
+    my $start_dt    = $start_date ? dt_from_string($start_date, 'rfc3339') : dt_from_string();
     my $due_date    = CalcDateDue( $start_dt, $item_type, $effective_branch, $test_patron );
     my $period_days = $start_dt->delta_days($due_date)->in_units('days');
 
     my $loanlength = GetLoanLength( $patron_category, $item_type, $effective_branch );
 
     return {
-        calculated_due_date    => join( $due_date->ymd(), q{ }, $due_date->hms() ),
+        calculated_due_date    => join( q{ }, $due_date->ymd(), $due_date->hms() ),
         calculated_period_days => $period_days,
         circulation_branch     => $effective_branch,
         lengthunit             => $loanlength->{lengthunit} // 'days',
