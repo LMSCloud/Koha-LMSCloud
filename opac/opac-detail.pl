@@ -725,6 +725,28 @@ my $can_holds_be_placed = $patron ? 0 : $holdable_items;
 
 my $can_bookings_be_placed = $biblio->bookable_items->count;
 
+#is biblio a collection and are bundles enabled
+my $leader = $record->leader();
+my $bundlesItemCount = {};
+if ( $leader && substr( $leader, 7, 1 ) eq 'c' && C4::Context->preference('BundleNotLoanValue') ) {
+    $template->param( bundlesEnabled => 1 );
+    my $rs = Koha::Items->search(
+            {
+                biblionumber => $biblionumber,
+            },
+            {
+                join     => [ qw/ item_bundles_hosts / ],
+                select  => [ "itemnumber", { count => "item_bundles_hosts.item" }],
+                as       => [ qw/ itemnumber count /],
+                group_by => [ qw/ itemnumber / ]
+            }
+        );
+    while (my $resitem = $rs->next) {
+        $bundlesItemCount->{$resitem->get_column("itemnumber")} = $resitem->get_column("count");
+    }
+}
+
+
 my ( $itemloop_has_images, $otheritemloop_has_images );
 if ( not $viewallitems and $items->count > $max_items_to_display ) {
     $template->param(
@@ -736,6 +758,8 @@ else {
     my $library_info;
     while ( my $item = $items->next ) {
         my $item_info = $item->unblessed;
+        
+        $item_info->{bundled_items} = $bundlesItemCount->{$item_info->{itemnumber}} // 0;
         
         if ( C4::Context->preference('DivibibEnabled') && scalar(@divibibItems) ) {
             for my $i(0..$#divibibItems) {

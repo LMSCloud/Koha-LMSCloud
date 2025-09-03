@@ -1390,6 +1390,13 @@
                             [% END %]
                         [% END %]
                        <span class="itypetext">[% ITEM_RESULT.description | html %]</span>
+                       [% IF bundlesEnabled && ITEM_RESULT.bundled_items > 0 %]
+                           [% IF bundlesEnabled && ITEM_RESULT.bundled_items > 1 %]
+                           <div class="show_bundle_items"><a class="show_bundle_items_link" data-itemnumber="[% ITEM_RESULT.itemnumber %]">Media bundle with [% ITEM_RESULT.bundled_items %] media items</a></div>
+                           [% ELSE %]
+                           <div class="show_bundle_items"><a class="show_bundle_items_link" data-itemnumber="[% ITEM_RESULT.itemnumber %]">Media bundle with [% ITEM_RESULT.bundled_items %] media item</a></div>
+                           [% END %]
+                       [% END %]
                     </td>
                 [% END %]
                 [% IF ( OpacLocationBranchToDisplay == 'holding' || OpacLocationBranchToDisplay == 'both' ) %]
@@ -2323,5 +2330,9 @@
     </script>
     [% END %]
     <script src="https://static.lmscloud.net/js/bibtip_lmscloud_v215.js" type="text/javascript"></script>
+    [% END %]
+
+    [% IF bundlesEnabled %]
+    [% INCLUDE 'show-bundle-modal.inc' %]
     [% END %]
 [% END %]

@@ -381,6 +381,8 @@ paths:
     $ref: ./paths/bookings.yaml#/~1public~1bookings
   "/public/bookings/{booking_id}":
     $ref: "./paths/bookings.yaml#/~1public~1bookings~1{booking_id}"
+  "/public/items/{item_id}/bundled_items":
+    $ref: ./paths/items.yaml#/~1public~1items~1{item_id}~1bundled_items
   /public/libraries:
     $ref: ./paths/libraries.yaml#/~1public~1libraries
   "/public/libraries/{library_id}":

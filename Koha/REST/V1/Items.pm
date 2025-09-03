@@ -58,6 +58,29 @@ sub list {
     };
 }
 
+=head3 list_public
+
+Controller function that handles listing Koha::Item objects available to the opac
+
+=cut
+
+sub list_public {
+    my $c = shift->openapi->valid_input or return;
+
+    return try {
+        my $patron = $c->stash('koha.user');
+
+        my $items_set = Koha::Items->filter_by_visible_in_opac( { patron => $patron } );
+        my $items     = $c->objects->search($items_set);
+
+        return $c->render(
+            status  => 200,
+            openapi => $items
+        );
+    } catch {
+        $c->unhandled_exception($_);
+    };
+}
 
 =head3 get
 
@@ -275,6 +298,49 @@ sub bundled_items {
                 join => 'item_bundles_item',
             }
         );
+        my $items     = $c->objects->search( $items_set );
+        return $c->render(
+            status  => 200,
+            openapi => $items
+        );
+    }
+    catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 public_bundled_items
+
+Controller function that handles public bundled_items Koha::Item objects
+
+=cut
+
+sub public_bundled_items {
+    my $c = shift->openapi->valid_input or return;
+
+    my $item_id = $c->validation->param('item_id');
+    my $item = Koha::Items->find( $item_id );
+    
+    print STDERR "public_bundled_items called with $item_id item_id\n";
+
+    unless ($item) {
+        return $c->render(
+            status  => 404,
+            openapi => { error => "Item not found" }
+        );
+    }
+
+    return try {
+        my $patron = $c->stash('koha.user');
+        my $items_set = Koha::Items->search(
+            {
+                'item_bundles_item.host' => $item_id,
+            },
+            {
+                join => 'item_bundles_item',
+            }
+        )->filter_by_visible_in_opac( { patron => $patron } );
+
         my $items     = $c->objects->search( $items_set );
         return $c->render(
             status  => 200,
