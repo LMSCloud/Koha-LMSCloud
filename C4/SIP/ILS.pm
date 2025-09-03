@@ -263,11 +263,14 @@ sub checkin {
         if ( $checkinOpts && $checkinOpts->{disable_checkins_with_holds} ) {
             my $pending = $item->pending_queue;
             if ( $pending && ref($pending) eq 'ARRAY' && scalar(@$pending) ) {
-                $circ->alert(1);
-                $circ->alert_type(92);
-                $circ->ok( 0 );
-                $circ->screen_msg('Checkin of items with holds forbidden');
-                return $circ;
+                my $bibitem_queue = [( grep { !( defined $_->{itemnumber} and $_->{itemnumber} ne $item->{itemnumber} ) }  @{$pending} )];
+                if ( $bibitem_queue && ref($bibitem_queue) eq 'ARRAY' && scalar(@$bibitem_queue) ) {
+                    $circ->alert(1);
+                    $circ->alert_type(92);
+                    $circ->ok( 0 );
+                    $circ->screen_msg('Checkin of items with holds forbidden');
+                    return $circ;
+                }
             }
         }
         $data = $circ->do_checkin( $current_loc, $return_date, $account );
