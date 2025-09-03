@@ -90,7 +90,7 @@
                             {
                                 targets: [2],
                                 responsivePriority: 5,
-                                "title": _("Jahr"),
+                                "title": _("Year"),
                                 "searchable": true,
                                 "orderable": true,
                             },
