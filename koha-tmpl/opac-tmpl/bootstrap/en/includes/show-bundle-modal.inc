@@ -1,5 +1,10 @@
 [% INCLUDE 'js-biblio-format.inc' %]
 <script>
+    var HtmlCharsToEscape = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;'
+    };
     String.prototype.escapeHtml = function() {
         return this.replace(/[&<>]/g, function(c) {
             return HtmlCharsToEscape[c] || c;
