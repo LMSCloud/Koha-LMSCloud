@@ -377,10 +377,11 @@ export default {
                 (bookableItems.value?.length ?? 0) > 0
         );
         const formPrefilterValid = computed(() => {
+            const requireTypeOrItem = !!props.showItemDetailsSelects;
             const hasTypeOrItem =
                 !!bookingItemId.value || !!bookingItemtypeId.value;
             const patronOk = !props.showPatronSelect || !!bookingPatron.value;
-            return patronOk && hasTypeOrItem;
+            return patronOk && (requireTypeOrItem ? hasTypeOrItem : true);
         });
         const hasAvailableItems = computed(
             () => constrainedBookableItems.value.length > 0
