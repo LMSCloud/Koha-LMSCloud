@@ -7,7 +7,7 @@ import * as bookingApi from "@bookingApi";
 import {
     transformPatronData,
     transformPatronsData,
-} from "../components/Bookings/lib/patron/index.mjs";
+} from "../components/Bookings/lib/adapters/patron.mjs";
 
 /**
  * Higher-order function to standardize async operation error handling

@@ -14,7 +14,7 @@ import {
     createOnDayCreate,
     createOnClose,
     preloadFlatpickrLocale,
-} from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/calendar.mjs";
+} from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/adapters/calendar.mjs";
 import dayjs from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/utils/dayjs.mjs";
 
 // Setup JSDOM environment

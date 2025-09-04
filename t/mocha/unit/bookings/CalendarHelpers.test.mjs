@@ -22,7 +22,7 @@ describe("Calendar helpers", () => {
 
         // Dynamically import after environment is ready
         const mod = await import(
-            "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/calendar.mjs"
+            "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/adapters/calendar.mjs"
         );
         buildMarkerGrid = mod.buildMarkerGrid;
     });

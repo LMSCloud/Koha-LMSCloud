@@ -17,12 +17,12 @@ import dayjs from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/utils/dayjs.m
 import {
     SweepLineProcessor,
     processCalendarView,
-} from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/SweepLineProcessor.mjs";
+} from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/algorithms/sweep-line-processor.mjs";
 import {
     IntervalTree,
     BookingInterval,
     buildIntervalTree,
-} from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/IntervalTree.mjs";
+} from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/algorithms/interval-tree.mjs";
 
 describe("SweepLineProcessor", () => {
     let processor;

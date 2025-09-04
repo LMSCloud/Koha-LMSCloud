@@ -1,5 +1,5 @@
 import { watch } from "vue";
-import { idsEqual } from "../lib/booking/idUtils.mjs";
+import { idsEqual } from "../lib/booking/id-utils.mjs";
 
 /**
  * Auto-derive item type: prefer a single constrained type; otherwise infer

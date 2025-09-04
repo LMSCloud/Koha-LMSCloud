@@ -1,6 +1,6 @@
 import { describe, it } from "mocha";
 import { expect } from "chai";
-import { idsEqual, includesId, toIdSet } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/idUtils.mjs";
+import { idsEqual, includesId, toIdSet } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/id-utils.mjs";
 
 describe("idUtils helpers", () => {
     it("idsEqual normalizes string/number IDs", () => {

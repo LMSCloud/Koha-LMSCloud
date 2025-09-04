@@ -1,5 +1,5 @@
 import { watch } from "vue";
-import { idsEqual } from "../lib/booking/idUtils.mjs";
+import { idsEqual } from "../lib/booking/id-utils.mjs";
 
 /**
  * Sets a sensible default pickup library when none is selected.

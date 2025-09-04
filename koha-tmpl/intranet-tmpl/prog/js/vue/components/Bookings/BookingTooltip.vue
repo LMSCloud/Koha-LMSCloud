@@ -35,7 +35,7 @@
 <script setup lang="ts">
 import { defineProps, withDefaults } from "vue";
 import { $__ } from "../../i18n";
-import { getMarkerTypeLabel } from "./lib/ui/markerLabels.mjs";
+import { getMarkerTypeLabel } from "./lib/ui/marker-labels.mjs";
 
 type Marker = {
     type: string;

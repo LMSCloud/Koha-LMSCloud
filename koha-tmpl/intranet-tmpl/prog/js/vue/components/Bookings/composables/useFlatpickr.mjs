@@ -1,15 +1,15 @@
 import { onMounted, onUnmounted, watch } from "vue";
 import flatpickr from "flatpickr";
-import { isoArrayToDates } from "../lib/booking/dateUtils.mjs";
+import { isoArrayToDates } from "../lib/booking/date-utils.mjs";
 import { useBookingStore } from "../../../stores/bookingStore.js";
 import {
     applyCalendarHighlighting,
     createOnDayCreate,
     createOnClose,
     createOnChange,
-} from "../lib/booking/calendar.mjs";
+} from "../lib/adapters/calendar.mjs";
 import { useConstraintHighlighting } from "./useConstraintHighlighting.mjs";
-import { win } from "../lib/index.mjs";
+import { win } from "../lib/adapters/globals.mjs";
 
 /**
  * Flatpickr integration for the bookings calendar.

@@ -1,5 +1,5 @@
 import { computed } from "vue";
-import { isoArrayToDates } from "../lib/booking/dateUtils.mjs";
+import { isoArrayToDates } from "../lib/booking/date-utils.mjs";
 import { calculateDisabledDates, toEffectiveRules } from "../lib/booking/manager.mjs";
 
 /**

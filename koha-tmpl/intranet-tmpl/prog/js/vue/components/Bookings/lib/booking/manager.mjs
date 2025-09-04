@@ -9,9 +9,9 @@ import {
     // eslint-disable-next-line no-unused-vars
     IntervalTree,
     buildIntervalTree,
-} from "../IntervalTree.mjs";
-import { SweepLineProcessor, processCalendarView } from "../SweepLineProcessor.mjs";
-import { idsEqual, includesId } from "./idUtils.mjs";
+} from "./algorithms/interval-tree.mjs";
+import { SweepLineProcessor, processCalendarView } from "./algorithms/sweep-line-processor.mjs";
+import { idsEqual, includesId } from "./id-utils.mjs";
 import {
     CONSTRAINT_MODE_END_DATE_ONLY,
     CONSTRAINT_MODE_NORMAL,

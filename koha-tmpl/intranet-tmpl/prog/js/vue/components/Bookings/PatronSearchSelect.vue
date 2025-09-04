@@ -32,7 +32,7 @@ import "vue-select/dist/vue-select.css";
 import { processApiError } from "../../utils/apiErrors.js";
 import { useBookingStore } from "../../stores/bookingStore";
 import { storeToRefs } from "pinia";
-import { debounce } from "./lib/booking/index.mjs";
+import { debounce } from "./lib/adapters/external-dependents.mjs";
 
 export default {
     name: "PatronSearchSelect",

@@ -46,7 +46,7 @@ before(async () => {
     calculateDisabledDates = managerModule.calculateDisabledDates;
 
     const intervalTreeModule = await import(
-        "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/IntervalTree.mjs"
+        "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/algorithms/interval-tree.mjs"
     );
     buildIntervalTree = intervalTreeModule.buildIntervalTree;
     IntervalTree = intervalTreeModule.IntervalTree;

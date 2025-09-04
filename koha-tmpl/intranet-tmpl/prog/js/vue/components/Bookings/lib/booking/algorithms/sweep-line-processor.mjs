@@ -5,8 +5,8 @@
  * to efficiently determine availability for each day in O(n log n) time
  */
 
-import dayjs from "../../../utils/dayjs.mjs";
-import { managerLogger as logger } from "./booking/logger.mjs";
+import dayjs from "../../../../../utils/dayjs.mjs"
+import { managerLogger as logger } from "../logger.mjs";
 
 /**
  * Event types for the sweep line algorithm

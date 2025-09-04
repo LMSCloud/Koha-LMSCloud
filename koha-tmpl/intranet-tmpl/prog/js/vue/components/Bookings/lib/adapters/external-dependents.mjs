@@ -11,7 +11,7 @@ export function debounce(fn, delay) {
 /**
  * Default dependencies for external updates - can be overridden in tests
  */
-import { win } from "../index.mjs";
+import { win } from "./globals.mjs";
 
 const defaultDependencies = {
     timeline: () => win("timeline"),

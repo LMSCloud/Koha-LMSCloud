@@ -5,10 +5,10 @@ import {
     getCalendarNavigationTarget,
     aggregateMarkersByType,
     deriveEffectiveRules,
-} from "./manager.mjs";
+} from "../booking/manager.mjs";
 import dayjs from "../../../../utils/dayjs.mjs";
-import { calendarLogger as logger } from "./logger.mjs";
-import { CONSTRAINT_MODE_END_DATE_ONLY } from "./constants.mjs";
+import { calendarLogger as logger } from "../booking/logger.mjs";
+import { CONSTRAINT_MODE_END_DATE_ONLY } from "../booking/constants.mjs";
 
 const CLASS_BOOKING_CONSTRAINED_RANGE_MARKER =
     "booking-constrained-range-marker";

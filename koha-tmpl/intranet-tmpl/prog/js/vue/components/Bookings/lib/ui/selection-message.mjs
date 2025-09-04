@@ -1,4 +1,4 @@
-import { idsEqual } from "../booking/idUtils.mjs";
+import { idsEqual } from "../booking/id-utils.mjs";
 import { $__ } from "../../../../i18n/index.js";
 
 export function buildNoItemsAvailableMessage(
