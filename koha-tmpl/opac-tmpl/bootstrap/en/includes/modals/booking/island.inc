@@ -9,9 +9,7 @@
         submit-type="form-submission"
         submit-url="/cgi-bin/koha/opac-bookings.pl"
         show-additional-fields
-        [% IF Koha.Preference('OPACBookingDateRangeConstraint') %]
-        date-range-constraint="[% Koha.Preference('OPACBookingDateRangeConstraint') | html %]"
-        [% END %]
+        date-range-constraint="[% (Koha.Preference('OPACBookingDateRangeConstraint') || 'issuelength_with_renewals') | html %]" [%# FIXME: issuelength_with_renewals needs to be the db default, don't constrain needs a value %]
         opac-default-booking-library-enabled="[% Koha.Preference('OPACDefaultBookingLibraryEnabled') | html %]"
         opac-default-booking-library="[% Koha.Preference('OPACDefaultBookingLibrary') | html %]"
     ></booking-modal-island>

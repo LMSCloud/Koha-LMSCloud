@@ -8,9 +8,7 @@
         show-item-details-selects
         show-pickup-location-select
         show-additional-fields
-        [% IF Koha.Preference('BookingDateRangeConstraint') %]
-        date-range-constraint="[% Koha.Preference('BookingDateRangeConstraint') | html %]"
-        [% END %]
+        date-range-constraint="[% (Koha.Preference('BookingDateRangeConstraint') || 'issuelength_with_renewals') | html %]" [%# FIXME: issuelength_with_renewals needs to be the db default, don't constrain needs a value %]
     ></booking-modal-island>
 </div>
 [% SET islands = Asset.js("js/vue/dist/islands.esm.js").match('(src="([^"]+)")').1 %] <script src="[% islands %]" type="module"></script>

@@ -376,15 +376,12 @@ export default {
                 !loading.value.checkouts &&
                 (bookableItems.value?.length ?? 0) > 0
         );
-        const formPrefilterValid = computed(
-            () =>
-                !!(
-                    bookingPatron.value &&
-                    (bookingItemId.value ||
-                        bookingItemtypeId.value ||
-                        pickupLibraryId.value)
-                )
-        );
+        const formPrefilterValid = computed(() => {
+            const hasTypeOrItem =
+                !!bookingItemId.value || !!bookingItemtypeId.value;
+            const patronOk = !props.showPatronSelect || !!bookingPatron.value;
+            return patronOk && hasTypeOrItem;
+        });
         const hasAvailableItems = computed(
             () => constrainedBookableItems.value.length > 0
         );
