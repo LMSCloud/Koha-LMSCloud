@@ -1,4 +1,3 @@
-// bookingApi.js
 /**
  * @module bookingApi
  * @description Service module for all booking-related API calls.
@@ -129,13 +128,11 @@ import { buildPatronSearchQuery } from "../patron.mjs";
  */
 export async function fetchPatrons(term, page = 1) {
     if (!term) {
-        return { results: [] }; // Return empty result for empty search term
+        return { results: [] };
     }
 
-    // Build the search query using the utility function
     const query = buildPatronSearchQuery(term, {
         search_type: "contains",
-        // Add any additional options needed for the search
     });
 
     const params = new URLSearchParams({
@@ -166,9 +163,7 @@ export async function fetchPatrons(term, page = 1) {
             if (errorData.error) {
                 error.message += ` - ${errorData.error}`;
             }
-        } catch (e) {
-            // If we can't parse the error JSON, use the default error message
-        }
+        } catch (e) {}
 
         throw error;
     }
@@ -193,7 +188,6 @@ export async function fetchPickupLocations(biblionumber, patronId) {
         _per_page: "-1",
     });
 
-    // Only add patron_id if it's provided
     if (patronId) {
         params.append("patron_id", String(patronId));
     }
@@ -239,7 +233,7 @@ export async function fetchCirculationRules(params = {}) {
             params[key] !== undefined &&
             params[key] !== ""
         ) {
-        filteredParams[key] = params[key];
+            filteredParams[key] = params[key];
         }
     }
 
@@ -331,9 +325,7 @@ export async function createBooking(bookingData) {
             if (errorData.error) {
                 errorMessage += ` - ${errorData.error}`;
             }
-        } catch (e) {
-            // If we can't parse the error JSON, use the default error message
-        }
+        } catch (e) {}
         /** @type {Error & { status?: number }} */
         const error = Object.assign(new Error(errorMessage), {
             status: response.status,
@@ -389,9 +381,7 @@ export async function updateBooking(bookingId, bookingData) {
             if (errorData.error) {
                 errorMessage += ` - ${errorData.error}`;
             }
-        } catch (e) {
-            // If we can't parse the error JSON, use the default error message
-        }
+        } catch (e) {}
         /** @type {Error & { status?: number }} */
         const error = Object.assign(new Error(errorMessage), {
             status: response.status,

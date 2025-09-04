@@ -4,6 +4,7 @@
 
 /**
  * Get a value from window by key using bracket notation
+ *
  * @param {string} key
  * @returns {unknown}
  */
@@ -14,6 +15,7 @@ export function win(key) {
 
 /**
  * Get a value from window with default initialization
+ *
  * @param {string} key
  * @param {unknown} defaultValue
  * @returns {unknown}

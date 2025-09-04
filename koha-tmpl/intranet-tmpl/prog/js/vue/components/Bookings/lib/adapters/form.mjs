@@ -15,4 +15,3 @@ export function appendHiddenInputs(form, entries) {
         form.appendChild(input);
     });
 }
-

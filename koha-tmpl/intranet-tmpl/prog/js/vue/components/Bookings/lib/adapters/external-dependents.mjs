@@ -1,5 +1,15 @@
 import dayjs from "../../../../utils/dayjs.mjs";
+import { win } from "./globals.mjs";
 
+/** @typedef {import('../../types/bookings').ExternalDependencies} ExternalDependencies */
+
+/**
+ * Debounce utility with simple trailing invocation.
+ *
+ * @param {(...args:any[]) => any} fn
+ * @param {number} delay
+ * @returns {(...args:any[]) => void}
+ */
 export function debounce(fn, delay) {
     let timeout;
     return function (...args) {
@@ -10,9 +20,8 @@ export function debounce(fn, delay) {
 
 /**
  * Default dependencies for external updates - can be overridden in tests
+ * @type {ExternalDependencies}
  */
-import { win } from "./globals.mjs";
-
 const defaultDependencies = {
     timeline: () => win("timeline"),
     bookingsTable: () => win("bookings_table"),
@@ -26,6 +35,10 @@ const defaultDependencies = {
 
 /**
  * Renders patron content for display, with injected dependency
+ *
+ * @param {{ cardnumber?: string }|null} bookingPatron
+ * @param {ExternalDependencies} [dependencies=defaultDependencies]
+ * @returns {string}
  */
 function renderPatronContent(
     bookingPatron,
@@ -56,6 +69,12 @@ function renderPatronContent(
 
 /**
  * Updates timeline component with booking data
+ *
+ * @param {import('../../types/bookings').Booking} newBooking
+ * @param {{ cardnumber?: string }|null} bookingPatron
+ * @param {boolean} isUpdate
+ * @param {ExternalDependencies} dependencies
+ * @returns {{ success: boolean, reason?: string }}
  */
 function updateTimelineComponent(
     newBooking,
@@ -97,6 +116,9 @@ function updateTimelineComponent(
 
 /**
  * Updates bookings table component
+ *
+ * @param {ExternalDependencies} dependencies
+ * @returns {{ success: boolean, reason?: string }}
  */
 function updateBookingsTable(dependencies) {
     const bookingsTable = dependencies.bookingsTable();
@@ -114,6 +136,10 @@ function updateBookingsTable(dependencies) {
 
 /**
  * Updates booking count elements in the DOM
+ *
+ * @param {boolean} isUpdate
+ * @param {ExternalDependencies} dependencies
+ * @returns {{ success: boolean, reason?: string, updatedElements?: number, totalElements?: number }}
  */
 function updateBookingCounts(isUpdate, dependencies) {
     if (isUpdate)
@@ -128,7 +154,7 @@ function updateBookingCounts(isUpdate, dependencies) {
             const match = html.match(/(\d+)/);
             if (match) {
                 const newCount = parseInt(match[1], 10) + 1;
-                el.innerHTML = html.replace(/(\d+)/, newCount);
+                el.innerHTML = html.replace(/(\d+)/, String(newCount));
                 updatedCount++;
             }
         });
@@ -150,11 +176,11 @@ function updateBookingCounts(isUpdate, dependencies) {
  * This function is designed with dependency injection to make it testable
  * and to provide proper error handling with detailed feedback.
  *
- * @param {Object} newBooking - The booking data that was created/updated
- * @param {Object|null} bookingPatron - The patron data for rendering
+ * @param {import('../../types/bookings').Booking} newBooking - The booking data that was created/updated
+ * @param {{ cardnumber?: string }|null} bookingPatron - The patron data for rendering
  * @param {boolean} isUpdate - Whether this is an update (true) or create (false)
- * @param {Object} dependencies - Injectable dependencies (for testing)
- * @returns {Object} Results summary with success/failure details
+ * @param {ExternalDependencies} dependencies - Injectable dependencies (for testing)
+ * @returns {Record<string, { attempted: boolean, success?: boolean, reason?: string }>} Results summary with success/failure details
  */
 export function updateExternalDependents(
     newBooking,
@@ -214,9 +240,3 @@ export function updateExternalDependents(
 
     return results;
 }
-
-/**
- * Legacy wrapper for backward compatibility
- * @deprecated Use updateExternalDependents with proper error handling
- */
-// Note: Legacy wrapper removed. Use updateExternalDependents(newBooking, bookingPatron, isUpdate).

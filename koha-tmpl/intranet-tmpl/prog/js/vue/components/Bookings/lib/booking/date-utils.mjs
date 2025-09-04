@@ -8,11 +8,10 @@ export function isoArrayToDates(values) {
 
 // Convert a Date-like input to ISO string
 export function toISO(input) {
-    return dayjs(/** @type {import('dayjs').ConfigType} */ (input)).toISOString();
+    return dayjs(
+        /** @type {import('dayjs').ConfigType} */ (input)
+    ).toISOString();
 }
-
-
-
 
 // Normalize any Date-like input to a dayjs instance
 export function toDayjs(input) {
@@ -34,11 +33,10 @@ export function formatYMD(input) {
     return toDayjs(input).format("YYYY-MM-DD");
 }
 
-
 // Add or subtract days returning a dayjs instance
 export function addDays(input, days) {
-    return toDayjs(input).add(days, 'day');
+    return toDayjs(input).add(days, "day");
 }
 export function subDays(input, days) {
-    return toDayjs(input).subtract(days, 'day');
+    return toDayjs(input).subtract(days, "day");
 }

@@ -9,4 +9,3 @@ export function getMarkerTypeLabel(type) {
     };
     return labels[type] || type;
 }
-

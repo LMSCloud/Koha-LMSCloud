@@ -5,7 +5,7 @@
  * Based on augmented red-black tree with interval overlap detection
  */
 
-import dayjs from "../../../../../utils/dayjs.mjs"
+import dayjs from "../../../../../utils/dayjs.mjs";
 import { managerLogger as logger } from "../logger.mjs";
 
 /**

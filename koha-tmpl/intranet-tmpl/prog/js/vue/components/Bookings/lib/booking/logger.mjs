@@ -80,7 +80,6 @@ class BookingLogger {
      * @param  {...unknown} args
      */
     log(level, message, ...args) {
-        // Skip if this specific level is not enabled
         if (!this.enabledLevels.has(level)) return;
 
         const timestamp = new Date().toISOString();
@@ -88,10 +87,8 @@ class BookingLogger {
             this.module
         }] [${level.toUpperCase()}]`;
 
-        // Log to console with appropriate method
         console[level](prefix, message, ...args);
 
-        // Store in buffer for export
         this._logBuffer = this._logBuffer || [];
         this._logBuffer.push({
             timestamp,
@@ -101,7 +98,6 @@ class BookingLogger {
             args,
         });
 
-        // Keep buffer size reasonable (last 1000 entries)
         if (this._logBuffer.length > 1000) {
             this._logBuffer = this._logBuffer.slice(-1000);
         }

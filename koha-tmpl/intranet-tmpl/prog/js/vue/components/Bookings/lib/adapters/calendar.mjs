@@ -27,7 +27,10 @@ const CLASS_FLATPICKR_NOT_ALLOWED = "notAllowed";
 const DATA_ATTRIBUTE_BOOKING_OVERRIDE = "data-booking-override";
 
 /**
- * Clear constraint highlighting from flatpickr calendar
+ * Clear constraint highlighting from the Flatpickr calendar.
+ *
+ * @param {import('flatpickr/dist/types/instance').Instance} instance
+ * @returns {void}
  */
 export function clearCalendarHighlighting(instance) {
     logger.debug("Clearing calendar highlighting");
@@ -45,12 +48,12 @@ export function clearCalendarHighlighting(instance) {
     });
 }
 
-// Keep internal function for backward compatibility
-// Deprecated alias removed; use clearCalendarHighlighting directly
-
 /**
- * Apply constraint highlighting to flatpickr calendar
- * This is a pure UI function that applies visual styling based on data from the manager
+ * Apply constraint highlighting to the Flatpickr calendar.
+ *
+ * @param {import('flatpickr/dist/types/instance').Instance} instance
+ * @param {import('../../types/bookings').ConstraintHighlighting} highlightingData
+ * @returns {void}
  */
 export function applyCalendarHighlighting(instance, highlightingData) {
     if (!instance || !instance.calendarContainer || !highlightingData) {
@@ -62,16 +65,16 @@ export function applyCalendarHighlighting(instance, highlightingData) {
         return;
     }
 
-    // Store data for reuse (e.g., after month navigation)
-    const instWithCache = /** @type {import('flatpickr/dist/types/instance').Instance & { _constraintHighlighting?: unknown }} */ (instance);
+    // Cache highlighting data for re-application after navigation
+    const instWithCache =
+        /** @type {import('flatpickr/dist/types/instance').Instance & { _constraintHighlighting?: import('../../types/bookings').ConstraintHighlighting | null }} */ (
+            instance
+        );
     instWithCache._constraintHighlighting = highlightingData;
 
-    // Clear any existing highlighting first
     clearCalendarHighlighting(instance);
 
-    // Apply highlighting with retry logic for DOM readiness
     const applyHighlighting = (retryCount = 0) => {
-        // Start group only when actually processing
         if (retryCount === 0) {
             logger.group("applyCalendarHighlighting");
         }
@@ -79,7 +82,6 @@ export function applyCalendarHighlighting(instance, highlightingData) {
             `.${CLASS_FLATPICKR_DAY}`
         );
 
-        // Retry if DOM not ready
         if (dayElements.length === 0 && retryCount < 5) {
             logger.debug(`No day elements found, retry ${retryCount + 1}`);
             requestAnimationFrame(() => applyHighlighting(retryCount + 1));
@@ -96,20 +98,17 @@ export function applyCalendarHighlighting(instance, highlightingData) {
             const startTime = highlightingData.startDate.getTime();
             const targetTime = highlightingData.targetEndDate.getTime();
 
-            // Apply highlighting based on constraint mode
             if (dayTime >= startTime && dayTime <= targetTime) {
                 if (
                     highlightingData.constraintMode ===
                     CONSTRAINT_MODE_END_DATE_ONLY
                 ) {
-                    // Check if this is an intermediate blocked date
                     const isBlocked =
                         highlightingData.blockedIntermediateDates.some(
                             blockedDate => dayTime === blockedDate.getTime()
                         );
 
                     if (isBlocked) {
-                        // Intermediate dates - visual blocking
                         if (
                             !dayElem.classList.contains(
                                 CLASS_FLATPICKR_DISABLED
@@ -122,7 +121,6 @@ export function applyCalendarHighlighting(instance, highlightingData) {
                             blockedCount++;
                         }
                     } else {
-                        // Start or end date - available
                         if (
                             !dayElem.classList.contains(
                                 CLASS_FLATPICKR_DISABLED
@@ -135,7 +133,6 @@ export function applyCalendarHighlighting(instance, highlightingData) {
                         }
                     }
                 } else {
-                    // Normal range mode - highlight entire range
                     if (!dayElem.classList.contains(CLASS_FLATPICKR_DISABLED)) {
                         dayElem.classList.add(
                             CLASS_BOOKING_CONSTRAINED_RANGE_MARKER
@@ -153,7 +150,6 @@ export function applyCalendarHighlighting(instance, highlightingData) {
             constraintMode: highlightingData.constraintMode,
         });
 
-        // Apply click prevention for blocked dates
         if (highlightingData.constraintMode === CONSTRAINT_MODE_END_DATE_ONLY) {
             applyClickPrevention(instance);
             fixTargetEndDateAvailability(
@@ -162,7 +158,6 @@ export function applyCalendarHighlighting(instance, highlightingData) {
                 highlightingData.targetEndDate
             );
 
-            // Re-apply highlighting for target end date after our modifications
             const targetEndElem = Array.from(dayElements).find(
                 elem =>
                     elem.dateObj &&
@@ -173,7 +168,6 @@ export function applyCalendarHighlighting(instance, highlightingData) {
                 targetEndElem &&
                 !targetEndElem.classList.contains(CLASS_FLATPICKR_DISABLED)
             ) {
-                // Ensure the target end date has proper highlighting
                 targetEndElem.classList.add(
                     CLASS_BOOKING_CONSTRAINED_RANGE_MARKER
                 );
@@ -183,20 +177,21 @@ export function applyCalendarHighlighting(instance, highlightingData) {
             }
         }
 
-        // End group when done processing
         logger.groupEnd();
     };
 
-    // Start the highlighting process
     requestAnimationFrame(() => applyHighlighting());
 }
 
 /**
- * Fix flatpickr's incorrect marking of target end date as unavailable
- * Uses CSS-based approach instead of fighting with DOM mutations
+ * Fix incorrect target-end unavailability via a CSS-based override.
+ *
+ * @param {import('flatpickr/dist/types/instance').Instance} _instance
+ * @param {NodeListOf<Element>|Element[]} dayElements
+ * @param {Date} targetEndDate
+ * @returns {void}
  */
 function fixTargetEndDateAvailability(_instance, dayElements, targetEndDate) {
-    // Ensure dayElements is array-like before processing
     if (!dayElements || typeof dayElements.length !== "number") {
         logger.warn(
             "Invalid dayElements passed to fixTargetEndDateAvailability",
@@ -215,13 +210,11 @@ function fixTargetEndDateAvailability(_instance, dayElements, targetEndDate) {
         return;
     }
 
-    // Use CSS approach instead of mutation observer hack
     // Mark the element as explicitly allowed, overriding Flatpickr's styles
     targetEndElem.classList.remove(CLASS_FLATPICKR_NOT_ALLOWED);
     targetEndElem.removeAttribute("tabindex");
     targetEndElem.classList.add(CLASS_BOOKING_OVERRIDE_ALLOWED);
 
-    // Set a data attribute to prevent re-processing
     targetEndElem.setAttribute(DATA_ATTRIBUTE_BOOKING_OVERRIDE, "allowed");
 
     logger.debug("Applied CSS override for target end date availability", {
@@ -229,7 +222,6 @@ function fixTargetEndDateAvailability(_instance, dayElements, targetEndDate) {
         element: targetEndElem,
     });
 
-    // Force enable the target end date element immediately
     if (targetEndElem.classList.contains(CLASS_FLATPICKR_DISABLED)) {
         targetEndElem.classList.remove(
             CLASS_FLATPICKR_DISABLED,
@@ -245,7 +237,10 @@ function fixTargetEndDateAvailability(_instance, dayElements, targetEndDate) {
 }
 
 /**
- * Apply click prevention for intermediate dates in end_date_only mode
+ * Apply click prevention for intermediate dates in end_date_only mode.
+ *
+ * @param {import('flatpickr/dist/types/instance').Instance} instance
+ * @returns {void}
  */
 function applyClickPrevention(instance) {
     if (!instance || !instance.calendarContainer) return;
@@ -254,15 +249,12 @@ function applyClickPrevention(instance) {
         `.${CLASS_BOOKING_INTERMEDIATE_BLOCKED}`
     );
     blockedElements.forEach(elem => {
-        // Remove existing listeners to avoid duplicates
         elem.removeEventListener("click", preventClick, { capture: true });
         elem.addEventListener("click", preventClick, { capture: true });
     });
 }
 
-/**
- * Click prevention handler - extracted for better cleanup
- */
+/** Click prevention handler. */
 function preventClick(e) {
     e.preventDefault();
     e.stopPropagation();
@@ -271,28 +263,28 @@ function preventClick(e) {
 
 /**
  * Get the current language code from the HTML lang attribute
+ *
+ * @returns {string}
  */
 function getCurrentLanguageCode() {
     const htmlLang = document.documentElement.lang || "en";
-    // Extract the language code (e.g., 'de-DE' -> 'de')
     return htmlLang.split("-")[0].toLowerCase();
 }
 
 /**
  * Pre-load flatpickr locale based on current language
  * This should ideally be called once when the page loads
+ *
+ * @returns {Promise<void>}
  */
 export async function preloadFlatpickrLocale() {
     const langCode = getCurrentLanguageCode();
 
-    // English is the default, no need to load
     if (langCode === "en") {
         return;
     }
 
     try {
-        // Try to load the locale dynamically
-        // The locale is automatically registered with flatpickr.l10ns
         await import(`flatpickr/dist/l10n/${langCode}.js`);
     } catch (e) {
         console.warn(
@@ -302,28 +294,19 @@ export async function preloadFlatpickrLocale() {
 }
 
 /**
- * Event handler class for Flatpickr calendar events
- * Replaces closure-based factories with explicit state management
- */
-//
-// Shared rules derivation helper
-//
-// deriveEffectiveRules moved to bookingManager.mjs (rule/business logic layer)
-
-/**
  * Create a Flatpickr `onChange` handler bound to the booking store.
  *
  * @param {object} store - Booking Pinia store (or compatible shape)
- * @param {object} [options]
- * @param {(msg:string)=>void} [options.setError] - Called with a user-facing error message (or empty string)
- * @param {{value:boolean}} [options.tooltipVisibleRef] - Tooltip visibility ref to reset on change
- * @param {object} [options.constraintOptions] - Options affecting constraint calculations
+ * @param {import('../../types/bookings').OnChangeOptions} [options]
  */
 export function createOnChange(
     store,
-    { setError = null, tooltipVisibleRef = null, constraintOptions = {} } = {}
+    /** @type {import('../../types/bookings').OnChangeOptions} */ {
+        setError = null,
+        tooltipVisibleRef = null,
+        constraintOptions = {},
+    } = {}
 ) {
-
     // Allow tests to stub globals; fall back to imported functions
     const _getVisibleCalendarDates =
         globalThis.getVisibleCalendarDates || getVisibleCalendarDates;
@@ -341,10 +324,12 @@ export function createOnChange(
         const validDates = (selectedDates || []).filter(
             d => d instanceof Date && !Number.isNaN(d.getTime())
         );
-        // If no dates are selected (initial render or after clearing),
         // clear any existing error and sync the store, but skip validation.
         if ((selectedDates || []).length === 0) {
-            if (Array.isArray(store.selectedDateRange) && store.selectedDateRange.length) {
+            if (
+                Array.isArray(store.selectedDateRange) &&
+                store.selectedDateRange.length
+            ) {
                 store.selectedDateRange = [];
             }
             if (typeof setError === "function") setError("");
@@ -458,7 +443,8 @@ export function createOnChange(
                                 }
                                 const offset =
                                     typeof instance.currentMonth === "number"
-                                        ? nav.targetMonth - instance.currentMonth
+                                        ? nav.targetMonth -
+                                          instance.currentMonth
                                         : 0;
                                 instance.changeMonth(offset, false);
                             }
@@ -467,7 +453,10 @@ export function createOnChange(
                 }
             }
             if (selectedDates.length === 0) {
-                const instWithCache = /** @type {import('flatpickr/dist/types/instance').Instance & { _constraintHighlighting?: unknown }} */ (instance);
+        const instWithCache =
+            /** @type {import('../../types/bookings').FlatpickrInstanceWithHighlighting} */ (
+                instance
+            );
                 instWithCache._constraintHighlighting = null;
                 clearCalendarHighlighting(instance);
             }
@@ -483,29 +472,30 @@ export function createOnChange(
  * navigation using the instance's cached highlighting data.
  *
  * @param {object} store - booking store or compatible state
- * @param {{value:Array}} tooltipMarkers - ref of markers shown in tooltip
- * @param {{value:boolean}} tooltipVisible - visibility ref for tooltip
- * @param {{value:number}} tooltipX - x position ref
- * @param {{value:number}} tooltipY - y position ref
+ * @param {import('../../types/bookings').RefLike<import('../../types/bookings').CalendarMarker[]>} tooltipMarkers - ref of markers shown in tooltip
+ * @param {import('../../types/bookings').RefLike<boolean>} tooltipVisible - visibility ref for tooltip
+ * @param {import('../../types/bookings').RefLike<number>} tooltipX - x position ref
+ * @param {import('../../types/bookings').RefLike<number>} tooltipY - y position ref
  * @returns {import('flatpickr/dist/types/options').Hook}
  */
-export function createOnDayCreate(
-    store,
-    tooltipMarkers,
-    tooltipVisible,
-    tooltipX,
-    tooltipY
-) {
+export function createOnDayCreate(store, tooltipMarkers, tooltipVisible, tooltipX, tooltipY) {
     return function (
-        ...[, , /** @type {import('flatpickr/dist/types/instance').Instance} */ fp,
-        /** @type {import('flatpickr/dist/types/instance').DayElement} */ dayElem]
+        ...[
+            ,
+            ,
+            /** @type {import('flatpickr/dist/types/instance').Instance} */ fp,
+            /** @type {import('flatpickr/dist/types/instance').DayElement} */ dayElem,
+        ]
     ) {
         const existingGrids = dayElem.querySelectorAll(
             `.${CLASS_BOOKING_MARKER_GRID}`
         );
         existingGrids.forEach(grid => grid.remove());
 
-        const el = /** @type {import('flatpickr/dist/types/instance').DayElement} */ (dayElem);
+        const el =
+            /** @type {import('flatpickr/dist/types/instance').DayElement} */ (
+                dayElem
+            );
         const dateStrForMarker = formatYMD(el.dateObj);
         const markersForDots = getBookingMarkersForDate(
             store.unavailableByDate,
@@ -528,7 +518,6 @@ export function createOnDayCreate(
                 store.bookableItems
             );
 
-            // Apply lead/trail hover classes
             el.classList.remove(
                 CLASS_BOOKING_DAY_HOVER_LEAD,
                 CLASS_BOOKING_DAY_HOVER_TRAIL
@@ -548,7 +537,6 @@ export function createOnDayCreate(
                 el.classList.add(CLASS_BOOKING_DAY_HOVER_TRAIL);
             }
 
-            // Tooltip visibility logic (existing)
             if (currentTooltipMarkersData.length > 0) {
                 tooltipMarkers.value = currentTooltipMarkersData;
                 tooltipVisible.value = true;
@@ -562,7 +550,6 @@ export function createOnDayCreate(
             }
         });
 
-        // Add mouseout listener to clear hover classes and hide tooltip
         dayElem.addEventListener("mouseout", () => {
             dayElem.classList.remove(
                 CLASS_BOOKING_DAY_HOVER_LEAD,
@@ -572,10 +559,20 @@ export function createOnDayCreate(
         });
 
         // Reapply constraint highlighting if it exists (for month navigation, etc.)
-        const fpWithCache = /** @type {import('flatpickr/dist/types/instance').Instance & { _constraintHighlighting?: unknown }} */ (fp);
-        if (fpWithCache && fpWithCache._constraintHighlighting && fpWithCache.calendarContainer) {
+        const fpWithCache =
+            /** @type {import('flatpickr/dist/types/instance').Instance & { _constraintHighlighting?: import('../../types/bookings').ConstraintHighlighting | null }} */ (
+                fp
+            );
+        if (
+            fpWithCache &&
+            fpWithCache._constraintHighlighting &&
+            fpWithCache.calendarContainer
+        ) {
             requestAnimationFrame(() => {
-                applyCalendarHighlighting(fpWithCache, fpWithCache._constraintHighlighting);
+                applyCalendarHighlighting(
+                    fpWithCache,
+                    fpWithCache._constraintHighlighting
+                );
             });
         }
     };
@@ -583,12 +580,11 @@ export function createOnDayCreate(
 
 /**
  * Create Flatpickr `onClose` handler to clear tooltip state.
- * @param {{value:Array}} tooltipMarkers
- * @param {{value:boolean}} tooltipVisible
+ * @param {import('../../types/bookings').RefLike<import('../../types/bookings').CalendarMarker[]>} tooltipMarkers
+ * @param {import('../../types/bookings').RefLike<boolean>} tooltipVisible
  */
 export function createOnClose(tooltipMarkers, tooltipVisible) {
     return function () {
-        // Clean up tooltips
         tooltipMarkers.value = [];
         tooltipVisible.value = false;
     };
@@ -616,7 +612,7 @@ export function getVisibleCalendarDates(flatpickrInstance) {
 /**
  * Build the DOM grid for aggregated booking markers.
  *
- * @param {Record<string, number>} aggregatedMarkers - counts by marker type
+ * @param {import('../../types/bookings').MarkerAggregation} aggregatedMarkers - counts by marker type
  * @returns {HTMLDivElement} container element with marker items
  */
 export function buildMarkerGrid(aggregatedMarkers) {

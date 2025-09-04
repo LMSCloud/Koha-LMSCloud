@@ -1,22 +1,18 @@
 import { watchEffect, ref } from "vue";
 
 /**
- * Watches patron, item type, pickup, and date to fetch pickup locations and
- * circulation rules with de-duplication based on a computed key.
- */
-/**
  * Watch core selections and fetch pickup locations and circulation rules.
  * De-duplicates rules fetches by building a stable key from inputs.
  *
- * @typedef {import('../types/bookings').BookingStoreLike & import('../types/bookings').BookingStoreActions} StoreWithActions
  * @param {Object} options
- * @param {StoreWithActions} options.store
- * @param {{value:Object|null}} options.bookingPatron
- * @param {{value:string|null}} options.bookingPickupLibraryId
- * @param {{value:string|number|null}} options.bookingItemtypeId
- * @param {{value:Array}} options.constrainedItemTypes
- * @param {{value:Array}} options.selectedDateRange
- * @param {string|{value:string}} options.biblionumber
+ * @param {import('../types/bookings').StoreWithActions} options.store
+ * @param {import('../types/bookings').RefLike<import('../types/bookings').PatronLike|null>} options.bookingPatron
+ * @param {import('../types/bookings').RefLike<string|null>} options.bookingPickupLibraryId
+ * @param {import('../types/bookings').RefLike<string|number|null>} options.bookingItemtypeId
+ * @param {import('../types/bookings').RefLike<Array<import('../types/bookings').ItemType>>} options.constrainedItemTypes
+ * @param {import('../types/bookings').RefLike<Array<string>>} options.selectedDateRange
+ * @param {string|import('../types/bookings').RefLike<string>} options.biblionumber
+ * @returns {{ lastRulesKey: import('vue').Ref<string|null> }}
  */
 export function useRulesFetcher(options) {
     const {
@@ -71,8 +67,13 @@ export function useRulesFetcher(options) {
     return { lastRulesKey };
 }
 
+/**
+ * Stable, explicit, order-preserving key builder to avoid JSON quirks
+ *
+ * @param {import('../types/bookings').RulesParams} params
+ * @returns {string}
+ */
 function buildRulesKey(params) {
-    // Stable, explicit, order-preserving key builder to avoid JSON quirks
     return [
         ["pc", params.patron_category_id],
         ["it", params.item_type_id],

@@ -1,4 +1,4 @@
-import dayjs from "../../../../utils/dayjs.mjs"
+import dayjs from "../../../../utils/dayjs.mjs";
 import { addDays, formatYMD } from "./date-utils.mjs";
 import { managerLogger as logger } from "./logger.mjs";
 import {
@@ -7,7 +7,7 @@ import {
 } from "./constants.mjs";
 import { toStringId } from "./id-utils.mjs";
 
-// Internal helpers specific to end_date_only mode
+// Internal helpers for end_date_only mode
 function validateEndDateOnlyStartDateInternal(
     date,
     config,
@@ -27,7 +27,9 @@ function validateEndDateOnlyStartDateInternal(
     }
 
     logger.debug(
-        `Checking ${CONSTRAINT_MODE_END_DATE_ONLY} range: ${formatYMD(date)} to ${formatYMD(targetEndDate)}`
+        `Checking ${CONSTRAINT_MODE_END_DATE_ONLY} range: ${formatYMD(
+            date
+        )} to ${formatYMD(targetEndDate)}`
     );
 
     if (selectedItem) {
@@ -37,11 +39,12 @@ function validateEndDateOnlyStartDateInternal(
             toStringId(selectedItem)
         );
         const relevantConflicts = conflicts.filter(
-            interval => !editBookingId || interval.metadata.booking_id != editBookingId
+            interval =>
+                !editBookingId || interval.metadata.booking_id != editBookingId
         );
         return relevantConflicts.length > 0;
     } else {
-        // Any item mode: block if ALL items are unavailable on ANY date in the range
+        // Any item mode: block if all items are unavailable on any date in the range
         for (
             let checkDate = date;
             checkDate.isSameOrBefore(targetEndDate, "day");
@@ -49,7 +52,9 @@ function validateEndDateOnlyStartDateInternal(
         ) {
             const dayConflicts = intervalTree.query(checkDate.valueOf());
             const relevantDayConflicts = dayConflicts.filter(
-                interval => !editBookingId || interval.metadata.booking_id != editBookingId
+                interval =>
+                    !editBookingId ||
+                    interval.metadata.booking_id != editBookingId
             );
             const unavailableItemIds = new Set(
                 relevantDayConflicts.map(c => toStringId(c.itemId))
@@ -65,7 +70,11 @@ function validateEndDateOnlyStartDateInternal(
     }
 }
 
-function handleEndDateOnlyIntermediateDatesInternal(date, selectedDates, maxPeriod) {
+function handleEndDateOnlyIntermediateDatesInternal(
+    date,
+    selectedDates,
+    maxPeriod
+) {
     if (!selectedDates || selectedDates.length !== 1) {
         return null; // Not applicable
     }
@@ -77,7 +86,7 @@ function handleEndDateOnlyIntermediateDatesInternal(date, selectedDates, maxPeri
     if (date.isAfter(expectedEndDate, "day")) {
         return true; // Hard disable beyond expected end
     }
-    // Intermediate date: leave to calendar highlighting (no hard disable)
+    // Intermediate date: leave to UI highlighting (no hard disable)
     return null;
 }
 
@@ -105,7 +114,7 @@ const EndDateOnlyStrategy = {
         return false;
     },
     handleIntermediateDate(dayjsDate, selectedDates, config) {
-        // Use backend due date when provided and valid; otherwise fall back to maxPeriod
+        // Prefer backend due date when provided and valid; otherwise fall back to maxPeriod
         if (config?.calculatedDueDate) {
             if (!selectedDates || selectedDates.length !== 1) return null;
             const startDate = dayjs(selectedDates[0]).startOf("day");
@@ -116,7 +125,7 @@ const EndDateOnlyStrategy = {
                 if (dayjsDate.isAfter(expectedEndDate, "day")) return true; // disable beyond expected end
                 return null; // intermediate left to UI highlighting + click prevention
             }
-            // fall through to maxPeriod handling
+            // Fall through to maxPeriod handling
         }
         return handleEndDateOnlyIntermediateDatesInternal(
             dayjsDate,
@@ -124,6 +133,12 @@ const EndDateOnlyStrategy = {
             Number(config?.maxPeriod) || 0
         );
     },
+    /**
+     * @param {Date|import('dayjs').Dayjs} startDate
+     * @param {import('../../types/bookings').CirculationRule|Object} circulationRules
+     * @param {import('../../types/bookings').ConstraintOptions} [constraintOptions={}]
+     * @returns {import('../../types/bookings').ConstraintHighlighting|null}
+     */
     calculateConstraintHighlighting(startDate, circulationRules, constraintOptions = {}) {
         const start = dayjs(startDate).startOf("day");
         // Prefer backend-calculated due date when provided (respects closures)
@@ -179,7 +194,10 @@ const EndDateOnlyStrategy = {
                 0;
             targetEnd = addDays(dayjsStart, Math.max(1, numericMaxPeriod) - 1);
         }
-        return { ok: dayjsEnd.isSame(targetEnd, "day"), expectedEnd: targetEnd };
+        return {
+            ok: dayjsEnd.isSame(targetEnd, "day"),
+            expectedEnd: targetEnd,
+        };
     },
 };
 
@@ -191,6 +209,12 @@ const NormalStrategy = {
     handleIntermediateDate() {
         return null;
     },
+    /**
+     * @param {Date|import('dayjs').Dayjs} startDate
+     * @param {any} _rules
+     * @param {import('../../types/bookings').ConstraintOptions} [constraintOptions={}]
+     * @returns {import('../../types/bookings').ConstraintHighlighting|null}
+     */
     calculateConstraintHighlighting(startDate, _rules, constraintOptions = {}) {
         const start = dayjs(startDate).startOf("day");
         const maxPeriod = constraintOptions.maxBookingPeriod;
@@ -210,5 +234,7 @@ const NormalStrategy = {
 };
 
 export function createConstraintStrategy(mode) {
-    return mode === CONSTRAINT_MODE_END_DATE_ONLY ? EndDateOnlyStrategy : NormalStrategy;
+    return mode === CONSTRAINT_MODE_END_DATE_ONLY
+        ? EndDateOnlyStrategy
+        : NormalStrategy;
 }

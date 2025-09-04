@@ -170,7 +170,6 @@ export async function fetchPickupLocations(biblionumber, patronId) {
  * @throws {Error} If the request fails or returns a non-OK status
  */
 export async function fetchCirculationRules(params = {}) {
-    // Only include defined (non-null, non-undefined, non-empty) params
     const filteredParams = {};
     for (const key in params) {
         if (
@@ -182,12 +181,10 @@ export async function fetchCirculationRules(params = {}) {
         }
     }
 
-    // Default to calculated dates for bookings unless explicitly disabled
     if (filteredParams.calculate_dates === undefined) {
         filteredParams.calculate_dates = true;
     }
 
-    // Default to booking rules unless specified
     if (!filteredParams.rules) {
         filteredParams.rules =
             "bookings_lead_period,bookings_trail_period,issuelength,renewalsallowed,renewalperiod";

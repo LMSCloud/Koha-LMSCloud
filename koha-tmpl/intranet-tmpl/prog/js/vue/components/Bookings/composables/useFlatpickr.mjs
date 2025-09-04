@@ -22,14 +22,14 @@ import { win } from "../lib/adapters/globals.mjs";
  * @param {{ value: HTMLInputElement|null }} elRef - ref to the input element
  * @param {Object} options
  * @param {import('../types/bookings').BookingStoreLike} [options.store] - booking store (defaults to pinia store)
- * @param {{ value: Function }} options.disableFnRef - ref to a function for flatpickr's disable option
- * @param {{ value: { dateRangeConstraint?: string, maxBookingPeriod?: number } }} options.constraintOptionsRef
+ * @param {import('../types/bookings').RefLike<import('../types/bookings').DisableFn>} options.disableFnRef - ref to disable fn
+ * @param {import('../types/bookings').RefLike<import('../types/bookings').ConstraintOptions>} options.constraintOptionsRef
  * @param {(msg: string) => void} options.setError - set error message callback
- * @param {{ value: import('../types/bookings').Marker[] }} [options.tooltipMarkersRef]
- * @param {{ value: boolean }} [options.tooltipVisibleRef]
- * @param {{ value: number }} [options.tooltipXRef]
- * @param {{ value: number }} [options.tooltipYRef]
- * @returns {{ clear: Function, getInstance: Function }}
+ * @param {import('../types/bookings').RefLike<import('../types/bookings').CalendarMarker[]>} [options.tooltipMarkersRef]
+ * @param {import('../types/bookings').RefLike<boolean>} [options.tooltipVisibleRef]
+ * @param {import('../types/bookings').RefLike<number>} [options.tooltipXRef]
+ * @param {import('../types/bookings').RefLike<number>} [options.tooltipYRef]
+ * @returns {{ clear: () => void, getInstance: () => import('../types/bookings').FlatpickrInstanceWithHighlighting | null }}
  */
 export function useFlatpickr(elRef, options) {
     const store = options.store || useBookingStore();

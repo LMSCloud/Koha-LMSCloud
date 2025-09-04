@@ -1,6 +1,9 @@
 import { computed } from "vue";
 import { isoArrayToDates } from "../lib/booking/date-utils.mjs";
-import { calculateDisabledDates, toEffectiveRules } from "../lib/booking/manager.mjs";
+import {
+    calculateDisabledDates,
+    toEffectiveRules,
+} from "../lib/booking/manager.mjs";
 
 /**
  * Central availability computation.
@@ -10,16 +13,16 @@ import { calculateDisabledDates, toEffectiveRules } from "../lib/booking/manager
  * - Output: `disableFnRef` for Flatpickr, `unavailableByDateRef` for calendar markers
  *
  * @param {{
- *  bookings: {value: import('../types/bookings').Booking[]},
- *  checkouts: {value: import('../types/bookings').Checkout[]},
- *  bookableItems: {value: import('../types/bookings').BookableItem[]},
- *  bookingItemId: {value: string|number|null},
- *  bookingId: {value: string|number|null},
- *  selectedDateRange: {value: string[]},
- *  circulationRules: {value: import('../types/bookings').CirculationRule[]}
+ *  bookings: import('../types/bookings').RefLike<import('../types/bookings').Booking[]>,
+ *  checkouts: import('../types/bookings').RefLike<import('../types/bookings').Checkout[]>,
+ *  bookableItems: import('../types/bookings').RefLike<import('../types/bookings').BookableItem[]>,
+ *  bookingItemId: import('../types/bookings').RefLike<string|number|null>,
+ *  bookingId: import('../types/bookings').RefLike<string|number|null>,
+ *  selectedDateRange: import('../types/bookings').RefLike<string[]>,
+ *  circulationRules: import('../types/bookings').RefLike<import('../types/bookings').CirculationRule[]>
  * }} storeRefs
- * @param {{ value: { dateRangeConstraint?: string, maxBookingPeriod?: number } }} optionsRef
- * @returns {{ availability: import('vue').ComputedRef<import('../types/bookings').AvailabilityResult>, disableFnRef: import('vue').ComputedRef<(d: Date) => boolean>, unavailableByDateRef: import('vue').ComputedRef<Record<string, Record<string, Set<string>>>> }}
+ * @param {import('../types/bookings').RefLike<import('../types/bookings').ConstraintOptions>} optionsRef
+ * @returns {{ availability: import('vue').ComputedRef<import('../types/bookings').AvailabilityResult>, disableFnRef: import('vue').ComputedRef<import('../types/bookings').DisableFn>, unavailableByDateRef: import('vue').ComputedRef<import('../types/bookings').UnavailableByDate> }}
  */
 export function useAvailability(storeRefs, optionsRef) {
     const {
@@ -41,14 +44,17 @@ export function useAvailability(storeRefs, optionsRef) {
     );
 
     const availability = computed(() => {
-        if (!inputsReady.value) return { disable: () => true, unavailableByDate: {} };
+        if (!inputsReady.value)
+            return { disable: () => true, unavailableByDate: {} };
 
         const effectiveRules = toEffectiveRules(
             circulationRules.value,
             optionsRef.value || {}
         );
 
-        const selectedDatesArray = isoArrayToDates(selectedDateRange.value || []);
+        const selectedDatesArray = isoArrayToDates(
+            selectedDateRange.value || []
+        );
 
         return calculateDisabledDates(
             bookings.value,

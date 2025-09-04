@@ -5,7 +5,7 @@
  * to efficiently determine availability for each day in O(n log n) time
  */
 
-import dayjs from "../../../../../utils/dayjs.mjs"
+import dayjs from "../../../../../utils/dayjs.mjs";
 import { startOfDayTs, endOfDayTs, formatYMD } from "../date-utils.mjs";
 import { managerLogger as logger } from "../logger.mjs";
 
@@ -77,10 +77,8 @@ export class SweepLineProcessor {
         const startTimestamp = startOfDayTs(viewStart);
         const endTimestamp = endOfDayTs(viewEnd);
 
-        // Create events for intervals that overlap with the view range
         this.events = [];
         intervals.forEach(interval => {
-            // Skip intervals completely outside the view range
             if (
                 interval.end < startTimestamp ||
                 interval.start > endTimestamp
@@ -88,9 +86,7 @@ export class SweepLineProcessor {
                 return;
             }
 
-            // Clamp interval to view range for starts
             const clampedStart = Math.max(interval.start, startTimestamp);
-            // For ends, schedule removal at the START of the next day so the interval remains active for its end date
             const nextDayStart = dayjs(interval.end)
                 .add(1, "day")
                 .startOf("day")
@@ -101,23 +97,19 @@ export class SweepLineProcessor {
             this.events.push(new SweepEvent(endRemovalTs, "end", interval));
         });
 
-        // Sort events by timestamp, with starts before ends at the same time
         this.events.sort((a, b) => {
             if (a.timestamp !== b.timestamp) {
                 return a.timestamp - b.timestamp;
             }
-            // At the same timestamp, process starts before ends
             return a.type === "start" ? -1 : 1;
         });
 
         logger.debug(`Created ${this.events.length} sweep events`);
 
-        // Process events using sweep line
         /** @type {Record<string, Record<string, Set<string>>>} */
         const unavailableByDate = {};
         const activeIntervals = new Map(); // itemId -> Set of intervals
 
-        // Initialize active intervals map
         allItemIds.forEach(itemId => {
             activeIntervals.set(itemId, new Set());
         });
@@ -125,7 +117,6 @@ export class SweepLineProcessor {
         let currentDate = null;
         let eventIndex = 0;
 
-        // Sweep through each day in the range
         for (
             let date = dayjs(viewStart).startOf("day");
             date.isSameOrBefore(viewEnd, "day");
@@ -135,7 +126,6 @@ export class SweepLineProcessor {
             const dateStart = date.valueOf();
             const dateEnd = date.endOf("day").valueOf();
 
-            // Process all events up to the end of this day
             while (
                 eventIndex < this.events.length &&
                 this.events[eventIndex].timestamp <= dateEnd
@@ -144,13 +134,11 @@ export class SweepLineProcessor {
                 const itemId = event.interval.itemId;
 
                 if (event.type === EventType.START) {
-                    // Add interval to active set
                     if (!activeIntervals.has(itemId)) {
                         activeIntervals.set(itemId, new Set());
                     }
                     activeIntervals.get(itemId).add(event.interval);
                 } else {
-                    // Remove interval from active set
                     if (activeIntervals.has(itemId)) {
                         activeIntervals.get(itemId).delete(event.interval);
                     }
@@ -159,19 +147,16 @@ export class SweepLineProcessor {
                 eventIndex++;
             }
 
-            // Check which items are unavailable on this date
             unavailableByDate[dateKey] = {};
 
             activeIntervals.forEach((intervals, itemId) => {
                 const reasons = new Set();
 
                 intervals.forEach(interval => {
-                    // Check if this interval actually covers this date
                     if (
                         interval.start <= dateEnd &&
                         interval.end >= dateStart
                     ) {
-                        // Map interval types to reason strings (processor uses 'core' for bookings)
                         if (interval.type === "booking") {
                             reasons.add("core");
                         } else if (interval.type === "checkout") {
@@ -224,10 +209,8 @@ export class SweepLineProcessor {
         const startDate = dayjs(viewStart).startOf("day");
         const endDate = dayjs(viewEnd).endOf("day");
 
-        // Count days
         stats.totalDays = endDate.diff(startDate, "day") + 1;
 
-        // Process each day
         for (
             let date = startDate;
             date.isSameOrBefore(endDate, "day");
@@ -261,7 +244,6 @@ export class SweepLineProcessor {
                 stats.peakDate = date.format("YYYY-MM-DD");
             }
 
-            // Update item utilization
             itemsInUse.forEach(itemId => {
                 if (!stats.itemUtilization.has(itemId)) {
                     stats.itemUtilization.set(itemId, 0);
@@ -298,7 +280,6 @@ export class SweepLineProcessor {
             interval => interval.itemId === itemId
         );
 
-        // Sort intervals by start date
         itemIntervals.sort((a, b) => a.start - b.start);
 
         for (let i = 0; i < maxDaysToSearch; i++) {
@@ -352,7 +333,6 @@ export class SweepLineProcessor {
         let lastEnd = rangeStart;
 
         itemIntervals.forEach(interval => {
-            // Skip intervals outside our range
             if (interval.end < rangeStart || interval.start > rangeEnd) {
                 return;
             }
@@ -374,7 +354,6 @@ export class SweepLineProcessor {
             lastEnd = Math.max(lastEnd, interval.end + 1); // Start of next day
         });
 
-        // Check for gap after last interval
         if (lastEnd < rangeEnd) {
             const gapDays = dayjs(rangeEnd).diff(dayjs(lastEnd), "day");
             if (gapDays >= minGapDays) {
@@ -407,10 +386,8 @@ export function processCalendarView(
 ) {
     logger.time("processCalendarView");
 
-    // Extract all intervals from the tree that might affect the view
     const relevantIntervals = intervalTree.queryRange(viewStart, viewEnd);
 
-    // Use sweep line processor
     const processor = new SweepLineProcessor();
     const unavailableByDate = processor.processIntervals(
         relevantIntervals,

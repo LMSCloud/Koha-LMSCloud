@@ -26,11 +26,11 @@ export function disableBodyScroll() {
     window["kohaModalCount"] = current + 1;
 
     if (!document.body.classList.contains("modal-open")) {
-        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+        const scrollbarWidth =
+            window.innerWidth - document.documentElement.clientWidth;
         if (scrollbarWidth > 0) {
             document.body.style.paddingRight = `${scrollbarWidth}px`;
         }
         document.body.classList.add("modal-open");
     }
 }
-

@@ -4,6 +4,9 @@ import { reactive, computed } from "vue";
  * Simple error state composable used across booking components.
  * Exposes a reactive error object with message and code, and helpers
  * to set/clear it consistently.
+ *
+ * @param {import('../types/bookings').ErrorStateInit} [initial]
+ * @returns {import('../types/bookings').ErrorStateResult}
  */
 export function useErrorState(initial = {}) {
     const state = reactive({
@@ -25,4 +28,3 @@ export function useErrorState(initial = {}) {
 
     return { error: state, setError, clear, hasError };
 }
-

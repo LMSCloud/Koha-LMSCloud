@@ -7,4 +7,3 @@ export const CONSTRAINT_MODE_NORMAL = "normal";
 // Selection semantics (logging, diagnostics)
 export const SELECTION_ANY_AVAILABLE = "ANY_AVAILABLE";
 export const SELECTION_SPECIFIC_ITEM = "SPECIFIC_ITEM";
-

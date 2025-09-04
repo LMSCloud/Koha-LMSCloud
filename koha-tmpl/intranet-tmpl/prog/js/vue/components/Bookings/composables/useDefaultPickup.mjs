@@ -7,6 +7,9 @@ import { idsEqual } from "../lib/booking/id-utils.mjs";
  * - OPAC default when enabled and valid
  * - Patron's home library if available at pickup locations
  * - First bookable item's home library if available at pickup locations
+ *
+ * @param {import('../types/bookings').DefaultPickupOptions} options
+ * @returns {{ stop: import('vue').WatchStopHandle }}
  */
 export function useDefaultPickup(options) {
     const {
@@ -29,11 +32,7 @@ export function useDefaultPickup(options) {
                 opacDefaultBookingLibraryEnabled === true ||
                 String(opacDefaultBookingLibraryEnabled) === "1";
             const def = opacDefaultBookingLibrary ?? "";
-            if (
-                enabled &&
-                def &&
-                list.some(l => idsEqual(l.library_id, def))
-            ) {
+            if (enabled && def && list.some(l => idsEqual(l.library_id, def))) {
                 bookingPickupLibraryId.value = def;
                 return;
             }
