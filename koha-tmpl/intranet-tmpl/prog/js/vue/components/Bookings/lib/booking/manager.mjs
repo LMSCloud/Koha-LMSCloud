@@ -855,6 +855,7 @@ export function handleBookingDateChange(
         // Calculate min end date; max end date only when constrained
         newMinEndDate = dayjsStart.add(1, "day").startOf("day");
         if (maxPeriod > 0) {
+            // Inclusive day cap: last selectable end = start + (maxPeriod - 1)
             newMaxEndDate = dayjsStart.add(maxPeriod - 1, "day").startOf("day");
         } else {
             newMaxEndDate = null;

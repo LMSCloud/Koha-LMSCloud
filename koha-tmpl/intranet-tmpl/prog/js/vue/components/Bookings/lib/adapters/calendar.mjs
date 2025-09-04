@@ -38,9 +38,19 @@ export function clearCalendarHighlighting(instance) {
 
     if (!instance || !instance.calendarContainer) return;
 
-    const existingHighlights = instance.calendarContainer.querySelectorAll(
-        `.${CLASS_BOOKING_CONSTRAINED_RANGE_MARKER}, .${CLASS_BOOKING_INTERMEDIATE_BLOCKED}, .${CLASS_BOOKING_LOAN_BOUNDARY}`
-    );
+    // Query separately to accommodate simple test DOM mocks
+    const lists = [
+        instance.calendarContainer.querySelectorAll(
+            `.${CLASS_BOOKING_CONSTRAINED_RANGE_MARKER}`
+        ),
+        instance.calendarContainer.querySelectorAll(
+            `.${CLASS_BOOKING_INTERMEDIATE_BLOCKED}`
+        ),
+        instance.calendarContainer.querySelectorAll(
+            `.${CLASS_BOOKING_LOAN_BOUNDARY}`
+        ),
+    ];
+    const existingHighlights = lists.flatMap(list => Array.from(list || []));
     existingHighlights.forEach(elem => {
         elem.classList.remove(
             CLASS_BOOKING_CONSTRAINED_RANGE_MARKER,
@@ -388,15 +398,16 @@ export function createOnChange(
                     parseInt(baseRules?.renewalsallowed) || 0;
                 const times = new Set();
                 if (issuelength > 0) {
+                    // End aligns with due date semantics: start + issuelength days
                     const initialEnd = startDate
-                        .add(issuelength - 1, "day")
+                        .add(issuelength, "day")
                         .toDate()
                         .getTime();
                     times.add(initialEnd);
                     if (renewalperiod > 0 && renewalsallowed > 0) {
                         for (let k = 1; k <= renewalsallowed; k++) {
                             const t = startDate
-                                .add(issuelength + k * renewalperiod - 1, "day")
+                                .add(issuelength + k * renewalperiod, "day")
                                 .toDate()
                                 .getTime();
                             times.add(t);

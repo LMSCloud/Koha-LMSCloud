@@ -23,6 +23,7 @@ function validateEndDateOnlyStartDateInternal(
         targetEndDate = due.clone();
     } else {
         const maxPeriod = Number(config?.maxPeriod) || 0;
+        // Inclusive day cap for fallback: start + (maxPeriod - 1)
         targetEndDate = maxPeriod > 0 ? addDays(date, maxPeriod - 1) : date;
     }
 
@@ -165,6 +166,7 @@ const EndDateOnlyStrategy = {
                     30;
             }
             if (!maxPeriod) return null;
+            // Inclusive cap for fallback
             targetEnd = addDays(start, maxPeriod - 1);
             periodForUi = maxPeriod;
         }
@@ -223,6 +225,7 @@ const NormalStrategy = {
         const start = dayjs(startDate).startOf("day");
         const maxPeriod = constraintOptions.maxBookingPeriod;
         if (!maxPeriod) return null;
+        // Normal mode: inclusive cap
         const targetEndDate = start.add(maxPeriod - 1, "day").toDate();
         return {
             startDate: start.toDate(),
