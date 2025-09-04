@@ -1,6 +1,6 @@
 import { computed } from "vue";
 import { isoArrayToDates } from "../lib/booking/dateUtils.mjs";
-import { calculateDisabledDates, toEffectiveRules } from "../lib/booking/bookingManager.mjs";
+import { calculateDisabledDates, toEffectiveRules } from "../lib/booking/manager.mjs";
 
 /**
  * Central availability computation.

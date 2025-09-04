@@ -7,7 +7,7 @@ import {
     createOnDayCreate,
     createOnClose,
     createOnChange,
-} from "../lib/booking/bookingCalendar.mjs";
+} from "../lib/booking/calendar.mjs";
 import { useConstraintHighlighting } from "./useConstraintHighlighting.mjs";
 import { win } from "../lib/index.mjs";
 

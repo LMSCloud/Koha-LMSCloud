@@ -41,7 +41,7 @@ before(async () => {
     dayjs = dayjsModule.default;
 
     const managerModule = await import(
-        "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/bookingManager.mjs"
+        "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/manager.mjs"
     );
     calculateDisabledDates = managerModule.calculateDisabledDates;
 

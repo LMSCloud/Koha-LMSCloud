@@ -3,7 +3,7 @@
 // To be used by the Pinia store and BookingModal.vue
 
 import dayjs from "../../../../utils/dayjs.mjs";
-import { managerLogger as logger } from "./bookingLogger.mjs";
+import { managerLogger as logger } from "./logger.mjs";
 import { createConstraintStrategy } from "./strategies.mjs";
 import {
     // eslint-disable-next-line no-unused-vars

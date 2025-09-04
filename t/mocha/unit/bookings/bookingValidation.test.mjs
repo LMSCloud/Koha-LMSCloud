@@ -7,7 +7,7 @@ import { expect } from "chai";
 import {
     canProceedToStep3,
     canSubmitBooking,
-} from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/bookingValidation.mjs";
+} from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/validation.mjs";
 
 describe("Booking Validation Pure Functions", () => {
     describe("canProceedToStep3", () => {

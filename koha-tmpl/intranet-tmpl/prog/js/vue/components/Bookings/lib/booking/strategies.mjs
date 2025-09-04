@@ -1,5 +1,5 @@
 import dayjs from "../../../../utils/dayjs.mjs";
-import { managerLogger as logger } from "./bookingLogger.mjs";
+import { managerLogger as logger } from "./logger.mjs";
 import {
     CONSTRAINT_MODE_END_DATE_ONLY,
     CONSTRAINT_MODE_NORMAL,

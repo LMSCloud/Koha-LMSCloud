@@ -3,7 +3,7 @@
  * Extracted from BookingValidationService to eliminate store coupling
  */
 
-import { handleBookingDateChange } from "./bookingManager.mjs";
+import { handleBookingDateChange } from "./manager.mjs";
 
 /**
  * Validate if user can proceed to step 3 (period selection)

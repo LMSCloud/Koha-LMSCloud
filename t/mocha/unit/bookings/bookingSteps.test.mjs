@@ -7,7 +7,7 @@ import { expect } from "chai";
 import {
     calculateStepNumbers,
     shouldShowAdditionalFields,
-} from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/bookingSteps.mjs";
+} from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/steps.mjs";
 
 describe("Booking Step Calculation Pure Functions", () => {
     describe("calculateStepNumbers", () => {

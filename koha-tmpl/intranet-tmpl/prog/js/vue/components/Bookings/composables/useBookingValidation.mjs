@@ -9,7 +9,7 @@ import {
     canProceedToStep3,
     canSubmitBooking,
     validateDateSelection,
-} from "../lib/booking/bookingValidation.mjs";
+} from "../lib/booking/validation.mjs";
 
 /**
  * Composable for booking validation with reactive state

@@ -153,15 +153,15 @@ import {
     constrainBookableItems,
     constrainItemTypes,
     constrainPickupLocations,
-} from "./lib/booking/bookingManager.mjs";
+} from "./lib/booking/manager.mjs";
 import { useBookingStore } from "../../stores/bookingStore";
 import { storeToRefs } from "pinia";
 import { updateExternalDependents } from "./lib/booking/index.mjs";
-import { preloadFlatpickrLocale } from "./lib/booking/bookingCalendar.mjs";
+import { preloadFlatpickrLocale } from "./lib/booking/calendar.mjs";
 import { useAvailability } from "./composables/useAvailability.mjs";
-import { calculateStepNumbers } from "./lib/booking/bookingSteps.mjs";
+import { calculateStepNumbers } from "./lib/booking/steps.mjs";
 import { useBookingValidation } from "./composables/useBookingValidation.mjs";
-import { calculateMaxBookingPeriod } from "./lib/booking/bookingManager.mjs";
+import { calculateMaxBookingPeriod } from "./lib/booking/manager.mjs";
 import { useDefaultPickup } from "./composables/useDefaultPickup.mjs";
 import { buildNoItemsAvailableMessage } from "./lib/ui/selectionMessage.mjs";
 import { useRulesFetcher } from "./composables/useRulesFetcher.mjs";

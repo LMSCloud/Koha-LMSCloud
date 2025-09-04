@@ -4,7 +4,7 @@
  * All functions return promises and use async/await.
  */
 
-import { bookingValidation } from "./bookingValidationMessages.js";
+import { bookingValidation } from "../validation-messages.js";
 
 /**
  * Fetches bookable items for a given biblionumber

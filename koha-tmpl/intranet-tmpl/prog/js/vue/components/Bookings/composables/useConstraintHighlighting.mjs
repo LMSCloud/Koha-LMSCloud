@@ -1,6 +1,6 @@
 import { computed } from "vue";
 import dayjs from "../../../utils/dayjs.mjs";
-import { toEffectiveRules, calculateConstraintHighlighting } from "../lib/booking/bookingManager.mjs";
+import { toEffectiveRules, calculateConstraintHighlighting } from "../lib/booking/manager.mjs";
 
 /**
  * Provides reactive constraint highlighting data for the calendar based on

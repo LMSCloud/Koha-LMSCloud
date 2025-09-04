@@ -6,7 +6,7 @@
  */
 
 import dayjs from "../../../utils/dayjs.mjs";
-import { managerLogger as logger } from "./booking/bookingLogger.mjs";
+import { managerLogger as logger } from "./booking/logger.mjs";
 
 /**
  * Event types for the sweep line algorithm
