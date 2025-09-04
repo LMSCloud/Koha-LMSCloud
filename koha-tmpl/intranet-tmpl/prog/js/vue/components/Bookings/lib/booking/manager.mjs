@@ -2,7 +2,8 @@
 // Pure utility functions for date/booking calculations and business logic
 // To be used by the Pinia store and BookingModal.vue
 
-import dayjs from "../../../../utils/dayjs.mjs";
+import dayjs from "../../../../utils/dayjs.mjs"
+import { isoArrayToDates, toDayjs, addDays, subDays, formatYMD } from "./date-utils.mjs";
 import { managerLogger as logger } from "./logger.mjs";
 import { createConstraintStrategy } from "./strategies.mjs";
 import {
@@ -25,7 +26,7 @@ const $__ = globalThis.$__ || (str => str);
 /**
  * Build unavailableByDate map from IntervalTree for backward compatibility
  * @param {IntervalTree} intervalTree - The interval tree containing all bookings/checkouts
- * @param {any} today - Today's date for range calculation
+ * @param {import('dayjs').Dayjs} today - Today's date for range calculation
  * @param {Array} allItemIds - Array of all item IDs
  * @param {number|string|null} editBookingId - The booking_id being edited (exclude from results)
  * @param {Object} options - Additional options for optimization
@@ -56,20 +57,20 @@ function buildUnavailableByDateMap(
         options.visibleEndDate
     ) {
         // Visible calendar range with a small buffer
-        startDate = dayjs(options.visibleStartDate).subtract(7, "day");
-        endDate = dayjs(options.visibleEndDate).add(7, "day");
+        startDate = subDays(options.visibleStartDate, 7);
+        endDate = addDays(options.visibleEndDate, 7);
         logger.debug("Building unavailableByDate map for visible range only", {
-            start: startDate.format("YYYY-MM-DD"),
-            end: endDate.format("YYYY-MM-DD"),
+            start: formatYMD(startDate),
+            end: formatYMD(endDate),
             days: endDate.diff(startDate, "day") + 1,
         });
     } else {
         // Fallback bounded range for unconstrained mode
-        startDate = today.subtract(7, "day");
-        endDate = today.add(90, "day");
+        startDate = subDays(today, 7);
+        endDate = addDays(today, 90);
         logger.debug("Building unavailableByDate map with limited range", {
-            start: startDate.format("YYYY-MM-DD"),
-            end: endDate.format("YYYY-MM-DD"),
+            start: formatYMD(startDate),
+            end: formatYMD(endDate),
             days: endDate.diff(startDate, "day") + 1,
         });
     }
@@ -159,9 +160,7 @@ function validateLeadPeriodOptimized(
     const leadEnd = startDate.subtract(1, "day");
 
     logger.debug(
-        `Optimized lead period check: ${leadStart.format(
-            "YYYY-MM-DD"
-        )} to ${leadEnd.format("YYYY-MM-DD")}`
+        `Optimized lead period check: ${formatYMD(leadStart)} to ${formatYMD(leadEnd)}`
     );
 
     // Use range query to get all conflicts in the lead period at once
@@ -191,9 +190,7 @@ function validateLeadPeriodOptimized(
             allItemIds.every(id => unavailableItemIds.has(String(id)));
 
         logger.debug(`Lead period multi-item check (optimized):`, {
-            leadPeriod: `${leadStart.format("YYYY-MM-DD")} to ${leadEnd.format(
-                "YYYY-MM-DD"
-            )}`,
+            leadPeriod: `${formatYMD(leadStart)} to ${formatYMD(leadEnd)}`,
             totalItems: allItemIds.length,
             conflictsFound: relevantLeadConflicts.length,
             unavailableItems: Array.from(unavailableItemIds),
@@ -229,9 +226,7 @@ function validateTrailPeriodOptimized(
     const trailEnd = endDate.add(trailDays, "day");
 
     logger.debug(
-        `Optimized trail period check: ${trailStart.format(
-            "YYYY-MM-DD"
-        )} to ${trailEnd.format("YYYY-MM-DD")}`
+        `Optimized trail period check: ${formatYMD(trailStart)} to ${formatYMD(trailEnd)}`
     );
 
     // Use range query to get all conflicts in the trail period at once
@@ -278,12 +273,12 @@ function validateTrailPeriodOptimized(
 /**
  * Extracts and validates configuration from circulation rules
  * @param {Object} circulationRules - Raw circulation rules object
- * @param {Date|dayjs} todayArg - Optional today value for deterministic tests
+ * @param {Date|import('dayjs').Dayjs} todayArg - Optional today value for deterministic tests
  * @returns {Object} Normalized configuration object
  */
 function extractBookingConfiguration(circulationRules, todayArg) {
     const today = todayArg
-        ? dayjs(todayArg).startOf("day")
+        ? toDayjs(todayArg).startOf("day")
         : dayjs().startOf("day");
     const leadDays = Number(circulationRules?.bookings_lead_period) || 0;
     const trailDays = Number(circulationRules?.bookings_trail_period) || 0;
@@ -597,7 +592,7 @@ function logBookingDebugInfo(
  * @param {number|string|null} editBookingId - The booking_id being edited (if any)
  * @param {Array} selectedDates - Array of currently selected dates in Flatpickr (can be empty, or [start], or [start, end])
  * @param {Object} circulationRules - Circulation rules object (leadDays, trailDays, maxPeriod, booking_constraint_mode, etc.)
- * @param {Date|dayjs} todayArg - Optional today value for deterministic tests
+ * @param {Date|import('dayjs').Dayjs} todayArg - Optional today value for deterministic tests
  * @param {Object} options - Additional options for optimization
  * @returns {Object} - { disable: Function, unavailableByDate: Object }
  */
@@ -662,7 +657,7 @@ export function calculateDisabledDates(
 
     const unavailableByDate = buildUnavailableByDateMap(
         intervalTree,
-        /** @type {any} */ (config.today),
+        config.today,
         allItemIds,
         normalizedEditBookingId,
         options
@@ -684,6 +679,10 @@ export function calculateDisabledDates(
  * - Applies maxPeriod only for constraining modes
  * - Strips caps for unconstrained mode
  */
+/**
+ * @param {import('../../types/bookings').CirculationRule} [baseRules={}]
+ * @param {{ dateRangeConstraint?: string, maxBookingPeriod?: number }} [constraintOptions={}]
+ */
 export function deriveEffectiveRules(baseRules = {}, constraintOptions = {}) {
     const effectiveRules = { ...baseRules };
     const mode = constraintOptions.dateRangeConstraint;
@@ -701,6 +700,10 @@ export function deriveEffectiveRules(baseRules = {}, constraintOptions = {}) {
 /**
  * Convenience: take full circulationRules array and constraint options,
  * return effective rules applying maxPeriod logic.
+ */
+/**
+ * @param {import('../../types/bookings').CirculationRule[]} circulationRules
+ * @param {{ dateRangeConstraint?: string, maxBookingPeriod?: number }} [constraintOptions={}]
  */
 export function toEffectiveRules(circulationRules, constraintOptions = {}) {
     const baseRules = circulationRules?.[0] || {};
@@ -766,7 +769,7 @@ export function calculateAvailabilityData(dateRange, storeData, options = {}) {
 
     let selectedDatesArray = [];
     if (Array.isArray(dateRange)) {
-        selectedDatesArray = dateRange.map(d => dayjs(d).toDate());
+        selectedDatesArray = isoArrayToDates(dateRange);
     } else if (typeof dateRange === "string") {
         throw new TypeError(
             "calculateAvailabilityData expects an array of ISO/date values for dateRange"
@@ -795,7 +798,7 @@ export function calculateAvailabilityData(dateRange, storeData, options = {}) {
  * @param {Array} bookableItems - Array of all bookable items
  * @param {number|string|null} selectedItem - The currently selected item
  * @param {number|string|null} editBookingId - The booking_id being edited (if any)
- * @param {Date|dayjs} todayArg - Optional today value for deterministic tests
+ * @param {Date|import('dayjs').Dayjs} todayArg - Optional today value for deterministic tests
  * @returns {Object} - { valid: boolean, errors: Array<string>, newMaxEndDate: Date|null, newMinEndDate: Date|null }
  */
 export function handleBookingDateChange(
@@ -817,10 +820,10 @@ export function handleBookingDateChange(
         editBookingId,
     });
     const dayjsStart = selectedDates[0]
-        ? dayjs(selectedDates[0]).startOf("day")
+        ? toDayjs(selectedDates[0]).startOf("day")
         : null;
     const dayjsEnd = selectedDates[1]
-        ? dayjs(selectedDates[1]).endOf("day")
+        ? toDayjs(selectedDates[1]).endOf("day")
         : null;
     const errors = [];
     let valid = true;
@@ -850,7 +853,7 @@ export function handleBookingDateChange(
 
         // Validate: start must be after today + leadDays
         const today = todayArg
-            ? dayjs(todayArg).startOf("day")
+            ? toDayjs(todayArg).startOf("day")
             : dayjs().startOf("day");
         if (dayjsStart.isBefore(today.add(leadDays, "day"))) {
             errors.push(
@@ -1179,7 +1182,7 @@ export function constrainItemTypes(
 
 /**
  * Calculate constraint highlighting data for calendar display
- * @param {Date|dayjs} startDate - Selected start date
+ * @param {Date|import('dayjs').Dayjs} startDate - Selected start date
  * @param {Object} circulationRules - Circulation rules object
  * @param {Object} constraintOptions - Additional constraint options
  * @returns {Object} Constraint highlighting configuration
@@ -1203,8 +1206,8 @@ export function calculateConstraintHighlighting(
 
 /**
  * Determine if calendar should navigate to show target end date
- * @param {Date|dayjs} startDate - Selected start date
- * @param {Date|dayjs} targetEndDate - Calculated target end date
+ * @param {Date|import('dayjs').Dayjs} startDate - Selected start date
+ * @param {Date|import('dayjs').Dayjs} targetEndDate - Calculated target end date
  * @param {Object} currentView - Current calendar view info
  * @returns {Object} Navigation info or null
  */
@@ -1219,8 +1222,8 @@ export function getCalendarNavigationTarget(
         currentView,
     });
 
-    const start = dayjs(startDate);
-    const target = dayjs(targetEndDate);
+    const start = toDayjs(startDate);
+    const target = toDayjs(targetEndDate);
 
     // Never navigate backwards if target is before the chosen start
     if (target.isBefore(start, "day")) {
@@ -1233,12 +1236,11 @@ export function getCalendarNavigationTarget(
         currentView.visibleStartDate &&
         currentView.visibleEndDate
     ) {
-        const visibleStart = dayjs(currentView.visibleStartDate).startOf("day");
-        const visibleEnd = dayjs(currentView.visibleEndDate).endOf("day");
+        const visibleStart = toDayjs(currentView.visibleStartDate).startOf("day");
+        const visibleEnd = toDayjs(currentView.visibleEndDate).endOf("day");
         const inView = target.isBetween(visibleStart, visibleEnd, undefined, "[]");
         if (inView) {
             logger.debug("Target end date already visible; no navigation");
-            console.log("[nav] already visible: skip");
             return { shouldNavigate: false };
         }
     }

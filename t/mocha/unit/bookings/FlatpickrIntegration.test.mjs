@@ -404,12 +404,11 @@ describe("Flatpickr Integration in BookingModal", () => {
                 maxBookingPeriod: null,
             };
             
-            const onChange = createOnChange(
-                store,
-                errorMessageRef,
+            const onChange = createOnChange(store, {
+                setError: msg => (errorMessageRef.value = msg),
                 tooltipVisibleRef,
-                constraintOptions
-            );
+                constraintOptions,
+            });
             
             const selectedDates = [futureDate1, futureDate2];
             const instance = createMockFlatpickrInstance();
@@ -451,12 +450,11 @@ describe("Flatpickr Integration in BookingModal", () => {
             const tooltipVisibleRef = { value: false };
             const constraintOptions = {};
             
-            const onChange = createOnChange(
-                store,
-                errorMessageRef,
+            const onChange = createOnChange(store, {
+                setError: msg => (errorMessageRef.value = msg),
                 tooltipVisibleRef,
-                constraintOptions
-            );
+                constraintOptions,
+            });
             
             const selectedDates = [futureDate];
             const instance = createMockFlatpickrInstance();
@@ -491,12 +489,11 @@ describe("Flatpickr Integration in BookingModal", () => {
                 maxBookingPeriod: 7,
             };
             
-            const onChange = createOnChange(
-                store,
-                errorMessageRef,
+            const onChange = createOnChange(store, {
+                setError: msg => (errorMessageRef.value = msg),
                 tooltipVisibleRef,
-                constraintOptions
-            );
+                constraintOptions,
+            });
             
             const selectedDates = [futureDate];
             const instance = createMockFlatpickrInstance();

@@ -6,6 +6,7 @@
  */
 
 import dayjs from "../../../../../utils/dayjs.mjs"
+import { startOfDayTs, endOfDayTs, formatYMD } from "../date-utils.mjs";
 import { managerLogger as logger } from "../logger.mjs";
 
 /**
@@ -30,14 +31,14 @@ class SweepEvent {
      * Create a sweep event
      * @param {number} timestamp - Unix timestamp of the event
      * @param {'start'|'end'} type - Type of event
-     * @param {any} interval - The interval associated with this event
+     * @param {import('./interval-tree.mjs').BookingInterval} interval - The interval associated with this event
      */
     constructor(timestamp, type, interval) {
         /** @type {number} Unix timestamp of the event */
         this.timestamp = timestamp;
         /** @type {'start'|'end'} Type of event */
         this.type = type; // 'start' or 'end'
-        /** @type {any} The booking/checkout interval */
+        /** @type {import('./interval-tree.mjs').BookingInterval} The booking/checkout interval */
         this.interval = interval; // The booking/checkout interval
     }
 }
@@ -58,7 +59,7 @@ export class SweepLineProcessor {
 
     /**
      * Process intervals to generate unavailability data for a date range
-     * @param {Array} intervals - All booking/checkout intervals
+     * @param {import('./interval-tree.mjs').BookingInterval[]} intervals - All booking/checkout intervals
      * @param {Date|import("dayjs").Dayjs} viewStart - Start of the visible date range
      * @param {Date|import("dayjs").Dayjs} viewEnd - End of the visible date range
      * @param {Array<string>} allItemIds - All bookable item IDs
@@ -68,13 +69,13 @@ export class SweepLineProcessor {
         logger.time("SweepLineProcessor.processIntervals");
         logger.debug("Processing intervals for date range", {
             intervalCount: intervals.length,
-            viewStart: dayjs(viewStart).format("YYYY-MM-DD"),
-            viewEnd: dayjs(viewEnd).format("YYYY-MM-DD"),
+            viewStart: formatYMD(viewStart),
+            viewEnd: formatYMD(viewEnd),
             itemCount: allItemIds.length,
         });
 
-        const startTimestamp = dayjs(viewStart).startOf("day").valueOf();
-        const endTimestamp = dayjs(viewEnd).endOf("day").valueOf();
+        const startTimestamp = startOfDayTs(viewStart);
+        const endTimestamp = endOfDayTs(viewEnd);
 
         // Create events for intervals that overlap with the view range
         this.events = [];
@@ -282,7 +283,7 @@ export class SweepLineProcessor {
      * Find the next available date for a specific item
      * @param {Array} intervals
      * @param {string} itemId
-     * @param {Date|dayjs} startDate
+     * @param {Date|import('dayjs').Dayjs} startDate
      * @param {number} maxDaysToSearch
      * @returns {Date|null}
      */
@@ -327,8 +328,8 @@ export class SweepLineProcessor {
      * Find gaps (available periods) for an item
      * @param {Array} intervals
      * @param {string} itemId
-     * @param {Date|dayjs} viewStart
-     * @param {Date|dayjs} viewEnd
+     * @param {Date|import('dayjs').Dayjs} viewStart
+     * @param {Date|import('dayjs').Dayjs} viewEnd
      * @param {number} minGapDays - Minimum gap size to report
      * @returns {Array<{start: Date, end: Date, days: number}>}
      */
@@ -392,7 +393,7 @@ export class SweepLineProcessor {
 
 /**
  * Create and process unavailability data using sweep line algorithm
- * @param {any} intervalTree - The interval tree containing all bookings/checkouts
+ * @param {import('./interval-tree.mjs').IntervalTree} intervalTree - The interval tree containing all bookings/checkouts
  * @param {Date|import("dayjs").Dayjs} viewStart - Start of the calendar view date range
  * @param {Date|import("dayjs").Dayjs} viewEnd - End of the calendar view date range
  * @param {Array<string>} allItemIds - All bookable item IDs

@@ -6,7 +6,7 @@ import {
     aggregateMarkersByType,
     deriveEffectiveRules,
 } from "../booking/manager.mjs";
-import dayjs from "../../../../utils/dayjs.mjs";
+import { toISO, formatYMD } from "../booking/date-utils.mjs";
 import { calendarLogger as logger } from "../booking/logger.mjs";
 import { CONSTRAINT_MODE_END_DATE_ONLY } from "../booking/constants.mjs";
 
@@ -63,7 +63,8 @@ export function applyCalendarHighlighting(instance, highlightingData) {
     }
 
     // Store data for reuse (e.g., after month navigation)
-    instance._constraintHighlighting = highlightingData;
+    const instWithCache = /** @type {import('flatpickr/dist/types/instance').Instance & { _constraintHighlighting?: unknown }} */ (instance);
+    instWithCache._constraintHighlighting = highlightingData;
 
     // Clear any existing highlighting first
     clearCalendarHighlighting(instance);
@@ -310,42 +311,18 @@ export async function preloadFlatpickrLocale() {
 // deriveEffectiveRules moved to bookingManager.mjs (rule/business logic layer)
 
 /**
- * Factory to create functional onChange handler
+ * Create a Flatpickr `onChange` handler bound to the booking store.
+ *
+ * @param {object} store - Booking Pinia store (or compatible shape)
+ * @param {object} [options]
+ * @param {(msg:string)=>void} [options.setError] - Called with a user-facing error message (or empty string)
+ * @param {{value:boolean}} [options.tooltipVisibleRef] - Tooltip visibility ref to reset on change
+ * @param {object} [options.constraintOptions] - Options affecting constraint calculations
  */
-export function createOnChange(store, arg2, arg3, arg4) {
-    // Backward compatible signature shim:
-    // - Old: (store, errorMessageRef, tooltipVisibleRef, constraintOptions)
-    // - New: (store, { setError, tooltipVisibleRef, constraintOptions })
-    let setError = null;
-    let tooltipVisibleRef = null;
-    let constraintOptions = {};
-
-    if (
-        arg2 &&
-        typeof arg2 === "object" &&
-        (Object.prototype.hasOwnProperty.call(arg2, "setError") ||
-            Object.prototype.hasOwnProperty.call(arg2, "tooltipVisibleRef") ||
-            Object.prototype.hasOwnProperty.call(arg2, "constraintOptions"))
-    ) {
-        ({
-            setError = null,
-            tooltipVisibleRef = null,
-            constraintOptions = {},
-        } = arg2);
-    } else {
-        const errorMessageRef = arg2;
-        tooltipVisibleRef = arg3 || null;
-        constraintOptions = arg4 || {};
-        setError = msg => {
-            if (
-                errorMessageRef &&
-                typeof errorMessageRef === "object" &&
-                "value" in errorMessageRef
-            ) {
-                errorMessageRef.value = msg;
-            }
-        };
-    }
+export function createOnChange(
+    store,
+    { setError = null, tooltipVisibleRef = null, constraintOptions = {} } = {}
+) {
 
     // Allow tests to stub globals; fall back to imported functions
     const _getVisibleCalendarDates =
@@ -358,8 +335,8 @@ export function createOnChange(store, arg2, arg3, arg4) {
     const _getCalendarNavigationTarget =
         globalThis.getCalendarNavigationTarget || getCalendarNavigationTarget;
 
-    return function (selectedDates, dateStr, instance) {
-        logger.debug("handleDateChange triggered", { selectedDates, dateStr });
+    return function (selectedDates, _dateStr, instance) {
+        logger.debug("handleDateChange triggered", { selectedDates });
 
         const validDates = (selectedDates || []).filter(
             d => d instanceof Date && !Number.isNaN(d.getTime())
@@ -380,7 +357,7 @@ export function createOnChange(store, arg2, arg3, arg4) {
             return;
         }
 
-        const isoDateRange = validDates.map(d => dayjs(d).toISOString());
+        const isoDateRange = validDates.map(d => toISO(d));
         const current = store.selectedDateRange || [];
         const same =
             current.length === isoDateRange.length &&
@@ -490,13 +467,28 @@ export function createOnChange(store, arg2, arg3, arg4) {
                 }
             }
             if (selectedDates.length === 0) {
-                instance._constraintHighlighting = null;
+                const instWithCache = /** @type {import('flatpickr/dist/types/instance').Instance & { _constraintHighlighting?: unknown }} */ (instance);
+                instWithCache._constraintHighlighting = null;
                 clearCalendarHighlighting(instance);
             }
         }
     };
 }
 
+/**
+ * Create Flatpickr `onDayCreate` handler.
+ *
+ * Renders per-day marker dots, hover classes, and shows a tooltip with
+ * aggregated markers. Reapplies constraint highlighting across month
+ * navigation using the instance's cached highlighting data.
+ *
+ * @param {object} store - booking store or compatible state
+ * @param {{value:Array}} tooltipMarkers - ref of markers shown in tooltip
+ * @param {{value:boolean}} tooltipVisible - visibility ref for tooltip
+ * @param {{value:number}} tooltipX - x position ref
+ * @param {{value:number}} tooltipY - y position ref
+ * @returns {import('flatpickr/dist/types/options').Hook}
+ */
 export function createOnDayCreate(
     store,
     tooltipMarkers,
@@ -504,13 +496,17 @@ export function createOnDayCreate(
     tooltipX,
     tooltipY
 ) {
-    return function (...[, , fp, dayElem]) {
+    return function (
+        ...[, , /** @type {import('flatpickr/dist/types/instance').Instance} */ fp,
+        /** @type {import('flatpickr/dist/types/instance').DayElement} */ dayElem]
+    ) {
         const existingGrids = dayElem.querySelectorAll(
             `.${CLASS_BOOKING_MARKER_GRID}`
         );
         existingGrids.forEach(grid => grid.remove());
 
-        const dateStrForMarker = dayjs(dayElem.dateObj).format("YYYY-MM-DD");
+        const el = /** @type {import('flatpickr/dist/types/instance').DayElement} */ (dayElem);
+        const dateStrForMarker = formatYMD(el.dateObj);
         const markersForDots = getBookingMarkersForDate(
             store.unavailableByDate,
             dateStrForMarker,
@@ -525,7 +521,7 @@ export function createOnDayCreate(
 
         // Existing tooltip mouseover logic - DO NOT CHANGE unless necessary for aggregation
         dayElem.addEventListener("mouseover", () => {
-            const hoveredDateStr = dayjs(dayElem.dateObj).format("YYYY-MM-DD");
+            const hoveredDateStr = formatYMD(el.dateObj);
             const currentTooltipMarkersData = getBookingMarkersForDate(
                 store.unavailableByDate,
                 hoveredDateStr,
@@ -533,7 +529,7 @@ export function createOnDayCreate(
             );
 
             // Apply lead/trail hover classes
-            dayElem.classList.remove(
+            el.classList.remove(
                 CLASS_BOOKING_DAY_HOVER_LEAD,
                 CLASS_BOOKING_DAY_HOVER_TRAIL
             ); // Clear first
@@ -546,10 +542,10 @@ export function createOnDayCreate(
             });
 
             if (hasLeadMarker) {
-                dayElem.classList.add(CLASS_BOOKING_DAY_HOVER_LEAD);
+                el.classList.add(CLASS_BOOKING_DAY_HOVER_LEAD);
             }
             if (hasTrailMarker) {
-                dayElem.classList.add(CLASS_BOOKING_DAY_HOVER_TRAIL);
+                el.classList.add(CLASS_BOOKING_DAY_HOVER_TRAIL);
             }
 
             // Tooltip visibility logic (existing)
@@ -557,7 +553,7 @@ export function createOnDayCreate(
                 tooltipMarkers.value = currentTooltipMarkersData;
                 tooltipVisible.value = true;
 
-                const rect = dayElem.getBoundingClientRect();
+                const rect = el.getBoundingClientRect();
                 tooltipX.value = rect.left + window.scrollX + rect.width / 2;
                 tooltipY.value = rect.top + window.scrollY - 10; // Adjust Y to be above the cell
             } else {
@@ -576,14 +572,20 @@ export function createOnDayCreate(
         });
 
         // Reapply constraint highlighting if it exists (for month navigation, etc.)
-        if (fp && fp._constraintHighlighting && fp.calendarContainer) {
+        const fpWithCache = /** @type {import('flatpickr/dist/types/instance').Instance & { _constraintHighlighting?: unknown }} */ (fp);
+        if (fpWithCache && fpWithCache._constraintHighlighting && fpWithCache.calendarContainer) {
             requestAnimationFrame(() => {
-                applyCalendarHighlighting(fp, fp._constraintHighlighting);
+                applyCalendarHighlighting(fpWithCache, fpWithCache._constraintHighlighting);
             });
         }
     };
 }
 
+/**
+ * Create Flatpickr `onClose` handler to clear tooltip state.
+ * @param {{value:Array}} tooltipMarkers
+ * @param {{value:boolean}} tooltipVisible
+ */
 export function createOnClose(tooltipMarkers, tooltipVisible) {
     return function () {
         // Clean up tooltips
@@ -593,10 +595,11 @@ export function createOnClose(tooltipMarkers, tooltipVisible) {
 }
 
 /**
- * Helper to generate all visible dates for the current calendar view
- * UI-level helper; belongs with calendar DOM logic
+ * Generate all visible dates for the current calendar view.
+ * UI-level helper; belongs with calendar DOM logic.
+ *
  * @param {Object} flatpickrInstance - Flatpickr instance
- * @returns {Array<Date>} - Array of Date objects
+ * @returns {Date[]} Array of Date objects
  */
 export function getVisibleCalendarDates(flatpickrInstance) {
     if (
@@ -611,7 +614,10 @@ export function getVisibleCalendarDates(flatpickrInstance) {
 }
 
 /**
- * Build the DOM grid for aggregated booking markers
+ * Build the DOM grid for aggregated booking markers.
+ *
+ * @param {Record<string, number>} aggregatedMarkers - counts by marker type
+ * @returns {HTMLDivElement} container element with marker items
  */
 export function buildMarkerGrid(aggregatedMarkers) {
     const gridContainer = document.createElement("div");

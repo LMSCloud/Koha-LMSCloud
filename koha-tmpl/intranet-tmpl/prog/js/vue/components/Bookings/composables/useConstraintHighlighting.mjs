@@ -8,21 +8,16 @@ import { toEffectiveRules, calculateConstraintHighlighting } from "../lib/bookin
  */
 export function useConstraintHighlighting(store, constraintOptionsRef) {
     const highlightingData = computed(() => {
-        try {
-            const startISO = (store.selectedDateRange || [])[0];
-            if (!startISO) return null;
-            const opts = constraintOptionsRef?.value || {};
-            const effectiveRules = toEffectiveRules(store.circulationRules, opts);
-            return calculateConstraintHighlighting(
-                dayjs(startISO).toDate(),
-                effectiveRules,
-                opts
-            );
-        } catch (_e) {
-            return null;
-        }
+        const startISO = store.selectedDateRange?.[0];
+        if (!startISO) return null;
+        const opts = constraintOptionsRef?.value ?? {};
+        const effectiveRules = toEffectiveRules(store.circulationRules, opts);
+        return calculateConstraintHighlighting(
+            dayjs(startISO).toDate(),
+            effectiveRules,
+            opts
+        );
     });
 
     return { highlightingData };
 }
-

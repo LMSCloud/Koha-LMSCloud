@@ -4,6 +4,20 @@ import { watchEffect, ref } from "vue";
  * Watches patron, item type, pickup, and date to fetch pickup locations and
  * circulation rules with de-duplication based on a computed key.
  */
+/**
+ * Watch core selections and fetch pickup locations and circulation rules.
+ * De-duplicates rules fetches by building a stable key from inputs.
+ *
+ * @typedef {import('../types/bookings').BookingStoreLike & import('../types/bookings').BookingStoreActions} StoreWithActions
+ * @param {Object} options
+ * @param {StoreWithActions} options.store
+ * @param {{value:Object|null}} options.bookingPatron
+ * @param {{value:string|null}} options.bookingPickupLibraryId
+ * @param {{value:string|number|null}} options.bookingItemtypeId
+ * @param {{value:Array}} options.constrainedItemTypes
+ * @param {{value:Array}} options.selectedDateRange
+ * @param {string|{value:string}} options.biblionumber
+ */
 export function useRulesFetcher(options) {
     const {
         store,
@@ -17,26 +31,13 @@ export function useRulesFetcher(options) {
 
     const lastRulesKey = ref(null);
 
-    function buildRulesKey(params) {
-        // Stable, explicit, order-preserving key builder to avoid JSON quirks
-        const parts = [];
-        const push = (k, v) => {
-            if (v === null || v === undefined || v === "") return;
-            parts.push(`${k}=${String(v)}`);
-        };
-        push("pc", params.patron_category_id);
-        push("it", params.item_type_id);
-        push("lib", params.library_id);
-        push("start", params.start_date);
-        return parts.join("|");
-    }
-
     watchEffect(
         () => {
             const patronId = bookingPatron.value?.patron_id;
-            const biblio = typeof biblionumber === "object"
-                ? biblionumber.value
-                : biblionumber;
+            const biblio =
+                typeof biblionumber === "object"
+                    ? biblionumber.value
+                    : biblionumber;
 
             if (patronId && biblio) {
                 store.fetchPickupLocations(biblio, patronId);
@@ -68,4 +69,17 @@ export function useRulesFetcher(options) {
     );
 
     return { lastRulesKey };
+}
+
+function buildRulesKey(params) {
+    // Stable, explicit, order-preserving key builder to avoid JSON quirks
+    return [
+        ["pc", params.patron_category_id],
+        ["it", params.item_type_id],
+        ["lib", params.library_id],
+        ["start", params.start_date],
+    ]
+        .filter(([, v]) => v ?? v === 0)
+        .map(([k, v]) => `${k}=${String(v)}`)
+        .join("|");
 }

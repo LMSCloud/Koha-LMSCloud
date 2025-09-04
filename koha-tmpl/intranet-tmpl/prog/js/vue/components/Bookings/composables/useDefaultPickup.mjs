@@ -25,21 +25,18 @@ export function useDefaultPickup(options) {
             const list = Array.isArray(locations) ? locations : [];
 
             // 1) OPAC default override
-            try {
-                const enabled =
-                    String(opacDefaultBookingLibraryEnabled) === "1" ||
-                    opacDefaultBookingLibraryEnabled === true;
-                const def = opacDefaultBookingLibrary;
-                if (
-                    enabled &&
-                    typeof def === "string" &&
-                    def &&
-                    list.some(l => idsEqual(l.library_id, def))
-                ) {
-                    bookingPickupLibraryId.value = def;
-                    return;
-                }
-            } catch (e) {}
+            const enabled =
+                opacDefaultBookingLibraryEnabled === true ||
+                String(opacDefaultBookingLibraryEnabled) === "1";
+            const def = opacDefaultBookingLibrary ?? "";
+            if (
+                enabled &&
+                def &&
+                list.some(l => idsEqual(l.library_id, def))
+            ) {
+                bookingPickupLibraryId.value = def;
+                return;
+            }
 
             // 2) Patron library
             if (patron && list.length > 0) {
@@ -66,4 +63,3 @@ export function useDefaultPickup(options) {
 
     return { stop };
 }
-

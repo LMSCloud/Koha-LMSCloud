@@ -4,14 +4,15 @@
         "module": "ES2020",
         "moduleResolution": "Node",
         "checkJs": true,
+        "skipLibCheck": true,
         "allowJs": true,
         "noEmit": true,
         "strict": false,
         "baseUrl": ".",
         "paths": {
             "@bookingApi": [
-                "./lib/booking/bookingApi.js",
-                "./lib/booking/bookingApi.opac.js"
+                "./lib/adapters/api/staff-interface.js",
+                "./lib/adapters/api/opac.js"
             ]
         },
         "types": []
@@ -19,12 +20,11 @@
     "include": [
         "./**/*.js",
         "./**/*.mjs",
-        "./**/*.vue"
+        "./**/*.vue",
+        "./**/*.d.ts"
     ],
     "exclude": [
         "node_modules",
         "dist"
     ]
 }
-
-

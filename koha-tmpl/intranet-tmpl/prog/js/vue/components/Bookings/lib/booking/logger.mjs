@@ -77,7 +77,7 @@ class BookingLogger {
      * Core logging method
      * @param {string} level
      * @param {string} message
-     * @param  {...any} args
+     * @param  {...unknown} args
      */
     log(level, message, ...args) {
         // Skip if this specific level is not enabled

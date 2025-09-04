@@ -11,9 +11,10 @@ import { win } from "./globals.mjs";
  * @returns {Array} Query conditions for the API
  */
 export function buildPatronSearchQuery(term, options = {}) {
+    /** @type {((term: string, options?: object) => any) | null} */
     const globalBuilder =
         typeof win("buildPatronSearchQuery") === "function"
-            ? win("buildPatronSearchQuery")
+            ? /** @type {any} */ (win("buildPatronSearchQuery"))
             : null;
     if (globalBuilder) {
         return globalBuilder(term, options);

@@ -334,8 +334,10 @@ export async function createBooking(bookingData) {
         } catch (e) {
             // If we can't parse the error JSON, use the default error message
         }
-        const error = new Error(errorMessage);
-        /** @type {any} */ (error).status = response.status;
+        /** @type {Error & { status?: number }} */
+        const error = Object.assign(new Error(errorMessage), {
+            status: response.status,
+        });
         throw error;
     }
 
@@ -390,8 +392,10 @@ export async function updateBooking(bookingId, bookingData) {
         } catch (e) {
             // If we can't parse the error JSON, use the default error message
         }
-        const error = new Error(errorMessage);
-        /** @type {any} */ (error).status = response.status;
+        /** @type {Error & { status?: number }} */
+        const error = Object.assign(new Error(errorMessage), {
+            status: response.status,
+        });
         throw error;
     }
 

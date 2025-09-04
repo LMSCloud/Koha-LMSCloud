@@ -22,7 +22,6 @@ export function useDerivedItemType(options) {
                 }
             }
         },
-        { immediate: true, deep: true }
+        { immediate: true }
     );
 }
-

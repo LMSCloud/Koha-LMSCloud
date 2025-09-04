@@ -1,9 +1,11 @@
-import dayjs from "../../../../utils/dayjs.mjs";
+import dayjs from "../../../../utils/dayjs.mjs"
+import { addDays, formatYMD } from "./date-utils.mjs";
 import { managerLogger as logger } from "./logger.mjs";
 import {
     CONSTRAINT_MODE_END_DATE_ONLY,
     CONSTRAINT_MODE_NORMAL,
 } from "./constants.mjs";
+import { toStringId } from "./id-utils.mjs";
 
 // Internal helpers specific to end_date_only mode
 function validateEndDateOnlyStartDateInternal(
@@ -21,20 +23,18 @@ function validateEndDateOnlyStartDateInternal(
         targetEndDate = due.clone();
     } else {
         const maxPeriod = Number(config?.maxPeriod) || 0;
-        targetEndDate = maxPeriod > 0 ? date.add(maxPeriod - 1, "day") : date;
+        targetEndDate = maxPeriod > 0 ? addDays(date, maxPeriod - 1) : date;
     }
 
     logger.debug(
-        `Checking ${CONSTRAINT_MODE_END_DATE_ONLY} range: ${date.format(
-            "YYYY-MM-DD"
-        )} to ${targetEndDate.format("YYYY-MM-DD")}`
+        `Checking ${CONSTRAINT_MODE_END_DATE_ONLY} range: ${formatYMD(date)} to ${formatYMD(targetEndDate)}`
     );
 
     if (selectedItem) {
         const conflicts = intervalTree.queryRange(
             date.valueOf(),
             targetEndDate.valueOf(),
-            String(selectedItem)
+            toStringId(selectedItem)
         );
         const relevantConflicts = conflicts.filter(
             interval => !editBookingId || interval.metadata.booking_id != editBookingId
@@ -52,11 +52,11 @@ function validateEndDateOnlyStartDateInternal(
                 interval => !editBookingId || interval.metadata.booking_id != editBookingId
             );
             const unavailableItemIds = new Set(
-                relevantDayConflicts.map(c => String(c.itemId))
+                relevantDayConflicts.map(c => toStringId(c.itemId))
             );
             const allItemsUnavailableOnThisDay =
                 allItemIds.length > 0 &&
-                allItemIds.every(id => unavailableItemIds.has(String(id)));
+                allItemIds.every(id => unavailableItemIds.has(toStringId(id)));
             if (allItemsUnavailableOnThisDay) {
                 return true;
             }
@@ -146,13 +146,13 @@ const EndDateOnlyStrategy = {
                     30;
             }
             if (!maxPeriod) return null;
-            targetEnd = start.add(maxPeriod - 1, "day");
+            targetEnd = addDays(start, maxPeriod - 1);
             periodForUi = maxPeriod;
         }
         const diffDays = Math.max(0, targetEnd.diff(start, "day"));
         const blockedIntermediateDates = [];
         for (let i = 1; i < diffDays; i++) {
-            blockedIntermediateDates.push(start.add(i, "day").toDate());
+            blockedIntermediateDates.push(addDays(start, i).toDate());
         }
         return {
             startDate: start.toDate(),
@@ -177,7 +177,7 @@ const EndDateOnlyStrategy = {
                 Number(circulationRules?.maxPeriod) ||
                 Number(circulationRules?.issuelength) ||
                 0;
-            targetEnd = dayjsStart.add(Math.max(1, numericMaxPeriod) - 1, "day");
+            targetEnd = addDays(dayjsStart, Math.max(1, numericMaxPeriod) - 1);
         }
         return { ok: dayjsEnd.isSame(targetEnd, "day"), expectedEnd: targetEnd };
     },

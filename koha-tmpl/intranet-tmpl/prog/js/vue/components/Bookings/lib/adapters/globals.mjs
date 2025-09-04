@@ -5,7 +5,7 @@
 /**
  * Get a value from window by key using bracket notation
  * @param {string} key
- * @returns {any}
+ * @returns {unknown}
  */
 export function win(key) {
     if (typeof window === "undefined") return undefined;
@@ -15,8 +15,8 @@ export function win(key) {
 /**
  * Get a value from window with default initialization
  * @param {string} key
- * @param {any} defaultValue
- * @returns {any}
+ * @param {unknown} defaultValue
+ * @returns {unknown}
  */
 export function getWindowValue(key, defaultValue) {
     if (typeof window === "undefined") return defaultValue;

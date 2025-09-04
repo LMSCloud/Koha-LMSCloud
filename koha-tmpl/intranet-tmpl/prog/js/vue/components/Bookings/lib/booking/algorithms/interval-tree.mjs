@@ -18,7 +18,7 @@ export class BookingInterval {
      * @param {string|Date|import("dayjs").Dayjs} startDate - Start date of the interval
      * @param {string|Date|import("dayjs").Dayjs} endDate - End date of the interval
      * @param {string|number} itemId - Item ID (will be converted to string)
-     * @param {'booking'|'checkout'|'lead'|'trail'} type - Type of interval
+     * @param {'booking'|'checkout'|'lead'|'trail'|'query'} type - Type of interval
      * @param {Object} metadata - Additional metadata (booking_id, patron_id, etc.)
      * @param {number} [metadata.booking_id] - Booking ID for bookings
      * @param {number} [metadata.patron_id] - Patron ID
@@ -32,7 +32,7 @@ export class BookingInterval {
         this.end = dayjs(endDate).valueOf();
         /** @type {string} Item ID as string for consistent comparison */
         this.itemId = String(itemId); // Ensure string for consistent comparison
-        /** @type {'booking'|'checkout'|'lead'|'trail'} Type of interval */
+        /** @type {'booking'|'checkout'|'lead'|'trail'|'query'} Type of interval */
         this.type = type; // 'booking', 'checkout', 'lead', 'trail'
         /** @type {Object} Additional metadata */
         this.metadata = metadata; // booking_id, patron info, etc.
@@ -357,10 +357,10 @@ export class IntervalTree {
         );
 
         const queryInterval = new BookingInterval(
-            startTimestamp,
-            endTimestamp,
+            new Date(startTimestamp),
+            new Date(endTimestamp),
             "",
-            /** @type {any} */ ("query")
+            "query"
         );
         const results = [];
         this._queryRangeNode(this.root, queryInterval, results, itemId);

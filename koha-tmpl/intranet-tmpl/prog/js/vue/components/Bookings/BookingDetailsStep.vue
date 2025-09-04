@@ -28,7 +28,7 @@
                 :reduce="l => l.library_id"
                 :loading="loading.pickupLocations"
                 :clearable="true"
-                :disabled="!selectedPatron && patronRequired"
+                :disabled="selectsDisabled"
             >
                 <template #no-options>
                     {{ $__("No pickup locations available.") }}
@@ -60,7 +60,7 @@
                 label="description"
                 :reduce="t => t.item_type_id"
                 :clearable="true"
-                :disabled="!selectedPatron && patronRequired"
+                :disabled="selectsDisabled"
             >
                 <template #no-options>
                     {{ $__("No item types available.") }}
@@ -87,7 +87,7 @@
                 :reduce="i => i.item_id"
                 :clearable="true"
                 :loading="loading.bookableItems"
-                :disabled="!selectedPatron && patronRequired"
+                :disabled="selectsDisabled"
             >
                 <template #no-options>
                     {{ $__("No items available.") }}
@@ -144,6 +144,8 @@ export default {
             type: Boolean,
             default: false,
         },
+        // Enable/disable selects based on data readiness from parent
+        detailsEnabled: { type: Boolean, default: true },
         // v-model values
         pickupLibraryId: {
             type: String,
@@ -204,32 +206,33 @@ export default {
     setup(props, { emit }) {
         const store = useBookingStore();
         const { loading } = storeToRefs(store);
-        const selectedPickupLibraryId = computed({
-            get: () => props.pickupLibraryId,
-            set: (value) => {
-                emit("update:pickup-library-id", value);
-            },
-        });
+        // Helper to create v-model proxies with minimal repetition
+        const vModelProxy = (prop, event) =>
+            computed({
+                get: () => props[prop],
+                set: value => emit(event, value),
+            });
 
-        const selectedItemtypeId = computed({
-            get: () => props.itemtypeId,
-            set: (value) => {
-                emit("update:itemtype-id", value);
-            },
-        });
+        const selectedPickupLibraryId = vModelProxy(
+            "pickupLibraryId",
+            "update:pickup-library-id"
+        );
+        const selectedItemtypeId = vModelProxy(
+            "itemtypeId",
+            "update:itemtype-id"
+        );
+        const selectedItemId = vModelProxy("itemId", "update:item-id");
 
-        const selectedItemId = computed({
-            get: () => props.itemId,
-            set: (value) => {
-                emit("update:item-id", value);
-            },
-        });
+        const selectsDisabled = computed(
+            () => !props.detailsEnabled || (!props.selectedPatron && props.patronRequired)
+        );
 
         return {
             selectedPickupLibraryId,
             selectedItemtypeId,
             selectedItemId,
             loading,
+            selectsDisabled,
         };
     },
 };

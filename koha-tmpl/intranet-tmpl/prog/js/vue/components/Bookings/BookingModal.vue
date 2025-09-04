@@ -49,6 +49,7 @@
                                 showPickupLocationSelect
                             "
                             :step-number="stepNumber.details"
+                            :details-enabled="readiness.dataReady"
                             :show-item-details-selects="showItemDetailsSelects"
                             :show-pickup-location-select="
                                 showPickupLocationSelect
@@ -83,6 +84,7 @@
                         />
                         <BookingPeriodStep
                             :step-number="stepNumber.period"
+                            :calendar-enabled="readiness.isCalendarReady"
                             :constraint-options="constraintOptions"
                             :date-range-constraint="dateRangeConstraint"
                             :max-booking-period="maxBookingPeriod"
@@ -134,7 +136,8 @@
 </template>
 
 <script>
-import dayjs from "../../utils/dayjs.mjs";
+import dayjs from "../../utils/dayjs.mjs"
+import { toISO } from "./lib/booking/date-utils.mjs";
 import {
     computed,
     ref,
@@ -159,12 +162,15 @@ import { storeToRefs } from "pinia";
 import { updateExternalDependents } from "./lib/adapters/external-dependents.mjs";
 import { preloadFlatpickrLocale } from "./lib/adapters/calendar.mjs";
 import { useAvailability } from "./composables/useAvailability.mjs";
+import { enableBodyScroll, disableBodyScroll } from "./lib/adapters/modal-scroll.mjs";
+import { appendHiddenInputs } from "./lib/adapters/form.mjs";
 import { calculateStepNumbers } from "./lib/ui/steps.mjs";
 import { useBookingValidation } from "./composables/useBookingValidation.mjs";
 import { calculateMaxBookingPeriod } from "./lib/booking/manager.mjs";
 import { useDefaultPickup } from "./composables/useDefaultPickup.mjs";
 import { buildNoItemsAvailableMessage } from "./lib/ui/selection-message.mjs";
 import { useRulesFetcher } from "./composables/useRulesFetcher.mjs";
+import { normalizeIdType } from "./lib/booking/id-utils.mjs";
 import { useDerivedItemType } from "./composables/useDerivedItemType.mjs";
 import { useErrorState } from "./composables/useErrorState.mjs";
 
@@ -241,7 +247,7 @@ export default {
         // Calculate max booking period from circulation rules and selected constraint
 
         // Use validation composable for reactive validation logic
-        const { canProceedToStep3: canProceedToStep3Reactive } = useBookingValidation(store);
+        const { canSubmit: canSubmitReactive } = useBookingValidation(store);
 
         // Grouped reactive state following Vue 3 best practices
         const modalState = reactive({
@@ -251,8 +257,6 @@ export default {
         });
         const { error: uiError, setError, clear: clearError } = useErrorState();
 
-        // Tooltip state is now managed inside BookingPeriodStep via composable
-        // Refs for specific instances and external library integration
         const additionalFieldsInstance = ref(null);
 
         const modalTitle = computed(
@@ -279,11 +283,7 @@ export default {
             () => props.submitType === "form-submission"
         );
 
-        // Create computed wrappers for v-model bindings in child components
-        const bookingPickupLibraryId = computed({
-            get: () => pickupLibraryId.value,
-            set: value => { pickupLibraryId.value = value; },
-        });
+        // pickupLibraryId is a ref from the store; use directly
 
         // Constraint flags computed from pure function results
         const constrainedFlags = computed(() => ({
@@ -368,45 +368,49 @@ export default {
             constraintOptions
         );
 
-        // Prevent calendar interaction until all data is loaded to avoid race conditions
-        const isCalendarReady = computed(() => {
-            const dataLoaded =
+        // Readiness flags
+        const dataReady = computed(
+            () =>
                 !loading.value.bookableItems &&
                 !loading.value.bookings &&
                 !loading.value.checkouts &&
-                bookableItems.value?.length > 0;
+                (bookableItems.value?.length ?? 0) > 0
+        );
+        const formPrefilterValid = computed(
+            () =>
+                !!(
+                    bookingPatron.value &&
+                    (bookingItemId.value ||
+                        bookingItemtypeId.value ||
+                        pickupLibraryId.value)
+                )
+        );
+        const hasAvailableItems = computed(
+            () => constrainedBookableItems.value.length > 0
+        );
 
-            // Basic form validation for calendar readiness (not full step 3 validation)
-            const formValid = !!(
-                bookingPatron.value &&
-                (bookingItemId.value ||
-                    bookingItemtypeId.value ||
-                    pickupLibraryId.value)
-            );
-
-            // Check if the current selection results in any available items
-            const hasAvailableItems = constrainedBookableItems.value.length > 0;
-
-            return dataLoaded && formValid && hasAvailableItems;
-        });
+        // Prevent calendar interaction until all data is loaded and basic inputs set
+        const isCalendarReady = computed(
+            () => dataReady.value && formPrefilterValid.value && hasAvailableItems.value
+        );
 
         // Separate validation for submit button using reactive composable
-        const isSubmitReady = computed(() => {
-            return isCalendarReady.value && canProceedToStep3Reactive.value;
-        });
+        const isSubmitReady = computed(
+            () => isCalendarReady.value && canSubmitReactive.value
+        );
 
-        /*
-         * Watchers overview
-         *
-         * - Open prop sync: mirror `open` into local modal state and reset inputs on open
-         * - Modal lifecycle: when the modal opens/closes, handle async data loads, body scroll, and locale preload
-         * - Availability mapping: push computed unavailableByDate to the store for calendar markers
-         * - Data-driven fetches: react to patron/library/item type changes to load pickup locations and circulation rules
-         * - Item type auto-selection: prefer a unique constrained type, otherwise infer from the selected item
-         * - Error maintenance: clear messages on core input/date changes and after circulation rules finish loading
-         * - Defaults: set a sensible pickup library based on OPAC default, patron library, or first item’s home library
-         * - Guidance: warn when no items are available for the current selection to help the user adjust filters
-         */
+        // Grouped readiness for convenient consumption (optional)
+        const readiness = computed(() => ({
+            dataReady: dataReady.value,
+            formPrefilterValid: formPrefilterValid.value,
+            hasAvailableItems: hasAvailableItems.value,
+            isCalendarReady: isCalendarReady.value,
+            canSubmit: isSubmitReady.value,
+        }));
+
+        // Watchers: synchronize open state, orchestrate initial data load,
+        // push availability to store, fetch rules/pickup locations, and keep
+        // UX guidance/errors fresh while inputs change.
 
         // Sync internal modal state with the `open` prop and reset inputs when
         // opening to ensure a clean form each time.
@@ -474,22 +478,13 @@ export default {
                     // Set other form values after all dependencies are loaded
 
                     // Normalize itemId type to match bookableItems' item_id type for vue-select strict matching
-                    if (props.itemId != null) {
-                        const sample = bookableItems.value?.[0]?.item_id;
-                        const normalized =
-                            typeof sample === "number"
-                                ? Number(props.itemId)
-                                : String(props.itemId);
-                        bookingItemId.value = normalized;
-                    } else {
-                        bookingItemId.value = null;
-                    }
+                    bookingItemId.value = (props.itemId != null) ? normalizeIdType(bookableItems.value?.[0]?.item_id, props.itemId) : null;
                     bookingItemtypeId.value = props.itemtypeId;
 
                     if (props.startDate && props.endDate) {
                         selectedDateRange.value = [
-                            dayjs(props.startDate).toISOString(),
-                            dayjs(props.endDate).toISOString(),
+                            toISO(props.startDate),
+                            toISO(props.endDate),
                         ];
                     }
                 } catch (error) {
@@ -499,26 +494,23 @@ export default {
             }
         );
 
-        // Keep unavailableByDate in sync for calendar markers. Using a watcher
-        // allows us to reuse the manager’s cached data and push the result to
-        // the store without re-computing in multiple places.
         // Push availability map to store for calendar markers
         watch(
             () => unavailableByDateRef.value,
-            newMap => {
-                store.setUnavailableByDate(newMap || {});
+            map => {
+                store.setUnavailableByDate(map ?? {});
             },
-            { immediate: true, deep: true }
+            { immediate: true }
         );
 
         useRulesFetcher({
             store,
             bookingPatron,
-            bookingPickupLibraryId,
+            bookingPickupLibraryId: pickupLibraryId,
             bookingItemtypeId,
             constrainedItemTypes,
             selectedDateRange,
-            biblionumber: props.biblionumber,
+            biblionumber: String(props.biblionumber),
         });
 
         useDerivedItemType({
@@ -528,13 +520,10 @@ export default {
             bookableItems,
         });
 
-        // Clear errors on core inputs/date changes and when circulation rules
-        // finish loading (true -> false). Keeps feedback fresh without wiping
-        // messages mid-load.
         watch(
             () => ({
                 patron: bookingPatron.value?.patron_id,
-                pickup: bookingPickupLibraryId.value,
+                pickup: pickupLibraryId.value,
                 itemtype: bookingItemtypeId.value,
                 item: bookingItemId.value,
                 d0: selectedDateRange.value?.[0],
@@ -552,16 +541,15 @@ export default {
                     curr.d1 !== prev.d1;
                 if (inputsChanged) clearErrors();
 
-                if (prev && prev.rulesLoading && !curr.rulesLoading) {
+                if (prev?.rulesLoading && !curr.rulesLoading) {
                     clearErrors();
                 }
-            },
-            { deep: true }
+            }
         );
 
         // Default pickup selection handled by composable
         useDefaultPickup({
-            bookingPickupLibraryId,
+            bookingPickupLibraryId: pickupLibraryId,
             bookingPatron,
             pickupLocations,
             bookableItems,
@@ -575,20 +563,20 @@ export default {
             [
                 constrainedBookableItems,
                 () => bookingPatron.value,
-                () => bookingPickupLibraryId.value,
+                () => pickupLibraryId.value,
                 () => bookingItemtypeId.value,
             ],
-            ([availableItems, patron, pickupLibraryId, itemtypeId]) => {
+            ([availableItems, patron, pickupLibrary, itemtypeId]) => {
                 // Only show error if user has made selections that result in no items
                 if (
                     patron &&
-                    (pickupLibraryId || itemtypeId) &&
+                    (pickupLibrary || itemtypeId) &&
                     availableItems.length === 0
                 ) {
                     const msg = buildNoItemsAvailableMessage(
                         pickupLocations.value,
                         itemTypes.value,
-                        pickupLibraryId,
+                        pickupLibrary,
                         itemtypeId
                     );
                     setError(msg, "no_items");
@@ -648,46 +636,17 @@ export default {
             store.resetErrors();
         }
 
-        function enableBodyScroll() {
-            // Use window property via bracket notation for TS friendliness
-            const count = Number(window["kohaModalCount"]) || 0;
-            window["kohaModalCount"] = Math.max(0, count - 1);
-
-            if ((window["kohaModalCount"] || 0) === 0) {
-                document.body.classList.remove("modal-open");
-                if (document.body.style.paddingRight) {
-                    document.body.style.paddingRight = "";
-                }
-            }
-        }
-
-        function disableBodyScroll() {
-            const current = Number(window["kohaModalCount"]) || 0;
-            window["kohaModalCount"] = current + 1;
-
-            if (!document.body.classList.contains("modal-open")) {
-                const scrollbarWidth =
-                    window.innerWidth - document.documentElement.clientWidth;
-                if (scrollbarWidth > 0) {
-                    document.body.style.paddingRight = scrollbarWidth + "px";
-                }
-                document.body.classList.add("modal-open");
-            }
-        }
 
         function resetModalState() {
             bookingPatron.value = null;
-            bookingPickupLibraryId.value = null;
+            pickupLibraryId.value = null;
             bookingItemtypeId.value = null;
             bookingItemId.value = null;
             selectedDateRange.value = [];
             modalState.step = 1;
             clearErrors();
-            if (additionalFieldsInstance.value) {
-                additionalFieldsInstance.value.clear();
-            }
+            additionalFieldsInstance.value?.clear?.();
             modalState.hasAdditionalFields = false;
-            store.resetErrors();
         }
 
         function clearDateRange() {
@@ -718,7 +677,7 @@ export default {
                 booking_id: props.bookingId ?? undefined,
                 start_date: start,
                 end_date: end,
-                pickup_library_id: bookingPickupLibraryId.value,
+                pickup_library_id: pickupLibraryId.value,
                 biblio_id: props.biblionumber,
                 item_id: bookingItemId.value || null,
                 patron_id: bookingPatron.value?.patron_id,
@@ -728,7 +687,7 @@ export default {
             };
 
             if (isFormSubmission.value) {
-                const form = event.target.closest("form");
+                const form = /** @type {HTMLFormElement} */ (event.target);
                 const csrfToken = /** @type {HTMLInputElement|null} */ (
                     document.querySelector('[name="csrf_token"]')
                 );
@@ -740,18 +699,14 @@ export default {
                     );
                 }
 
-                [
-                    ...Object.entries(dataToSubmit),
-                    [csrfToken?.name, csrfToken?.value],
-                    ["op", "cud-add"],
-                ].forEach(([name, value]) => {
-                    if (value === undefined || value === null) return;
-                    const input = document.createElement("input");
-                    input.type = "hidden";
-                    input.name = String(name);
-                    input.value = String(value);
-                    form.appendChild(input);
-                });
+                appendHiddenInputs(
+                    form,
+                    [
+                        ...Object.entries(dataToSubmit),
+                        [csrfToken?.name, csrfToken?.value],
+                        ['op', 'cud-add'],
+                    ]
+                );
                 form.submit();
                 return;
             }
@@ -800,6 +755,7 @@ export default {
             constrainedBookableItems,
             isCalendarReady,
             isSubmitReady,
+            readiness,
             constrainedFlags,
             constraintOptions,
             handleClose,
@@ -812,7 +768,7 @@ export default {
             bookableItemsFilteredOut,
             bookableItemsTotal,
             maxBookingPeriod,
-            bookingPickupLibraryId,
+            
             onAdditionalFieldsReady,
             onAdditionalFieldsDestroyed,
         };

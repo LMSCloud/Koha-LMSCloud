@@ -13,10 +13,23 @@ import { win } from "../lib/adapters/globals.mjs";
 
 /**
  * Flatpickr integration for the bookings calendar.
+ *
  * Date type policy:
  * - Store holds ISO strings in selectedDateRange (single source of truth)
  * - Flatpickr works with Date objects; we convert at the boundary
  * - API receives ISO strings
+ *
+ * @param {{ value: HTMLInputElement|null }} elRef - ref to the input element
+ * @param {Object} options
+ * @param {import('../types/bookings').BookingStoreLike} [options.store] - booking store (defaults to pinia store)
+ * @param {{ value: Function }} options.disableFnRef - ref to a function for flatpickr's disable option
+ * @param {{ value: { dateRangeConstraint?: string, maxBookingPeriod?: number } }} options.constraintOptionsRef
+ * @param {(msg: string) => void} options.setError - set error message callback
+ * @param {{ value: import('../types/bookings').Marker[] }} [options.tooltipMarkersRef]
+ * @param {{ value: boolean }} [options.tooltipVisibleRef]
+ * @param {{ value: number }} [options.tooltipXRef]
+ * @param {{ value: number }} [options.tooltipYRef]
+ * @returns {{ clear: Function, getInstance: Function }}
  */
 export function useFlatpickr(elRef, options) {
     const store = options.store || useBookingStore();
@@ -61,12 +74,18 @@ export function useFlatpickr(elRef, options) {
     onMounted(() => {
         if (!elRef?.value) return;
 
+        const dateFormat =
+            typeof win("flatpickr_dateformat_string") === "string"
+                ? /** @type {string} */ (win("flatpickr_dateformat_string"))
+                : "d.m.Y";
+
+        /** @type {Partial<import('flatpickr/dist/types/options').Options>} */
         const baseConfig = {
             mode: "range",
             minDate: "today",
             disable: [() => false],
             clickOpens: true,
-            dateFormat: win("flatpickr_dateformat_string") || "d.m.Y",
+            dateFormat,
             allowInput: false,
             onChange: createOnChange(store, {
                 setError,

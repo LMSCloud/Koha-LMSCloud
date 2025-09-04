@@ -24,7 +24,8 @@ export function createValidationErrorHandler(messageMappings) {
 
         // Call the message function with params to get translated message
         const message = messageFunc(params);
-        const error = new Error(message);
+        /** @type {Error & { status?: number }} */
+        const error = Object.assign(new Error(message), {});
 
         // If status is provided in params, set it on the error object
         if (params.status !== undefined) {

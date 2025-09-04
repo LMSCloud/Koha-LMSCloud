@@ -12,6 +12,7 @@
                     ref="inputEl"
                     type="text"
                     class="booking-flatpickr-input form-control"
+                    :disabled="!calendarEnabled"
                     readonly
                 />
                 <div class="booking-date-picker-append">
@@ -95,6 +96,7 @@ export default {
             type: Number,
             required: true,
         },
+        calendarEnabled: { type: Boolean, default: true },
         // disable fn now computed in child
         constraintOptions: { type: Object, required: true },
         dateRangeConstraint: {
@@ -176,11 +178,13 @@ export default {
         const tooltipX = ref(0);
         const tooltipY = ref(0);
 
+        const setErrorForFlatpickr = msg => props.setError(msg);
+
         const { clear } = useFlatpickr(inputEl, {
             store,
             disableFnRef,
             constraintOptionsRef: toRef(props, "constraintOptions"),
-            setError: props.setError,
+            setError: setErrorForFlatpickr,
             tooltipMarkersRef: tooltipMarkers,
             tooltipVisibleRef: tooltipVisible,
             tooltipXRef: tooltipX,
