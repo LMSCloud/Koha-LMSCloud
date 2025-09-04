@@ -14,10 +14,7 @@
         >
             <div
                 v-for="marker in markers"
-                :key="
-                    marker.type +
-                    (marker.barcode || marker.external_id || marker.itemnumber)
-                "
+                :key="marker.type + ':' + (marker.barcode || marker.item)"
             >
                 <span
                     :class="[
@@ -26,7 +23,7 @@
                     ]"
                 />
                 {{ getMarkerTypeLabel(marker.type) }} ({{ $__("Barcode") }}:
-                {{ marker.barcode || marker.external_id || "N/A" }})
+                {{ marker.barcode || marker.item || "N/A" }})
             </div>
         </div>
     </Teleport>
@@ -36,17 +33,11 @@
 import { defineProps, withDefaults } from "vue";
 import { $__ } from "../../i18n";
 import { getMarkerTypeLabel } from "./lib/ui/marker-labels.mjs";
-
-type Marker = {
-    type: string;
-    barcode?: string;
-    external_id?: string;
-    itemnumber?: string;
-};
+import type { CalendarMarker } from "./types/bookings";
 
 withDefaults(
     defineProps<{
-        markers: Marker[];
+        markers: CalendarMarker[];
         x: number;
         y: number;
         visible: boolean;

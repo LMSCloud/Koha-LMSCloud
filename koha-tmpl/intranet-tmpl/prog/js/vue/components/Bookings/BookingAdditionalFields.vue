@@ -13,7 +13,7 @@
 </template>
 
 <script>
-import { onMounted, onUnmounted, ref, watch } from "vue";
+import { onMounted, onUnmounted, ref, watch, nextTick } from "vue";
 import { $__ } from "../../i18n";
 
 export default {
@@ -138,8 +138,8 @@ export default {
             () => {
                 destroyAdditionalFields();
                 if (props.visible && props.hasFields) {
-                    // Use nextTick to ensure DOM is updated
-                    setTimeout(initializeAdditionalFields, 0);
+                    // Ensure DOM is updated before initializing
+                    nextTick(initializeAdditionalFields);
                 }
             },
             { immediate: false }

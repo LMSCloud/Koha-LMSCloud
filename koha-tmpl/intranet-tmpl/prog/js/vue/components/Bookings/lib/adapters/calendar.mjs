@@ -297,11 +297,11 @@ export async function preloadFlatpickrLocale() {
  * Create a Flatpickr `onChange` handler bound to the booking store.
  *
  * @param {object} store - Booking Pinia store (or compatible shape)
- * @param {import('../../types/bookings').OnChangeOptions} [options]
+ * @param {import('../../types/bookings').OnChangeOptions} options
  */
 export function createOnChange(
     store,
-    /** @type {import('../../types/bookings').OnChangeOptions} */ {
+    {
         setError = null,
         tooltipVisibleRef = null,
         constraintOptions = {},

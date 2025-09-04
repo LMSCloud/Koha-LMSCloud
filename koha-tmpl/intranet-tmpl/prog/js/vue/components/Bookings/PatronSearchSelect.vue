@@ -11,6 +11,7 @@
             :clearable="true"
             :reset-on-blur="false"
             :reset-on-select="false"
+            :input-id="'booking_patron'"
             @search="debouncedPatronSearch"
         >
             <template #no-options>

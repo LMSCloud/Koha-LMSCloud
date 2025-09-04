@@ -29,6 +29,7 @@
                 :loading="loading.pickupLocations"
                 :clearable="true"
                 :disabled="selectsDisabled"
+                :input-id="'pickup_library_id'"
             >
                 <template #no-options>
                     {{ $__("No pickup locations available.") }}
@@ -61,6 +62,7 @@
                 :reduce="t => t.item_type_id"
                 :clearable="true"
                 :disabled="selectsDisabled"
+                :input-id="'booking_itemtype'"
             >
                 <template #no-options>
                     {{ $__("No item types available.") }}
@@ -88,6 +90,7 @@
                 :clearable="true"
                 :loading="loading.bookableItems"
                 :disabled="selectsDisabled"
+                :input-id="'booking_item_id'"
             >
                 <template #no-options>
                     {{ $__("No items available.") }}

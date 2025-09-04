@@ -10,6 +10,7 @@
             <div class="booking-date-picker">
                 <input
                     ref="inputEl"
+                    id="booking_period"
                     type="text"
                     class="booking-flatpickr-input form-control"
                     :disabled="!calendarEnabled"
