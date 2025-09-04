@@ -315,5 +315,36 @@ describe("end_date_only Mode Validation", () => {
             // Should have intermediate dates blocked (all dates between start and end, exclusive)
             expect(highlighting.blockedIntermediateDates).to.have.length(8); // Days 2-9 of the 10-day period
         });
+
+        it("should prefer server due date when provided", () => {
+            const bookings = [];
+            const checkouts = [];
+            const items = [{ item_id: "X", title: "X" }];
+            const start = new Date("2025-03-01");
+
+            const rulesWithDue = {
+                booking_constraint_mode: "end_date_only",
+                maxPeriod: 5, // would imply start+4 if used
+                issuelength: 5,
+                calculated_due_date: "2025-03-08T00:00:00Z", // later than start+(5-1)
+            };
+
+            const availability = calculateDisabledDates(
+                bookings,
+                checkouts,
+                items,
+                "X",
+                null,
+                [start],
+                rulesWithDue,
+                new Date("2025-02-28")
+            );
+
+            // End equal to due should be allowed; beyond due should be disabled
+            const due = new Date("2025-03-08");
+            const beyond = new Date("2025-03-09");
+            expect(availability.disable(due)).to.equal(false);
+            expect(availability.disable(beyond)).to.equal(true);
+        });
     });
 });

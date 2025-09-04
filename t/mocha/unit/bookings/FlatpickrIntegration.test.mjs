@@ -245,6 +245,35 @@ describe("Flatpickr Integration in BookingModal", () => {
                 done();
             }, 10);
         });
+
+        it("should apply booking-loan-boundary class to boundary dates", done => {
+            const { container, dayElements } = createMockDOMEnvironment();
+            const startDate = new Date("2025-01-10");
+            const endDate = new Date("2025-01-12");
+
+            for (let i = 10; i <= 12; i++) {
+                dayElements.push(createMockDayElement(new Date(`2025-01-${String(i).padStart(2, '0')}`)));
+            }
+
+            const instance = createMockFlatpickrInstance(container);
+            // Mark Jan 11 as a boundary
+            instance._loanBoundaryTimes = new Set([new Date("2025-01-11").getTime()]);
+
+            const highlightingData = {
+                startDate,
+                targetEndDate: endDate,
+                constraintMode: "normal",
+                blockedIntermediateDates: [],
+            };
+
+            applyCalendarHighlighting(instance, highlightingData);
+
+            setTimeout(() => {
+                const eleven = dayElements.find(el => el.dateObj && el.dateObj.getDate() === 11);
+                expect(eleven._classes.has("booking-loan-boundary")).to.be.true;
+                done();
+            }, 10);
+        });
         
         it("should apply booking-intermediate-blocked class in end_date_only mode", done => {
             const { container, dayElements } = createMockDOMEnvironment();
@@ -347,6 +376,7 @@ describe("Flatpickr Integration in BookingModal", () => {
                 const dayElem = createMockDayElement(new Date(`2025-01-${i}`));
                 dayElem.classList.add("booking-constrained-range-marker");
                 dayElem.classList.add("booking-intermediate-blocked");
+                dayElem.classList.add("booking-loan-boundary");
                 dayElements.push(dayElem);
             }
             
@@ -356,6 +386,7 @@ describe("Flatpickr Integration in BookingModal", () => {
             dayElements.forEach(dayElem => {
                 expect(dayElem._classes.has("booking-constrained-range-marker")).to.be.false;
                 expect(dayElem._classes.has("booking-intermediate-blocked")).to.be.false;
+                expect(dayElem._classes.has("booking-loan-boundary")).to.be.false;
             });
         });
         
