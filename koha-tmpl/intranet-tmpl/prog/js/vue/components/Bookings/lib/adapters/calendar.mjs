@@ -6,7 +6,7 @@ import {
     aggregateMarkersByType,
     deriveEffectiveRules,
 } from "../booking/manager.mjs";
-import { toISO, formatYMD } from "../booking/date-utils.mjs";
+import { toISO, formatYMD, toDayjs, addDays } from "../booking/date-utils.mjs";
 import { calendarLogger as logger } from "../booking/logger.mjs";
 import { CONSTRAINT_MODE_END_DATE_ONLY } from "../booking/constants.mjs";
 
@@ -23,6 +23,7 @@ const CLASS_BOOKING_OVERRIDE_ALLOWED = "booking-override-allowed";
 const CLASS_FLATPICKR_DAY = "flatpickr-day";
 const CLASS_FLATPICKR_DISABLED = "flatpickr-disabled";
 const CLASS_FLATPICKR_NOT_ALLOWED = "notAllowed";
+const CLASS_BOOKING_LOAN_BOUNDARY = "booking-loan-boundary";
 
 const DATA_ATTRIBUTE_BOOKING_OVERRIDE = "data-booking-override";
 
@@ -38,12 +39,13 @@ export function clearCalendarHighlighting(instance) {
     if (!instance || !instance.calendarContainer) return;
 
     const existingHighlights = instance.calendarContainer.querySelectorAll(
-        `.${CLASS_BOOKING_CONSTRAINED_RANGE_MARKER}`
+        `.${CLASS_BOOKING_CONSTRAINED_RANGE_MARKER}, .${CLASS_BOOKING_INTERMEDIATE_BLOCKED}, .${CLASS_BOOKING_LOAN_BOUNDARY}`
     );
     existingHighlights.forEach(elem => {
         elem.classList.remove(
             CLASS_BOOKING_CONSTRAINED_RANGE_MARKER,
-            CLASS_BOOKING_INTERMEDIATE_BLOCKED
+            CLASS_BOOKING_INTERMEDIATE_BLOCKED,
+            CLASS_BOOKING_LOAN_BOUNDARY
         );
     });
 }
@@ -91,12 +93,24 @@ export function applyCalendarHighlighting(instance, highlightingData) {
         let highlightedCount = 0;
         let blockedCount = 0;
 
+        // Preload loan boundary times cached on instance (if present)
+        const instWithCacheForBoundary =
+            /** @type {import('flatpickr/dist/types/instance').Instance & { _loanBoundaryTimes?: Set<number> }} */ (
+                instance
+            );
+        const boundaryTimes = instWithCacheForBoundary?._loanBoundaryTimes;
+
         dayElements.forEach(dayElem => {
             if (!dayElem.dateObj) return;
 
             const dayTime = dayElem.dateObj.getTime();
             const startTime = highlightingData.startDate.getTime();
             const targetTime = highlightingData.targetEndDate.getTime();
+
+            // Apply bold styling to loan period boundary dates
+            if (boundaryTimes && boundaryTimes.has(dayTime)) {
+                dayElem.classList.add(CLASS_BOOKING_LOAN_BOUNDARY);
+            }
 
             if (dayTime >= startTime && dayTime <= targetTime) {
                 if (
@@ -301,11 +315,7 @@ export async function preloadFlatpickrLocale() {
  */
 export function createOnChange(
     store,
-    {
-        setError = null,
-        tooltipVisibleRef = null,
-        constraintOptions = {},
-    } = {}
+    { setError = null, tooltipVisibleRef = null, constraintOptions = {} } = {}
 ) {
     // Allow tests to stub globals; fall back to imported functions
     const _getVisibleCalendarDates =
@@ -326,6 +336,14 @@ export function createOnChange(
         );
         // clear any existing error and sync the store, but skip validation.
         if ((selectedDates || []).length === 0) {
+            // Clear cached loan boundaries when clearing selection
+            if (instance) {
+                const instWithCache =
+                    /** @type {import('flatpickr/dist/types/instance').Instance & { _loanBoundaryTimes?: Set<number> }} */ (
+                        instance
+                    );
+                delete instWithCache._loanBoundaryTimes;
+            }
             if (
                 Array.isArray(store.selectedDateRange) &&
                 store.selectedDateRange.length
@@ -355,6 +373,41 @@ export function createOnChange(
             baseRules,
             constraintOptions
         );
+
+        // Compute loan boundary times (end of initial loan and renewals) and cache on instance
+        try {
+            if (instance && validDates.length > 0) {
+                const instWithCache =
+                    /** @type {import('flatpickr/dist/types/instance').Instance & { _loanBoundaryTimes?: Set<number> }} */ (
+                        instance
+                    );
+                const startDate = toDayjs(validDates[0]).startOf("day");
+                const issuelength = parseInt(baseRules?.issuelength) || 0;
+                const renewalperiod = parseInt(baseRules?.renewalperiod) || 0;
+                const renewalsallowed =
+                    parseInt(baseRules?.renewalsallowed) || 0;
+                const times = new Set();
+                if (issuelength > 0) {
+                    const initialEnd = startDate
+                        .add(issuelength - 1, "day")
+                        .toDate()
+                        .getTime();
+                    times.add(initialEnd);
+                    if (renewalperiod > 0 && renewalsallowed > 0) {
+                        for (let k = 1; k <= renewalsallowed; k++) {
+                            const t = startDate
+                                .add(issuelength + k * renewalperiod - 1, "day")
+                                .toDate()
+                                .getTime();
+                            times.add(t);
+                        }
+                    }
+                }
+                instWithCache._loanBoundaryTimes = times;
+            }
+        } catch (e) {
+            // non-fatal: boundary decoration best-effort
+        }
 
         let calcOptions = {};
         if (instance) {
@@ -453,10 +506,10 @@ export function createOnChange(
                 }
             }
             if (selectedDates.length === 0) {
-        const instWithCache =
-            /** @type {import('../../types/bookings').FlatpickrInstanceWithHighlighting} */ (
-                instance
-            );
+                const instWithCache =
+                    /** @type {import('../../types/bookings').FlatpickrInstanceWithHighlighting} */ (
+                        instance
+                    );
                 instWithCache._constraintHighlighting = null;
                 clearCalendarHighlighting(instance);
             }
@@ -478,7 +531,13 @@ export function createOnChange(
  * @param {import('../../types/bookings').RefLike<number>} tooltipY - y position ref
  * @returns {import('flatpickr/dist/types/options').Hook}
  */
-export function createOnDayCreate(store, tooltipMarkers, tooltipVisible, tooltipX, tooltipY) {
+export function createOnDayCreate(
+    store,
+    tooltipMarkers,
+    tooltipVisible,
+    tooltipX,
+    tooltipY
+) {
     return function (
         ...[
             ,

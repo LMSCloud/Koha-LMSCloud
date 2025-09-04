@@ -885,6 +885,11 @@ export default {
     cursor: not-allowed !important;
     opacity: 0.7 !important;
 }
+
+/* Bold styling for end of loan and renewal period boundaries */
+.flatpickr-calendar .flatpickr-day.booking-loan-boundary {
+    font-weight: 700 !important;
+}
 .flatpickr-calendar .flatpickr-day.booking-intermediate-blocked:hover {
     background-color: hsl(var(--booking-success-hue), 40%, 85%) !important;
     border-color: hsl(var(--booking-success-hue), 40%, 60%) !important;

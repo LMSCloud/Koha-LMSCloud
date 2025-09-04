@@ -139,7 +139,11 @@ const EndDateOnlyStrategy = {
      * @param {import('../../types/bookings').ConstraintOptions} [constraintOptions={}]
      * @returns {import('../../types/bookings').ConstraintHighlighting|null}
      */
-    calculateConstraintHighlighting(startDate, circulationRules, constraintOptions = {}) {
+    calculateConstraintHighlighting(
+        startDate,
+        circulationRules,
+        constraintOptions = {}
+    ) {
         const start = dayjs(startDate).startOf("day");
         // Prefer backend-calculated due date when provided (respects closures)
         const dueStr = circulationRules?.calculated_due_date;
