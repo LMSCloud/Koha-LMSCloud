@@ -8,24 +8,23 @@ import {
 } from "../booking/manager.mjs";
 import { toISO, formatYMD, toDayjs, addDays } from "../booking/date-utils.mjs";
 import { calendarLogger as logger } from "../booking/logger.mjs";
-import { CONSTRAINT_MODE_END_DATE_ONLY } from "../booking/constants.mjs";
-
-const CLASS_BOOKING_CONSTRAINED_RANGE_MARKER =
-    "booking-constrained-range-marker";
-const CLASS_BOOKING_DAY_HOVER_LEAD = "booking-day--hover-lead";
-const CLASS_BOOKING_DAY_HOVER_TRAIL = "booking-day--hover-trail";
-const CLASS_BOOKING_INTERMEDIATE_BLOCKED = "booking-intermediate-blocked";
-const CLASS_BOOKING_MARKER_COUNT = "booking-marker-count";
-const CLASS_BOOKING_MARKER_DOT = "booking-marker-dot";
-const CLASS_BOOKING_MARKER_GRID = "booking-marker-grid";
-const CLASS_BOOKING_MARKER_ITEM = "booking-marker-item";
-const CLASS_BOOKING_OVERRIDE_ALLOWED = "booking-override-allowed";
-const CLASS_FLATPICKR_DAY = "flatpickr-day";
-const CLASS_FLATPICKR_DISABLED = "flatpickr-disabled";
-const CLASS_FLATPICKR_NOT_ALLOWED = "notAllowed";
-const CLASS_BOOKING_LOAN_BOUNDARY = "booking-loan-boundary";
-
-const DATA_ATTRIBUTE_BOOKING_OVERRIDE = "data-booking-override";
+import {
+    CONSTRAINT_MODE_END_DATE_ONLY,
+    CLASS_BOOKING_CONSTRAINED_RANGE_MARKER,
+    CLASS_BOOKING_DAY_HOVER_LEAD,
+    CLASS_BOOKING_DAY_HOVER_TRAIL,
+    CLASS_BOOKING_INTERMEDIATE_BLOCKED,
+    CLASS_BOOKING_MARKER_COUNT,
+    CLASS_BOOKING_MARKER_DOT,
+    CLASS_BOOKING_MARKER_GRID,
+    CLASS_BOOKING_MARKER_ITEM,
+    CLASS_BOOKING_OVERRIDE_ALLOWED,
+    CLASS_FLATPICKR_DAY,
+    CLASS_FLATPICKR_DISABLED,
+    CLASS_FLATPICKR_NOT_ALLOWED,
+    CLASS_BOOKING_LOAN_BOUNDARY,
+    DATA_ATTRIBUTE_BOOKING_OVERRIDE,
+} from "../booking/constants.mjs";
 
 /**
  * Clear constraint highlighting from the Flatpickr calendar.
