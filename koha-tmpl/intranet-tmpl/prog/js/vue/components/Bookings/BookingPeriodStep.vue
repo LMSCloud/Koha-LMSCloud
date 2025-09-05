@@ -21,8 +21,10 @@
                         type="button"
                         class="btn btn-outline-secondary"
                         :disabled="!hasSelectedDates"
+                        :title="
+                            $__('Clear selected dates')
+                        "
                         @click="clearDateRange"
-                        :title="$__('Clear selected dates')"
                     >
                         <i class="fa fa-times" aria-hidden="true"></i>
                         <span class="sr-only">{{
@@ -33,15 +35,19 @@
             </div>
         </div>
 
-        <div
-            v-if="dateRangeConstraint"
-            class="alert alert-info booking-constraint-info"
+        <KohaAlert
+            v-if="
+                dateRangeConstraint &&
+                (maxBookingPeriod === null || maxBookingPeriod > 0)
+            "
+            variant="info"
+            extra-class="booking-constraint-info"
         >
             <small>
                 <strong>{{ $__("Booking constraint active:") }}</strong>
                 {{ constraintHelpText }}
             </small>
-        </div>
+        </KohaAlert>
 
         <div class="calendar-legend">
             <span class="booking-marker-dot booking-marker-dot--booked"></span>
@@ -81,7 +87,8 @@
 </template>
 
 <script>
-import { computed, ref, toRef } from "vue";
+import { computed, ref, toRef, watch } from "vue";
+import KohaAlert from "../KohaAlert.vue";
 import { useFlatpickr } from "./composables/useFlatpickr.mjs";
 import { useBookingStore } from "../../stores/bookingStore";
 import { storeToRefs } from "pinia";
@@ -91,7 +98,7 @@ import { $__ } from "../../i18n";
 
 export default {
     name: "BookingPeriodStep",
-    components: { BookingTooltip },
+    components: { BookingTooltip, KohaAlert },
     props: {
         stepNumber: {
             type: Number,

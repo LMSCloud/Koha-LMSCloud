@@ -30,6 +30,11 @@
                         method="post"
                         @submit.prevent="handleSubmit"
                     >
+                        <KohaAlert
+                            :show="showCapacityWarning"
+                            variant="warning"
+                            :message="zeroCapacityMessage"
+                        />
                         <BookingPatronStep
                             v-if="showPatronSelect"
                             v-model="bookingPatron"
@@ -136,7 +141,6 @@
 </template>
 
 <script>
-import dayjs from "../../utils/dayjs.mjs"
 import { toISO } from "./lib/booking/date-utils.mjs";
 import {
     computed,
@@ -161,7 +165,6 @@ import { useBookingStore } from "../../stores/bookingStore";
 import { storeToRefs } from "pinia";
 import { updateExternalDependents } from "./lib/adapters/external-dependents.mjs";
 import { preloadFlatpickrLocale } from "./lib/adapters/calendar.mjs";
-import { useAvailability } from "./composables/useAvailability.mjs";
 import { enableBodyScroll, disableBodyScroll } from "./lib/adapters/modal-scroll.mjs";
 import { appendHiddenInputs } from "./lib/adapters/form.mjs";
 import { calculateStepNumbers } from "./lib/ui/steps.mjs";
@@ -173,6 +176,8 @@ import { useRulesFetcher } from "./composables/useRulesFetcher.mjs";
 import { normalizeIdType } from "./lib/booking/id-utils.mjs";
 import { useDerivedItemType } from "./composables/useDerivedItemType.mjs";
 import { useErrorState } from "./composables/useErrorState.mjs";
+import { useCapacityGuard } from "./composables/useCapacityGuard.mjs";
+import KohaAlert from "../KohaAlert.vue";
 
 export default {
     name: "BookingModal",
@@ -181,6 +186,7 @@ export default {
         BookingDetailsStep,
         BookingPeriodStep,
         BookingAdditionalFields,
+        KohaAlert,
     },
     props: {
         open: { type: Boolean, default: false },
@@ -354,19 +360,22 @@ export default {
             maxBookingPeriod: maxBookingPeriod.value,
         }));
 
-        // Centralized availability (unavailableByDate + disable fn) via composable
-        const { unavailableByDateRef } = useAvailability(
-            {
-                bookings,
-                checkouts,
-                bookableItems,
-                bookingItemId,
-                bookingId,
-                selectedDateRange,
+        // Centralized capacity guard (extracts UI and error handling)
+        const { hasPositiveCapacity, zeroCapacityMessage, showCapacityWarning } =
+            useCapacityGuard({
                 circulationRules,
-            },
-            constraintOptions
-        );
+                loading,
+                bookableItems,
+                bookingPatron,
+                bookingItemId,
+                bookingItemtypeId,
+                showPatronSelect: props.showPatronSelect,
+                showItemDetailsSelects: props.showItemDetailsSelects,
+                showPickupLocationSelect: props.showPickupLocationSelect,
+                dateRangeConstraint: props.dateRangeConstraint,
+                setError,
+                clearError,
+            });
 
         // Readiness flags
         const dataReady = computed(
@@ -389,7 +398,11 @@ export default {
 
         // Prevent calendar interaction until all data is loaded and basic inputs set
         const isCalendarReady = computed(
-            () => dataReady.value && formPrefilterValid.value && hasAvailableItems.value
+            () =>
+                dataReady.value &&
+                formPrefilterValid.value &&
+                hasAvailableItems.value &&
+                hasPositiveCapacity.value
         );
 
         // Separate validation for submit button using reactive composable
@@ -766,9 +779,11 @@ export default {
             bookableItemsFilteredOut,
             bookableItemsTotal,
             maxBookingPeriod,
-            
             onAdditionalFieldsReady,
             onAdditionalFieldsDestroyed,
+            hasPositiveCapacity,
+            zeroCapacityMessage,
+            showCapacityWarning,
         };
     },
 };
