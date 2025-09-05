@@ -6,7 +6,7 @@ import {
     aggregateMarkersByType,
     deriveEffectiveRules,
 } from "../booking/manager.mjs";
-import { toISO, formatYMD, toDayjs, addDays } from "../booking/date-utils.mjs";
+import { toISO, formatYMD, toDayjs, startOfDayTs } from "../booking/date-utils.mjs";
 import { calendarLogger as logger } from "../booking/logger.mjs";
 import {
     CONSTRAINT_MODE_END_DATE_ONLY,
@@ -663,19 +663,37 @@ export function createOnClose(tooltipMarkers, tooltipVisible) {
  * Generate all visible dates for the current calendar view.
  * UI-level helper; belongs with calendar DOM logic.
  *
- * @param {Object} flatpickrInstance - Flatpickr instance
+ * @param {import('../../types/bookings').FlatpickrInstanceWithHighlighting} flatpickrInstance - Flatpickr instance
  * @returns {Date[]} Array of Date objects
  */
 export function getVisibleCalendarDates(flatpickrInstance) {
-    if (
-        !flatpickrInstance ||
-        !Array.isArray(flatpickrInstance.days) ||
-        !flatpickrInstance.days.length
-    )
+    try {
+        if (!flatpickrInstance) return [];
+
+        // Prefer the calendar container; fall back to `.days` if present
+        const container =
+            flatpickrInstance.calendarContainer || flatpickrInstance.days;
+        if (!container || !container.querySelectorAll) return [];
+
+        const dayNodes = container.querySelectorAll(`.${CLASS_FLATPICKR_DAY}`);
+        if (!dayNodes || dayNodes.length === 0) return [];
+
+        // Map visible day elements to normalized Date objects and de-duplicate
+        const seen = new Set();
+        const dates = [];
+        Array.from(dayNodes).forEach(el => {
+            const d = el && el.dateObj ? el.dateObj : null;
+            if (!d) return;
+            const ts = startOfDayTs(d);
+            if (!seen.has(ts)) {
+                seen.add(ts);
+                dates.push(toDayjs(d).startOf("day").toDate());
+            }
+        });
+        return dates;
+    } catch (e) {
         return [];
-    return Array.from(flatpickrInstance.days)
-        .filter(el => el && el.dateObj)
-        .map(el => el.dateObj);
+    }
 }
 
 /**

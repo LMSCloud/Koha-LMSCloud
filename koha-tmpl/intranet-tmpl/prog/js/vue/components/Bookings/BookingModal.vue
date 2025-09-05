@@ -505,15 +505,6 @@ export default {
             }
         );
 
-        // Push availability map to store for calendar markers
-        watch(
-            () => unavailableByDateRef.value,
-            map => {
-                store.setUnavailableByDate(map ?? {});
-            },
-            { immediate: true }
-        );
-
         useRulesFetcher({
             store,
             bookingPatron,

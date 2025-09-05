@@ -7,7 +7,17 @@ import {
     createOnDayCreate,
     createOnClose,
     createOnChange,
+    getVisibleCalendarDates,
+    buildMarkerGrid,
 } from "../lib/adapters/calendar.mjs";
+import {
+    CLASS_FLATPICKR_DAY,
+    CLASS_BOOKING_MARKER_GRID,
+} from "../lib/booking/constants.mjs";
+import {
+    getBookingMarkersForDate,
+    aggregateMarkersByType,
+} from "../lib/booking/manager.mjs";
 import { useConstraintHighlighting } from "./useConstraintHighlighting.mjs";
 import { win } from "../lib/adapters/globals.mjs";
 
@@ -25,6 +35,7 @@ import { win } from "../lib/adapters/globals.mjs";
  * @param {import('../types/bookings').RefLike<import('../types/bookings').DisableFn>} options.disableFnRef - ref to disable fn
  * @param {import('../types/bookings').RefLike<import('../types/bookings').ConstraintOptions>} options.constraintOptionsRef
  * @param {(msg: string) => void} options.setError - set error message callback
+ * @param {import('vue').Ref<{visibleStartDate?: Date|null, visibleEndDate?: Date|null}>} [options.visibleRangeRef]
  * @param {import('../types/bookings').RefLike<import('../types/bookings').CalendarMarker[]>} [options.tooltipMarkersRef]
  * @param {import('../types/bookings').RefLike<boolean>} [options.tooltipVisibleRef]
  * @param {import('../types/bookings').RefLike<number>} [options.tooltipXRef]
@@ -41,6 +52,7 @@ export function useFlatpickr(elRef, options) {
     const tooltipVisibleRef = options.tooltipVisibleRef; // Ref<boolean>
     const tooltipXRef = options.tooltipXRef; // Ref<number>
     const tooltipYRef = options.tooltipYRef; // Ref<number>
+    const visibleRangeRef = options.visibleRangeRef; // Ref<{visibleStartDate,visibleEndDate}>
 
     let fp = null;
 
@@ -105,7 +117,56 @@ export function useFlatpickr(elRef, options) {
             ),
         };
 
-        fp = flatpickr(elRef.value, baseConfig);
+        fp = flatpickr(elRef.value, {
+            ...baseConfig,
+            onReady: [
+                function (_selectedDates, _dateStr, instance) {
+                    try {
+                        if (visibleRangeRef && instance) {
+                            const visible = getVisibleCalendarDates(instance);
+                            if (visible && visible.length > 0) {
+                                visibleRangeRef.value = {
+                                    visibleStartDate: visible[0],
+                                    visibleEndDate: visible[visible.length - 1],
+                                };
+                            }
+                        }
+                    } catch (e) {
+                        // non-fatal
+                    }
+                },
+            ],
+            onMonthChange: [
+                function (_selectedDates, _dateStr, instance) {
+                    try {
+                        if (visibleRangeRef && instance) {
+                            const visible = getVisibleCalendarDates(instance);
+                            if (visible && visible.length > 0) {
+                                visibleRangeRef.value = {
+                                    visibleStartDate: visible[0],
+                                    visibleEndDate: visible[visible.length - 1],
+                                };
+                            }
+                        }
+                    } catch (e) {}
+                },
+            ],
+            onYearChange: [
+                function (_selectedDates, _dateStr, instance) {
+                    try {
+                        if (visibleRangeRef && instance) {
+                            const visible = getVisibleCalendarDates(instance);
+                            if (visible && visible.length > 0) {
+                                visibleRangeRef.value = {
+                                    visibleStartDate: visible[0],
+                                    visibleEndDate: visible[visible.length - 1],
+                                };
+                            }
+                        }
+                    } catch (e) {}
+                },
+            ],
+        });
 
         setDisableOnInstance();
         syncInstanceDatesFromStore();
@@ -132,6 +193,42 @@ export function useFlatpickr(elRef, options) {
             }
         );
     }
+
+    // Refresh marker dots when unavailableByDate changes
+    watch(
+        () => store.unavailableByDate,
+        () => {
+            if (!fp || !fp.calendarContainer) return;
+            try {
+                const dayElements = fp.calendarContainer.querySelectorAll(
+                    `.${CLASS_FLATPICKR_DAY}`
+                );
+                dayElements.forEach(dayElem => {
+                    const existingGrids = dayElem.querySelectorAll(
+                        `.${CLASS_BOOKING_MARKER_GRID}`
+                    );
+                    existingGrids.forEach(grid => grid.remove());
+
+                    /** @type {import('flatpickr/dist/types/instance').DayElement} */
+                    const el = /** @type {import('flatpickr/dist/types/instance').DayElement} */ (dayElem);
+                    if (!el.dateObj) return;
+                    const markersForDots = getBookingMarkersForDate(
+                        store.unavailableByDate,
+                        el.dateObj,
+                        store.bookableItems
+                    );
+                    if (markersForDots.length > 0) {
+                        const aggregated = aggregateMarkersByType(markersForDots);
+                        const grid = buildMarkerGrid(aggregated);
+                        if (grid.hasChildNodes()) dayElem.appendChild(grid);
+                    }
+                });
+            } catch (e) {
+                // non-fatal
+            }
+        },
+        { deep: true }
+    );
 
     // Sync UI when dates change programmatically
     watch(

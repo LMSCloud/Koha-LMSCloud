@@ -56,6 +56,19 @@ export function useAvailability(storeRefs, optionsRef) {
             selectedDateRange.value || []
         );
 
+        // Support on-demand unavailable map for current calendar view
+        let calcOptions = {};
+        if (optionsRef && optionsRef.value) {
+            const { visibleStartDate, visibleEndDate } = optionsRef.value;
+            if (visibleStartDate && visibleEndDate) {
+                calcOptions = {
+                    onDemand: true,
+                    visibleStartDate,
+                    visibleEndDate,
+                };
+            }
+        }
+
         return calculateDisabledDates(
             bookings.value,
             checkouts.value,
@@ -63,7 +76,9 @@ export function useAvailability(storeRefs, optionsRef) {
             bookingItemId.value,
             bookingId.value,
             selectedDatesArray,
-            effectiveRules
+            effectiveRules,
+            undefined,
+            calcOptions
         );
     });
 

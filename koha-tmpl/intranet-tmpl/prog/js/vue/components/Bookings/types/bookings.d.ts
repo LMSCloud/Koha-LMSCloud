@@ -58,6 +58,10 @@ export type CirculationRule = {
     maxPeriod?: number;
     /** Base issue length in days (backend rule) */
     issuelength?: number;
+    /** Renewal policy: length per renewal (days) */
+    renewalperiod?: number;
+    /** Renewal policy: number of renewals allowed */
+    renewalsallowed?: number;
     /** Lead/trail periods around bookings (days) */
     leadTime?: number;
     leadTimeToday?: boolean;
@@ -127,6 +131,10 @@ export type DisableFn = (date: Date) => boolean;
 export type ConstraintOptions = {
     dateRangeConstraint?: string;
     maxBookingPeriod?: number;
+    /** Start of the currently visible calendar range (on-demand marker build) */
+    visibleStartDate?: Date;
+    /** End of the currently visible calendar range (on-demand marker build) */
+    visibleEndDate?: Date;
 };
 
 /** Resulting highlighting metadata for calendar UI. */

@@ -167,7 +167,19 @@ export default {
             );
         });
 
-        const { disableFnRef } = useAvailability(
+        // Visible calendar range for on-demand markers
+        const visibleRangeRef = ref({
+            visibleStartDate: null,
+            visibleEndDate: null,
+        });
+
+        // Merge constraint options with visible range for availability calc
+        const availabilityOptionsRef = computed(() => ({
+            ...(props.constraintOptions || {}),
+            ...(visibleRangeRef.value || {}),
+        }));
+
+        const { availability, disableFnRef } = useAvailability(
             {
                 bookings,
                 checkouts,
@@ -177,7 +189,7 @@ export default {
                 selectedDateRange,
                 circulationRules,
             },
-            toRef(props, "constraintOptions")
+            availabilityOptionsRef
         );
 
         // Tooltip refs local to this component, used by the composable and rendered via BookingTooltip
@@ -197,7 +209,21 @@ export default {
             tooltipVisibleRef: tooltipVisible,
             tooltipXRef: tooltipX,
             tooltipYRef: tooltipY,
+            visibleRangeRef,
         });
+
+        // Push availability map (on-demand for current view) to store for markers
+        watch(
+            () => availability.value?.unavailableByDate,
+            map => {
+                try {
+                    store.setUnavailableByDate(map ?? {});
+                } catch (e) {
+                    // ignore if store shape differs in some contexts
+                }
+            },
+            { immediate: true }
+        );
 
         const clearDateRange = () => {
             clear();
