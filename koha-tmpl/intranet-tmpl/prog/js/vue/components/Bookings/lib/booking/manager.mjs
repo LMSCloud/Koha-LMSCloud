@@ -1269,12 +1269,9 @@ export function getCalendarNavigationTarget(
             "day"
         );
         const visibleEnd = toDayjs(currentView.visibleEndDate).endOf("day");
-        const inView = target.isBetween(
-            visibleStart,
-            visibleEnd,
-            undefined,
-            "[]"
-        );
+        const inView =
+            target.isSameOrAfter(visibleStart, "day") &&
+            target.isSameOrBefore(visibleEnd, "day");
         if (inView) {
             logger.debug("Target end date already visible; no navigation");
             return { shouldNavigate: false };

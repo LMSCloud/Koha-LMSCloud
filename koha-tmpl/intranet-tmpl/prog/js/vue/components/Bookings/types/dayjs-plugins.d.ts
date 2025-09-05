@@ -9,11 +9,5 @@ declare module "dayjs" {
             date?: import("dayjs").ConfigType,
             unit?: import("dayjs").OpUnitType
         ): boolean;
-        isBetween(
-            a: import("dayjs").ConfigType,
-            b: import("dayjs").ConfigType,
-            unit?: import("dayjs").OpUnitType,
-            inclusivity?: "()" | "[]" | "(]" | "[)"
-        ): boolean;
     }
 }
