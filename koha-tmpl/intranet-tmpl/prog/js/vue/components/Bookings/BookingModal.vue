@@ -490,7 +490,9 @@ export default {
 
                     // Normalize itemId type to match bookableItems' item_id type for vue-select strict matching
                     bookingItemId.value = (props.itemId != null) ? normalizeIdType(bookableItems.value?.[0]?.item_id, props.itemId) : null;
-                    bookingItemtypeId.value = props.itemtypeId;
+                    if (props.itemtypeId) {
+                        bookingItemtypeId.value = props.itemtypeId;
+                    }
 
                     if (props.startDate && props.endDate) {
                         selectedDateRange.value = [
