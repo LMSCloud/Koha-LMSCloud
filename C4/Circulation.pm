@@ -3202,7 +3202,10 @@ sub CanBookBeRenewed {
             branchcode => $branchcode,
             issue      => $issue
         });
-        return ( 0, "too_many"   ) if $auto_renew ne "no" && $hasToMany;
+        
+        # handle too_many later after on_reserve 
+        # return ( 0, "too_many"   ) if $auto_renew ne "no" && $hasToMany;
+        
         return ( 0, $auto_renew, { soonest_renew_date => $soonest } ) if $auto_renew =~ 'auto_too_soon' && $cron;
         # cron wants 'too_soon' over 'on_reserve' for performance and to avoid
         # extra notices being sent. Cron also implies no override
