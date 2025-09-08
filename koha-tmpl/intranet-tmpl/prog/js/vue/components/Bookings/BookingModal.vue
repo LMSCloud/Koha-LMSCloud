@@ -396,14 +396,15 @@ export default {
             () => constrainedBookableItems.value.length > 0
         );
 
-        // Prevent calendar interaction until all data is loaded and basic inputs set
-        const isCalendarReady = computed(
-            () =>
-                dataReady.value &&
+        const isCalendarReady = computed(() => {
+            const basicReady = dataReady.value &&
                 formPrefilterValid.value &&
-                hasAvailableItems.value &&
-                hasPositiveCapacity.value
-        );
+                hasAvailableItems.value;
+            if (!basicReady) return false;
+            if (loading.value.circulationRules) return true;
+            
+            return hasPositiveCapacity.value;
+        });
 
         // Separate validation for submit button using reactive composable
         const isSubmitReady = computed(
