@@ -402,7 +402,7 @@ export default {
                 hasAvailableItems.value;
             if (!basicReady) return false;
             if (loading.value.circulationRules) return true;
-            
+
             return hasPositiveCapacity.value;
         });
 
