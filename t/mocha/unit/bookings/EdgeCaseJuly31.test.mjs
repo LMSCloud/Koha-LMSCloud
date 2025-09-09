@@ -30,7 +30,7 @@ global.localStorage = global.localStorage || {
 };
 
 // Use dynamic imports for modules that depend on window object
-let dayjs, calculateDisabledDates, buildIntervalTree, IntervalTree;
+let dayjs, calculateDisabledDates, buildIntervalTree, IntervalTree, calculateMaxEndDate;
 
 // Import modules dynamically after setting up mocks
 before(async () => {
@@ -43,6 +43,7 @@ before(async () => {
         "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/manager.mjs"
     );
     calculateDisabledDates = managerModule.calculateDisabledDates;
+    calculateMaxEndDate = managerModule.calculateMaxEndDate;
 
     const intervalTreeModule = await import(
         "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/booking/algorithms/interval-tree.mjs"
@@ -104,7 +105,7 @@ describe("July 31st Selection Debug", () => {
 
         // Debug the range calculation
         const startDate = dayjs("2025-07-31");
-        const calculatedEndDate = startDate.add(54 - 1, "day"); // maxPeriod - 1
+        const calculatedEndDate = calculateMaxEndDate(startDate, 54); // Use centralized function
         console.log(
             "- Calculated range:",
             startDate.format("YYYY-MM-DD"),

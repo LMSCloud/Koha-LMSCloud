@@ -34,7 +34,8 @@ global.localStorage = global.localStorage || {
 let dayjs,
     calculateDisabledDates,
     handleBookingDateChange,
-    calculateConstraintHighlighting;
+    calculateConstraintHighlighting,
+    calculateMaxEndDate;
 
 // Import modules dynamically after setting up mocks
 before(async () => {
@@ -50,6 +51,7 @@ before(async () => {
     handleBookingDateChange = managerModule.handleBookingDateChange;
     calculateConstraintHighlighting =
         managerModule.calculateConstraintHighlighting;
+    calculateMaxEndDate = managerModule.calculateMaxEndDate;
 });
 
 describe("end_date_only Mode Validation", () => {
@@ -100,9 +102,7 @@ describe("end_date_only Mode Validation", () => {
             );
 
             const isStartDateDisabled = availability.disable(problemStartDate);
-            const targetEndDate = dayjs(problemStartDate)
-                .add(endDateOnlyRules.maxPeriod - 1, "day")
-                .toDate();
+            const targetEndDate = calculateMaxEndDate(problemStartDate, endDateOnlyRules.maxPeriod).toDate();
 
             console.log(
                 `\nTesting start date: ${
@@ -139,9 +139,7 @@ describe("end_date_only Mode Validation", () => {
             );
 
             const isStartDisabled = availability.disable(crossMonthStartDate);
-            const targetEndDate = dayjs(crossMonthStartDate)
-                .add(endDateOnlyRules.maxPeriod - 1, "day")
-                .toDate();
+            const targetEndDate = calculateMaxEndDate(crossMonthStartDate, endDateOnlyRules.maxPeriod).toDate();
 
             console.log(
                 `\nTesting cross-month start date: ${
@@ -211,43 +209,43 @@ describe("end_date_only Mode Validation", () => {
             const testScenarios = [
                 {
                     start: "2024-01-25",
-                    expectedEnd: "2024-02-03",
+                    expectedEnd: "2024-02-04",
                     shouldBeDisabled: false,
                     reason: "Range clear before any bookings",
                 },
                 {
                     start: "2024-02-01",
-                    expectedEnd: "2024-02-10",
+                    expectedEnd: "2024-02-11",
                     shouldBeDisabled: true,
                     reason: "Range overlaps with booking 1 (2024-02-05 to 2024-02-12)",
                 },
                 {
                     start: "2024-02-03",
-                    expectedEnd: "2024-02-12",
+                    expectedEnd: "2024-02-13",
                     shouldBeDisabled: true,
                     reason: "Range overlaps with booking 1 (2024-02-05 to 2024-02-12)",
                 },
                 {
                     start: "2024-02-06",
-                    expectedEnd: "2024-02-15",
+                    expectedEnd: "2024-02-16",
                     shouldBeDisabled: true,
                     reason: "Range overlaps with both bookings",
                 },
                 {
                     start: "2024-02-13",
-                    expectedEnd: "2024-02-22",
+                    expectedEnd: "2024-02-23",
                     shouldBeDisabled: true,
                     reason: "Range overlaps with booking 2 (2024-02-15 to 2024-02-20)",
                 },
                 {
                     start: "2024-02-21",
-                    expectedEnd: "2024-03-01",
+                    expectedEnd: "2024-03-02",
                     shouldBeDisabled: false,
                     reason: "Range clear between booking 2 and checkout",
                 },
                 {
                     start: "2024-02-25",
-                    expectedEnd: "2024-03-05",
+                    expectedEnd: "2024-03-06",
                     shouldBeDisabled: true,
                     reason: "Range overlaps with checkout (2024-02-25 to 2024-03-05)",
                 },
@@ -256,9 +254,7 @@ describe("end_date_only Mode Validation", () => {
             console.log("\n=== SCENARIO ANALYSIS ===");
             testScenarios.forEach((scenario, index) => {
                 const startDate = new Date(scenario.start);
-                const calculatedEnd = dayjs(startDate)
-                    .add(endDateOnlyRules.maxPeriod - 1, "day")
-                    .format("YYYY-MM-DD");
+                const calculatedEnd = calculateMaxEndDate(startDate, endDateOnlyRules.maxPeriod).format("YYYY-MM-DD");
                 const isDisabled = availability.disable(startDate);
 
                 console.log(
@@ -307,13 +303,11 @@ describe("end_date_only Mode Validation", () => {
             expect(highlighting.maxPeriod).to.equal(10);
             expect(highlighting.startDate).to.deep.equal(startDate);
 
-            const expectedEndDate = dayjs(startDate)
-                .add(endDateOnlyRules.maxPeriod - 1, "day")
-                .toDate();
+            const expectedEndDate = calculateMaxEndDate(startDate, endDateOnlyRules.maxPeriod).toDate();
             expect(highlighting.targetEndDate).to.deep.equal(expectedEndDate);
 
             // Should have intermediate dates blocked (all dates between start and end, exclusive)
-            expect(highlighting.blockedIntermediateDates).to.have.length(8); // Days 2-9 of the 10-day period
+            expect(highlighting.blockedIntermediateDates).to.have.length(9); // Days 2-10 of the 10-day period
         });
 
         it("should prefer server due date when provided", () => {

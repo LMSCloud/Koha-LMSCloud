@@ -28,6 +28,43 @@ import {
 const $__ = globalThis.$__ || (str => str);
 
 /**
+ * Calculates the maximum end date for a booking period based on start date and maximum period.
+ * Follows Koha circulation behavior where maxPeriod represents days to ADD to start date.
+ *
+ * @param {Date|string|import('dayjs').Dayjs} startDate - The start date
+ * @param {number} maxPeriod - Maximum period in days (from circulation rules)
+ * @returns {import('dayjs').Dayjs} The maximum end date
+ */
+export function calculateMaxEndDate(startDate, maxPeriod) {
+    if (!maxPeriod || maxPeriod <= 0) {
+        throw new Error('maxPeriod must be a positive number');
+    }
+
+    const start = dayjs(startDate).startOf("day");
+    // Add maxPeriod days (matches CalcDateDue behavior)
+    return start.add(maxPeriod, "day");
+}
+
+/**
+ * Validates if an end date exceeds the maximum allowed period
+ *
+ * @param {Date|string|import('dayjs').Dayjs} startDate - The start date
+ * @param {Date|string|import('dayjs').Dayjs} endDate - The proposed end date
+ * @param {number} maxPeriod - Maximum period in days
+ * @returns {boolean} True if end date is valid (within limits)
+ */
+export function validateBookingPeriod(startDate, endDate, maxPeriod) {
+    if (!maxPeriod || maxPeriod <= 0) {
+        return true; // No limit
+    }
+
+    const maxEndDate = calculateMaxEndDate(startDate, maxPeriod);
+    const proposedEnd = dayjs(endDate).startOf("day");
+
+    return !proposedEnd.isAfter(maxEndDate, "day");
+}
+
+/**
  * Build unavailableByDate map from IntervalTree for backward compatibility
  * @param {IntervalTree} intervalTree - The interval tree containing all bookings/checkouts
  * @param {import('dayjs').Dayjs} today - Today's date for range calculation
@@ -512,7 +549,8 @@ function createDisableFunction(
                 const targetEnd = config.calculatedDueDate;
                 if (dayjs_date.isAfter(targetEnd, "day")) return true;
             } else if (maxPeriod > 0) {
-                if (dayjs_date.isAfter(start.add(maxPeriod - 1, "day"), "day"))
+                const maxEndDate = calculateMaxEndDate(start, maxPeriod);
+                if (dayjs_date.isAfter(maxEndDate, "day"))
                     return true;
             }
 
@@ -855,8 +893,7 @@ export function handleBookingDateChange(
         // Calculate min end date; max end date only when constrained
         newMinEndDate = dayjsStart.add(1, "day").startOf("day");
         if (maxPeriod > 0) {
-            // Inclusive day cap: last selectable end = start + (maxPeriod - 1)
-            newMaxEndDate = dayjsStart.add(maxPeriod - 1, "day").startOf("day");
+            newMaxEndDate = calculateMaxEndDate(dayjsStart, maxPeriod).startOf("day");
         } else {
             newMaxEndDate = null;
         }

@@ -14,7 +14,7 @@ describe("Normal mode inclusive cap", () => {
         modules = await getBookingModules();
     });
 
-    it("caps end at start + (maxPeriod - 1)", () => {
+    it("caps end at start + maxPeriod", () => {
         const items = BookingTestData.createItems(1);
         const rules = {
             maxPeriod: 5,
@@ -35,8 +35,8 @@ describe("Normal mode inclusive cap", () => {
             new Date("2025-01-09")
         );
 
-        const within = new Date("2025-01-14"); // start + 4
-        const beyond = new Date("2025-01-15"); // start + 5
+        const within = new Date("2025-01-15"); // start + 5 (inclusive)
+        const beyond = new Date("2025-01-16"); // start + 6 (beyond limit)
 
         expect(availability.disable(within)).to.equal(false);
         expect(availability.disable(beyond)).to.equal(true);

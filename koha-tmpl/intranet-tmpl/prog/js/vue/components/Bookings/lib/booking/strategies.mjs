@@ -1,6 +1,7 @@
 import dayjs from "../../../../utils/dayjs.mjs";
 import { addDays, formatYMD } from "./date-utils.mjs";
 import { managerLogger as logger } from "./logger.mjs";
+import { calculateMaxEndDate } from "./manager.mjs";
 import {
     CONSTRAINT_MODE_END_DATE_ONLY,
     CONSTRAINT_MODE_NORMAL,
@@ -23,8 +24,7 @@ function validateEndDateOnlyStartDateInternal(
         targetEndDate = due.clone();
     } else {
         const maxPeriod = Number(config?.maxPeriod) || 0;
-        // Inclusive day cap for fallback: start + (maxPeriod - 1)
-        targetEndDate = maxPeriod > 0 ? addDays(date, maxPeriod - 1) : date;
+        targetEndDate = maxPeriod > 0 ? calculateMaxEndDate(date, maxPeriod).toDate() : date;
     }
 
     logger.debug(
@@ -80,7 +80,7 @@ function handleEndDateOnlyIntermediateDatesInternal(
         return null; // Not applicable
     }
     const startDate = dayjs(selectedDates[0]).startOf("day");
-    const expectedEndDate = startDate.add(maxPeriod - 1, "day");
+    const expectedEndDate = calculateMaxEndDate(startDate, maxPeriod);
     if (date.isSame(expectedEndDate, "day")) {
         return null; // Allow normal validation for expected end
     }
@@ -166,8 +166,7 @@ const EndDateOnlyStrategy = {
                     30;
             }
             if (!maxPeriod) return null;
-            // Inclusive cap for fallback
-            targetEnd = addDays(start, maxPeriod - 1);
+            targetEnd = calculateMaxEndDate(start, maxPeriod);
             periodForUi = maxPeriod;
         }
         const diffDays = Math.max(0, targetEnd.diff(start, "day"));
@@ -225,8 +224,7 @@ const NormalStrategy = {
         const start = dayjs(startDate).startOf("day");
         const maxPeriod = constraintOptions.maxBookingPeriod;
         if (!maxPeriod) return null;
-        // Normal mode: inclusive cap
-        const targetEndDate = start.add(maxPeriod - 1, "day").toDate();
+        const targetEndDate = calculateMaxEndDate(start, maxPeriod).toDate();
         return {
             startDate: start.toDate(),
             targetEndDate,
