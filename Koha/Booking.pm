@@ -25,6 +25,7 @@ use Koha::Items;
 use Koha::Patrons;
 use Koha::Libraries;
 use Koha::CirculationRules;
+use Koha::Calendar;
 
 use C4::Context;
 use C4::Letters;
@@ -353,11 +354,6 @@ sub _check_date_range_constraints {
     # Skip validation if no constraint is set
     return unless $constraint;
 
-    # Calculate requested booking period in days
-    my $start_dt       = dt_from_string( $self->start_date );
-    my $end_dt         = dt_from_string( $self->end_date );
-    my $requested_days = $end_dt->delta_days($start_dt)->in_units('days') + 1;
-
     # Get circulation rules for this booking context
     my $patron    = $self->patron;
     my $item_type = $self->item_id ? $self->item->effective_itemtype : undef;
@@ -381,6 +377,44 @@ sub _check_date_range_constraints {
         my $renewal_period   = $rules->{renewalperiod}   || 0;
         my $renewals_allowed = $rules->{renewalsallowed} || 0;
         $max_days = $issue_length + ( $renewal_period * $renewals_allowed );
+    }
+
+    my $daysmode = Koha::CirculationRules->get_effective_daysmode(
+        {
+            categorycode => $patron->categorycode,
+            itemtype     => $item_type,
+            branchcode   => $library,
+        }
+    );
+
+    my $start_dt = dt_from_string( $self->start_date );
+    my $end_dt   = dt_from_string( $self->end_date );
+    my $requested_days;
+
+    if ( $daysmode eq 'Days' ) {
+        $requested_days = $end_dt->delta_days($start_dt)->in_units('days') + 1;
+    } else {
+        my $calendar     = Koha::Calendar->new( branchcode => $library, days_mode => $daysmode );
+        my $dur          = DateTime::Duration->new( days => $max_days );
+        my $max_end_date = $calendar->addDuration( $start_dt->clone, $dur, 'days' );
+        $max_end_date->set_hour(23);
+        $max_end_date->set_minute(59);
+
+        if ( DateTime->compare( $end_dt, $max_end_date ) > 0 ) {
+
+            # For error reporting, still use calendar days
+            $requested_days = $end_dt->delta_days($start_dt)->in_units('days') + 1;
+
+            # Throw exception with calendar days for consistency
+            Koha::Exceptions::Booking::DateRangeConstraint->throw(
+                requested_days  => $requested_days,
+                max_days        => $max_days,
+                constraint_type => $constraint
+            );
+        }
+
+        # Period is within limits, no exception needed
+        return;
     }
 
     # Throw exception if requested period exceeds maximum
