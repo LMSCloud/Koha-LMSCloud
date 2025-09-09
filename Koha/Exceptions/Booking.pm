@@ -10,9 +10,10 @@ use Exception::Class (
     },
     'Koha::Exceptions::Booking::DateRangeConstraint' => {
         isa         => 'Koha::Exceptions::Booking',
-        description => "Booking period exceeds maximum allowed by circulation rules",
-        fields      => [ 'requested_days', 'max_days', 'constraint_type' ]
-    },
+        description => 'Booking period exceeds maximum allowed by circulation rules',
+        fields      =>
+            [ 'requested_days', 'max_days', 'constraint_type', 'start_date', 'end_date', 'max_end_date', 'daysmode' ]
+        },
 );
 
 1;

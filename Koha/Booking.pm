@@ -127,8 +127,6 @@ sub store {
                 value     => $self->biblio_id,
             ) unless ( $self->biblio );
 
-            # Check date range constraints based on system preferences
-            $self->_check_date_range_constraints();
 
             # Throw exception for item level booking clash
             Koha::Exceptions::Booking::Clash->throw()
@@ -156,6 +154,10 @@ sub store {
             if ( !$self->item_id ) {
                 $self->_assign_item_for_booking;
             }
+
+            # Check date range constraints based on system preferences
+            # This must happen AFTER item assignment so we can determine the itemtype
+            $self->_check_date_range_constraints();
 
             if ( !$self->in_storage ) {
                 $self->SUPER::store;
@@ -356,9 +358,10 @@ sub _check_date_range_constraints {
 
     # Get circulation rules for this booking context
     my $patron    = $self->patron;
-    my $item_type = $self->item_id ? $self->item->effective_itemtype : undef;
+    my $item_type = $self->item->effective_itemtype;
     my $library   = $self->pickup_library_id;
 
+    # Get circulation rules for this booking context
     my $rules = Koha::CirculationRules->get_effective_rules(
         {
             categorycode => $patron->categorycode,
@@ -387,42 +390,37 @@ sub _check_date_range_constraints {
         }
     );
 
-    my $start_dt = dt_from_string( $self->start_date );
-    my $end_dt   = dt_from_string( $self->end_date );
-    my $requested_days;
+    my $start_dt = dt_from_string( $self->start_date )->truncate( to => 'day' );
+    my $end_dt   = dt_from_string( $self->end_date )->truncate( to => 'day' );
+
+    # Calculate the maximum allowed end date based on circulation rules
+    # max_days represents days to ADD (like issuelength)
+    my $max_end_date;
 
     if ( $daysmode eq 'Days' ) {
-        $requested_days = $end_dt->delta_days($start_dt)->in_units('days') + 1;
+
+        # Simple arithmetic: add max_days to start date
+        $max_end_date = $start_dt->clone->add( days => $max_days );
     } else {
-        my $calendar     = Koha::Calendar->new( branchcode => $library, days_mode => $daysmode );
-        my $dur          = DateTime::Duration->new( days => $max_days );
-        my $max_end_date = $calendar->addDuration( $start_dt->clone, $dur, 'days' );
-        $max_end_date->set_hour(23);
-        $max_end_date->set_minute(59);
 
-        if ( DateTime->compare( $end_dt, $max_end_date ) > 0 ) {
-
-            # For error reporting, still use calendar days
-            $requested_days = $end_dt->delta_days($start_dt)->in_units('days') + 1;
-
-            # Throw exception with calendar days for consistency
-            Koha::Exceptions::Booking::DateRangeConstraint->throw(
-                requested_days  => $requested_days,
-                max_days        => $max_days,
-                constraint_type => $constraint
-            );
-        }
-
-        # Period is within limits, no exception needed
-        return;
+        # Use calendar to account for closed days
+        my $calendar = Koha::Calendar->new( branchcode => $library, days_mode => $daysmode );
+        my $dur      = DateTime::Duration->new( days => $max_days );
+        $max_end_date = $calendar->addDuration( $start_dt->clone, $dur, 'days' );
     }
 
-    # Throw exception if requested period exceeds maximum
-    if ( $max_days && $requested_days > $max_days ) {
+    my $max_end_date_normalized = $max_end_date->clone->truncate( to => 'day' );
+
+    if ( DateTime->compare( $end_dt, $max_end_date_normalized ) > 0 ) {
+        my $requested_days = $end_dt->delta_days($start_dt)->in_units('days');
         Koha::Exceptions::Booking::DateRangeConstraint->throw(
             requested_days  => $requested_days,
             max_days        => $max_days,
-            constraint_type => $constraint
+            constraint_type => $constraint,
+            start_date      => join( q{ }, $start_dt->ymd,                $start_dt->hms ),
+            end_date        => join( q{ }, $end_dt->ymd,                  $end_dt->hms ),
+            max_end_date    => join( q{ }, $max_end_date_normalized->ymd, $max_end_date_normalized->hms ),
+            daysmode        => $daysmode
         );
     }
 

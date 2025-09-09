@@ -123,7 +123,7 @@ subtest 'Relation accessor tests' => sub {
 };
 
 subtest 'store() tests' => sub {
-    plan tests => 16;
+    plan tests => 17;
     $schema->storage->txn_begin;
 
     my $patron = $builder->build_object( { class => "Koha::Patrons" } );
@@ -552,6 +552,312 @@ subtest 'store() tests' => sub {
         # Status unchanged
         $booking->discard_changes;
         is( $booking->status, $status, 'Booking status is unchanged' );
+    };
+
+    subtest 'date range constraint validation' => sub {
+        plan tests => 11;
+
+        # Set up fresh test data for constraint testing
+        my $constraint_patron = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $constraint_biblio = $builder->build_sample_biblio();
+        my $constraint_item   = $builder->build_sample_item(
+            {
+                biblionumber => $constraint_biblio->biblionumber,
+                bookable     => 1
+            }
+        );
+        my $library = $constraint_item->homebranch;
+
+        # Test 1: No constraint - should allow long bookings
+        t::lib::Mocks::mock_preference( 'BookingDateRangeConstraint', q{} );
+
+        my $long_booking = Koha::Booking->new(
+            {
+                patron_id         => $constraint_patron->borrowernumber,
+                biblio_id         => $constraint_biblio->biblionumber,
+                item_id           => $constraint_item->itemnumber,
+                pickup_library_id => $library,
+                start_date        => '2024-01-01',
+                end_date          => '2024-12-31',                         # Full year
+            }
+        );
+
+        lives_ok { $long_booking->store() }
+        'Year-long booking allowed when no constraint set';
+        $long_booking->delete if $long_booking->in_storage;
+
+        # Test 2: issuelength constraint in Days mode
+        t::lib::Mocks::mock_preference( 'BookingDateRangeConstraint', 'issuelength' );
+
+        # Set circulation rules
+        use Koha::CirculationRules;
+        Koha::CirculationRules->set_rules(
+            {
+                branchcode   => $library,
+                categorycode => $constraint_patron->categorycode,
+                itemtype     => $constraint_item->effective_itemtype,
+                rules        => {
+                    issuelength => 3,
+                    daysmode    => 'Days',
+                }
+            }
+        );
+
+        # Test 2a: Booking within limits (4 calendar days for issuelength=3)
+        my $valid_booking = Koha::Booking->new(
+            {
+                patron_id         => $constraint_patron->borrowernumber,
+                biblio_id         => $constraint_biblio->biblionumber,
+                item_id           => $constraint_item->itemnumber,
+                pickup_library_id => $library,
+                start_date        => '2024-02-01',
+                end_date          => '2024-02-04',                         # 4 days total
+            }
+        );
+
+        lives_ok { $valid_booking->store() }
+        'Booking with 4 calendar days allowed for issuelength=3';
+        $valid_booking->delete if $valid_booking->in_storage;
+
+        # Test 2b: Booking exactly at limit
+        my $exact_booking = Koha::Booking->new(
+            {
+                patron_id         => $constraint_patron->borrowernumber,
+                biblio_id         => $constraint_biblio->biblionumber,
+                item_id           => $constraint_item->itemnumber,
+                pickup_library_id => $library,
+                start_date        => '2024-03-01',
+                end_date          => '2024-03-04',                         # Exactly 4 days
+            }
+        );
+
+        lives_ok { $exact_booking->store() }
+        'Booking with exactly 4 days allowed';
+        $exact_booking->delete if $exact_booking->in_storage;
+
+        # Test 2c: Booking exceeding limits
+        my $invalid_booking = Koha::Booking->new(
+            {
+                patron_id         => $constraint_patron->borrowernumber,
+                biblio_id         => $constraint_biblio->biblionumber,
+                item_id           => $constraint_item->itemnumber,
+                pickup_library_id => $library,
+                start_date        => '2024-04-01',
+                end_date          => '2024-04-05',                         # 5 days total
+            }
+        );
+
+        throws_ok { $invalid_booking->store() }
+        'Koha::Exceptions::Booking::DateRangeConstraint',
+            'Booking with 5 days throws exception when issuelength=3';
+
+        # Test 3: Calendar mode with mocked calendar
+        require Test::MockModule;
+        my $calendar_mock = Test::MockModule->new('Koha::Calendar');
+
+        # Mock addDuration to simulate calendar behavior with closed days
+        # This simulates skipping weekends or holidays
+        $calendar_mock->mock(
+            'addDuration',
+            sub {
+                my ( $self, $start_dt, $duration ) = @_;
+                my $days_to_add = $duration->in_units('days');
+
+                # For testing: simulate that adding 3 days skips a weekend
+                # So May 1 (Wed) + 3 working days = May 6 (Mon) instead of May 4 (Sat)
+                if ( $start_dt->ymd eq '2024-05-01' && $days_to_add == 3 ) {
+
+                    # Skip weekend: May 4-5
+                    return dt_from_string('2024-05-06');
+                }
+
+                # June 1 is a Saturday, so adding days would skip weekend
+                elsif ( $start_dt->ymd eq '2024-06-01' && $days_to_add == 3 ) {
+
+                    # Jun 1 (Sat) closed, Jun 2 (Sun) closed
+                    # Jun 3 (Mon) day 1, Jun 4 (Tue) day 2, Jun 5 (Wed) day 3
+                    return dt_from_string('2024-06-05');
+                }
+
+                # Default: just add the days without skipping
+                return $start_dt->clone->add($duration);
+            }
+        );
+
+        # Update rules for Calendar mode
+        Koha::CirculationRules->set_rules(
+            {
+                branchcode   => $library,
+                categorycode => $constraint_patron->categorycode,
+                itemtype     => $constraint_item->effective_itemtype,
+                rules        => {
+                    issuelength => 3,
+                    daysmode    => 'Calendar',
+                }
+            }
+        );
+
+        # Test 3a: Valid booking in Calendar mode with closed days
+        # May 1 (Wed) + 3 working days = May 6 (Mon) due to weekend
+        my $cal_valid = Koha::Booking->new(
+            {
+                patron_id         => $constraint_patron->borrowernumber,
+                biblio_id         => $constraint_biblio->biblionumber,
+                item_id           => $constraint_item->itemnumber,
+                pickup_library_id => $library,
+                start_date        => '2024-05-01',
+                end_date          => '2024-05-06',                         # Matches calculated limit with weekend
+            }
+        );
+
+        lives_ok { $cal_valid->store() }
+        'Calendar mode: booking within calculated limit allowed (with weekend)';
+        $cal_valid->delete if $cal_valid->in_storage;
+
+        # Test 3b: Invalid booking in Calendar mode
+        # May 1 + 3 working days = May 6, so May 7 should fail
+        my $cal_invalid = Koha::Booking->new(
+            {
+                patron_id         => $constraint_patron->borrowernumber,
+                biblio_id         => $constraint_biblio->biblionumber,
+                item_id           => $constraint_item->itemnumber,
+                pickup_library_id => $library,
+                start_date        => '2024-05-01',
+                end_date          => '2024-05-07',                         # Exceeds calculated limit
+            }
+        );
+
+        throws_ok { $cal_invalid->store() }
+        'Koha::Exceptions::Booking::DateRangeConstraint',
+            'Calendar mode: booking exceeding calculated limit throws exception';
+
+        # Test 3c: Booking ending before the calculated maximum should work
+        my $cal_shorter = Koha::Booking->new(
+            {
+                patron_id         => $constraint_patron->borrowernumber,
+                biblio_id         => $constraint_biblio->biblionumber,
+                item_id           => $constraint_item->itemnumber,
+                pickup_library_id => $library,
+                start_date        => '2024-05-01',
+                end_date          => '2024-05-04',                         # Before the max (May 6)
+            }
+        );
+
+        lives_ok { $cal_shorter->store() }
+        'Calendar mode: booking ending before calculated max allowed';
+        $cal_shorter->delete if $cal_shorter->in_storage;
+
+        # Test 4: issuelength_with_renewals constraint
+        t::lib::Mocks::mock_preference( 'BookingDateRangeConstraint', 'issuelength_with_renewals' );
+
+        Koha::CirculationRules->set_rules(
+            {
+                branchcode   => $library,
+                categorycode => $constraint_patron->categorycode,
+                itemtype     => $constraint_item->effective_itemtype,
+                rules        => {
+                    issuelength     => 7,
+                    renewalperiod   => 7,
+                    renewalsallowed => 2,
+                    daysmode        => 'Days',
+                }
+            }
+        );
+
+        # Total allowed: 7 + (7 * 2) = 21, so 22 calendar days
+
+        # Test 4a: Within extended limits
+        my $renewal_valid = Koha::Booking->new(
+            {
+                patron_id         => $constraint_patron->borrowernumber,
+                biblio_id         => $constraint_biblio->biblionumber,
+                item_id           => $constraint_item->itemnumber,
+                pickup_library_id => $library,
+                start_date        => '2024-07-01',
+                end_date          => '2024-07-22',                         # 22 days total
+            }
+        );
+
+        lives_ok { $renewal_valid->store() }
+        'Booking with 22 days allowed when issuelength=7 + 2 renewals of 7 days';
+        $renewal_valid->delete if $renewal_valid->in_storage;
+
+        # Test 4b: Exceeding extended limits
+        my $renewal_invalid = Koha::Booking->new(
+            {
+                patron_id         => $constraint_patron->borrowernumber,
+                biblio_id         => $constraint_biblio->biblionumber,
+                item_id           => $constraint_item->itemnumber,
+                pickup_library_id => $library,
+                start_date        => '2024-08-01',
+                end_date          => '2024-08-23',                         # 23 days total
+            }
+        );
+
+        throws_ok { $renewal_invalid->store() }
+        'Koha::Exceptions::Booking::DateRangeConstraint',
+            'Booking with 23 days throws exception when max is 22';
+
+        # Test 5: Edge case - zero issuelength
+        Koha::CirculationRules->set_rules(
+            {
+                branchcode   => $library,
+                categorycode => $constraint_patron->categorycode,
+                itemtype     => $constraint_item->effective_itemtype,
+                rules        => {
+                    issuelength => 0,
+                    daysmode    => 'Days',
+                }
+            }
+        );
+
+        my $zero_booking = Koha::Booking->new(
+            {
+                patron_id         => $constraint_patron->borrowernumber,
+                biblio_id         => $constraint_biblio->biblionumber,
+                item_id           => $constraint_item->itemnumber,
+                pickup_library_id => $library,
+                start_date        => '2024-09-01',
+                end_date          => '2024-09-01',                         # Same day
+            }
+        );
+
+        lives_ok { $zero_booking->store() }
+        'Same-day booking allowed even with issuelength=0';
+        $zero_booking->delete if $zero_booking->in_storage;
+
+        # Test 6: Timezone/time component handling
+        Koha::CirculationRules->set_rules(
+            {
+                branchcode   => $library,
+                categorycode => $constraint_patron->categorycode,
+                itemtype     => $constraint_item->effective_itemtype,
+                rules        => {
+                    issuelength => 3,
+                    daysmode    => 'Days',
+                }
+            }
+        );
+
+        # Test timezone handling
+        # Test dates with time components that could cause day-boundary issues
+        my $timezone_booking = Koha::Booking->new(
+            {
+                patron_id         => $constraint_patron->borrowernumber,
+                biblio_id         => $constraint_biblio->biblionumber,
+                item_id           => $constraint_item->itemnumber,
+                pickup_library_id => $library,
+                start_date        => '2024-10-12 22:00:00',                # Late evening start
+                end_date          => '2024-10-15 22:00:00',                # Late evening end (3 days later)
+            }
+        );
+
+        lives_ok { $timezone_booking->store() }
+        'UTC timestamps handled correctly for day-level validation';
+        $timezone_booking->delete if $timezone_booking->in_storage;
+
+        # Clean up
+        $calendar_mock->unmock('addDuration');
     };
 
     $schema->storage->txn_rollback;
