@@ -150,6 +150,7 @@ export function filterExtendedAttributesWithValues(attributes, recordId) {
  * @param {boolean} [options.showActions=false] - Whether to show the actions column
  * @param {boolean} [options.showEditAction=true] - Whether to show the edit button in the actions column
  * @param {boolean} [options.showDeleteAction=true] - Whether to show the delete/cancel button in the actions column
+ * @param {boolean} [options.showConvertToCheckoutAction] - Whether to show the convert to checkout button in the actions column
  * @param {boolean} [options.showStatus=false] - Whether to show status column with badges
  * @param {boolean} [options.showCreationDate=false] - Whether to show creation date column
  * @param {boolean} [options.showCallnumber=false] - Whether to show callnumber column
@@ -174,6 +175,7 @@ export function getBookingTableColumns(
         showActions = false,
         showEditAction = true,
         showDeleteAction = true,
+        showConvertToCheckoutAction = true,
         showStatus = false,
         showCreationDate = false,
         showCallnumber = false,
@@ -491,6 +493,18 @@ export function getBookingTableColumns(
                             data-booking="${escapeAttr(row.booking_id)}">
                             <i class="fa fa-trash" aria-hidden="true"></i> ${__("Cancel")}
                         </button>`;
+                }
+                if (showConvertToCheckoutAction) {
+                    html += `
+                        <form name="checkout-transform" method="post" action="/cgi-bin/koha/circ/circulation.pl?borrowernumber=${escapeAttr(row.patron_id)}">
+                            <input type="hidden" name="borrowernumber" value="${escapeAttr(row.patron_id)}"/>
+                            <input type="hidden" name="barcode" value="${escapeAttr(row.item?.external_id)}"/>
+                            <input type="hidden" name="duedatespec" value="${escapeAttr(row.end_date)}"/>
+                            <button class="btn btn-default btn-xs convert-to-checkout-action" type="submit">
+                                <i class="fa fa-check-circle" aria-hidden="true"></i> ${__("Convert to checkout")}
+                            </button>
+                        </form>
+                    `
                 }
                 return html;
             },
