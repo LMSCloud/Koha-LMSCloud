@@ -206,6 +206,21 @@ __PACKAGE__->belongs_to(
   { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
 );
 
+=head2 issues
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Issue>
+
+=cut
+
+__PACKAGE__->has_many(
+  "issues",
+  "Koha::Schema::Result::Issue",
+  { "foreign.booking_id" => "self.booking_id" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 item
 
 Type: belongs_to
@@ -224,6 +239,21 @@ __PACKAGE__->belongs_to(
     on_delete     => "CASCADE",
     on_update     => "CASCADE",
   },
+);
+
+=head2 old_issues
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::OldIssue>
+
+=cut
+
+__PACKAGE__->has_many(
+  "old_issues",
+  "Koha::Schema::Result::OldIssue",
+  { "foreign.booking_id" => "self.booking_id" },
+  { cascade_copy => 0, cascade_delete => 0 },
 );
 
 =head2 patron
@@ -257,8 +287,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:3V8QKgarlQfV0yuIm76yPg
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:59:16
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:mLHJlNiBzwVfEORFPpvmBw
 
 __PACKAGE__->has_many(
     "additional_field_values",
