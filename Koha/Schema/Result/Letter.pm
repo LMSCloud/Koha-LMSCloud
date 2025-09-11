@@ -43,6 +43,7 @@ Koha module that triggers this notice or slip
 =head2 code
 
   data_type: 'varchar'
+  default_value: (empty string)
   is_nullable: 0
   size: 50
 
@@ -126,7 +127,7 @@ __PACKAGE__->add_columns(
   "module",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 20 },
   "code",
-  { data_type => "varchar", is_nullable => 0, size => 50 },
+  { data_type => "varchar", default_value => "", is_nullable => 0, size => 50 },
   "branchcode",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 10 },
   "name",
@@ -231,8 +232,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-10-18 12:50:14
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:MA3WvXK/1ZBc407iU7ZcrA
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:/YBwiYrgKUTjr6w3xQjUkA
 
 sub koha_object_class {
     'Koha::Notice::Template';

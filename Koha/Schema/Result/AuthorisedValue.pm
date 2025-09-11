@@ -172,9 +172,24 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 old_illrequests
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:LH9dpEEzlVVsjNVv/jnONg
+Type: has_many
+
+Related object: L<Koha::Schema::Result::OldIllrequest>
+
+=cut
+
+__PACKAGE__->has_many(
+  "old_illrequests",
+  "Koha::Schema::Result::OldIllrequest",
+  { "foreign.status_alias" => "self.authorised_value" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:q29WCqZo1O0X5c68VhqIQA
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

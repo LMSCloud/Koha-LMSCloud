@@ -6,7 +6,7 @@ package Koha::Schema::Result::ExternalOrder;
 
 =head1 NAME
 
-Koha::Schema::Result::ExternalOrder
+Koha::Schema::Result::ExternalOrder - Used for processing external orders
 
 =cut
 
@@ -56,6 +56,7 @@ __PACKAGE__->table("external_order");
 
   data_type: 'timestamp'
   datetime_undef_if_invalid: 1
+  default_value: current_timestamp
   is_nullable: 0
 
 =head2 order_data
@@ -101,6 +102,7 @@ __PACKAGE__->add_columns(
   {
     data_type => "timestamp",
     datetime_undef_if_invalid => 1,
+    default_value => \"current_timestamp",
     is_nullable => 0,
   },
   "order_data",
@@ -157,8 +159,8 @@ __PACKAGE__->set_primary_key("id");
 __PACKAGE__->add_unique_constraint("external_order_extid", ["order_type", "external_order_id"]);
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2020-03-10 23:08:58
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:z3WbcaZRc4/1Ts9U7F509w
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:P3/+0APnxV1v9lH4nN8kkg
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

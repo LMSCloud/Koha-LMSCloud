@@ -29,11 +29,15 @@ __PACKAGE__->table("cash_register_definition");
   is_auto_increment: 1
   is_nullable: 0
 
+ID of the cash register
+
 =head2 name
 
   data_type: 'varchar'
   is_nullable: 0
   size: 100
+
+name of the cash register
 
 =head2 branchcode
 
@@ -42,16 +46,22 @@ __PACKAGE__->table("cash_register_definition");
   is_nullable: 0
   size: 10
 
+the branch, in which the cash register is used (branches.branchcode)
+
 =head2 manager_id
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 1
 
+the staff member who currently manages the cash register (borrowers.borrowernumber)
+
 =head2 prev_manager_id
 
   data_type: 'integer'
   is_nullable: 1
+
+who was the previous manager of the cash register (borrowers.borrowernumber)
 
 =head2 modification_time
 
@@ -60,11 +70,15 @@ __PACKAGE__->table("cash_register_definition");
   default_value: current_timestamp
   is_nullable: 0
 
+when was the entry last time changed
+
 =head2 no_branch_restriction
 
   data_type: 'tinyint'
   default_value: 0
   is_nullable: 1
+
+do not restrict the use of the cash register to the owning branch
 
 =cut
 
@@ -169,8 +183,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-07-11 15:03:01
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:7nsN1hgXaGBR1h2bVtuVtQ
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:I8xhK+774X3x16Cz6oSYSg
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

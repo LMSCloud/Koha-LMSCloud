@@ -8,6 +8,10 @@ package Koha::Schema::Result::AggregatedStatisticsParameter;
 
 Koha::Schema::Result::AggregatedStatisticsParameter
 
+=head1 DESCRIPTION
+
+contains additional selection parameters for a record in table aggregated_statistics.
+
 =cut
 
 use strict;
@@ -28,6 +32,8 @@ __PACKAGE__->table("aggregated_statistics_parameters");
   data_type: 'integer'
   is_nullable: 0
 
+foreign key from the aggregated_statistics table to identify the join (value of aggregated_statistics.id)
+
 =head2 name
 
   data_type: 'varchar'
@@ -35,10 +41,14 @@ __PACKAGE__->table("aggregated_statistics_parameters");
   is_nullable: 0
   size: 80
 
+name of the parameter, e.g. "branchcode"
+
 =head2 value
 
-  data_type: 'longtext'
+  data_type: 'mediumtext'
   is_nullable: 1
+
+value of the parameter, eg. "Zentrale"
 
 =cut
 
@@ -48,7 +58,7 @@ __PACKAGE__->add_columns(
   "name",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 80 },
   "value",
-  { data_type => "longtext", is_nullable => 1 },
+  { data_type => "mediumtext", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -66,8 +76,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("statistics_id", "name");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-11-26 12:25:22
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:40htQ3z0bhRhGINNeXooJg
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:R2WgyMSDkA91FTbm4u0doA
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

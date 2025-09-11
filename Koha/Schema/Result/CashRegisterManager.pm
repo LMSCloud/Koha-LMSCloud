@@ -29,17 +29,23 @@ __PACKAGE__->table("cash_register_manager");
   is_auto_increment: 1
   is_nullable: 0
 
+ID of the cash register manager record
+
 =head2 cash_register_id
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 0
 
+ID of the cash register (cash_register_definition.id)
+
 =head2 manager_id
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 0
+
+the staff member who is allowed to manage the cash register (borrowers.borrowernumber)
 
 =head2 modification_time
 
@@ -48,17 +54,23 @@ __PACKAGE__->table("cash_register_manager");
   default_value: current_timestamp
   is_nullable: 0
 
+when was the entry last time changed
+
 =head2 authorized_by
 
   data_type: 'varchar'
   is_nullable: 1
   size: 11
 
+the staff member who authorized the manager to manage the cash register (borrowers.borrowernumber)
+
 =head2 opened
 
   data_type: 'tinyint'
   default_value: 0
   is_nullable: 1
+
+this value is used to mark a manager as active for a register if multiple users are authorized to book to a register simultaneously; a staff member can have only one opened cash
 
 =cut
 
@@ -143,8 +155,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-11-30 14:03:24
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:J4/5ktMdsPVp3OFjxXTYTQ
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:78W4ft2Ov2NCJLilFOrRrw
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

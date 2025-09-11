@@ -8,6 +8,10 @@ package Koha::Schema::Result::OldIllrequest;
 
 Koha::Schema::Result::OldIllrequest
 
+=head1 DESCRIPTION
+
+stores ILL requests that have been completed and after a delay deleted from table illrequests for performance reasons
+
 =cut
 
 use strict;
@@ -29,16 +33,22 @@ __PACKAGE__->table("old_illrequests");
   extra: {unsigned => 1}
   is_nullable: 0
 
+ILL request number
+
 =head2 borrowernumber
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 1
 
+Patron associated with request
+
 =head2 biblio_id
 
   data_type: 'integer'
   is_nullable: 1
+
+Potential bib linked to request
 
 =head2 branchcode
 
@@ -47,11 +57,15 @@ __PACKAGE__->table("old_illrequests");
   is_nullable: 1
   size: 50
 
+The branch associated with the request
+
 =head2 status
 
   data_type: 'varchar'
   is_nullable: 1
   size: 50
+
+Current Koha status of request
 
 =head2 status_alias
 
@@ -60,11 +74,15 @@ __PACKAGE__->table("old_illrequests");
   is_nullable: 1
   size: 80
 
+Foreign key to relevant authorised_values.authorised_value
+
 =head2 placed
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
   is_nullable: 1
+
+Date the request was placed
 
 =head2 replied
 
@@ -72,12 +90,16 @@ __PACKAGE__->table("old_illrequests");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+Last API response
+
 =head2 updated
 
   data_type: 'timestamp'
   datetime_undef_if_invalid: 1
   default_value: current_timestamp
-  is_nullable: 1
+  is_nullable: 0
+
+Last modification to request
 
 =head2 completed
 
@@ -85,11 +107,15 @@ __PACKAGE__->table("old_illrequests");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+Date the request was completed
+
 =head2 medium
 
   data_type: 'varchar'
   is_nullable: 1
   size: 30
+
+The Koha request type
 
 =head2 accessurl
 
@@ -97,11 +123,15 @@ __PACKAGE__->table("old_illrequests");
   is_nullable: 1
   size: 500
 
+Potential URL for accessing item
+
 =head2 cost
 
   data_type: 'varchar'
   is_nullable: 1
   size: 20
+
+Quotes cost of request
 
 =head2 price_paid
 
@@ -109,15 +139,21 @@ __PACKAGE__->table("old_illrequests");
   is_nullable: 1
   size: 20
 
+Final cost of request
+
 =head2 notesopac
 
   data_type: 'mediumtext'
   is_nullable: 1
 
+Patron notes attached to request
+
 =head2 notesstaff
 
   data_type: 'mediumtext'
   is_nullable: 1
+
+Staff notes attached to request
 
 =head2 orderid
 
@@ -125,11 +161,15 @@ __PACKAGE__->table("old_illrequests");
   is_nullable: 1
   size: 50
 
+Backend id attached to request
+
 =head2 backend
 
   data_type: 'varchar'
   is_nullable: 1
   size: 20
+
+The backend used to create request
 
 =cut
 
@@ -155,7 +195,7 @@ __PACKAGE__->add_columns(
     data_type => "timestamp",
     datetime_undef_if_invalid => 1,
     default_value => \"current_timestamp",
-    is_nullable => 1,
+    is_nullable => 0,
   },
   "completed",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
@@ -282,8 +322,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-03-23 15:33:19
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:54UGKVKyYXEaHJjSyhUlqA
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:19Vvq7OAoLm6aMRqHgit0A
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

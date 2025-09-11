@@ -29,10 +29,14 @@ __PACKAGE__->table("cash_register_account");
   is_auto_increment: 1
   is_nullable: 0
 
+ID of the cash register account record
+
 =head2 cash_register_account_id
 
   data_type: 'integer'
   is_nullable: 0
+
+consecutively numbered transaction per cash register; starts for each cash register with 1
 
 =head2 cash_register_id
 
@@ -40,10 +44,14 @@ __PACKAGE__->table("cash_register_account");
   is_foreign_key: 1
   is_nullable: 0
 
+ID of the cash register (cash_register_definition.id)
+
 =head2 manager_id
 
   data_type: 'integer'
   is_nullable: 0
+
+the staff member who booked to the cashier (borrowers.borrowernumber)
 
 =head2 booking_time
 
@@ -52,11 +60,15 @@ __PACKAGE__->table("cash_register_account");
   default_value: current_timestamp
   is_nullable: 0
 
+when was this entry created 
+
 =head2 accountlines_id
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 1
+
+an accountline booking to which this entry relates to (accountlines.accountlines_id)
 
 =head2 current_balance
 
@@ -64,11 +76,15 @@ __PACKAGE__->table("cash_register_account");
   is_nullable: 0
   size: [28,6]
 
+current balance of the cashier
+
 =head2 action
 
   data_type: 'varchar'
   is_nullable: 0
   size: 20
+
+which action was performed: OPEN, CLOSE, PAYMENT, REVERSE_PAYMENT, CREDIT_PAYOUT, CREDIT, ADJUSTMENT, PAYOUT
 
 =head2 booking_amount
 
@@ -76,16 +92,22 @@ __PACKAGE__->table("cash_register_account");
   is_nullable: 1
   size: [28,6]
 
+booked amount (can be positive or negative)
+
 =head2 description
 
   data_type: 'longtext'
   is_nullable: 1
+
+explains the transaction
 
 =head2 reason
 
   data_type: 'varchar'
   is_nullable: 1
   size: 250
+
+specify a reason for payouts and payments (controlled with authorised_values category CASHREG_PAYOUT)
 
 =cut
 
@@ -188,8 +210,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-11-26 12:35:28
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:VeIMWJewRpMoOkppwXL1VQ
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:/0AjfI6CkJRdNKoX0L7rIg
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

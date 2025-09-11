@@ -106,7 +106,7 @@ __PACKAGE__->table("creator_layouts");
   data_type: 'varchar'
   default_value: 'barcode'
   is_nullable: 0
-  size: 210
+  size: 1024
 
 =head2 layout_xml
 
@@ -169,7 +169,7 @@ __PACKAGE__->add_columns(
     data_type => "varchar",
     default_value => "barcode",
     is_nullable => 0,
-    size => 210,
+    size => 1024,
   },
   "layout_xml",
   { data_type => "mediumtext", is_nullable => 0 },
@@ -202,8 +202,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("layout_id");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-11-26 12:37:22
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:g8vZJ+lfVsAh79Ko0GT4yw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:NrTcm8JX6G6NBMG5WarZAQ
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

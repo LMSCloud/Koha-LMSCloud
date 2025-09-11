@@ -41,11 +41,15 @@ __PACKAGE__->table("account_debit_types");
   default_value: 1
   is_nullable: 0
 
+boolean flag to denote if this debit type is available for manual invoicing
+
 =head2 can_be_sold
 
   data_type: 'tinyint'
   default_value: 0
-  is_nullable: 1
+  is_nullable: 0
+
+boolean flag to denote if this debit type is available at point of sale
 
 =head2 default_amount
 
@@ -65,6 +69,8 @@ __PACKAGE__->table("account_debit_types");
   default_value: 0
   is_nullable: 0
 
+boolean flag to denote if this till is archived or not
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -75,7 +81,7 @@ __PACKAGE__->add_columns(
   "can_be_invoiced",
   { data_type => "tinyint", default_value => 1, is_nullable => 0 },
   "can_be_sold",
-  { data_type => "tinyint", default_value => 0, is_nullable => 1 },
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "default_amount",
   { data_type => "decimal", is_nullable => 1, size => [28, 6] },
   "is_system",
@@ -129,8 +135,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-04-19 10:45:36
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:qWXK6EGgf0eb8vw3m9BJ8w
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:45:52
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:131F68DBIKuLgVhlniEpvg
 
 __PACKAGE__->add_columns(
     '+is_system' => { is_boolean => 1 }

@@ -37,8 +37,8 @@ __PACKAGE__->table("accountlines");
 =head2 borrowernumber
 
   data_type: 'integer'
-  default_value: 0
-  is_nullable: 0
+  is_foreign_key: 1
+  is_nullable: 1
 
 =head2 itemnumber
 
@@ -144,14 +144,6 @@ optional authorised value PAYMENT_TYPE
 
 the branchcode of the library where a payment was made, a manual invoice created, etc.
 
-=head2 branchcode
-
-  data_type: 'varchar'
-  default_value: (empty string)
-  is_foreign_key: 1
-  is_nullable: 1
-  size: 10
-
 =cut
 
 __PACKAGE__->add_columns(
@@ -160,7 +152,7 @@ __PACKAGE__->add_columns(
   "issue_id",
   { data_type => "integer", is_nullable => 1 },
   "borrowernumber",
-  { data_type => "integer", default_value => 0, is_nullable => 0 },
+  { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "itemnumber",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "date",
@@ -267,7 +259,7 @@ __PACKAGE__->has_many(
 
 Type: belongs_to
 
-Related object: L<Koha::Schema::Result::Branch>
+Related object: L<Koha::Schema::Result::Borrower>
 
 =cut
 
@@ -318,7 +310,6 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
-
 =head2 credit_type_code
 
 Type: belongs_to
@@ -357,7 +348,6 @@ __PACKAGE__->belongs_to(
     on_delete     => "RESTRICT",
     on_update     => "CASCADE",
   },
-
 );
 
 =head2 itemnumber
@@ -421,8 +411,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-01-28 20:21:02
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:PjQR7oUkefiDt+eV69jZ3A
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:zdKvdDfSOdPKUFMB1qKlww
 
 =head2 library
 

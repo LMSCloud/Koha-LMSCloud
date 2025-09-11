@@ -646,8 +646,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("verification_token", "borrowernumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-04-06 15:46:57
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:TzG6Q5PymhBXCVxJi3C/sA
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:7em3d/XlfTtAXVpI9df5vg
 
 sub koha_object_class {
     'Koha::Patron::Modification';

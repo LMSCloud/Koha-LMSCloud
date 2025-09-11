@@ -160,6 +160,14 @@ the IP address for your library or branch
 
 notes related to your library or branch
 
+=head2 mobilebranch
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 10
+
+marks a branch as bookmobile stop with a reference to the related bookmobile branch
+
 =head2 geolocation
 
   data_type: 'varchar'
@@ -191,15 +199,6 @@ the ability to act as a pickup location
   is_nullable: 0
 
 whether this library should show in the opac
-
-=head2 mobilebranch
-
-  data_type: 'varchar'
-  is_foreign_key: 1
-  is_nullable: 1
-  size: 10
-  
-branchcode of the mobile branch if the library is a station
 
 =cut
 
@@ -242,6 +241,8 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 15 },
   "branchnotes",
   { data_type => "longtext", is_nullable => 1 },
+  "mobilebranch",
+  { data_type => "varchar", is_nullable => 1, size => 10 },
   "geolocation",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "marcorgcode",
@@ -250,8 +251,6 @@ __PACKAGE__->add_columns(
   { data_type => "tinyint", default_value => 1, is_nullable => 0 },
   "public",
   { data_type => "tinyint", default_value => 1, is_nullable => 0 },
-  "mobilebranch",
-  { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 10 },
 );
 
 =head1 PRIMARY KEY
@@ -445,22 +444,6 @@ __PACKAGE__->has_many(
   "branchtransfers_frombranches",
   "Koha::Schema::Result::Branchtransfer",
   { "foreign.frombranch" => "self.branchcode" },
-  { cascade_copy => 0, cascade_delete => 0 },
-);
-
-
-=head2 branches
-
-Type: has_many
-
-Related object: L<Koha::Schema::Result::Branch>
-
-=cut
-
-__PACKAGE__->has_many(
-  "branches",
-  "Koha::Schema::Result::Branch",
-  { "foreign.mobilebranch" => "self.branchcode" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -809,6 +792,21 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 library_smtp_server
+
+Type: might_have
+
+Related object: L<Koha::Schema::Result::LibrarySmtpServer>
+
+=cut
+
+__PACKAGE__->might_have(
+  "library_smtp_server",
+  "Koha::Schema::Result::LibrarySmtpServer",
+  { "foreign.library_id" => "self.branchcode" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 message_queues
 
 Type: has_many
@@ -824,38 +822,18 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
-=head2 mobilebranch
+=head2 old_illrequests
 
-Type: belongs_to
+Type: has_many
 
-Related object: L<Koha::Schema::Result::Branch>
-
-=cut
-
-__PACKAGE__->belongs_to(
-  "mobilebranch",
-  "Koha::Schema::Result::Branch",
-  { branchcode => "mobilebranch" },
-  {
-    is_deferrable => 1,
-    join_type     => "LEFT",
-    on_delete     => "NO ACTION",
-    on_update     => "NO ACTION",
-  },
-);
-
-=head2 library_smtp_server
-
-Type: might_have
-
-Related object: L<Koha::Schema::Result::LibrarySmtpServer>
+Related object: L<Koha::Schema::Result::OldIllrequest>
 
 =cut
 
-__PACKAGE__->might_have(
-  "library_smtp_server",
-  "Koha::Schema::Result::LibrarySmtpServer",
-  { "foreign.library_id" => "self.branchcode" },
+__PACKAGE__->has_many(
+  "old_illrequests",
+  "Koha::Schema::Result::OldIllrequest",
+  { "foreign.branchcode" => "self.branchcode" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -995,8 +973,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-05-03 13:13:25
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:HiH1QNlDqKcq9GeM85Pu0A
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:KWtKxdruohD9ZyCsuWoy6g
 
 __PACKAGE__->add_columns(
     '+pickup_location' => { is_boolean => 1 },

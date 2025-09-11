@@ -31,7 +31,7 @@ __PACKAGE__->table("browser");
 =head2 classification
 
   data_type: 'varchar'
-  is_nullable: 1
+  is_nullable: 0
   size: 255
 
 =head2 description
@@ -54,7 +54,7 @@ __PACKAGE__->table("browser");
 
   data_type: 'varchar'
   is_nullable: 1
-  size: 255
+  size: 1024
 
 =head2 prefix
 
@@ -82,9 +82,13 @@ __PACKAGE__->table("browser");
 
 =head2 exclude
 
-  data_type: 'varchar'
+  data_type: 'mediumtext'
   is_nullable: 1
-  size: 1024
+
+=head2 usesearch
+
+  data_type: 'mediumtext'
+  is_nullable: 1
 
 =cut
 
@@ -92,7 +96,7 @@ __PACKAGE__->add_columns(
   "level",
   { data_type => "integer", is_nullable => 0 },
   "classification",
-  { data_type => "varchar", is_nullable => 1, size => 255 },
+  { data_type => "varchar", is_nullable => 0, size => 255 },
   "description",
   { data_type => "varchar", is_nullable => 0, size => 255 },
   "number",
@@ -100,7 +104,7 @@ __PACKAGE__->add_columns(
   "endnode",
   { data_type => "tinyint", is_nullable => 0 },
   "parent",
-  { data_type => "varchar", is_nullable => 1, size => 255 },
+  { data_type => "varchar", is_nullable => 1, size => 1024 },
   "prefix",
   { data_type => "varchar", is_nullable => 1, size => 40 },
   "classval",
@@ -110,12 +114,14 @@ __PACKAGE__->add_columns(
   "endrange",
   { data_type => "varchar", is_nullable => 1, size => 20 },
   "exclude",
-  { data_type => "varchar", is_nullable => 1, size => 1024 },
+  { data_type => "mediumtext", is_nullable => 1 },
+  "usesearch",
+  { data_type => "mediumtext", is_nullable => 1 },
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-09-07 12:38:41
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:IIFNHuWvKecyErNTlV72uw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:EV8BCz1TfUOmWdHNa1Ebww
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

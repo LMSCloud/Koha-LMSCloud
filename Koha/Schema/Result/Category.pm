@@ -158,8 +158,8 @@ Default privacy setting for this patron category
   data_type: 'tinyint'
   default_value: 0
   is_nullable: 0
-  
-Is the library card of the patron a familiy card
+
+mark a category as family card (linked borrowers via the guarantor relationship are not charged with the enrollment fee)
 
 =head2 checkprevcheckout
 
@@ -388,8 +388,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-11-08 17:35:26
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:B89OgAY/KnJbQaHpu5Xdfg
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Ta7U4bvgRgHCb4RC8/5TVw
 
 sub koha_object_class {
     'Koha::Patron::Category';

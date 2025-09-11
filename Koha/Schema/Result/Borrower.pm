@@ -486,8 +486,11 @@ surname or last name of the alternate contact for the patron/borrower
 
 =head2 altcontacttitle
 
-  data_type: 'mediumtext'
+  data_type: 'varchar'
   is_nullable: 1
+  size: 255
+
+title of the alternate contact for the patron/borrower
 
 =head2 altcontactaddress1
 
@@ -592,7 +595,7 @@ produce a warning for this patron if this item has previously been checked out t
   data_type: 'timestamp'
   datetime_undef_if_invalid: 1
   default_value: current_timestamp
-  is_nullable: 1
+  is_nullable: 0
 
 time of last change could be useful for synchronization with external systems (among others)
 
@@ -795,7 +798,7 @@ __PACKAGE__->add_columns(
   "altcontactsurname",
   { data_type => "mediumtext", is_nullable => 1 },
   "altcontacttitle",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "varchar", is_nullable => 1, size => 255 },
   "altcontactaddress1",
   { data_type => "mediumtext", is_nullable => 1 },
   "altcontactaddress2",
@@ -832,7 +835,7 @@ __PACKAGE__->add_columns(
     data_type => "timestamp",
     datetime_undef_if_invalid => 1,
     default_value => \"current_timestamp",
-    is_nullable => 1,
+    is_nullable => 0,
   },
   "lastseen",
   {
@@ -1184,36 +1187,6 @@ __PACKAGE__->belongs_to(
   { is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT" },
 );
 
-=head2 cash_register_managers
-
-Type: has_many
-
-Related object: L<Koha::Schema::Result::CashRegisterManager>
-
-=cut
-
-__PACKAGE__->has_many(
-  "cash_register_managers",
-  "Koha::Schema::Result::CashRegisterManager",
-  { "foreign.manager_id" => "self.borrowernumber" },
-  { cascade_copy => 0, cascade_delete => 0 },
-);
-
-=head2 cash_register_definitions
-
-Type: has_many
-
-Related object: L<Koha::Schema::Result::CashRegisterDefinition>
-
-=cut
-
-__PACKAGE__->has_many(
-  "cash_registers",
-  "Koha::Schema::Result::CashRegisterDefinition",
-  { "foreign.manager_id" => "self.borrowernumber" },
-  { cascade_copy => 0, cascade_delete => 0 },
-);
-
 =head2 cash_register_actions
 
 Type: has_many
@@ -1229,6 +1202,35 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 cash_register_definitions
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::CashRegisterDefinition>
+
+=cut
+
+__PACKAGE__->has_many(
+  "cash_register_definitions",
+  "Koha::Schema::Result::CashRegisterDefinition",
+  { "foreign.manager_id" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 cash_register_managers
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::CashRegisterManager>
+
+=cut
+
+__PACKAGE__->has_many(
+  "cash_register_managers",
+  "Koha::Schema::Result::CashRegisterManager",
+  { "foreign.manager_id" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
 
 =head2 categorycode
 
@@ -1601,6 +1603,36 @@ Related object: L<Koha::Schema::Result::Message>
 __PACKAGE__->has_many(
   "messages_borrowernumbers",
   "Koha::Schema::Result::Message",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 old_illcomments
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::OldIllcomment>
+
+=cut
+
+__PACKAGE__->has_many(
+  "old_illcomments",
+  "Koha::Schema::Result::OldIllcomment",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 old_illrequests
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::OldIllrequest>
+
+=cut
+
+__PACKAGE__->has_many(
+  "old_illrequests",
+  "Koha::Schema::Result::OldIllrequest",
   { "foreign.borrowernumber" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
@@ -2111,8 +2143,8 @@ Composing rels: L</user_permissions> -> permission
 __PACKAGE__->many_to_many("permissions", "user_permissions", "permission");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-11-03 14:18:06
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:PcGXqEI1ULB+Uoclqfbxig
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:60d2Fh6kcwfq8n13W9IX1Q
 
 __PACKAGE__->has_many(
   "restrictions",

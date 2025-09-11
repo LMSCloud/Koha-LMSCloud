@@ -43,6 +43,7 @@ collections.colId
 
   data_type: 'integer'
   default_value: 0
+  is_foreign_key: 1
   is_nullable: 0
 
 items.itemnumber
@@ -61,7 +62,12 @@ __PACKAGE__->add_columns(
     is_nullable    => 0,
   },
   "itemnumber",
-  { data_type => "integer", default_value => 0, is_nullable => 0 },
+  {
+    data_type      => "integer",
+    default_value  => 0,
+    is_foreign_key => 1,
+    is_nullable    => 0,
+  },
 );
 
 =head1 PRIMARY KEY
@@ -93,9 +99,24 @@ __PACKAGE__->belongs_to(
   { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
 );
 
+=head2 itemnumber
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-04-29 07:54:20
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:JcoZbVCFzYkwbGjyRlH5rA
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::Item>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "itemnumber",
+  "Koha::Schema::Result::Item",
+  { itemnumber => "itemnumber" },
+  { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
+);
+
+
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Ne+tJcmzLxgKjLiOPi612Q
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

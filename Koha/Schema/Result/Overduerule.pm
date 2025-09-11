@@ -117,7 +117,7 @@ foreign key from the letter table to define which notice should be sent as the t
   data_type: 'integer'
   default_value: 0
   is_nullable: 1
-  
+
 is the patron restricted when the third notice is sent (1 for yes, 0 for no)
 
 =head2 delay4
@@ -253,8 +253,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:pORigxtC5qztZWHI29mZ/g
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:qJLDvSJHio9dLcT7wJFqbw
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

@@ -8,6 +8,10 @@ package Koha::Schema::Result::AggregatedStatistic;
 
 Koha::Schema::Result::AggregatedStatistic
 
+=head1 DESCRIPTION
+
+for defining statistic evaluations for different statistic types and selection parameters.
+
 =cut
 
 use strict;
@@ -29,12 +33,16 @@ __PACKAGE__->table("aggregated_statistics");
   is_auto_increment: 1
   is_nullable: 0
 
+unique key, used to identify the record
+
 =head2 type
 
   data_type: 'varchar'
   default_value: (empty string)
   is_nullable: 0
   size: 80
+
+code for type of statistic, e.g. "DBS"
 
 =head2 name
 
@@ -43,6 +51,8 @@ __PACKAGE__->table("aggregated_statistics");
   is_nullable: 0
   size: 200
 
+name of statistic, eg. "complete DBS 2017"
+
 =head2 description
 
   data_type: 'varchar'
@@ -50,17 +60,23 @@ __PACKAGE__->table("aggregated_statistics");
   is_nullable: 0
   size: 255
 
+description of statistic, e.g. "complete DBS for year 2017, sum over branches"
+
 =head2 startdate
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
   is_nullable: 0
 
+start date of selection period
+
 =head2 enddate
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
   is_nullable: 0
+
+end date of selection period
 
 =cut
 
@@ -92,8 +108,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("id");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-01-10 17:34:48
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:l6mytzDpFV+V4cE86dNimw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:/W027papResZBNegAFoQtw
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

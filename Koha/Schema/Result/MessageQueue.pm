@@ -119,7 +119,6 @@ Foreign key to the letters table
 =head2 branchcode
 
   data_type: 'varchar'
-  default_value: (empty string)
   is_foreign_key: 1
   is_nullable: 0
   size: 10
@@ -174,13 +173,7 @@ __PACKAGE__->add_columns(
   "failure_code",
   { data_type => "mediumtext", is_nullable => 1 },
   "branchcode",
-  {
-    data_type => "varchar",
-    default_value => "",
-    is_foreign_key => 1,
-    is_nullable => 0,
-    size => 10,
-  },
+  { data_type => "varchar", is_foreign_key => 1, is_nullable => 0, size => 10 },
 );
 
 =head1 PRIMARY KEY
@@ -217,6 +210,21 @@ __PACKAGE__->belongs_to(
   },
 );
 
+=head2 branchcode
+
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::Branch>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "branchcode",
+  "Koha::Schema::Result::Branch",
+  { branchcode => "branchcode" },
+  { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
+);
+
 =head2 letter
 
 Type: belongs_to
@@ -237,25 +245,6 @@ __PACKAGE__->belongs_to(
   },
 );
 
-=head2 branchcode
-
-Type: belongs_to
-
-Related object: L<Koha::Schema::Result::Branch>
-
-=cut
-
-__PACKAGE__->belongs_to(
-  "branchcode",
-  "Koha::Schema::Result::Branch",
-  { branchcode => "branchcode" },
-  { 
-	is_deferrable => 1, 
-	on_delete => "CASCADE", 
-	on_update => "CASCADE" 
-  },
-);
-
 =head2 message_transport_type
 
 Type: belongs_to
@@ -272,8 +261,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-10-18 12:50:14
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:PX9JzZw0v134xuHqNbB0cA
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:vwgWaIYLPB3pLedkL/J45A
 
 sub koha_object_class {
     'Koha::Notice::Message';

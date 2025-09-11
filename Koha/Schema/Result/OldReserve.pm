@@ -401,14 +401,14 @@ __PACKAGE__->belongs_to(
   {
     is_deferrable => 1,
     join_type     => "LEFT",
-    on_delete     => "CASCADE",
-    on_update     => "CASCADE",
+    on_delete     => "SET NULL",
+    on_update     => "SET NULL",
   },
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-02-10 14:01:25
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:evv31XLI36n7e+oYL/hsug
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:TERpWQRu2aCbsG8tZhL3uA
 
 __PACKAGE__->belongs_to(
   "item",

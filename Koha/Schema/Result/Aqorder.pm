@@ -773,8 +773,8 @@ Composing rels: L</aqorder_users> -> borrowernumber
 __PACKAGE__->many_to_many("borrowernumbers", "aqorder_users", "borrowernumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-09-06 17:56:52
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:aaj6mc1M13YFx5P0aXMiEQ
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:f4A6ryk9luF7jDY2p/phEQ
 
 __PACKAGE__->belongs_to(
   "basket",

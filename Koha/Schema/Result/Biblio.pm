@@ -601,8 +601,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-05-09 07:11:30
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:AZgt+4mVV/QYtSsdhxmaBQ
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:/jm7v6u5j+rekxfRIUlnTA
 
 __PACKAGE__->has_many(
   "biblioitem",

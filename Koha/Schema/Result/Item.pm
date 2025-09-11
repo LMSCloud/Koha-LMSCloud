@@ -652,6 +652,21 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 collections_trackings
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::CollectionsTracking>
+
+=cut
+
+__PACKAGE__->has_many(
+  "collections_trackings",
+  "Koha::Schema::Result::CollectionsTracking",
+  { "foreign.itemnumber" => "self.itemnumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 course_item
 
 Type: might_have
@@ -963,8 +978,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-10-25 13:25:14
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:gsZwsPbmOacCDxRbnl5w/A
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:NfQHjEezfBrL39sBaiNcjw
 
 __PACKAGE__->belongs_to( biblioitem => "Koha::Schema::Result::Biblioitem", "biblioitemnumber" );
 

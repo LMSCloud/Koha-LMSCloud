@@ -488,6 +488,8 @@ surname or last name of the alternate contact for the patron/borrower
   is_nullable: 1
   size: 255
 
+title of the alternate contact for the patron/borrower
+
 =head2 altcontactaddress1
 
   data_type: 'mediumtext'
@@ -590,7 +592,7 @@ produce a warning for this patron if this item has previously been checked out t
   data_type: 'timestamp'
   datetime_undef_if_invalid: 1
   default_value: current_timestamp
-  is_nullable: 1
+  is_nullable: 0
 
 time of last change could be useful for synchronization with external systems (among others)
 
@@ -781,7 +783,7 @@ __PACKAGE__->add_columns(
   "altcontactsurname",
   { data_type => "mediumtext", is_nullable => 1 },
   "altcontacttitle",
-  { data_type => "mediumtext", is_nullable => 1 },
+  { data_type => "varchar", is_nullable => 1, size => 255 },
   "altcontactaddress1",
   { data_type => "mediumtext", is_nullable => 1 },
   "altcontactaddress2",
@@ -818,7 +820,7 @@ __PACKAGE__->add_columns(
     data_type => "timestamp",
     datetime_undef_if_invalid => 1,
     default_value => \"current_timestamp",
-    is_nullable => 1,
+    is_nullable => 0,
   },
   "lastseen",
   {
@@ -846,8 +848,8 @@ __PACKAGE__->add_columns(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-04-06 15:46:58
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:dqGu9iDgO+u09l9X1G0NuA
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:RGzcFWhZkhlYxPAduQzX4A
 
 __PACKAGE__->add_columns(
     '+anonymized'    => { is_boolean => 1 },

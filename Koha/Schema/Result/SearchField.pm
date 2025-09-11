@@ -48,7 +48,7 @@ the human readable name of the field, for display
 =head2 type
 
   data_type: 'enum'
-  extra: {list => ["","string","date","number","boolean","sum","isbn","stdno","year","callnumber"]}
+  extra: {list => ["","string","date","number","boolean","sum","isbn","stdno","year","callnumber","string_plus","availability"]}
   is_nullable: 0
 
 what type of data this holds, relevant when storing it in the search engine
@@ -109,6 +109,8 @@ __PACKAGE__->add_columns(
         "stdno",
         "year",
         "callnumber",
+        "string_plus",
+        "availability",
       ],
     },
     is_nullable => 0,
@@ -169,8 +171,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-07-18 15:10:43
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Uk5JsfPJo0XVvGfMfJg3cg
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:40
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:rPJiMqrYgKjRhsx8mF4//Q
 
 __PACKAGE__->add_columns(
     '+mandatory' => { is_boolean => 1 },
