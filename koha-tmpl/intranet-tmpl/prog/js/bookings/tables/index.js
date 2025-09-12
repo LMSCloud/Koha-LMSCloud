@@ -357,7 +357,7 @@ function initKohaTable(
 
 /**
  * Apply default quick toggle filters to additionalFilters map
- * Ensures initial load hides expired and cancelled when quick toggles are enabled
+ * Ensures initial load hides expired, cancelled and completed when quick toggles are enabled
  * @param {Object<string, any>} additionalFilters
  */
 function applyDefaultQuickToggleFilters(additionalFilters) {
@@ -369,7 +369,7 @@ function applyDefaultQuickToggleFilters(additionalFilters) {
     }
     if (!additionalFilters["me.status"]) {
         additionalFilters["me.status"] = function () {
-            return { "!=": "cancelled" };
+            return ["new"];
         };
     }
 }

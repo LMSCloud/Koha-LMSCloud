@@ -211,6 +211,13 @@ export function createAdditionalFilters(variant = "default", options = {}) {
                         .val();
                     return library;
                 },
+                "me.status": function () {
+                    return "new";
+                },
+                "me.end_date": function () {
+                    const now = new Date();
+                    return { ">=": now.toISOString() };
+                },
             };
         case "default":
         default:

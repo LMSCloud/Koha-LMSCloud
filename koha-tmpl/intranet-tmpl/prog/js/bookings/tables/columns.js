@@ -452,8 +452,8 @@ export function getBookingTableColumns(
             /** @type {(data:any, type:any, row:any)=>any} */
             render: function (_data, _type, row) {
                 if (!canManageBookings()) return "";
-                const isCancelled = row.status === "cancelled";
-                if (isCancelled) return "";
+                const isReadOnly = ["cancelled", "completed"].includes(row.status);
+                if (isReadOnly) return "";
                 const ext = (row.extended_attributes || [])
                     .filter(
                         (/** @type {{record_id:string|number}} */ a) =>
