@@ -86,3 +86,55 @@
     x-koha-authorization:
       permissions:
         catalogue: 1
+"/authorised_values":
+  get:
+    x-mojo-to: AuthorisedValue#list
+    operationId: searchAuthorisedValues
+    tags:
+      - authorised_values
+    summary: Search authorised values for a given category and/or value
+    produces:
+      - application/json
+    parameters:
+      - name: category
+        in: query
+        description: Search authorised values by category
+        required: false
+        type: string
+      - name: value
+        in: query
+        description: Search authorised values by value
+        required: false
+        type: string
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+    responses:
+      '200':
+        description: A list of authorised values
+        schema:
+          type: array
+          items:
+            $ref: "../swagger.yaml#/definitions/authorised_values"
+      '403':
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      404:
+        description: Ressource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      500:
+        description: |-
+          Internal server error. Possible `error_code` attribute values:
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      '503':
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        parameters_remaining_permissions: '1'

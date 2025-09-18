@@ -20,25 +20,7 @@ use Modern::Perl;
 use Mojo::Base 'Mojolicious::Controller';
 
 use C4::Auth qw( haspermission );
-use Koha::AuthorisedValues;	
-
-# sub list {
-    # my ( $c) = @_;
-
-    # my $user = $c->stash('koha.user');
-    # unless ( $user && haspermission( $user->userid, { catalogue => 1 } ) ) {
-        # return $c->$cb(
-            # {
-                # error => "You don't have the required permission"
-            # },
-            # 403
-        # );
-    # }
-    # my $params       = $c->req->params->to_hash;
-    # my $av = Koha::AuthorisedValues->search($params);
-
-    # return $c->$cb( $av->unblessed, 200 );
-# }
+use Koha::AuthorisedValues;
 
 sub list {
     my $c = shift->openapi->valid_input or return;
