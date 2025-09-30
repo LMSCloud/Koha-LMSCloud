@@ -276,6 +276,7 @@ if ( $showcomp eq 'both' || $showcomp eq 'staff' ) {
 
 # XSLT processing of some stuff
 my $xslt_variables = { show_analytics_link => $show_analytics };
+$xslt_variables->{subscription_count} = scalar(@subs);
 $template->param(
     XSLTDetailsDisplay => '1',
     XSLTBloc => XSLTParse4Display({

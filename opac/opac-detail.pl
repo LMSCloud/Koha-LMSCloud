@@ -641,6 +641,7 @@ for my $plugin_variables ( @plugin_responses ) {
 }
 $variables->{anonymous_session} = $borrowernumber ? 0 : 1;
 $variables->{show_analytics_link} = $show_analytics;
+$variables->{subscription_count} = scalar(@subs);
 $template->param(
     XSLTBloc => XSLTParse4Display({
         biblionumber   => $biblionumber,

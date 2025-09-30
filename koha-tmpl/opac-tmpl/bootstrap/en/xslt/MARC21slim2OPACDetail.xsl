@@ -342,7 +342,8 @@
         </xsl:if>
 
         <!-- Volumes of sets and traced series -->
-        <xsl:if test="$materialTypeCode='ST' or substring($controlField008,22,1)='m' or ($materialTypeCode='SE' and substring($controlField008,22,1)='p')">
+        <xsl:variable name="subscription_count" select="marc:variables/marc:variable[@name='subscription_count']" />
+        <xsl:if test="$materialTypeCode='ST' or substring($controlField008,22,1)='m' or ($materialTypeCode='SE' and substring($controlField008,22,1)='p' and $subscription_count='0')">
         <span class="results_summary volumes"><span class="label">Volumes: </span>
             <a>
             <xsl:choose>

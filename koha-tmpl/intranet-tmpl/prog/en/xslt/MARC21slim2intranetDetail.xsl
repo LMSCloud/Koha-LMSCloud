@@ -243,7 +243,8 @@
         </xsl:if>
 
         <!-- Volumes of sets and traced series -->
-        <xsl:if test="$materialTypeCode='ST' or substring($controlField008,22,1)='m' or ($materialTypeCode='SE' and substring($controlField008,22,1)='p')">
+        <xsl:variable name="subscription_count" select="marc:variables/marc:variable[@name='subscription_count']" />
+        <xsl:if test="$materialTypeCode='ST' or substring($controlField008,22,1)='m' or ($materialTypeCode='SE' and substring($controlField008,22,1)='p' and $subscription_count='0')">
         <span class="results_summary volumes"><span class="label">Volumes: </span>
             <a>
             <xsl:choose>
@@ -254,7 +255,14 @@
                 <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=ti,phr:<xsl:value-of select="str:encode-uri(translate(marc:datafield[@tag=245]/marc:subfield[@code='a'], '/', ''), true())"/></xsl:attribute>
             </xsl:otherwise>
             </xsl:choose>
-            <xsl:text>Show volumes</xsl:text>
+            <xsl:choose>
+                <xsl:when test="$leader7='s' and (substring($controlField008,22,1)='p' or substring($controlField008,22,1)='n')">
+                    <span class="label">Show issues</span>
+                </xsl:when>
+                <xsl:otherwise>
+                    <span class="label">Show volumes</span>
+                </xsl:otherwise>
+            </xsl:choose>
             </a>
         </span>
         </xsl:if>
