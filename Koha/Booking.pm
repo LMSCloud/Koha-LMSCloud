@@ -185,7 +185,9 @@ sub store {
 
             # Check date range constraints based on system preferences
             # This must happen AFTER item assignment so we can determine the itemtype
-            $self->_check_date_range_constraints();
+            if ( $self->_should_validate_date_range() ) {
+                $self->_check_date_range_constraints();
+            }
 
             if ( !$self->in_storage ) {
                 $self->SUPER::store;
@@ -368,6 +370,32 @@ sub to_api {
 }
 
 =head2 Internal methods
+
+=head3 _should_validate_date_range
+
+Determines if date range validation should be performed based on booking status
+
+=cut
+
+sub _should_validate_date_range {
+    my ($self) = @_;
+
+    my $final_stati = [ 'cancelled', 'completed' ];
+
+    if ( $self->in_storage ) {
+        my %updated_columns = $self->_result->get_dirty_columns;
+        my $new_status = $updated_columns{'status'};
+
+        if ( $new_status && any { $_ eq $new_status } @{$final_stati} ) {
+            return 0;
+        }
+        if ( any { $_ eq $self->status } @{$final_stati} ) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
 
 =head3 _check_date_range_constraints
 
