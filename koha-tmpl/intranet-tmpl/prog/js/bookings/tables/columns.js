@@ -399,6 +399,7 @@ export function getBookingTableColumns(
         });
         columns.push({
             data: "end_date",
+            name: "end_date",
             title: __("End date"),
             type: "date",
             searchable: true,
