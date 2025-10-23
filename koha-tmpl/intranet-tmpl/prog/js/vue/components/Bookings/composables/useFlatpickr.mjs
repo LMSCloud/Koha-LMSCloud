@@ -4,6 +4,7 @@ import { isoArrayToDates } from "../lib/booking/date-utils.mjs";
 import { useBookingStore } from "../../../stores/bookingStore.js";
 import {
     applyCalendarHighlighting,
+    clearCalendarHighlighting,
     createOnDayCreate,
     createOnClose,
     createOnChange,
@@ -193,7 +194,17 @@ export function useFlatpickr(elRef, options) {
         watch(
             () => highlightingData.value,
             data => {
-                if (!fp || !data) return;
+                if (!fp) return;
+                if (!data) {
+                    // Clear the cache to prevent onDayCreate from reapplying stale data
+                    const instWithCache =
+                        /** @type {import('../types/bookings').FlatpickrInstanceWithHighlighting} */ (
+                            fp
+                        );
+                    instWithCache._constraintHighlighting = null;
+                    clearCalendarHighlighting(fp);
+                    return;
+                }
                 applyCalendarHighlighting(fp, data);
             }
         );

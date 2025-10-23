@@ -20,7 +20,7 @@
                     <button
                         type="button"
                         class="btn btn-outline-secondary"
-                        :disabled="!hasSelectedDates"
+                        :disabled="!calendarEnabled"
                         :title="
                             $__('Clear selected dates')
                         "
