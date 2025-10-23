@@ -118,7 +118,6 @@ export function getColumnFilterType(
  */
 export function getStandardStatusOptions() {
     return [
-        { _id: BOOKING_TABLE_CONSTANTS.STATUS_VALUES.NEW, _str: __("New") },
         {
             _id: BOOKING_TABLE_CONSTANTS.STATUS_VALUES.PENDING,
             _str: __("Pending"),

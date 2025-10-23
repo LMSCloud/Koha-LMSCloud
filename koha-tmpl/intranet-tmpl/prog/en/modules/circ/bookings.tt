@@ -80,7 +80,6 @@
     }));
 
     const getStatusOptions = [
-        { '_id': 'new', '_str': _('New') },
         { '_id': 'pending', '_str': _('Pending') },
         { '_id': 'active', '_str': _('Active') },
         { '_id': 'expired', '_str': _('Expired') },
