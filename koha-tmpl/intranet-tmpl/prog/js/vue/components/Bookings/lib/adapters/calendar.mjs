@@ -289,7 +289,7 @@ function preventClick(e) {
  *
  * @returns {string}
  */
-function getCurrentLanguageCode() {
+export function getCurrentLanguageCode() {
     const htmlLang = document.documentElement.lang || "en";
     return htmlLang.split("-")[0].toLowerCase();
 }

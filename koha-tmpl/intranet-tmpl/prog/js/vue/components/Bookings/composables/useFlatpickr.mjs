@@ -9,6 +9,7 @@ import {
     createOnChange,
     getVisibleCalendarDates,
     buildMarkerGrid,
+    getCurrentLanguageCode,
 } from "../lib/adapters/calendar.mjs";
 import {
     CLASS_FLATPICKR_DAY,
@@ -91,6 +92,9 @@ export function useFlatpickr(elRef, options) {
                 ? /** @type {string} */ (win("flatpickr_dateformat_string"))
                 : "d.m.Y";
 
+        const langCode = getCurrentLanguageCode();
+        const locale = langCode !== "en" ? flatpickr.l10ns[langCode] : undefined;
+
         /** @type {Partial<import('flatpickr/dist/types/options').Options>} */
         const baseConfig = {
             mode: "range",
@@ -98,6 +102,7 @@ export function useFlatpickr(elRef, options) {
             disable: [() => false],
             clickOpens: true,
             dateFormat,
+            ...(locale && { locale }),
             allowInput: false,
             onChange: createOnChange(store, {
                 setError,
