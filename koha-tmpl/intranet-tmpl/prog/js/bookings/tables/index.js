@@ -200,6 +200,17 @@ export function createBookingsTable(tableElement, tableSettings, /** @type {Crea
         applyDefaultQuickToggleFilters(additionalFilters);
     }
 
+    // Set up default status filter for 'default' variant
+    if (variant === 'default' && columnFiltersFlag === 1) {
+        additionalFilters["-and"] = function() {
+            const nowIso = new Date().toISOString();
+            return { "-and": [
+                { "me.status": "new" },
+                { "me.end_date": { ">=": nowIso } },
+            ]};
+        };
+    }
+
     const kohaTable = initKohaTable(
         $root,
         finalUrl,

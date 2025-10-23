@@ -34,28 +34,35 @@ export function enhanceStatusFilter(dataTable, tableElement, additionalFilters, 
     let statusDropdown = $th.find("select");
     if (statusDropdown.length === 0 || statusDropdown.find("option").length <= 1) {
         if (statusDropdown.length === 0) {
-            $th.html('<select><option value=""></option></select>');
+            $th.html('<select></select>');
             statusDropdown = $th.find("select");
         }
+        statusDropdown.append(`<option value="active-pending">${__("Active")} ${__("and")} ${__("Pending")}</option>`);
         const statusOptions = getStandardStatusOptions();
         statusOptions.forEach(option => {
             if (statusDropdown.find(`option[value="${option._id}"]`).length === 0) {
                 statusDropdown.append(`<option value="${option._id}">${option._str}</option>`);
             }
         });
+        statusDropdown.append(`<option value="all">${__("All")}</option>`);
+        statusDropdown.val("active-pending");
     }
 
     const columnIndex = statusColumnIndex;
     if (!filterManager.selectedSyntheticStatus) {
-        filterManager.selectedSyntheticStatus = "";
+        filterManager.selectedSyntheticStatus = "active-pending";
     }
     if (!filterManager.statusFilterFunction) {
         // Build server-side filter conditions for synthetic statuses
         filterManager.statusFilterFunction = function () {
-            const selectedValue = getSelectValueString(statusDropdown);
-            if (!selectedValue) return;
+            const selectedValue = getSelectValueString(statusDropdown) || filterManager.selectedSyntheticStatus || "active-pending";
             const nowIso = new Date().toISOString();
             switch (selectedValue) {
+                case "active-pending":
+                    return { "-and": [
+                        { "me.status": "new" },
+                        { "me.end_date": { ">=": nowIso } },
+                    ]};
                 case "pending":
                     return { "-and": [
                         { "me.status": "new" },
@@ -78,6 +85,8 @@ export function enhanceStatusFilter(dataTable, tableElement, additionalFilters, 
                     return { "-and": [ { "me.status": "cancelled" } ] };
                 case "completed":
                     return { "-and": [ { "me.status": "completed" } ] };
+                case "all":
+                    return undefined;
                 default:
                     return undefined;
             }
