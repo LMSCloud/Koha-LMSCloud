@@ -36,6 +36,7 @@
  * @property {string=} url
  * @property {string=} biblionumber
  * @property {Array<any>=} order
+ * @property {Array<string>=} columnOrder - Array of column names to specify display order
  * @property {Object<string, any|(()=>any)>=} additionalFilters
  * @property {Object<string, any>=} filterOptions
  * @property {Array<string>=} embed
@@ -144,11 +145,31 @@ export function createBookingsTable(tableElement, tableSettings, /** @type {Crea
     const finalColumnOptions = { ...defaultColumnOptions, ...columnOptions };
 
     // Get columns first to determine filter positions
-    const columns = getBookingTableColumns(
+    let columns = getBookingTableColumns(
         /** @type {any} */ (options).extended_attribute_types,
         /** @type {any} */ (options).authorised_values,
         { ...finalColumnOptions, variant: variant }
     );
+
+    // Reorder columns if columnOrder array is provided
+    if (options.columnOrder && Array.isArray(options.columnOrder)) {
+        /**
+         * @type {any[]}
+         */
+        const orderedColumns = [];
+        const columnMap = new Map(columns.map(col => [col.name, col]));
+
+        options.columnOrder.forEach(name => {
+            if (columnMap.has(name)) {
+                orderedColumns.push(columnMap.get(name));
+                columnMap.delete(name);
+            }
+        });
+
+        // Append remaining columns not specified in order
+        columnMap.forEach(col => orderedColumns.push(col));
+        columns = orderedColumns;
+    }
 
     // Compute whether column filters should be enabled (allow explicit override)
     const columnFiltersFlag =

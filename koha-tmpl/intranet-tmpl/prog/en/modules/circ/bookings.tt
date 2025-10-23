@@ -113,6 +113,7 @@
                     variant: 'default',
                     extended_attribute_types: extended_attribute_types,
                     authorised_values: authorised_values,
+                    columnOrder: ['start_date', 'end_date', 'status', 'home_library_id', 'title', 'itemdata', 'callnumber', 'location', 'itemtype', 'patron', 'pickup_library_id', 'creation_date'],
                     columnOptions: {
                         showActions: true,
                         showCreationDate: true,
