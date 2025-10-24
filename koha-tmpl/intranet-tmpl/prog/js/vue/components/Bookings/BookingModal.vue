@@ -271,11 +271,23 @@ export default {
                 (bookingId.value ? $__("Edit booking") : $__("Place booking"))
         );
 
+        // Determine whether to show pickup location select
+        // In OPAC: show if default library is not enabled
+        // In staff: use the explicit prop
+        const showPickupLocationSelect = computed(() => {
+            if (props.opacDefaultBookingLibraryEnabled !== null) {
+                const enabled = props.opacDefaultBookingLibraryEnabled === true ||
+                    String(props.opacDefaultBookingLibraryEnabled) === "1";
+                return !enabled;
+            }
+            return props.showPickupLocationSelect;
+        });
+
         const stepNumber = computed(() => {
             return calculateStepNumbers(
                 props.showPatronSelect,
                 props.showItemDetailsSelects,
-                props.showPickupLocationSelect,
+                showPickupLocationSelect.value,
                 props.showAdditionalFields,
                 modalState.hasAdditionalFields
             );
@@ -371,7 +383,7 @@ export default {
                 bookingItemtypeId,
                 showPatronSelect: props.showPatronSelect,
                 showItemDetailsSelects: props.showItemDetailsSelects,
-                showPickupLocationSelect: props.showPickupLocationSelect,
+                showPickupLocationSelect: showPickupLocationSelect.value,
                 dateRangeConstraint: props.dateRangeConstraint,
                 setError,
                 clearError,
@@ -740,6 +752,7 @@ export default {
             submitLabel,
             isFormSubmission,
             loading,
+            showPickupLocationSelect,
             // Store refs from storeToRefs
             selectedDateRange,
             bookingId,

@@ -91,12 +91,13 @@ export function useCapacityGuard(options) {
             !loading.value?.bookableItems &&
             !loading.value?.circulationRules;
         const hasItems = (bookableItems.value?.length ?? 0) > 0;
+        const hasRules = (circulationRules.value?.length ?? 0) > 0;
         const validInputs =
             (!showPatronSelect || !!bookingPatron.value) &&
             (!showItemDetailsSelects ||
                 !!bookingItemId.value ||
                 !!bookingItemtypeId.value);
-        return ready && hasItems && validInputs && !hasPositiveCapacity.value;
+        return ready && hasItems && hasRules && validInputs && !hasPositiveCapacity.value;
     });
 
     // Surface a helpful error when no capacity is available once data is ready
@@ -104,11 +105,7 @@ export function useCapacityGuard(options) {
         () => showCapacityWarning.value,
         show => {
             if (show) {
-                setError(
-                    $__ (
-                        "No valid booking period available (circulation rules evaluate to 0)."
-                    )
-                );
+                setError(zeroCapacityMessage.value);
             } else {
                 clearError();
             }
