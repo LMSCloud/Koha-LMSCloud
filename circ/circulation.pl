@@ -465,7 +465,7 @@ if (@$barcodes) {
 
             # If booked (alerts or confirmation) update datedue to end of booking
             if ( my $booked = $question->{BOOKED_EARLY} // $alerts->{BOOKED} ) {
-                $datedue = $booked->end_date->clone->set_hour(23)->set_minute(59);
+                $datedue = dt_from_string( $booked->end_date )->clone->set_hour(23)->set_minute(59);
             }
             my $issue = AddIssue(
                 $patron->unblessed, $barcode, $datedue,
