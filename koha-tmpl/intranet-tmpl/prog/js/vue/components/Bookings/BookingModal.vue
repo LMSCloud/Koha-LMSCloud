@@ -543,7 +543,6 @@ export default {
                 item: bookingItemId.value,
                 d0: selectedDateRange.value?.[0],
                 d1: selectedDateRange.value?.[1],
-                rulesLoading: loading.value.circulationRules,
             }),
             (curr, prev) => {
                 const inputsChanged =
@@ -555,10 +554,6 @@ export default {
                     curr.d0 !== prev.d0 ||
                     curr.d1 !== prev.d1;
                 if (inputsChanged) clearErrors();
-
-                if (prev?.rulesLoading && !curr.rulesLoading) {
-                    clearErrors();
-                }
             }
         );
 
