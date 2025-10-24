@@ -1,5 +1,6 @@
 [% USE raw %]
 [% USE Biblio %]
+[% PROCESS 'i18n.inc' %]
 <ul id="action">
     [% UNLESS ( norequests ) %]
         [% IF Koha.Preference( 'opacuserlogin' ) == 1 %]
