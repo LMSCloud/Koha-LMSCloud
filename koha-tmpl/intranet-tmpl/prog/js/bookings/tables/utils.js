@@ -166,7 +166,7 @@ export function buildDateRangeInput($th, inputId) {
     const html =
         '<input type="text" id="' +
         inputId +
-        '" placeholder="Select date range" />';
+        '" placeholder="' + __("Select date range") + '" />';
     $th.html(html);
     return $("#" + inputId);
 }
