@@ -580,10 +580,18 @@ export default {
                 () => bookingPatron.value,
                 () => pickupLibraryId.value,
                 () => bookingItemtypeId.value,
+                dataReady,
             ],
-            ([availableItems, patron, pickupLibrary, itemtypeId]) => {
-                // Only show error if user has made selections that result in no items
+            ([availableItems, patron, pickupLibrary, itemtypeId, isDataReady]) => {
+                // Only show error if data is loaded and user has made selections that result in no items
+                // Wait for pickup locations and circulation rules to finish loading to avoid false positives
+                const pickupLocationsReady = !pickupLibrary || (!loading.value.pickupLocations && pickupLocations.value.length > 0);
+                const circulationRulesReady = !loading.value.circulationRules;
+
                 if (
+                    isDataReady &&
+                    pickupLocationsReady &&
+                    circulationRulesReady &&
                     patron &&
                     (pickupLibrary || itemtypeId) &&
                     availableItems.length === 0
