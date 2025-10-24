@@ -78,28 +78,16 @@
     [% INCLUDE 'datatables.inc' %]
 
     <script>
-        /* Hide expired, cancelled, and completed bookings by default */
-        $.fn.dataTable.ext.search.push(
-            function(settings, searchData, index, rowData, counter) {
-                if (settings.nTable.id !== 'opac-user-bookings-table') {
-                    return true;
-                }
-                var row = $(settings.aoData[index].nTr);
-                var statusCell = searchData[5];
-                /* Show Active and Pending bookings by default */
-                return statusCell.includes('Active') || statusCell.includes('Pending');
-            }
-        );
-
         $(document).ready(() => {
             const dataTable = $("#opac-user-bookings-table");
             const thIndex = $(dataTable).find("th.psort").index();
-            $(dataTable)
+
+            const table = $(dataTable)
                 .dataTable($.extend(true, {}, dataTablesDefaults, {
                     "sorting": [
                         [thIndex, 'asc']
                     ],
-                    "dom": '<"top"<"table_entries"><"table_controls"fB>>t',
+                    "dom": '<"top"<"table_entries"><"table_controls"fB<"status_filter_container">>>t',
                     "columnDefs": [{
                             "targets": ["nosort"],
                             "sortable": false,
@@ -147,7 +135,33 @@
                                 columns: ":not(.noExport)"
                             }
                         }
-                    ]
+                    ],
+                    "initComplete": function(settings, json) {
+                        const api = this.api();
+
+                        /* Add status filter dropdown to controls area */
+                        const statusSelect = $('<select id="status_filter" class="form-control" style="width: auto; display: inline-block; margin-left: 10px;">' +
+                            '<option value="active" selected>' + _("Active and pending") + '</option>' +
+                            '<option value="">' + _("All bookings") + '</option>' +
+                            '<option value="cancelled">' + _("Cancelled") + '</option>' +
+                            '<option value="completed">' + _("Completed") + '</option>' +
+                            '</select>');
+
+                        $('.status_filter_container').append(statusSelect);
+
+                        /* Apply filter on change */
+                        statusSelect.on('change', function() {
+                            const val = $(this).val();
+                            api.column(5).search(
+                                val === 'active' ? 'Active|Pending' : val,
+                                val === 'active',
+                                false
+                            ).draw();
+                        });
+
+                        /* Apply default filter */
+                        api.column(5).search('Active|Pending', true, false).draw();
+                    }
                 }));
 
             // Initialize combobox for cancellation reason
