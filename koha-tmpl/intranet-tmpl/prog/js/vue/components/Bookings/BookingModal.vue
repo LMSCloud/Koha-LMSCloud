@@ -381,6 +381,7 @@ export default {
                 bookingPatron,
                 bookingItemId,
                 bookingItemtypeId,
+                pickupLibraryId,
                 showPatronSelect: props.showPatronSelect,
                 showItemDetailsSelects: props.showItemDetailsSelects,
                 showPickupLocationSelect: showPickupLocationSelect.value,

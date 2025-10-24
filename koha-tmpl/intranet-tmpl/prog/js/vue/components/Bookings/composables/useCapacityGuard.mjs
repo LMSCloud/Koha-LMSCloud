@@ -13,6 +13,7 @@ import { $__ } from "../../../i18n/index.js";
  * @param {import('vue').Ref<import('../types/bookings').PatronLike|null>} options.bookingPatron
  * @param {import('vue').Ref<string|number|null>} options.bookingItemId
  * @param {import('vue').Ref<string|number|null>} options.bookingItemtypeId
+ * @param {import('vue').Ref<string|null>} options.pickupLibraryId
  * @param {boolean} options.showPatronSelect
  * @param {boolean} options.showItemDetailsSelects
  * @param {boolean} options.showPickupLocationSelect
@@ -28,6 +29,7 @@ export function useCapacityGuard(options) {
         bookingPatron,
         bookingItemId,
         bookingItemtypeId,
+        pickupLibraryId,
         showPatronSelect,
         showItemDetailsSelects,
         showPickupLocationSelect,
@@ -59,26 +61,68 @@ export function useCapacityGuard(options) {
         return issuelength > 0 || withRenewals > 0;
     });
 
-    // Tailored suggestion text depending on which inputs are available
+    // Tailored error message based on rule values and available inputs
     const zeroCapacityMessage = computed(() => {
+        const rules = circulationRules.value?.[0] || {};
+        const issuelength = rules.issuelength;
+        const hasExplicitZero = issuelength === "0" || issuelength === 0;
+        const hasNull = issuelength === null || issuelength === undefined;
+
+        // If rule explicitly set to zero, it's a circulation policy issue
+        if (hasExplicitZero) {
+            if (showPatronSelect && showItemDetailsSelects && showPickupLocationSelect) {
+                return $__(
+                    "Bookings are not permitted for this combination of patron category, item type, and pickup location. The circulation rules set the booking period to zero days."
+                );
+            }
+            if (showItemDetailsSelects && showPickupLocationSelect) {
+                return $__(
+                    "Bookings are not permitted for this item type at the selected pickup location. The circulation rules set the booking period to zero days."
+                );
+            }
+            if (showItemDetailsSelects) {
+                return $__(
+                    "Bookings are not permitted for this item type. The circulation rules set the booking period to zero days."
+                );
+            }
+            return $__(
+                "Bookings are not permitted for this item. The circulation rules set the booking period to zero days."
+            );
+        }
+
+        // If null, no specific rule exists - suggest trying different options
+        if (hasNull) {
+            const suggestions = [];
+            if (showItemDetailsSelects) suggestions.push($__("item type"));
+            if (showPickupLocationSelect) suggestions.push($__("pickup location"));
+            if (showPatronSelect) suggestions.push($__("patron"));
+
+            if (suggestions.length > 0) {
+                const suggestionText = suggestions.join($__(" or "));
+                return $__(
+                    "No circulation rule is defined for this combination. Try a different %s."
+                ).replace("%s", suggestionText);
+            }
+        }
+
+        // Fallback for other edge cases
         const both = showItemDetailsSelects && showPickupLocationSelect;
         if (both) {
-            return $__ (
+            return $__(
                 "No valid booking period is available with the current selection. Try a different item type or pickup location."
             );
         }
         if (showItemDetailsSelects) {
-            return $__ (
+            return $__(
                 "No valid booking period is available with the current selection. Try a different item type."
             );
         }
         if (showPickupLocationSelect) {
-            return $__ (
+            return $__(
                 "No valid booking period is available with the current selection. Try a different pickup location."
             );
         }
-        // Inputs hidden (e.g., OPAC) — provide generic guidance
-        return $__ (
+        return $__(
             "No valid booking period is available for this record with your current settings. Please try again later or contact your library."
         );
     });
@@ -92,12 +136,16 @@ export function useCapacityGuard(options) {
             !loading.value?.circulationRules;
         const hasItems = (bookableItems.value?.length ?? 0) > 0;
         const hasRules = (circulationRules.value?.length ?? 0) > 0;
-        const validInputs =
+
+        // Only show warning when we have complete context for circulation rules.
+        // Partial context (e.g., just item_type without patron or library) can
+        // return null/zero values that are false positives.
+        const hasCompleteContext =
             (!showPatronSelect || !!bookingPatron.value) &&
-            (!showItemDetailsSelects ||
-                !!bookingItemId.value ||
-                !!bookingItemtypeId.value);
-        return ready && hasItems && hasRules && validInputs && !hasPositiveCapacity.value;
+            (!showItemDetailsSelects || !!bookingItemId.value || !!bookingItemtypeId.value) &&
+            (!showPickupLocationSelect || !!pickupLibraryId.value);
+
+        return ready && hasItems && hasRules && hasCompleteContext && !hasPositiveCapacity.value;
     });
 
     // Surface a helpful error when no capacity is available once data is ready
