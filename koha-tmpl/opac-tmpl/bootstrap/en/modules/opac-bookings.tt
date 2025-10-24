@@ -82,6 +82,29 @@
             const dataTable = $("#opac-user-bookings-table");
             const thIndex = $(dataTable).find("th.psort").index();
 
+            /* Custom search function for status column using data attribute */
+            $.fn.dataTable.ext.search.push(
+                function(settings, searchData, index, rowData, counter) {
+                    if (settings.nTable.id !== 'opac-user-bookings-table') {
+                        return true;
+                    }
+
+                    const filterValue = $('#status_filter').val() || 'active';
+                    if (filterValue === 'all') {
+                        return true; /* Show all */
+                    }
+
+                    const row = settings.aoData[index].nTr;
+                    const statusCell = $(row).find('td.status');
+                    const dataStatus = statusCell.attr('data-status');
+
+                    if (filterValue === 'active') {
+                        return dataStatus === 'new';
+                    }
+                    return dataStatus === filterValue;
+                }
+            );
+
             const table = $(dataTable)
                 .dataTable($.extend(true, {}, dataTablesDefaults, {
                     "sorting": [
@@ -142,7 +165,7 @@
                         /* Add status filter dropdown to controls area */
                         const statusSelect = $('<select id="status_filter" class="form-control" style="width: auto; display: inline-block; margin-left: 10px;">' +
                             '<option value="active" selected>' + _("Active and pending") + '</option>' +
-                            '<option value="">' + _("All bookings") + '</option>' +
+                            '<option value="all">' + _("All bookings") + '</option>' +
                             '<option value="cancelled">' + _("Cancelled") + '</option>' +
                             '<option value="completed">' + _("Completed") + '</option>' +
                             '</select>');
@@ -151,16 +174,11 @@
 
                         /* Apply filter on change */
                         statusSelect.on('change', function() {
-                            const val = $(this).val();
-                            api.column(5).search(
-                                val === 'active' ? 'Active|Pending' : val,
-                                val === 'active',
-                                false
-                            ).draw();
+                            api.draw();
                         });
 
                         /* Apply default filter */
-                        api.column(5).search('Active|Pending', true, false).draw();
+                        api.draw();
                     }
                 }));
 

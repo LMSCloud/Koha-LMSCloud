@@ -47,7 +47,7 @@
                 <td class="end-date">
                     [% BOOKING.end_date | $KohaDates %]
                 </td>
-                <td class="status">
+                <td class="status" data-status="[% BOOKING.status | html %]">
                     [% IF BOOKING.status == 'new' %]
                         <span class="badge badge-primary">Active</span>
                     [% ELSIF BOOKING.status == 'cancelled' %]
