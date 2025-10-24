@@ -78,6 +78,19 @@
     [% INCLUDE 'datatables.inc' %]
 
     <script>
+        /* Hide expired, cancelled, and completed bookings by default */
+        $.fn.dataTable.ext.search.push(
+            function(settings, searchData, index, rowData, counter) {
+                if (settings.nTable.id !== 'opac-user-bookings-table') {
+                    return true;
+                }
+                var row = $(settings.aoData[index].nTr);
+                var statusCell = searchData[5];
+                /* Show Active and Pending bookings by default */
+                return statusCell.includes('Active') || statusCell.includes('Pending');
+            }
+        );
+
         $(document).ready(() => {
             const dataTable = $("#opac-user-bookings-table");
             const thIndex = $(dataTable).find("th.psort").index();
