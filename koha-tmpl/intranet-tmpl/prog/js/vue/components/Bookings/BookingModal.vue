@@ -16,7 +16,7 @@
                     </h5>
                     <button
                         type="button"
-                        class="close booking-modal-close"
+                        class="booking-modal-close"
                         aria-label="Close"
                         @click="handleClose"
                     >
@@ -951,6 +951,13 @@ export default {
     color: var(--booking-neutral-500);
     opacity: 0.5;
     transition: opacity var(--booking-transition-fast);
+    padding: 0;
+    margin: 0;
+    width: var(--booking-space-2xl);
+    height: var(--booking-space-2xl);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .booking-modal-close:hover {
