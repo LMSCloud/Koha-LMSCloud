@@ -371,7 +371,7 @@ export default {
             maxBookingPeriod: maxBookingPeriod.value,
         }));
 
-        // Centralized capacity guard (extracts UI and error handling)
+        // Centralized capacity guard (extracts UI warning state)
         const { hasPositiveCapacity, zeroCapacityMessage, showCapacityWarning } =
             useCapacityGuard({
                 circulationRules,
@@ -385,8 +385,6 @@ export default {
                 showItemDetailsSelects: props.showItemDetailsSelects,
                 showPickupLocationSelect: showPickupLocationSelect.value,
                 dateRangeConstraint: props.dateRangeConstraint,
-                setError,
-                clearError,
             });
 
         // Readiness flags

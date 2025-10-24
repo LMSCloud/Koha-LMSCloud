@@ -1,10 +1,10 @@
-import { computed, watch } from "vue";
+import { computed } from "vue";
 import { $__ } from "../../../i18n/index.js";
 
 /**
  * Centralized capacity guard for booking period availability.
  * Determines whether circulation rules yield a positive booking period,
- * derives a context-aware message, and can drive a global warning + error state.
+ * derives a context-aware message, and drives a global warning state.
  *
  * @param {Object} options
  * @param {import('vue').Ref<Array<import('../types/bookings').CirculationRule>>} options.circulationRules
@@ -18,8 +18,6 @@ import { $__ } from "../../../i18n/index.js";
  * @param {boolean} options.showItemDetailsSelects
  * @param {boolean} options.showPickupLocationSelect
  * @param {string|null} options.dateRangeConstraint
- * @param {(msg: string) => void} options.setError
- * @param {() => void} options.clearError
  */
 export function useCapacityGuard(options) {
     const {
@@ -34,8 +32,6 @@ export function useCapacityGuard(options) {
         showItemDetailsSelects,
         showPickupLocationSelect,
         dateRangeConstraint,
-        setError,
-        clearError,
     } = options;
 
     const hasPositiveCapacity = computed(() => {
@@ -147,20 +143,6 @@ export function useCapacityGuard(options) {
 
         return ready && hasItems && hasRules && hasCompleteContext && !hasPositiveCapacity.value;
     });
-
-    // Surface a helpful error when no capacity is available once data is ready
-    // Use flush: 'post' to wait until DOM updates, reducing false positive flashes
-    watch(
-        () => showCapacityWarning.value,
-        show => {
-            if (show) {
-                setError(zeroCapacityMessage.value);
-            } else {
-                clearError();
-            }
-        },
-        { flush: 'post' }
-    );
 
     return { hasPositiveCapacity, zeroCapacityMessage, showCapacityWarning };
 }
