@@ -576,6 +576,8 @@ export default {
                 () => pickupLibraryId.value,
                 () => bookingItemtypeId.value,
                 dataReady,
+                () => loading.value.circulationRules,
+                () => loading.value.pickupLocations,
             ],
             ([availableItems, patron, pickupLibrary, itemtypeId, isDataReady]) => {
                 // Only show error if data is loaded and user has made selections that result in no items
