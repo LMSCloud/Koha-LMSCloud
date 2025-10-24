@@ -149,6 +149,7 @@ export function useCapacityGuard(options) {
     });
 
     // Surface a helpful error when no capacity is available once data is ready
+    // Use flush: 'post' to wait until DOM updates, reducing false positive flashes
     watch(
         () => showCapacityWarning.value,
         show => {
@@ -157,7 +158,8 @@ export function useCapacityGuard(options) {
             } else {
                 clearError();
             }
-        }
+        },
+        { flush: 'post' }
     );
 
     return { hasPositiveCapacity, zeroCapacityMessage, showCapacityWarning };
