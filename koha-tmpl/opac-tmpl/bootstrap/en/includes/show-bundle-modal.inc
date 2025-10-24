@@ -21,7 +21,9 @@
         '  <div class="modal-dialog modal-lg" role="document">' +
         '    <div class="modal-content">' +
         '      <div class="modal-header">' +
-        '        <h3>Media bundle</h3>' +
+        '        <h3>' +
+                    _("Media bundle") + 
+                '</h3>' +
         '        <button type="button" class="bundleItemlistModal_close closebtn" data-dismiss="modal" aria-hidden="true">&times;</button>' +
         '      </div>' +
         '      <div class="modal-body">' +
