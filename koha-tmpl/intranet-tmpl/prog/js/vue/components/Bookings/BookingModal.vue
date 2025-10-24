@@ -164,7 +164,6 @@ import {
 import { useBookingStore } from "../../stores/bookingStore";
 import { storeToRefs } from "pinia";
 import { updateExternalDependents } from "./lib/adapters/external-dependents.mjs";
-import { preloadFlatpickrLocale } from "./lib/adapters/calendar.mjs";
 import { enableBodyScroll, disableBodyScroll } from "./lib/adapters/modal-scroll.mjs";
 import { appendHiddenInputs } from "./lib/adapters/form.mjs";
 import { calculateStepNumbers } from "./lib/ui/steps.mjs";
@@ -457,8 +456,6 @@ export default {
             async open => {
                 if (open) {
                     disableBodyScroll();
-                    // Preload the appropriate flatpickr locale
-                    await preloadFlatpickrLocale();
                 } else {
                     enableBodyScroll();
                     return;
