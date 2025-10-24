@@ -1471,10 +1471,10 @@
             var dTables = $("#checkoutst,#holdst,#overduest,#opac-user-relative-issues-table,#divibibcheckoutst,#opac-user-bookings-table");
             dTables.each(function(){
                 var thIndex = $(this).find("th.psort").index();
-                $(this).on("init.dt", function() {
-                        tableInit( $(this).attr("id") );
-                    })
-                    .dataTable($.extend(true, {}, dataTablesDefaults, {
+                var tableId = $(this).attr("id");
+                var isBookingsTable = tableId === "opac-user-bookings-table";
+
+                var config = {
                     "sorting" : [[ thIndex, 'asc' ]],
                     "dom": '<"top"<"table_entries"><"table_controls"fB>>t',
                     "columnDefs": [
@@ -1517,7 +1517,34 @@
                             }
                         }
                     ]
-                }));
+                };
+
+                if (isBookingsTable) {
+                    config.dom = '<"top"<"table_entries"><"table_controls"fB>>t<"bottom"ip>';
+                    config.paging = true;
+                    config.pageLength = 20;
+                    config.drawCallback = function() {
+                        /* Apply Bootstrap pagination classes */
+                        $(this).closest('.dataTables_wrapper').find('.dataTables_paginate').addClass('pagination');
+                        $('.paginate_button').each(function() {
+                            $(this).addClass('page-link');
+                            if (!$(this).parent().hasClass('page-item')) {
+                                $(this).wrap('<li class="page-item"></li>');
+                            }
+                            if ($(this).hasClass('current')) {
+                                $(this).parent().addClass('active');
+                            }
+                            if ($(this).hasClass('disabled')) {
+                                $(this).parent().addClass('disabled');
+                            }
+                        });
+                    };
+                }
+
+                $(this).on("init.dt", function() {
+                        tableInit( $(this).attr("id") );
+                    })
+                    .dataTable($.extend(true, {}, dataTablesDefaults, config));
             });
 
             var dataTables = $("#recalls-table,#article-requests-table");

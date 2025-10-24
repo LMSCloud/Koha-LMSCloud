@@ -110,7 +110,9 @@
                     "sorting": [
                         [thIndex, 'asc']
                     ],
-                    "dom": '<"top"<"table_entries"><"table_controls"fB<"status_filter_container">>>t',
+                    "dom": '<"top"<"table_entries"><"table_controls"fB<"status_filter_container">>>t<"bottom"ip>',
+                    "paging": true,
+                    "pageLength": 20,
                     "columnDefs": [{
                             "targets": ["nosort"],
                             "sortable": false,
@@ -179,6 +181,22 @@
 
                         /* Apply default filter */
                         api.draw();
+                    },
+                    "drawCallback": function() {
+                        /* Apply Bootstrap pagination classes */
+                        $(this).closest('.dataTables_wrapper').find('.dataTables_paginate').addClass('pagination');
+                        $('.paginate_button').each(function() {
+                            $(this).addClass('page-link');
+                            if (!$(this).parent().hasClass('page-item')) {
+                                $(this).wrap('<li class="page-item"></li>');
+                            }
+                            if ($(this).hasClass('current')) {
+                                $(this).parent().addClass('active');
+                            }
+                            if ($(this).hasClass('disabled')) {
+                                $(this).parent().addClass('disabled');
+                            }
+                        });
                     }
                 }));
 

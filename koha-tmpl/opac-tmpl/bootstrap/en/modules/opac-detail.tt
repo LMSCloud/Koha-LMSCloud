@@ -1992,16 +1992,34 @@
             var booking_column_settings = [% TablesSettings.GetColumns( 'opac', 'biblio-detail', 'bookingst', 'json' ) | $raw %];
 
             KohaTable("#bookingst", {
-                dom: '<"clearfix">t',
+                dom: '<"clearfix">t<"bottom"ip>',
                 sorting: [[3, "asc"], [4, "asc"]], // Sorted by start_date
                 autoWidth: false,
                 bKohaColumnsUseNames: true,
+                paging: true,
+                pageLength: 20,
                 responsive: {
                     details: { type: "column", target: -1 },
                 },
                 columnDefs: [
                     { className: "dtr-control", orderable: false, targets: -1 },
                 ],
+                drawCallback: function() {
+                    /* Apply Bootstrap pagination classes */
+                    $(this).closest('.dataTables_wrapper').find('.dataTables_paginate').addClass('pagination');
+                    $('.paginate_button').each(function() {
+                        $(this).addClass('page-link');
+                        if (!$(this).parent().hasClass('page-item')) {
+                            $(this).wrap('<li class="page-item"></li>');
+                        }
+                        if ($(this).hasClass('current')) {
+                            $(this).parent().addClass('active');
+                        }
+                        if ($(this).hasClass('disabled')) {
+                            $(this).parent().addClass('disabled');
+                        }
+                    });
+                }
             }, booking_column_settings);
 
             var dTables = $("#holdingst,#subscriptionst,#otherholdingst,#bookingst");

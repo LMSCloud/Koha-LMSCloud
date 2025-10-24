@@ -3439,3 +3439,28 @@ a.external-offer-link::after {
     content: " \f08e";
     font-size: xx-small;
 }
+
+.dataTables_wrapper {
+    .bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 15px;
+        padding: 10px 0;
+    }
+
+    .dataTables_info {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .dataTables_paginate.pagination {
+        margin: 0;
+        display: flex;
+        list-style: none;
+
+        .page-item {
+            display: inline-block;
+        }
+    }
+}
