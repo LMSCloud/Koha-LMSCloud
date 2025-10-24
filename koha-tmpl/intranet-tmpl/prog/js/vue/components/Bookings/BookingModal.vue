@@ -246,6 +246,7 @@ export default {
             pickupLocations,
             itemTypes,
             circulationRules,
+            circulationRulesContext,
             loading,
         } = storeToRefs(store);
 
@@ -375,6 +376,7 @@ export default {
         const { hasPositiveCapacity, zeroCapacityMessage, showCapacityWarning } =
             useCapacityGuard({
                 circulationRules,
+                circulationRulesContext,
                 loading,
                 bookableItems,
                 bookingPatron,

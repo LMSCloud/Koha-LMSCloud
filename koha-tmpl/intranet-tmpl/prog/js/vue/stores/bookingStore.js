@@ -51,6 +51,7 @@ export const useBookingStore = defineStore("bookingStore", {
         pickupLocations: [],
         itemTypes: [],
         circulationRules: [],
+        circulationRulesContext: null, // Track the context used for the last rules fetch
         unavailableByDate: {},
 
         // Current booking state - normalized property names
@@ -184,6 +185,12 @@ export const useBookingStore = defineStore("bookingStore", {
             }
             const data = await bookingApi.fetchCirculationRules(filteredParams);
             this.circulationRules = data;
+            // Store the context we requested so we know what specificity we have
+            this.circulationRulesContext = {
+                patron_category_id: filteredParams.patron_category_id ?? null,
+                item_type_id: filteredParams.item_type_id ?? null,
+                library_id: filteredParams.library_id ?? null,
+            };
             return data;
         }, "circulationRules"),
         /**

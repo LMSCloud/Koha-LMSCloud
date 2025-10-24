@@ -8,6 +8,7 @@ import { $__ } from "../../../i18n/index.js";
  *
  * @param {Object} options
  * @param {import('vue').Ref<Array<import('../types/bookings').CirculationRule>>} options.circulationRules
+ * @param {import('vue').Ref<{patron_category_id: string|null, item_type_id: string|null, library_id: string|null}|null>} options.circulationRulesContext
  * @param {import('vue').Ref<{ bookings: boolean; checkouts: boolean; bookableItems: boolean; circulationRules: boolean }>} options.loading
  * @param {import('vue').Ref<Array<import('../types/bookings').BookableItem>>} options.bookableItems
  * @param {import('vue').Ref<import('../types/bookings').PatronLike|null>} options.bookingPatron
@@ -22,6 +23,7 @@ import { $__ } from "../../../i18n/index.js";
 export function useCapacityGuard(options) {
     const {
         circulationRules,
+        circulationRulesContext,
         loading,
         bookableItems,
         bookingPatron,
@@ -125,23 +127,28 @@ export function useCapacityGuard(options) {
 
     // Compute when to show the global capacity banner
     const showCapacityWarning = computed(() => {
-        const ready =
+        const dataReady =
             !loading.value?.bookings &&
             !loading.value?.checkouts &&
-            !loading.value?.bookableItems &&
-            !loading.value?.circulationRules;
+            !loading.value?.bookableItems;
         const hasItems = (bookableItems.value?.length ?? 0) > 0;
         const hasRules = (circulationRules.value?.length ?? 0) > 0;
 
         // Only show warning when we have complete context for circulation rules.
-        // Partial context (e.g., just item_type without patron or library) can
-        // return null/zero values that are false positives.
+        // Use the stored context from the last API request rather than inferring from UI state.
+        // Complete context means all three components were provided: patron_category, item_type, library.
+        const context = circulationRulesContext.value;
         const hasCompleteContext =
-            (!showPatronSelect || !!bookingPatron.value) &&
-            (!showItemDetailsSelects || !!bookingItemId.value || !!bookingItemtypeId.value) &&
-            (!showPickupLocationSelect || !!pickupLibraryId.value);
+            context &&
+            context.patron_category_id != null &&
+            context.item_type_id != null &&
+            context.library_id != null;
 
-        return ready && hasItems && hasRules && hasCompleteContext && !hasPositiveCapacity.value;
+        // Only show warning after we have the most specific circulation rule (not while loading)
+        // and all required context is present
+        const rulesReady = !loading.value?.circulationRules;
+
+        return dataReady && rulesReady && hasItems && hasRules && hasCompleteContext && !hasPositiveCapacity.value;
     });
 
     return { hasPositiveCapacity, zeroCapacityMessage, showCapacityWarning };
