@@ -63,7 +63,7 @@ export function useCapacityGuard(options) {
     const zeroCapacityMessage = computed(() => {
         const rules = circulationRules.value?.[0] || {};
         const issuelength = rules.issuelength;
-        const hasExplicitZero = issuelength === "0" || issuelength === 0;
+        const hasExplicitZero = issuelength != null && Number(issuelength) === 0;
         const hasNull = issuelength === null || issuelength === undefined;
 
         // If rule explicitly set to zero, it's a circulation policy issue
