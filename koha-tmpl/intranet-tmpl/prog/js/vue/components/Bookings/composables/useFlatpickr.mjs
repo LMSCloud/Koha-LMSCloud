@@ -94,7 +94,13 @@ export function useFlatpickr(elRef, options) {
                 : "d.m.Y";
 
         const langCode = getCurrentLanguageCode();
-        const locale = langCode !== "en" ? flatpickr.l10ns[langCode] : undefined;
+        // TEMPORARY FIX: Locale files register to window.flatpickr.l10ns but we import
+        // flatpickr as an ES module. In OPAC these are different instances, so check
+        // window.flatpickr first. This should be fixed by ensuring consistent flatpickr
+        // instance across the application (either all global or all module-based).
+        const locale = langCode !== "en"
+            ? (window.flatpickr?.l10ns?.[langCode] || flatpickr.l10ns[langCode])
+            : undefined;
 
         /** @type {Partial<import('flatpickr/dist/types/options').Options>} */
         const baseConfig = {
