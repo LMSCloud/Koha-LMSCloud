@@ -39,9 +39,9 @@
         // Process checkouts
         const checkoutItems = checkouts.map(checkout => {
             const patronContent = `${__("Checked out to")}: ${loggedInUser == checkout.patron_id ? __("You") : __("Another patron")}`;
-            
+
             return {
-                id: `checkout-${checkout.checkout_id}`,
+                id: `checkout-${checkout.item_id}-${checkout.checkout_date}`,
                 content: `<span class="checkout-label font-weight-bold">${patronContent}</span>`,
                 start: dayjs(checkout.checkout_date).toDate(),
                 end: checkout.due_date ? dayjs(checkout.due_date).toDate() : dayjs().add(1, 'year').toDate(),
