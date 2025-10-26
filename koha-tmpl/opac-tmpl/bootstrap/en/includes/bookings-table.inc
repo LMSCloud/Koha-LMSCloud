@@ -41,13 +41,13 @@
                         [% PROCESS 'modals/booking.inc' action = 'change-pickup-location' %]
                     [% END %]
                 </td>
-                <td class="start-date">
+                <td class="start-date"[% IF BOOKING.start_date %] data-start-date="[% BOOKING.start_date | html %]"[% END %]>
                     [% BOOKING.start_date | $KohaDates %]
                 </td>
-                <td class="end-date">
+                <td class="end-date"[% IF BOOKING.end_date %] data-end-date="[% BOOKING.end_date | html %]"[% END %]>
                     [% BOOKING.end_date | $KohaDates %]
                 </td>
-                <td class="status" data-status="[% BOOKING.status | html %]">
+                <td class="status" data-status="[% BOOKING.status | html %]" data-raw-status="[% BOOKING.status | html %]">
                     [% IF BOOKING.status == 'new' %]
                         <span class="badge badge-primary">Active</span>
                     [% ELSIF BOOKING.status == 'cancelled' %]

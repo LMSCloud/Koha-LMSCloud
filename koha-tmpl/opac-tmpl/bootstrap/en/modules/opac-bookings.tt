@@ -82,7 +82,121 @@
             const dataTable = $("#opac-user-bookings-table");
             const thIndex = $(dataTable).find("th.psort").index();
 
-            /* Custom search function for status column using data attribute */
+            const parseDateAttribute = value => {
+                if (!value) {
+                    return null;
+                }
+
+                const trimmed = value.trim();
+                const normalized = trimmed.includes('T') ? trimmed : trimmed.replace(' ', 'T');
+                const parsed = new Date(normalized);
+
+                if (!isNaN(parsed.getTime())) {
+                    return parsed;
+                }
+
+                const fallback = new Date(trimmed.split(' ')[0]);
+                return isNaN(fallback.getTime()) ? null : fallback;
+            };
+
+            const normalizeToDateOnly = value => {
+                if (!value) {
+                    return null;
+                }
+
+                const dateObject = value instanceof Date ? value : parseDateAttribute(value);
+                if (!dateObject || isNaN(dateObject.getTime())) {
+                    return null;
+                }
+
+                return new Date(
+                    dateObject.getFullYear(),
+                    dateObject.getMonth(),
+                    dateObject.getDate()
+                );
+            };
+
+            const statusLabelMap = {
+                active: _("Active"),
+                pending: _("Pending"),
+                expired: _("Expired"),
+                new: _("New")
+            };
+
+            const statusBadgeClassMap = {
+                active: 'badge-primary',
+                pending: 'badge-warning',
+                expired: 'badge-secondary',
+                new: 'badge-info'
+            };
+
+            const deriveStatus = (rawStatus, startAttr, endAttr) => {
+                if (!rawStatus) {
+                    return 'unknown';
+                }
+
+                if (rawStatus !== 'new') {
+                    return rawStatus;
+                }
+
+                const today = normalizeToDateOnly(new Date());
+                const startDate = normalizeToDateOnly(startAttr);
+                const endDate = normalizeToDateOnly(endAttr);
+
+                if (endDate && today && endDate < today) {
+                    return 'expired';
+                }
+
+                if (startDate && today && startDate > today) {
+                    return 'pending';
+                }
+
+                if (startDate && today) {
+                    if (!endDate || endDate >= today) {
+                        return 'active';
+                    }
+                }
+
+                if (!startDate && endDate && today) {
+                    return endDate < today ? 'expired' : 'active';
+                }
+
+                return 'new';
+            };
+
+            const updateRowStatus = $row => {
+                const statusCell = $row.find('td.status');
+                if (!statusCell.length) {
+                    return 'unknown';
+                }
+
+                const rawStatus = statusCell.attr('data-raw-status') || statusCell.attr('data-status') || '';
+                if (rawStatus !== 'new') {
+                    statusCell.attr('data-status', rawStatus || 'unknown');
+                    return rawStatus || 'unknown';
+                }
+
+                const startAttr = $row.find('td.start-date').attr('data-start-date');
+                const endAttr = $row.find('td.end-date').attr('data-end-date');
+                const derivedStatus = deriveStatus(rawStatus, startAttr, endAttr);
+
+                statusCell.attr('data-status', derivedStatus);
+
+                const badge = statusCell.find('.badge').first();
+                if (badge.length) {
+                    const label = statusLabelMap[derivedStatus] || statusLabelMap.new;
+                    const badgeClass = statusBadgeClassMap[derivedStatus] || statusBadgeClassMap.new;
+
+                    badge
+                        .removeClass('badge-primary badge-secondary badge-success badge-info badge-warning badge-danger')
+                        .addClass(badgeClass)
+                        .text(label);
+                }
+
+                return derivedStatus;
+            };
+
+            /* Custom search function for status column using data attributes */
             $.fn.dataTable.ext.search.push(
                 function(settings, searchData, index, rowData, counter) {
                     if (settings.nTable.id !== 'opac-user-bookings-table') {
@@ -95,13 +209,12 @@
                     }
 
                     const row = settings.aoData[index].nTr;
-                    const statusCell = $(row).find('td.status');
-                    const dataStatus = statusCell.attr('data-status');
-
+                    const $row = $(row);
+                    const derivedStatus = updateRowStatus($row);
                     if (filterValue === 'active') {
-                        return dataStatus === 'new';
+                        return derivedStatus === 'active' || derivedStatus === 'pending';
                     }
-                    return dataStatus === filterValue;
+                    return derivedStatus === filterValue;
                 }
             );
 
@@ -167,9 +280,10 @@
                         /* Add status filter dropdown to controls area */
                         const statusSelect = $('<select id="status_filter" class="form-control" style="width: auto; display: inline-block; margin-left: 10px;">' +
                             '<option value="active" selected>' + _("Active and pending") + '</option>' +
-                            '<option value="all">' + _("All bookings") + '</option>' +
+                            '<option value="expired">' + _("Expired") + '</option>' +
                             '<option value="cancelled">' + _("Cancelled") + '</option>' +
                             '<option value="completed">' + _("Completed") + '</option>' +
+                            '<option value="all">' + _("All bookings") + '</option>' +
                             '</select>');
 
                         $('.status_filter_container').append(statusSelect);
@@ -183,6 +297,11 @@
                         api.draw();
                     },
                     "drawCallback": function() {
+                        const apiTable = $(this).DataTable();
+                        apiTable.rows({ page: 'current' }).every(function() {
+                            updateRowStatus($(this.node()));
+                        });
+
                         /* Apply Bootstrap pagination classes */
                         $(this).closest('.dataTables_wrapper').find('.dataTables_paginate').addClass('pagination');
                         $('.paginate_button').each(function() {
