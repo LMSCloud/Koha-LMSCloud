@@ -1468,14 +1468,134 @@
                 );
             });
 
+            var parseBookingDateAttribute = function(value) {
+                if (!value) {
+                    return null;
+                }
+
+                var trimmed = value.trim();
+                var normalized = trimmed.indexOf('T') !== -1 ? trimmed : trimmed.replace(' ', 'T');
+                var parsed = new Date(normalized);
+
+                if (!isNaN(parsed.getTime())) {
+                    return parsed;
+                }
+
+                var fallback = new Date(trimmed.split(' ')[0]);
+                return isNaN(fallback.getTime()) ? null : fallback;
+            };
+
+            var normalizeBookingDateOnly = function(value) {
+                if (!value) {
+                    return null;
+                }
+
+                var dateObject = value instanceof Date ? value : parseBookingDateAttribute(value);
+                if (!dateObject || isNaN(dateObject.getTime())) {
+                    return null;
+                }
+
+                return new Date(
+                    dateObject.getFullYear(),
+                    dateObject.getMonth(),
+                    dateObject.getDate()
+                );
+            };
+
+            var bookingStatusLabelMap = {
+                active: _("Active"),
+                pending: _("Pending"),
+                expired: _("Expired"),
+                new: _("New")
+            };
+
+            var bookingStatusBadgeClassMap = {
+                active: 'badge-primary',
+                pending: 'badge-warning',
+                expired: 'badge-secondary',
+                new: 'badge-info'
+            };
+
+            var deriveBookingStatus = function(rawStatus, startAttr, endAttr) {
+                if (!rawStatus) {
+                    return 'unknown';
+                }
+
+                if (rawStatus !== 'new') {
+                    return rawStatus;
+                }
+
+                var today = normalizeBookingDateOnly(new Date());
+                var startDate = normalizeBookingDateOnly(startAttr);
+                var endDate = normalizeBookingDateOnly(endAttr);
+
+                if (endDate && today && endDate < today) {
+                    return 'expired';
+                }
+
+                if (startDate && today && startDate > today) {
+                    return 'pending';
+                }
+
+                if (startDate && today) {
+                    if (!endDate || endDate >= today) {
+                        return 'active';
+                    }
+                }
+
+                if (!startDate && endDate && today) {
+                    return endDate < today ? 'expired' : 'active';
+                }
+
+                return 'new';
+            };
+
+            var updateBookingRowStatus = function($row) {
+                var statusCell = $row.find('td.status');
+                if (!statusCell.length) {
+                    return 'unknown';
+                }
+
+                var rawStatus = statusCell.attr('data-raw-status') || statusCell.attr('data-status') || '';
+                if (rawStatus !== 'new') {
+                    statusCell.attr('data-status', rawStatus || 'unknown');
+                    return rawStatus || 'unknown';
+                }
+
+                var startAttr = $row.find('td.start-date').attr('data-start-date');
+                var endAttr = $row.find('td.end-date').attr('data-end-date');
+                var derivedStatus = deriveBookingStatus(rawStatus, startAttr, endAttr);
+
+                statusCell.attr('data-status', derivedStatus);
+
+                var badge = statusCell.find('.badge').first();
+                if (badge.length) {
+                    var label = bookingStatusLabelMap[derivedStatus] || bookingStatusLabelMap.new;
+                    var badgeClass = bookingStatusBadgeClassMap[derivedStatus] || bookingStatusBadgeClassMap.new;
+
+                    badge
+                        .removeClass('badge-primary badge-secondary badge-success badge-info badge-warning badge-danger')
+                        .addClass(badgeClass)
+                        .text(label);
+                }
+
+                return derivedStatus;
+            };
+
             var dTables = $("#checkoutst,#holdst,#overduest,#opac-user-relative-issues-table,#divibibcheckoutst,#opac-user-bookings-table");
             dTables.each(function(){
-                var thIndex = $(this).find("th.psort").index();
-                var tableId = $(this).attr("id");
+                var $table = $(this);
+                var tableId = $table.attr("id");
                 var isBookingsTable = tableId === "opac-user-bookings-table";
+                var psortIndex = $table.find("th.psort").index();
+                if (psortIndex < 0) {
+                    psortIndex = 0;
+                }
+                var defaultOrder = isBookingsTable ? [[3, 'asc'], [4, 'asc']] : [[ psortIndex, 'asc' ]];
 
                 var config = {
-                    "sorting" : [[ thIndex, 'asc' ]],
+                    "sorting": defaultOrder,
+                    "order": defaultOrder,
                     "dom": '<"top"<"table_entries"><"table_controls"fB>>t',
                     "columnDefs": [
                         { "targets": [ "nosort" ],"sortable": false,"searchable": false },
@@ -1524,6 +1644,11 @@
                     config.paging = true;
                     config.pageLength = 20;
                     config.drawCallback = function() {
+                        var apiTable = $(this).DataTable();
+                        apiTable.rows({ page: 'current' }).every(function() {
+                            updateBookingRowStatus($(this.node()));
+                        });
+
                         /* Apply Bootstrap pagination classes */
                         $(this).closest('.dataTables_wrapper').find('.dataTables_paginate').addClass('pagination');
                         $('.paginate_button').each(function() {
@@ -1541,10 +1666,16 @@
                     };
                 }
 
-                $(this).on("init.dt", function() {
+                var initializedTable = $table.on("init.dt", function() {
                         tableInit( $(this).attr("id") );
                     })
                     .dataTable($.extend(true, {}, dataTablesDefaults, config));
+
+                if (isBookingsTable) {
+                    initializedTable.DataTable().rows().every(function() {
+                        updateBookingRowStatus($(this.node()));
+                    });
+                }
             });
 
             var dataTables = $("#recalls-table,#article-requests-table");
