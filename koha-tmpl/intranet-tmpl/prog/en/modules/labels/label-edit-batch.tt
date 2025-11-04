@@ -108,6 +108,8 @@
                                 </div>
                             </form>
                             <div id="batch-manage" class="btn-toolbar">
+                                <a class="btn btn-default" id="select_all" href="#"><i class="fa fa-check"></i> Select all</a>
+                                <a class="btn btn-default" id="clear_all" href="#"><i class="fa fa-remove"></i> Clear all</a>
                                 <a class="btn btn-default" id="additems" href="#"><i class="fa fa-plus"></i> Add item(s)</a>[% IF ( table_loop ) %]
                                 <a class="btn btn-default" id="savedesc" href="#" data-batch_id="[% batch_id | html %]"><i class="fa fa-save"></i> Save description</a>
                                 <a class="btn btn-default" id="removeitems" href="#"><i class="fa fa-trash"></i> Remove selected items</a>
@@ -155,7 +157,7 @@
                                                                         <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/labels/label-edit-batch.pl?op=remove&amp;batch_id=[% batch_id |url %]&amp;label_id=[% text_field.field_value |url %]"><i class="fa fa-trash"></i> Delete</a>
                                                                         <a class="btn btn-default btn-xs export" href="#" data-batch-id="[% batch_id | html %]" data-label-id="[% text_field.field_value | html %]"><i class="fa fa-share-square-o"></i> Export</a>
                                                                     </td>
-                                                                    <td><input type="checkbox" name="action" value="[% text_field.field_value | html %]"></td>
+                                                                    <td><input type="checkbox" name="action" class="selection" value="[% text_field.field_value | html %]"></td>
                                                                 [% ELSE %]
                                                                     <td>
                                                                         [% IF ( text_field.field_name == '_item_type_tbl' ) %]
@@ -379,6 +381,22 @@
                         $("#change-status").text(_("Saved"));
                     } else {
                         $("#change-status").text(_("Unable to save description"));
+                    }
+                });
+            });
+            $("#select_all").on("click",function(e){
+                e.preventDefault();
+                $(".selection").each(function(){
+                    if( $(this).prop("checked") == false ){
+                        $(this).prop("checked", true ).change();
+                    }
+                });
+            });
+            $("#clear_all").on("click",function(e){
+                e.preventDefault();
+                $(".selection").each(function(){
+                    if( $(this).prop("checked") ){
+                        $(this).prop("checked", false ).change();
                     }
                 });
             });
