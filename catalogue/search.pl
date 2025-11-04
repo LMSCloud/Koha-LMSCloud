@@ -443,7 +443,8 @@ my $indexes2z3950 = {
 };
 for (my $ii = 0; $ii < @operands; ++$ii)
 {
-    my $name = $indexes2z3950->{$indexes[$ii] || 'kw'};
+    my ($z3950index) = split(/,/,$indexes[$ii] || 'kw');
+    my $name = $indexes2z3950->{$z3950index};
     if (defined $name && defined $operands[$ii])
     {
         $z3950par ||= {};
