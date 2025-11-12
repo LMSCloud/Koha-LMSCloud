@@ -1468,6 +1468,8 @@
                 );
             });
 
+            const export_format_spreadsheet = ButtonsShim.export_format_spreadsheet;
+            
             var parseBookingDateAttribute = function(value) {
                 if (!value) {
                     return null;
@@ -1583,6 +1585,7 @@
             };
 
             var dTables = $("#checkoutst,#holdst,#overduest,#opac-user-relative-issues-table,#divibibcheckoutst,#opac-user-bookings-table");
+
             dTables.each(function(){
                 var $table = $(this);
                 var tableId = $table.attr("id");
@@ -1633,7 +1636,8 @@
                             extend: "csv",
                             exportOptions: {
                                 /* CSV export should include all columns (even invisible ones) unless they are .noExport */
-                                columns: ":not(.noExport)"
+                                columns: ":not(.noExport)",
+                                format:  export_format_spreadsheet
                             }
                         }
                     ]

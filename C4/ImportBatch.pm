@@ -520,10 +520,7 @@ sub BatchFindDuplicates {
             overlay_framework => $overlay_framework,
             progress_interval => $progress_interval,
             progress_callback => $progress_callback,
-            skip_intermediate_commit => $skip_intermediate_commit
         });
-
-    Parameter skip_intermediate_commit does what is says.
 =cut
 
 sub BatchCommitRecords {
@@ -531,16 +528,12 @@ sub BatchCommitRecords {
     my $batch_id          = $params->{batch_id};
     my $framework         = $params->{framework};
     my $overlay_framework = $params->{overlay_framework};
-    my $skip_intermediate_commit = $params->{skip_intermediate_commit};
     my $progress_interval = $params->{progress_interval} // 0;
     my $progress_callback = $params->{progress_callback};
     $progress_interval = 0 unless $progress_interval && $progress_interval =~ /^\d+$/;
     $progress_interval = 0 unless ref($progress_callback) eq 'CODE';
 
     my $schema = Koha::Database->schema;
-    $schema->txn_begin;
-    # NOTE: Moved this transaction to the front of the routine. Note that inside the while loop below
-    # transactions may be committed and started too again. The final commit is close to the end.
 
     my $record_type;
     my $num_added = 0;
@@ -571,15 +564,14 @@ sub BatchCommitRecords {
     my @biblio_ids;
     my @updated_ids;
     while (my $rowref = $sth->fetchrow_hashref) {
+        $schema->txn_begin;
         $record_type = $rowref->{'record_type'};
 
         $rec_num++;
 
         if ($progress_interval and (0 == ($rec_num % $progress_interval))) {
-            # report progress and commit
-            $schema->txn_commit unless $skip_intermediate_commit;
+            # report progress
             &$progress_callback( $rec_num );
-            $schema->txn_begin unless $skip_intermediate_commit;
         }
         if ($rowref->{'status'} eq 'error' or $rowref->{'status'} eq 'imported') {
             $num_ignored++;
@@ -708,6 +700,7 @@ sub BatchCommitRecords {
             }
             SetImportRecordStatus($rowref->{'import_record_id'}, 'ignored');
         }
+        $schema->txn_commit;
     }
 
     if ($progress_interval){
@@ -718,8 +711,6 @@ sub BatchCommitRecords {
 
     SetImportBatchStatus($batch_id, 'imported');
 
-    # final commit should be before Elastic background indexing in order to find job data
-    $schema->txn_commit;
 
     if (@biblio_ids) {
         my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
