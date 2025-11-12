@@ -290,13 +290,29 @@ sub getPendingIssues {
                     if ( $divibibItem->{'DatePlaced'} =~ /^(\d\d\d\d-\d\d-\d\d)T(\d\d:\d\d:\d\d)/ ) {
                         $divibibIssue->{issuedate} =  dt_from_string("$1 $2", 'sql');
                     }
+                    else {
+                        $divibibIssue->{issuedate} = dt_from_string();
+                        my $mess =  "C4::Divibib::NCIPService::getPendingIssues(userid: $userId) got divibibItem->{'DatePlaced'}:" . Dumper($divibibItem->{'DatePlaced'}) 
+                                    . ". Initalizing issuedate with current timestamp.";
+                        carp ($mess . "\n");
+                    }
                     if ( $divibibItem->{'DateDue'} =~ /^(\d\d\d\d-\d\d-\d\d)T(\d\d:\d\d:\d\d)/ ) {
                         $divibibIssue->{date_due} =  dt_from_string("$1 $2", 'sql');
                         $divibibIssue->{date_due_sql}  = "$1 $2";
                     }
-                    if ( DateTime->compare($divibibIssue->{date_due}, $today) == -1 ) {
-                        $divibibIssue->{overdue} = 1;
+                    else {
+                        my $now = dt_from_string();
+                        $divibibIssue->{date_due} = $now;
+                        $divibibIssue->{date_due_sql} = $now->ymd . ' ' . $now->hms;
+                        my $mess =  "C4::Divibib::NCIPService::getPendingIssues(userid: $userId) got divibibItem->{'DateDue'}:" . Dumper($divibibItem->{'DateDue'}) 
+                                    . ". Initalizing date_due with current timestamp.";
+                        carp ($mess . "\n");
                     }
+                    eval {
+                        if ( DateTime->compare($divibibIssue->{date_due}, $today) == -1 ) {
+                            $divibibIssue->{overdue} = 1;
+                        }
+                    };
                 
                    $divibibIssue->{itemnumber} = "(".DIVIBIBAGENCYID.")" . $divibibItem->{'ItemId'};
                    $divibibIssue->{itemSource} = DIVIBIBITEMSOURCE;
