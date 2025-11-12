@@ -3240,19 +3240,14 @@ sub CanBookBeRenewed {
     return ( 0, "on_reserve" )
       if ( $item->current_holds->search( { non_priority => 0 } )->count );
 
-    my $fillable_holds = Koha::Holds->search(
-        {
-            biblionumber => $item->biblionumber,
-            non_priority => 0,
-            found        => undef,
-            reservedate  => { '<=' => \'NOW()' },
-            suspend      => 0,
-        },
-        { prefetch => 'patron' }
-    );
-    if ( $fillable_holds->count ) {
+    my ( $status, $matched_reserve, $possible_holds ) = C4::Reserves::CheckReserves($item);
+
+    my @fillable_holds = ();
+    foreach my $possible_hold ( @{$possible_holds} ) {
+        push @fillable_holds, $possible_hold unless $possible_hold->{non_priority};
+    }
+    if ( @fillable_holds ) {
         if ( C4::Context->preference('AllowRenewalIfOtherItemsAvailable') ) {
-            my @possible_holds = $fillable_holds->as_list;
 
             # Get all other items that could possibly fill reserves
             # FIXME We could join reserves (or more tables) here to eliminate some checks later
@@ -3262,27 +3257,29 @@ sub CanBookBeRenewed {
                 notforloan   => 0,
                 -not         => { itemnumber => $itemnumber } })->as_list;
 
-            return ( 0, "on_reserve" ) if @possible_holds && (scalar @other_items < scalar @possible_holds);
+            return ( 0, "on_reserve" ) if @fillable_holds && (scalar @other_items < scalar @fillable_holds);
 
             my %matched_items;
-            foreach my $possible_hold (@possible_holds) {
+            foreach my $possible_hold (@fillable_holds) {
                 my $fillable = 0;
-                my $patron_with_reserve = Koha::Patrons->find($possible_hold->borrowernumber);
-                my $items_any_available = ItemsAnyAvailableAndNotRestricted( { biblionumber => $item->biblionumber, patron => $patron_with_reserve });
-
-                # FIXME: We are not checking whether the item we are renewing can fill the hold
+                my $patron_with_reserve = Koha::Patrons->find( $possible_hold->{borrowernumber} );
 
                 foreach my $other_item (@other_items) {
-                  next if defined $matched_items{$other_item->itemnumber};
-                  next if IsItemOnHoldAndFound( $other_item->itemnumber );
-                  next unless IsAvailableForItemLevelRequest($other_item, $patron_with_reserve, undef, $items_any_available);
-                  next unless CanItemBeReserved($patron_with_reserve,$other_item,undef,{ignore_hold_counts=>1})->{status} eq 'OK';
-                  # NOTE: At checkin we call 'CheckReserves' which checks hold 'policy'
-                  # CanItemBeReserved checks 'rules' and 'policies' which means
-                  # items will fill holds at checkin that are rejected here
-                  $fillable = 1;
-                  $matched_items{$other_item->itemnumber} = 1;
-                  last;
+                    next if defined $matched_items{ $other_item->itemnumber };
+                    next if $other_item->holds->filter_by_found->count;
+                    next unless IsAvailableForItemLevelRequest( $other_item, $patron_with_reserve, undef );
+                    next
+                        unless CanItemBeReserved(
+                        $patron_with_reserve, $other_item, undef,
+                        { ignore_hold_counts => 1 }
+                    )->{status} eq 'OK';
+
+                    # NOTE: At checkin we call 'CheckReserves' which checks hold 'policy'
+                    # CanItemBeReserved checks 'rules' and 'policies' which means
+                    # items will fill holds at checkin that are rejected here
+                    $fillable = 1;
+                    $matched_items{ $other_item->itemnumber } = 1;
+                    last;
                 }
                 return ( 0, "on_reserve" ) unless $fillable;
             }
