@@ -55,7 +55,7 @@ BEGIN {
     @EXPORT_OK = qw(
       GetBasket NewBasket ReopenBasket ModBasket
       GetBasketAsCSV GetBasketGroupAsCSV
-      GetBasketsByBookseller GetBasketsByBasketgroup
+      GetBasketsByBookseller GetNotClosedBasketsByBookseller GetBasketsByBasketgroup
       GetBasketsInfosByBookseller GetBaskets
 
       GetBasketUsers ModBasketUsers
@@ -63,7 +63,7 @@ BEGIN {
 
       ModBasketHeader
 
-      ModBasketgroup NewBasketgroup DelBasketgroup GetBasketgroup CloseBasketgroup
+      ModBasketgroup NewBasketgroup DelBasketgroup GetBasketgroup GetBasketgroupsNotClosed CloseBasketgroup
       GetBasketgroups GetBasketgroupsGeneric ReOpenBasketgroup
 
       ModOrder GetOrder GetOrders GetOrdersByBiblionumber
@@ -722,6 +722,47 @@ sub GetBasketsByBookseller {
     return $sth->fetchall_arrayref({});
 }
 
+=head3 GetNotClosedBasketsByBookseller
+
+  @results = &GetNotClosedBasketsByBookseller($booksellerid, $extra);
+
+Returns a list of hashes of all the baskets with unclosed basketgroups that belong to bookseller 'booksellerid'.
+
+=over
+
+=item C<$booksellerid> is the 'id' field of the bookseller in the aqbooksellers table
+
+=item C<$extra> is the extra sql parameters, can be
+
+ $extra->{groupby}: group baskets by column
+    ex. $extra->{groupby} = aqbasket.basketgroupid
+ $extra->{orderby}: order baskets by column
+ $extra->{limit}: limit number of results (can be helpful for pagination)
+
+=back
+
+=cut
+
+sub GetNotClosedBasketsByBookseller {
+    my ($booksellerid, $extra) = @_;
+    my $query = "SELECT * FROM aqbasket WHERE booksellerid=? AND NOT EXISTS (SELECT 1 FROM aqbasketgroups WHERE aqbasket.basketgroupid = aqbasketgroups.id AND aqbasketgroups.closed=1)";
+    if ($extra){
+        if ($extra->{groupby}) {
+            $query .= " GROUP by $extra->{groupby}";
+        }
+        if ($extra->{orderby}){
+            $query .= " ORDER by $extra->{orderby}";
+        }
+        if ($extra->{limit}){
+            $query .= " LIMIT $extra->{limit}";
+        }
+    }
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare($query);
+    $sth->execute($booksellerid);
+    return $sth->fetchall_arrayref({});
+}
+
 =head3 GetBasketsInfosByBookseller
 
     my $baskets = GetBasketsInfosByBookseller($supplierid, $allbaskets);
@@ -1156,6 +1197,26 @@ sub GetBasketgroups {
     my $booksellerid = shift;
     die 'bookseller id is required to edit a basketgroup' unless $booksellerid;
     my $query = 'SELECT * FROM aqbasketgroups WHERE booksellerid=? ORDER BY id DESC';
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare($query);
+    $sth->execute($booksellerid);
+    return $sth->fetchall_arrayref({});
+}
+
+#------------------------------------------------------------#
+
+=head3 GetBasketgroupsNotClosed
+
+  $basketgroups = &GetBasketgroupsNotClosed($booksellerid);
+
+Returns a reference to the array of all the unclosed basketgroups of bookseller $booksellerid.
+
+=cut
+
+sub GetBasketgroupsNotClosed {
+    my $booksellerid = shift;
+    die 'bookseller id is required to edit a basketgroup' unless $booksellerid;
+    my $query = 'SELECT * FROM aqbasketgroups WHERE booksellerid=? AND closed <> 1 ORDER BY id DESC';
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare($query);
     $sth->execute($booksellerid);

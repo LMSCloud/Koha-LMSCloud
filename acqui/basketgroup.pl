@@ -52,7 +52,7 @@ use C4::Output qw( output_html_with_http_headers );
 use CGI qw ( -utf8 );
 use File::Spec;
 
-use C4::Acquisition qw( GetOrders GetOrder get_rounded_price GetBasket GetBasketgroup GetBasketsByBasketgroup GetBasketgroups GetBasketsByBookseller ModBasket CloseBasketgroup GetBasketGroupAsCSV DelBasketgroup ReOpenBasketgroup ModBasketgroup NewBasket NewBasketgroup );
+use C4::Acquisition qw( GetOrders GetOrder get_rounded_price GetBasket GetBasketgroup GetBasketsByBasketgroup GetBasketgroups GetBasketsByBookseller ModBasket CloseBasketgroup GetBasketGroupAsCSV DelBasketgroup ReOpenBasketgroup ModBasketgroup NewBasket NewBasketgroup GetNotClosedBasketsByBookseller GetBasketgroupsNotClosed);
 use Koha::Database;
 use Koha::EDI qw( get_edifact_ean create_edi_order );
 
@@ -302,8 +302,8 @@ if ( $op eq "add" ) {
 
     # the template will display a unique basketgroup
     $template->param(grouping => 1);
-    my $basketgroups = &GetBasketgroups($booksellerid);
-    my $baskets = &GetBasketsByBookseller($booksellerid);
+    my $basketgroups = &GetBasketgroupsNotClosed($booksellerid);
+    my $baskets = &GetNotClosedBasketsByBookseller($booksellerid);
     displaybasketgroups($basketgroups, $bookseller, $baskets);
 } elsif ($op eq 'mod_basket') {
 #
@@ -413,19 +413,13 @@ if ( $op eq "add" ) {
         exit;
     } else {
         $template->param('NoEDIMessage' => 1);
-        my $basketgroups = &GetBasketgroups($booksellerid);
+        $template->param( booksellername => $bookseller->name) if ( $bookseller );
         my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
-        my $baskets = &GetBasketsByBookseller($booksellerid);
-
-        displaybasketgroups($basketgroups, $bookseller, $baskets);
     }
 }else{
-# no param : display the list of all basketgroups for a given vendor
-    my $basketgroups = &GetBasketgroups($booksellerid);
+    # no param : display the list of all basketgroups for a given vendor
     my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
-    my $baskets = &GetBasketsByBookseller($booksellerid);
-
-    displaybasketgroups($basketgroups, $bookseller, $baskets);
+    $template->param( booksellername => $bookseller->name) if ( $bookseller );
 }
 $template->param(listclosed => ((defined $input->param('listclosed')) && ($input->param('listclosed') eq '1'))? 1:0 );
 #prolly won't use all these, maybe just use print, the rest can be done inside validate

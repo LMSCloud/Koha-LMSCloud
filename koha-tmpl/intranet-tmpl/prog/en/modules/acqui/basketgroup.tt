@@ -40,12 +40,102 @@
             $("#basket_groups a[href='#opened']").tab("show");
         [% END %]
         [% UNLESS ( grouping ) %]
-            $("table").dataTable($.extend(true, {}, dataTablesDefaults, {
+            $("#basket_group_closed").dataTable($.extend(true, {}, dataTablesDefaults, {
                 "aoColumnDefs": [
                     { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
                 ],
+                'aoColumns': [
+                    { 'sName': 'name' },
+                    { 'sName': 'id'   },
+                    { 'sName': 'billingplace' },
+                    { 'sName': 'deliveryplace' },
+                    { 'sName': 'basketsqty'  },
+                    { 'sName': 'action', 
+                      'bSortable': false,
+                      "render": function ( data, type, full, meta ) {
+                          return '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="add" /><input type="hidden" name="booksellerid" value="' + data + '" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('View') + '" /></form> ' + 
+                                 '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="reopen" /><input type="hidden" name="booksellerid" value="' + data + '" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('Reopen') + '" /></form> ' + 
+                                 '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="print" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('Export as PDF') + '" /></form> ' + 
+                                 '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="export" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('Export as CSV') + '" /></form> '
+                                [% IF Koha.Preference('EDIFACT') %]
+                                    [% IF (ediaccount) %]
+                                         + '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="ediprint" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('Generate EDIFACT order') + '" /></form>'
+                                    [% END %]
+                                [% END %];
+                      }
+                    }
+                ],
+                "paging" : true,
+                "order": [[ 1, "desc" ]],
+                "iDisplayLength": 20,
                 "bAutoWidth": false,
-                "sPaginationType": "full"
+                "sPaginationType": "full",
+                "serverSide": true,
+                'bProcessing': true,
+                'bDestroy': true,
+                "ajax": '/cgi-bin/koha/svc/basketgroups',
+                "sAjaxSource": '/cgi-bin/koha/svc/basketgroups',
+                "fnServerData": function(sSource, aoData, fnCallback) {
+                    aoData.push( { 'name': 'format', 'value': 'json' } );
+                    aoData.push( { 'name': 'booksellerid', 'value': '[% booksellerid | uri %]' } );
+                    aoData.push( { 'name': 'closed', 'value': '1' } );
+                    $.ajax({
+                        'dataType': 'json',
+                        'type': 'POST',
+                        'url': sSource,
+                        'data': aoData,
+                        'success': function(json){
+                            fnCallback(json);
+                        }
+                    });
+                }
+            } ));
+            $("#basket_group_opened").dataTable($.extend(true, {}, dataTablesDefaults, {
+                "aoColumnDefs": [
+                    { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
+                ],
+                'aoColumns': [
+                    { 'sName': 'name' },
+                    { 'sName': 'id'   },
+                    { 'sName': 'billingplace' },
+                    { 'sName': 'deliveryplace' },
+                    { 'sName': 'basketsqty'  },
+                    { 'sName': 'action', 
+                      'bSortable': false,
+                      "render": function ( data, type, full, meta ) {
+                          var cont = '<input type="button" onclick="closeandprint(' + full[1] + ');" value="' + _('Close and export as PDF') + '" /> ' + 
+                                     '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="add" /><input type="hidden" name="booksellerid" value="' + data + '" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('Edit') + '" /></form> ';
+                          if ( Number(full[4]) == 0 ) {
+                              cont += '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="delete" /><input type="hidden" name="booksellerid" value="' + data + '" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('Delete') + 'Delete" /></form>';
+                          }
+                          return cont;
+                      }
+                    }
+                ],
+                "paging" : true,
+                "order": [[ 1, "desc" ]],
+                "iDisplayLength": 20,
+                "bAutoWidth": false,
+                "sPaginationType": "full",
+                "serverSide": true,
+                'bProcessing': true,
+                'bDestroy': true,
+                "ajax": '/cgi-bin/koha/svc/basketgroups',
+                "sAjaxSource": '/cgi-bin/koha/svc/basketgroups',
+                "fnServerData": function(sSource, aoData, fnCallback) {
+                    aoData.push( { 'name': 'format', 'value': 'json' } );
+                    aoData.push( { 'name': 'booksellerid', 'value': '[% booksellerid | uri %]' } );
+                    aoData.push( { 'name': 'opened', 'value': '1' } );
+                    $.ajax({
+                        'dataType': 'json',
+                        'type': 'POST',
+                        'url': sSource,
+                        'data': aoData,
+                        'success': function(json){
+                            fnCallback(json);
+                        }
+                    });
+                }
             } ));
         [% ELSE %]
             grouped = $("#grouped").DataTable($.extend(true, {}, dataTablesDefaults, {
@@ -345,29 +435,6 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        [% FOREACH basketgroup IN basketgroups %]
-                                            [% UNLESS ( basketgroup.closed ) %]
-                                                <tr>
-                                                    <td>[% IF ( basketgroup.name ) %]
-                                                        [% basketgroup.name | html %]
-                                                        [% ELSE %]
-                                                            <span>Basket group no. [% basketgroup.id | html %]</span>
-                                                        [% END %]
-                                                    </td>
-                                                    <td>[% basketgroup.id | html %]</td>
-                                                    <td>[% Branches.GetName( basketgroup.billingplace ) | html %]</td>
-                                                    <td>[% IF (basketgroup.freedeliveryplace) %]Free delivery place[% ELSE %][% Branches.GetName( basketgroup.deliveryplace ) | html %][% END %]</td>
-                                                    <td>[% basketgroup.basketsqty | html %]</td>
-                                                    <td>
-                                                        <input type="button" onclick="closeandprint('[% basketgroup.id | html %]');" value="Close and export as PDF" />
-                                                        <form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="add" /><input type="hidden" name="booksellerid" value="[% basketgroup.booksellerid | html %]" /><input type="hidden" name="basketgroupid" value="[% basketgroup.id | html %]" /><input type="submit" class="btn btn-primary" value="Edit" /></form>
-                                                        [% UNLESS basketgroup.basketsqty %]
-                                                            <form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="delete" /><input type="hidden" name="booksellerid" value="[% basketgroup.booksellerid | html %]" /><input type="hidden" name="basketgroupid" value="[% basketgroup.id | html %]" /><input type="submit" class="btn btn-primary" value="Delete" /></form>
-                                                        [% END %]
-                                                    </td>
-                                                </tr>
-                                            [% END %]
-                                        [% END %]
                                     </tbody>
                                 </table>
                             [% END #/opened %]
@@ -385,36 +452,6 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        [% FOREACH basketgroup IN basketgroups %]
-                                            [% IF ( basketgroup.closed ) %]
-                                                <tr>
-                                                    <td>
-                                                        [% IF ( basketgroup.name ) %]
-                                                            [% basketgroup.name | html %]
-                                                            [% ELSE %]
-                                                                <span>Basket group no. [% basketgroup.id | html %]</span>
-                                                            [% END %]
-                                                    </td>
-                                                    <td>[% basketgroup.id | html %]</td>
-                                                    <td>[% Branches.GetName( basketgroup.billingplace ) | html %]</td>
-                                                    <td>[% IF (basketgroup.freedeliveryplace) %]Free delivery place[% ELSE %][% Branches.GetName( basketgroup.deliveryplace ) | html %][% END %]</td>
-                                                    <td>[% basketgroup.basketsqty | html %]</td>
-                                                    <td>
-                                                        <form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="add" /><input type="hidden" name="booksellerid" value="[% basketgroup.booksellerid | html %]" /><input type="hidden" name="basketgroupid" value="[% basketgroup.id | html %]" /><input type="submit" class="btn btn-primary" value="View" /></form>
-                                                        <form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="reopen" /><input type="hidden" name="booksellerid" value="[% basketgroup.booksellerid | html %]" /><input type="hidden" name="basketgroupid" value="[% basketgroup.id | html %]" /><input type="submit" class="btn btn-primary" value="Reopen" /></form>
-                                                        <form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="print" /><input type="hidden" name="basketgroupid" value="[% basketgroup.id | html %]" /><input type="submit" class="btn btn-primary" value="Export as PDF" /></form>
-                                                        <form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="export" /><input type="hidden" name="basketgroupid" value="[% basketgroup.id | html %]" /><input type="submit" class="btn btn-primary" value="Export as CSV" /></form>
-                                                        [% IF Koha.Preference('EDIFACT') %]
-                                                            [% IF (ediaccount) %]
-                                                                 <form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="ediprint" /><input type="hidden" name="basketgroupid" value="[% basketgroup.id | html %]" /><input type="submit" class="btn btn-primary" value="Generate EDIFACT order" /></form>
-                                                            [% ELSE %]
-                                                                <div>No EDIFACT configuration for [% booksellername | html %]</div>
-                                                            [% END %]
-                                                        [% END %]
-                                                    </td>
-                                                </tr>
-                                            [% END %]
-                                        [% END %]
                                     </tbody>
                                 </table>
                             [% END #/closed %]

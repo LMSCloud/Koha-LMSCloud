@@ -1,0 +1,134 @@
+#!/usr/bin/perl
+
+use Modern::Perl;
+use JSON qw(encode_json to_json);
+use CGI qw ( -utf8 );
+
+use C4::Auth qw(check_cookie_auth);
+use C4::Context;
+
+my $cgi = CGI->new;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ( $auth_status, $sessionID ) = check_cookie_auth( $cgi->cookie('CGISESSID'), { acquisition => 'group_manage' } );
+if ( $auth_status ne "ok" ) {
+    print $cgi->header(-type => 'text/plain', -status => '403 Forbidden');
+    exit 0;
+}
+
+my $opened       = $cgi->param('opened');
+my $closed       = $cgi->param('closed');
+my $booksellerid = $cgi->param('booksellerid');
+my $start        = $cgi->param('iDisplayStart') || 0;
+my $size         = $cgi->param('iDisplayLength') || 20;
+my $sortcols     = $cgi->param('iSortingCols');
+my $columns      = $cgi->param('sColumns');
+my $search       = $cgi->param('sSearch');
+
+my $statement = q{ 
+                    SELECT    bg.id AS id,
+                              IFNULL(bg.name,bg.id) AS name,
+                              IFNULL(bg.closed, 0) AS closed,
+                              bg.booksellerid,
+                              IF ( bg.freedeliveryplace <> '', bg.freedeliveryplace, (SELECT br.branchname FROM branches br WHERE br.branchcode = bg.deliveryplace)) AS deliveryplace,
+                              bg.deliverycomment,
+                              (SELECT br.branchname FROM branches br WHERE br.branchcode = bg.billingplace) AS billingplace,
+                              (SELECT count(*) FROM aqbasket ba WHERE ba.basketgroupid = bg.id) AS basketsqty
+                    FROM      aqbasketgroups bg
+                  };
+                  
+my $selectcnt = q{ 
+                    SELECT    count(*)
+                    FROM      aqbasketgroups bg
+                  };
+
+my @sort = ();
+if ( $sortcols && $columns) {
+    my @columns = split(/,/,$columns);
+    
+    for (my $i=0; $i < $sortcols; $i++) {
+        my $sortcol = $columns[$cgi->param("iSortCol_$i")];
+        my $sortdir = $cgi->param("sSortDir_$i");
+        
+        if ( $sortdir =~ /^(asc|desc)$/i ) {
+            $sortdir = uc($sortdir);
+        }
+        
+        if ( $sortcol =~ /(name|id|billingplace|deliveryplace|basketsqty)/ ) {
+            push @sort, "$sortcol $sortdir";
+        }
+    }
+}
+
+my @where  = ();
+my @values = ();
+
+if ( $booksellerid ) {
+    push @where, 'booksellerid = ?';
+    push @values, $booksellerid + 0;
+}
+if ( $closed ) {
+    push @where, 'closed = ?';
+    push @values, 1;
+}
+if ( $opened ) {
+    push @where, '(closed = 0 OR closed IS NULL)';
+}
+
+if ( $search ) {
+    push @where, '( name like CONCAT(\'%\',?,\'%\') OR EXISTS (SELECT 1 FROM branches b WHERE (b.branchcode = bg.billingplace OR b.branchcode = bg.deliveryplace) AND b.branchname like CONCAT(\'%\',?,\'%\')) OR CAST(bg.id AS CHAR CHARACTER SET utf8) LIKE CONCAT(\'%\',?,\'%\'))';
+    push @values, $search;
+    push @values, $search;
+    push @values, $search;
+}
+
+
+if ( scalar(@where) ) {
+    $selectcnt .= "\n WHERE\n " . join(" AND ", @where) . " ";
+    $statement .= "\n WHERE\n " . join(" AND ", @where) . " ";
+}
+if ( scalar(@sort) ) {
+    $statement .= "\n ORDER BY " . join(", ",@sort) . " ";
+} else {
+    $statement .= "\n ORDER BY id DESC";
+}
+
+if ( defined($start) && defined($size) && $size>0 ) {
+    $statement .= "\n LIMIT " . ( $start + 0 ) . ', ' . ( $size + 0 );
+}
+
+my $dbh = C4::Context->dbh;
+my $sth = $dbh->prepare($statement);
+$sth->execute(@values);
+
+my $resultrows = [];
+while ( my $row = $sth->fetchrow_hashref ) {
+    
+    my $action = '';
+    
+    push @$resultrows,  [
+                            $row->{name},
+                            $row->{id},
+                            $row->{billingplace},
+                            $row->{deliveryplace},
+                            $row->{basketsqty},
+                            $row->{booksellerid}
+                        ];
+}
+
+my ($cnt) = $dbh->selectrow_array($selectcnt,undef,@values);
+$cnt += 0;
+
+print CGI::header(
+    -type    => 'application/json',
+    -charset => 'utf-8'
+);
+
+print to_json( {
+    "iTotalRecords" => $cnt,
+    "iTotalDisplayRecords" => $cnt,
+    "aaData" => $resultrows,
+    "sEcho" => $cgi->param("sEcho") || ""
+} );
+
+__END__
