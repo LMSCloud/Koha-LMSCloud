@@ -37,8 +37,12 @@ import { calculateBookingStatus } from "./features.js";
  */
 
 /**
+ * @typedef {BookingRow & { cancellation_reason?: string }} BookingRowWithReason
+ */
+
+/**
  * Render a status badge for a booking row
- * @param {BookingRow} row
+ * @param {BookingRowWithReason} row
  * @returns {string}
  */
 function renderStatusBadge(row) {
@@ -57,7 +61,10 @@ function renderStatusBadge(row) {
         new: __("New"),
         unknown: __("Unknown"),
     };
-    const statusText = statusTextMap[derived] || __("Unknown");
+    let statusText = statusTextMap[derived] || __("Unknown");
+    if (derived === "cancelled" && row.cancellation_reason) {
+        statusText = [__("Cancelled"), row.cancellation_reason].join(": ");
+    }
     const classMap = [
         { status: __("Expired"), class: "bg-secondary" },
         { status: __("Cancelled"), class: "bg-secondary" },
