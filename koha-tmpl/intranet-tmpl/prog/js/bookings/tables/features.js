@@ -88,8 +88,9 @@ export function getColumnFilterType(
     /** @type {Column} */ col,
     /** @type {ColumnOptions} */ columnOptions
 ) {
-    // Status column is handled separately
-    if (col.name === "home_library_id" && columnOptions.showHoldingLibrary) {
+    if (col.name === "status") {
+        return "getStatusOptions";
+    } else if (col.name === "home_library_id" && columnOptions.showHoldingLibrary) {
         return "getLibraryOptions";
     } else if (
         (col.name === "pickup_library" || col.name === "pickup_library_id") &&

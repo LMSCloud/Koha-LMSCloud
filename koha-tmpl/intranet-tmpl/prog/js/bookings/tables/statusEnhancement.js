@@ -14,22 +14,30 @@ import { getSelectValueString } from "./utils.js";
  */
 export function enhanceStatusFilter(dataTable, tableElement, additionalFilters, filterManager) {
     let statusColumnIndex = -1;
+    let $th = null;
     const $root = $(/** @type {any} */ (tableElement));
+
+    // Find status column by th-id in filter row (more reliable than header row index
+    // because DataTables removes hidden th from header but filter row uses .hide())
+    const aoColumns = dataTable.settings()[0].aoColumns;
     $root
-        .find("thead tr:eq(" + BOOKING_TABLE_CONSTANTS.HEADER_ROW_INDEX + ") th")
+        .find("thead tr:eq(" + BOOKING_TABLE_CONSTANTS.FILTER_ROW_INDEX + ") th")
         .each(function (/** @type {any} */ _index, el) {
-            if ($(el).text().trim() === __("Status")) {
-                statusColumnIndex = _index;
-                return false;
+            const $el = $(el);
+            const thId = $el.data("th-id");
+            // Check if this th's corresponding column is the status column
+            if (typeof thId === "number" && aoColumns[thId]) {
+                const colName = aoColumns[thId].sName || aoColumns[thId].data;
+                if (colName === "status") {
+                    statusColumnIndex = thId;
+                    $th = $el;
+                    return false;
+                }
             }
             return undefined;
         });
 
-    if (statusColumnIndex === -1) return;
-
-    const $th = $root
-        .find("thead tr:eq(" + BOOKING_TABLE_CONSTANTS.FILTER_ROW_INDEX + ") th")
-        .eq(statusColumnIndex);
+    if (statusColumnIndex === -1 || !$th) return;
 
     let statusDropdown = $th.find("select");
     if (statusDropdown.length === 0 || statusDropdown.find("option").length <= 1) {

@@ -169,6 +169,18 @@ export function createBookingsTable(tableElement, tableSettings, /** @type {Crea
         // Append remaining columns not specified in order
         columnMap.forEach(col => orderedColumns.push(col));
         columns = orderedColumns;
+
+        // Reorder tableSettings.columns to match actual column order for correct visibility handling
+        if (tableSettings && tableSettings.columns) {
+            const settingsMap = new Map(
+                tableSettings.columns.map((/** @type {any} */ c) => [c.columnname, c])
+            );
+            // Handle column name aliases (e.g., pickup_library_id -> pickup_library)
+            const aliasMap = { pickup_library_id: "pickup_library" };
+            tableSettings.columns = columns
+                .map(col => settingsMap.get(col.name) || settingsMap.get(aliasMap[col.name]))
+                .filter(Boolean);
+        }
     }
 
     // Compute whether column filters should be enabled (allow explicit override)
