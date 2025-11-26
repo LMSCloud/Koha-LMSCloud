@@ -329,11 +329,10 @@ This method returns the list of publicly readable database fields for both API a
 
 =cut
 
-sub public_read_list {    #FIXME: needs to be updated for prod
+sub public_read_list {
     return [
         'booking_id',
         'biblio_id',
-        'patron_id',
         'item_id',
         'start_date',
         'end_date',
@@ -357,14 +356,7 @@ sub to_api {
     my ( $self, $params ) = @_;
 
     my $booking = $self->SUPER::to_api($params);
-    return          unless $booking;
-    return $booking unless $params->{'public'};
-
-    my $logged_in_user = C4::Context->userenv->{'borrowernumber'};
-    if ( $logged_in_user && $self->patron_id == $logged_in_user ) {
-        $booking->{'patron'} = $self->patron->to_api( { public => 1 } );
-    }
-    delete $booking->{'patron'};
+    return unless $booking;
 
     return $booking;
 }

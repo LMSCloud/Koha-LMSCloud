@@ -47,7 +47,9 @@ properties:
     type: string
   patron_id:
     description: Internal patron identifier
-    type: integer
+    type:
+      - integer
+      - 'null'
   patron:
     description: Embedable patron representation
     type:
@@ -73,7 +75,6 @@ properties:
 required:
   - biblio_id
   - item_id
-  - patron_id
   - pickup_library_id
   - start_date
   - end_date
