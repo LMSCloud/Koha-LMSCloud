@@ -30,6 +30,9 @@ use Koha::SearchEngine::Indexer;
 use Koha::Items;
 use Koha::UI::Table::Builder::Items;
 
+# this is a hack to avoid the creation of additional database connections by plugins during our database transaction XXXWH
+use Koha::Plugins;
+
 use base 'Koha::BackgroundJob';
 
 =head1 NAME
@@ -86,6 +89,9 @@ sub process {
         return;
     }
 
+    # this is a hack to avoid the creation of additional database connections by plugins during our database transaction XXXWH
+    my @enabled_plugins = Koha::Plugins::get_enabled_plugins();
+    
     # FIXME If the job has already been started, but started again (worker has been restart for instance)
     # Then we will start from scratch and so double process the same records
 
