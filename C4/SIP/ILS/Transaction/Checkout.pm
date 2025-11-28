@@ -72,12 +72,19 @@ sub do_checkout {
             last;
         }
     } elsif (scalar keys %$needsconfirmation) {
+        # PREVISSUE is a lower ranked reason to prevent a checkout
+        # We make sure, PREVISSUE ist processed as last needsconfirmation
+        # condition which might prevent a checkout: rename PREVISSUE to XXPREVISSUE
+        if ( exists($needsconfirmation->{PREVISSUE}) ) {
+            $needsconfirmation->{XXPREVISSUE} = delete $needsconfirmation->{PREVISSUE};
+        }
         foreach my $confirmation (sort keys %{$needsconfirmation}) {
             if ($confirmation eq 'RENEW_ISSUE'){
                 $self->screen_msg("Item already checked out to you: renewing item.");
             } elsif ($confirmation eq 'RESERVED' and !C4::Context->preference("AllowItemsOnHoldCheckoutSIP")) {
                 $self->screen_msg("Item is reserved for another patron upon return.");
                 $noerror = 0;
+                last;
             } elsif ($confirmation eq 'RESERVED' and C4::Context->preference("AllowItemsOnHoldCheckoutSIP")) {
                 next;
             } elsif ($confirmation eq 'RESERVE_WAITING'
@@ -85,6 +92,7 @@ sub do_checkout {
                       or $confirmation eq 'PROCESSING') {
                $self->screen_msg("Item is on hold for another patron.");
                $noerror = 0;
+               last;
             } elsif ($confirmation eq 'ISSUED_TO_ANOTHER') {
                 $self->screen_msg("Item already checked out to another patron.  Please return item for check-in.");
                 $noerror = 0;
@@ -100,7 +108,7 @@ sub do_checkout {
                 if ($self->{fee_ack} ne 'Y') {
                     $chargeerror = 1;
                 }
-            } elsif ($confirmation eq 'PREVISSUE') {
+            } elsif ($confirmation eq 'XXPREVISSUE') {
                 $self->screen_msg("This item was previously checked out by you");
                 $noerror = 0 if ($prevcheckout_block_checkout);
                 last if ($prevcheckout_block_checkout);
