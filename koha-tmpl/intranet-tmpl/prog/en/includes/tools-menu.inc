@@ -58,6 +58,9 @@
                 [% IF ( CAN_user_tools_duedate_update ) %]
 	                <li><a href="/cgi-bin/koha/tools/duedate_change.pl">Update due-dates</a></li>
                 [% END %]
+                [% IF ( CAN_user_parameters_manage_auth_values ) %]
+                    <li><a href="/cgi-bin/koha/tools/batchModificationOfAuthorizedValues.pl">Authorised values batch update</a></li>
+                [% END %]
             </ul>
         [% END # /IF ( CAN_user_tools_items_batchdel... %]
 

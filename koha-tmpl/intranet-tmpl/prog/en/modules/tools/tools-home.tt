@@ -119,6 +119,11 @@
                             <dt><a href="/cgi-bin/koha/tools/duedate_change.pl">Update due-dates</a></dt>
 	                        <dd>Update due-dates of checked-out items</dd>
                         [% END %]
+                        
+                        [% IF ( CAN_user_parameters_manage_auth_values ) %]
+                            <dt><a href="/cgi-bin/koha/tools/batchModificationOfAuthorizedValues.pl">Authorised values batch update</a></dt>
+	                        <dd>Authorised values batch update with CSV data</dd>
+                        [% END %]
                     </dl>
                 </div> <!-- /.col-sm-6 -->
 

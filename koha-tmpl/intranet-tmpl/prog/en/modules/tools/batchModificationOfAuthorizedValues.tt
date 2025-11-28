@@ -1,0 +1,334 @@
+[% USE raw %]
+[% USE Asset %]
+[% SET footerjs = 1 %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Authorised value batch modification &rsaquo; Tools &rsaquo; Koha</title>
+[% INCLUDE 'doc-head-close.inc' %]
+[% Asset.css("css/quotes.css") | $raw %]
+<style>
+#csvcode {
+  display: block;
+  border: solid 1px black;
+  margin: 10px;
+  padding: 10px;
+}
+</style>
+</head>
+
+<body id="tools_quotes" class="tools">
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
+
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Authorised value batch modification</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
+
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+                <h1>Authorised value batch modification</h1>
+                
+                [% IF errors %]
+                    [% FOREACH error IN errors %]
+                        <div id="error" class="dialog alert">
+                            [% IF error.type == 'csv' %]
+                                [% IF error.error == 'no_file' %]
+                                    <p>No CSV-file selected.</p>
+                                [% ELSIF error.error == 'no_values' %]
+                                    <p>The CSV-file contains no data.</p>
+                                [% ELSE %]
+                                    [% FOREACH key IN error.keys.sort %]
+                                        <li>[% key | html %]: [% error.$key | html %]</li>
+                                    [% END %]
+                                [% END %]
+                            [% ELSE %]
+                                <p>
+                                    An error occured:
+                                    <ul>
+                                        [% FOREACH key IN error.keys.sort %]
+                                        <li>[% key | html %]: [% hash.$key | html %]</li>
+                                        [% END %]
+                                    </ul>
+                                </p>
+                            [% END %]
+                        </div>
+                    [% END %]
+                [% END %]
+                
+                [% IF action == 'upload_file' %]
+                    <form id="select_file" class="validated" method="post" enctype="multipart/form-data" novalidate="novalidate">
+                        <fieldset class="rows">
+                             <legend>Select authorised value category and CSV-file</legend>
+                             <ol>
+                                <li>
+                                     <label for="category">Category</label>
+                                     <select name="category" id="category">
+                                        [% FOREACH categ IN categories %]
+                                        <option value="[% categ | html %]">[% categ | html %]</option>
+                                        [% END %]
+                                     </select>
+                                 </li>
+                                 <li>
+                                     <label for="csvfile">CSV-file: </label>
+                                     <input type="file" id="csvfile" name="csvfile">
+                                 </li>
+                             </ol>
+                             <input type="hidden" name="action" value="check_update">
+                             <input type="submit" class="btn btn-primary" value="Check update">
+                         </fieldset>
+                    </form>
+                    <h2 style="clear: both;padding-top: 1em">Description</h2>
+                    <p>
+                        <br>
+                        With this function you may perform a batch update of the authorized values of a selected category providing a CSV file.
+                        The CSV file may may consist of lines with the following data:<br>
+                        <code id="csvcode">
+                        AuthValueToUpdate;AuthValueUpdate;AuthValueDescription;AuthValueDescriptionOpac<br>
+                        ;AuthValueInsert;AuthValueDescription;AuthValueDescriptionOpac<br>
+                        AuthValueDelete
+                        </code>
+                        <br>
+                        The following describes each sample line:<br>
+                        <ol>
+                            <li>The first line shows an update. The authorised value <code>AuthValueToUpdate</code> is selected and updated with the value <code>AuthValueUpdate</code> as authorised value, <code>AuthValueDescription</code> as authorised value description and <code>AuthValueDescriptionOpac</code> as authorised value OPAC description. If <code>AuthValueDescriptionOpac</code> is omitted, <code>AuthValueDescription</code> will be used as authorised value OPAC description.</li>
+                            <li>The second line shows an insert. If the first value is left empty, the line is treated as insert with <code>AuthValueInsert</code> as authorised value, <code>AuthValueDescription</code> as authorised value description and <code>AuthValueDescriptionOpac</code>. If <code>AuthValueDescriptionOpac</code> is omitted, <code>AuthValueDescription</code> will be used as authorised value OPAC description.</li>
+                            <li>The third line shows a delete. The authorised value <code>AuthValueDelete</code> will be deleted. Any additional CSV field values can be omitted for a delete instruction.</li>
+                        </ol>
+                        Create a CSV-file with the necessary data and upload it for this function.<br>
+                        CSV-file characteristics:
+                        <ul>
+                            <li>Character encoding: UTF-8</li>
+                            <li>Field separator (semicolon): ;</li>
+                            <li>Line separator: CR LF or LF</li>
+                            <li>Quote character (no need to always quote, only if a semicolon is part of the field text): &quot; </li>
+                            <li>Escape character of a quote character: &quot;</li>
+                        </ul>
+                        Please make sure to select the correct authorised value category.<br>
+                        After loading the CSV-file the instructions are evaluated and updates are presented before you may decide to execute the batch update.
+                    </p>
+                [% END %]
+                
+                [% IF action == 'confirm_actions' %]
+                    [% withError = 0 %]
+                    [% FOREACH rule IN rules %]
+                        [% IF rule.error  %][% withError = 1 %][% END %]
+                    [% END %]
+                    <a href="/cgi-bin/koha/tools/batchModificationOfAuthorizedValues.pl"><i class="fa fa-arrow-left" aria-hidden="true"></i> Back to file selection</a>
+                    <br>
+                    <br>
+                    <form id="do_update" method="post">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Action</th>
+                                    <th>Valid action</th>
+                                    [% IF withError == 1 %]<th>Problem</th>[% END %]
+                                    <th>Values</th>
+                                    <th>Authorized value</th>
+                                    <th>Description</th>
+                                    <th>OPAC-Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                [% actionline=0 %]
+                                [% FOREACH rule IN rules %]
+                                    <tr>
+                                        <td style="white-space: nowrap;"[% IF rule.action && rule.action.do == 'update' %]rowspan="2"[% END %]>
+                                            [% IF rule.action %]
+                                                [% IF rule.action.do == 'add' %]<i class="fa fa-plus" aria-hidden="true"></i> New
+                                                [% ELSIF rule.action.do == 'delete' %]<i class="fa fa-times" aria-hidden="true"></i> Remove
+                                                [% ELSIF rule.action.do == 'update' %]<i class="fa fa-pencil-square-o" aria-hidden="true"></i> Update
+                                                [% END %]
+                                            [% ELSE %]
+                                                No action
+                                            [% END %]
+                                        </td>
+                                        <td [% IF rule.action && rule.action.do == 'update' %] rowspan="2"[% END %]>
+                                            [% IF rule.action && !rule.error  %]
+                                                [% actionline = actionline+1 %]
+                                                <span style="color: green;"><i class="fa fa-check" aria-hidden="true"></i></span>
+                                                <input type="hidden" name="action_[% actionline %]"           value="[% rule.action.do | html %]">
+                                                <input type="hidden" name="select_[% actionline %]"           value="[% rule.action.old_authorised_value | html %]">
+                                                <input type="hidden" name="authorised_value_[% actionline %]" value="[% rule.action.authorised_value | html %]">
+                                                <input type="hidden" name="lib_[% actionline %]"              value="[% rule.action.lib | html %]">
+                                                <input type="hidden" name="lib_opac_[% actionline %]"         value="[% rule.action.lib_opac | html %]">
+                                            [% ELSE %]
+                                                <span style="color: red;"><i class="fa fa-ban" aria-hidden="true"></i></span>
+                                            [% END %]
+                                        </td>
+                                        <td [% IF rule.action && rule.action.do == 'update' %] rowspan="2"[% END %]>
+                                            [% IF withError == 1 && rule.error  %]
+                                                [% IF rule.error.action == "add" &&  rule.error.error == "exists" %]
+                                                    <span style="color: red;">The authorised value to add alread exists.</span>
+                                                [% ELSIF rule.error.action == "delete" &&  rule.error.error == "not_exists" %]
+                                                    <span style="color: red;">The authorised value to delete does not exist.</span>
+                                                [% ELSIF rule.error.action == "update" &&  rule.error.error == "exists" %]
+                                                    <span style="color: red;">The authorised value to update to already exists.</span>
+                                                [% ELSIF rule.error.action == "update" &&  rule.error.error == "not_exists" %]
+                                                    <span style="color: red;">The authorised value to update to already exists.</span>
+                                                [% ELSIF rule.error.action == "update" &&  rule.error.error == "unknown" %]
+                                                    <span style="color: red;">An unknown error occured.</span>
+                                                [% ELSE %]
+                                                    <ul>
+                                                    [% FOREACH key IN rule.error.keys.sort %]
+                                                        <li>[% key | html %]: [% rule.error.$key | html %]</li>
+                                                    [% END %]
+                                                    </ul>
+                                                [% END %]
+                                            [% END %]
+                                        </td>
+                                        <td style="white-space: nowrap;">
+                                            [% IF rule.action %]
+                                                [% IF rule.action.do == 'add' %]New
+                                                [% ELSIF rule.action.do == 'delete' %]Delete
+                                                [% ELSIF rule.action.do == 'update' %]Before
+                                                [% END %]
+                                            [% ELSE %]
+                                                --
+                                            [% END %]
+                                        </td>
+                                        <td style="white-space: nowrap;">
+                                            [% IF rule.action && rule.action.do == "update" %]
+                                                [% rule.action.old_authorised_value %]<br>
+                                            [% ELSIF rule.action %]
+                                                [% rule.action.authorised_value %]
+                                            [% ELSE %]
+                                                [% rule.newValue %]
+                                            [% END %]
+                                        </td>
+                                        <td style="white-space: nowrap;">
+                                            [% IF rule.action && rule.action.do == "update" %]
+                                                [% rule.action.old_lib %]<br>
+                                            [% ELSIF rule.action %]
+                                                [% rule.action.lib %]
+                                            [% ELSE %]
+                                                [% rule.newDescription %]
+                                            [% END %]
+                                        </td>
+                                        <td style="white-space: nowrap;">
+                                            [% IF rule.action && rule.action.do == "update" %]
+                                                [% rule.action.old_lib_opac %]<br>
+                                            [% ELSIF rule.action %]
+                                                [% rule.action.lib_opac %]
+                                            [% ELSE %]
+                                                [% rule.newDescriptionOpac %]
+                                            [% END %]
+                                        </td>
+                                    </tr>
+                                    [% IF rule.action && rule.action.do == 'update' %]
+                                    <tr>
+                                        <td style="white-space: nowrap;">
+                                            After
+                                        </td>
+                                        <td>
+                                            [% rule.action.authorised_value %]
+                                        </td>
+                                        <td>
+                                            [% rule.action.lib %]
+                                        </td>
+                                        <td>
+                                            [% rule.action.lib_opac %]
+                                        </td>
+                                    </tr>
+                                    [% END %]
+                                [% END %]
+                            </tbody>
+                        </table>
+                        <input type="hidden" name="action" value="do_update">
+                        <input type="hidden" name="category" value="[% category %]">
+                        <input type="hidden" name="actioncount" value="[% actionline %]">
+                        <br>
+                        [% IF !errors && line_actions && !line_errors %]
+                            <input type="submit" class="btn btn-primary" value="Start update">
+                        [% ELSIF !errors && line_actions && line_errors %]
+                            <div id="error" class="dialog alert">Some instructions cannot be processed.</div>
+                            <input type="submit" class="btn btn-primary" value="Start update anyway">
+                        [% END %]
+                    </form>
+                [% END %]
+                
+                [% IF action == 'update_result' %]
+                    <a href="/cgi-bin/koha/tools/batchModificationOfAuthorizedValues.pl"><i class="fa fa-arrow-left" aria-hidden="true"></i> To CSV-file selection</a>
+                    <br>
+                    <br>
+                    <p>
+                        The authorised value batch update executed:
+                        <ul>
+                            <li>[% deleted %] deleted authorised values</li>
+                            <li>[% updated %] updated authorised values</li>
+                            <li>[% created %] new authorised values</li>
+                        </ul>
+                    </p>
+                    <h2>Processed updates</h2>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Action</th>
+                                <th>Successful</th>
+                                <th>Authorized value</th>
+                                <th>Description</th>
+                                <th>OPAC-Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            [% FOREACH actionresult IN actionresults %]
+                            <tr>
+                                <td style="white-space: nowrap;">
+                                    [% IF actionresult.action %]
+                                        [% IF actionresult.action == 'add' %]<i class="fa fa-plus" aria-hidden="true"></i> New
+                                        [% ELSIF actionresult.action == 'delete' %]<i class="fa fa-times" aria-hidden="true"></i> Remove
+                                        [% ELSIF actionresult.action == 'update' %]<i class="fa fa-pencil-square-o" aria-hidden="true"></i> Update
+                                        [% END %]
+                                    [% ELSE %]
+                                        No action
+                                    [% END %]
+                                </td>
+                                <td>
+                                    [% IF actionresult.result %]
+                                        <span style="color: green;"><i class="fa fa-check" aria-hidden="true"></i></span>
+                                    [% ELSE %]
+                                        <span style="color: red;"><i class="fa fa-ban" aria-hidden="true"></i></span>
+                                    [% END %]
+                                </td>
+                                <td>
+                                    [% actionresult.authorised_value %]
+                                </td>
+                                <td>
+                                    [% actionresult.lib %]
+                                </td>
+                                <td>
+                                    [% actionresult.lib_opac %]
+                                </td>
+                            </tr>
+                            [% END %]
+                        </tbody>
+                    </table>
+                [% END %]
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'tools-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
+     
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/tools-menu.js") | $raw %]
+    [% INCLUDE 'datatables.inc' %]
+    <script>
+    
+    </script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]
