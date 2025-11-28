@@ -3240,7 +3240,7 @@ sub CanBookBeRenewed {
     return ( 0, "on_reserve" )
       if ( $item->current_holds->search( { non_priority => 0 } )->count );
 
-    my ( $status, $matched_reserve, $possible_holds ) = C4::Reserves::CheckReserves($item);
+    my ( $status, $matched_reserve, $possible_holds ) = C4::Reserves::CheckReserves($item->itemnumber);
 
     my @fillable_holds = ();
     foreach my $possible_hold ( @{$possible_holds} ) {
