@@ -185,7 +185,7 @@
             $("#basketbooksellerid").kohaSelect({
                 width: '50%',
                 allowClear: false,
-                placeholder: _('Bitte Lieferanten auswählen'),
+                placeholder: _('Please select a vendor'),
                 ajax: {
                     url: '/api/v1/acquisitions/vendors',
                     delay: 300, // wait 300 milliseconds before triggering the request
