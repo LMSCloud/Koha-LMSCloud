@@ -1042,28 +1042,28 @@
                 searched += _(", Open charges amount to ") + $("#chargesto_filter").val();
             }
             if ( $("#chargessince_filter").val() ) {
-                searched += _(", Open charges from ") + $("#chargessince_filter").siblings('span').find('input').val();
+                searched += _(", Open charges from ") + $("#chargessince_filter").val();
             }
             if ( $("#accountexpiresfrom_filter").val() && $("#accountexpiresto_filter").val() ) {
-                searched += _(", Account expiry from ") + $("#accountexpiresfrom_filter").siblings('span').find('input').val() +  _(" to ") + $("#accountexpiresto_filter").siblings('span').find('input').val();
+                searched += _(", Account expiry from ") + $("#accountexpiresfrom_filter").val() +  _(" to ") + $("#accountexpiresto_filter").val();
             }
             else if ( $("#accountexpiresfrom_filter").val() ) {
-                searched += _(", Account expiry from ") + $("#accountexpiresfrom_filter").siblings('span').find('input').val();
+                searched += _(", Account expiry from ") + $("#accountexpiresfrom_filter").val();
             }
             else if ( $("#accountexpiresto_filter").val() ) {
-                searched += _(", Account expiry to ") + $("#accountexpiresto_filter").siblings('span').find('input').val();
+                searched += _(", Account expiry to ") + $("#accountexpiresto_filter").val();
             }
             if ( $("#debarreduntilfrom_filter").val() && $("#debarreduntilto_filter").val() ) {
-                searched += _(", Debarred period from ") + $("#debarreduntilfrom_filter").siblings('span').find('input').val() +  _(" to ") + $("#debarreduntilto_filter").siblings('span').find('input').val();
+                searched += _(", Debarred period from ") + $("#debarreduntilfrom_filter").val() +  _(" to ") + $("#debarreduntilto_filter").val();
             }
             else if ( $("#debarreduntilfrom_filter").val() ) {
-                searched += _(", Debarred period from ") + $("#debarreduntilfrom_filter").siblings('span').find('input').val();
+                searched += _(", Debarred period from ") + $("#debarreduntilfrom_filter").val();
             }
             else if ( $("#debarreduntilto_filter").val() ) {
-                searched += _(", Debarred period to ") + $("#debarreduntilto_filter").siblings('span').find('input').val();
+                searched += _(", Debarred period to ") + $("#debarreduntilto_filter").val();
             }
             if ( $("#inactivesince_filter").val() ) {
-                searched += _(", Inactive period from ") + $("#inactivesince_filter").siblings('span').find('input').val();
+                searched += _(", Inactive period from ") + $("#inactivesince_filter").val();
             }
             if ( $("#lastlettercode_filter").val() ) {
                 searched += _(", Last letter ") + "'" + $("#lastlettercode_filter").find("option:selected").text() + "'";
