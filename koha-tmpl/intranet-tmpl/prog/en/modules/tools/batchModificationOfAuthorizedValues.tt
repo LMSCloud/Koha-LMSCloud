@@ -165,6 +165,7 @@
                                                 <span style="color: red;"><i class="fa fa-ban" aria-hidden="true"></i></span>
                                             [% END %]
                                         </td>
+                                        [% IF withError == 1 %]
                                         <td [% IF rule.action && rule.action.do == 'update' %] rowspan="2"[% END %]>
                                             [% IF withError == 1 && rule.error  %]
                                                 [% IF rule.error.action == "add" &&  rule.error.error == "exists" %]
@@ -186,6 +187,7 @@
                                                 [% END %]
                                             [% END %]
                                         </td>
+                                        [% END %]
                                         <td style="white-space: nowrap;">
                                             [% IF rule.action %]
                                                 [% IF rule.action.do == 'add' %]New
