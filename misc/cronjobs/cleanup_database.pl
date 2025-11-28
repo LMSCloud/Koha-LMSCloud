@@ -20,9 +20,9 @@
 use Modern::Perl;
 
 use constant DEFAULT_ZEBRAQ_PURGEDAYS             => 30;
-use constant DEFAULT_MAIL_PURGEDAYS               => 365;
+use constant DEFAULT_MAIL_PURGEDAYS               => 1825; # 5 years limitation period for claims
 use constant DEFAULT_IMPORT_PURGEDAYS             => 60;
-use constant DEFAULT_LOGS_PURGEDAYS               => 180;
+use constant DEFAULT_LOGS_PURGEDAYS               => 730;
 use constant DEFAULT_MESSAGES_PURGEDAYS           => 365;
 use constant DEFAULT_SEARCHHISTORY_PURGEDAYS      => 30;
 use constant DEFAULT_SHARE_INVITATION_EXPIRY_DAYS => 14;
