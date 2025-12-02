@@ -53,7 +53,8 @@ Calculate due dates and periods using CalcDateDue
         item_type => $item_type,
         branchcode => $branchcode,
         start_date => $start_date,
-        existing_rules => $existing_rules
+        existing_rules => $existing_rules,
+        date_range_constraint => $date_range_constraint
     });
 
 =cut
@@ -61,11 +62,12 @@ Calculate due dates and periods using CalcDateDue
 sub _calculate_circulation_dates {
     my ($args) = @_;
 
-    my $patron_category = $args->{patron_category};
-    my $item_type       = $args->{item_type};
-    my $branchcode      = $args->{branchcode};
-    my $start_date      = $args->{start_date};
-    my $existing_rules  = $args->{existing_rules};
+    my $patron_category       = $args->{patron_category};
+    my $item_type             = $args->{item_type};
+    my $branchcode            = $args->{branchcode};
+    my $start_date            = $args->{start_date};
+    my $existing_rules        = $args->{existing_rules};
+    my $date_range_constraint = $args->{date_range_constraint};
 
     if ( !defined $branchcode ) {
         return {};
@@ -89,11 +91,22 @@ sub _calculate_circulation_dates {
     my $circ_branch      = _GetCircControlBranch( $test_item, $test_patron );
     my $effective_branch = $circ_branch || $branchcode;
 
-    my $start_dt    = $start_date ? dt_from_string($start_date, 'rfc3339') : dt_from_string();
+    my $start_dt    = $start_date ? dt_from_string( $start_date, 'rfc3339' ) : dt_from_string();
     my $due_date    = CalcDateDue( $start_dt, $item_type, $effective_branch, $test_patron );
     my $period_days = $start_dt->delta_days($due_date)->in_units('days');
 
     my $loanlength = GetLoanLength( $patron_category, $item_type, $effective_branch );
+
+    if ( $date_range_constraint && $date_range_constraint eq 'issuelength_with_renewals' ) {
+        my $renewalsallowed = $existing_rules->{renewalsallowed} // 0;
+        my $renewalperiod   = $existing_rules->{renewalperiod}   // 0;
+
+        if ( $renewalsallowed > 0 && $renewalperiod > 0 ) {
+            my $renewal_days = $renewalsallowed * $renewalperiod;
+            $due_date    = $due_date->clone->add( days => $renewal_days );
+            $period_days = $period_days + $renewal_days;
+        }
+    }
 
     return {
         calculated_due_date    => join( q{ }, $due_date->ymd(), $due_date->hms() ),
@@ -224,13 +237,15 @@ sub list_rules {
             }
 
             if ( $calculate_dates && $effective ) {
-                my $calculated_data = _calculate_circulation_dates(
+                my $date_range_constraint = C4::Context->preference('BookingDateRangeConstraint');
+                my $calculated_data       = _calculate_circulation_dates(
                     {
-                        patron_category => $patron_category,
-                        item_type       => $item_type,
-                        branchcode      => $branchcode,
-                        start_date      => $start_date,
-                        existing_rules  => $effective_rules
+                        patron_category       => $patron_category,
+                        item_type             => $item_type,
+                        branchcode            => $branchcode,
+                        start_date            => $start_date,
+                        existing_rules        => $effective_rules,
+                        date_range_constraint => $date_range_constraint,
                     }
                 );
 
@@ -347,13 +362,15 @@ sub list_rules_public {
         }
 
         if ($calculate_dates) {
-            my $calculated_data = _calculate_circulation_dates(
+            my $date_range_constraint = C4::Context->preference('OPACBookingDateRangeConstraint');
+            my $calculated_data       = _calculate_circulation_dates(
                 {
-                    patron_category => $patron_category,
-                    item_type       => $item_type,
-                    branchcode      => $branchcode,
-                    start_date      => $start_date,
-                    existing_rules  => $effective_rules
+                    patron_category       => $patron_category,
+                    item_type             => $item_type,
+                    branchcode            => $branchcode,
+                    start_date            => $start_date,
+                    existing_rules        => $effective_rules,
+                    date_range_constraint => $date_range_constraint,
                 }
             );
 
