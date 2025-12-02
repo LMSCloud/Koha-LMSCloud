@@ -175,6 +175,48 @@ function buildConstraintResult(filtered, total) {
 }
 
 /**
+ * Add lead period markers for dates within the lead period from today.
+ * This ensures visual highlighting for the first booking on a given bibliographic record.
+ *
+ * @param {import('../../types/bookings').UnavailableByDate} unavailableByDate - The map to modify
+ * @param {import('dayjs').Dayjs} today - Today's date
+ * @param {number} leadDays - Number of lead period days
+ * @param {Array<string>} allItemIds - Array of all item IDs
+ */
+function addLeadPeriodFromTodayMarkers(
+    unavailableByDate,
+    today,
+    leadDays,
+    allItemIds
+) {
+    if (leadDays <= 0 || !allItemIds || allItemIds.length === 0) return;
+
+    // Add "lead" markers for dates from today to today + leadDays - 1
+    for (let i = 0; i < leadDays; i++) {
+        const date = today.add(i, "day");
+        const key = date.format("YYYY-MM-DD");
+
+        if (!unavailableByDate[key]) {
+            unavailableByDate[key] = {};
+        }
+
+        // Add lead reason for all items
+        allItemIds.forEach(itemId => {
+            if (!unavailableByDate[key][itemId]) {
+                unavailableByDate[key][itemId] = new Set();
+            }
+            unavailableByDate[key][itemId].add("lead");
+        });
+    }
+
+    logger.debug("Added lead period from today markers", {
+        today: today.format("YYYY-MM-DD"),
+        leadDays,
+        datesMarked: leadDays,
+    });
+}
+
+/**
  * Optimized lead period validation using range queries instead of individual point queries
  * @param {import("dayjs").Dayjs} startDate - Potential start date to validate
  * @param {number} leadDays - Number of lead period days to check
@@ -510,9 +552,24 @@ function createDisableFunction(
                         "YYYY-MM-DD"
                     )} (${leadDays} days)`
                 );
+
+                // Enforce minimum advance booking: start date must be >= today + leadDays
+                // This applies even for the first booking (no existing bookings to conflict with)
+                const minStartDate = today.add(leadDays, "day");
+                if (dayjs_date.isBefore(minStartDate, "day")) {
+                    logger.debug(
+                        `Start date ${dayjs_date.format(
+                            "YYYY-MM-DD"
+                        )} blocked - within lead period from today (min: ${minStartDate.format(
+                            "YYYY-MM-DD"
+                        )})`
+                    );
+                    return true;
+                }
             }
 
             // Optimized lead period validation using range queries
+            // This checks for conflicts with existing bookings in the lead window
             if (
                 validateLeadPeriodOptimized(
                     dayjs_date,
@@ -709,6 +766,13 @@ export function calculateDisabledDates(
         allItemIds,
         normalizedEditBookingId,
         options
+    );
+
+    addLeadPeriodFromTodayMarkers(
+        unavailableByDate,
+        config.today,
+        config.leadDays,
+        allItemIds
     );
 
     logger.debug("IntervalTree-based availability calculated", {
