@@ -217,6 +217,82 @@ function addLeadPeriodFromTodayMarkers(
 }
 
 /**
+ * Add lead period markers for dates after trail periods where the lead period
+ * would overlap with the trail. This ensures visual highlighting for the
+ * theoretical lead period after existing bookings.
+ *
+ * @param {import('../../types/bookings').UnavailableByDate} unavailableByDate - The map to modify
+ * @param {IntervalTree} intervalTree - The interval tree with all bookings/checkouts
+ * @param {import('dayjs').Dayjs} today - Today's date
+ * @param {number} leadDays - Number of lead period days
+ * @param {number} trailDays - Number of trail period days
+ * @param {Array<string>} allItemIds - Array of all item IDs
+ * @param {number|null} editBookingId - Booking ID being edited (to exclude)
+ */
+function addTheoreticalLeadPeriodMarkers(
+    unavailableByDate,
+    intervalTree,
+    today,
+    leadDays,
+    editBookingId
+) {
+    if (leadDays <= 0 || !intervalTree || intervalTree.size === 0) return;
+
+    // Query all trail intervals in a reasonable range
+    const rangeStart = today.subtract(7, "day");
+    const rangeEnd = today.add(365, "day");
+
+    const allIntervals = intervalTree.queryRange(
+        rangeStart.valueOf(),
+        rangeEnd.valueOf()
+    );
+
+    // Filter to get only trail intervals
+    const trailIntervals = allIntervals.filter(
+        interval =>
+            interval.type === "trail" &&
+            (!editBookingId || interval.metadata?.booking_id != editBookingId)
+    );
+
+    let datesMarked = 0;
+
+    trailIntervals.forEach(trailInterval => {
+        // Trail interval ends at trailInterval.end
+        // After the trail, the next booking's lead period must not overlap
+        // So dates from trailEnd+1 to trailEnd+leadDays are blocked due to lead requirements
+        const trailEnd = dayjs(trailInterval.end).startOf("day");
+        const itemId = trailInterval.itemId;
+
+        for (let i = 1; i <= leadDays; i++) {
+            const blockedDate = trailEnd.add(i, "day");
+            // Only mark future dates
+            if (blockedDate.isBefore(today, "day")) continue;
+
+            const key = blockedDate.format("YYYY-MM-DD");
+
+            if (!unavailableByDate[key]) {
+                unavailableByDate[key] = {};
+            }
+
+            if (!unavailableByDate[key][itemId]) {
+                unavailableByDate[key][itemId] = new Set();
+            }
+
+            // Add "lead" reason to indicate this is blocked due to lead period
+            unavailableByDate[key][itemId].add("lead");
+            datesMarked++;
+        }
+    });
+
+    if (datesMarked > 0) {
+        logger.debug("Added theoretical lead period markers after trail periods", {
+            trailIntervalsCount: trailIntervals.length,
+            datesMarked,
+        });
+    }
+}
+
+/**
  * Optimized lead period validation using range queries instead of individual point queries
  * @param {import("dayjs").Dayjs} startDate - Potential start date to validate
  * @param {number} leadDays - Number of lead period days to check
@@ -773,6 +849,14 @@ export function calculateDisabledDates(
         config.today,
         config.leadDays,
         allItemIds
+    );
+
+    addTheoreticalLeadPeriodMarkers(
+        unavailableByDate,
+        intervalTree,
+        config.today,
+        config.leadDays,
+        normalizedEditBookingId
     );
 
     logger.debug("IntervalTree-based availability calculated", {
