@@ -85,6 +85,12 @@
 
     <script>
         $(document).ready(function() {
+            // Override help link to point to latest manual (bookings not in versioned docs)
+            $("#helper").off("click").on("click", function(e) {
+                e.preventDefault();
+                window.open("https://koha-community.org/manual/latest/en/html/circulation.html#bookings-to-collect", "_blank");
+            });
+
             // Initialize extended attributes
             initializeBookingExtendedAttributes().then(({ extended_attribute_types, authorised_values }) => {
                 // Get table settings
