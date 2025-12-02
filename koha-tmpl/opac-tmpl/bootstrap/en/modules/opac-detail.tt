@@ -2041,8 +2041,8 @@
                         success: function(checkouts) {
                             window.BookingsTimeline({
                                 loggedInUser: "[% logged_in_user.borrowernumber %]",
-                                bookings: JSON.parse('[% To.json(biblio.bookings.filter_by_active.unblessed) | $raw %]' ?? "[]"),
-                                bookableItems: JSON.parse('[% To.json(biblio.items.filter_by_bookable.unblessed) | $raw %]' ?? "[]"),
+                                bookings: [% To.json(biblio.bookings.filter_by_active.unblessed) | $raw %] || [],
+                                bookableItems: [% To.json(biblio.items.filter_by_bookable.unblessed) | $raw %] || [],
                                 checkouts: checkouts
                             }).init();
                         },
@@ -2050,8 +2050,8 @@
                             // If checkouts fetch fails, initialize timeline without checkouts
                             window.BookingsTimeline({
                                 loggedInUser: "[% logged_in_user.borrowernumber %]",
-                                bookings: JSON.parse('[% To.json(biblio.bookings.filter_by_active.unblessed) | $raw %]' ?? "[]"),
-                                bookableItems: JSON.parse('[% To.json(biblio.items.filter_by_bookable.unblessed) | $raw %]' ?? "[]"),
+                                bookings: [% To.json(biblio.bookings.filter_by_active.unblessed) | $raw %] || [],
+                                bookableItems: [% To.json(biblio.items.filter_by_bookable.unblessed) | $raw %] || [],
                                 checkouts: []
                             }).init();
                         }
