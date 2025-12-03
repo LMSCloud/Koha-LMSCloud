@@ -42,6 +42,7 @@
                 <div id="searchresults">
                     <table id="bookingst"></table>
                     [% INCLUDE 'modals/cancel_booking.inc' %]
+                    [% INCLUDE 'modals/convert_to_checkout.inc' %]
                     [% INCLUDE 'modals/booking/island.inc' %]
                 </div>
             </main>
@@ -67,6 +68,7 @@
     [% Asset.js("js/additional-fields.js") | $raw %]
     [% Asset.js("js/combobox.js") | $raw %]
     [% Asset.js("js/cancel_booking_modal.js") | $raw %]
+    [% Asset.js("js/convert_to_checkout_modal.js") | $raw %]
 
     [%# Process library data for JavaScript %]
     [% SET libraries = Branches.all %]

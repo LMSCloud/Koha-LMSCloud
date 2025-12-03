@@ -503,16 +503,23 @@ export function getBookingTableColumns(
                         </button>`;
                 }
                 if (showConvertToCheckoutAction) {
+                    const patronName = row.patron
+                        ? [row.patron.firstname, row.patron.surname].filter(Boolean).join(" ")
+                        : "";
+                    const biblioTitle = row.biblio?.title || window.BIBLIO_TITLE || "";
                     html += `
-                        <form name="checkout-transform" method="post" action="/cgi-bin/koha/circ/circulation.pl?borrowernumber=${escapeAttr(row.patron_id)}">
-                            <input type="hidden" name="borrowernumber" value="${escapeAttr(row.patron_id)}"/>
-                            <input type="hidden" name="barcode" value="${escapeAttr(row.item?.external_id)}"/>
-                            <input type="hidden" name="duedatespec" value="${escapeAttr(row.end_date)}"/>
-                            <button class="btn btn-default btn-xs convert-to-checkout-action" type="submit">
-                                <i class="fa fa-check-circle" aria-hidden="true"></i> ${__("Convert to checkout")}
-                            </button>
-                        </form>
-                    `
+                        <button type="button" class="btn btn-default btn-xs convert-to-checkout-action"
+                            data-toggle="modal"
+                            data-target="#convertToCheckoutModal"
+                            data-borrowernumber="${escapeAttr(row.patron_id)}"
+                            data-barcode="${escapeAttr(row.item?.external_id)}"
+                            data-itemid="${escapeAttr(row.item_id)}"
+                            data-duedatespec="${escapeAttr(row.end_date)}"
+                            data-title="${escapeAttr(biblioTitle)}"
+                            data-patron="${escapeAttr(patronName)}"
+                            data-cardnumber="${escapeAttr(row.patron?.cardnumber)}">
+                            <i class="fa fa-check-circle" aria-hidden="true"></i> ${__("Convert to checkout")}
+                        </button>`;
                 }
                 return html;
             },

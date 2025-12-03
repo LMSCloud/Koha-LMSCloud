@@ -888,6 +888,7 @@
         [% END %]
 
         [% INCLUDE modals/cancel_booking.inc %]
+        [% INCLUDE modals/convert_to_checkout.inc %]
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
@@ -926,6 +927,7 @@
     [% INCLUDE 'calendar.inc' %]
     [% Asset.js("js/additional-fields.js") | $raw %]
     [% Asset.js("js/cancel_booking_modal.js") | $raw %]
+    [% Asset.js("js/convert_to_checkout_modal.js") | $raw %]
     [% Asset.js("js/combobox.js") | $raw %]
     [% INCLUDE 'js-biblio-format.inc' %]
     [% INCLUDE 'str/members-menu.inc' %]

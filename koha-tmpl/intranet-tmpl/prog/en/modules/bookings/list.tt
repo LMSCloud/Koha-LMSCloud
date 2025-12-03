@@ -68,6 +68,7 @@
     </div> <!-- /.row -->
 
     [% INCLUDE modals/cancel_booking.inc %]
+    [% INCLUDE modals/convert_to_checkout.inc %]
 
     [% MACRO jsinclude BLOCK %]
     [% Asset.js("lib/vis-timeline/vis-timeline-graph2d.min.js") | $raw %]
@@ -87,6 +88,7 @@
     </script>
     [% Asset.js("js/additional-fields.js") | $raw %]
     [% Asset.js("js/cancel_booking_modal.js") | $raw %]
+    [% Asset.js("js/convert_to_checkout_modal.js") | $raw %]
     [% Asset.js("js/combobox.js") | $raw %]
     [% Asset.js("js/bookings-timeline.js") | $raw %]
 
@@ -104,6 +106,7 @@
     var bookings_table;
     var timeline;
     let biblionumber = "[% biblionumber | uri %]";
+    var BIBLIO_TITLE = "[% biblio.title | html %]";
 
     // Set global variables for timeline permissions
     var CAN_user_circulate_manage_bookings = [% IF CAN_user_circulate_manage_bookings %]true[% ELSE %]false[% END %];
