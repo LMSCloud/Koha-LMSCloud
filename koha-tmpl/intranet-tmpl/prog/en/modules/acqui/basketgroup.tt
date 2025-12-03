@@ -59,7 +59,7 @@
                                  '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="export" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('Export as CSV') + '" /></form> '
                                 [% IF Koha.Preference('EDIFACT') %]
                                     [% IF (ediaccount) %]
-                                         + '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="ediprint" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('Generate EDIFACT order') + '" /></form>'
+                                         + '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="booksellerid" value="' + data + '" /><input type="hidden" name="op" value="ediprint" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('Generate EDIFACT order') + '" /></form>'
                                     [% END %]
                                 [% END %];
                       }
