@@ -56,8 +56,10 @@ my $category =  $input->param("category");
 my $category_values = [];
 my $errors = [];
 
+my $category_exists;
+
 if ( $category ) {
-    my $category_exists = Koha::AuthorisedValueCategories->find(
+    $category_exists = Koha::AuthorisedValueCategories->find(
         {
             category_name => $category,
         }
@@ -78,7 +80,7 @@ if ( $category ) {
 my $line_actions = 0;
 my $line_errors = 0;
         
-if ( $action eq 'check_update' && $category && @$category_values ) {
+if ( $action eq 'check_update' && $category_exists ) {
     
     # The uploaded file filehandle,
     # which we may or may not have been passed
@@ -270,7 +272,7 @@ if ( $action eq 'check_update' && $category && @$category_values ) {
         $action = "confirm_actions";
     }
 }
-elsif ( $action eq 'do_update' && $category ) {
+elsif ( $action eq 'do_update' && $category_exists ) {
     my ($deleted,$updated,$created)=(0,0,0);
     my $actioncount = $input->param("actioncount");
     my $actionresults = [];
