@@ -1088,9 +1088,7 @@
                             [% END # /overdues_count %]
 
                             [% IF ( RESERVES.count ) %]
-                                [% WRAPPER tab_panel tabname="opac-user-holds" %]
-                                    [% PROCESS 'holds-table.inc' HOLDS = RESERVES, SuspendHoldsOpac = SuspendHoldsOpac, showpriority = showpriority, AutoResumeSuspendedHolds = AutoResumeSuspendedHolds %]
-                                [% END # /tab_panel#opac-user-holds %]
+                                [% PROCESS 'holds-table.inc' HOLDS = RESERVES, SuspendHoldsOpac = SuspendHoldsOpac, showpriority = showpriority, AutoResumeSuspendedHolds = AutoResumeSuspendedHolds %]
                             [% END # / #RESERVES.count %]
 
 
