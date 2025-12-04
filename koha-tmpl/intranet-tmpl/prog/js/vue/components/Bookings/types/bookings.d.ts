@@ -226,7 +226,8 @@ export type ErrorStateResult = {
 export type OnChangeOptions = {
     setError?: (msg: string) => void;
     tooltipVisibleRef?: { value: boolean };
-    constraintOptions?: ConstraintOptions;
+    /** Ref for constraint options to avoid stale closures */
+    constraintOptionsRef?: RefLike<ConstraintOptions> | null;
 };
 
 /** Minimal parameter set for circulation rules fetching. */

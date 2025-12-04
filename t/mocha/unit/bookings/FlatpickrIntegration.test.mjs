@@ -438,12 +438,12 @@ describe("Flatpickr Integration in BookingModal", () => {
             const onChange = createOnChange(store, {
                 setError: msg => (errorMessageRef.value = msg),
                 tooltipVisibleRef,
-                constraintOptions,
+                constraintOptionsRef: { value: constraintOptions },
             });
-            
+
             const selectedDates = [futureDate1, futureDate2];
             const instance = createMockFlatpickrInstance();
-            
+
             // Override handleBookingDateChange to return valid result
             global.handleBookingDateChange.returns({
                 isValid: true,
@@ -484,12 +484,12 @@ describe("Flatpickr Integration in BookingModal", () => {
             const onChange = createOnChange(store, {
                 setError: msg => (errorMessageRef.value = msg),
                 tooltipVisibleRef,
-                constraintOptions,
+                constraintOptionsRef: { value: constraintOptions },
             });
-            
+
             const selectedDates = [futureDate];
             const instance = createMockFlatpickrInstance();
-            
+
             // Override to return valid result
             global.handleBookingDateChange.returns({
                 isValid: true,
@@ -523,12 +523,12 @@ describe("Flatpickr Integration in BookingModal", () => {
             const onChange = createOnChange(store, {
                 setError: msg => (errorMessageRef.value = msg),
                 tooltipVisibleRef,
-                constraintOptions,
+                constraintOptionsRef: { value: constraintOptions },
             });
-            
+
             const selectedDates = [futureDate];
             const instance = createMockFlatpickrInstance();
-            
+
             // Mock calculateConstraintHighlighting to be available
             global.calculateConstraintHighlighting = sinon.stub().returns({
                 startDate: selectedDates[0],

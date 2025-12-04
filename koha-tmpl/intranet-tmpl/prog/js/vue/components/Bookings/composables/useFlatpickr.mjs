@@ -114,7 +114,7 @@ export function useFlatpickr(elRef, options) {
             onChange: createOnChange(store, {
                 setError,
                 tooltipVisibleRef: tooltipVisibleRef || { value: false },
-                constraintOptions: constraintOptionsRef?.value || {},
+                constraintOptionsRef,
             }),
             onClose: createOnClose(
                 tooltipMarkersRef || { value: [] },

@@ -324,7 +324,7 @@ export async function preloadFlatpickrLocale() {
  */
 export function createOnChange(
     store,
-    { setError = null, tooltipVisibleRef = null, constraintOptions = {} } = {}
+    { setError = null, tooltipVisibleRef = null, constraintOptionsRef = null } = {}
 ) {
     // Allow tests to stub globals; fall back to imported functions
     const _getVisibleCalendarDates =
@@ -339,6 +339,10 @@ export function createOnChange(
 
     return function (selectedDates, _dateStr, instance) {
         logger.debug("handleDateChange triggered", { selectedDates });
+
+        // Extract current value at execution time to avoid stale closure
+        const constraintOptions =
+            constraintOptionsRef?.value ?? constraintOptionsRef ?? {};
 
         const validDates = (selectedDates || []).filter(
             d => d instanceof Date && !Number.isNaN(d.getTime())
