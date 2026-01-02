@@ -19,6 +19,7 @@ use Modern::Perl;
 
 use Mojo::Base 'Mojolicious::Controller';
 
+use Koha::Calendar;
 use Koha::CirculationRules;
 use Koha::DateUtils qw( dt_from_string );
 
@@ -103,8 +104,26 @@ sub _calculate_circulation_dates {
 
         if ( $renewalsallowed > 0 && $renewalperiod > 0 ) {
             my $renewal_days = $renewalsallowed * $renewalperiod;
-            $due_date    = $due_date->clone->add( days => $renewal_days );
-            $period_days = $period_days + $renewal_days;
+
+            my $daysmode = Koha::CirculationRules->get_effective_daysmode(
+                {
+                    categorycode => $patron_category,
+                    itemtype     => $item_type,
+                    branchcode   => $effective_branch,
+                }
+            );
+
+            if ( $daysmode eq 'Days' ) {
+                $due_date = $due_date->clone->add( days => $renewal_days );
+            } else {
+                my $calendar = Koha::Calendar->new( branchcode => $effective_branch, days_mode => $daysmode );
+                my $dur      = DateTime::Duration->new( days => $renewal_days );
+                $due_date = $calendar->addDuration( $due_date->clone, $dur, 'days' );
+                $due_date->set_hour(23);
+                $due_date->set_minute(59);
+            }
+
+            $period_days = $start_dt->delta_days($due_date)->in_units('days');
         }
     }
 
