@@ -53,6 +53,7 @@ export const useBookingStore = defineStore("bookingStore", {
         circulationRules: [],
         circulationRulesContext: null, // Track the context used for the last rules fetch
         unavailableByDate: {},
+        holidays: [], // Closed days for the selected pickup library
 
         // Current booking state - normalized property names
         bookingId: null,
@@ -79,6 +80,7 @@ export const useBookingStore = defineStore("bookingStore", {
             bookingPatron: false,
             pickupLocations: false,
             circulationRules: false,
+            holidays: false,
             submit: false,
         },
         error: {
@@ -89,6 +91,7 @@ export const useBookingStore = defineStore("bookingStore", {
             bookingPatron: null,
             pickupLocations: null,
             circulationRules: null,
+            holidays: null,
             submit: null,
         },
     }),
@@ -193,6 +196,21 @@ export const useBookingStore = defineStore("bookingStore", {
             };
             return data;
         }, "circulationRules"),
+        /**
+         * Fetch holidays (closed days) for a library
+         * @param {string} libraryId - The library branchcode
+         * @param {string} [from] - Start date (ISO format), defaults to today
+         * @param {string} [to] - End date (ISO format), defaults to 3 months from start
+         */
+        fetchHolidays: withErrorHandling(async function (libraryId, from, to) {
+            if (!libraryId) {
+                this.holidays = [];
+                return [];
+            }
+            const data = await bookingApi.fetchHolidays(libraryId, from, to);
+            this.holidays = data;
+            return data;
+        }, "holidays"),
         /**
          * Derive item types from bookableItems
          */

@@ -1,7 +1,7 @@
-import { watchEffect, ref } from "vue";
+import { watchEffect, ref, watch } from "vue";
 
 /**
- * Watch core selections and fetch pickup locations and circulation rules.
+ * Watch core selections and fetch pickup locations, circulation rules, and holidays.
  * De-duplicates rules fetches by building a stable key from inputs.
  *
  * @param {Object} options
@@ -26,6 +26,7 @@ export function useRulesFetcher(options) {
     } = options;
 
     const lastRulesKey = ref(null);
+    const lastHolidaysLibrary = ref(null);
 
     watchEffect(
         () => {
@@ -62,6 +63,18 @@ export function useRulesFetcher(options) {
             }
         },
         { flush: "post" }
+    );
+
+    watch(
+        () => bookingPickupLibraryId.value,
+        (libraryId) => {
+            if (libraryId === lastHolidaysLibrary.value) {
+                return;
+            }
+            lastHolidaysLibrary.value = libraryId;
+            store.fetchHolidays(libraryId);
+        },
+        { immediate: true }
     );
 
     return { lastRulesKey };
