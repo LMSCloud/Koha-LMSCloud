@@ -45,6 +45,22 @@ sub _public_rule_kinds {
     ];
 }
 
+=head2 _add_days_with_calendar
+
+Add days to a date using the Koha calendar for the given days_mode
+
+=cut
+
+sub _add_days_with_calendar {
+    my ( $date, $days, $branchcode, $mode ) = @_;
+    my $calendar = Koha::Calendar->new( branchcode => $branchcode, days_mode => $mode );
+    my $dur      = DateTime::Duration->new( days => $days );
+    my $new_date = $calendar->addDuration( $date->clone, $dur, 'days' );
+    $new_date->set_hour(23);
+    $new_date->set_minute(59);
+    return $new_date;
+}
+
 =head2 _calculate_circulation_dates
 
 Calculate due dates and periods using CalcDateDue
@@ -98,34 +114,47 @@ sub _calculate_circulation_dates {
 
     my $loanlength = GetLoanLength( $patron_category, $item_type, $effective_branch );
 
-    if ( $date_range_constraint && $date_range_constraint eq 'issuelength_with_renewals' ) {
-        my $renewalsallowed = $existing_rules->{renewalsallowed} // 0;
-        my $renewalperiod   = $existing_rules->{renewalperiod}   // 0;
-
-        if ( $renewalsallowed > 0 && $renewalperiod > 0 ) {
-            my $renewal_days = $renewalsallowed * $renewalperiod;
-
-            my $daysmode = Koha::CirculationRules->get_effective_daysmode(
-                {
-                    categorycode => $patron_category,
-                    itemtype     => $item_type,
-                    branchcode   => $effective_branch,
-                }
-            );
-
-            if ( $daysmode eq 'Days' ) {
-                $due_date = $due_date->clone->add( days => $renewal_days );
-            } else {
-                my $calendar = Koha::Calendar->new( branchcode => $effective_branch, days_mode => $daysmode );
-                my $dur      = DateTime::Duration->new( days => $renewal_days );
-                $due_date = $calendar->addDuration( $due_date->clone, $dur, 'days' );
-                $due_date->set_hour(23);
-                $due_date->set_minute(59);
-            }
-
-            $period_days = $start_dt->delta_days($due_date)->in_units('days');
-        }
+    if ( !$date_range_constraint || $date_range_constraint ne 'issuelength_with_renewals' ) {
+        return {
+            calculated_due_date    => join( q{ }, $due_date->ymd(), $due_date->hms() ),
+            calculated_period_days => $period_days,
+            circulation_branch     => $effective_branch,
+            lengthunit             => $loanlength->{lengthunit} // 'days',
+        };
     }
+
+    my $renewalsallowed = $existing_rules->{renewalsallowed} // 0;
+    my $renewalperiod   = $existing_rules->{renewalperiod}   // 0;
+
+    if ( $renewalsallowed <= 0 || $renewalperiod <= 0 ) {
+        return {
+            calculated_due_date    => join( q{ }, $due_date->ymd(), $due_date->hms() ),
+            calculated_period_days => $period_days,
+            circulation_branch     => $effective_branch,
+            lengthunit             => $loanlength->{lengthunit} // 'days',
+        };
+    }
+
+    my $renewal_days = $renewalsallowed * $renewalperiod;
+
+    my $daysmode = Koha::CirculationRules->get_effective_daysmode(
+        {
+            categorycode => $patron_category,
+            itemtype     => $item_type,
+            branchcode   => $effective_branch,
+        }
+    );
+
+    my $daysmode_handlers = {
+        Days     => sub { my ( $date, $days ) = @_; return $date->clone->add( days => $days ); },
+        Calendar => sub { return _add_days_with_calendar( @_, $effective_branch, 'Calendar' ); },
+        Datedue  => sub { return _add_days_with_calendar( @_, $effective_branch, 'Datedue' ); },
+        Dayweek  => sub { return _add_days_with_calendar( @_, $effective_branch, 'Dayweek' ); },
+    };
+
+    my $handler  = $daysmode_handlers->{$daysmode} // $daysmode_handlers->{Days};
+    $due_date    = $handler->( $due_date, $renewal_days );
+    $period_days = $start_dt->delta_days($due_date)->in_units('days');
 
     return {
         calculated_due_date    => join( q{ }, $due_date->ymd(), $due_date->hms() ),
