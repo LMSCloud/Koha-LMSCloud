@@ -216,12 +216,29 @@ const NormalStrategy = {
     },
     /**
      * @param {Date|import('dayjs').Dayjs} startDate
-     * @param {any} _rules
+     * @param {Object} circulationRules
      * @param {import('../../types/bookings').ConstraintOptions} [constraintOptions={}]
      * @returns {import('../../types/bookings').ConstraintHighlighting|null}
      */
-    calculateConstraintHighlighting(startDate, _rules, constraintOptions = {}) {
+    calculateConstraintHighlighting(startDate, circulationRules, constraintOptions = {}) {
         const start = dayjs(startDate).startOf("day");
+
+        // Prefer backend-calculated due date (respects useDaysMode/calendar)
+        const dueStr = circulationRules?.calculated_due_date;
+        if (dueStr) {
+            const due = dayjs(dueStr).startOf("day");
+            if (!due.isBefore(start, "day")) {
+                return {
+                    startDate: start.toDate(),
+                    targetEndDate: due.toDate(),
+                    blockedIntermediateDates: [],
+                    constraintMode: CONSTRAINT_MODE_NORMAL,
+                    maxPeriod: Number(circulationRules?.calculated_period_days) || constraintOptions.maxBookingPeriod,
+                };
+            }
+        }
+
+        // Fall back to simple maxPeriod arithmetic
         const maxPeriod = constraintOptions.maxBookingPeriod;
         if (!maxPeriod) return null;
         const targetEndDate = calculateMaxEndDate(start, maxPeriod).toDate();

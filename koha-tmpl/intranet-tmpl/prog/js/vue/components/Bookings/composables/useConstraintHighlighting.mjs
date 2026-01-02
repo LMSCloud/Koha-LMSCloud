@@ -21,11 +21,18 @@ export function useConstraintHighlighting(store, constraintOptionsRef) {
         if (!startISO) return null;
         const opts = constraintOptionsRef?.value ?? {};
         const effectiveRules = toEffectiveRules(store.circulationRules, opts);
-        return calculateConstraintHighlighting(
+        const baseHighlighting = calculateConstraintHighlighting(
             dayjs(startISO).toDate(),
             effectiveRules,
             opts
         );
+        if (!baseHighlighting) return null;
+
+        const holidays = store.holidays || [];
+        return {
+            ...baseHighlighting,
+            holidays,
+        };
     });
 
     return { highlightingData };

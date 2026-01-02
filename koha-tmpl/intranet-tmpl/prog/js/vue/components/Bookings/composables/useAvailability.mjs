@@ -19,7 +19,8 @@ import {
  *  bookingItemId: import('../types/bookings').RefLike<string|number|null>,
  *  bookingId: import('../types/bookings').RefLike<string|number|null>,
  *  selectedDateRange: import('../types/bookings').RefLike<string[]>,
- *  circulationRules: import('../types/bookings').RefLike<import('../types/bookings').CirculationRule[]>
+ *  circulationRules: import('../types/bookings').RefLike<import('../types/bookings').CirculationRule[]>,
+ *  holidays: import('../types/bookings').RefLike<string[]>
  * }} storeRefs
  * @param {import('../types/bookings').RefLike<import('../types/bookings').ConstraintOptions>} optionsRef
  * @returns {{ availability: import('vue').ComputedRef<import('../types/bookings').AvailabilityResult>, disableFnRef: import('vue').ComputedRef<import('../types/bookings').DisableFn>, unavailableByDateRef: import('vue').ComputedRef<import('../types/bookings').UnavailableByDate> }}
@@ -33,6 +34,7 @@ export function useAvailability(storeRefs, optionsRef) {
         bookingId,
         selectedDateRange,
         circulationRules,
+        holidays,
     } = storeRefs;
 
     const inputsReady = computed(
@@ -57,15 +59,15 @@ export function useAvailability(storeRefs, optionsRef) {
         );
 
         // Support on-demand unavailable map for current calendar view
-        let calcOptions = {};
+        let calcOptions = {
+            holidays: holidays?.value || [],
+        };
         if (optionsRef && optionsRef.value) {
             const { visibleStartDate, visibleEndDate } = optionsRef.value;
             if (visibleStartDate && visibleEndDate) {
-                calcOptions = {
-                    onDemand: true,
-                    visibleStartDate,
-                    visibleEndDate,
-                };
+                calcOptions.onDemand = true;
+                calcOptions.visibleStartDate = visibleStartDate;
+                calcOptions.visibleEndDate = visibleEndDate;
             }
         }
 

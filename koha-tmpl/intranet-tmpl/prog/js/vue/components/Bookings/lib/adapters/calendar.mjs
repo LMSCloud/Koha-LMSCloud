@@ -200,6 +200,26 @@ export function applyCalendarHighlighting(instance, highlightingData) {
             }
         }
 
+        if (
+            highlightingData.holidays &&
+            highlightingData.holidays.length > 0
+        ) {
+            const holidayTimestamps = new Set(
+                highlightingData.holidays.map(dateStr => {
+                    const d = new Date(dateStr);
+                    d.setHours(0, 0, 0, 0);
+                    return d.getTime();
+                })
+            );
+
+            applyHolidayClickPrevention(
+                dayElements,
+                highlightingData.startDate,
+                highlightingData.targetEndDate,
+                holidayTimestamps
+            );
+        }
+
         logger.groupEnd();
     };
 
@@ -207,7 +227,62 @@ export function applyCalendarHighlighting(instance, highlightingData) {
 }
 
 /**
+ * Fix incorrect date unavailability via a CSS-based override.
+ * Used for target end dates and dates after holidays that Flatpickr incorrectly blocks.
+ *
+ * @param {NodeListOf<Element>|Element[]} dayElements
+ * @param {Date} targetDate
+ * @param {string} [logContext="target end date"]
+ * @returns {void}
+ */
+function fixDateAvailability(dayElements, targetDate, logContext = "target end date") {
+    if (!dayElements || typeof dayElements.length !== "number") {
+        logger.warn(
+            `Invalid dayElements passed to fixDateAvailability (${logContext})`,
+            dayElements
+        );
+        return;
+    }
+
+    const targetElem = Array.from(dayElements).find(
+        elem =>
+            elem.dateObj && elem.dateObj.getTime() === targetDate.getTime()
+    );
+
+    if (!targetElem) {
+        logger.debug(`Date element not found for ${logContext}`, targetDate);
+        return;
+    }
+
+    // Mark the element as explicitly allowed, overriding Flatpickr's styles
+    targetElem.classList.remove(CLASS_FLATPICKR_NOT_ALLOWED);
+    targetElem.removeAttribute("tabindex");
+    targetElem.classList.add(CLASS_BOOKING_OVERRIDE_ALLOWED);
+
+    targetElem.setAttribute(DATA_ATTRIBUTE_BOOKING_OVERRIDE, "allowed");
+
+    logger.debug(`Applied CSS override for ${logContext} availability`, {
+        targetDate,
+        element: targetElem,
+    });
+
+    if (targetElem.classList.contains(CLASS_FLATPICKR_DISABLED)) {
+        targetElem.classList.remove(
+            CLASS_FLATPICKR_DISABLED,
+            CLASS_FLATPICKR_NOT_ALLOWED
+        );
+        targetElem.removeAttribute("tabindex");
+        targetElem.classList.add(CLASS_BOOKING_OVERRIDE_ALLOWED);
+
+        logger.debug(`Applied fix for ${logContext} availability`, {
+            finalClasses: Array.from(targetElem.classList),
+        });
+    }
+}
+
+/**
  * Fix incorrect target-end unavailability via a CSS-based override.
+ * Wrapper for backward compatibility.
  *
  * @param {import('flatpickr/dist/types/instance').Instance} _instance
  * @param {NodeListOf<Element>|Element[]} dayElements
@@ -215,48 +290,7 @@ export function applyCalendarHighlighting(instance, highlightingData) {
  * @returns {void}
  */
 function fixTargetEndDateAvailability(_instance, dayElements, targetEndDate) {
-    if (!dayElements || typeof dayElements.length !== "number") {
-        logger.warn(
-            "Invalid dayElements passed to fixTargetEndDateAvailability",
-            dayElements
-        );
-        return;
-    }
-
-    const targetEndElem = Array.from(dayElements).find(
-        elem =>
-            elem.dateObj && elem.dateObj.getTime() === targetEndDate.getTime()
-    );
-
-    if (!targetEndElem) {
-        logger.warn("Target end date element not found", targetEndDate);
-        return;
-    }
-
-    // Mark the element as explicitly allowed, overriding Flatpickr's styles
-    targetEndElem.classList.remove(CLASS_FLATPICKR_NOT_ALLOWED);
-    targetEndElem.removeAttribute("tabindex");
-    targetEndElem.classList.add(CLASS_BOOKING_OVERRIDE_ALLOWED);
-
-    targetEndElem.setAttribute(DATA_ATTRIBUTE_BOOKING_OVERRIDE, "allowed");
-
-    logger.debug("Applied CSS override for target end date availability", {
-        targetDate: targetEndDate,
-        element: targetEndElem,
-    });
-
-    if (targetEndElem.classList.contains(CLASS_FLATPICKR_DISABLED)) {
-        targetEndElem.classList.remove(
-            CLASS_FLATPICKR_DISABLED,
-            CLASS_FLATPICKR_NOT_ALLOWED
-        );
-        targetEndElem.removeAttribute("tabindex");
-        targetEndElem.classList.add(CLASS_BOOKING_OVERRIDE_ALLOWED);
-
-        logger.debug("Applied fix for target end date availability", {
-            finalClasses: Array.from(targetEndElem.classList),
-        });
-    }
+    fixDateAvailability(dayElements, targetEndDate, "target end date");
 }
 
 /**
@@ -275,6 +309,50 @@ function applyClickPrevention(instance) {
         elem.removeEventListener("click", preventClick, { capture: true });
         elem.addEventListener("click", preventClick, { capture: true });
     });
+}
+
+/**
+ * Apply click prevention for holidays when selecting end dates.
+ * Holidays are not disabled in the function (to allow Flatpickr range validation to pass),
+ * but we prevent clicking on them and add visual styling.
+ *
+ * @param {NodeListOf<Element>|Element[]} dayElements
+ * @param {Date} startDate - Selected start date
+ * @param {Date} targetEndDate - Maximum allowed end date
+ * @param {Set<number>} holidayTimestamps - Set of holiday date timestamps
+ * @returns {void}
+ */
+function applyHolidayClickPrevention(dayElements, startDate, targetEndDate, holidayTimestamps) {
+    if (!dayElements || holidayTimestamps.size === 0) {
+        return;
+    }
+
+    const startTime = startDate.getTime();
+    const endTime = targetEndDate.getTime();
+    let blockedCount = 0;
+
+    Array.from(dayElements).forEach(elem => {
+        if (!elem.dateObj) return;
+
+        const dayTime = elem.dateObj.getTime();
+
+        if (dayTime <= startTime || dayTime > endTime) return;
+        if (!holidayTimestamps.has(dayTime)) return;
+
+        elem.classList.add(
+            CLASS_BOOKING_CONSTRAINED_RANGE_MARKER,
+            CLASS_BOOKING_INTERMEDIATE_BLOCKED
+        );
+
+        elem.removeEventListener("click", preventClick, { capture: true });
+        elem.addEventListener("click", preventClick, { capture: true });
+
+        blockedCount++;
+    });
+
+    if (blockedCount > 0) {
+        logger.debug("Applied click prevention to holidays", { blockedCount });
+    }
 }
 
 /** Click prevention handler. */

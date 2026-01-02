@@ -175,6 +175,38 @@ function buildConstraintResult(filtered, total) {
 }
 
 /**
+ * Add holiday markers for dates that are library closed days.
+ * This ensures visual highlighting for closed days in the calendar.
+ *
+ * @param {import('../../types/bookings').UnavailableByDate} unavailableByDate - The map to modify
+ * @param {Array<string>} holidays - Array of holiday dates in YYYY-MM-DD format
+ * @param {Array<string>} allItemIds - Array of all item IDs
+ */
+function addHolidayMarkers(unavailableByDate, holidays, allItemIds) {
+    if (!holidays || holidays.length === 0 || !allItemIds || allItemIds.length === 0) {
+        return;
+    }
+
+    holidays.forEach(dateStr => {
+        if (!unavailableByDate[dateStr]) {
+            unavailableByDate[dateStr] = {};
+        }
+
+        allItemIds.forEach(itemId => {
+            if (!unavailableByDate[dateStr][itemId]) {
+                unavailableByDate[dateStr][itemId] = new Set();
+            }
+            unavailableByDate[dateStr][itemId].add("holiday");
+        });
+    });
+
+    logger.debug("Added holiday markers", {
+        holidayCount: holidays.length,
+        itemCount: allItemIds.length,
+    });
+}
+
+/**
  * Add lead period markers for dates within the lead period from today.
  * This ensures visual highlighting for the first booking on a given bibliographic record.
  *
@@ -487,6 +519,7 @@ function extractBookingConfiguration(circulationRules, todayArg) {
  * @param {string|null} selectedItem - Selected item ID or null
  * @param {number|null} editBookingId - Booking ID being edited
  * @param {Array<Date>} selectedDates - Currently selected dates
+ * @param {Array<string>} holidays - Array of holiday dates in YYYY-MM-DD format
  * @returns {(date: Date) => boolean} Disable function for Flatpickr
  */
 function createDisableFunction(
@@ -495,7 +528,8 @@ function createDisableFunction(
     bookableItems,
     selectedItem,
     editBookingId,
-    selectedDates
+    selectedDates,
+    holidays = []
 ) {
     const {
         today,
@@ -510,11 +544,24 @@ function createDisableFunction(
         isEndDateOnly ? CONSTRAINT_MODE_END_DATE_ONLY : CONSTRAINT_MODE_NORMAL
     );
 
+    const holidaySet = new Set(holidays);
+
     return date => {
         const dayjs_date = dayjs(date).startOf("day");
 
-        // Guard clause: Basic past date validation
         if (dayjs_date.isBefore(today, "day")) return true;
+
+        // Only disable holidays when selecting START date - for END date selection,
+        // we use click prevention instead so Flatpickr's range validation passes
+        if (holidaySet.size > 0 && (!selectedDates || selectedDates.length === 0)) {
+            const dateKey = dayjs_date.format("YYYY-MM-DD");
+            if (holidaySet.has(dateKey)) {
+                logger.debug(
+                    `Date ${dateKey} disabled - library closed day (start date selection)`
+                );
+                return true;
+            }
+        }
 
         // Guard clause: No bookable items available
         if (!bookableItems || bookableItems.length === 0) {
@@ -673,18 +720,18 @@ function createDisableFunction(
 
             // Basic end date validations
             if (dayjs_date.isBefore(start, "day")) return true;
-            // Respect backend-calculated due date in end_date_only mode only if it's not before start
+
+            // Use backend-calculated due date when available (respects useDaysMode/calendar)
+            // This correctly calculates the Nth opening day from start, skipping closed days
+            // Fall back to simple maxPeriod arithmetic only if no calculated date
             if (
-                isEndDateOnly &&
                 config.calculatedDueDate &&
                 !config.calculatedDueDate.isBefore(start, "day")
             ) {
-                const targetEnd = config.calculatedDueDate;
-                if (dayjs_date.isAfter(targetEnd, "day")) return true;
+                if (dayjs_date.isAfter(config.calculatedDueDate, "day")) return true;
             } else if (maxPeriod > 0) {
                 const maxEndDate = calculateMaxEndDate(start, maxPeriod);
-                if (dayjs_date.isAfter(maxEndDate, "day"))
-                    return true;
+                if (dayjs_date.isAfter(maxEndDate, "day")) return true;
             }
 
             // Optimized trail period validation using range queries
@@ -775,6 +822,7 @@ function logBookingDebugInfo(
  * @param {Object} circulationRules - Circulation rules object (leadDays, trailDays, maxPeriod, booking_constraint_mode, etc.)
  * @param {Date|import('dayjs').Dayjs} todayArg - Optional today value for deterministic tests
  * @param {Object} options - Additional options for optimization
+ * @param {Array<string>} [options.holidays] - Array of holiday dates in YYYY-MM-DD format
  * @returns {import('../../types/bookings').AvailabilityResult}
  */
 export function calculateDisabledDates(
@@ -788,6 +836,7 @@ export function calculateDisabledDates(
     todayArg = undefined,
     options = {}
 ) {
+    const holidays = options.holidays || [];
     logger.time("calculateDisabledDates");
     const normalizedSelectedItem =
         selectedItem != null ? String(selectedItem) : null;
@@ -830,7 +879,8 @@ export function calculateDisabledDates(
         bookableItems,
         normalizedSelectedItem,
         normalizedEditBookingId,
-        selectedDates
+        selectedDates,
+        holidays
     );
 
     // Build unavailableByDate for backward compatibility and markers
@@ -843,6 +893,8 @@ export function calculateDisabledDates(
         normalizedEditBookingId,
         options
     );
+
+    addHolidayMarkers(unavailableByDate, holidays, allItemIds);
 
     addLeadPeriodFromTodayMarkers(
         unavailableByDate,
