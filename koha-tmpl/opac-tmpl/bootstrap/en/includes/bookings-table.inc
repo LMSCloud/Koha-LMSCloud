@@ -34,7 +34,7 @@
                 </td>
                 <td class="pickup-library">
                     [% BOOKING.pickup_library.branchname | html %]
-                    [% IF BOOKING.status == 'new' %]
+                    [% IF BOOKING.status == 'new' && !Koha.Preference('OPACBookingDefaultLibraryEnabled') %]
                         <button type="button" class="btn btn-sm btn-link" data-toggle="modal" data-target="#change-pickup-location-[% BOOKING.booking_id | html %]">
                             <i class="fa fa-pencil-alt" aria-hidden="true"></i>&nbsp;Change
                         </button>

@@ -136,6 +136,11 @@ if ( $op eq 'cud-cancel' ) {
 }
 
 if ( $op eq 'cud-change_pickup_location' ) {
+    if ( C4::Context->preference('OPACBookingDefaultLibraryEnabled') ) {
+        print $query->redirect('/cgi-bin/koha/errors/403.pl') or croak;
+        exit;
+    }
+
     my $booking_id          = $query->param('booking_id');
     my $new_pickup_location = $query->param('new_pickup_location');
     my $booking             = Koha::Bookings->find($booking_id);
