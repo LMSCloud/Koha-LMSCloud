@@ -9,10 +9,13 @@ function delay(ms = 0) {
 
 function createMockStore(callLog) {
     return {
+        holidays: [],
         invalidateCalculatedDue: () => callLog.push({ name: "invalidateCalculatedDue" }),
         fetchCirculationRules: params => callLog.push({ name: "fetchCirculationRules", params }),
         fetchPickupLocations: (biblio, patronId) =>
             callLog.push({ name: "fetchPickupLocations", biblio, patronId }),
+        fetchHolidays: libraryId =>
+            callLog.push({ name: "fetchHolidays", libraryId }),
     };
 }
 
