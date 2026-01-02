@@ -335,6 +335,8 @@ paths:
     $ref: ./paths/libraries.yaml#/~1libraries
   "/libraries/{library_id}":
     $ref: "./paths/libraries.yaml#/~1libraries~1{library_id}"
+  "/libraries/{library_id}/holidays":
+    $ref: "./paths/libraries.yaml#/~1libraries~1{library_id}~1holidays"
   "/oauth/login/{provider_code}/{interface}":
     $ref: ./paths/oauth.yaml#/~1oauth~1login~1{provider_code}~1{interface}
   /oauth/token:
@@ -391,6 +393,8 @@ paths:
     $ref: ./paths/libraries.yaml#/~1public~1libraries
   "/public/libraries/{library_id}":
     $ref: "./paths/libraries.yaml#/~1public~1libraries~1{library_id}"
+  "/public/libraries/{library_id}/holidays":
+    $ref: "./paths/libraries.yaml#/~1public~1libraries~1{library_id}~1holidays"
   "/public/oauth/login/{provider_code}/{interface}":
     $ref: ./paths/public_oauth.yaml#/~1public~1oauth~1login~1{provider_code}~1{interface}
   /public/patrons/{patron_id}:
