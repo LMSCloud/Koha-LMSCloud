@@ -65,6 +65,10 @@
             ></span>
             {{ $__("Checked Out") }}
             <span
+                class="booking-marker-dot booking-marker-dot--holiday ml-3"
+            ></span>
+            {{ $__("Closed") }}
+            <span
                 v-if="dateRangeConstraint && hasSelectedDates"
                 class="booking-marker-dot ml-3"
                 style="background-color: #28a745"
@@ -136,6 +140,7 @@ export default {
             bookingId,
             selectedDateRange,
             circulationRules,
+            holidays,
         } = storeToRefs(store);
         const inputEl = ref(null);
 
@@ -188,6 +193,7 @@ export default {
                 bookingId,
                 selectedDateRange,
                 circulationRules,
+                holidays,
             },
             availabilityOptionsRef
         );
@@ -310,6 +316,10 @@ export default {
 
 .booking-marker-dot--checked-out {
     background-color: hsl(var(--booking-danger-hue), 60%, 85%);
+}
+
+.booking-marker-dot--holiday {
+    background-color: var(--booking-holiday-bg);
 }
 
 .alert {

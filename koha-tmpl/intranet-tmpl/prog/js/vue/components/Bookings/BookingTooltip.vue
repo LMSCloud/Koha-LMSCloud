@@ -89,4 +89,8 @@ withDefaults(
 .booking-marker-dot--trail {
     background: var(--booking-warning-bg);
 }
+
+.booking-marker-dot--holiday {
+    background: var(--booking-holiday-bg);
+}
 </style>

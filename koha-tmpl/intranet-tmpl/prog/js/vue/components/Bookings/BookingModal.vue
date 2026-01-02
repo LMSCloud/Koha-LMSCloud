@@ -826,7 +826,7 @@ export default {
     --booking-border-width: 1px;
 
     /* Variables used by second style block (booking markers, calendar states) */
-    --booking-marker-size: 0.25em;
+    --booking-marker-size: max(4px, 0.25em);
     --booking-marker-grid-gap: 0.25rem;
     --booking-marker-grid-offset: -0.75rem;
 
@@ -835,10 +835,13 @@ export default {
     --booking-danger-hue: 354;
     --booking-info-hue: 195;
     --booking-neutral-hue: 210;
+    --booking-holiday-hue: 0;
 
     /* Colors derived from hues (used in second style block) */
     --booking-warning-bg: hsl(var(--booking-warning-hue), 100%, 85%);
     --booking-neutral-600: hsl(var(--booking-neutral-hue), 10%, 45%);
+    --booking-holiday-bg: hsl(var(--booking-holiday-hue), 0%, 85%);
+    --booking-holiday-text: hsl(var(--booking-holiday-hue), 0%, 40%);
 
     /* Spacing used in second style block */
     --booking-space-xs: 0.125rem;
@@ -1019,9 +1022,8 @@ hr {
 }
 
 .calendar-legend .booking-marker-dot {
-    /* Make legend dots much larger and more visible */
-    width: calc(var(--booking-marker-size) * 3) !important;
-    height: calc(var(--booking-marker-size) * 3) !important;
+    width: calc(var(--booking-marker-size) * 2) !important;
+    height: calc(var(--booking-marker-size) * 2) !important;
     margin-right: calc(var(--booking-space-sm) * 1.5);
     border: var(--booking-border-width) solid hsla(0, 0%, 0%, 0.15);
 }
@@ -1140,6 +1142,10 @@ hr {
     background: var(--booking-warning-bg);
 }
 
+.booking-marker-dot--holiday {
+    background: var(--booking-holiday-bg);
+}
+
 /* Calendar Day States */
 .booked {
     background: var(--booking-warning-bg) !important;
@@ -1150,6 +1156,13 @@ hr {
 .checked-out {
     background: hsl(var(--booking-danger-hue), 60%, 85%) !important;
     color: hsl(var(--booking-danger-hue), 80%, 25%) !important;
+    border-radius: var(--booking-border-radius-full) !important;
+}
+
+/* Holiday/Closed day state */
+.holiday {
+    background: var(--booking-holiday-bg) !important;
+    color: var(--booking-holiday-text) !important;
     border-radius: var(--booking-border-radius-full) !important;
 }
 

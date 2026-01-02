@@ -6,6 +6,7 @@ export function getMarkerTypeLabel(type) {
         "checked-out": $__("Checked out"),
         lead: $__("Lead period"),
         trail: $__("Trail period"),
+        holiday: $__("Library closed"),
     };
     return labels[type] || type;
 }

@@ -51,6 +51,11 @@ export const bookingValidationMessages = {
             params.status,
             params.statusText
         ),
+    fetch_holidays_failed: params =>
+        $__("Failed to fetch holidays: %s %s").format(
+            params.status,
+            params.statusText
+        ),
     create_booking_failed: params =>
         $__("Failed to create booking: %s %s").format(
             params.status,
