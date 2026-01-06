@@ -262,7 +262,7 @@
                                 <td>12.1</td>
                                 <td>Virtuelle Besuche (visits) - Eingabe gesperrt</td>
                                 <td>
-                                    <input type="number" id="st_pat_visits_virt" name="st_pat_visits_virt" min="0" size="12" maxlength="12" value="[% st.pat_visits_virt %]" disabled />
+                                    <input type="number" id="st_pat_visits_virt" name="st_pat_visits_virt" min="0" size="12" maxlength="12" value="[% st.pat_visits_virt %]" disabled /> (obsolet)
                                 </td>
                             </tr>
                         </tbody>
@@ -1019,6 +1019,19 @@
                                         <input type="checkbox" id="st_srv_mobiledevices_yn" name="st_srv_mobiledevices_yn" value="1" checked="checked" />
                                     [% ELSE %]
                                         <input type="checkbox" id="st_srv_mobiledevices_yn" name="st_srv_mobiledevices_yn" value="1" />
+                                    [% END %]
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <!-- row index 150 -->
+                                <td>150</td>
+                                <td>Wird Ihre Bibliothek von einem Freundeskreis oder Förderverein unterstützt?</td>
+                                <td>
+                                    [% IF ( st.srv_circleoffriends_yn ) %]
+                                        <input type="checkbox" id="st_srv_circleoffriends_yn" name="st_srv_circleoffriends_yn" value="1" checked="checked" />
+                                    [% ELSE %]
+                                        <input type="checkbox" id="st_srv_circleoffriends_yn" name="st_srv_circleoffriends_yn" value="1" />
                                     [% END %]
                                 </td>
                             </tr>

@@ -168,6 +168,7 @@ $as_values->{'srv_admin_libs'} = { 'id' => '', 'name' => 'srv_admin_libs', 'valu
 $as_values->{'srv_contracts'} = { 'id' => '', 'name' => 'srv_contracts', 'value' => '', 'type' => 'int' };                                                                                                      # DBS2017:102
 $as_values->{'srv_rfidcheckio_yn'} = { 'id' => '', 'name' => 'srv_rfidcheckio_yn', 'value' => '', 'type' => 'bool' };                                                                                           # DBS2017:103
 $as_values->{'srv_mobiledevices_yn'} = { 'id' => '', 'name' => 'srv_mobiledevices_yn', 'value' => '', 'type' => 'bool' };                                                                                       # DBS2017:104
+$as_values->{'srv_circleoffriends_yn'} = { 'id' => '', 'name' => 'srv_circleoffriends_yn', 'value' => '', 'type' => 'bool' };                                                                                   # DBS2026:150 (new since DBS 2026)
 $as_values->{'srv_remarks'} = { 'id' => '', 'name' => 'srv_remarks', 'value' => '', 'type' => 'text' };                                                                                                         # DBS2017:199
 
 # patients' libraries / 7. PATIENTENBIBLIOTHEKEN
