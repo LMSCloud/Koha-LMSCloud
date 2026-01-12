@@ -8,6 +8,12 @@ import {
     transformPatronData,
     transformPatronsData,
 } from "../components/Bookings/lib/adapters/patron.mjs";
+import {
+    formatYMD,
+    addMonths,
+    addDays,
+    compareDates,
+} from "../components/Bookings/lib/booking/date-utils.mjs";
 
 /**
  * Higher-order function to standardize async operation error handling
@@ -229,8 +235,8 @@ export const useBookingStore = defineStore("bookingStore", {
             const currentTo = this.holidaysFetchedRange.to;
             this.holidaysFetchedRange = {
                 libraryId,
-                from: !currentFrom || from < currentFrom ? from : currentFrom,
-                to: !currentTo || to > currentTo ? to : currentTo,
+                from: !currentFrom || compareDates(from, currentFrom) < 0 ? from : currentFrom,
+                to: !currentTo || compareDates(to, currentTo) > 0 ? to : currentTo,
             };
 
             return data;
@@ -245,36 +251,33 @@ export const useBookingStore = defineStore("bookingStore", {
         async extendHolidaysIfNeeded(libraryId, visibleStart, visibleEnd) {
             if (!libraryId) return;
 
-            const formatDate = d => d.toISOString().split("T")[0];
-            const addMonths = (d, months) => {
-                const result = new Date(d);
-                result.setMonth(result.getMonth() + months);
-                return result;
-            };
-
-            const visibleFrom = formatDate(visibleStart);
-            const visibleTo = formatDate(visibleEnd);
+            const visibleFrom = formatYMD(visibleStart);
+            const visibleTo = formatYMD(visibleEnd);
 
             const { from: fetchedFrom, to: fetchedTo, libraryId: fetchedLib } = this.holidaysFetchedRange;
 
             // If different library or no data yet, fetch visible range + prefetch buffer
             if (fetchedLib !== libraryId || !fetchedFrom || !fetchedTo) {
-                const prefetchEnd = formatDate(addMonths(visibleEnd, 6));
+                const prefetchEnd = formatYMD(addMonths(visibleEnd, 6));
                 await this.fetchHolidays(libraryId, visibleFrom, prefetchEnd);
                 return;
             }
 
-            // Check if we need to extend for current view
-            const needsExtensionBefore = visibleFrom < fetchedFrom;
-            const needsExtensionAfter = visibleTo > fetchedTo;
+            // Check if we need to extend for current view (using proper date comparison)
+            const needsExtensionBefore = compareDates(visibleFrom, fetchedFrom) < 0;
+            const needsExtensionAfter = compareDates(visibleTo, fetchedTo) > 0;
 
             if (needsExtensionBefore) {
-                const prefetchStart = formatDate(addMonths(visibleStart, -3));
-                await this.fetchHolidays(libraryId, prefetchStart, fetchedFrom);
+                const prefetchStart = formatYMD(addMonths(visibleStart, -3));
+                // End at day before fetchedFrom to avoid overlap
+                const extensionEnd = formatYMD(addDays(fetchedFrom, -1));
+                await this.fetchHolidays(libraryId, prefetchStart, extensionEnd);
             }
             if (needsExtensionAfter) {
-                const prefetchEnd = formatDate(addMonths(visibleEnd, 6));
-                await this.fetchHolidays(libraryId, fetchedTo, prefetchEnd);
+                // Start at day after fetchedTo to avoid overlap
+                const extensionStart = formatYMD(addDays(fetchedTo, 1));
+                const prefetchEnd = formatYMD(addMonths(visibleEnd, 6));
+                await this.fetchHolidays(libraryId, extensionStart, prefetchEnd);
             }
 
             // Prefetch ahead if approaching the edge (within 60 days)
@@ -282,22 +285,24 @@ export const useBookingStore = defineStore("bookingStore", {
             const PREFETCH_MONTHS = 6;
 
             if (!needsExtensionAfter && fetchedTo) {
-                const fetchedToDate = new Date(fetchedTo);
-                const daysToEdge = Math.floor((fetchedToDate - visibleEnd) / (1000 * 60 * 60 * 24));
+                const daysToEdge = addDays(fetchedTo, 0).diff(visibleEnd, "day");
                 if (daysToEdge < PREFETCH_THRESHOLD_DAYS) {
-                    const prefetchEnd = formatDate(addMonths(fetchedToDate, PREFETCH_MONTHS));
+                    // Start at day after fetchedTo to avoid overlap
+                    const extensionStart = formatYMD(addDays(fetchedTo, 1));
+                    const prefetchEnd = formatYMD(addMonths(fetchedTo, PREFETCH_MONTHS));
                     // Fire and forget - don't await to avoid blocking
-                    this.fetchHolidays(libraryId, fetchedTo, prefetchEnd);
+                    this.fetchHolidays(libraryId, extensionStart, prefetchEnd);
                 }
             }
 
             if (!needsExtensionBefore && fetchedFrom) {
-                const fetchedFromDate = new Date(fetchedFrom);
-                const daysToEdge = Math.floor((visibleStart - fetchedFromDate) / (1000 * 60 * 60 * 24));
+                const daysToEdge = addDays(visibleStart, 0).diff(fetchedFrom, "day");
                 if (daysToEdge < PREFETCH_THRESHOLD_DAYS) {
-                    const prefetchStart = formatDate(addMonths(fetchedFromDate, -PREFETCH_MONTHS));
+                    const prefetchStart = formatYMD(addMonths(fetchedFrom, -PREFETCH_MONTHS));
+                    // End at day before fetchedFrom to avoid overlap
+                    const extensionEnd = formatYMD(addDays(fetchedFrom, -1));
                     // Fire and forget - don't await to avoid blocking
-                    this.fetchHolidays(libraryId, prefetchStart, fetchedFrom);
+                    this.fetchHolidays(libraryId, prefetchStart, extensionEnd);
                 }
             }
         },

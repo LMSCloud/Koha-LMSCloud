@@ -1,4 +1,5 @@
 import { watchEffect, ref, watch } from "vue";
+import { formatYMD, addMonths } from "../lib/booking/date-utils.mjs";
 
 /**
  * Watch core selections and fetch pickup locations, circulation rules, and holidays.
@@ -76,11 +77,8 @@ export function useRulesFetcher(options) {
             // Fetch holidays for 1 year to cover typical booking scenarios
             // and avoid on-demand fetching lag when navigating calendar months
             const today = new Date();
-            const oneYearLater = new Date(today);
-            oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-
-            const formatDate = d => d.toISOString().split("T")[0];
-            store.fetchHolidays(libraryId, formatDate(today), formatDate(oneYearLater));
+            const oneYearLater = addMonths(today, 12);
+            store.fetchHolidays(libraryId, formatYMD(today), formatYMD(oneYearLater));
         },
         { immediate: true }
     );

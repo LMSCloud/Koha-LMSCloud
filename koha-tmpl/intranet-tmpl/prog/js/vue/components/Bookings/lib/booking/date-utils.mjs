@@ -40,3 +40,20 @@ export function addDays(input, days) {
 export function subDays(input, days) {
     return toDayjs(input).subtract(days, "day");
 }
+
+// Add or subtract months returning a dayjs instance
+export function addMonths(input, months) {
+    return toDayjs(input).add(months, "month");
+}
+export function subMonths(input, months) {
+    return toDayjs(input).subtract(months, "month");
+}
+
+// Compare two date strings or Date objects (returns -1, 0, or 1)
+export function compareDates(a, b) {
+    const dateA = toDayjs(a);
+    const dateB = toDayjs(b);
+    if (dateA.isBefore(dateB)) return -1;
+    if (dateA.isAfter(dateB)) return 1;
+    return 0;
+}
