@@ -99,6 +99,7 @@ import { storeToRefs } from "pinia";
 import { useAvailability } from "./composables/useAvailability.mjs";
 import BookingTooltip from "./BookingTooltip.vue";
 import { $__ } from "../../i18n";
+import { debounce } from "./lib/adapters/external-dependents.mjs";
 
 export default {
     name: "BookingPeriodStep",
@@ -233,6 +234,11 @@ export default {
         );
 
         // Extend holidays when visible calendar range changes beyond fetched data
+        // Debounced to prevent multiple API calls during rapid month navigation
+        const debouncedExtendHolidays = debounce((libraryId, visibleStart, visibleEnd) => {
+            store.extendHolidaysIfNeeded(libraryId, visibleStart, visibleEnd);
+        }, 150);
+
         watch(
             () => visibleRangeRef.value,
             newRange => {
@@ -240,7 +246,7 @@ export default {
                 if (!libraryId || !newRange?.visibleStartDate || !newRange?.visibleEndDate) {
                     return;
                 }
-                store.extendHolidaysIfNeeded(
+                debouncedExtendHolidays(
                     libraryId,
                     newRange.visibleStartDate,
                     newRange.visibleEndDate
