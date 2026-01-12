@@ -141,6 +141,7 @@ export default {
             selectedDateRange,
             circulationRules,
             holidays,
+            pickupLibraryId,
         } = storeToRefs(store);
         const inputEl = ref(null);
 
@@ -229,6 +230,23 @@ export default {
                 }
             },
             { immediate: true }
+        );
+
+        // Extend holidays when visible calendar range changes beyond fetched data
+        watch(
+            () => visibleRangeRef.value,
+            newRange => {
+                const libraryId = pickupLibraryId.value;
+                if (!libraryId || !newRange?.visibleStartDate || !newRange?.visibleEndDate) {
+                    return;
+                }
+                store.extendHolidaysIfNeeded(
+                    libraryId,
+                    newRange.visibleStartDate,
+                    newRange.visibleEndDate
+                );
+            },
+            { deep: true }
         );
 
         const clearDateRange = () => {

@@ -72,7 +72,15 @@ export function useRulesFetcher(options) {
                 return;
             }
             lastHolidaysLibrary.value = libraryId;
-            store.fetchHolidays(libraryId);
+
+            // Fetch holidays for 1 year to cover typical booking scenarios
+            // and avoid on-demand fetching lag when navigating calendar months
+            const today = new Date();
+            const oneYearLater = new Date(today);
+            oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+
+            const formatDate = d => d.toISOString().split("T")[0];
+            store.fetchHolidays(libraryId, formatDate(today), formatDate(oneYearLater));
         },
         { immediate: true }
     );

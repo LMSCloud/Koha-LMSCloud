@@ -54,6 +54,7 @@ export const useBookingStore = defineStore("bookingStore", {
         circulationRulesContext: null, // Track the context used for the last rules fetch
         unavailableByDate: {},
         holidays: [], // Closed days for the selected pickup library
+        holidaysFetchedRange: { from: null, to: null, libraryId: null }, // Track fetched range to enable on-demand extension
 
         // Current booking state - normalized property names
         bookingId: null,
@@ -197,20 +198,109 @@ export const useBookingStore = defineStore("bookingStore", {
             return data;
         }, "circulationRules"),
         /**
-         * Fetch holidays (closed days) for a library
+         * Fetch holidays (closed days) for a library.
+         * Tracks fetched range and accumulates holidays to support on-demand extension.
          * @param {string} libraryId - The library branchcode
          * @param {string} [from] - Start date (ISO format), defaults to today
-         * @param {string} [to] - End date (ISO format), defaults to 3 months from start
+         * @param {string} [to] - End date (ISO format), defaults to 1 year from start
          */
         fetchHolidays: withErrorHandling(async function (libraryId, from, to) {
             if (!libraryId) {
                 this.holidays = [];
+                this.holidaysFetchedRange = { from: null, to: null, libraryId: null };
                 return [];
             }
+
+            // If library changed, reset and fetch fresh
+            if (this.holidaysFetchedRange.libraryId !== libraryId) {
+                this.holidays = [];
+                this.holidaysFetchedRange = { from: null, to: null, libraryId: null };
+            }
+
             const data = await bookingApi.fetchHolidays(libraryId, from, to);
-            this.holidays = data;
+
+            // Accumulate holidays using Set to avoid duplicates
+            const existingSet = new Set(this.holidays);
+            data.forEach(date => existingSet.add(date));
+            this.holidays = Array.from(existingSet).sort();
+
+            // Update fetched range (expand to cover new range)
+            const currentFrom = this.holidaysFetchedRange.from;
+            const currentTo = this.holidaysFetchedRange.to;
+            this.holidaysFetchedRange = {
+                libraryId,
+                from: !currentFrom || from < currentFrom ? from : currentFrom,
+                to: !currentTo || to > currentTo ? to : currentTo,
+            };
+
             return data;
         }, "holidays"),
+        /**
+         * Extend holidays range if the visible calendar range exceeds fetched data.
+         * Also prefetches upcoming months when approaching the edge of fetched data.
+         * @param {string} libraryId - The library branchcode
+         * @param {Date} visibleStart - Start of visible calendar range
+         * @param {Date} visibleEnd - End of visible calendar range
+         */
+        async extendHolidaysIfNeeded(libraryId, visibleStart, visibleEnd) {
+            if (!libraryId) return;
+
+            const formatDate = d => d.toISOString().split("T")[0];
+            const addMonths = (d, months) => {
+                const result = new Date(d);
+                result.setMonth(result.getMonth() + months);
+                return result;
+            };
+
+            const visibleFrom = formatDate(visibleStart);
+            const visibleTo = formatDate(visibleEnd);
+
+            const { from: fetchedFrom, to: fetchedTo, libraryId: fetchedLib } = this.holidaysFetchedRange;
+
+            // If different library or no data yet, fetch visible range + prefetch buffer
+            if (fetchedLib !== libraryId || !fetchedFrom || !fetchedTo) {
+                const prefetchEnd = formatDate(addMonths(visibleEnd, 6));
+                await this.fetchHolidays(libraryId, visibleFrom, prefetchEnd);
+                return;
+            }
+
+            // Check if we need to extend for current view
+            const needsExtensionBefore = visibleFrom < fetchedFrom;
+            const needsExtensionAfter = visibleTo > fetchedTo;
+
+            if (needsExtensionBefore) {
+                const prefetchStart = formatDate(addMonths(visibleStart, -3));
+                await this.fetchHolidays(libraryId, prefetchStart, fetchedFrom);
+            }
+            if (needsExtensionAfter) {
+                const prefetchEnd = formatDate(addMonths(visibleEnd, 6));
+                await this.fetchHolidays(libraryId, fetchedTo, prefetchEnd);
+            }
+
+            // Prefetch ahead if approaching the edge (within 60 days)
+            const PREFETCH_THRESHOLD_DAYS = 60;
+            const PREFETCH_MONTHS = 6;
+
+            if (!needsExtensionAfter && fetchedTo) {
+                const fetchedToDate = new Date(fetchedTo);
+                const daysToEdge = Math.floor((fetchedToDate - visibleEnd) / (1000 * 60 * 60 * 24));
+                if (daysToEdge < PREFETCH_THRESHOLD_DAYS) {
+                    const prefetchEnd = formatDate(addMonths(fetchedToDate, PREFETCH_MONTHS));
+                    // Fire and forget - don't await to avoid blocking
+                    this.fetchHolidays(libraryId, fetchedTo, prefetchEnd);
+                }
+            }
+
+            if (!needsExtensionBefore && fetchedFrom) {
+                const fetchedFromDate = new Date(fetchedFrom);
+                const daysToEdge = Math.floor((visibleStart - fetchedFromDate) / (1000 * 60 * 60 * 24));
+                if (daysToEdge < PREFETCH_THRESHOLD_DAYS) {
+                    const prefetchStart = formatDate(addMonths(fetchedFromDate, -PREFETCH_MONTHS));
+                    // Fire and forget - don't await to avoid blocking
+                    this.fetchHolidays(libraryId, prefetchStart, fetchedFrom);
+                }
+            }
+        },
         /**
          * Derive item types from bookableItems
          */
