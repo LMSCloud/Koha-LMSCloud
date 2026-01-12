@@ -3,20 +3,8 @@ import { win } from "./globals.mjs";
 
 /** @typedef {import('../../types/bookings').ExternalDependencies} ExternalDependencies */
 
-/**
- * Debounce utility with simple trailing invocation.
- *
- * @param {(...args:any[]) => any} fn
- * @param {number} delay
- * @returns {(...args:any[]) => void}
- */
-export function debounce(fn, delay) {
-    let timeout;
-    return function (...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => fn.apply(this, args), delay);
-    };
-}
+// Re-export debounce from shared utils for backward compatibility
+export { debounce } from "../../../../utils/functions.mjs";
 
 /**
  * Default dependencies for external updates - can be overridden in tests

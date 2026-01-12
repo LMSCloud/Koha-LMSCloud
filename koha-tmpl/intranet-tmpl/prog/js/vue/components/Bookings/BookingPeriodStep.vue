@@ -99,7 +99,7 @@ import { storeToRefs } from "pinia";
 import { useAvailability } from "./composables/useAvailability.mjs";
 import BookingTooltip from "./BookingTooltip.vue";
 import { $__ } from "../../i18n";
-import { debounce } from "./lib/adapters/external-dependents.mjs";
+import { debounce } from "../../utils/functions.mjs";
 
 export default {
     name: "BookingPeriodStep",
