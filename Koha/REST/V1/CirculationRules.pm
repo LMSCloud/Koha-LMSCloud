@@ -285,8 +285,13 @@ sub list_rules {
             }
 
             if ( $calculate_dates && $effective ) {
-                my $date_range_constraint = C4::Context->preference('BookingDateRangeConstraint');
-                my $calculated_data       = _calculate_circulation_dates(
+                # Fallback to 'issuelength_with_renewals' to match frontend behavior in island.inc
+                # The frontend template uses the same fallback when the preference is empty,
+                # ensuring consistent display of booking period constraints and the actual 
+                # calculated due date shown in the calendar.
+                my $date_range_constraint =
+                    C4::Context->preference('BookingDateRangeConstraint') || 'issuelength_with_renewals';
+                my $calculated_data = _calculate_circulation_dates(
                     {
                         patron_category       => $patron_category,
                         item_type             => $item_type,
@@ -410,8 +415,11 @@ sub list_rules_public {
         }
 
         if ($calculate_dates) {
-            my $date_range_constraint = C4::Context->preference('OPACBookingDateRangeConstraint');
-            my $calculated_data       = _calculate_circulation_dates(
+            # Fallback to 'issuelength_with_renewals' to match frontend behavior in opac-booking.inc
+            # See staff interface comment above for rationale.
+            my $date_range_constraint =
+                C4::Context->preference('OPACBookingDateRangeConstraint') || 'issuelength_with_renewals';
+            my $calculated_data = _calculate_circulation_dates(
                 {
                     patron_category       => $patron_category,
                     item_type             => $item_type,
