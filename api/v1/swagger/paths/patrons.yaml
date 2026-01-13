@@ -401,7 +401,10 @@
           $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
-        - borrowers: "list_borrowers"
+        - borrowers: "edit_borrowers"
+        - tools: "label_creator"
+        - serials: "routing"
+        - acquisition: "order_manage"
   post:
     x-mojo-to: Patrons#add
     operationId: addPatron
