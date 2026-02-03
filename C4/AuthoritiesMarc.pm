@@ -376,6 +376,7 @@ sub GuessAuthTypeCode {
         '148'=>{authtypecode=>'CHRON_TERM'},
         '150'=>{authtypecode=>'TOPIC_TERM'},
         '151'=>{authtypecode=>'GEOGR_NAME'},
+        '153'=>{authtypecode=>'TAXONOMY'},
         '155'=>{authtypecode=>'GENRE/FORM'},
         '162'=>{authtypecode=>'MED_PERFRM'},
         '180'=>{authtypecode=>'GEN_SUBDIV'},
