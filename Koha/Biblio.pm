@@ -266,10 +266,19 @@ sub check_booking {
         $unique_booked_items->{$booking->item_id} = 1;
     }
 
+    # Only count checkouts on bookable items; non-bookable sibling items
+    # should not reduce the pool of available bookable items.
+    my %bookable_item_ids;
+    $bookable_items->reset;
+    while ( my $item = $bookable_items->next ) {
+        $bookable_item_ids{ $item->itemnumber } = 1;
+    }
+
     my $checkouts = $self->current_checkouts->search( { date_due => { '>=' => $dtf->format_datetime($start_date) } } );
 
     my $all_unavailable = { %{$unique_booked_items} };
     while (my $checkout = $checkouts->next) {
+        next unless $bookable_item_ids{ $checkout->itemnumber };
         $all_unavailable->{$checkout->itemnumber} = 1;
     }
     my $total_unavailable = scalar keys %{$all_unavailable};
