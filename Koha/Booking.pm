@@ -161,25 +161,33 @@ sub store {
             ) unless ( $self->biblio );
 
 
-            # Throw exception for item level booking clash
-            Koha::Exceptions::Booking::Clash->throw()
-                if $self->item_id && !$self->item->check_booking(
-                {
-                    start_date => $self->start_date,
-                    end_date   => $self->end_date,
-                    booking_id => $self->in_storage ? $self->booking_id : undef
-                }
-                );
+            # Skip clash detection when transitioning to a final status.
+            # During checkout C4::Circulation sets status to 'completed'
+            # and calls ->store; the clash checks are irrelevant at that
+            # point and can produce false positives (e.g. checkouts on
+            # non-bookable sibling items inflating the unavailable count).
+            unless ( $self->_is_final_status_transition ) {
 
-            # Throw exception for biblio level booking clash
-            Koha::Exceptions::Booking::Clash->throw()
-                if !$self->biblio->check_booking(
-                {
-                    start_date => $self->start_date,
-                    end_date   => $self->end_date,
-                    booking_id => $self->in_storage ? $self->booking_id : undef
-                }
-                );
+                # Throw exception for item level booking clash
+                Koha::Exceptions::Booking::Clash->throw()
+                    if $self->item_id && !$self->item->check_booking(
+                    {
+                        start_date => $self->start_date,
+                        end_date   => $self->end_date,
+                        booking_id => $self->in_storage ? $self->booking_id : undef
+                    }
+                    );
+
+                # Throw exception for biblio level booking clash
+                Koha::Exceptions::Booking::Clash->throw()
+                    if !$self->biblio->check_booking(
+                    {
+                        start_date => $self->start_date,
+                        end_date   => $self->end_date,
+                        booking_id => $self->in_storage ? $self->booking_id : undef
+                    }
+                    );
+            }
 
             # FIXME: We should be able to combine the above two functions into one
 
@@ -368,6 +376,27 @@ sub to_api {
 
 =head2 Internal methods
 
+=head3 _is_final_status_transition
+
+Returns true when the booking is being transitioned to a final status
+(cancelled or completed).  Used to skip clash detection and date-range
+validation that are only meaningful for active bookings.
+
+=cut
+
+sub _is_final_status_transition {
+    my ($self) = @_;
+
+    return 0 unless $self->in_storage;
+
+    my %updated_columns = $self->_result->get_dirty_columns;
+    my $new_status = $updated_columns{'status'};
+
+    return 0 unless $new_status;
+    return 1 if any { $_ eq $new_status } qw( cancelled completed );
+    return 0;
+}
+
 =head3 _should_validate_date_range
 
 Determines if date range validation should be performed based on booking status
@@ -377,16 +406,10 @@ Determines if date range validation should be performed based on booking status
 sub _should_validate_date_range {
     my ($self) = @_;
 
-    my $final_stati = [ 'cancelled', 'completed' ];
+    return 0 if $self->_is_final_status_transition;
 
     if ( $self->in_storage ) {
-        my %updated_columns = $self->_result->get_dirty_columns;
-        my $new_status = $updated_columns{'status'};
-
-        if ( $new_status && any { $_ eq $new_status } @{$final_stati} ) {
-            return 0;
-        }
-        if ( any { $_ eq $self->status } @{$final_stati} ) {
+        if ( any { $_ eq $self->status } qw( cancelled completed ) ) {
             return 0;
         }
     }
