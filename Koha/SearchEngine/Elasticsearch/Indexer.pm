@@ -22,6 +22,7 @@ use Modern::Perl;
 use Try::Tiny qw( catch try );
 use List::Util qw( any );
 use base qw(Koha::SearchEngine::Elasticsearch);
+use Data::Dumper;
 
 use Koha::Exceptions;
 use Koha::Exceptions::Elasticsearch;
@@ -138,6 +139,12 @@ sub update_index {
             );
             if ($response->{errors}) {
                 carp "One or more ElasticSearch errors occurred when indexing documents";
+                foreach my $item( @{$response->{items}} ) {
+                    if ( exists($item->{index}) && exists($item->{index}->{error}) ) {
+                        my $documentID = $item->{index}->{_id} || '';
+                        carp "Error with document $documentID: \n" . Dumper($item->{index}->{error}) . "\n";
+                    }
+                }
             }
         } catch {
             Koha::Exceptions::Elasticsearch::BadResponse->throw(
