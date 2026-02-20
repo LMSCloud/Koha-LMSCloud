@@ -31,6 +31,8 @@ use JSON;
 use Encode;
 use Scalar::Util qw(reftype);
 use URI::Escape;
+use Mojo::JWT;
+use Crypt::OpenSSL::RSA;
 
 use Data::Dumper;
 use Carp;
@@ -88,14 +90,20 @@ sub new {
     $self->{'providerID'}   = C4::Context->preference('FilmfriendProviderID');
     
     $self->{'filmFriendBaseURL'}         = 'https://api.tenant.frontend.vod.filmwerte.de/v11';
-    $self->{'filmFriendAuthURL'}         = 'https://api.vod.filmwerte.de/connect/authorize-external';
-    
     
     $self->{'filmFriendTenantGroupIdDE'} = 'fba2f8b5-6a3a-4da3-b555-21613a88d3ef';
     $self->{'filmFriendTenantGroupIdCH'} = 'b9b657d4-48c4-4827-a257-d1b0b44a278a';
     $self->{'filmFriendTenantGroupIdAT'} = '8bd3757f-bb3f-4ffe-9543-3424497ef47d';
     
     $self->{'baseURL'} = 'https://filmfriend.de/de/';
+
+    my $file = '/etc/koha/filmfriend.pem';
+    if ( -e $file && -f $file ) {
+        open(my $fh, '<:encoding(UTF-8)', $file) or carp "Could not open filmfriend private key file '$file' $!";
+        local $/;
+        $self->{'privateKey'} = <$fh>;
+        close $fh;
+    }
     
     my $language = C4::Languages::getlanguage();
     if ( $language =~ /^(de|fr|es|en)/ ) {
@@ -178,54 +186,36 @@ sub new {
     return $self;
 }
 
-=head2 getAuth
+=head2 getLoginToken
 
-Get the authentication token.
+Get the login token.
 
 =cut
 
-sub getAuth {
+sub getLoginToken {
     my $self     = shift;
     my $user     = shift;
-    my $password = shift;
+    my $fsk      = shift;
     
-    my $auth = undef;
+    my $loginToken = undef;
     
-    if ( $self && $self->{'providerID'} && $self->{'customerID'} ) {
-        
-        my @header = @{$self->{'requestHeader'}};
-        
-        my $url = $self->{'filmFriendAuthURL'};
-        
-        my $params =  {
-                          client_id => "tenant-" . $self->{'customerID'} . "-filmwerte-vod-frontend",
-                          provider  => $self->{'providerID'},
-                          username  => $user,
-                          password  => $password
-                      };
+    if ( $self && $self->{'providerID'} && $self->{'privateKey'} ) {
 
-        carp "C4::External::FilmFriend->getAuth() calling with URL $url" if ( $self->{'traceEnabled'} );
-        my $response = $self->{'ua'}->post($url,$params);
-        
-        if ( defined($response) && $response->is_success ) {
-            
-            my $json = JSON->new->utf8->allow_nonref;
-            
-            $auth = $json->decode( $response->content );
-            
-            carp "C4::External::FilmFriend->getAuth() result: " . Dumper($auth) if ( $self->{'traceEnabled'} );
-            
-            if ( $auth && exists($auth->{access_token}) && exists($auth->{expires_in}) && exists($auth->{token_type}) && exists($auth->{refresh_token}) ) {
-                return $auth;
-            } else {
-                return undef;                
-            }
-        }
-        else {
-            carp "C4::External::FilmFriend->getAuth() with URL $url and params " . Dumper($params) . " returned with HTTP error code " . $response->error_as_HTML if ( $self->{'traceEnabled'} );   
-        }
+        my $claims = {
+            sub         => $user,
+            provider    => $self->{'providerID'},
+            exp         => time() + 3600,
+            fsk         => $fsk
+        };
+
+        $loginToken = Mojo::JWT->new(
+            algorithm => 'RS256',
+            secret    => $self->{'privateKey'},
+            set_iat   => 1,
+            claims    => $claims
+        )->encode;
     }
-    return $auth;
+    return $loginToken;
 }
 
 sub getAuthLink {
@@ -241,10 +231,10 @@ sub getAuthLink {
             my $pStatus = $patronStatus->getPatronStatus( $patron );
             
             if ( $pStatus && $pStatus->{status} eq '3' ) {
-                my $auth = $self->getAuth($userid,$patron->password);
+                my $loginToken = $self->getLoginToken($userid,$pStatus->{fsk});
                 
-                if ( $auth ) {
-                    return $self->getLink($collection,$objectID,1,$auth);
+                if ( $loginToken ) {
+                    return $self->getLink($collection,$objectID,1,$loginToken);
                 }
             }
         }
@@ -253,9 +243,9 @@ sub getAuthLink {
     return undef;
 }
 
-=head2 getAuth
+=head2 getLink
 
-Get a filmfriend Link depending on the available authentication token.
+Get a filmfriend Link depending on the available login token.
 
 =cut
 
@@ -264,22 +254,19 @@ sub getLink {
     my $collection = shift;
     my $objectID   = shift;
     my $withAuth   = shift;
-    my $auth       = shift;
+    my $loginToken = shift;
     
     my $url;
     
     if ( !$withAuth ) {
         $url = $self->{'Link'}->{$collection} . uri_escape_utf8($objectID);
     }
-    elsif ( !$auth ) {
+    elsif ( !$loginToken ) {
         $url = '/cgi-bin/koha/opac-filmfriend.pl?collection=' . uri_escape_utf8($collection) . '&objectid=' . uri_escape_utf8($objectID);
     } 
     else {
         $url = $self->{'Link'}->{$collection} . uri_escape_utf8($objectID).
-               '#access_token=' . uri_escape_utf8($auth->{access_token}) . 
-               '&refresh_token=' . uri_escape_utf8($auth->{refresh_token}) . 
-               '&expires_in=' . uri_escape_utf8($auth->{expires_in}) .
-               '&token_type=' . uri_escape_utf8($auth->{token_type});
+               '?login_token=' . uri_escape_utf8($loginToken);
     }
     return $url;
 }
