@@ -3161,6 +3161,7 @@ sub CanBookBeRenewed {
     my $item      = Koha::Items->find($itemnumber)      or return ( 0, 'no_item' );
     my $issue = $item->checkout or return ( 0, 'no_checkout' );
     return ( 0, 'onsite_checkout' ) if $issue->onsite_checkout;
+    return ( 0, 'item_issued_to_other_patron' ) if $issue->borrowernumber != $borrowernumber;
     return ( 0, 'item_denied_renewal') if $item->is_denied_renewal;
 
     my $patron = $issue->patron or return;
