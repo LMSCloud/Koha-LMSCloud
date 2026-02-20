@@ -13,6 +13,8 @@
     <!-- Characters that usually don't need to be escaped -->
     <xsl:variable name="safe">!'()*-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz~&#192;&#193;&#196;&#200;&#201;&#210;&#211;&#214;&#220;&#223;&#224;&#225;&#228;&#232;&#233;&#242;&#243;&#246;&#252;</xsl:variable>
     <xsl:variable name="hex" >0123456789ABCDEF</xsl:variable>
+    <xsl:variable name="lcletters">abcdefghijklmnopqrstuvwxyz</xsl:variable>
+    <xsl:variable name="ucletters">ABCDEFGHIJKLMNOPQRSTUVWXYZ</xsl:variable>
 
     <xsl:template name="url-encode">
         <xsl:param name="str"/>   
@@ -420,7 +422,7 @@
         <span class="results_summary series"><span class="label">Series: </span>
         <!-- 440 -->
         <xsl:for-each select="marc:datafield[@tag=440 and @ind1!='z']">
-            <a><xsl:attribute name="href"><xsl:value-of select="$searchurl"/>?q=se,phr:"<xsl:value-of select="str:encode-uri(str:replace(marc:subfield[@code='a'],'?','\?'), true())"/>"</xsl:attribute>
+            <a><xsl:attribute name="href"><xsl:value-of select="$searchurl"/>?q=se,phr:"<xsl:value-of select="str:encode-uri(str:replace(str:replace(translate(marc:subfield[@code='a'],$ucletters,$lcletters),'not','\not'),'?','\?'), true())"/>"</xsl:attribute>
                 <xsl:call-template name="chopPunctuation">
                     <xsl:with-param name="chopString">
                         <xsl:call-template name="subfieldSelect">
@@ -445,7 +447,7 @@
 
         <!-- 490 Series not traced, Ind1 = 0 -->
         <xsl:for-each select="marc:datafield[@tag=490][not(@ind1=1 and count(../marc:datafield[(@tag=800 or @tag=810 or @tag=811 or @tag=830) and @ind1!='z']) &gt; 0)]">
-            <a><xsl:attribute name="href"><xsl:value-of select="$searchurl"/>?q=se:(<xsl:value-of select="str:encode-uri(str:replace(marc:subfield[@code='a'],'?','\?'), true())"/>)</xsl:attribute>
+            <a><xsl:attribute name="href"><xsl:value-of select="$searchurl"/>?q=se:(<xsl:value-of select="str:encode-uri(str:replace(str:replace(translate(marc:subfield[@code='a'],$ucletters,$lcletters),'not','\not'),'?','\?'), true())"/>)</xsl:attribute>
                         <xsl:call-template name="chopPunctuation">
                             <xsl:with-param name="chopString">
                                 <xsl:call-template name="subfieldSelect">
@@ -495,7 +497,7 @@
                     </a>
                 </xsl:when>
                 <xsl:otherwise>
-                    <a><xsl:attribute name="href"><xsl:value-of select="$searchurl"/>?q=se:("<xsl:value-of select="str:encode-uri(marc:subfield[@code='t'], true())"/>)&amp;q=au:"<xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/>"</xsl:attribute>
+                    <a><xsl:attribute name="href"><xsl:value-of select="$searchurl"/>?q=se:("<xsl:value-of select="str:encode-uri(str:replace(str:replace(translate(marc:subfield[@code='t'],$ucletters,$lcletters),'not','\not'),'?','\?'), true())"/>)&amp;q=au:"<xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/>"</xsl:attribute>
                         <xsl:call-template name="chopPunctuation">
                             <xsl:with-param name="chopString">
                                 <xsl:call-template name="subfieldSelect">
@@ -546,7 +548,7 @@
                     </a>
                 </xsl:when>
                 <xsl:otherwise>
-                    <a><xsl:attribute name="href"><xsl:value-of select="$searchurl"/>?q=se:("<xsl:value-of select="str:encode-uri(str:replace(marc:subfield[@code='t'],'?','\?'), true())"/>)</xsl:attribute>
+                    <a><xsl:attribute name="href"><xsl:value-of select="$searchurl"/>?q=se:("<xsl:value-of select="str:encode-uri(str:replace(str:replace(translate(marc:subfield[@code='t'],$ucletters,$lcletters),'not','\not'),'?','\?'), true())"/>)</xsl:attribute>
                         <xsl:call-template name="chopPunctuation">
                             <xsl:with-param name="chopString">
                                 <xsl:call-template name="subfieldSelect">
