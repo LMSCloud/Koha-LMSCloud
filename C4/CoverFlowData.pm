@@ -402,7 +402,7 @@ sub GetCatalogueData {
 			
 			my $coverurl = q{};
 			foreach my $field ( $record->field('856') ) {
-				if ( $field->subfield('q') && $field->subfield('q') =~ /^cover/ && $field->subfield('u') ) {
+				if ( $field->subfield('q') && $field->subfield('q') =~ /cover/i && $field->subfield('u') ) {
 					next if ($field->subfield('n') && $field->subfield('n') =~ /^(Wikipedia|Antolin)$/i );
 					my $val = $field->subfield('u');
 					next if (! $val);

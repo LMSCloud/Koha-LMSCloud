@@ -218,7 +218,7 @@ if (C4::Context->preference('DivibibEnabled')) {
     my $divibib_issues = $service->getPendingIssues($borrowernumber);
         
     if ( $divibib_issues ) {
-        foreach my $issue ( sort { $b->{date_due}->datetime() cmp $a->{date_due}->datetime() } @{$divibib_issues} ) {
+        foreach my $issue ( sort { ($b->{date_due} ? $b->{date_due}->datetime() : '') cmp ( $a->{date_due} ? $a->{date_due}->datetime() : '' ) } @{$divibib_issues} ) {
             my $biblio_object = Koha::Biblios->find($issue->{biblionumber});
             my $record = $biblio_object->metadata->record;
             
@@ -266,7 +266,7 @@ if (C4::Context->preference('DivibibEnabled')) {
                 my $titlecoverurl;
                 my $coverfound = 0;
                 foreach my $tag( $record->field('856') ) {
-                    if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
+                    if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/i ) {
                         my $link = $tag->subfield('u');
                         $link =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
                         $link =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
@@ -416,7 +416,7 @@ if ( $pending_checkouts->count ) { # Useless test
             my $titlecoverurl;
             my $coverfound = 0;
             foreach my $tag( $record->field('856') ) {
-                if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
+                if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/i ) {
                     my $link = $tag->subfield('u');
                     $link =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
                     $link =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;

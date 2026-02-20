@@ -1197,7 +1197,7 @@ if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnab
     my $titlecoverurls = [];
     my $coverfound = 0;
     foreach my $tag( $record->field('856') ) {
-        if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
+        if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/i ) {
             my $link = $tag->subfield('u');
             $link =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
             $link =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
