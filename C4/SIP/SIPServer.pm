@@ -365,7 +365,9 @@ sub read_request {
           $raw_length = length $buffer;
           $buffer =~ s/^\s*[^A-z0-9]+//s;
 # Every line must start with a "real" character.  Not whitespace, control chars, etc.
-          $buffer =~ s/[^A-z0-9]+$//s;
+          $buffer =~ s/[^[:print:]]+$//s;
+          $buffer =~ s/[\|\s]+$//s;
+          # $buffer =~ s/[^A-z0-9]+$//s;
 
 # Same for the end.  Note this catches the problem some clients have sending empty fields at the end, like |||
           $buffer =~ s/\015?\012//g;    # Extra line breaks must die
