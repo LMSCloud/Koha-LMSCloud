@@ -531,7 +531,10 @@ access.
 sub get_items_public {
     my $c = shift->openapi->valid_input or return;
 
-    my $biblio = Koha::Biblios->find( { biblionumber => $c->validation->param('biblio_id') }, { prefetch => ['items'] } );
+    my $biblio        = Koha::Biblios->find( { biblionumber => $c->validation->param('biblio_id') }, { prefetch => ['items'] } );
+    my $bookable_only = $c->param('bookable');
+
+    $c->req->params->remove('bookable');
 
     unless ( $biblio ) {
         return $c->render(
@@ -547,6 +550,7 @@ sub get_items_public {
         my $patron = $c->stash('koha.user');
 
         my $items_rs = $biblio->items->filter_by_visible_in_opac({ patron => $patron });
+        $items_rs = $items_rs->filter_by_bookable if $bookable_only;
         my $items    = $c->objects->search( $items_rs );
         return $c->render(
             status  => 200,
