@@ -132,6 +132,67 @@ export function getSelectValueString($select) {
 }
 
 /**
+ * @typedef {{_id:string, _str:string, children?: Array<{_id:string, _str:string}>}} ItemTypeGroup
+ */
+
+/**
+ * Fetch all item types from the API and build hierarchical filter options.
+ * Returns a flat list for _dt_add_filters compatibility, a parent-to-children
+ * mapping for search expansion, and grouped data for building optgroup selects.
+ * @returns {Promise<{options: Array<{_id:string,_str:string}>, parentMap: Record<string, string[]>, groups: ItemTypeGroup[]}>}
+ */
+export async function fetchItemTypeFilterOptions() {
+    const response = await fetch("/api/v1/item_types?_per_page=-1");
+    if (!response.ok) {
+        console.warn("Failed to fetch item types for filter, status:", response.status);
+        return { options: [], parentMap: {}, groups: [] };
+    }
+    /** @type {Array<{item_type_id:string, parent_type:string|null, description:string}>} */
+    const itemTypes = await response.json();
+
+    const parents = itemTypes.filter(it => !it.parent_type);
+    /** @type {Record<string, Array<{item_type_id:string, description:string}>>} */
+    const childrenByParent = {};
+    itemTypes
+        .filter(it => it.parent_type)
+        .forEach(it => {
+            if (!childrenByParent[it.parent_type]) childrenByParent[it.parent_type] = [];
+            childrenByParent[it.parent_type].push(it);
+        });
+
+    /** @type {Array<{_id:string,_str:string}>} */
+    const options = [];
+    /** @type {Record<string, string[]>} */
+    const parentMap = {};
+    /** @type {ItemTypeGroup[]} */
+    const groups = [];
+
+    parents.sort((a, b) => (a.description || "").localeCompare(b.description || ""));
+
+    parents.forEach(parent => {
+        const children = (childrenByParent[parent.item_type_id] || [])
+            .sort((a, b) => (a.description || "").localeCompare(b.description || ""));
+
+        const parentOption = { _id: parent.item_type_id, _str: parent.description || parent.item_type_id };
+        options.push(parentOption);
+
+        if (children.length > 0) {
+            parentMap[parent.item_type_id] = children.map(c => c.item_type_id);
+            const childOptions = children.map(child => ({
+                _id: child.item_type_id,
+                _str: child.description || child.item_type_id,
+            }));
+            childOptions.forEach(c => options.push(c));
+            groups.push({ ...parentOption, children: childOptions });
+        } else {
+            groups.push(parentOption);
+        }
+    });
+
+    return { options, parentMap, groups };
+}
+
+/**
  * Reduce DOM churn by syncing select options to desired list
  * @param {JQuery} $select
  * @param {Array<{_id:any,_str:string}>} options

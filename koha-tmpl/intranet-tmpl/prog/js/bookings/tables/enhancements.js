@@ -106,12 +106,18 @@ export function populateDynamicFilterOptionsFromData(data, filterManager) {
 
     // Store in manager instance and update global references for Koha compatibility
     filterManager.filterOptions.getLocationOptions = locationOptions;
-    filterManager.filterOptions.getItemTypeOptions = itemTypeOptions;
 
     // Update global arrays for _dt_add_filters compatibility
     // Always update on initial population, preserve selection state via updateDynamicFilterDropdowns
     /** @type {any} */ (window)["getLocationOptions"] = locationOptions;
-    /** @type {any} */ (window)["getItemTypeOptions"] = itemTypeOptions;
+
+    // Only update itemtype options from data if they weren't pre-fetched from the API
+    // (the API fetch provides a complete list with parent-child hierarchy)
+    const existingItemTypeOptions = /** @type {any} */ (window)["getItemTypeOptions"];
+    if (!existingItemTypeOptions || existingItemTypeOptions.length === 0) {
+        filterManager.filterOptions.getItemTypeOptions = itemTypeOptions;
+        /** @type {any} */ (window)["getItemTypeOptions"] = itemTypeOptions;
+    }
 }
 
 /**

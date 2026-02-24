@@ -69,11 +69,14 @@ function createInstance(tableId) {
 
             const statusOptions = getStandardStatusOptions();
 
+            // Use pre-fetched itemtype options from API if available
+            const apiFetchedItemTypes = getWindowValue("getItemTypeOptions", []);
+
             this.filterOptions = {
                 getLibraryOptions: all_libraries,
                 getStatusOptions: statusOptions,
                 getLocationOptions: [], // Will be populated dynamically
-                getItemTypeOptions: [], // Will be populated dynamically
+                getItemTypeOptions: apiFetchedItemTypes,
             };
 
             // Update global arrays for _dt_add_filters compatibility

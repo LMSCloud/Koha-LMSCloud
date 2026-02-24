@@ -84,6 +84,7 @@ import {
     enhanceBookingTableFilters,
 } from "./enhancements.js";
 import { BookingTableFilterManager } from "./BookingTableFilterManager.js";
+import { fetchItemTypeFilterOptions, setWindowValue } from "./utils.js";
 
 /**
  * Create a unified bookings table with configurable behavior based on variant
@@ -127,6 +128,28 @@ export function createBookingsTable(tableElement, tableSettings, /** @type {Crea
                         })
                     )
             )
+        );
+    }
+
+    // Pre-fetch all item types for the filter dropdown (parent + child hierarchy)
+    if (
+        isFeatureEnabled(variant, "dynamicItemTypeFilter") &&
+        !(/** @type {any} */ (options)._itemTypesFetched)
+    ) {
+        return /** @type {any} */ (
+            fetchItemTypeFilterOptions().then(({ options: itOptions, parentMap, groups }) => {
+                setWindowValue("getItemTypeOptions", itOptions);
+                return createBookingsTable(
+                    tableElement,
+                    tableSettings,
+                    /** @type {any} */ ({
+                        ...options,
+                        _itemTypesFetched: true,
+                        _itemTypeParentMap: parentMap,
+                        _itemTypeGroups: groups,
+                    })
+                );
+            })
         );
     }
 
@@ -207,6 +230,17 @@ export function createBookingsTable(tableElement, tableSettings, /** @type {Crea
     const tableId = /** @type {string} */ ($root.attr("id") || ("bookings-table-" + Date.now()));
     const filterManager = BookingTableFilterManager.getInstance(tableId);
 
+    // Sync pre-fetched itemtype options into this filterManager instance
+    // so updateDynamicFilterDropdowns can populate the dropdown without relying on eval()
+    if (/** @type {any} */ (options)._itemTypesFetched) {
+        /** @type {any} */
+        const w = window;
+        const itOpts = w["getItemTypeOptions"] || [];
+        if (itOpts.length > 0) {
+            filterManager.filterOptions.getItemTypeOptions = itOpts;
+        }
+    }
+
     // Apply default quick toggle filters before first draw so initial load hides expired/cancelled
     if ((/** @type {any} */ (options)).quickTogglesEnabled) {
         applyDefaultQuickToggleFilters(additionalFilters);
@@ -262,6 +296,10 @@ export function createBookingsTable(tableElement, tableSettings, /** @type {Crea
                 status: columnFiltersFlag === 1 && isStatusColumnToggleable(tableSettings),
                 // Quick toggles are explicitly controlled
                 quickToggles: /** @type {any} */ (options).quickTogglesEnabled === true,
+                // Parent-child itemtype map for search expansion
+                itemTypeParentMap: /** @type {any} */ (options)._itemTypeParentMap || {},
+                // Grouped itemtype data for building optgroup selects
+                itemTypeGroups: /** @type {any} */ (options)._itemTypeGroups || [],
             }
         );
     }
@@ -391,6 +429,7 @@ function initKohaTable(
             embed: embed,
             order: order,
             columns: columns,
+            autoWidth: false,
         },
         tableSettings,
         columnFiltersFlag,
@@ -425,7 +464,7 @@ function applyDefaultQuickToggleFilters(additionalFilters) {
  * @param {TableVariant} variant
  * @param {Object<string, any>} additionalFilters
  * @param {any} filterManager
- * @param {{ dateRange?: boolean, status?: boolean, quickToggles?: boolean }} [enhancementOptions]
+ * @param {{ dateRange?: boolean, status?: boolean, quickToggles?: boolean, itemTypeParentMap?: Record<string, string[]>, itemTypeGroups?: Array<any> }} [enhancementOptions]
  * @returns {void}
  */
 function wireEnhancements(
@@ -448,9 +487,83 @@ function wireEnhancements(
             enhancementOptions
         );
         updateDynamicFilterDropdowns(tableElement, filterManager);
+
+        // Enhance itemtype filter to expand parent selections to include children
+        const parentMap = enhancementOptions && enhancementOptions.itemTypeParentMap;
+        const groups = enhancementOptions && enhancementOptions.itemTypeGroups;
+        if (parentMap && Object.keys(parentMap).length > 0) {
+            enhanceItemTypeFilterSearch(dataTable, tableElement, parentMap, additionalFilters, groups || []);
+        }
     });
     dataTable.on("xhr.dt", function () {
         updateDynamicFilterDropdowns(tableElement, filterManager);
+    });
+}
+
+/**
+ * Enhance the itemtype column filter so that selecting a parent type
+ * also matches all its child types via additionalFilters (proper API query).
+ * Rebuilds the select with optgroup elements following Koha convention.
+ * @param {any} dataTable - The DataTables instance
+ * @param {jQuery|string} tableElement - The table element or selector
+ * @param {Record<string, string[]>} parentMap - Maps parent type IDs to arrays of child type IDs
+ * @param {Object<string, any>} additionalFilters - The additionalFilters object passed to kohaTable
+ * @param {Array<any>} groups - Grouped itemtype data with parent/children structure
+ */
+function enhanceItemTypeFilterSearch(dataTable, tableElement, parentMap, additionalFilters, groups) {
+    const $root = $(/** @type {any} */ (tableElement));
+    const filterRowIndex = BOOKING_TABLE_CONSTANTS.FILTER_ROW_INDEX;
+    $root.find("thead tr:eq(" + filterRowIndex + ") th").each(function () {
+        const $th = $(this);
+        if ($th.data("filter") !== "getItemTypeOptions") return;
+
+        const colIndex = $th.data("th-id");
+        if (typeof colIndex === "undefined") return;
+
+        // Rebuild select with optgroup hierarchy (Koha convention from smart-rules.tt)
+        if (groups && groups.length > 0) {
+            const $select = $('<select><option value=""></option></select>');
+            groups.forEach(group => {
+                if (group.children && group.children.length > 0) {
+                    const $optgroup = $("<optgroup/>").attr("label", group._str);
+                    $optgroup.append(
+                        $("<option/>").val(group._id).text(group._str + " (" + __("All") + ")")
+                    );
+                    group.children.forEach(child => {
+                        $optgroup.append($("<option/>").val(child._id).text(child._str));
+                    });
+                    $select.append($optgroup);
+                } else {
+                    $select.append($("<option/>").val(group._id).text(group._str));
+                }
+            });
+            $th.empty().append($select);
+        }
+
+        const $select = $th.find("select");
+        if ($select.length === 0) return;
+
+        // Replace the default change handler with one that uses additionalFilters
+        $select.off("keyup change").on("change", function () {
+            const val = /** @type {string} */ ($select.val());
+
+            // Clear any column-level search so it doesn't conflict
+            dataTable.column(colIndex).search("", false, false);
+
+            if (!val || !val.length) {
+                delete additionalFilters["item.item_type_id"];
+            } else {
+                const children = parentMap[val];
+                if (children && children.length > 0) {
+                    const allValues = [val, ...children];
+                    additionalFilters["item.item_type_id"] = () => allValues;
+                } else {
+                    additionalFilters["item.item_type_id"] = () => val;
+                }
+            }
+
+            dataTable.draw();
+        });
     });
 }
 

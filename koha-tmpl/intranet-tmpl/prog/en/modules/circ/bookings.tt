@@ -14,6 +14,57 @@
     &rsaquo; [% t("Circulation") | html %] &rsaquo; [% t("Koha") | html %]
 [% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
+<style>
+    #bookingst thead tr:nth-child(2) th {
+        position: relative;
+        padding: 0;
+        height: 28px;
+    }
+    #bookingst thead tr:nth-child(2) th > select,
+    #bookingst thead tr:nth-child(2) th > input[type="text"] {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        border: 0;
+        font-size: 85%;
+        color: #999;
+        margin: 0;
+        padding: 2px 20px 2px 4px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+    #bookingst thead tr:nth-child(2) th > span {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        justify-content: flex-start !important;
+        padding: 0;
+    }
+    #bookingst thead tr:nth-child(2) th > span input {
+        min-width: 0;
+        height: 100%;
+        font-size: 85%;
+        color: #999;
+        border: 0;
+        padding: 2px 4px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        background: transparent;
+    }
+    #bookingst thead tr:nth-child(2) th > span a.clear_date {
+        color: #999;
+        font-size: 80%;
+        padding: 0 4px;
+        flex-shrink: 0;
+    }
+</style>
 </head>
 
 <body id="circ_bookings" class="circ">
