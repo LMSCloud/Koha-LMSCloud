@@ -1340,7 +1340,8 @@ export function constrainBookableItems(
     bookableItems,
     pickupLocations,
     pickupLibraryId,
-    bookingItemtypeId
+    bookingItemtypeId,
+    parentMap = {}
 ) {
     logger.debug("constrainBookableItems called", {
         inputItems: bookableItems.length,
@@ -1360,6 +1361,13 @@ export function constrainBookableItems(
         );
         return buildConstraintResult(bookableItems, bookableItems.length);
     }
+
+    const matchesItemType = (itemTypeId, selectedTypeId) => {
+        if (idsEqual(itemTypeId, selectedTypeId)) return true;
+        const children = parentMap[selectedTypeId];
+        return children ? children.some(childId => idsEqual(itemTypeId, childId)) : false;
+    };
+
     const filtered = bookableItems.filter(item => {
         if (pickupLibraryId && bookingItemtypeId) {
             const found = pickupLocations.find(
@@ -1368,9 +1376,7 @@ export function constrainBookableItems(
                     loc.pickup_items &&
                     includesId(loc.pickup_items, item.item_id)
             );
-            const match =
-                idsEqual(item.item_type_id, bookingItemtypeId) && found;
-            return match;
+            return matchesItemType(item.item_type_id, bookingItemtypeId) && found;
         }
         if (pickupLibraryId) {
             const found = pickupLocations.find(
@@ -1382,7 +1388,7 @@ export function constrainBookableItems(
             return found;
         }
         if (bookingItemtypeId) {
-            return idsEqual(item.item_type_id, bookingItemtypeId);
+            return matchesItemType(item.item_type_id, bookingItemtypeId);
         }
         return true;
     });
@@ -1419,23 +1425,32 @@ export function constrainItemTypes(
     bookableItems,
     pickupLocations,
     pickupLibraryId,
-    bookingItemId
+    bookingItemId,
+    parentMap = {}
 ) {
     if (!pickupLibraryId && !bookingItemId) {
         return buildConstraintResult(itemTypes, itemTypes.length);
     }
+
+    const childToParent = {};
+    Object.entries(parentMap).forEach(([parentId, children]) => {
+        children.forEach(childId => { childToParent[childId] = parentId; });
+    });
+
     const filtered = itemTypes.filter(type => {
         if (bookingItemId) {
             return bookableItems.some(
                 item =>
                     idsEqual(item.item_id, bookingItemId) &&
-                    idsEqual(item.item_type_id, type.item_type_id)
+                    (idsEqual(item.item_type_id, type.item_type_id) ||
+                     childToParent[item.item_type_id] === type.item_type_id)
             );
         }
         if (pickupLibraryId) {
             return bookableItems.some(
                 item =>
-                    idsEqual(item.item_type_id, type.item_type_id) &&
+                    (idsEqual(item.item_type_id, type.item_type_id) ||
+                     childToParent[item.item_type_id] === type.item_type_id) &&
                     pickupLocations.find(
                         loc =>
                             idsEqual(loc.library_id, pickupLibraryId) &&

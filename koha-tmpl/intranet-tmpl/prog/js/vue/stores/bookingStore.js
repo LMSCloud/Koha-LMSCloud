@@ -56,6 +56,7 @@ export const useBookingStore = defineStore("bookingStore", {
         checkouts: [],
         pickupLocations: [],
         itemTypes: [],
+        itemTypeParentMap: {},
         circulationRules: [],
         circulationRulesContext: null, // Track the context used for the last rules fetch
         unavailableByDate: {},
@@ -309,21 +310,55 @@ export const useBookingStore = defineStore("bookingStore", {
         /**
          * Derive item types from bookableItems
          */
-        deriveItemTypesFromBookableItems() {
+        async deriveItemTypesFromBookableItems() {
             const typesMap = {};
             this.bookableItems.forEach(item => {
-                // Use effective_item_type_id if present, fallback to item_type_id
                 const typeId = item.effective_item_type_id || item.item_type_id;
                 if (typeId) {
-                    // Use the human-readable string if available
                     const label = item._strings?.item_type_id?.str ?? typeId;
                     typesMap[typeId] = label;
                 }
             });
+
+            let allItemTypes = [];
+            try {
+                const response = await fetch("/api/v1/item_types?_per_page=-1");
+                if (response.ok) {
+                    allItemTypes = await response.json();
+                }
+            } catch (e) {
+                // Fallback: proceed without hierarchy data
+            }
+
+            const itemTypeMap = {};
+            allItemTypes.forEach(it => { itemTypeMap[it.item_type_id] = it; });
+
+            const derivedTypeIds = Object.keys(typesMap);
+            derivedTypeIds.forEach(typeId => {
+                const fullType = itemTypeMap[typeId];
+                if (fullType?.parent_type && !typesMap[fullType.parent_type]) {
+                    const parentFull = itemTypeMap[fullType.parent_type];
+                    typesMap[fullType.parent_type] = parentFull?.description || fullType.parent_type;
+                }
+            });
+
+            const parentMap = {};
+            Object.keys(typesMap).forEach(typeId => {
+                const fullType = itemTypeMap[typeId];
+                if (fullType?.parent_type && typesMap[fullType.parent_type]) {
+                    if (!parentMap[fullType.parent_type]) {
+                        parentMap[fullType.parent_type] = [];
+                    }
+                    parentMap[fullType.parent_type].push(typeId);
+                }
+            });
+
+            this.itemTypeParentMap = parentMap;
             this.itemTypes = Object.entries(typesMap).map(
                 ([item_type_id, description]) => ({
                     item_type_id,
                     description,
+                    parent_type: itemTypeMap[item_type_id]?.parent_type || null,
                 })
             );
         },

@@ -247,6 +247,7 @@ export default {
             itemTypes,
             circulationRules,
             circulationRulesContext,
+            itemTypeParentMap,
             loading,
         } = storeToRefs(store);
 
@@ -333,7 +334,8 @@ export default {
                 bookableItems.value,
                 pickupLocations.value,
                 pickupLibraryId.value,
-                bookingItemtypeId.value
+                bookingItemtypeId.value,
+                itemTypeParentMap.value
             )
         );
         const constrainedBookableItems = computed(
@@ -352,7 +354,8 @@ export default {
                 bookableItems.value,
                 pickupLocations.value,
                 pickupLibraryId.value,
-                bookingItemId.value
+                bookingItemId.value,
+                itemTypeParentMap.value
             )
         );
         const constrainedItemTypes = computed(
@@ -483,7 +486,7 @@ export default {
                     }
 
                     // Derive item types after bookable items are loaded
-                    store.deriveItemTypesFromBookableItems();
+                    await store.deriveItemTypesFromBookableItems();
 
                     // If editing with patron, fetch patron-specific data
                     if (props.patronId) {
