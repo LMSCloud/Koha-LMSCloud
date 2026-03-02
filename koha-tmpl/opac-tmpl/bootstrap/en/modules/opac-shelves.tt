@@ -218,6 +218,10 @@
                             [% SET contents = shelf.get_contents %]
                             [% IF ( contents.count ) %]<p>This list contains [% contents.count | html %] titles</p>[% END %]
                             <div id="floating">
+                                <a href="#" class="toolbar-collapse-toggle d-none" aria-expanded="false" aria-controls="toolbar-collapse-content">
+                                    <i class="fa fa-bars" aria-hidden="true"></i> List actions
+                                </a>
+                                <div class="toolbar-collapse" id="toolbar-collapse-content">
                                 <div id="toolbar" class="toolbar clearfix">
                                     <div class="list-actions">
                                         <a class="btn btn-link newshelf" href="/cgi-bin/koha/opac-shelves.pl?op=add_form"><i class="fa fa-fw fa-plus" aria-hidden="true"></i> New list</a> <span class="sep">|</span>
@@ -376,6 +380,7 @@
                                         [% END %]
                                     </div> <!-- / .links -->
                                 </div> <!-- / .selections-toolbar -->
+                                </div> <!-- / .toolbar-collapse -->
                             </div> <!-- /#floating -->
 
                             <form action="/cgi-bin/koha/opac-shelves.pl" method="post" id="myform" name="myform">
@@ -1020,6 +1025,19 @@ $(function() {
     Sticky.hcSticky({
         stickTo: "#usershelves",
         stickyClass: "floating"
+    });
+
+    $(".toolbar-collapse-toggle").on("click", function(e) {
+        e.preventDefault();
+        var $toggle = $(this);
+        var $collapse = $toggle.siblings(".toolbar-collapse");
+        var isOpen = $collapse.hasClass("open");
+        $collapse.toggleClass("open");
+        $toggle.attr("aria-expanded", !isOpen ? "true" : "false");
+        $toggle.find("i").toggleClass("fa-bars fa-times");
+        if (Sticky) {
+            Sticky.hcSticky("update");
+        }
     });
 
     [% IF itemsloop %]

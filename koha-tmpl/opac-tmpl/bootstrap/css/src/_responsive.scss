@@ -227,6 +227,47 @@
     #checkouts_filter {
         display: block;
     }
+
+    #opac-userlists,
+    #opac-lists {
+        .toolbar-collapse-toggle {
+            background-color: #EEEEEE;
+            color: #727272;
+            display: block !important;
+            font-size: .9rem;
+            padding: 6px 10px;
+            text-align: center;
+            width: 100%;
+
+            &:hover,
+            &:focus {
+                background-color: #E4E4E4;
+                color: #444444;
+                text-decoration: none;
+            }
+        }
+
+        .toolbar-collapse {
+            display: none;
+
+            &.open {
+                display: block;
+            }
+        }
+
+        .actions-menu .actions {
+            display: inline;
+
+            a {
+                background-color: transparent;
+                border: 0;
+                display: inline;
+                font-size: .9rem;
+                font-weight: normal;
+                margin: 0;
+            }
+        }
+    }
 }
 
 @media only screen and ( max-width: 700px ) {
