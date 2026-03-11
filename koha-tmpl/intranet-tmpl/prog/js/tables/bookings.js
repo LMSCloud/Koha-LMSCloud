@@ -82,12 +82,7 @@ $(document).ready(function () {
                             defaultContent: __("Any item"),
                             render: function (data, type, row, meta) {
                                 if (row.item) {
-                                    return (
-                                        row.item.external_id +
-                                        " (" +
-                                        row.booking_id +
-                                        ")"
-                                    );
+                                    return row.item.external_id;
                                 } else {
                                     return null;
                                 }
