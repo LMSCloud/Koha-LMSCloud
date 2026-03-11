@@ -81,10 +81,11 @@ sub add {
         my $body                = $c->req->json;
         my $extended_attributes = delete $body->{extended_attributes} // [];
 
-        my $booking = Koha::Booking->new_from_api($body)->store;
-
         my @extended_attributes = map { { 'id' => $_->{field_id}, 'value' => $_->{value} } } @{$extended_attributes};
-        $booking->extended_attributes( \@extended_attributes );
+
+        my $booking = Koha::Booking->new_from_api($body)->store(
+            { extended_attributes => \@extended_attributes }
+        );
 
         $c->res->headers->location( $c->req->url->to_string . '/' . $booking->booking_id );
         return $c->render(
@@ -132,10 +133,11 @@ sub update {
         my $body                = $c->req->json;
         my $extended_attributes = delete $body->{extended_attributes} // [];
 
-        $booking->set_from_api($body)->store;
-
         my @extended_attributes = map { { 'id' => $_->{field_id}, 'value' => $_->{value} } } @{$extended_attributes};
-        $booking->extended_attributes( \@extended_attributes );
+
+        $booking->set_from_api($body)->store(
+            { extended_attributes => \@extended_attributes }
+        );
 
         return $c->render( status => 200, openapi => $c->objects->to_api($booking) );
     } catch {
