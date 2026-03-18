@@ -954,6 +954,11 @@ biblios:
         marc_type: marc21
         sort: 0
         suggestible: ''
+      - facet: ''
+        marc_field: 249v
+        marc_type: marc21
+        sort: 0
+        suggestible: ''
       - facet: 1
         marc_field: 505r
         marc_type: marc21
