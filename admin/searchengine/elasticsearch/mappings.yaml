@@ -1088,6 +1088,11 @@ biblios:
       marc_type: marc21
       sort: 1
       suggestible: ''
+    - facet: ''
+      marc_field: 249v
+      marc_type: marc21
+      sort: 0
+      suggestible: ''
     - facet: 1
       marc_field: 700a
       marc_type: marc21
