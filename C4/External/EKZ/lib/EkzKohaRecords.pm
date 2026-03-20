@@ -193,15 +193,17 @@ sub addNewRecords {
         }
 
         $self->{'logger'}->debug("addNewRecords() Checking if its a MultiVolumeSalesUnit" .   $volumeEkzArtikelNr);
+        my $i = -1;
         OUTER: foreach my $record (@{$titleHits->{records}}) {
+            %i++;
             foreach my $field ($record->field('945')) {
-                $multiVolumeRecordIndex++;
                 next unless $field->indicator(1) eq 'V';
                 next unless $field->indicator(2) eq 'e';
 
                 my $subfield = $field->subfield('a');
                 next unless ($subfield && $volumeEkzArtikelNr eq $subfield);
 
+                $multiVolumeRecordIndex = $i;
                 $isMultiVolumeSalesUnit = 1;
 
                 last OUTER;
