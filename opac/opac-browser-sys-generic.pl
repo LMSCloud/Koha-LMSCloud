@@ -31,6 +31,7 @@ use warnings;
 use C4::Auth qw( get_template_and_user );
 use C4::Context;
 use C4::Output qw( output_html_with_http_headers );
+use C4::Scrubber;
 use CGI qw ( -utf8 );
 
 my $query = new CGI;
@@ -52,6 +53,12 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 my $level = $query->param('level') || 0;
 my $parentfilter = $query->param('parent') || '';
 my $filter = $query->param('filter');
+
+my $scrubber = C4::Scrubber->new();
+$level = $scrubber->scrub($level) if ( $level );
+$parentfilter = $scrubber->scrub($parentfilter) if ( $parentfilter );
+$filter = $scrubber->scrub($filter) if ( $filter );
+
 my $entries = [];
 
 $filter = '' unless defined $filter;

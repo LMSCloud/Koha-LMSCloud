@@ -31,6 +31,7 @@ use C4::Context;
 use C4::Output qw( output_html_with_http_headers );
 use CGI qw ( -utf8 );
 use C4::Koha;       # use getitemtypeinfo
+use C4::Scrubber;
 
 my $query = new CGI;
 
@@ -51,6 +52,12 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 my $level = $query->param('level') || 0;
 my $filter = $query->param('filter');
 my $prefix = $query->param('prefixed');
+
+my $scrubber = C4::Scrubber->new();
+$level = $scrubber->scrub($level) if ( $level );
+$filter = $scrubber->scrub($filter) if ( $filter );
+$prefix = $scrubber->scrub($prefix) if ( $prefix );
+
 my ($countEntries,$countFolders,$mediacount,$childcount,$childcollectioncount,$adultcollectioncount)=(0,0,0,0,0,0);
 
 $filter = '' unless defined $filter;
