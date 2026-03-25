@@ -23,7 +23,7 @@ automatic_renewals.pl - cron script to renew loans
 
 =head1 SYNOPSIS
 
-./automatic_renewals.pl [-c|--confirm] [-s|--send-notices] [-d|--digest] [-b|--digest-per-branch] [-v|--verbose]
+./automatic_renewals.pl [-c|--confirm] [-s|--send-notices] [-d|--digest] [-b|--digest-per-branch] [-r|renewal-limit limit] [-v|--verbose]
 
 or, in crontab:
 # Once every day for digest messages
@@ -70,6 +70,13 @@ Enabling this flag ensures that the issuing library is the sender of
 the digested message.  It has no effect unless the borrower has
 chosen 'Digests only' on the advance messages.
 
+=item B<-r|--renewal-limit limit>
+
+Set a renewal limit. Only to that limit renewals will be processed.
+After reaching the limit, the auto-renew property of the issue will be
+reset to 0. No further renewals will be processed afterwards.
+For instance a renewal-limit of 1 will only perform one renewal.
+
 =back
 
 =cut
@@ -90,13 +97,14 @@ use Koha::Patrons;
 my $command_line_options = join( " ", @ARGV );
 cronlogaction( { info => $command_line_options } );
 
-my ( $help, $send_notices, $verbose, $confirm, $digest_per_branch );
+my ( $help, $send_notices, $verbose, $confirm, $digest_per_branch, $renewals_limit );
 GetOptions(
     'h|help'              => \$help,
     's|send-notices'      => \$send_notices,
     'v|verbose'           => \$verbose,
     'c|confirm'           => \$confirm,
     'b|digest-per-branch' => \$digest_per_branch,
+    'r|renewal-limit:i'   => \$renewals_limit
 ) || pod2usage(1);
 
 pod2usage(0) if $help;
@@ -134,12 +142,15 @@ END_WARN
 $verbose = 1            unless $verbose or $confirm;
 print "Test run only\n" unless $confirm;
 
+my $searchParams = {
+    auto_renew                   => 1,
+    'patron.autorenew_checkouts' => 1,
+};
+$searchParams->{renewals_count} = { "<=" => $renewals_limit } if ($renewals_limit);
+
 print "getting auto renewals\n" if $verbose;
 my @auto_renews = Koha::Checkouts->search(
-    {
-        auto_renew                   => 1,
-        'patron.autorenew_checkouts' => 1,
-    },
+    $searchParams,
     {
         join     => [ 'patron', 'item' ],
         order_by => 'patron.borrowernumber',
@@ -174,6 +185,11 @@ DATA_LOOP:
     $pm->wait_all_children;
 } else {
     _ProcessRenewals( \@auto_renews );
+}
+
+if ($renewals_limit) {
+    my $dbh = C4::Context->dbh;
+    $dbh->do( "UPDATE issues SET auto_renew = 0 WHERE renewals_count >= ? AND auto_renew = 1", undef, $renewals_limit );
 }
 
 cronlogaction( { action => 'End', info => "COMPLETED" } );
