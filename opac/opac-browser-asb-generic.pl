@@ -30,7 +30,8 @@ use warnings;
 use C4::Auth qw( get_template_and_user );
 use C4::Context;
 use C4::Output qw( output_html_with_http_headers );
-use CGI        qw ( -utf8 );
+use C4::Scrubber;
+use CGI qw ( -utf8 );
 
 my $query = new CGI;
 
@@ -51,6 +52,10 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 my $level   = $query->param('level') || 0;
 my $filter  = $query->param('filter');
 my $entries = [];
+
+my $scrubber = C4::Scrubber->new();
+$level  = $scrubber->scrub($level)  if ($level);
+$filter = $scrubber->scrub($filter) if ($filter);
 
 $filter = '' unless defined $filter;
 $level++;    # the level passed is the level of the PREVIOUS list, not the current one. Thus the ++
