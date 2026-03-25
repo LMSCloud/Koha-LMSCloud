@@ -105,6 +105,7 @@ use C4::Auth qw( get_template_and_user );
 use C4::Context;
 use C4::Output qw( output_html_with_http_headers );
 use CGI        qw ( -utf8 );
+use C4::Scrubber;
 use C4::Koha;    # use getitemtypeinfo
 
 my $query = new CGI;
@@ -123,9 +124,12 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 );
 
 # the level of browser to display
-my $level  = $query->param('level') || 0;
-my $filter = $query->param('filter');
-my $prefix = $query->param('prefixed');
+my $level    = $query->param('level') || 0;
+my $filter   = $query->param('filter');
+my $scrubber = C4::Scrubber->new();
+$level  = $scrubber->scrub($level)  if ($level);
+$filter = $scrubber->scrub($filter) if ($filter);
+
 my ( $countEntries, $countFolders, $youthcount, $adultcount, $childcount, $musiccount, $levelEntries ) =
     ( 0, 0, 0, 0, 0, 0, 0 );
 
@@ -266,8 +270,7 @@ $template->param(
     LOOP_COUNT         => scalar(@level_loop),
     LEVEL              => $level,
     have_hierarchy     => $have_hierarchy,
-    MYENTRY            => $myentry,
-    PREFIXED           => $prefix
+    MYENTRY            => $myentry
 );
 
 sub createSearchString {
