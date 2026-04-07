@@ -58,6 +58,8 @@ $level = $scrubber->scrub($level) if ( $level );
 $filter = $scrubber->scrub($filter) if ( $filter );
 $prefix = $scrubber->scrub($prefix) if ( $prefix );
 
+$prefix = undef if ( $prefix ne "1");
+
 my ($countEntries,$countFolders,$mediacount,$childcount,$childcollectioncount,$adultcollectioncount)=(0,0,0,0,0,0);
 
 $filter = '' unless defined $filter;

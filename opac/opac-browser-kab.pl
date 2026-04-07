@@ -52,11 +52,10 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 # the level of browser to display
 my $level = $query->param('level') || 0;
 my $filter = $query->param('filter');
-my $prefix = $query->param('prefixed');
+
 my $scrubber = C4::Scrubber->new();
 $level = $scrubber->scrub($level) if ( $level );
 $filter = $scrubber->scrub($filter) if ( $filter );
-$prefix = $scrubber->scrub($prefix) if ( $prefix );
 
 my ($countEntries,$countFolders,$youthcount,$adultcount,$child07count,$child10count,$musiccount,$gamescount,$regioncount,$levelEntries)=(0,0,0,0,0,0,0,0,0,0);
 
@@ -225,8 +224,7 @@ $template->param(
     LOOP_COUNT => scalar(@level_loop),
     LEVEL => $level,
     have_hierarchy => $have_hierarchy,
-    MYENTRY => $myentry,
-    PREFIXED => $prefix
+    MYENTRY => $myentry
 );
 
 sub createSearchString {
