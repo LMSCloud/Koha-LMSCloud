@@ -2,7 +2,7 @@
 [% USE Asset %]
 [% USE Koha %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Browse our catalog &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha [% END %] - Catalog</title>
+<title>Browse our catalog &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha [% END %] - Catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>
@@ -24,13 +24,13 @@
 
     <h1>Browse our catalog</h1>
  
-    <h2 style="margin-top: 0px; margin-bottom:0px"><a href="opac-browser-asb.pl?prefixed=[% PREFIXED %]">Complete collection</a></h3>
+    <h2 style="margin-top: 0px; margin-bottom:0px"><a href="opac-browser-asb.pl?prefixed=[% PREFIXED  | hmtl %]">Complete collection</a></h3>
     [% FOREACH HIERACHY_ENTRY IN HIERARCHY_LOOP %]
         <div class="taxonomy-hierachy-entry">
             [% IF ( HIERACHY_ENTRY.level != MYENTRY.level ) %]
-            <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-asb.pl?level=[% HIERACHY_ENTRY.level %]&amp;filter=[% HIERACHY_ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]">&#10149; [% HIERACHY_ENTRY.description | html %]</a></h3>
+            <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-asb.pl?level=[% HIERACHY_ENTRY.level | html %]&amp;filter=[% HIERACHY_ENTRY.browse_classification | uri %]&amp;prefixed=[% PREFIXED | html %]">&#10149; [% HIERACHY_ENTRY.description | html %]</a></h3>
             [% ELSE %]
-            <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-asb.pl?level=[% HIERACHY_ENTRY.level %]&amp;filter=[% HIERACHY_ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]">&#10149; [% HIERACHY_ENTRY.description | html %]</a></h3>
+            <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-asb.pl?level=[% HIERACHY_ENTRY.level | html %]&amp;filter=[% HIERACHY_ENTRY.browse_classification | uri %]&amp;prefixed=[% PREFIXED | html %]">&#10149; [% HIERACHY_ENTRY.description | html %]</a></h3>
             [% END %]
     [% END %]
      
@@ -44,8 +44,8 @@
                     <div class="col-lg-12 entry-page-col">&nbsp;</div>
                 </div>
                 <div class="row entry-page-row">
-                    <div class="col-lg-12 entry-page-col"><a href='opac-search.pl?q=sys.phrase:[% MYENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;All titles</a>
-                    <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% MYENTRY.classification.replace(' ','\ ') |uri %]*'>([% MYENTRY.number %] titles)</a></i></span>
+                    <div class="col-lg-12 entry-page-col"><a href='opac-search.pl?q=sys.phrase:[% MYENTRY.classification.replace(' ','\ ') | uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;All titles</a>
+                    <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% MYENTRY.classification.replace(' ','\ ') | uri %]*'>([% MYENTRY.number %] titles)</a></i></span>
                 </div>
             </div>
             <div class="row entry-page-row">
@@ -71,12 +71,12 @@
                                     <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                                 [% END %]
                             [% ELSE %]
-                                <a href="opac-browser-asb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                <a href="opac-browser-asb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification | uri %]&amp;prefixed=[% PREFIXED | html %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% END %]
                             [% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
-                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'>([% ENTRY.number %] titles)</a></i></span> 
+                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') | uri %]'>([% ENTRY.number | html %] titles)</a></i></span> 
                             [% ELSE %]
-                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'>([% ENTRY.number %] titles)</a></i></span> 
+                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') | uri %]*'>([% ENTRY.number | html %] titles)</a></i></span> 
                             [% END %]
                         </div>
                     </div>
@@ -95,12 +95,12 @@
                         <div class="col-lg-12 entry-page-col">
                             [% IF ( ENTRY.endnode ) %] 
                                 [% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
-                                    <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                    <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description | html %]</a>
                                 [% ELSE %]
-                                    <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                    <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description | html %]</a>
                                 [% END %]
                             [% ELSE %]
-                                <a href="opac-browser-asb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                <a href="opac-browser-asb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED | html%]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description | html %]</a>
                             [% END %]
                             [% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
                                 <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'>([% ENTRY.number %] titles)</a></i></span> 
@@ -132,9 +132,9 @@
                                     <a href="opac-browser-asb.pl?level=[% MEDIA_ENTRY.level %]&amp;filter=[% MEDIA_ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% MEDIA_ENTRY.description | html %]</a>
                             [% END %]
                             [% IF ( MEDIA_ENTRY.classification.substr((MEDIA_ENTRY.classification.length - 1), 1) == " " ) %] 
-                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% MEDIA_ENTRY.classification.replace(' ','\ ') |uri %]'>([% MEDIA_ENTRY.number %] titles)</a></i></span> 
+                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% MEDIA_ENTRY.classification.replace(' ','\ ') | uri %]'>([% MEDIA_ENTRY.number %] titles)</a></i></span> 
                             [% ELSE %]
-                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% MEDIA_ENTRY.classification.replace(' ','\ ') |uri %]*'>([% MEDIA_ENTRY.number %] titles)</a></i></span> 
+                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% MEDIA_ENTRY.classification.replace(' ','\ ') | uri %]*'>([% MEDIA_ENTRY.number %] titles)</a></i></span> 
                             [% END %]
                         </div>
                     </div>
@@ -158,7 +158,7 @@
                                     <a href='opac-search.pl?q=sys.phrase:[% LEVEL_FOLDER.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% LEVEL_FOLDER.description |html %]</a>
                                 [% END %]
                             [% ELSE %]
-                                <a href="opac-browser-asb.pl?level=[% LEVEL_FOLDER.level %]&amp;filter=[% LEVEL_FOLDER.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% LEVEL_FOLDER.description |html %]</a>
+                                <a href="opac-browser-asb.pl?level=[% LEVEL_FOLDER.level %]&amp;filter=[% LEVEL_FOLDER.browse_classification |uri %]&amp;prefixed=[% PREFIXED | html %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% LEVEL_FOLDER.description |html %]</a>
                             [% END %]
                             [% IF ( LEVEL_FOLDER.classification.substr((LEVEL_FOLDER.classification.length - 1), 1) == " " ) %] 
                                 <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% LEVEL_FOLDER.classification.replace(' ','\ ') |uri %]'>([% LEVEL_FOLDER.number %] titles)</a></i></span>
@@ -187,7 +187,7 @@
                                     <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                                 [% END %]
                             [% ELSE %]
-                                <a href="opac-browser-asb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                <a href="opac-browser-asb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED | html %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% END %]
                             [% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
                                 <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'>([% ENTRY.number %] titles)</a></i></span> 
