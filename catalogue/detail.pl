@@ -87,6 +87,8 @@ if ( C4::Context->config('enable_plugins') ) {
 
 my $activetab    = $query->param('activetab');
 my $biblionumber = $query->param('biblionumber');
+$biblionumber = int($biblionumber);
+
 $biblionumber = HTML::Entities::encode($biblionumber);
 my $biblio = Koha::Biblios->find($biblionumber);
 
