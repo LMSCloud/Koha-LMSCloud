@@ -43,7 +43,7 @@ use YAML::XS;
 use List::Util qw( sum0 );
 use MARC::File::XML;
 use MIME::Base64 qw( encode_base64 );
-use Encode qw( encode );
+use Encode qw( encode decode );
 use Business::ISBN;
 use Scalar::Util qw( looks_like_number );
 
@@ -538,11 +538,13 @@ sub _process_mappings {
                 $values->[$i] =~ s/^\s*((Der|Die|Das|Den|Dem|Ein|Eine|Einen|Le|La|Les|Un|Une|De|Des|The|A|An|El|En|La|Los|Las|Un|Unos|Una|Unas)\s)+//;
                 $values->[$i] =~ s/^\s*(L'|D')//i;
                 $values->[$i] =~ s/^\s+// if ($values->[$i]);
+                $values->[$i] = cutToLength($values->[$i]);
             }
         }
         else {
             for (my $i=0;$i<=$#$values;$i++) {
                 $values->[$i] =~ s/[\x{0098}\x{009c}]+//g if ($values->[$i]);
+                $values->[$i] = cutToLength($values->[$i]);
             }
         }
 
@@ -551,6 +553,26 @@ sub _process_mappings {
         $record_document->{$target} //= [];
         push @{$record_document->{$target}}, @{$values};
     }
+}
+
+sub cutToLength {
+    my $string = shift;
+    
+    my $max_bytes = 32765;
+    
+    # 1. string to UTF-8 Bytes;
+    my $octets = encode('UTF-8', $string);
+
+    # 2. check, whether we hav to cut the string
+    if (length($octets) > $max_bytes) {
+        # 3. cut at $max_bytes Bytes
+        $octets = substr($octets, 0, $max_bytes);
+        
+        # 4. repair a possibly wrong Unicode character at the end
+        # 'FB_QUIET' removes incomplete bytes
+        $string = decode('UTF-8', $octets, Encode::FB_QUIET);
+    }
+    return $string;
 }
 
 =head2 marc_records_to_documents($marc_records)
