@@ -45,6 +45,7 @@ use Koha::Exceptions::Checkin;
 use Koha::Exceptions::Item::Bundle;
 use Koha::Exceptions::Item::Transfer;
 use Koha::Item::Attributes;
+use Koha::Item::Availability::Checkin;
 use Koha::Exceptions::Item::Bundle;
 use Koha::Item::Transfer::Limits;
 use Koha::Item::Transfers;
@@ -875,7 +876,6 @@ Returns a Koha::Result::Availability object with methods:
 sub checkin_availability {
     my ( $self, $params ) = @_;
 
-    require Koha::Item::Availability::Checkin;
     return Koha::Item::Availability::Checkin->check( $self, $params );
 }
 
