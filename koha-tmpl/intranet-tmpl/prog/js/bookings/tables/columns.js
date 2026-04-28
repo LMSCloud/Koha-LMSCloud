@@ -86,9 +86,7 @@ function renderStatusBadge(row) {
  */
 function renderItemCell(row) {
     if (!row.item) return null;
-    return `${escapeAttr(row.item.external_id)} (${escapeAttr(
-        row.booking_id
-    )})`;
+    return escapeAttr(row.item.external_id);
 }
 
 /**
