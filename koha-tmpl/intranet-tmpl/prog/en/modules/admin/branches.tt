@@ -2,7 +2,6 @@
 [% USE raw %]
 [% USE Asset %]
 [% USE Branches %]
-[% SET footerjs = 1 %]
 [% USE TablesSettings %]
 [%- USE KohaSpan -%]
 [% USE KohaTimes %]
@@ -694,9 +693,9 @@
                 'emptyTable': '<div class="alert alert-info">'+_("There are no libraries defined.")+' <a href="/cgi-bin/koha/admin/branches.pl?op=add_form">'+_("Start defining libraries")+'</a>.</div>',
                 "columnDefs": [ {
                     [% IF ( bookmobileactive ) %]
-                    "targets": [0,1,3,4,5,8,10,11,12,13,14,15,16,17],
+                    "targets": [1,3,4,5],
                     [% ELSE %]
-                    "targets": [0,1,3,4,7,9,10,11,12,13,14,15,16],
+                    "targets": [1,3,4],
                     [% END %]
                     "render": function (data, type, row, meta) {
                         if ( type == 'display' ) {

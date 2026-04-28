@@ -337,6 +337,8 @@ modules:
             -
               columnname: default_privacy
             -
+              columnname: family_card
+            -
               columnname: exclude_from_local_holds_priority
             -
               columnname: checkout_charge_limit

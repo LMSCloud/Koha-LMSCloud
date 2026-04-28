@@ -127,10 +127,10 @@
             };
 
             const statusBadgeClassMap = {
-                active: 'badge-primary',
-                pending: 'badge-warning',
-                expired: 'badge-secondary',
-                new: 'badge-info'
+                active: 'text-bg-primary',
+                pending: 'text-bg-warning',
+                expired: 'text-bg-secondary',
+                new: 'text-bg-info'
             };
 
             const deriveStatus = (rawStatus, startAttr, endAttr) => {
@@ -191,7 +191,7 @@
                     const badgeClass = statusBadgeClassMap[derivedStatus] || statusBadgeClassMap.new;
 
                     badge
-                        .removeClass('badge-primary badge-secondary badge-success badge-info badge-warning badge-danger')
+                        .removeClass('text-bg-primary text-bg-secondary text-bg-success text-bg-info text-bg-warning text-bg-danger')
                         .addClass(badgeClass)
                         .text(label);
                 }

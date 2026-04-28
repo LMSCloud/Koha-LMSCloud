@@ -84,7 +84,7 @@
                         <div id="antolinquiz_menu">
                             <div class="dropdown">
                                 <a id="open_antolinquiz_menu" class="btn btn-link btn-lg dropdown-toggle" data-bs-toggle="dropdown" href="#"><img src="/webcustom/images/Antolin16.png" alt="Antolin book" title="Antolin book" class="antolin_menu_icon" aria-hidden="true" /> Antolin Quiz <b class="caret"></b></a>
-                                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="format">
+                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="format">
                 [% END # / AntolinLinks == 1 %]
                     [% IF ( OPACURLOpenInNewWindow ) %]
                         <a class="dropdown-item" href="[% MARCurl.MARCURL %]" title="[% MARCurl.MARCURL %]" target="_blank">
@@ -113,7 +113,7 @@
                         <div id="wikipedia_menu">
                             <div class="dropdown">
                                 <a id="format" class="btn btn-link btn-lg dropdown-toggle" data-bs-toggle="dropdown" href="#"><i class="fa fa-fw fa-wikipedia-w" aria-hidden="true"></i> Wikipedia-Article <b class="caret"></b></a>
-                                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="format">
+                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="format">
                 [% END # / WikipediaLinks == 1 %]
                 [% IF ( OPACURLOpenInNewWindow ) %]
                     <a class="dropdown-item" href="[% MARCurl.MARCURL | replace('Ä', '%C3%84') | replace('Ö', '%C3%96') | replace('Ü', '%C3%9C') | replace('ä', '%C3%A4') | replace('ö', '%C3%B6') | replace('ü', '%C3%BC') | replace('ß', '%C3%9F') | replace('ẞ', '%E1%BA%9E') %]" title="[% MARCurl.MARCURL %]" target="_blank">
@@ -137,7 +137,7 @@
             <div id="bookshop_menu">
                 <div class="dropdown"> 
                    <a id="open_bookshop_menu" class="btn btn-link btn-lg dropdown-toggle" class="dropdown-toggle" data-bs-toggle="dropdown" href="#"><i class="fa fa-fw fa-eur" aria-hidden="true"></i> Buy here<b class="caret"></b></a>
-                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="format">
+                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="format">
                         [% OpacDetailBookShopLinkContent %]
                     </div>
                 </div>

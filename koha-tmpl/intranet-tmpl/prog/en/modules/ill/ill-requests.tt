@@ -635,7 +635,7 @@
                             </ul>
                         </div>
                         end of deactivation of standard Koha's arbitrary ILL notice print by LMSCloud -->
-                        <a title="Display supplier metadata" id="ill-request-display-metadata" class="btn btn-default pull-right" href="#">
+                        <a title="Display supplier metadata" id="ill-request-display-metadata" class="btn btn-default float-end" href="#">
                             <span class="fa fa-eye"></span>
                             Display supplier metadata
                         </a>

@@ -53,27 +53,27 @@
             <span class="booking-marker-dot booking-marker-dot--booked"></span>
             {{ $__("Booked") }}
             <span
-                class="booking-marker-dot booking-marker-dot--lead ml-3"
+                class="booking-marker-dot booking-marker-dot--lead ms-3"
             ></span>
             {{ $__("Lead Period") }}
             <span
-                class="booking-marker-dot booking-marker-dot--trail ml-3"
+                class="booking-marker-dot booking-marker-dot--trail ms-3"
             ></span>
             {{ $__("Trail Period") }}
             <span
-                class="booking-marker-dot booking-marker-dot--checked-out ml-3"
+                class="booking-marker-dot booking-marker-dot--checked-out ms-3"
             ></span>
             {{ $__("Checked Out") }}
             <span
-                class="booking-marker-dot booking-marker-dot--holiday ml-3"
+                class="booking-marker-dot booking-marker-dot--holiday ms-3"
             ></span>
             {{ $__("Closed") }}
             <span
                 v-if="dateRangeConstraint && hasSelectedDates"
-                class="booking-marker-dot ml-3"
+                class="booking-marker-dot ms-3"
                 style="background-color: #28a745"
             ></span>
-            <span v-if="dateRangeConstraint && hasSelectedDates" class="ml-1">
+            <span v-if="dateRangeConstraint && hasSelectedDates" class="ms-1">
                 {{ $__("Required end date") }}
             </span>
         </div>

@@ -250,7 +250,7 @@ var RFIDWebService = {
                         menuNames.topLevelMenuEntry,
                         $('<b>').attr("class","caret")
                 ),
-                $('<ul>').attr("class","dropdown-menu dropdown-menu-right").append(
+                $('<ul>').attr("class","dropdown-menu dropdown-menu-end").append(
                     $('<li>').append(
                         $('<a>')
                             .bind( "click", function() {

@@ -57,16 +57,16 @@
                 </td>
                 <td class="status" data-status="[% BOOKING.status | html %]" data-raw-status="[% BOOKING.status | html %]">
                     [% IF BOOKING.status == 'new' %]
-                        <span class="badge badge-primary">Active</span>
+                        <span class="badge text-bg-primary">Active</span>
                     [% ELSIF BOOKING.status == 'cancelled' %]
-                        <span class="badge badge-secondary">Cancelled</span>
+                        <span class="badge text-bg-secondary">Cancelled</span>
                         [% IF BOOKING.cancellation_reason %]
                             <br><small class="text-muted">[% BOOKING.cancellation_reason | html %]</small>
                         [% END %]
                     [% ELSIF BOOKING.status == 'completed' %]
-                        <span class="badge badge-success">Completed</span>
+                        <span class="badge text-bg-success">Completed</span>
                     [% ELSE %]
-                        <span class="badge badge-info">[% BOOKING.status | html %]</span>
+                        <span class="badge text-bg-info">[% BOOKING.status | html %]</span>
                     [% END %]
                 </td>
                 [% IF BOOKING.item %]

@@ -1533,7 +1533,7 @@
                     var current_input_id = $(current_column).children('input').first().attr('id');
                     if ( current_input_id === "note" ) {
                         // specific processing for the Note column
-                        var note = $(this).find("a[id='viewnote']").data("content");
+                        var note = $(this).find("a[id='viewnote']").attr("data-bs-content");
                         $(current_column).find("input[type='text']").val(note);
                     } else if ( i == 9 ) {
                         // specific processing for the Hard due date column

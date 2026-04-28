@@ -613,7 +613,7 @@
                             </form>
                         </div> <!-- / .searchresults -->
 
-                        <div id="bottom-pages" class="pull-right">[% INCLUDE 'page-numbers-lmscloud.inc' %]</div>
+                        <div id="bottom-pages" class="float-end">[% INCLUDE 'page-numbers-lmscloud.inc' %]</div>
 
                     [% END # / IF total %]
 

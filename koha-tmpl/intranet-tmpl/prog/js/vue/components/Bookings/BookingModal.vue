@@ -128,7 +128,7 @@
                             {{ submitLabel }}
                         </button>
                         <button
-                            class="btn btn-secondary ml-2"
+                            class="btn btn-secondary ms-2"
                             @click.prevent="handleClose"
                         >
                             {{ $__("Cancel") }}

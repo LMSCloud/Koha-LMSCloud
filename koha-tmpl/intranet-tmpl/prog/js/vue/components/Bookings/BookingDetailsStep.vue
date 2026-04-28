@@ -40,10 +40,10 @@
             </v-select>
             <span
                 v-if="constrainedFlags.pickupLocations && (showPickupLocationSelect || showItemDetailsSelects)"
-                class="badge badge-warning ml-2"
+                class="badge text-bg-warning ms-2"
             >
                 {{ $__("Options updated") }}
-                <span class="ml-1"
+                <span class="ms-1"
                     >({{
                         pickupLocationsTotal - pickupLocationsFilteredOut
                     }}/{{ pickupLocationsTotal }})</span
@@ -70,7 +70,7 @@
             </v-select>
             <span
                 v-if="constrainedFlags.itemTypes"
-                class="badge badge-warning ml-2"
+                class="badge text-bg-warning ms-2"
                 >{{ $__("Options updated") }}</span
             >
         </div>
@@ -101,10 +101,10 @@
             </v-select>
             <span
                 v-if="constrainedFlags.bookableItems"
-                class="badge badge-warning ml-2"
+                class="badge text-bg-warning ms-2"
             >
                 {{ $__("Options updated") }}
-                <span class="ml-1"
+                <span class="ms-1"
                     >({{
                         bookableItemsTotal - bookableItemsFilteredOut
                     }}/{{ bookableItemsTotal }})</span
@@ -261,8 +261,8 @@ export default {
     font-size: var(--booking-text-xs);
 }
 
-.badge-warning {
-    background-color: var(--booking-warning-bg);
-    color: var(--booking-neutral-600);
+.text-bg-warning {
+    background-color: var(--booking-warning-bg) !important;
+    color: var(--booking-neutral-600) !important;
 }
 </style>
