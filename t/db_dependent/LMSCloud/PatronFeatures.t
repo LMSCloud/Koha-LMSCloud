@@ -84,7 +84,7 @@ subtest 'BookMobile support' => sub {
 
     # 5. Test get_effective_branch returns parent when branch is a mobile station
     my $libraries = Koha::Libraries->new;
-    my $effective  = $libraries->get_effective_branch( $mobile_branch->branchcode );
+    my $effective = $libraries->get_effective_branch( $mobile_branch->branchcode );
     is(
         $effective, $parent_branch->branchcode,
         'get_effective_branch returns the parent mobilebranch for a mobile station'

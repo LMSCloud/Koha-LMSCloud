@@ -99,7 +99,7 @@ subtest 'LMS booking extensions' => sub {
     $schema->storage->txn_begin;
 
     lives_ok { t::lib::Mocks::mock_preference( 'BookingDateRangeConstraint', 'issuelength' ) }
-        'BookingDateRangeConstraint can be set to issuelength';
+    'BookingDateRangeConstraint can be set to issuelength';
     is(
         C4::Context->preference('BookingDateRangeConstraint'),
         'issuelength',
@@ -107,7 +107,7 @@ subtest 'LMS booking extensions' => sub {
     );
 
     lives_ok { t::lib::Mocks::mock_preference( 'BookingConstraintMode', 'enforce' ) }
-        'BookingConstraintMode can be set';
+    'BookingConstraintMode can be set';
     is(
         C4::Context->preference('BookingConstraintMode'),
         'enforce',
