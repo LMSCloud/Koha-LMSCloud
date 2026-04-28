@@ -99,34 +99,34 @@ my $include_aqorders_qty_join =
 my $nfl_comparison = $include_ordered ? '<=' : '=';
 my $sus_comparison = $include_suspended ? '<=' : '<';
 my $strsth =
-"SELECT reservedate,
-        reserves.borrowernumber as borrowernumber,
+"SELECT MIN(reservedate) as reservedate,
+        MIN(reserves.borrowernumber) as borrowernumber,
         reserves.biblionumber,
-        reserves.branchcode as branch,
-        items.holdingbranch,
-        items.itemcallnumber,
-        items.itemnumber,
-        GROUP_CONCAT(DISTINCT items.itemcallnumber 
+        MIN(reserves.branchcode) as branch,
+        MIN(items.holdingbranch) as holdingbranch,
+        MIN(items.itemcallnumber) as itemcallnumber,
+        MIN(items.itemnumber) as itemnumber,
+        GROUP_CONCAT(DISTINCT items.itemcallnumber
             ORDER BY items.itemnumber SEPARATOR '|') as listcall,
         GROUP_CONCAT(DISTINCT homebranch
             ORDER BY items.itemnumber SEPARATOR '|') as homebranch_list,
-        GROUP_CONCAT(DISTINCT holdingbranch 
+        GROUP_CONCAT(DISTINCT holdingbranch
             ORDER BY items.itemnumber SEPARATOR '|') as holdingbranch_list,
-        GROUP_CONCAT(DISTINCT items.location 
+        GROUP_CONCAT(DISTINCT items.location
             ORDER BY items.itemnumber SEPARATOR '|') as l_location,
-        GROUP_CONCAT(DISTINCT items.itype 
+        GROUP_CONCAT(DISTINCT items.itype
             ORDER BY items.itemnumber SEPARATOR '|') as l_itype,
         GROUP_CONCAT(DISTINCT items.ccode
             ORDER BY items.ccode SEPARATOR '|') as l_ccode,
 
-        reserves.found,
+        MIN(reserves.found) as found,
         biblio.title,
         biblio.subtitle,
         biblio.medium,
         biblio.part_number,
         biblio.part_name,
         biblio.author,
-        count(DISTINCT reserves.borrowernumber) as reservecount, 
+        count(DISTINCT reserves.borrowernumber) as reservecount,
         count(DISTINCT items.itemnumber) $include_aqorders_qty as itemcount
  FROM  reserves
  LEFT JOIN items ON items.biblionumber=reserves.biblionumber 
@@ -143,7 +143,7 @@ if (C4::Context->preference('IndependentBranches')){
     push @query_params, C4::Context->userenv->{'branch'};
 }
 
-$strsth .= " GROUP BY reserves.biblionumber ORDER BY reservecount DESC";
+$strsth .= " GROUP BY reserves.biblionumber, biblio.title, biblio.subtitle, biblio.medium, biblio.part_number, biblio.part_name, biblio.author ORDER BY reservecount DESC";
 
 $template->param(sql => $strsth);
 my $sth = $dbh->prepare($strsth);

@@ -28,7 +28,6 @@ use C4::Suggestions qw(
     DelSuggestion
     MarcRecordFromNewSuggestion
 );
-use C4::Koha qw( GetAuthorisedValues );
 use C4::Scrubber;
 use C4::Search qw( FindDuplicate );
 

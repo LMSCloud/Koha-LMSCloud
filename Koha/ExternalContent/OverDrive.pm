@@ -165,30 +165,6 @@ sub auth_by_userid {
     return $self->get_return_page_from_koha_session;
 }
 
-=head2 auth_by_userid($userid, $password, $website_id, $authorization_name)
-
-  To be called to check auth of patron using OverDrive Patron Authentication method
-  This requires a SIP connection configured with OverDrive
-
-=cut
-
-sub auth_by_userid {
-    my $self = shift;
-    my $userid = shift or croak "No user provided";
-    my $password = shift;
-    croak "No password provided" unless ($password || !C4::Context->preference("OverDrivePasswordRequired"));
-    my $website_id = shift or croak "OverDrive Library ID not provided";
-    my $authorization_name = shift or croak "OverDrive Authname not provided";
-
-    my ($access_token, $access_token_type, $auth_token)
-      = $self->client->auth_by_user_id($userid, $password, $website_id, $authorization_name);
-    $access_token or die "Invalid OverDrive code returned";
-    $self->set_token_in_koha_session($access_token, $access_token_type);
-
-    $self->koha_patron->set({overdrive_auth_token => $auth_token})->store;
-    return $self->get_return_page_from_koha_session;
-}
-
 use constant AUTH_RETURN_HANDLER => "/cgi-bin/koha/external/overdrive/auth.pl";
 sub _return_url {
     my $self = shift;

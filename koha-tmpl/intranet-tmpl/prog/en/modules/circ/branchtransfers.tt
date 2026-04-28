@@ -225,7 +225,7 @@
                                     <div class="form-control-group">
                                         <label for="tobranchcd" class="hint">Destination library: </label>
                                         <select name="tobranchcd" id="tobranchcd" class="required select2" required="required">
-                                            [% PROCESS options_for_libraries libraries => Branches.all( selected => tobranchcd, unfiltered => 1) %]
+                                            [% PROCESS options_for_libraries libraries => Branches.all( selected => tobranchcd, unfiltered => 1, restrict => 'NoMobileStations') %]
                                         </select>
                                         <span class="required">Required</span>
                                     </div>
@@ -293,32 +293,6 @@
                 </div> <!-- /.col-md-2 order-sm-2 order-md-1 -->
             [% END %]
         </div> <!-- /.row -->
-
-<div id="branchtransfers">
-    <form method="post" name="mainform" id="mainform" action="/cgi-bin/koha/circ/branchtransfers.pl">
-        <fieldset class="brief">
-            <legend>Transfer</legend>
-            <ol>
-            <li>
-                <label for="tobranchcd">Destination library: </label>
-                    <select name="tobranchcd" id="tobranchcd">
-                        [% PROCESS options_for_libraries libraries => Branches.all( selected => tobranchcd, unfiltered => 1, restrict => 'NoMobileStations'  ) %]
-                    </select>
-            </li>
-            <li>
-                <label for="barcode">Enter barcode: </label>
-                <input name="barcode" id="barcode" size="15" class="focus" type="text" /> <input type="submit" class="btn btn-primary" value="Submit" />
-            </li>
-			</ol>
-        </fieldset>
-        [% FOREACH trsfitemloo IN trsfitemloop %]
-            <input type="hidden" name="bc-[% trsfitemloo.counter | html %]" value="[% trsfitemloo.item.barcode | html %]" />
-            <input type="hidden" name="fb-[% trsfitemloo.counter | html %]" value="[% trsfitemloo.frombrcd | html %]" />
-            <input type="hidden" name="tb-[% trsfitemloo.counter | html %]" value="[% trsfitemloo.tobrcd | html %]" />
-        [% END %]
-        <input type="hidden" name="op" value="cud-transfer" />
-    </form>
-</div> <!-- /#branchtransfers -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'select2.inc' %]

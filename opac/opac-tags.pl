@@ -52,7 +52,6 @@ use Koha::Biblios;
 
 
 use Koha::Logger;
-use Koha::Biblios;
 use Koha::CirculationRules;
 
 my %newtags = ();

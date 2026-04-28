@@ -66,8 +66,7 @@ if ( defined $format and $format eq 'json' ) {
         if ( defined $search and $search ne '' ) {
             my @words = split /\s+/, $search;
             foreach my $word (@words) {
-                my $searchcol = $columns[$i];
-                push @f, $searchcol;
+                push @f, $column_name;
                 push @c, 'and';
 
                 if ( grep { $_ eq $column_name }
@@ -76,20 +75,25 @@ if ( defined $format and $format eq 'json' ) {
                     push @q,  "$word";
                     push @op, '=';
                 }
-                elsif ( grep(/^$searchcol$/, qw( issues )) && $word && $word =~ /^[0-9]+$/ ) {
-                    push @q, "$word";
-                    push @op, '=';
-                }
-                elsif ( grep(/^$searchcol$/, qw( issues )) && $word && $word =~ /^([><=])([0-9]*)$/ ) {
-                    push @q, ($2 ? "$2" : '0');
-                    push @op, $1;
-                }
-                elsif ( grep(/^$searchcol$/, qw( issues )) && !$word ) {
-                    push @q, "0";
-                    push @op, '=';
-                }
-                else {
-                    push @q, "%$word%";
+                elsif ( grep { $_ eq $column_name } qw( issues ) ) {
+                    if ( $word && $word =~ /^[0-9]+$/ ) {
+                        push @q, "$word";
+                        push @op, '=';
+                    }
+                    elsif ( $word && $word =~ /^([><=])([0-9]*)$/ ) {
+                        push @q, ($2 ? "$2" : '0');
+                        push @op, $1;
+                    }
+                    elsif ( !$word ) {
+                        push @q, "0";
+                        push @op, '=';
+                    }
+                    else {
+                        push @q, "%$word%";
+                        push @op, 'like';
+                    }
+                } else {
+                    push @q,  "%$word%";
                     push @op, 'like';
                 }
             }
@@ -201,7 +205,7 @@ if ( defined $format and $format ne 'shareable') {
                     operator => $op,
                 };
                 if ( $field eq 'issues' ) {
-                    $nextfilter->{handleNullLikeValue} = 0;    # specifying that a items record where items.issues IS NULL should be treated like a items record where items.issues = 0
+                    $nextfilter->{handleNullLikeValue} = 0;
                 }
                 $f = {
                     conjunction => $c,
@@ -213,7 +217,6 @@ if ( defined $format and $format ne 'shareable') {
         }
     }
     push @{ $filter->{filters} }, $f;
-
 
     # Yes/No parameters
     foreach my $p (qw( new_status )) {

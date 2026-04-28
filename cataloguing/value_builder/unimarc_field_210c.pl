@@ -20,7 +20,6 @@
 
 use Modern::Perl;
 use C4::Auth qw( get_template_and_user );
-use C4::Auth qw( get_template_and_user );
 use C4::Context;
 use C4::Output qw( pagination_bar output_html_with_http_headers );
 use CGI qw ( -utf8 );

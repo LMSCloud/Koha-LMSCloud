@@ -36,8 +36,6 @@ use Koha::Illrequest;
 
 use base qw(Koha::Objects);
 
-use Koha::SearchEngine::Indexer;
-
 =head1 NAME
 
 Koha::Items - Koha Item object set class

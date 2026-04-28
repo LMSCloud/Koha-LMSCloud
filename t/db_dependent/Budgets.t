@@ -22,7 +22,6 @@ use t::lib::TestBuilder;
 use t::lib::Mocks;
 use Koha::DateUtils;
 
-use t::lib::Mocks;
 t::lib::Mocks::mock_preference('OrderPriceRounding','');
 t::lib::Mocks::mock_preference('AcquisitionLog','1');
 

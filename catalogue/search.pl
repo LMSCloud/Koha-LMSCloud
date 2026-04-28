@@ -158,7 +158,6 @@ use Koha::Virtualshelves;
 use Koha::SearchFields;
 use Koha::SearchFilters;
 
-use URI::Escape;
 use JSON qw( decode_json encode_json );
 
 my $DisplayMultiPlaceHold = C4::Context->preference("DisplayMultiPlaceHold");
