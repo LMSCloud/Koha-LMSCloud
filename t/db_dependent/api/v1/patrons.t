@@ -460,6 +460,7 @@ subtest 'add() tests' => sub {
         delete $newpatron->{restricted};
         delete $newpatron->{expired};
         delete $newpatron->{anonymized};
+        delete $newpatron->{restriction_comment};
 
         # Create a library just to make sure its ID doesn't exist on the DB
         my $library_to_delete = $builder->build_object({ class => 'Koha::Libraries' });
@@ -515,6 +516,7 @@ subtest 'add() tests' => sub {
         delete $newpatron->{restricted};
         delete $newpatron->{expired};
         delete $newpatron->{anonymized};
+        delete $newpatron->{restriction_comment};
         $patron_to_delete->delete;
 
         # Set a date field
@@ -896,6 +898,7 @@ subtest 'update() tests' => sub {
         delete $newpatron->{restricted};
         delete $newpatron->{expired};
         delete $newpatron->{anonymized};
+        delete $newpatron->{restriction_comment};
 
         $t->put_ok("//$userid:$password@/api/v1/patrons/-1" => json => $newpatron)
           ->status_is(404)
@@ -1004,6 +1007,7 @@ subtest 'update() tests' => sub {
         delete $newpatron->{restricted};
         delete $newpatron->{expired};
         delete $newpatron->{anonymized};
+        delete $newpatron->{restriction_comment};
 
         # attempt to update
         $authorized_patron->flags( 2**4 )->store; # borrowers flag = 4
