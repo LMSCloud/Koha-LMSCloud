@@ -150,7 +150,9 @@ overrides in the future.
 =cut
 
 sub store {
-    my ($self) = @_;
+    my ( $self, $params ) = @_;
+
+    my $extended_attributes = $params->{extended_attributes};
 
     $self->_result->result_source->schema->txn_do(
         sub {
@@ -220,6 +222,11 @@ sub store {
             if ( !$self->in_storage ) {
                 $self->SUPER::store;
                 $self->discard_changes;
+
+                if ($extended_attributes) {
+                    $self->extended_attributes($extended_attributes);
+                }
+
                 $self->_send_notice( { notice => 'BOOKING_CONFIRMATION' } );
             } else {
                 my %updated_columns = $self->_result->get_dirty_columns;
@@ -227,6 +234,10 @@ sub store {
 
                 my $old_booking = $self->get_from_storage;
                 $self->SUPER::store;
+
+                if ($extended_attributes) {
+                    $self->extended_attributes($extended_attributes);
+                }
 
                 if ( exists( $updated_columns{status} ) && $updated_columns{status} eq 'cancelled' ) {
                     $self->_send_notice(
