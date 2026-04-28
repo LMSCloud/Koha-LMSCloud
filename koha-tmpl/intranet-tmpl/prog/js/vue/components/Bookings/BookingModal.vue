@@ -44,18 +44,18 @@
                         <hr
                             v-if="
                                 showPatronSelect ||
-                                showItemDetailsSelects ||
+                                effectiveShowItemDetailsSelects ||
                                 showPickupLocationSelect
                             "
                         />
                         <BookingDetailsStep
                             v-if="
-                                showItemDetailsSelects ||
+                                effectiveShowItemDetailsSelects ||
                                 showPickupLocationSelect
                             "
                             :step-number="stepNumber.details"
                             :details-enabled="readiness.dataReady"
-                            :show-item-details-selects="showItemDetailsSelects"
+                            :show-item-details-selects="effectiveShowItemDetailsSelects"
                             :show-pickup-location-select="
                                 showPickupLocationSelect
                             "
@@ -83,7 +83,7 @@
                         />
                         <hr
                             v-if="
-                                showItemDetailsSelects ||
+                                effectiveShowItemDetailsSelects ||
                                 showPickupLocationSelect
                             "
                         />
@@ -284,10 +284,19 @@ export default {
             return props.showPickupLocationSelect;
         });
 
+        const needsItemTypeSelect = computed(() =>
+            !props.showItemDetailsSelects &&
+            itemTypes.value.length > 1
+        );
+
+        const effectiveShowItemDetailsSelects = computed(() =>
+            props.showItemDetailsSelects || needsItemTypeSelect.value
+        );
+
         const stepNumber = computed(() => {
             return calculateStepNumbers(
                 props.showPatronSelect,
-                props.showItemDetailsSelects,
+                effectiveShowItemDetailsSelects.value,
                 showPickupLocationSelect.value,
                 props.showAdditionalFields,
                 modalState.hasAdditionalFields
@@ -401,7 +410,7 @@ export default {
                 (bookableItems.value?.length ?? 0) > 0
         );
         const formPrefilterValid = computed(() => {
-            const requireTypeOrItem = !!props.showItemDetailsSelects;
+            const requireTypeOrItem = !!props.showItemDetailsSelects || needsItemTypeSelect.value;
             const hasTypeOrItem =
                 !!bookingItemId.value || !!bookingItemtypeId.value;
             const patronOk = !props.showPatronSelect || !!bookingPatron.value;
@@ -797,6 +806,7 @@ export default {
             hasPositiveCapacity,
             zeroCapacityMessage,
             showCapacityWarning,
+            effectiveShowItemDetailsSelects,
         };
     },
 };
