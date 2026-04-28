@@ -113,9 +113,7 @@ export function populateDynamicFilterOptionsFromData(data, filterManager) {
 
     // Only update itemtype options from data if they weren't pre-fetched from the API
     // (the API fetch provides a complete list with parent-child hierarchy)
-    const existingItemTypeOptions = /** @type {any} */ (window)[
-        "getItemTypeOptions"
-    ];
+    const existingItemTypeOptions = /** @type {any} */ (window)["getItemTypeOptions"];
     if (!existingItemTypeOptions || existingItemTypeOptions.length === 0) {
         filterManager.filterOptions.getItemTypeOptions = itemTypeOptions;
         /** @type {any} */ (window)["getItemTypeOptions"] = itemTypeOptions;

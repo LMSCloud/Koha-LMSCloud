@@ -70,10 +70,7 @@ function createInstance(tableId) {
             const statusOptions = getStandardStatusOptions();
 
             // Use pre-fetched itemtype options from API if available
-            const apiFetchedItemTypes = getWindowValue(
-                "getItemTypeOptions",
-                []
-            );
+            const apiFetchedItemTypes = getWindowValue("getItemTypeOptions", []);
 
             this.filterOptions = {
                 getLibraryOptions: all_libraries,
