@@ -262,8 +262,8 @@ subtest 'Rental fee discount sysprefs (IssuingDiscardRentalFeesOfPatronCategory)
     );
     my $item = $builder->build_sample_item(
         {
-            itype      => $itemtype->itemtype,
-            library    => $library->branchcode,
+            itype   => $itemtype->itemtype,
+            library => $library->branchcode,
         }
     );
 

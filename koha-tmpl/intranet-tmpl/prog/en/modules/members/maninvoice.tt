@@ -92,7 +92,8 @@
                             <li class="additional_field"><label for="quantity">Quantity: </label><input type="text" name="quantity" id="quantity" value="1" /></li>
                             <li
                                 ><label for="amount">Amount: </label
-                                ><input type="number" step="0.01" lang="[% lang | html %]" inputmode="decimal" pattern="^\d+(\.\d{2})?$" name="amount" id="amount" required="required" min="0" value="[% amount | $Price on_editing => 1 %]" /> Example: 5.00</li
+                                ><input type="number" step="0.01" lang="[% lang | html %]" inputmode="decimal" pattern="^\d+(\.\d{2})?$" name="amount" id="amount" required="required" min="0" value="[% amount | $Price on_editing => 1 %]" />
+                                Example: 5.00</li
                             >
                         </ol>
                     </fieldset>
@@ -117,50 +118,50 @@
     <!-- /.toptabs -->
 [% END %]
 
-    [% MACRO jsinclude BLOCK %]
-        [% INCLUDE 'str/members-menu.inc' %]
-        [% Asset.js("js/members-menu.js") | $raw %]
-        [% Asset.js("js/additional-fields-entry.js") | $raw %]
-        <script>
-            var type_fees = {};
-            [% FOREACH debit_type IN debit_types %]
-                type_fees['[% debit_type.code | html %]'] = "[% IF debit_type.default_amount %][% debit_type.default_amount | $Price on_editing => 1 %][% END %]";
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'str/members-menu.inc' %]
+    [% Asset.js("js/members-menu.js") | $raw %]
+    [% Asset.js("js/additional-fields-entry.js") | $raw %]
+    <script>
+        var type_fees = {};
+        [% FOREACH debit_type IN debit_types %]
+            type_fees['[% debit_type.code | html %]'] = "[% IF debit_type.default_amount %][% debit_type.default_amount | $Price on_editing => 1 %][% END %]";
+        [% END %]
+        $(document).ready(function(){
+            $('#maninvoice').preventDoubleFormSubmit();
+            $("fieldset.rows input, fieldset.rows select").addClass("noEnterSubmit");
+            $("#invoice_type").on("change",function(){
+                this.form.desc.value = this.options[this.selectedIndex].value;
+                this.form.amount.value = type_fees[this.options[this.selectedIndex].value];
+            });
+            [% UNLESS amount.defined %]
+            $("#maninvoice #desc").val($("#maninvoice #type option:selected").text());
+            $("#maninvoice #amount").val(type_fees[$("#maninvoice #type option:selected").val()].replace(",","."));
+            $("#maninvoice #cost").val(type_fees[$("#maninvoice #type option:selected").val()].replace(",","."));
+            if(!type_fees[$("#maninvoice #type option:selected").val()]){
+                $("#maninvoice li.additional_field").hide();
+            }
             [% END %]
-            $(document).ready(function(){
-                $('#maninvoice').preventDoubleFormSubmit();
-                $("fieldset.rows input, fieldset.rows select").addClass("noEnterSubmit");
-                $("#invoice_type").on("change",function(){
-                    this.form.desc.value = this.options[this.selectedIndex].value;
-                    this.form.amount.value = type_fees[this.options[this.selectedIndex].value];
-                });
-                [% UNLESS amount.defined %]
-                $("#maninvoice #desc").val($("#maninvoice #type option:selected").text());
-                $("#maninvoice #amount").val(type_fees[$("#maninvoice #type option:selected").val()].replace(",","."));
-                $("#maninvoice #cost").val(type_fees[$("#maninvoice #type option:selected").val()].replace(",","."));
-                if(!type_fees[$("#maninvoice #type option:selected").val()]){
+            $("#maninvoice #type").change(function(){
+                $("#maninvoice #desc").val($(this).find("option:selected").text());
+                $("#maninvoice #amount").val(type_fees[$(this).val()].replace(",","."));
+                $("#maninvoice #cost").val(type_fees[$(this).val()].replace(",","."));
+                $("#maninvoice #quantity").val('1');
+                if(type_fees[$(this).val()]){
+                    $("#maninvoice li.additional_field").show();
+                }
+                else{
                     $("#maninvoice li.additional_field").hide();
                 }
-                [% END %]
-                $("#maninvoice #type").change(function(){
-                    $("#maninvoice #desc").val($(this).find("option:selected").text());
-                    $("#maninvoice #amount").val(type_fees[$(this).val()].replace(",","."));
-                    $("#maninvoice #cost").val(type_fees[$(this).val()].replace(",","."));
-                    $("#maninvoice #quantity").val('1');
-                    if(type_fees[$(this).val()]){
-                        $("#maninvoice li.additional_field").show();
-                    }
-                    else{
-                        $("#maninvoice li.additional_field").hide();
-                    }
-                });
-                $("#maninvoice #quantity").blur(function(){
-                    $("#maninvoice #amount").val(($("#maninvoice #cost").val() * $(this).val()).toFixed(2));
-                })
-                $("#maninvoice #cost").blur(function(){
-                    $("#maninvoice #amount").val(($("#maninvoice #quantity").val() * $(this).val()).toFixed(2));
-                })
             });
-        </script>
-    [% END %]
+            $("#maninvoice #quantity").blur(function(){
+                $("#maninvoice #amount").val(($("#maninvoice #cost").val() * $(this).val()).toFixed(2));
+            })
+            $("#maninvoice #cost").blur(function(){
+                $("#maninvoice #amount").val(($("#maninvoice #quantity").val() * $(this).val()).toFixed(2));
+            })
+        });
+    </script>
+[% END %]
 
-    [% INCLUDE 'intranet-bottom.inc' %]
+[% INCLUDE 'intranet-bottom.inc' %]

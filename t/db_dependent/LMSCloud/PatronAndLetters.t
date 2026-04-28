@@ -101,9 +101,8 @@ subtest 'Family card guarantor relationship validation' => sub {
         }
     );
 
-    my $relationship = $guarantee_child->add_guarantor(
-        { guarantor_id => $guarantor->borrowernumber, relationship => 'parent' }
-    );
+    my $relationship =
+        $guarantee_child->add_guarantor( { guarantor_id => $guarantor->borrowernumber, relationship => 'parent' } );
     ok( $relationship, 'Successfully linked child guarantee to family card guarantor' );
 
     is(
@@ -127,9 +126,8 @@ subtest 'Family card guarantor relationship validation' => sub {
         }
     );
 
-    my $adult_relationship = $guarantee_adult->add_guarantor(
-        { guarantor_id => $guarantor->borrowernumber, relationship => 'guardian' }
-    );
+    my $adult_relationship =
+        $guarantee_adult->add_guarantor( { guarantor_id => $guarantor->borrowernumber, relationship => 'guardian' } );
     ok( $adult_relationship, 'Successfully linked adult guarantee to family card guarantor' );
 
     is(
@@ -147,7 +145,10 @@ subtest 'Family card guarantor relationship validation' => sub {
         }
     );
 
-    is( $standalone_patron->get_family_card_id, undef, 'get_family_card_id returns undef for patron without guarantor' );
+    is(
+        $standalone_patron->get_family_card_id, undef,
+        'get_family_card_id returns undef for patron without guarantor'
+    );
     ok( !$standalone_patron->is_family_card, 'Patron with regular category returns false for is_family_card' );
 
     my $non_family_guarantor = $builder->build_object(
@@ -171,8 +172,7 @@ subtest 'Family card guarantor relationship validation' => sub {
     );
 
     $non_family_child->add_guarantor(
-        { guarantor_id => $non_family_guarantor->borrowernumber, relationship => 'parent' }
-    );
+        { guarantor_id => $non_family_guarantor->borrowernumber, relationship => 'parent' } );
 
     my $nf_relationships = $non_family_child->guarantor_relationships;
     ok(

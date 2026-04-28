@@ -141,19 +141,21 @@ export function createBookingsTable(
         !(/** @type {any} */ (options)._itemTypesFetched)
     ) {
         return /** @type {any} */ (
-            fetchItemTypeFilterOptions().then(({ options: itOptions, parentMap, groups }) => {
-                setWindowValue("getItemTypeOptions", itOptions);
-                return createBookingsTable(
-                    tableElement,
-                    tableSettings,
-                    /** @type {any} */ ({
-                        ...options,
-                        _itemTypesFetched: true,
-                        _itemTypeParentMap: parentMap,
-                        _itemTypeGroups: groups,
-                    })
-                );
-            })
+            fetchItemTypeFilterOptions().then(
+                ({ options: itOptions, parentMap, groups }) => {
+                    setWindowValue("getItemTypeOptions", itOptions);
+                    return createBookingsTable(
+                        tableElement,
+                        tableSettings,
+                        /** @type {any} */ ({
+                            ...options,
+                            _itemTypesFetched: true,
+                            _itemTypeParentMap: parentMap,
+                            _itemTypeGroups: groups,
+                        })
+                    );
+                }
+            )
         );
     }
 
@@ -329,9 +331,11 @@ export function createBookingsTable(
                 quickToggles:
                     /** @type {any} */ (options).quickTogglesEnabled === true,
                 // Parent-child itemtype map for search expansion
-                itemTypeParentMap: /** @type {any} */ (options)._itemTypeParentMap || {},
+                itemTypeParentMap:
+                    /** @type {any} */ (options)._itemTypeParentMap || {},
                 // Grouped itemtype data for building optgroup selects
-                itemTypeGroups: /** @type {any} */ (options)._itemTypeGroups || [],
+                itemTypeGroups:
+                    /** @type {any} */ (options)._itemTypeGroups || [],
             }
         );
     }
@@ -543,10 +547,17 @@ function wireEnhancements(
         updateDynamicFilterDropdowns(tableElement, filterManager);
 
         // Enhance itemtype filter to expand parent selections to include children
-        const parentMap = enhancementOptions && enhancementOptions.itemTypeParentMap;
+        const parentMap =
+            enhancementOptions && enhancementOptions.itemTypeParentMap;
         const groups = enhancementOptions && enhancementOptions.itemTypeGroups;
         if (parentMap && Object.keys(parentMap).length > 0) {
-            enhanceItemTypeFilterSearch(dataTable, tableElement, parentMap, additionalFilters, groups || []);
+            enhanceItemTypeFilterSearch(
+                dataTable,
+                tableElement,
+                parentMap,
+                additionalFilters,
+                groups || []
+            );
         }
     });
     dataTable.on("xhr.dt", function () {
@@ -564,7 +575,13 @@ function wireEnhancements(
  * @param {Object<string, any>} additionalFilters - The additionalFilters object passed to kohaTable
  * @param {Array<any>} groups - Grouped itemtype data with parent/children structure
  */
-function enhanceItemTypeFilterSearch(dataTable, tableElement, parentMap, additionalFilters, groups) {
+function enhanceItemTypeFilterSearch(
+    dataTable,
+    tableElement,
+    parentMap,
+    additionalFilters,
+    groups
+) {
     const $root = $(/** @type {any} */ (tableElement));
     const filterRowIndex = BOOKING_TABLE_CONSTANTS.FILTER_ROW_INDEX;
     $root.find("thead tr:eq(" + filterRowIndex + ") th").each(function () {
@@ -579,16 +596,25 @@ function enhanceItemTypeFilterSearch(dataTable, tableElement, parentMap, additio
             const $select = $('<select><option value=""></option></select>');
             groups.forEach(group => {
                 if (group.children && group.children.length > 0) {
-                    const $optgroup = $("<optgroup/>").attr("label", group._str);
+                    const $optgroup = $("<optgroup/>").attr(
+                        "label",
+                        group._str
+                    );
                     $optgroup.append(
-                        $("<option/>").val(group._id).text(group._str + " (" + __("All") + ")")
+                        $("<option/>")
+                            .val(group._id)
+                            .text(group._str + " (" + __("All") + ")")
                     );
                     group.children.forEach(child => {
-                        $optgroup.append($("<option/>").val(child._id).text(child._str));
+                        $optgroup.append(
+                            $("<option/>").val(child._id).text(child._str)
+                        );
                     });
                     $select.append($optgroup);
                 } else {
-                    $select.append($("<option/>").val(group._id).text(group._str));
+                    $select.append(
+                        $("<option/>").val(group._id).text(group._str)
+                    );
                 }
             });
             $th.empty().append($select);

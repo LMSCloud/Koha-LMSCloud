@@ -42,14 +42,14 @@ subtest 'Koha::Illrequest shim' => sub {
 
     my $item = $builder->build_sample_item;
     my ( $is_ill, $request ) = Koha::Illrequest->checkIfIllItem( $item->unblessed );
-    is( $is_ill, 0,     'checkIfIllItem returns 0 when IllModule is off' );
+    is( $is_ill,  0,     'checkIfIllItem returns 0 when IllModule is off' );
     is( $request, undef, 'checkIfIllItem returns undef request when IllModule is off' );
 
     t::lib::Mocks::mock_preference( 'IllModule',    1 );
     t::lib::Mocks::mock_preference( 'IllItemtypes', $item->itype );
 
     my ( $is_ill_on, $request_on ) = Koha::Illrequest->checkIfIllItem( $item->unblessed );
-    is( $is_ill_on, 1, 'checkIfIllItem returns 1 when IllModule is on and itype matches' );
+    is( $is_ill_on,  1,     'checkIfIllItem returns 1 when IllModule is on and itype matches' );
     is( $request_on, undef, 'checkIfIllItem returns undef request when no ILL request exists for biblio' );
 
     $schema->storage->txn_rollback;

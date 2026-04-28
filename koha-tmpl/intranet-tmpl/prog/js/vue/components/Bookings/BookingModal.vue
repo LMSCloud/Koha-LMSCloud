@@ -55,7 +55,9 @@
                             "
                             :step-number="stepNumber.details"
                             :details-enabled="readiness.dataReady"
-                            :show-item-details-selects="effectiveShowItemDetailsSelects"
+                            :show-item-details-selects="
+                                effectiveShowItemDetailsSelects
+                            "
                             :show-pickup-location-select="
                                 showPickupLocationSelect
                             "
@@ -142,14 +144,7 @@
 
 <script>
 import { toISO } from "./lib/booking/date-utils.mjs";
-import {
-    computed,
-    ref,
-    reactive,
-    watch,
-    nextTick,
-    onUnmounted,
-} from "vue";
+import { computed, ref, reactive, watch, nextTick, onUnmounted } from "vue";
 import BookingPatronStep from "./BookingPatronStep.vue";
 import BookingDetailsStep from "./BookingDetailsStep.vue";
 import BookingPeriodStep from "./BookingPeriodStep.vue";
@@ -164,7 +159,10 @@ import {
 import { useBookingStore } from "../../stores/bookingStore";
 import { storeToRefs } from "pinia";
 import { updateExternalDependents } from "./lib/adapters/external-dependents.mjs";
-import { enableBodyScroll, disableBodyScroll } from "./lib/adapters/modal-scroll.mjs";
+import {
+    enableBodyScroll,
+    disableBodyScroll,
+} from "./lib/adapters/modal-scroll.mjs";
 import { appendHiddenInputs } from "./lib/adapters/form.mjs";
 import { calculateStepNumbers } from "./lib/ui/steps.mjs";
 import { useBookingValidation } from "./composables/useBookingValidation.mjs";
@@ -205,7 +203,8 @@ export default {
         submitType: {
             type: String,
             default: "api",
-            validator: value => ["api", "form-submission"].includes(String(value)),
+            validator: value =>
+                ["api", "form-submission"].includes(String(value)),
         },
         submitUrl: { type: String, default: "" },
         extendedAttributes: { type: Array, default: () => [] },
@@ -225,7 +224,10 @@ export default {
             type: Function,
             default: null,
         },
-        opacDefaultBookingLibraryEnabled: { type: [Boolean, String], default: null },
+        opacDefaultBookingLibraryEnabled: {
+            type: [Boolean, String],
+            default: null,
+        },
         opacDefaultBookingLibrary: { type: String, default: null },
     },
     emits: ["close"],
@@ -277,20 +279,20 @@ export default {
         // In staff: use the explicit prop
         const showPickupLocationSelect = computed(() => {
             if (props.opacDefaultBookingLibraryEnabled !== null) {
-                const enabled = props.opacDefaultBookingLibraryEnabled === true ||
+                const enabled =
+                    props.opacDefaultBookingLibraryEnabled === true ||
                     String(props.opacDefaultBookingLibraryEnabled) === "1";
                 return !enabled;
             }
             return props.showPickupLocationSelect;
         });
 
-        const needsItemTypeSelect = computed(() =>
-            !props.showItemDetailsSelects &&
-            itemTypes.value.length > 1
+        const needsItemTypeSelect = computed(
+            () => !props.showItemDetailsSelects && itemTypes.value.length > 1
         );
 
-        const effectiveShowItemDetailsSelects = computed(() =>
-            props.showItemDetailsSelects || needsItemTypeSelect.value
+        const effectiveShowItemDetailsSelects = computed(
+            () => props.showItemDetailsSelects || needsItemTypeSelect.value
         );
 
         const stepNumber = computed(() => {
@@ -385,21 +387,24 @@ export default {
         }));
 
         // Centralized capacity guard (extracts UI warning state)
-        const { hasPositiveCapacity, zeroCapacityMessage, showCapacityWarning } =
-            useCapacityGuard({
-                circulationRules,
-                circulationRulesContext,
-                loading,
-                bookableItems,
-                bookingPatron,
-                bookingItemId,
-                bookingItemtypeId,
-                pickupLibraryId,
-                showPatronSelect: props.showPatronSelect,
-                showItemDetailsSelects: props.showItemDetailsSelects,
-                showPickupLocationSelect: showPickupLocationSelect.value,
-                dateRangeConstraint: props.dateRangeConstraint,
-            });
+        const {
+            hasPositiveCapacity,
+            zeroCapacityMessage,
+            showCapacityWarning,
+        } = useCapacityGuard({
+            circulationRules,
+            circulationRulesContext,
+            loading,
+            bookableItems,
+            bookingPatron,
+            bookingItemId,
+            bookingItemtypeId,
+            pickupLibraryId,
+            showPatronSelect: props.showPatronSelect,
+            showItemDetailsSelects: props.showItemDetailsSelects,
+            showPickupLocationSelect: showPickupLocationSelect.value,
+            dateRangeConstraint: props.dateRangeConstraint,
+        });
 
         // Readiness flags
         const dataReady = computed(
@@ -410,7 +415,8 @@ export default {
                 (bookableItems.value?.length ?? 0) > 0
         );
         const formPrefilterValid = computed(() => {
-            const requireTypeOrItem = !!props.showItemDetailsSelects || needsItemTypeSelect.value;
+            const requireTypeOrItem =
+                !!props.showItemDetailsSelects || needsItemTypeSelect.value;
             const hasTypeOrItem =
                 !!bookingItemId.value || !!bookingItemtypeId.value;
             const patronOk = !props.showPatronSelect || !!bookingPatron.value;
@@ -421,7 +427,8 @@ export default {
         );
 
         const isCalendarReady = computed(() => {
-            const basicReady = dataReady.value &&
+            const basicReady =
+                dataReady.value &&
                 formPrefilterValid.value &&
                 hasAvailableItems.value;
             if (!basicReady) return false;
@@ -512,7 +519,13 @@ export default {
                     // Set other form values after all dependencies are loaded
 
                     // Normalize itemId type to match bookableItems' item_id type for vue-select strict matching
-                    bookingItemId.value = (props.itemId != null) ? normalizeIdType(bookableItems.value?.[0]?.item_id, props.itemId) : null;
+                    bookingItemId.value =
+                        props.itemId != null
+                            ? normalizeIdType(
+                                  bookableItems.value?.[0]?.item_id,
+                                  props.itemId
+                              )
+                            : null;
                     if (props.itemtypeId) {
                         bookingItemtypeId.value = props.itemtypeId;
                     }
@@ -575,7 +588,8 @@ export default {
             bookingPatron,
             pickupLocations,
             bookableItems,
-            opacDefaultBookingLibraryEnabled: props.opacDefaultBookingLibraryEnabled,
+            opacDefaultBookingLibraryEnabled:
+                props.opacDefaultBookingLibraryEnabled,
             opacDefaultBookingLibrary: props.opacDefaultBookingLibrary,
         });
 
@@ -591,10 +605,19 @@ export default {
                 () => loading.value.circulationRules,
                 () => loading.value.pickupLocations,
             ],
-            ([availableItems, patron, pickupLibrary, itemtypeId, isDataReady]) => {
+            ([
+                availableItems,
+                patron,
+                pickupLibrary,
+                itemtypeId,
+                isDataReady,
+            ]) => {
                 // Only show error if data is loaded and user has made selections that result in no items
                 // Wait for pickup locations and circulation rules to finish loading to avoid false positives
-                const pickupLocationsReady = !pickupLibrary || (!loading.value.pickupLocations && pickupLocations.value.length > 0);
+                const pickupLocationsReady =
+                    !pickupLibrary ||
+                    (!loading.value.pickupLocations &&
+                        pickupLocations.value.length > 0);
                 const circulationRulesReady = !loading.value.circulationRules;
 
                 if (
@@ -668,7 +691,6 @@ export default {
             store.resetErrors();
         }
 
-
         function resetModalState() {
             bookingPatron.value = null;
             pickupLibraryId.value = null;
@@ -698,7 +720,10 @@ export default {
             const selectedDates = selectedDateRange.value;
 
             if (!selectedDates || selectedDates.length === 0) {
-                setError($__("Please select a valid date range"), "invalid_date_range");
+                setError(
+                    $__("Please select a valid date range"),
+                    "invalid_date_range"
+                );
                 return;
             }
 
@@ -731,21 +756,22 @@ export default {
                     );
                 }
 
-                appendHiddenInputs(
-                    form,
-                    [
-                        ...Object.entries(dataToSubmit),
-                        [csrfToken?.name, csrfToken?.value],
-                        ['op', 'cud-add'],
-                    ]
-                );
+                appendHiddenInputs(form, [
+                    ...Object.entries(dataToSubmit),
+                    [csrfToken?.name, csrfToken?.value],
+                    ["op", "cud-add"],
+                ]);
                 form.submit();
                 return;
             }
 
             try {
                 const result = await store.saveOrUpdateBooking(bookingData);
-                updateExternalDependents(result, bookingPatron.value, !!props.bookingId);
+                updateExternalDependents(
+                    result,
+                    bookingPatron.value,
+                    !!props.bookingId
+                );
                 emit("close");
                 resetModalState();
             } catch (errorObj) {
@@ -1021,7 +1047,8 @@ hr {
     border: var(--booking-border-width) solid var(--booking-neutral-300);
     border-radius: var(--booking-border-radius-sm);
     font-size: var(--booking-text-base);
-    transition: border-color var(--booking-transition-fast),
+    transition:
+        border-color var(--booking-transition-fast),
         box-shadow var(--booking-transition-fast);
 }
 
